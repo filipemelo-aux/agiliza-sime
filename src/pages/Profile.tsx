@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck } from "lucide-react";
+import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck, Building2, CreditCard, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,12 @@ interface Profile {
   user_id: string;
   full_name: string;
   phone: string;
+  bank_name: string | null;
+  bank_agency: string | null;
+  bank_account: string | null;
+  bank_account_type: string | null;
+  pix_key_type: string | null;
+  pix_key: string | null;
 }
 
 interface MaskedDocuments {
@@ -32,6 +39,12 @@ export default function Profile() {
   const [editData, setEditData] = useState({
     full_name: "",
     phone: "",
+    bank_name: "",
+    bank_agency: "",
+    bank_account: "",
+    bank_account_type: "",
+    pix_key_type: "",
+    pix_key: "",
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,7 +80,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, phone")
+        .select("id, user_id, full_name, phone, bank_name, bank_agency, bank_account, bank_account_type, pix_key_type, pix_key")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -82,6 +95,12 @@ export default function Profile() {
       setEditData({
         full_name: data.full_name,
         phone: data.phone,
+        bank_name: data.bank_name || "",
+        bank_agency: data.bank_agency || "",
+        bank_account: data.bank_account || "",
+        bank_account_type: data.bank_account_type || "",
+        pix_key_type: data.pix_key_type || "",
+        pix_key: data.pix_key || "",
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -109,14 +128,25 @@ export default function Profile() {
     setSaving(true);
 
     try {
+      const updateData = {
+        full_name: editData.full_name,
+        phone: editData.phone,
+        bank_name: editData.bank_name || null,
+        bank_agency: editData.bank_agency || null,
+        bank_account: editData.bank_account || null,
+        bank_account_type: editData.bank_account_type || null,
+        pix_key_type: editData.pix_key_type || null,
+        pix_key: editData.pix_key || null,
+      };
+
       const { error } = await supabase
         .from("profiles")
-        .update(editData)
+        .update(updateData)
         .eq("id", profile.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...editData });
+      setProfile({ ...profile, ...updateData });
       setEditing(false);
       toast({
         title: "Perfil atualizado",
@@ -175,6 +205,12 @@ export default function Profile() {
                       setEditData({
                         full_name: profile.full_name,
                         phone: profile.phone,
+                        bank_name: profile.bank_name || "",
+                        bank_agency: profile.bank_agency || "",
+                        bank_account: profile.bank_account || "",
+                        bank_account_type: profile.bank_account_type || "",
+                        pix_key_type: profile.pix_key_type || "",
+                        pix_key: profile.pix_key || "",
                       });
                     }
                   }}
@@ -239,6 +275,158 @@ export default function Profile() {
                   ) : (
                     <p className="font-medium">{profile.phone}</p>
                   )}
+                </div>
+              </div>
+
+              {/* Banking Information */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary" />
+                  Dados Bancários
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-muted-foreground">
+                      <Building2 className="w-4 h-4" />
+                      Banco
+                    </Label>
+                    {editing ? (
+                      <Input
+                        value={editData.bank_name}
+                        onChange={(e) =>
+                          setEditData({ ...editData, bank_name: e.target.value })
+                        }
+                        placeholder="Nome do banco"
+                        className="input-transport"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile.bank_name || "Não informado"}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Agência</Label>
+                    {editing ? (
+                      <Input
+                        value={editData.bank_agency}
+                        onChange={(e) =>
+                          setEditData({ ...editData, bank_agency: e.target.value })
+                        }
+                        placeholder="0000"
+                        className="input-transport"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile.bank_agency || "Não informado"}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-muted-foreground">
+                      <CreditCard className="w-4 h-4" />
+                      Conta
+                    </Label>
+                    {editing ? (
+                      <Input
+                        value={editData.bank_account}
+                        onChange={(e) =>
+                          setEditData({ ...editData, bank_account: e.target.value })
+                        }
+                        placeholder="00000-0"
+                        className="input-transport"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile.bank_account || "Não informado"}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Tipo de Conta</Label>
+                    {editing ? (
+                      <Select
+                        value={editData.bank_account_type}
+                        onValueChange={(value) =>
+                          setEditData({ ...editData, bank_account_type: value })
+                        }
+                      >
+                        <SelectTrigger className="input-transport">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="corrente">Conta Corrente</SelectItem>
+                          <SelectItem value="poupanca">Conta Poupança</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="font-medium">
+                        {profile.bank_account_type === "corrente"
+                          ? "Conta Corrente"
+                          : profile.bank_account_type === "poupanca"
+                          ? "Conta Poupança"
+                          : "Não informado"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* PIX Information */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Key className="w-5 h-5 text-primary" />
+                  Chave PIX
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Tipo de Chave</Label>
+                    {editing ? (
+                      <Select
+                        value={editData.pix_key_type}
+                        onValueChange={(value) =>
+                          setEditData({ ...editData, pix_key_type: value })
+                        }
+                      >
+                        <SelectTrigger className="input-transport">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cpf">CPF</SelectItem>
+                          <SelectItem value="cnpj">CNPJ</SelectItem>
+                          <SelectItem value="email">E-mail</SelectItem>
+                          <SelectItem value="telefone">Telefone</SelectItem>
+                          <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="font-medium">
+                        {editData.pix_key_type === "cpf"
+                          ? "CPF"
+                          : editData.pix_key_type === "cnpj"
+                          ? "CNPJ"
+                          : editData.pix_key_type === "email"
+                          ? "E-mail"
+                          : editData.pix_key_type === "telefone"
+                          ? "Telefone"
+                          : editData.pix_key_type === "aleatoria"
+                          ? "Chave Aleatória"
+                          : "Não informado"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 text-muted-foreground">
+                      <Key className="w-4 h-4" />
+                      Chave
+                    </Label>
+                    {editing ? (
+                      <Input
+                        value={editData.pix_key}
+                        onChange={(e) =>
+                          setEditData({ ...editData, pix_key: e.target.value })
+                        }
+                        placeholder="Sua chave PIX"
+                        className="input-transport"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile.pix_key || "Não informado"}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 

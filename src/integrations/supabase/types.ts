@@ -191,28 +191,46 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bank_account: string | null
+          bank_account_type: string | null
+          bank_agency: string | null
+          bank_name: string | null
           created_at: string
           full_name: string
           id: string
           phone: string
+          pix_key: string | null
+          pix_key_type: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bank_account?: string | null
+          bank_account_type?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
           created_at?: string
           full_name: string
           id?: string
           phone: string
+          pix_key?: string | null
+          pix_key_type?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bank_account?: string | null
+          bank_account_type?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
           created_at?: string
           full_name?: string
           id?: string
           phone?: string
+          pix_key?: string | null
+          pix_key_type?: string | null
           updated_at?: string
           user_id?: string
         }
