@@ -344,12 +344,12 @@ export default function EditVehicle() {
             <div className="bg-card rounded-xl border border-border p-6 space-y-5">
               <div className="grid md:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="plate">Placa do Cavalo</Label>
+                  <Label htmlFor="plate">Placa do Cavalo *</Label>
                   <Input
                     id="plate"
                     name="plate"
-                    placeholder="ABC1D23"
-                    maxLength={7}
+                    placeholder="ABC-1D23"
+                    maxLength={8}
                     value={vehicleData.plate}
                     onChange={handleChange}
                     className="input-transport uppercase"
@@ -360,11 +360,12 @@ export default function EditVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="renavam">RENAVAM</Label>
+                  <Label htmlFor="renavam">RENAVAM *</Label>
                   <Input
                     id="renavam"
                     name="renavam"
                     placeholder="00000000000"
+                    maxLength={11}
                     value={vehicleData.renavam}
                     onChange={handleChange}
                     className="input-transport"
@@ -375,7 +376,7 @@ export default function EditVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo de Veículo</Label>
+                  <Label>Tipo de Veículo *</Label>
                   <Select
                     value={vehicleData.vehicleType}
                     onValueChange={handleVehicleTypeChange}
@@ -397,7 +398,7 @@ export default function EditVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="brand">Marca</Label>
+                  <Label htmlFor="brand">Marca *</Label>
                   <Input
                     id="brand"
                     name="brand"
@@ -412,7 +413,7 @@ export default function EditVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="model">Modelo</Label>
+                  <Label htmlFor="model">Modelo *</Label>
                   <Input
                     id="model"
                     name="model"
@@ -427,12 +428,12 @@ export default function EditVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="year">Ano</Label>
+                  <Label htmlFor="year">Ano *</Label>
                   <Input
                     id="year"
                     name="year"
-                    type="number"
                     placeholder="2024"
+                    maxLength={4}
                     value={vehicleData.year}
                     onChange={handleChange}
                     className="input-transport"
@@ -456,7 +457,7 @@ export default function EditVehicle() {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-border">
-                <Label>Tipo de Carroceria</Label>
+                <Label>Tipo de Carroceria *</Label>
                 <RadioGroup
                   value={vehicleData.cargoType}
                   onValueChange={(value) => setVehicleData(prev => ({ ...prev, cargoType: value }))}
@@ -486,12 +487,12 @@ export default function EditVehicle() {
                     {trailerConfig.count >= 1 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]}</Label>
+                          <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]} *</Label>
                           <Input
                             id="trailerPlate1"
                             name="trailerPlate1"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
+                            maxLength={8}
                             value={vehicleData.trailerPlate1}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -501,11 +502,12 @@ export default function EditVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam1">RENAVAM {trailerConfig.labels[0]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam1">RENAVAM {trailerConfig.labels[0]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam1"
                             name="trailerRenavam1"
                             placeholder="00000000000"
+                            maxLength={11}
                             value={vehicleData.trailerRenavam1}
                             onChange={handleChange}
                             className="input-transport"
@@ -520,12 +522,12 @@ export default function EditVehicle() {
                     {trailerConfig.count >= 2 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]}</Label>
+                          <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]} *</Label>
                           <Input
                             id="trailerPlate2"
                             name="trailerPlate2"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
+                            maxLength={8}
                             value={vehicleData.trailerPlate2}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -535,11 +537,12 @@ export default function EditVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam2">RENAVAM {trailerConfig.labels[1]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam2">RENAVAM {trailerConfig.labels[1]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam2"
                             name="trailerRenavam2"
                             placeholder="00000000000"
+                            maxLength={11}
                             value={vehicleData.trailerRenavam2}
                             onChange={handleChange}
                             className="input-transport"
@@ -554,12 +557,12 @@ export default function EditVehicle() {
                     {trailerConfig.count >= 3 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]}</Label>
+                          <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]} *</Label>
                           <Input
                             id="trailerPlate3"
                             name="trailerPlate3"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
+                            maxLength={8}
                             value={vehicleData.trailerPlate3}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -569,11 +572,12 @@ export default function EditVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam3">RENAVAM {trailerConfig.labels[2]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam3">RENAVAM {trailerConfig.labels[2]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam3"
                             name="trailerRenavam3"
                             placeholder="00000000000"
+                            maxLength={11}
                             value={vehicleData.trailerRenavam3}
                             onChange={handleChange}
                             className="input-transport"
