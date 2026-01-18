@@ -10,31 +10,6 @@ export function useUserRole() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchRoles(session.user.id);
-        } else {
-          setRoles([]);
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchRoles(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const fetchRoles = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -53,6 +28,38 @@ export function useUserRole() {
       setIsAdmin(false);
     }
   };
+
+  useEffect(() => {
+    // Set up auth state listener - NO async functions here!
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        // Only synchronous state updates in callback
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Defer Supabase calls with setTimeout to prevent deadlock
+          setTimeout(() => {
+            fetchRoles(session.user.id);
+          }, 0);
+        } else {
+          setRoles([]);
+          setIsAdmin(false);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchRoles(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return { user, roles, isAdmin, loading };
 }
