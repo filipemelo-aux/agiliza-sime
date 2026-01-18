@@ -70,8 +70,11 @@ export default function AddVehicle() {
     anttNumber: "",
     cargoType: "",
     trailerPlate1: "",
+    trailerRenavam1: "",
     trailerPlate2: "",
+    trailerRenavam2: "",
     trailerPlate3: "",
+    trailerRenavam3: "",
   });
 
   const trailerConfig = trailerRequirements[vehicleData.vehicleType] || { count: 0, labels: [] };
@@ -110,40 +113,51 @@ export default function AddVehicle() {
     setVehicleData((prev) => ({ 
       ...prev, 
       vehicleType: value,
-      // Reset trailer plates when vehicle type changes
       trailerPlate1: "",
+      trailerRenavam1: "",
       trailerPlate2: "",
+      trailerRenavam2: "",
       trailerPlate3: "",
+      trailerRenavam3: "",
     }));
     setErrors((prev) => ({ ...prev, vehicleType: "" }));
   };
 
-  const validateTrailerPlates = (): Record<string, string> => {
+  const validateTrailerFields = (): Record<string, string> => {
     const trailerErrors: Record<string, string> = {};
     const config = trailerRequirements[vehicleData.vehicleType] || { count: 0, labels: [] };
     
-    if (config.count >= 1 && vehicleData.trailerPlate1) {
-      if (!plateRegex.test(vehicleData.trailerPlate1)) {
+    if (config.count >= 1) {
+      if (!vehicleData.trailerPlate1) {
+        trailerErrors.trailerPlate1 = "Placa obrigatória";
+      } else if (!plateRegex.test(vehicleData.trailerPlate1)) {
         trailerErrors.trailerPlate1 = "Placa inválida (formato: ABC1D23)";
       }
-    } else if (config.count >= 1 && !vehicleData.trailerPlate1) {
-      trailerErrors.trailerPlate1 = "Placa obrigatória";
+      if (!vehicleData.trailerRenavam1 || vehicleData.trailerRenavam1.length < 9) {
+        trailerErrors.trailerRenavam1 = "RENAVAM inválido";
+      }
     }
 
-    if (config.count >= 2 && vehicleData.trailerPlate2) {
-      if (!plateRegex.test(vehicleData.trailerPlate2)) {
+    if (config.count >= 2) {
+      if (!vehicleData.trailerPlate2) {
+        trailerErrors.trailerPlate2 = "Placa obrigatória";
+      } else if (!plateRegex.test(vehicleData.trailerPlate2)) {
         trailerErrors.trailerPlate2 = "Placa inválida (formato: ABC1D23)";
       }
-    } else if (config.count >= 2 && !vehicleData.trailerPlate2) {
-      trailerErrors.trailerPlate2 = "Placa obrigatória";
+      if (!vehicleData.trailerRenavam2 || vehicleData.trailerRenavam2.length < 9) {
+        trailerErrors.trailerRenavam2 = "RENAVAM inválido";
+      }
     }
 
-    if (config.count >= 3 && vehicleData.trailerPlate3) {
-      if (!plateRegex.test(vehicleData.trailerPlate3)) {
+    if (config.count >= 3) {
+      if (!vehicleData.trailerPlate3) {
+        trailerErrors.trailerPlate3 = "Placa obrigatória";
+      } else if (!plateRegex.test(vehicleData.trailerPlate3)) {
         trailerErrors.trailerPlate3 = "Placa inválida (formato: ABC1D23)";
       }
-    } else if (config.count >= 3 && !vehicleData.trailerPlate3) {
-      trailerErrors.trailerPlate3 = "Placa obrigatória";
+      if (!vehicleData.trailerRenavam3 || vehicleData.trailerRenavam3.length < 9) {
+        trailerErrors.trailerRenavam3 = "RENAVAM inválido";
+      }
     }
 
     return trailerErrors;
@@ -172,8 +186,8 @@ export default function AddVehicle() {
       }
     }
 
-    // Validate trailer plates
-    const trailerErrors = validateTrailerPlates();
+    // Validate trailer fields
+    const trailerErrors = validateTrailerFields();
     validationErrors = { ...validationErrors, ...trailerErrors };
 
     if (Object.keys(validationErrors).length > 0) {
@@ -195,8 +209,11 @@ export default function AddVehicle() {
         antt_number: vehicleData.anttNumber || null,
         cargo_type: vehicleData.cargoType || null,
         trailer_plate_1: vehicleData.trailerPlate1 || null,
+        trailer_renavam_1: vehicleData.trailerRenavam1 || null,
         trailer_plate_2: vehicleData.trailerPlate2 || null,
+        trailer_renavam_2: vehicleData.trailerRenavam2 || null,
         trailer_plate_3: vehicleData.trailerPlate3 || null,
+        trailer_renavam_3: vehicleData.trailerRenavam3 || null,
       }]);
 
       if (error) throw error;
@@ -389,58 +406,106 @@ export default function AddVehicle() {
                     </p>
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-5">
+                  <div className="grid gap-5">
                     {trailerConfig.count >= 1 && (
-                      <div className="space-y-2">
-                        <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]}</Label>
-                        <Input
-                          id="trailerPlate1"
-                          name="trailerPlate1"
-                          placeholder="ABC1D23"
-                          maxLength={7}
-                          value={vehicleData.trailerPlate1}
-                          onChange={handleChange}
-                          className="input-transport uppercase"
-                        />
-                        {errors.trailerPlate1 && (
-                          <p className="text-sm text-destructive">{errors.trailerPlate1}</p>
-                        )}
+                      <div className="grid md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]}</Label>
+                          <Input
+                            id="trailerPlate1"
+                            name="trailerPlate1"
+                            placeholder="ABC1D23"
+                            maxLength={7}
+                            value={vehicleData.trailerPlate1}
+                            onChange={handleChange}
+                            className="input-transport uppercase"
+                          />
+                          {errors.trailerPlate1 && (
+                            <p className="text-sm text-destructive">{errors.trailerPlate1}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerRenavam1">RENAVAM {trailerConfig.labels[0]?.replace("Placa ", "")}</Label>
+                          <Input
+                            id="trailerRenavam1"
+                            name="trailerRenavam1"
+                            placeholder="00000000000"
+                            value={vehicleData.trailerRenavam1}
+                            onChange={handleChange}
+                            className="input-transport"
+                          />
+                          {errors.trailerRenavam1 && (
+                            <p className="text-sm text-destructive">{errors.trailerRenavam1}</p>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {trailerConfig.count >= 2 && (
-                      <div className="space-y-2">
-                        <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]}</Label>
-                        <Input
-                          id="trailerPlate2"
-                          name="trailerPlate2"
-                          placeholder="ABC1D23"
-                          maxLength={7}
-                          value={vehicleData.trailerPlate2}
-                          onChange={handleChange}
-                          className="input-transport uppercase"
-                        />
-                        {errors.trailerPlate2 && (
-                          <p className="text-sm text-destructive">{errors.trailerPlate2}</p>
-                        )}
+                      <div className="grid md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]}</Label>
+                          <Input
+                            id="trailerPlate2"
+                            name="trailerPlate2"
+                            placeholder="ABC1D23"
+                            maxLength={7}
+                            value={vehicleData.trailerPlate2}
+                            onChange={handleChange}
+                            className="input-transport uppercase"
+                          />
+                          {errors.trailerPlate2 && (
+                            <p className="text-sm text-destructive">{errors.trailerPlate2}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerRenavam2">RENAVAM {trailerConfig.labels[1]?.replace("Placa ", "")}</Label>
+                          <Input
+                            id="trailerRenavam2"
+                            name="trailerRenavam2"
+                            placeholder="00000000000"
+                            value={vehicleData.trailerRenavam2}
+                            onChange={handleChange}
+                            className="input-transport"
+                          />
+                          {errors.trailerRenavam2 && (
+                            <p className="text-sm text-destructive">{errors.trailerRenavam2}</p>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {trailerConfig.count >= 3 && (
-                      <div className="space-y-2">
-                        <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]}</Label>
-                        <Input
-                          id="trailerPlate3"
-                          name="trailerPlate3"
-                          placeholder="ABC1D23"
-                          maxLength={7}
-                          value={vehicleData.trailerPlate3}
-                          onChange={handleChange}
-                          className="input-transport uppercase"
-                        />
-                        {errors.trailerPlate3 && (
-                          <p className="text-sm text-destructive">{errors.trailerPlate3}</p>
-                        )}
+                      <div className="grid md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]}</Label>
+                          <Input
+                            id="trailerPlate3"
+                            name="trailerPlate3"
+                            placeholder="ABC1D23"
+                            maxLength={7}
+                            value={vehicleData.trailerPlate3}
+                            onChange={handleChange}
+                            className="input-transport uppercase"
+                          />
+                          {errors.trailerPlate3 && (
+                            <p className="text-sm text-destructive">{errors.trailerPlate3}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="trailerRenavam3">RENAVAM {trailerConfig.labels[2]?.replace("Placa ", "")}</Label>
+                          <Input
+                            id="trailerRenavam3"
+                            name="trailerRenavam3"
+                            placeholder="00000000000"
+                            value={vehicleData.trailerRenavam3}
+                            onChange={handleChange}
+                            className="input-transport"
+                          />
+                          {errors.trailerRenavam3 && (
+                            <p className="text-sm text-destructive">{errors.trailerRenavam3}</p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

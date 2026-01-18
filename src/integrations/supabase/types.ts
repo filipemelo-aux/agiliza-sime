@@ -309,6 +309,9 @@ export type Database = {
           trailer_plate_1: string | null
           trailer_plate_2: string | null
           trailer_plate_3: string | null
+          trailer_renavam_1: string | null
+          trailer_renavam_2: string | null
+          trailer_renavam_3: string | null
           updated_at: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -327,6 +330,9 @@ export type Database = {
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
           trailer_plate_3?: string | null
+          trailer_renavam_1?: string | null
+          trailer_renavam_2?: string | null
+          trailer_renavam_3?: string | null
           updated_at?: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -345,6 +351,9 @@ export type Database = {
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
           trailer_plate_3?: string | null
+          trailer_renavam_1?: string | null
+          trailer_renavam_2?: string | null
+          trailer_renavam_3?: string | null
           updated_at?: string
           user_id?: string
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
