@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      driver_documents: {
+        Row: {
+          cnh_category: string
+          cnh_expiry: string
+          cnh_number: string
+          cpf: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cnh_category: string
+          cnh_expiry: string
+          cnh_number: string
+          cpf: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cnh_category?: string
+          cnh_expiry?: string
+          cnh_number?: string
+          cpf?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       freight_applications: {
         Row: {
           applied_at: string
@@ -158,10 +191,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          cnh_category: string
-          cnh_expiry: string
-          cnh_number: string
-          cpf: string
           created_at: string
           full_name: string
           id: string
@@ -171,10 +200,6 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          cnh_category: string
-          cnh_expiry: string
-          cnh_number: string
-          cpf: string
           created_at?: string
           full_name: string
           id?: string
@@ -184,10 +209,6 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          cnh_category?: string
-          cnh_expiry?: string
-          cnh_number?: string
-          cpf?: string
           created_at?: string
           full_name?: string
           id?: string
@@ -306,6 +327,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_masked_documents: {
+        Args: never
+        Returns: {
+          cnh_category: string
+          cnh_expiry: string
+          cnh_masked: string
+          cpf_masked: string
+          has_valid_cnh: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -313,6 +344,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

@@ -153,18 +153,25 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Create profile
+      // Create profile (without sensitive document data)
       const { error: profileError } = await supabase.from("profiles").insert({
         user_id: user.id,
         full_name: profileData.fullName,
-        cpf: profileData.cpf,
         phone: profileData.phone,
+      });
+
+      if (profileError) throw profileError;
+
+      // Create driver documents (sensitive data in separate table)
+      const { error: docsError } = await supabase.from("driver_documents").insert({
+        user_id: user.id,
+        cpf: profileData.cpf,
         cnh_number: profileData.cnhNumber,
         cnh_category: profileData.cnhCategory,
         cnh_expiry: profileData.cnhExpiry,
       });
 
-      if (profileError) throw profileError;
+      if (docsError) throw docsError;
 
       // Create vehicle
       const { error: vehicleError } = await supabase.from("vehicles").insert([{
