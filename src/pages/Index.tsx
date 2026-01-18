@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Truck, MapPin, Package } from "lucide-react";
+import { Search, Truck, MapPin, Package } from "lucide-react";
 import { Header } from "@/components/Header";
 import { FreightCard } from "@/components/FreightCard";
+import { FreightDetailModal } from "@/components/FreightDetailModal";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +19,10 @@ interface Freight {
   value_brl: number;
   distance_km: number | null;
   pickup_date: string;
+  delivery_date: string | null;
   company_name: string;
   required_vehicle_type: string | null;
+  description: string | null;
 }
 
 export default function Index() {
@@ -27,6 +30,8 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [selectedFreight, setSelectedFreight] = useState<Freight | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -65,18 +70,25 @@ export default function Index() {
     }
   };
 
-  const handleApply = async (freightId: string) => {
-    if (!user) {
-      toast({
-        title: "Faça login para continuar",
-        description: "Você precisa estar logado para se candidatar a um frete.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
+  const handleFreightClick = (freight: Freight) => {
+    setSelectedFreight(freight);
+    setModalOpen(true);
+  };
 
-    navigate(`/apply/${freightId}`);
+  const handleApply = (freightId: string) => {
+    const freight = freights.find((f) => f.id === freightId);
+    if (freight) {
+      if (!user) {
+        toast({
+          title: "Faça login para continuar",
+          description: "Você precisa estar logado para ver os detalhes do frete.",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+      handleFreightClick(freight);
+    }
   };
 
   const filteredFreights = freights.filter((freight) => {
@@ -196,8 +208,9 @@ export default function Index() {
               {filteredFreights.map((freight, index) => (
                 <div
                   key={freight.id}
-                  className="animate-slide-up"
+                  className="animate-slide-up cursor-pointer"
                   style={{ animationDelay: `${index * 0.05}s` }}
+                  onClick={() => handleFreightClick(freight)}
                 >
                   <FreightCard
                     id={freight.id}
@@ -220,6 +233,17 @@ export default function Index() {
           )}
         </div>
       </section>
+
+      {/* Freight Detail Modal */}
+      <FreightDetailModal
+        freight={selectedFreight}
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedFreight(null);
+        }}
+        userId={user?.id || null}
+      />
     </div>
   );
 }

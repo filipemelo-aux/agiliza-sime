@@ -1,29 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Truck, User, LogOut, Menu, X } from "lucide-react";
+import { Truck, User, LogOut, Menu, X, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { useUserRole } from "@/hooks/useUserRole";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const { user, isAdmin, loading } = useUserRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -79,6 +66,19 @@ export function Header() {
               >
                 Meu Perfil
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin/freights"
+                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                    isActive("/admin/freights") 
+                      ? "text-primary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
             </>
           )}
         </nav>
@@ -86,15 +86,18 @@ export function Header() {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
           {user ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
+            <>
+              <NotificationBell userId={user.id} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/auth">
@@ -112,16 +115,19 @@ export function Header() {
         </div>
 
         {/* Mobile Menu Button */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          {user && <NotificationBell userId={user.id} />}
+          <button
+            className="p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -151,6 +157,16 @@ export function Header() {
                 >
                   Meu Perfil
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin/freights"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 text-sm font-medium flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Admin - Gerenciar Fretes
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     handleLogout();
