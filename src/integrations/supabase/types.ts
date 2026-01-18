@@ -281,12 +281,16 @@ export type Database = {
         Row: {
           antt_number: string | null
           brand: string
+          cargo_type: string | null
           created_at: string
           id: string
           is_active: boolean | null
           model: string
           plate: string
           renavam: string
+          trailer_plate_1: string | null
+          trailer_plate_2: string | null
+          trailer_plate_3: string | null
           updated_at: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -295,12 +299,16 @@ export type Database = {
         Insert: {
           antt_number?: string | null
           brand: string
+          cargo_type?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           model: string
           plate: string
           renavam: string
+          trailer_plate_1?: string | null
+          trailer_plate_2?: string | null
+          trailer_plate_3?: string | null
           updated_at?: string
           user_id: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
@@ -309,12 +317,16 @@ export type Database = {
         Update: {
           antt_number?: string | null
           brand?: string
+          cargo_type?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           model?: string
           plate?: string
           renavam?: string
+          trailer_plate_1?: string | null
+          trailer_plate_2?: string | null
+          trailer_plate_3?: string | null
           updated_at?: string
           user_id?: string
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
