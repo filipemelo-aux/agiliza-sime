@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Truck, FileText, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { User, Truck, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,11 @@ const vehicleTypes = [
 ];
 
 const cnhCategories = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
+
+const cargoTypes = [
+  { value: "cacamba", label: "Caçamba" },
+  { value: "graneleiro", label: "Graneleiro" },
+];
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -51,6 +57,7 @@ export default function Register() {
     model: "",
     year: "",
     anttNumber: "",
+    cargoType: "",
   });
 
   useEffect(() => {
@@ -184,6 +191,10 @@ export default function Register() {
     if (!year || year < 1990 || year > new Date().getFullYear() + 1) {
       newErrors.year = "Ano inválido (entre 1990 e " + (new Date().getFullYear() + 1) + ")";
     }
+
+    if (!vehicleData.cargoType) {
+      newErrors.cargoType = "Selecione o tipo de carga";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -233,6 +244,7 @@ export default function Register() {
         model: vehicleData.model.trim(),
         year: parseInt(vehicleData.year),
         antt_number: vehicleData.anttNumber || null,
+        cargo_type: vehicleData.cargoType || null,
       }]);
 
       if (vehicleError) throw vehicleError;
@@ -308,7 +320,7 @@ export default function Register() {
               </div>
 
               <div className="bg-card rounded-xl border border-border p-6 space-y-5">
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="fullName">Nome Completo *</Label>
                     <Input
@@ -330,6 +342,7 @@ export default function Register() {
                       id="cpf"
                       name="cpf"
                       placeholder="000.000.000-00"
+                      maxLength={14}
                       value={profileData.cpf}
                       onChange={handleProfileChange}
                       className="input-transport"
@@ -345,6 +358,7 @@ export default function Register() {
                       id="phone"
                       name="phone"
                       placeholder="(11) 99999-9999"
+                      maxLength={15}
                       value={profileData.phone}
                       onChange={handleProfileChange}
                       className="input-transport"
@@ -360,6 +374,7 @@ export default function Register() {
                       id="cnhNumber"
                       name="cnhNumber"
                       placeholder="00000000000"
+                      maxLength={11}
                       value={profileData.cnhNumber}
                       onChange={handleProfileChange}
                       className="input-transport"
@@ -373,9 +388,10 @@ export default function Register() {
                     <Label>Categoria da CNH *</Label>
                     <Select
                       value={profileData.cnhCategory}
-                      onValueChange={(value) =>
-                        setProfileData((prev) => ({ ...prev, cnhCategory: value }))
-                      }
+                      onValueChange={(value) => {
+                        setProfileData((prev) => ({ ...prev, cnhCategory: value }));
+                        setErrors((prev) => ({ ...prev, cnhCategory: "" }));
+                      }}
                     >
                       <SelectTrigger className="input-transport">
                         <SelectValue placeholder="Selecione" />
@@ -395,91 +411,6 @@ export default function Register() {
 
                   <div className="space-y-2">
                     <Label htmlFor="cnhExpiry">Validade da CNH *</Label>
-                    <Input
-                      id="cnhExpiry"
-                      name="cnhExpiry"
-                      type="date"
-                      value={profileData.cnhExpiry}
-                      onChange={handleProfileChange}
-                      className="input-transport"
-                    />
-                    {errors.cnhExpiry && (
-                      <p className="text-sm text-destructive">{errors.cnhExpiry}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input
-                      id="cpf"
-                      name="cpf"
-                      placeholder="00000000000"
-                      maxLength={11}
-                      value={profileData.cpf}
-                      onChange={handleProfileChange}
-                      className="input-transport"
-                    />
-                    {errors.cpf && (
-                      <p className="text-sm text-destructive">{errors.cpf}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      placeholder="11999999999"
-                      value={profileData.phone}
-                      onChange={handleProfileChange}
-                      className="input-transport"
-                    />
-                    {errors.phone && (
-                      <p className="text-sm text-destructive">{errors.phone}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cnhNumber">Número da CNH</Label>
-                    <Input
-                      id="cnhNumber"
-                      name="cnhNumber"
-                      placeholder="000000000"
-                      value={profileData.cnhNumber}
-                      onChange={handleProfileChange}
-                      className="input-transport"
-                    />
-                    {errors.cnhNumber && (
-                      <p className="text-sm text-destructive">{errors.cnhNumber}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Categoria da CNH</Label>
-                    <Select
-                      value={profileData.cnhCategory}
-                      onValueChange={(value) =>
-                        setProfileData((prev) => ({ ...prev, cnhCategory: value }))
-                      }
-                    >
-                      <SelectTrigger className="input-transport">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cnhCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.cnhCategory && (
-                      <p className="text-sm text-destructive">{errors.cnhCategory}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cnhExpiry">Validade da CNH</Label>
                     <Input
                       id="cnhExpiry"
                       name="cnhExpiry"
@@ -520,13 +451,14 @@ export default function Register() {
               </div>
 
               <div className="bg-card rounded-xl border border-border p-6 space-y-5">
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="plate">Placa *</Label>
                     <Input
                       id="plate"
                       name="plate"
                       placeholder="ABC-1D23"
+                      maxLength={8}
                       value={vehicleData.plate}
                       onChange={handleVehicleChange}
                       className="input-transport uppercase"
@@ -542,6 +474,7 @@ export default function Register() {
                       id="renavam"
                       name="renavam"
                       placeholder="00000000000"
+                      maxLength={11}
                       value={vehicleData.renavam}
                       onChange={handleVehicleChange}
                       className="input-transport"
@@ -555,9 +488,10 @@ export default function Register() {
                     <Label>Tipo de Veículo *</Label>
                     <Select
                       value={vehicleData.vehicleType}
-                      onValueChange={(value) =>
-                        setVehicleData((prev) => ({ ...prev, vehicleType: value }))
-                      }
+                      onValueChange={(value) => {
+                        setVehicleData((prev) => ({ ...prev, vehicleType: value }));
+                        setErrors((prev) => ({ ...prev, vehicleType: "" }));
+                      }}
                     >
                       <SelectTrigger className="input-transport">
                         <SelectValue placeholder="Selecione" />
@@ -611,91 +545,7 @@ export default function Register() {
                       id="year"
                       name="year"
                       placeholder="2024"
-                      value={vehicleData.year}
-                      onChange={handleVehicleChange}
-                      className="input-transport"
-                    />
-                    {errors.year && (
-                      <p className="text-sm text-destructive">{errors.year}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="renavam">RENAVAM</Label>
-                    <Input
-                      id="renavam"
-                      name="renavam"
-                      placeholder="00000000000"
-                      value={vehicleData.renavam}
-                      onChange={handleVehicleChange}
-                      className="input-transport"
-                    />
-                    {errors.renavam && (
-                      <p className="text-sm text-destructive">{errors.renavam}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tipo de Veículo</Label>
-                    <Select
-                      value={vehicleData.vehicleType}
-                      onValueChange={(value) =>
-                        setVehicleData((prev) => ({ ...prev, vehicleType: value }))
-                      }
-                    >
-                      <SelectTrigger className="input-transport">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicleTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.vehicleType && (
-                      <p className="text-sm text-destructive">{errors.vehicleType}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="brand">Marca</Label>
-                    <Input
-                      id="brand"
-                      name="brand"
-                      placeholder="Volvo, Scania, Mercedes..."
-                      value={vehicleData.brand}
-                      onChange={handleVehicleChange}
-                      className="input-transport"
-                    />
-                    {errors.brand && (
-                      <p className="text-sm text-destructive">{errors.brand}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Modelo</Label>
-                    <Input
-                      id="model"
-                      name="model"
-                      placeholder="FH 540"
-                      value={vehicleData.model}
-                      onChange={handleVehicleChange}
-                      className="input-transport"
-                    />
-                    {errors.model && (
-                      <p className="text-sm text-destructive">{errors.model}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Ano</Label>
-                    <Input
-                      id="year"
-                      name="year"
-                      type="number"
-                      placeholder="2024"
+                      maxLength={4}
                       value={vehicleData.year}
                       onChange={handleVehicleChange}
                       className="input-transport"
@@ -715,6 +565,30 @@ export default function Register() {
                       onChange={handleVehicleChange}
                       className="input-transport"
                     />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-3">
+                    <Label>Tipo de Carga *</Label>
+                    <RadioGroup
+                      value={vehicleData.cargoType}
+                      onValueChange={(value) => {
+                        setVehicleData((prev) => ({ ...prev, cargoType: value }));
+                        setErrors((prev) => ({ ...prev, cargoType: "" }));
+                      }}
+                      className="flex flex-row gap-6"
+                    >
+                      {cargoTypes.map((type) => (
+                        <div key={type.value} className="flex items-center space-x-2">
+                          <RadioGroupItem value={type.value} id={type.value} />
+                          <Label htmlFor={type.value} className="cursor-pointer font-normal">
+                            {type.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    {errors.cargoType && (
+                      <p className="text-sm text-destructive">{errors.cargoType}</p>
+                    )}
                   </div>
                 </div>
 
