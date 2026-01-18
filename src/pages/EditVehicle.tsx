@@ -9,7 +9,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
+import { 
+  maskPlate, unmaskPlate, maskRenavam, maskYear, maskOnlyLettersNumbers,
+  validatePlate, validateRenavam
+} from "@/lib/masks";
 
 const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
   truck: { count: 0, labels: [] },
@@ -20,22 +23,6 @@ const trailerRequirements: Record<string, { count: number; labels: string[] }> =
   bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
   treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
 };
-
-const plateRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
-
-const baseVehicleSchema = z.object({
-  plate: z.string().regex(plateRegex, "Placa inválida (formato: ABC1D23)"),
-  renavam: z.string().min(9, "RENAVAM inválido"),
-  vehicleType: z.string().min(1, "Selecione o tipo"),
-  brand: z.string().min(2, "Marca obrigatória"),
-  model: z.string().min(2, "Modelo obrigatório"),
-  year: z.number().min(1990, "Ano inválido").max(new Date().getFullYear() + 1, "Ano inválido"),
-  anttNumber: z.string().optional(),
-  cargoType: z.string().optional(),
-  trailerPlate1: z.string().optional(),
-  trailerPlate2: z.string().optional(),
-  trailerPlate3: z.string().optional(),
-});
 
 const vehicleTypes = [
   { value: "truck", label: "Truck" },
@@ -125,7 +112,7 @@ export default function EditVehicle() {
       }
 
       setVehicleData({
-        plate: data.plate || "",
+        plate: maskPlate(data.plate || ""),
         renavam: data.renavam || "",
         vehicleType: data.vehicle_type || "",
         brand: data.brand || "",
@@ -133,11 +120,11 @@ export default function EditVehicle() {
         year: data.year?.toString() || "",
         anttNumber: data.antt_number || "",
         cargoType: data.cargo_type || "",
-        trailerPlate1: data.trailer_plate_1 || "",
+        trailerPlate1: maskPlate(data.trailer_plate_1 || ""),
         trailerRenavam1: data.trailer_renavam_1 || "",
-        trailerPlate2: data.trailer_plate_2 || "",
+        trailerPlate2: maskPlate(data.trailer_plate_2 || ""),
         trailerRenavam2: data.trailer_renavam_2 || "",
-        trailerPlate3: data.trailer_plate_3 || "",
+        trailerPlate3: maskPlate(data.trailer_plate_3 || ""),
         trailerRenavam3: data.trailer_renavam_3 || "",
       });
     } catch (error) {
@@ -150,11 +137,24 @@ export default function EditVehicle() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    let maskedValue = value;
+    
     const isPlateField = name === "plate" || name.startsWith("trailerPlate");
-    setVehicleData((prev) => ({ 
-      ...prev, 
-      [name]: isPlateField ? value.toUpperCase() : value 
-    }));
+    const isRenavamField = name === "renavam" || name.startsWith("trailerRenavam");
+    
+    if (isPlateField) {
+      maskedValue = maskPlate(value);
+    } else if (isRenavamField) {
+      maskedValue = maskRenavam(value);
+    } else if (name === "year") {
+      maskedValue = maskYear(value);
+    } else if (name === "brand" || name === "model") {
+      maskedValue = maskOnlyLettersNumbers(value);
+    } else if (name === "anttNumber") {
+      maskedValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    }
+    
+    setVehicleData((prev) => ({ ...prev, [name]: maskedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -177,71 +177,83 @@ export default function EditVehicle() {
     const config = trailerRequirements[vehicleData.vehicleType] || { count: 0, labels: [] };
     
     if (config.count >= 1) {
-      if (!vehicleData.trailerPlate1) {
-        trailerErrors.trailerPlate1 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate1)) {
-        trailerErrors.trailerPlate1 = "Placa inválida (formato: ABC1D23)";
+      const plate1 = unmaskPlate(vehicleData.trailerPlate1);
+      if (!validatePlate(plate1)) {
+        trailerErrors.trailerPlate1 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam1 || vehicleData.trailerRenavam1.length < 9) {
-        trailerErrors.trailerRenavam1 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam1)) {
+        trailerErrors.trailerRenavam1 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     if (config.count >= 2) {
-      if (!vehicleData.trailerPlate2) {
-        trailerErrors.trailerPlate2 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate2)) {
-        trailerErrors.trailerPlate2 = "Placa inválida (formato: ABC1D23)";
+      const plate2 = unmaskPlate(vehicleData.trailerPlate2);
+      if (!validatePlate(plate2)) {
+        trailerErrors.trailerPlate2 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam2 || vehicleData.trailerRenavam2.length < 9) {
-        trailerErrors.trailerRenavam2 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam2)) {
+        trailerErrors.trailerRenavam2 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     if (config.count >= 3) {
-      if (!vehicleData.trailerPlate3) {
-        trailerErrors.trailerPlate3 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate3)) {
-        trailerErrors.trailerPlate3 = "Placa inválida (formato: ABC1D23)";
+      const plate3 = unmaskPlate(vehicleData.trailerPlate3);
+      if (!validatePlate(plate3)) {
+        trailerErrors.trailerPlate3 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam3 || vehicleData.trailerRenavam3.length < 9) {
-        trailerErrors.trailerRenavam3 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam3)) {
+        trailerErrors.trailerRenavam3 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     return trailerErrors;
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    const plateClean = unmaskPlate(vehicleData.plate);
+    if (!validatePlate(plateClean)) {
+      newErrors.plate = "Placa inválida (formato: ABC-1D23)";
+    }
+    
+    if (!validateRenavam(vehicleData.renavam)) {
+      newErrors.renavam = "RENAVAM deve ter 11 dígitos";
+    }
+    
+    if (!vehicleData.vehicleType) {
+      newErrors.vehicleType = "Selecione o tipo de veículo";
+    }
+    
+    if (!vehicleData.brand.trim() || vehicleData.brand.trim().length < 2) {
+      newErrors.brand = "Marca é obrigatória (mínimo 2 caracteres)";
+    }
+    
+    if (!vehicleData.model.trim() || vehicleData.model.trim().length < 2) {
+      newErrors.model = "Modelo é obrigatório (mínimo 2 caracteres)";
+    }
+    
+    const year = parseInt(vehicleData.year);
+    if (!year || year < 1990 || year > new Date().getFullYear() + 1) {
+      newErrors.year = "Ano inválido (entre 1990 e " + (new Date().getFullYear() + 1) + ")";
+    }
+    
+    if (!vehicleData.cargoType) {
+      newErrors.cargoType = "Selecione o tipo de carroceria";
+    }
+    
+    const trailerErrors = validateTrailerFields();
+    
+    const allErrors = { ...newErrors, ...trailerErrors };
+    setErrors(allErrors);
+    return Object.keys(allErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !id) return;
 
-    setErrors({});
-
-    let validationErrors: Record<string, string> = {};
-
-    try {
-      baseVehicleSchema.parse({
-        ...vehicleData,
-        year: parseInt(vehicleData.year) || 0,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            validationErrors[err.path[0] as string] = err.message;
-          }
-        });
-      }
-    }
-
-    const trailerErrors = validateTrailerFields();
-    validationErrors = { ...validationErrors, ...trailerErrors };
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
@@ -249,19 +261,19 @@ export default function EditVehicle() {
       const { error } = await supabase
         .from("vehicles")
         .update({
-          plate: vehicleData.plate,
+          plate: unmaskPlate(vehicleData.plate),
           renavam: vehicleData.renavam,
           vehicle_type: vehicleData.vehicleType as "truck" | "bitruck" | "carreta" | "carreta_ls" | "rodotrem" | "bitrem" | "treminhao",
-          brand: vehicleData.brand,
-          model: vehicleData.model,
+          brand: vehicleData.brand.trim(),
+          model: vehicleData.model.trim(),
           year: parseInt(vehicleData.year),
           antt_number: vehicleData.anttNumber || null,
           cargo_type: vehicleData.cargoType || null,
-          trailer_plate_1: vehicleData.trailerPlate1 || null,
+          trailer_plate_1: unmaskPlate(vehicleData.trailerPlate1) || null,
           trailer_renavam_1: vehicleData.trailerRenavam1 || null,
-          trailer_plate_2: vehicleData.trailerPlate2 || null,
+          trailer_plate_2: unmaskPlate(vehicleData.trailerPlate2) || null,
           trailer_renavam_2: vehicleData.trailerRenavam2 || null,
-          trailer_plate_3: vehicleData.trailerPlate3 || null,
+          trailer_plate_3: unmaskPlate(vehicleData.trailerPlate3) || null,
           trailer_renavam_3: vehicleData.trailerRenavam3 || null,
         })
         .eq("id", id)

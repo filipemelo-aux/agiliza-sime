@@ -8,26 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-
-const profileSchema = z.object({
-  fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  cpf: z.string().regex(/^\d{11}$/, "CPF deve ter 11 dígitos"),
-  phone: z.string().min(10, "Telefone inválido"),
-  cnhNumber: z.string().min(9, "CNH inválida"),
-  cnhCategory: z.string().min(1, "Selecione a categoria"),
-  cnhExpiry: z.string().min(1, "Data de validade obrigatória"),
-});
-
-const vehicleSchema = z.object({
-  plate: z.string().regex(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/, "Placa inválida (formato: ABC1D23)"),
-  renavam: z.string().min(9, "RENAVAM inválido"),
-  vehicleType: z.string().min(1, "Selecione o tipo"),
-  brand: z.string().min(2, "Marca obrigatória"),
-  model: z.string().min(2, "Modelo obrigatório"),
-  year: z.number().min(1990, "Ano inválido").max(new Date().getFullYear() + 1, "Ano inválido"),
-  anttNumber: z.string().optional(),
-});
+import { 
+  maskCPF, unmaskCPF, maskPhone, unmaskPhone, maskPlate, unmaskPlate,
+  maskRenavam, maskCNH, maskYear, maskOnlyLettersNumbers,
+  validateCPF, validatePlate, validateRenavam, validateCNH, validatePhone
+} from "@/lib/masks";
 
 const vehicleTypes = [
   { value: "truck", label: "Truck" },
@@ -90,53 +75,118 @@ export default function Register() {
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileData((prev) => ({ ...prev, [name]: value }));
+    let maskedValue = value;
+    
+    switch (name) {
+      case "cpf":
+        maskedValue = maskCPF(value);
+        break;
+      case "phone":
+        maskedValue = maskPhone(value);
+        break;
+      case "cnhNumber":
+        maskedValue = maskCNH(value);
+        break;
+      case "fullName":
+        maskedValue = value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+        break;
+    }
+    
+    setProfileData((prev) => ({ ...prev, [name]: maskedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleVehicleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setVehicleData((prev) => ({ ...prev, [name]: value.toUpperCase() }));
+    let maskedValue = value;
+    
+    switch (name) {
+      case "plate":
+        maskedValue = maskPlate(value);
+        break;
+      case "renavam":
+        maskedValue = maskRenavam(value);
+        break;
+      case "year":
+        maskedValue = maskYear(value);
+        break;
+      case "brand":
+      case "model":
+        maskedValue = maskOnlyLettersNumbers(value);
+        break;
+      case "anttNumber":
+        maskedValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        break;
+    }
+    
+    setVehicleData((prev) => ({ ...prev, [name]: maskedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateStep1 = () => {
-    try {
-      profileSchema.parse(profileData);
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-      return false;
+    const newErrors: Record<string, string> = {};
+    
+    if (!profileData.fullName.trim() || profileData.fullName.trim().length < 3) {
+      newErrors.fullName = "Nome completo é obrigatório (mínimo 3 caracteres)";
     }
+    
+    const cpfNumbers = unmaskCPF(profileData.cpf);
+    if (!validateCPF(cpfNumbers)) {
+      newErrors.cpf = "CPF inválido";
+    }
+    
+    const phoneNumbers = unmaskPhone(profileData.phone);
+    if (!validatePhone(phoneNumbers)) {
+      newErrors.phone = "Telefone inválido (10 ou 11 dígitos)";
+    }
+    
+    if (!validateCNH(profileData.cnhNumber)) {
+      newErrors.cnhNumber = "CNH deve ter 11 dígitos";
+    }
+    
+    if (!profileData.cnhCategory) {
+      newErrors.cnhCategory = "Selecione a categoria da CNH";
+    }
+    
+    if (!profileData.cnhExpiry) {
+      newErrors.cnhExpiry = "Data de validade é obrigatória";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const validateStep2 = () => {
-    try {
-      vehicleSchema.parse({
-        ...vehicleData,
-        year: parseInt(vehicleData.year) || 0,
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0] as string] = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-      return false;
+    const newErrors: Record<string, string> = {};
+    
+    const plateClean = unmaskPlate(vehicleData.plate);
+    if (!validatePlate(plateClean)) {
+      newErrors.plate = "Placa inválida (formato: ABC-1D23)";
     }
+    
+    if (!validateRenavam(vehicleData.renavam)) {
+      newErrors.renavam = "RENAVAM deve ter 11 dígitos";
+    }
+    
+    if (!vehicleData.vehicleType) {
+      newErrors.vehicleType = "Selecione o tipo de veículo";
+    }
+    
+    if (!vehicleData.brand.trim() || vehicleData.brand.trim().length < 2) {
+      newErrors.brand = "Marca é obrigatória (mínimo 2 caracteres)";
+    }
+    
+    if (!vehicleData.model.trim() || vehicleData.model.trim().length < 2) {
+      newErrors.model = "Modelo é obrigatório (mínimo 2 caracteres)";
+    }
+    
+    const year = parseInt(vehicleData.year);
+    if (!year || year < 1990 || year > new Date().getFullYear() + 1) {
+      newErrors.year = "Ano inválido (entre 1990 e " + (new Date().getFullYear() + 1) + ")";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
@@ -156,8 +206,8 @@ export default function Register() {
       // Create profile (without sensitive document data)
       const { error: profileError } = await supabase.from("profiles").insert({
         user_id: user.id,
-        full_name: profileData.fullName,
-        phone: profileData.phone,
+        full_name: profileData.fullName.trim(),
+        phone: unmaskPhone(profileData.phone),
       });
 
       if (profileError) throw profileError;
@@ -165,7 +215,7 @@ export default function Register() {
       // Create driver documents (sensitive data in separate table)
       const { error: docsError } = await supabase.from("driver_documents").insert({
         user_id: user.id,
-        cpf: profileData.cpf,
+        cpf: unmaskCPF(profileData.cpf),
         cnh_number: profileData.cnhNumber,
         cnh_category: profileData.cnhCategory,
         cnh_expiry: profileData.cnhExpiry,
@@ -176,11 +226,11 @@ export default function Register() {
       // Create vehicle
       const { error: vehicleError } = await supabase.from("vehicles").insert([{
         user_id: user.id,
-        plate: vehicleData.plate,
+        plate: unmaskPlate(vehicleData.plate),
         renavam: vehicleData.renavam,
         vehicle_type: vehicleData.vehicleType as "truck" | "bitruck" | "carreta" | "carreta_ls" | "rodotrem" | "bitrem" | "treminhao",
-        brand: vehicleData.brand,
-        model: vehicleData.model,
+        brand: vehicleData.brand.trim(),
+        model: vehicleData.model.trim(),
         year: parseInt(vehicleData.year),
         antt_number: vehicleData.anttNumber || null,
       }]);
@@ -260,7 +310,7 @@ export default function Register() {
               <div className="bg-card rounded-xl border border-border p-6 space-y-5">
                 <div className="grid md:grid-cols-2 gap-5">
                   <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="fullName">Nome Completo</Label>
+                    <Label htmlFor="fullName">Nome Completo *</Label>
                     <Input
                       id="fullName"
                       name="fullName"
@@ -271,6 +321,90 @@ export default function Register() {
                     />
                     {errors.fullName && (
                       <p className="text-sm text-destructive">{errors.fullName}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF *</Label>
+                    <Input
+                      id="cpf"
+                      name="cpf"
+                      placeholder="000.000.000-00"
+                      value={profileData.cpf}
+                      onChange={handleProfileChange}
+                      className="input-transport"
+                    />
+                    {errors.cpf && (
+                      <p className="text-sm text-destructive">{errors.cpf}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone *</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      placeholder="(11) 99999-9999"
+                      value={profileData.phone}
+                      onChange={handleProfileChange}
+                      className="input-transport"
+                    />
+                    {errors.phone && (
+                      <p className="text-sm text-destructive">{errors.phone}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cnhNumber">Número da CNH *</Label>
+                    <Input
+                      id="cnhNumber"
+                      name="cnhNumber"
+                      placeholder="00000000000"
+                      value={profileData.cnhNumber}
+                      onChange={handleProfileChange}
+                      className="input-transport"
+                    />
+                    {errors.cnhNumber && (
+                      <p className="text-sm text-destructive">{errors.cnhNumber}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Categoria da CNH *</Label>
+                    <Select
+                      value={profileData.cnhCategory}
+                      onValueChange={(value) =>
+                        setProfileData((prev) => ({ ...prev, cnhCategory: value }))
+                      }
+                    >
+                      <SelectTrigger className="input-transport">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cnhCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.cnhCategory && (
+                      <p className="text-sm text-destructive">{errors.cnhCategory}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cnhExpiry">Validade da CNH *</Label>
+                    <Input
+                      id="cnhExpiry"
+                      name="cnhExpiry"
+                      type="date"
+                      value={profileData.cnhExpiry}
+                      onChange={handleProfileChange}
+                      className="input-transport"
+                    />
+                    {errors.cnhExpiry && (
+                      <p className="text-sm text-destructive">{errors.cnhExpiry}</p>
                     )}
                   </div>
 
@@ -388,18 +522,101 @@ export default function Register() {
               <div className="bg-card rounded-xl border border-border p-6 space-y-5">
                 <div className="grid md:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <Label htmlFor="plate">Placa</Label>
+                    <Label htmlFor="plate">Placa *</Label>
                     <Input
                       id="plate"
                       name="plate"
-                      placeholder="ABC1D23"
-                      maxLength={7}
+                      placeholder="ABC-1D23"
                       value={vehicleData.plate}
                       onChange={handleVehicleChange}
                       className="input-transport uppercase"
                     />
                     {errors.plate && (
                       <p className="text-sm text-destructive">{errors.plate}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="renavam">RENAVAM *</Label>
+                    <Input
+                      id="renavam"
+                      name="renavam"
+                      placeholder="00000000000"
+                      value={vehicleData.renavam}
+                      onChange={handleVehicleChange}
+                      className="input-transport"
+                    />
+                    {errors.renavam && (
+                      <p className="text-sm text-destructive">{errors.renavam}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo de Veículo *</Label>
+                    <Select
+                      value={vehicleData.vehicleType}
+                      onValueChange={(value) =>
+                        setVehicleData((prev) => ({ ...prev, vehicleType: value }))
+                      }
+                    >
+                      <SelectTrigger className="input-transport">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicleTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.vehicleType && (
+                      <p className="text-sm text-destructive">{errors.vehicleType}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="brand">Marca *</Label>
+                    <Input
+                      id="brand"
+                      name="brand"
+                      placeholder="Volvo, Scania, Mercedes..."
+                      value={vehicleData.brand}
+                      onChange={handleVehicleChange}
+                      className="input-transport"
+                    />
+                    {errors.brand && (
+                      <p className="text-sm text-destructive">{errors.brand}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Modelo *</Label>
+                    <Input
+                      id="model"
+                      name="model"
+                      placeholder="FH 540"
+                      value={vehicleData.model}
+                      onChange={handleVehicleChange}
+                      className="input-transport"
+                    />
+                    {errors.model && (
+                      <p className="text-sm text-destructive">{errors.model}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Ano *</Label>
+                    <Input
+                      id="year"
+                      name="year"
+                      placeholder="2024"
+                      value={vehicleData.year}
+                      onChange={handleVehicleChange}
+                      className="input-transport"
+                    />
+                    {errors.year && (
+                      <p className="text-sm text-destructive">{errors.year}</p>
                     )}
                   </div>
 

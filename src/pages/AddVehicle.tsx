@@ -9,7 +9,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
+import { 
+  maskPlate, unmaskPlate, maskRenavam, maskYear, maskOnlyLettersNumbers,
+  validatePlate, validateRenavam
+} from "@/lib/masks";
 
 // Define trailer requirements per vehicle type
 const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
@@ -21,22 +24,6 @@ const trailerRequirements: Record<string, { count: number; labels: string[] }> =
   bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
   treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
 };
-
-const plateRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
-
-const baseVehicleSchema = z.object({
-  plate: z.string().regex(plateRegex, "Placa inválida (formato: ABC1D23)"),
-  renavam: z.string().min(9, "RENAVAM inválido"),
-  vehicleType: z.string().min(1, "Selecione o tipo"),
-  brand: z.string().min(2, "Marca obrigatória"),
-  model: z.string().min(2, "Modelo obrigatório"),
-  year: z.number().min(1990, "Ano inválido").max(new Date().getFullYear() + 1, "Ano inválido"),
-  anttNumber: z.string().optional(),
-  cargoType: z.string().optional(),
-  trailerPlate1: z.string().optional(),
-  trailerPlate2: z.string().optional(),
-  trailerPlate3: z.string().optional(),
-});
 
 const vehicleTypes = [
   { value: "truck", label: "Truck" },
@@ -101,11 +88,24 @@ export default function AddVehicle() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    let maskedValue = value;
+    
     const isPlateField = name === "plate" || name.startsWith("trailerPlate");
-    setVehicleData((prev) => ({ 
-      ...prev, 
-      [name]: isPlateField ? value.toUpperCase() : value 
-    }));
+    const isRenavamField = name === "renavam" || name.startsWith("trailerRenavam");
+    
+    if (isPlateField) {
+      maskedValue = maskPlate(value);
+    } else if (isRenavamField) {
+      maskedValue = maskRenavam(value);
+    } else if (name === "year") {
+      maskedValue = maskYear(value);
+    } else if (name === "brand" || name === "model") {
+      maskedValue = maskOnlyLettersNumbers(value);
+    } else if (name === "anttNumber") {
+      maskedValue = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    }
+    
+    setVehicleData((prev) => ({ ...prev, [name]: maskedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -128,91 +128,103 @@ export default function AddVehicle() {
     const config = trailerRequirements[vehicleData.vehicleType] || { count: 0, labels: [] };
     
     if (config.count >= 1) {
-      if (!vehicleData.trailerPlate1) {
-        trailerErrors.trailerPlate1 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate1)) {
-        trailerErrors.trailerPlate1 = "Placa inválida (formato: ABC1D23)";
+      const plate1 = unmaskPlate(vehicleData.trailerPlate1);
+      if (!validatePlate(plate1)) {
+        trailerErrors.trailerPlate1 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam1 || vehicleData.trailerRenavam1.length < 9) {
-        trailerErrors.trailerRenavam1 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam1)) {
+        trailerErrors.trailerRenavam1 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     if (config.count >= 2) {
-      if (!vehicleData.trailerPlate2) {
-        trailerErrors.trailerPlate2 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate2)) {
-        trailerErrors.trailerPlate2 = "Placa inválida (formato: ABC1D23)";
+      const plate2 = unmaskPlate(vehicleData.trailerPlate2);
+      if (!validatePlate(plate2)) {
+        trailerErrors.trailerPlate2 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam2 || vehicleData.trailerRenavam2.length < 9) {
-        trailerErrors.trailerRenavam2 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam2)) {
+        trailerErrors.trailerRenavam2 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     if (config.count >= 3) {
-      if (!vehicleData.trailerPlate3) {
-        trailerErrors.trailerPlate3 = "Placa obrigatória";
-      } else if (!plateRegex.test(vehicleData.trailerPlate3)) {
-        trailerErrors.trailerPlate3 = "Placa inválida (formato: ABC1D23)";
+      const plate3 = unmaskPlate(vehicleData.trailerPlate3);
+      if (!validatePlate(plate3)) {
+        trailerErrors.trailerPlate3 = "Placa inválida (formato: ABC-1D23)";
       }
-      if (!vehicleData.trailerRenavam3 || vehicleData.trailerRenavam3.length < 9) {
-        trailerErrors.trailerRenavam3 = "RENAVAM inválido";
+      if (!validateRenavam(vehicleData.trailerRenavam3)) {
+        trailerErrors.trailerRenavam3 = "RENAVAM deve ter 11 dígitos";
       }
     }
 
     return trailerErrors;
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    const plateClean = unmaskPlate(vehicleData.plate);
+    if (!validatePlate(plateClean)) {
+      newErrors.plate = "Placa inválida (formato: ABC-1D23)";
+    }
+    
+    if (!validateRenavam(vehicleData.renavam)) {
+      newErrors.renavam = "RENAVAM deve ter 11 dígitos";
+    }
+    
+    if (!vehicleData.vehicleType) {
+      newErrors.vehicleType = "Selecione o tipo de veículo";
+    }
+    
+    if (!vehicleData.brand.trim() || vehicleData.brand.trim().length < 2) {
+      newErrors.brand = "Marca é obrigatória (mínimo 2 caracteres)";
+    }
+    
+    if (!vehicleData.model.trim() || vehicleData.model.trim().length < 2) {
+      newErrors.model = "Modelo é obrigatório (mínimo 2 caracteres)";
+    }
+    
+    const year = parseInt(vehicleData.year);
+    if (!year || year < 1990 || year > new Date().getFullYear() + 1) {
+      newErrors.year = "Ano inválido (entre 1990 e " + (new Date().getFullYear() + 1) + ")";
+    }
+    
+    if (!vehicleData.cargoType) {
+      newErrors.cargoType = "Selecione o tipo de carroceria";
+    }
+    
+    // Validate trailer fields
+    const trailerErrors = validateTrailerFields();
+    
+    const allErrors = { ...newErrors, ...trailerErrors };
+    setErrors(allErrors);
+    return Object.keys(allErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    setErrors({});
-
-    let validationErrors: Record<string, string> = {};
-
-    try {
-      baseVehicleSchema.parse({
-        ...vehicleData,
-        year: parseInt(vehicleData.year) || 0,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            validationErrors[err.path[0] as string] = err.message;
-          }
-        });
-      }
-    }
-
-    // Validate trailer fields
-    const trailerErrors = validateTrailerFields();
-    validationErrors = { ...validationErrors, ...trailerErrors };
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
       const { error } = await supabase.from("vehicles").insert([{
         user_id: user.id,
-        plate: vehicleData.plate,
+        plate: unmaskPlate(vehicleData.plate),
         renavam: vehicleData.renavam,
         vehicle_type: vehicleData.vehicleType as "truck" | "bitruck" | "carreta" | "carreta_ls" | "rodotrem" | "bitrem" | "treminhao",
-        brand: vehicleData.brand,
-        model: vehicleData.model,
+        brand: vehicleData.brand.trim(),
+        model: vehicleData.model.trim(),
         year: parseInt(vehicleData.year),
         antt_number: vehicleData.anttNumber || null,
         cargo_type: vehicleData.cargoType || null,
-        trailer_plate_1: vehicleData.trailerPlate1 || null,
+        trailer_plate_1: unmaskPlate(vehicleData.trailerPlate1) || null,
         trailer_renavam_1: vehicleData.trailerRenavam1 || null,
-        trailer_plate_2: vehicleData.trailerPlate2 || null,
+        trailer_plate_2: unmaskPlate(vehicleData.trailerPlate2) || null,
         trailer_renavam_2: vehicleData.trailerRenavam2 || null,
-        trailer_plate_3: vehicleData.trailerPlate3 || null,
+        trailer_plate_3: unmaskPlate(vehicleData.trailerPlate3) || null,
         trailer_renavam_3: vehicleData.trailerRenavam3 || null,
       }]);
 
@@ -266,12 +278,11 @@ export default function AddVehicle() {
               {/* Basic vehicle info */}
               <div className="grid md:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="plate">Placa do Cavalo</Label>
+                  <Label htmlFor="plate">Placa do Cavalo *</Label>
                   <Input
                     id="plate"
                     name="plate"
-                    placeholder="ABC1D23"
-                    maxLength={7}
+                    placeholder="ABC-1D23"
                     value={vehicleData.plate}
                     onChange={handleChange}
                     className="input-transport uppercase"
@@ -282,7 +293,7 @@ export default function AddVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="renavam">RENAVAM</Label>
+                  <Label htmlFor="renavam">RENAVAM *</Label>
                   <Input
                     id="renavam"
                     name="renavam"
@@ -297,7 +308,7 @@ export default function AddVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo de Veículo</Label>
+                  <Label>Tipo de Veículo *</Label>
                   <Select
                     value={vehicleData.vehicleType}
                     onValueChange={handleVehicleTypeChange}
@@ -319,7 +330,7 @@ export default function AddVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="brand">Marca</Label>
+                  <Label htmlFor="brand">Marca *</Label>
                   <Input
                     id="brand"
                     name="brand"
@@ -334,7 +345,7 @@ export default function AddVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="model">Modelo</Label>
+                  <Label htmlFor="model">Modelo *</Label>
                   <Input
                     id="model"
                     name="model"
@@ -349,11 +360,10 @@ export default function AddVehicle() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="year">Ano</Label>
+                  <Label htmlFor="year">Ano *</Label>
                   <Input
                     id="year"
                     name="year"
-                    type="number"
                     placeholder="2024"
                     value={vehicleData.year}
                     onChange={handleChange}
@@ -379,7 +389,7 @@ export default function AddVehicle() {
 
               {/* Cargo Type Selection */}
               <div className="space-y-3 pt-4 border-t border-border">
-                <Label>Tipo de Carroceria</Label>
+                <Label>Tipo de Carroceria *</Label>
                 <RadioGroup
                   value={vehicleData.cargoType}
                   onValueChange={(value) => setVehicleData(prev => ({ ...prev, cargoType: value }))}
@@ -394,6 +404,9 @@ export default function AddVehicle() {
                     </div>
                   ))}
                 </RadioGroup>
+                {errors.cargoType && (
+                  <p className="text-sm text-destructive">{errors.cargoType}</p>
+                )}
               </div>
 
               {/* Trailer Plates Section */}
@@ -410,12 +423,11 @@ export default function AddVehicle() {
                     {trailerConfig.count >= 1 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]}</Label>
+                          <Label htmlFor="trailerPlate1">{trailerConfig.labels[0]} *</Label>
                           <Input
                             id="trailerPlate1"
                             name="trailerPlate1"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
                             value={vehicleData.trailerPlate1}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -425,7 +437,7 @@ export default function AddVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam1">RENAVAM {trailerConfig.labels[0]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam1">RENAVAM {trailerConfig.labels[0]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam1"
                             name="trailerRenavam1"
@@ -444,12 +456,11 @@ export default function AddVehicle() {
                     {trailerConfig.count >= 2 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]}</Label>
+                          <Label htmlFor="trailerPlate2">{trailerConfig.labels[1]} *</Label>
                           <Input
                             id="trailerPlate2"
                             name="trailerPlate2"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
                             value={vehicleData.trailerPlate2}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -459,7 +470,7 @@ export default function AddVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam2">RENAVAM {trailerConfig.labels[1]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam2">RENAVAM {trailerConfig.labels[1]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam2"
                             name="trailerRenavam2"
@@ -478,12 +489,11 @@ export default function AddVehicle() {
                     {trailerConfig.count >= 3 && (
                       <div className="grid md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]}</Label>
+                          <Label htmlFor="trailerPlate3">{trailerConfig.labels[2]} *</Label>
                           <Input
                             id="trailerPlate3"
                             name="trailerPlate3"
-                            placeholder="ABC1D23"
-                            maxLength={7}
+                            placeholder="ABC-1D23"
                             value={vehicleData.trailerPlate3}
                             onChange={handleChange}
                             className="input-transport uppercase"
@@ -493,7 +503,7 @@ export default function AddVehicle() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="trailerRenavam3">RENAVAM {trailerConfig.labels[2]?.replace("Placa ", "")}</Label>
+                          <Label htmlFor="trailerRenavam3">RENAVAM {trailerConfig.labels[2]?.replace("Placa ", "")} *</Label>
                           <Input
                             id="trailerRenavam3"
                             name="trailerRenavam3"
