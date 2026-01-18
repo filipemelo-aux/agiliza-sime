@@ -52,7 +52,10 @@ export default function MyVehicles() {
         if (!session?.user) {
           navigate("/auth");
         } else {
-          fetchVehicles(session.user.id);
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(() => {
+            fetchVehicles(session.user.id);
+          }, 0);
         }
       }
     );

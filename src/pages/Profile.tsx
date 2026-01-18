@@ -42,8 +42,11 @@ export default function Profile() {
         if (!session?.user) {
           navigate("/auth");
         } else {
-          fetchProfile(session.user.id);
-          fetchMaskedDocuments();
+          // Defer Supabase calls to prevent deadlock
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+            fetchMaskedDocuments();
+          }, 0);
         }
       }
     );

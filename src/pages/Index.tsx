@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { FreightCard } from "@/components/FreightCard";
 import { FreightDetailModal } from "@/components/FreightDetailModal";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,19 +39,31 @@ export default function Index() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        // Fetch freights when auth state changes
+        if (currentUser) {
+          setTimeout(() => {
+            fetchFreights();
+          }, 0);
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      // Fetch freights after getting session
+      if (currentUser) {
+        fetchFreights();
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    fetchFreights();
   }, []);
 
   const fetchFreights = async () => {
@@ -100,6 +113,9 @@ export default function Index() {
       freight.company_name.toLowerCase().includes(searchLower)
     );
   });
+
+  // Show message for non-authenticated users
+  const showLoginPrompt = !loading && !user && freights.length === 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,6 +206,22 @@ export default function Index() {
                   <div className="h-10 bg-muted rounded w-full" />
                 </div>
               ))}
+            </div>
+          ) : showLoginPrompt ? (
+            <div className="text-center py-16">
+              <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">
+                Faça login para ver os fretes disponíveis
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Acesse sua conta para visualizar as oportunidades de frete.
+              </p>
+              <Button 
+                onClick={() => navigate("/auth")} 
+                className="btn-transport-primary"
+              >
+                Fazer Login
+              </Button>
             </div>
           ) : filteredFreights.length === 0 ? (
             <div className="text-center py-16">
