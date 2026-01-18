@@ -37,30 +37,17 @@ export default function Index() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Fetch freights for everyone (including visitors)
+    fetchFreights();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        // Fetch freights when auth state changes
-        if (currentUser) {
-          setTimeout(() => {
-            fetchFreights();
-          }, 0);
-        }
+        setUser(session?.user ?? null);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      // Fetch freights after getting session
-      if (currentUser) {
-        fetchFreights();
-      } else {
-        setLoading(false);
-      }
+      setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
@@ -114,8 +101,6 @@ export default function Index() {
     );
   });
 
-  // Show message for non-authenticated users
-  const showLoginPrompt = !loading && !user && freights.length === 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -206,22 +191,6 @@ export default function Index() {
                   <div className="h-10 bg-muted rounded w-full" />
                 </div>
               ))}
-            </div>
-          ) : showLoginPrompt ? (
-            <div className="text-center py-16">
-              <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">
-                Faça login para ver os fretes disponíveis
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Acesse sua conta para visualizar as oportunidades de frete.
-              </p>
-              <Button 
-                onClick={() => navigate("/auth")} 
-                className="btn-transport-primary"
-              >
-                Fazer Login
-              </Button>
             </div>
           ) : filteredFreights.length === 0 ? (
             <div className="text-center py-16">
