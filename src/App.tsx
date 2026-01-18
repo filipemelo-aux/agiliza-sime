@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import MyVehicles from "./pages/MyVehicles";
 import AddVehicle from "./pages/AddVehicle";
+import EditVehicle from "./pages/EditVehicle";
 import AdminFreights from "./pages/AdminFreights";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-vehicles" element={<MyVehicles />} />
           <Route path="/add-vehicle" element={<AddVehicle />} />
+          <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
           <Route path="/admin/freights" element={<AdminFreights />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

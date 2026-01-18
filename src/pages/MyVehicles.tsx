@@ -191,6 +191,14 @@ export default function MyVehicles() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => navigate(`/edit-vehicle/${vehicle.id}`)}
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setDeleteId(vehicle.id)}
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
