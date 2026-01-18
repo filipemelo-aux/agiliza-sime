@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Phone, FileText, Calendar, Edit2, Save, X } from "lucide-react";
+import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,24 +12,26 @@ interface Profile {
   id: string;
   user_id: string;
   full_name: string;
-  cpf: string;
   phone: string;
-  cnh_number: string;
+}
+
+interface MaskedDocuments {
+  cpf_masked: string;
+  cnh_masked: string;
   cnh_category: string;
   cnh_expiry: string;
+  has_valid_cnh: boolean;
 }
 
 export default function Profile() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [documents, setDocuments] = useState<MaskedDocuments | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState({
     full_name: "",
     phone: "",
-    cnh_number: "",
-    cnh_category: "",
-    cnh_expiry: "",
   });
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,6 +43,7 @@ export default function Profile() {
           navigate("/auth");
         } else {
           fetchProfile(session.user.id);
+          fetchMaskedDocuments();
         }
       }
     );
@@ -50,6 +53,7 @@ export default function Profile() {
         navigate("/auth");
       } else {
         fetchProfile(session.user.id);
+        fetchMaskedDocuments();
       }
     });
 
@@ -60,7 +64,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, user_id, full_name, phone")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -75,14 +79,25 @@ export default function Profile() {
       setEditData({
         full_name: data.full_name,
         phone: data.phone,
-        cnh_number: data.cnh_number,
-        cnh_category: data.cnh_category,
-        cnh_expiry: data.cnh_expiry,
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMaskedDocuments = async () => {
+    try {
+      const { data, error } = await supabase.rpc("get_my_masked_documents");
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setDocuments(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching documents:", error);
     }
   };
 
@@ -157,9 +172,6 @@ export default function Profile() {
                       setEditData({
                         full_name: profile.full_name,
                         phone: profile.phone,
-                        cnh_number: profile.cnh_number,
-                        cnh_category: profile.cnh_category,
-                        cnh_expiry: profile.cnh_expiry,
                       });
                     }
                   }}
@@ -198,9 +210,11 @@ export default function Profile() {
                   ) : (
                     <h2 className="text-xl font-semibold">{profile.full_name}</h2>
                   )}
-                  <p className="text-sm text-muted-foreground">
-                    CPF: {profile.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
-                  </p>
+                  {documents && (
+                    <p className="text-sm text-muted-foreground">
+                      CPF: {documents.cpf_masked}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -225,63 +239,46 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* CNH Info */}
-              <div className="pt-6 border-t border-border">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
-                  Carteira Nacional de Habilitação
-                </h3>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Número</Label>
-                    {editing ? (
-                      <Input
-                        value={editData.cnh_number}
-                        onChange={(e) =>
-                          setEditData({ ...editData, cnh_number: e.target.value })
-                        }
-                        className="input-transport"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.cnh_number}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Categoria</Label>
-                    {editing ? (
-                      <Input
-                        value={editData.cnh_category}
-                        onChange={(e) =>
-                          setEditData({ ...editData, cnh_category: e.target.value })
-                        }
-                        className="input-transport"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.cnh_category}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      Validade
-                    </Label>
-                    {editing ? (
-                      <Input
-                        type="date"
-                        value={editData.cnh_expiry}
-                        onChange={(e) =>
-                          setEditData({ ...editData, cnh_expiry: e.target.value })
-                        }
-                        className="input-transport"
-                      />
-                    ) : (
-                      <p className="font-medium">
-                        {new Date(profile.cnh_expiry).toLocaleDateString("pt-BR")}
+              {/* CNH Info (Read-only, masked) */}
+              {documents && (
+                <div className="pt-6 border-t border-border">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    Carteira Nacional de Habilitação
+                    <span className="ml-2 flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      <ShieldCheck className="w-3 h-3" />
+                      Dados protegidos
+                    </span>
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Número</Label>
+                      <p className="font-medium font-mono">{documents.cnh_masked}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Categoria</Label>
+                      <p className="font-medium">{documents.cnh_category}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        Validade
+                      </Label>
+                      <p className={`font-medium ${!documents.has_valid_cnh ? 'text-destructive' : ''}`}>
+                        {new Date(documents.cnh_expiry).toLocaleDateString("pt-BR")}
+                        {!documents.has_valid_cnh && (
+                          <span className="ml-2 text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                            Vencida
+                          </span>
+                        )}
                       </p>
-                    )}
+                    </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Para atualizar seus documentos, entre em contato com o suporte.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
