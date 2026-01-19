@@ -1,12 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Truck, MapPin, Package, Plus, Edit2, Trash2 } from "lucide-react";
+import { Truck, Plus, Edit2, Trash2, Filter, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { FreightCard } from "@/components/FreightCard";
 import { FreightDetailModal } from "@/components/FreightDetailModal";
 import { FreightFormDialog } from "@/components/FreightFormDialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -38,10 +53,25 @@ interface Freight {
   description: string | null;
 }
 
+const vehicleTypeLabels: Record<string, string> = {
+  truck: "Truck",
+  bitruck: "Bitruck",
+  carreta: "Carreta",
+  carreta_ls: "Carreta LS",
+  rodotrem: "Rodotrem",
+  bitrem: "Bitrem",
+  treminhao: "Treminhão",
+};
+
+const brazilianStates = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+];
+
 export default function Index() {
   const [freights, setFreights] = useState<Freight[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<any>(null);
   const [selectedFreight, setSelectedFreight] = useState<Freight | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,6 +79,15 @@ export default function Index() {
   const [editingFreight, setEditingFreight] = useState<Freight | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [freightToDelete, setFreightToDelete] = useState<Freight | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  
+  // Filter states
+  const [filterOriginState, setFilterOriginState] = useState<string>("");
+  const [filterDestinationState, setFilterDestinationState] = useState<string>("");
+  const [filterVehicleType, setFilterVehicleType] = useState<string>("");
+  const [filterMinValue, setFilterMinValue] = useState<string>("");
+  const [filterCargoType, setFilterCargoType] = useState<string>("");
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
@@ -154,100 +193,192 @@ export default function Index() {
     }
   };
 
+  const clearFilters = () => {
+    setFilterOriginState("");
+    setFilterDestinationState("");
+    setFilterVehicleType("");
+    setFilterMinValue("");
+    setFilterCargoType("");
+  };
+
+  const hasActiveFilters = filterOriginState || filterDestinationState || filterVehicleType || filterMinValue || filterCargoType;
+
   const filteredFreights = freights.filter((freight) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      freight.origin_city.toLowerCase().includes(searchLower) ||
-      freight.destination_city.toLowerCase().includes(searchLower) ||
-      freight.cargo_type.toLowerCase().includes(searchLower) ||
-      freight.company_name.toLowerCase().includes(searchLower)
-    );
+    if (filterOriginState && freight.origin_state !== filterOriginState) return false;
+    if (filterDestinationState && freight.destination_state !== filterDestinationState) return false;
+    if (filterVehicleType && freight.required_vehicle_type !== filterVehicleType) return false;
+    if (filterMinValue && freight.value_brl < parseFloat(filterMinValue)) return false;
+    if (filterCargoType && !freight.cargo_type.toLowerCase().includes(filterCargoType.toLowerCase())) return false;
+    return true;
   });
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/5 py-16 md:py-24">
+      {/* Freights Section */}
+      <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display mb-6 animate-fade-in">
-              Encontre os melhores{" "}
-              <span className="gradient-text">fretes</span> para você
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-slide-up">
-              Conectamos motoristas a oportunidades de frete em todo o Brasil.
-              Cadastre-se e comece a transportar hoje.
-            </p>
-
-            {/* Search Bar */}
-            <div className="relative max-w-xl mx-auto animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar por cidade, carga ou empresa..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-transport pl-12 pr-4 py-4 text-base"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Background decoration */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-      </section>
-
-      {/* Stats */}
-      <section className="py-8 border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-primary mb-1">
+          {/* Header with counter and filter */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full">
                 <Truck className="w-5 h-5" />
-                <span className="text-2xl font-bold font-display">{freights.length}</span>
+                <span className="text-xl font-bold font-display">{freights.length}</span>
+                <span className="text-sm font-medium">fretes disponíveis</span>
               </div>
-              <p className="text-sm text-muted-foreground">Fretes disponíveis</p>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar filtros
+                </Button>
+              )}
             </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-primary mb-1">
-                <MapPin className="w-5 h-5" />
-                <span className="text-2xl font-bold font-display">27</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Estados atendidos</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-primary mb-1">
-                <Package className="w-5 h-5" />
-                <span className="text-2xl font-bold font-display">+1000</span>
-              </div>
-              <p className="text-sm text-muted-foreground">Cargas entregues</p>
+            
+            <div className="flex items-center gap-2">
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filtrar
+                    {hasActiveFilters && (
+                      <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        !
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Filtrar Fretes</SheetTitle>
+                  </SheetHeader>
+                  <div className="space-y-6 mt-6">
+                    {/* Origin State */}
+                    <div className="space-y-2">
+                      <Label>Estado de Origem</Label>
+                      <Select value={filterOriginState} onValueChange={setFilterOriginState}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os estados" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos os estados</SelectItem>
+                          {brazilianStates.map((state) => (
+                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Destination State */}
+                    <div className="space-y-2">
+                      <Label>Estado de Destino</Label>
+                      <Select value={filterDestinationState} onValueChange={setFilterDestinationState}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os estados" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos os estados</SelectItem>
+                          {brazilianStates.map((state) => (
+                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Vehicle Type */}
+                    <div className="space-y-2">
+                      <Label>Tipo de Veículo</Label>
+                      <Select value={filterVehicleType} onValueChange={setFilterVehicleType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos os tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos os tipos</SelectItem>
+                          {Object.entries(vehicleTypeLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Min Value */}
+                    <div className="space-y-2">
+                      <Label>Valor Mínimo (R$/ton)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={filterMinValue}
+                        onChange={(e) => setFilterMinValue(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Cargo Type */}
+                    <div className="space-y-2">
+                      <Label>Tipo de Carga</Label>
+                      <Input
+                        type="text"
+                        placeholder="Ex: Calcário, Soja..."
+                        value={filterCargoType}
+                        onChange={(e) => setFilterCargoType(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button variant="outline" className="flex-1" onClick={clearFilters}>
+                        Limpar
+                      </Button>
+                      <Button className="flex-1" onClick={() => setFilterSheetOpen(false)}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {isAdmin && (
+                <Button onClick={handleAddFreight} className="btn-transport-accent">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Frete
+                </Button>
+              )}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Freights List */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold font-display">
-              Fretes Disponíveis
-              {searchTerm && (
-                <span className="text-muted-foreground font-normal text-lg ml-2">
-                  ({filteredFreights.length} resultados)
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {filterOriginState && (
+                <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                  Origem: {filterOriginState}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setFilterOriginState("")} />
                 </span>
               )}
-            </h2>
-            {isAdmin && (
-              <Button onClick={handleAddFreight} className="btn-transport-accent">
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Frete
-              </Button>
-            )}
-          </div>
+              {filterDestinationState && (
+                <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                  Destino: {filterDestinationState}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setFilterDestinationState("")} />
+                </span>
+              )}
+              {filterVehicleType && (
+                <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                  Veículo: {vehicleTypeLabels[filterVehicleType]}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setFilterVehicleType("")} />
+                </span>
+              )}
+              {filterMinValue && (
+                <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                  Mín: R${filterMinValue}/ton
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setFilterMinValue("")} />
+                </span>
+              )}
+              {filterCargoType && (
+                <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                  Carga: {filterCargoType}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setFilterCargoType("")} />
+                </span>
+              )}
+            </div>
+          )}
 
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -264,13 +395,18 @@ export default function Index() {
             <div className="text-center py-16">
               <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">
-                {searchTerm ? "Nenhum frete encontrado" : "Nenhum frete disponível"}
+                {hasActiveFilters ? "Nenhum frete encontrado" : "Nenhum frete disponível"}
               </h3>
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? "Tente buscar por outros termos"
+                {hasActiveFilters
+                  ? "Tente ajustar os filtros para ver mais resultados"
                   : "Novos fretes são adicionados constantemente. Volte em breve!"}
               </p>
+              {hasActiveFilters && (
+                <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                  Limpar Filtros
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
