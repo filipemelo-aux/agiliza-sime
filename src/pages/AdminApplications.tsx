@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Truck, User, FileText, Upload, Download, Send, Phone, CreditCard, Car, CheckCircle } from "lucide-react";
+import { 
+  Truck, User, FileText, Upload, Send, Phone, CreditCard, Car, 
+  CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, MapPin,
+  Calendar, Package, Scale, DollarSign
+} from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface ApplicationWithDetails {
   id: string;
@@ -87,6 +92,13 @@ export default function AdminApplications() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  
+  // Reject modal state
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const [appToReject, setAppToReject] = useState<ApplicationWithDetails | null>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -118,7 +130,6 @@ export default function AdminApplications() {
         return;
       }
 
-      // Fetch all related data with better error handling
       const applicationDetails = await Promise.all(
         apps.map(async (app) => {
           try {
@@ -129,7 +140,6 @@ export default function AdminApplications() {
               supabase.from("vehicles").select("*").eq("id", app.vehicle_id).maybeSingle(),
             ]);
 
-            // Log errors but don't throw
             if (freightRes.error) console.warn("Freight fetch error:", freightRes.error);
             if (profileRes.error) console.warn("Profile fetch error:", profileRes.error);
             if (docsRes.error) console.warn("Docs fetch error:", docsRes.error);
@@ -149,7 +159,6 @@ export default function AdminApplications() {
         })
       );
 
-      // Filter out nulls and incomplete data
       const validApplications = applicationDetails.filter(
         (app): app is ApplicationWithDetails => 
           app !== null && app.freight !== null && app.profile !== null && app.vehicle !== null
@@ -175,6 +184,76 @@ export default function AdminApplications() {
     }
   };
 
+  const handleAccept = (app: ApplicationWithDetails) => {
+    setSelectedApp(app);
+    setDetailOpen(true);
+    setSelectedFile(null);
+  };
+
+  const handleRejectClick = (app: ApplicationWithDetails, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAppToReject(app);
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!appToReject || !rejectReason.trim()) {
+      toast({
+        title: "Justificativa obrigatória",
+        description: "Por favor, informe o motivo da rejeição.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRejecting(true);
+
+    try {
+      // Update application status
+      const { error: updateError } = await supabase
+        .from("freight_applications")
+        .update({ status: "rejected" })
+        .eq("id", appToReject.id);
+
+      if (updateError) throw updateError;
+
+      // Send notification to driver
+      const { error: notifError } = await supabase.from("notifications").insert({
+        user_id: appToReject.user_id,
+        title: "Candidatura Rejeitada",
+        message: `Sua candidatura para o frete ${appToReject.freight.origin_city}/${appToReject.freight.origin_state} → ${appToReject.freight.destination_city}/${appToReject.freight.destination_state} foi rejeitada. Motivo: ${rejectReason}`,
+        type: "application_rejected",
+        data: JSON.parse(JSON.stringify({
+          application_id: appToReject.id,
+          freight_id: appToReject.freight_id,
+          reason: rejectReason,
+        })),
+      });
+
+      if (notifError) throw notifError;
+
+      toast({
+        title: "Candidatura rejeitada",
+        description: "O motorista foi notificado sobre a rejeição.",
+      });
+
+      setRejectModalOpen(false);
+      setAppToReject(null);
+      setRejectReason("");
+      fetchApplications();
+    } catch (error: any) {
+      console.error("Error rejecting application:", error);
+      toast({
+        title: "Erro ao rejeitar",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   const handleUploadAndSend = async () => {
     if (!selectedApp || !selectedFile) return;
 
@@ -185,19 +264,12 @@ export default function AdminApplications() {
       const fileName = `${selectedApp.id}_${Date.now()}.${fileExt}`;
       const filePath = `orders/${fileName}`;
 
-      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from("loading-orders")
         .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("loading-orders")
-        .getPublicUrl(filePath);
-
-      // Update application with file URL
       const { error: updateError } = await supabase
         .from("freight_applications")
         .update({
@@ -209,7 +281,6 @@ export default function AdminApplications() {
 
       if (updateError) throw updateError;
 
-      // Send notification to driver
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: selectedApp.user_id,
         title: "Ordem de Carregamento Recebida",
@@ -244,10 +315,8 @@ export default function AdminApplications() {
     }
   };
 
-  const openDetail = (app: ApplicationWithDetails) => {
-    setSelectedApp(app);
-    setDetailOpen(true);
-    setSelectedFile(null);
+  const toggleExpand = (appId: string) => {
+    setExpandedCard(expandedCard === appId ? null : appId);
   };
 
   const maskCPF = (cpf: string) => {
@@ -264,6 +333,16 @@ export default function AdminApplications() {
       return `(${phone.substring(0, 2)}) ${phone.substring(2, 6)}-${phone.substring(6)}`;
     }
     return phone;
+  };
+
+  const getStatusBadge = (status: string, hasOrder: boolean) => {
+    if (status === "approved" || hasOrder) {
+      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30">Aprovado</Badge>;
+    }
+    if (status === "rejected") {
+      return <Badge className="bg-red-500/20 text-red-500 border-red-500/30">Rejeitado</Badge>;
+    }
+    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Pendente</Badge>;
   };
 
   if (roleLoading) {
@@ -303,274 +382,396 @@ export default function AdminApplications() {
             {applications.map((app) => (
               <div
                 key={app.id}
-                className="freight-card cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => openDetail(app)}
+                className="bg-card border border-border rounded-xl overflow-hidden"
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="w-4 h-4 text-primary" />
-                      <span className="font-semibold">{app.profile.full_name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        app.status === "approved"
-                          ? "bg-green-500/20 text-green-500"
-                          : app.status === "pending"
-                          ? "bg-yellow-500/20 text-yellow-500"
-                          : "bg-muted text-muted-foreground"
-                      }`}>
-                        {app.status === "approved" ? "Aprovado" : app.status === "pending" ? "Pendente" : app.status}
-                      </span>
+                {/* Header */}
+                <div 
+                  className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => toggleExpand(app.id)}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">{app.profile.full_name}</span>
+                          {getStatusBadge(app.status, !!app.loading_order_url)}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {app.freight.origin_city}/{app.freight.origin_state} → {app.freight.destination_city}/{app.freight.destination_state}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      <Truck className="w-3 h-3 inline mr-1" />
-                      {app.freight.origin_city}/{app.freight.origin_state} → {app.freight.destination_city}/{app.freight.destination_state}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      <Car className="w-3 h-3 inline mr-1" />
-                      {app.vehicle.brand} {app.vehicle.model} - {app.vehicle.plate}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {app.loading_order_url ? (
-                      <span className="flex items-center gap-1 text-green-500 text-sm">
-                        <CheckCircle className="w-4 h-4" />
-                        Ordem Enviada
-                      </span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="btn-transport-accent"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDetail(app);
-                        }}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Anexar Ordem
-                      </Button>
-                    )}
+                    
+                    <div className="flex items-center gap-2">
+                      {app.status === "pending" && !app.loading_order_url && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAccept(app);
+                            }}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Aceitar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => handleRejectClick(app, e)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Rejeitar
+                          </Button>
+                        </>
+                      )}
+                      {app.loading_order_url && (
+                        <span className="flex items-center gap-1 text-green-500 text-sm">
+                          <CheckCircle className="w-4 h-4" />
+                          Ordem Enviada
+                        </span>
+                      )}
+                      {expandedCard === app.id ? (
+                        <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Expanded Content */}
+                {expandedCard === app.id && (
+                  <div className="border-t border-border p-4 bg-muted/20">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Driver Info */}
+                      <div className="bg-card border border-border rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-primary">
+                          <User className="w-4 h-4" />
+                          Motorista
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Nome:</span>
+                            <span className="font-medium">{app.profile.full_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Telefone:</span>
+                            <span className="font-medium">{formatPhone(app.profile.phone)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">CPF:</span>
+                            <span className="font-medium">{maskCPF(app.driver_documents?.cpf || "")}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">CNH:</span>
+                            <span className="font-medium">
+                              {app.driver_documents?.cnh_number} (Cat. {app.driver_documents?.cnh_category})
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Validade CNH:</span>
+                            <span className="font-medium">
+                              {app.driver_documents?.cnh_expiry
+                                ? new Date(app.driver_documents.cnh_expiry).toLocaleDateString("pt-BR")
+                                : "-"}
+                            </span>
+                          </div>
+                          {app.profile.bank_name && (
+                            <>
+                              <div className="border-t border-border my-2 pt-2">
+                                <span className="text-muted-foreground text-xs">Dados Bancários</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Banco:</span>
+                                <span className="font-medium">{app.profile.bank_name}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Ag/Conta:</span>
+                                <span className="font-medium">
+                                  {app.profile.bank_agency} / {app.profile.bank_account}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          {app.profile.pix_key && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">PIX:</span>
+                              <span className="font-medium truncate max-w-[120px]" title={app.profile.pix_key}>
+                                {app.profile.pix_key}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Vehicle Info */}
+                      <div className="bg-card border border-border rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-primary">
+                          <Car className="w-4 h-4" />
+                          Veículo
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tipo:</span>
+                            <span className="font-medium">
+                              {vehicleTypeLabels[app.vehicle.vehicle_type] || app.vehicle.vehicle_type}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Marca/Modelo:</span>
+                            <span className="font-medium">{app.vehicle.brand} {app.vehicle.model}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Placa:</span>
+                            <span className="font-medium">{app.vehicle.plate}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">RENAVAM:</span>
+                            <span className="font-medium">{app.vehicle.renavam}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Ano:</span>
+                            <span className="font-medium">{app.vehicle.year}</span>
+                          </div>
+                          {app.vehicle.antt_number && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">ANTT:</span>
+                              <span className="font-medium">{app.vehicle.antt_number}</span>
+                            </div>
+                          )}
+                          {app.vehicle.cargo_type && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Tipo Carga:</span>
+                              <span className="font-medium">
+                                {app.vehicle.cargo_type === "cacamba" ? "Caçamba" : 
+                                 app.vehicle.cargo_type === "graneleiro" ? "Graneleiro" : 
+                                 app.vehicle.cargo_type}
+                              </span>
+                            </div>
+                          )}
+                          {(app.vehicle.trailer_plate_1 || app.vehicle.trailer_plate_2 || app.vehicle.trailer_plate_3) && (
+                            <>
+                              <div className="border-t border-border my-2 pt-2">
+                                <span className="text-muted-foreground text-xs">Carretas</span>
+                              </div>
+                              {app.vehicle.trailer_plate_1 && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Carreta 1:</span>
+                                  <span className="font-medium">{app.vehicle.trailer_plate_1}</span>
+                                </div>
+                              )}
+                              {app.vehicle.trailer_plate_2 && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Carreta 2:</span>
+                                  <span className="font-medium">{app.vehicle.trailer_plate_2}</span>
+                                </div>
+                              )}
+                              {app.vehicle.trailer_plate_3 && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Carreta 3:</span>
+                                  <span className="font-medium">{app.vehicle.trailer_plate_3}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Freight Info */}
+                      <div className="bg-card border border-border rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-primary">
+                          <Truck className="w-4 h-4" />
+                          Frete
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <p className="font-medium">{app.freight.origin_city}/{app.freight.origin_state}</p>
+                              <p className="text-muted-foreground">→ {app.freight.destination_city}/{app.freight.destination_state}</p>
+                            </div>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Empresa:</span>
+                            <span className="font-medium">{app.freight.company_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Carga:</span>
+                            <span className="font-medium">{app.freight.cargo_type}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Peso:</span>
+                            <span className="font-medium">{app.freight.weight_kg.toLocaleString("pt-BR")} kg</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Valor:</span>
+                            <span className="font-medium text-green-500">
+                              {app.freight.value_brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Coleta:</span>
+                            <span className="font-medium">
+                              {new Date(app.freight.pickup_date).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Candidatura:</span>
+                            <span className="font-medium">
+                              {new Date(app.applied_at).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for Pending */}
+                    {app.status === "pending" && !app.loading_order_url && (
+                      <div className="flex gap-3 mt-4 pt-4 border-t border-border">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleAccept(app)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Aceitar e Anexar Ordem
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="flex-1"
+                          onClick={(e) => handleRejectClick(app, e)}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Rejeitar Candidatura
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </main>
 
-      {/* Detail Modal */}
+      {/* Accept & Upload Modal */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-display">Detalhes da Candidatura</DialogTitle>
+            <DialogTitle className="text-xl font-display">Enviar Ordem de Carregamento</DialogTitle>
+            <DialogDescription>
+              Anexe o PDF da ordem de carregamento para aprovar esta candidatura.
+            </DialogDescription>
           </DialogHeader>
 
           {selectedApp && (
-            <Tabs defaultValue="applicant" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="applicant">Motorista</TabsTrigger>
-                <TabsTrigger value="vehicle">Veículo</TabsTrigger>
-                <TabsTrigger value="order">Ordem de Carregamento</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="applicant" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Nome Completo</Label>
-                    <p className="font-semibold">{selectedApp.profile.full_name}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Telefone</Label>
-                    <p className="font-semibold flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      {formatPhone(selectedApp.profile.phone)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">CPF</Label>
-                    <p className="font-semibold">{maskCPF(selectedApp.driver_documents?.cpf || "")}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">CNH</Label>
-                    <p className="font-semibold">
-                      {selectedApp.driver_documents?.cnh_number} - Cat. {selectedApp.driver_documents?.cnh_category}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Validade CNH</Label>
-                    <p className="font-semibold">
-                      {selectedApp.driver_documents?.cnh_expiry
-                        ? new Date(selectedApp.driver_documents.cnh_expiry).toLocaleDateString("pt-BR")
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bank Info */}
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Dados Bancários
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-muted-foreground text-sm">Banco</Label>
-                      <p className="font-semibold">{selectedApp.profile.bank_name || "Não informado"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-muted-foreground text-sm">Agência</Label>
-                      <p className="font-semibold">{selectedApp.profile.bank_agency || "Não informado"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-muted-foreground text-sm">Conta</Label>
-                      <p className="font-semibold">
-                        {selectedApp.profile.bank_account || "Não informado"}
-                        {selectedApp.profile.bank_account_type && ` (${selectedApp.profile.bank_account_type})`}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-muted-foreground text-sm">PIX</Label>
-                      <p className="font-semibold">
-                        {selectedApp.profile.pix_key || "Não informado"}
-                        {selectedApp.profile.pix_key_type && ` (${selectedApp.profile.pix_key_type})`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="vehicle" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Tipo de Veículo</Label>
-                    <p className="font-semibold">
-                      {vehicleTypeLabels[selectedApp.vehicle.vehicle_type] || selectedApp.vehicle.vehicle_type}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Marca / Modelo</Label>
-                    <p className="font-semibold">{selectedApp.vehicle.brand} {selectedApp.vehicle.model}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Placa do Cavalo</Label>
-                    <p className="font-semibold">{selectedApp.vehicle.plate}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">RENAVAM</Label>
-                    <p className="font-semibold">{selectedApp.vehicle.renavam}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Ano</Label>
-                    <p className="font-semibold">{selectedApp.vehicle.year}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">ANTT</Label>
-                    <p className="font-semibold">{selectedApp.vehicle.antt_number || "Não informado"}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground text-sm">Tipo de Carga</Label>
-                    <p className="font-semibold">
-                      {selectedApp.vehicle.cargo_type === "cacamba" ? "Caçamba" : 
-                       selectedApp.vehicle.cargo_type === "graneleiro" ? "Graneleiro" : 
-                       selectedApp.vehicle.cargo_type || "Não informado"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Trailer Info */}
-                {(selectedApp.vehicle.trailer_plate_1 || selectedApp.vehicle.trailer_plate_2 || selectedApp.vehicle.trailer_plate_3) && (
-                  <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold mb-3">Carretas</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {selectedApp.vehicle.trailer_plate_1 && (
-                        <div className="bg-muted/50 p-3 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Carreta 1</p>
-                          <p className="font-semibold">Placa: {selectedApp.vehicle.trailer_plate_1}</p>
-                          <p className="text-sm">RENAVAM: {selectedApp.vehicle.trailer_renavam_1 || "-"}</p>
-                        </div>
-                      )}
-                      {selectedApp.vehicle.trailer_plate_2 && (
-                        <div className="bg-muted/50 p-3 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Carreta 2</p>
-                          <p className="font-semibold">Placa: {selectedApp.vehicle.trailer_plate_2}</p>
-                          <p className="text-sm">RENAVAM: {selectedApp.vehicle.trailer_renavam_2 || "-"}</p>
-                        </div>
-                      )}
-                      {selectedApp.vehicle.trailer_plate_3 && (
-                        <div className="bg-muted/50 p-3 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Carreta 3</p>
-                          <p className="font-semibold">Placa: {selectedApp.vehicle.trailer_plate_3}</p>
-                          <p className="text-sm">RENAVAM: {selectedApp.vehicle.trailer_renavam_3 || "-"}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="order" className="space-y-4 mt-4">
-                {/* Freight Info Summary */}
-                <div className="bg-secondary/30 rounded-lg p-4 mb-4">
-                  <h4 className="font-semibold mb-2">Frete</h4>
-                  <p className="text-sm">
+            <div className="space-y-4">
+              {/* Freight Summary */}
+              <div className="bg-secondary/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">
                     {selectedApp.freight.origin_city}/{selectedApp.freight.origin_state} → {selectedApp.freight.destination_city}/{selectedApp.freight.destination_state}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedApp.freight.company_name} • {selectedApp.freight.cargo_type} • {selectedApp.freight.weight_kg.toLocaleString("pt-BR")} kg
-                  </p>
+                  </span>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  {selectedApp.profile.full_name} • {selectedApp.vehicle.plate}
+                </p>
+              </div>
 
-                {selectedApp.loading_order_url ? (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                    <p className="font-semibold text-green-600">Ordem de Carregamento Enviada</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Enviada em {selectedApp.loading_order_sent_at 
-                        ? new Date(selectedApp.loading_order_sent_at).toLocaleDateString("pt-BR", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="loadingOrder">Anexar Ordem de Carregamento (PDF)</Label>
-                      <Input
-                        id="loadingOrder"
-                        type="file"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        onChange={handleFileChange}
-                        className="mt-2"
-                      />
-                      {selectedFile && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Arquivo selecionado: {selectedFile.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <Button
-                      onClick={handleUploadAndSend}
-                      disabled={!selectedFile || uploadingFile}
-                      className="w-full btn-transport-accent"
-                    >
-                      {uploadingFile ? (
-                        "Enviando..."
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Enviar Ordem para o Motorista
-                        </>
-                      )}
-                    </Button>
-                  </div>
+              {/* File Upload */}
+              <div>
+                <Label htmlFor="loadingOrder">Anexar Ordem (PDF, DOC, JPG)</Label>
+                <Input
+                  id="loadingOrder"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className="mt-2"
+                />
+                {selectedFile && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ✓ {selectedFile.name}
+                  </p>
                 )}
-              </TabsContent>
-            </Tabs>
+              </div>
+
+              <Button
+                onClick={handleUploadAndSend}
+                disabled={!selectedFile || uploadingFile}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {uploadingFile ? (
+                  "Enviando..."
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Aprovar e Enviar Ordem
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Modal */}
+      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display text-destructive">Rejeitar Candidatura</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da rejeição. O motorista será notificado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {appToReject && (
+            <div className="space-y-4">
+              {/* Application Summary */}
+              <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4 text-destructive" />
+                  <span className="font-semibold">{appToReject.profile.full_name}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {appToReject.freight.origin_city}/{appToReject.freight.origin_state} → {appToReject.freight.destination_city}/{appToReject.freight.destination_state}
+                </p>
+              </div>
+
+              {/* Reject Reason */}
+              <div>
+                <Label htmlFor="rejectReason">Motivo da Rejeição *</Label>
+                <Textarea
+                  id="rejectReason"
+                  placeholder="Informe o motivo da rejeição para o motorista..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="mt-2"
+                  rows={4}
+                />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setRejectModalOpen(false)}
+                  disabled={rejecting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleRejectConfirm}
+                  disabled={rejecting || !rejectReason.trim()}
+                >
+                  {rejecting ? "Rejeitando..." : "Confirmar Rejeição"}
+                </Button>
+              </DialogFooter>
+            </div>
           )}
         </DialogContent>
       </Dialog>
