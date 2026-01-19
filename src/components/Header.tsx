@@ -13,11 +13,16 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Limpa storage local primeiro para garantir logout
+      localStorage.removeItem('sb-hepdqbkiwdxqkgnwbxdc-auth-token');
+      sessionStorage.clear();
+      
+      // Tenta signOut no servidor (pode falhar se sessão já expirou)
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
-    // Sempre redireciona, mesmo se signOut falhar
+    // Força reload completo da página
     window.location.href = "/";
   };
 
