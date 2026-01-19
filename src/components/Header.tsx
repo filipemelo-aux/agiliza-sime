@@ -13,8 +13,13 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+    // Sempre redireciona, mesmo se signOut falhar
+    window.location.href = "/";
   };
 
   const isActive = (path: string) => location.pathname === path;
