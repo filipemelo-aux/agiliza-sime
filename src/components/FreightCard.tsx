@@ -1,5 +1,6 @@
 import { MapPin, Package, Truck, Calendar, Building2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface FreightCardProps {
   id: string;
@@ -42,6 +43,8 @@ export function FreightCard({
   requiredVehicleType,
   onApply,
 }: FreightCardProps) {
+  const { isAdmin } = useUserRole();
+  
   const formattedValue = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -113,12 +116,14 @@ export function FreightCard({
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor do frete</p>
           <p className="text-2xl font-bold font-display text-primary">{formattedValue}</p>
         </div>
-        <Button
-          onClick={() => onApply?.(id)}
-          className="btn-transport-accent px-6 py-2.5"
-        >
-          Candidatar
-        </Button>
+        {!isAdmin && (
+          <Button
+            onClick={() => onApply?.(id)}
+            className="btn-transport-accent px-6 py-2.5"
+          >
+            Candidatar
+          </Button>
+        )}
       </div>
     </div>
   );

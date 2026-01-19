@@ -46,36 +46,40 @@ export function Header() {
           </Link>
           {user && (
             <>
-              <Link
-                to="/my-vehicles"
-                className={`text-sm font-medium transition-colors ${
-                  isActive("/my-vehicles") 
-                    ? "text-primary" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Meus Veículos
-              </Link>
-              <Link
-                to="/my-applications"
-                className={`text-sm font-medium transition-colors ${
-                  isActive("/my-applications") 
-                    ? "text-primary" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Minhas Ordens
-              </Link>
-              <Link
-                to="/profile"
-                className={`text-sm font-medium transition-colors ${
-                  isActive("/profile") 
-                    ? "text-primary" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Meu Perfil
-              </Link>
+              {!isAdmin && (
+                <>
+                  <Link
+                    to="/my-vehicles"
+                    className={`text-sm font-medium transition-colors ${
+                      isActive("/my-vehicles") 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Meus Veículos
+                  </Link>
+                  <Link
+                    to="/my-applications"
+                    className={`text-sm font-medium transition-colors ${
+                      isActive("/my-applications") 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Minhas Ordens
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className={`text-sm font-medium transition-colors ${
+                      isActive("/profile") 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Meu Perfil
+                  </Link>
+                </>
+              )}
               {isAdmin && (
                 <>
                   <Link
@@ -166,27 +170,31 @@ export function Header() {
             </Link>
             {user ? (
               <>
-                <Link
-                  to="/my-vehicles"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 text-sm font-medium"
-                >
-                  Meus Veículos
-                </Link>
-                <Link
-                  to="/my-applications"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 text-sm font-medium"
-                >
-                  Minhas Ordens de Carregamento
-                </Link>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 text-sm font-medium"
-                >
-                  Meu Perfil
-                </Link>
+                {!isAdmin && (
+                  <>
+                    <Link
+                      to="/my-vehicles"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 text-sm font-medium"
+                    >
+                      Meus Veículos
+                    </Link>
+                    <Link
+                      to="/my-applications"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 text-sm font-medium"
+                    >
+                      Minhas Ordens de Carregamento
+                    </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 text-sm font-medium"
+                    >
+                      Meu Perfil
+                    </Link>
+                  </>
+                )}
                 {isAdmin && (
                   <>
                     <Link
