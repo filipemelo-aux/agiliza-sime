@@ -11,6 +11,8 @@ import MyVehicles from "./pages/MyVehicles";
 import AddVehicle from "./pages/AddVehicle";
 import EditVehicle from "./pages/EditVehicle";
 import AdminFreights from "./pages/AdminFreights";
+import AdminApplications from "./pages/AdminApplications";
+import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,9 +29,11 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-vehicles" element={<MyVehicles />} />
+          <Route path="/my-applications" element={<MyApplications />} />
           <Route path="/add-vehicle" element={<AddVehicle />} />
           <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
           <Route path="/admin/freights" element={<AdminFreights />} />
+          <Route path="/admin/applications" element={<AdminApplications />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
