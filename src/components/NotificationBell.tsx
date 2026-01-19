@@ -1,4 +1,5 @@
 import { Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,7 +16,17 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ userId }: NotificationBellProps) {
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(userId);
+
+  const handleNotificationClick = (notification: any) => {
+    markAsRead(notification.id);
+    
+    // Navigate if there's a navigate_to field in data
+    if (notification.data?.navigate_to) {
+      navigate(notification.data.navigate_to);
+    }
+  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -69,8 +80,8 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                 key={notification.id}
                 className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
                   !notification.read ? "bg-primary/5" : ""
-                }`}
-                onClick={() => markAsRead(notification.id)}
+                } ${notification.data?.navigate_to ? "hover:bg-accent" : ""}`}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <span className="font-medium text-sm">{notification.title}</span>
@@ -81,9 +92,16 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                 <p className="text-xs text-muted-foreground line-clamp-2">
                   {notification.message}
                 </p>
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(notification.created_at)}
-                </span>
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-xs text-muted-foreground">
+                    {formatTime(notification.created_at)}
+                  </span>
+                  {notification.data?.navigate_to && (
+                    <span className="text-xs text-primary font-medium">
+                      Ver detalhes →
+                    </span>
+                  )}
+                </div>
               </DropdownMenuItem>
             ))
           )}

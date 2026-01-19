@@ -302,12 +302,13 @@ export default function AdminApplications() {
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: selectedApp.user_id,
         title: "Ordem de Carregamento Recebida",
-        message: `Sua ordem de carregamento para o frete ${selectedApp.freight.origin_city}/${selectedApp.freight.origin_state} → ${selectedApp.freight.destination_city}/${selectedApp.freight.destination_state} está disponível para download.`,
+        message: `Sua ordem de carregamento para o frete ${selectedApp.freight.origin_city}/${selectedApp.freight.origin_state} → ${selectedApp.freight.destination_city}/${selectedApp.freight.destination_state} está disponível para download em Minhas Ordens.`,
         type: "loading_order",
         data: JSON.parse(JSON.stringify({
           application_id: selectedApp.id,
           freight_id: selectedApp.freight_id,
           loading_order_url: filePath,
+          navigate_to: "/my-applications",
         })),
       });
 
