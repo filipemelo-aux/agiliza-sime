@@ -22,9 +22,15 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
     
-    // Navigate if there's a navigate_to field in data
+    // Navigate based on navigate_to field or notification type
     if (notification.data?.navigate_to) {
       navigate(notification.data.navigate_to);
+    } else if (notification.type === 'loading_order') {
+      navigate('/my-applications');
+    } else if (notification.type === 'application_rejected') {
+      navigate('/my-applications');
+    } else if (notification.type === 'freight_application') {
+      navigate('/admin/applications');
     }
   };
 
@@ -89,14 +95,14 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                     <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-1.5" />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground text-left w-full break-words whitespace-normal">
+                <p className="text-xs text-muted-foreground w-full break-words whitespace-normal text-justify">
                   {notification.message}
                 </p>
                 <div className="flex items-center justify-between w-full">
                   <span className="text-xs text-muted-foreground">
                     {formatTime(notification.created_at)}
                   </span>
-                  {notification.data?.navigate_to && (
+                  {(notification.data?.navigate_to || ['loading_order', 'application_rejected', 'freight_application'].includes(notification.type)) && (
                     <span className="text-xs text-primary font-medium">
                       Ver detalhes →
                     </span>
