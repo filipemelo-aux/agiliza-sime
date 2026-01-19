@@ -247,12 +247,12 @@ export default function Index() {
                     {/* Origin State */}
                     <div className="space-y-2">
                       <Label>Estado de Origem</Label>
-                      <Select value={filterOriginState} onValueChange={setFilterOriginState}>
+                      <Select value={filterOriginState || undefined} onValueChange={(value) => setFilterOriginState(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todos os estados" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos os estados</SelectItem>
+                          <SelectItem value="__all__">Todos os estados</SelectItem>
                           {brazilianStates.map((state) => (
                             <SelectItem key={state} value={state}>{state}</SelectItem>
                           ))}
@@ -263,12 +263,12 @@ export default function Index() {
                     {/* Destination State */}
                     <div className="space-y-2">
                       <Label>Estado de Destino</Label>
-                      <Select value={filterDestinationState} onValueChange={setFilterDestinationState}>
+                      <Select value={filterDestinationState || undefined} onValueChange={(value) => setFilterDestinationState(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todos os estados" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos os estados</SelectItem>
+                          <SelectItem value="__all__">Todos os estados</SelectItem>
                           {brazilianStates.map((state) => (
                             <SelectItem key={state} value={state}>{state}</SelectItem>
                           ))}
@@ -279,12 +279,12 @@ export default function Index() {
                     {/* Vehicle Type */}
                     <div className="space-y-2">
                       <Label>Tipo de Veículo</Label>
-                      <Select value={filterVehicleType} onValueChange={setFilterVehicleType}>
+                      <Select value={filterVehicleType || undefined} onValueChange={(value) => setFilterVehicleType(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todos os tipos" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos os tipos</SelectItem>
+                          <SelectItem value="__all__">Todos os tipos</SelectItem>
                           {Object.entries(vehicleTypeLabels).map(([value, label]) => (
                             <SelectItem key={value} value={value}>{label}</SelectItem>
                           ))}
