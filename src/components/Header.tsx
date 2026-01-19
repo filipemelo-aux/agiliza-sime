@@ -64,7 +64,7 @@ export function Header() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Candidaturas
+                Minhas Ordens
               </Link>
               <Link
                 to="/profile"
@@ -91,13 +91,14 @@ export function Header() {
                   </Link>
                   <Link
                     to="/admin/applications"
-                    className={`text-sm font-medium transition-colors ${
+                    className={`text-sm font-medium transition-colors flex items-center gap-1 ${
                       isActive("/admin/applications") 
                         ? "text-primary" 
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Candidaturas
+                    <Settings className="w-4 h-4" />
+                    Candidaturas Pendentes
                   </Link>
                 </>
               )}
@@ -177,7 +178,7 @@ export function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="py-2 text-sm font-medium"
                 >
-                  Minhas Candidaturas
+                  Minhas Ordens de Carregamento
                 </Link>
                 <Link
                   to="/profile"
@@ -202,7 +203,7 @@ export function Header() {
                       className="py-2 text-sm font-medium flex items-center gap-2"
                     >
                       <Settings className="w-4 h-4" />
-                      Admin - Candidaturas
+                      Admin - Candidaturas Pendentes
                     </Link>
                   </>
                 )}
