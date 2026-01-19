@@ -135,15 +135,6 @@ export default function Index() {
   const handleApply = (freightId: string) => {
     const freight = freights.find((f) => f.id === freightId);
     if (freight) {
-      if (!user) {
-        toast({
-          title: "Faça login para continuar",
-          description: "Você precisa estar logado para ver os detalhes do frete.",
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
-      }
       handleFreightClick(freight);
     }
   };
