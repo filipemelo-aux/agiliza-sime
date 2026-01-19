@@ -57,6 +57,16 @@ export function Header() {
                 Meus Veículos
               </Link>
               <Link
+                to="/my-applications"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/my-applications") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Candidaturas
+              </Link>
+              <Link
                 to="/profile"
                 className={`text-sm font-medium transition-colors ${
                   isActive("/profile") 
@@ -67,17 +77,29 @@ export function Header() {
                 Meu Perfil
               </Link>
               {isAdmin && (
-                <Link
-                  to="/admin/freights"
-                  className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                    isActive("/admin/freights") 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                  Admin
-                </Link>
+                <>
+                  <Link
+                    to="/admin/freights"
+                    className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                      isActive("/admin/freights") 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Fretes
+                  </Link>
+                  <Link
+                    to="/admin/applications"
+                    className={`text-sm font-medium transition-colors ${
+                      isActive("/admin/applications") 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Candidaturas
+                  </Link>
+                </>
               )}
             </>
           )}
@@ -151,6 +173,13 @@ export function Header() {
                   Meus Veículos
                 </Link>
                 <Link
+                  to="/my-applications"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 text-sm font-medium"
+                >
+                  Minhas Candidaturas
+                </Link>
+                <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
                   className="py-2 text-sm font-medium"
@@ -158,14 +187,24 @@ export function Header() {
                   Meu Perfil
                 </Link>
                 {isAdmin && (
-                  <Link
-                    to="/admin/freights"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-2 text-sm font-medium flex items-center gap-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Admin - Gerenciar Fretes
-                  </Link>
+                  <>
+                    <Link
+                      to="/admin/freights"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 text-sm font-medium flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Admin - Gerenciar Fretes
+                    </Link>
+                    <Link
+                      to="/admin/applications"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 text-sm font-medium flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Admin - Candidaturas
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={() => {

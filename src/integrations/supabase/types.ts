@@ -52,6 +52,8 @@ export type Database = {
           applied_at: string
           freight_id: string
           id: string
+          loading_order_sent_at: string | null
+          loading_order_url: string | null
           status: string
           user_id: string
           vehicle_id: string
@@ -60,6 +62,8 @@ export type Database = {
           applied_at?: string
           freight_id: string
           id?: string
+          loading_order_sent_at?: string | null
+          loading_order_url?: string | null
           status?: string
           user_id: string
           vehicle_id: string
@@ -68,6 +72,8 @@ export type Database = {
           applied_at?: string
           freight_id?: string
           id?: string
+          loading_order_sent_at?: string | null
+          loading_order_url?: string | null
           status?: string
           user_id?: string
           vehicle_id?: string
