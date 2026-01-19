@@ -54,6 +54,11 @@ export type Database = {
           id: string
           loading_order_sent_at: string | null
           loading_order_url: string | null
+          loading_proof_sent_at: string | null
+          loading_proof_url: string | null
+          payment_completed_at: string | null
+          payment_receipt_url: string | null
+          payment_status: string | null
           status: string
           user_id: string
           vehicle_id: string
@@ -64,6 +69,11 @@ export type Database = {
           id?: string
           loading_order_sent_at?: string | null
           loading_order_url?: string | null
+          loading_proof_sent_at?: string | null
+          loading_proof_url?: string | null
+          payment_completed_at?: string | null
+          payment_receipt_url?: string | null
+          payment_status?: string | null
           status?: string
           user_id: string
           vehicle_id: string
@@ -74,6 +84,11 @@ export type Database = {
           id?: string
           loading_order_sent_at?: string | null
           loading_order_url?: string | null
+          loading_proof_sent_at?: string | null
+          loading_proof_url?: string | null
+          payment_completed_at?: string | null
+          payment_receipt_url?: string | null
+          payment_status?: string | null
           status?: string
           user_id?: string
           vehicle_id?: string
