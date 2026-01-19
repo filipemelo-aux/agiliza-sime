@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -9,8 +9,10 @@ export function useUserRole() {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
-  const fetchRoles = async (userId: string) => {
+  const fetchRoles = useCallback(async (userId: string) => {
+    setRolesLoading(true);
     try {
       const { data, error } = await supabase
         .from("user_roles")
@@ -26,8 +28,10 @@ export function useUserRole() {
       console.error("Error fetching roles:", error);
       setRoles([]);
       setIsAdmin(false);
+    } finally {
+      setRolesLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener - NO async functions here!
@@ -44,6 +48,7 @@ export function useUserRole() {
         } else {
           setRoles([]);
           setIsAdmin(false);
+          setRolesLoading(false);
         }
         setLoading(false);
       }
@@ -54,12 +59,17 @@ export function useUserRole() {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchRoles(session.user.id);
+      } else {
+        setRolesLoading(false);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchRoles]);
 
-  return { user, roles, isAdmin, loading };
+  // Only return loading as true if either auth or roles are still loading
+  const isLoading = loading || (user !== null && rolesLoading);
+
+  return { user, roles, isAdmin, loading: isLoading };
 }
