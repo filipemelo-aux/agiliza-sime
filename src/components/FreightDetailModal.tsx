@@ -51,7 +51,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
 
@@ -81,13 +81,15 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
 
     const { data, error } = await supabase
       .from("freight_applications")
-      .select("id")
+      .select("id, status")
       .eq("freight_id", freight.id)
       .eq("user_id", userId)
       .maybeSingle();
 
     if (!error && data) {
-      setHasApplied(true);
+      setApplicationStatus(data.status);
+    } else {
+      setApplicationStatus(null);
     }
   };
 
@@ -157,7 +159,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
         await supabase.from("notifications").insert(notifications);
       }
 
-      setHasApplied(true);
+      setApplicationStatus("pending");
       toast({
         title: "Interesse registrado!",
         description: "Sua solicitação de ordem de carregamento foi enviada. Aguarde a aprovação.",
@@ -314,7 +316,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
           )}
 
           {/* Apply Section - Only for non-admin users */}
-          {userId && !isAdmin && !hasApplied && (
+          {userId && !isAdmin && !applicationStatus && (
             <div className="border-t border-border pt-6 space-y-4">
               <h4 className="font-semibold">Solicitar Ordem de Carregamento</h4>
               
@@ -349,11 +351,29 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             </div>
           )}
 
-          {!isAdmin && hasApplied && (
+          {!isAdmin && applicationStatus === "pending" && (
             <div className="border-t border-border pt-6">
-              <div className="bg-primary/10 text-primary rounded-lg p-4 text-center">
-                <p className="font-semibold">✓ Você já se candidatou a este frete</p>
-                <p className="text-sm mt-1">Aguarde a aprovação da transportadora.</p>
+              <div className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-lg p-4 text-center">
+                <p className="font-semibold">⏳ Aguardando Aprovação</p>
+                <p className="text-sm mt-1">Sua candidatura está sendo analisada pela transportadora.</p>
+              </div>
+            </div>
+          )}
+
+          {!isAdmin && applicationStatus === "approved" && (
+            <div className="border-t border-border pt-6">
+              <div className="bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg p-4 text-center">
+                <p className="font-semibold">✓ Candidatura Aprovada</p>
+                <p className="text-sm mt-1">Parabéns! Sua candidatura foi aprovada. Verifique suas aplicações para mais detalhes.</p>
+              </div>
+            </div>
+          )}
+
+          {!isAdmin && applicationStatus === "rejected" && (
+            <div className="border-t border-border pt-6">
+              <div className="bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg p-4 text-center">
+                <p className="font-semibold">✗ Candidatura Rejeitada</p>
+                <p className="text-sm mt-1">Infelizmente sua candidatura não foi aprovada para este frete.</p>
               </div>
             </div>
           )}
