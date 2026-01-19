@@ -107,7 +107,10 @@ export default function AdminApplications() {
         .select("*")
         .order("applied_at", { ascending: false });
 
-      if (appsError) throw appsError;
+      if (appsError) {
+        console.error("Error fetching applications:", appsError);
+        throw appsError;
+      }
 
       if (!apps || apps.length === 0) {
         setApplications([]);
@@ -115,29 +118,51 @@ export default function AdminApplications() {
         return;
       }
 
-      // Fetch all related data
+      // Fetch all related data with better error handling
       const applicationDetails = await Promise.all(
         apps.map(async (app) => {
-          const [freightRes, profileRes, docsRes, vehicleRes] = await Promise.all([
-            supabase.from("freights").select("*").eq("id", app.freight_id).single(),
-            supabase.from("profiles").select("*").eq("user_id", app.user_id).single(),
-            supabase.from("driver_documents").select("*").eq("user_id", app.user_id).single(),
-            supabase.from("vehicles").select("*").eq("id", app.vehicle_id).single(),
-          ]);
+          try {
+            const [freightRes, profileRes, docsRes, vehicleRes] = await Promise.all([
+              supabase.from("freights").select("*").eq("id", app.freight_id).maybeSingle(),
+              supabase.from("profiles").select("*").eq("user_id", app.user_id).maybeSingle(),
+              supabase.from("driver_documents").select("*").eq("user_id", app.user_id).maybeSingle(),
+              supabase.from("vehicles").select("*").eq("id", app.vehicle_id).maybeSingle(),
+            ]);
 
-          return {
-            ...app,
-            freight: freightRes.data,
-            profile: profileRes.data,
-            driver_documents: docsRes.data,
-            vehicle: vehicleRes.data,
-          } as ApplicationWithDetails;
+            // Log errors but don't throw
+            if (freightRes.error) console.warn("Freight fetch error:", freightRes.error);
+            if (profileRes.error) console.warn("Profile fetch error:", profileRes.error);
+            if (docsRes.error) console.warn("Docs fetch error:", docsRes.error);
+            if (vehicleRes.error) console.warn("Vehicle fetch error:", vehicleRes.error);
+
+            return {
+              ...app,
+              freight: freightRes.data,
+              profile: profileRes.data,
+              driver_documents: docsRes.data,
+              vehicle: vehicleRes.data,
+            } as ApplicationWithDetails;
+          } catch (err) {
+            console.error("Error fetching app details:", err);
+            return null;
+          }
         })
       );
 
-      setApplications(applicationDetails.filter(app => app.freight && app.profile && app.vehicle));
+      // Filter out nulls and incomplete data
+      const validApplications = applicationDetails.filter(
+        (app): app is ApplicationWithDetails => 
+          app !== null && app.freight !== null && app.profile !== null && app.vehicle !== null
+      );
+      
+      setApplications(validApplications);
     } catch (error) {
       console.error("Error fetching applications:", error);
+      toast({
+        title: "Erro ao carregar candidaturas",
+        description: "Tente recarregar a página.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

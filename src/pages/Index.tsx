@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Truck, MapPin, Package } from "lucide-react";
+import { Search, Truck, MapPin, Package, Plus, Edit2, Trash2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { FreightCard } from "@/components/FreightCard";
 import { FreightDetailModal } from "@/components/FreightDetailModal";
+import { FreightFormDialog } from "@/components/FreightFormDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Freight {
   id: string;
@@ -33,11 +45,15 @@ export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [selectedFreight, setSelectedFreight] = useState<Freight | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [editingFreight, setEditingFreight] = useState<Freight | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [freightToDelete, setFreightToDelete] = useState<Freight | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
-    // Fetch freights for everyone (including visitors)
     fetchFreights();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -71,8 +87,10 @@ export default function Index() {
   };
 
   const handleFreightClick = (freight: Freight) => {
-    setSelectedFreight(freight);
-    setModalOpen(true);
+    if (!isAdmin) {
+      setSelectedFreight(freight);
+      setModalOpen(true);
+    }
   };
 
   const handleApply = (freightId: string) => {
@@ -91,6 +109,51 @@ export default function Index() {
     }
   };
 
+  const handleAddFreight = () => {
+    setEditingFreight(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleEditFreight = (freight: Freight, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingFreight(freight);
+    setFormDialogOpen(true);
+  };
+
+  const handleDeleteClick = (freight: Freight, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFreightToDelete(freight);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!freightToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("freights")
+        .delete()
+        .eq("id", freightToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Frete excluído",
+        description: "O frete foi removido com sucesso.",
+      });
+      fetchFreights();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setFreightToDelete(null);
+    }
+  };
+
   const filteredFreights = freights.filter((freight) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -100,7 +163,6 @@ export default function Index() {
       freight.company_name.toLowerCase().includes(searchLower)
     );
   });
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,6 +241,12 @@ export default function Index() {
                 </span>
               )}
             </h2>
+            {isAdmin && (
+              <Button onClick={handleAddFreight} className="btn-transport-accent">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Frete
+              </Button>
+            )}
           </div>
 
           {loading ? (
@@ -209,25 +277,52 @@ export default function Index() {
               {filteredFreights.map((freight, index) => (
                 <div
                   key={freight.id}
-                  className="animate-slide-up cursor-pointer"
+                  className="animate-slide-up relative group"
                   style={{ animationDelay: `${index * 0.05}s` }}
-                  onClick={() => handleFreightClick(freight)}
                 >
-                  <FreightCard
-                    id={freight.id}
-                    originCity={freight.origin_city}
-                    originState={freight.origin_state}
-                    destinationCity={freight.destination_city}
-                    destinationState={freight.destination_state}
-                    cargoType={freight.cargo_type}
-                    weightKg={freight.weight_kg}
-                    valueBrl={freight.value_brl}
-                    distanceKm={freight.distance_km ?? undefined}
-                    pickupDate={freight.pickup_date}
-                    companyName={freight.company_name}
-                    requiredVehicleType={freight.required_vehicle_type ?? undefined}
-                    onApply={handleApply}
-                  />
+                  {/* Admin Action Buttons */}
+                  {isAdmin && (
+                    <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8"
+                        onClick={(e) => handleEditFreight(freight, e)}
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-8 w-8"
+                        onClick={(e) => handleDeleteClick(freight, e)}
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <div
+                    className={isAdmin ? "" : "cursor-pointer"}
+                    onClick={() => handleFreightClick(freight)}
+                  >
+                    <FreightCard
+                      id={freight.id}
+                      originCity={freight.origin_city}
+                      originState={freight.origin_state}
+                      destinationCity={freight.destination_city}
+                      destinationState={freight.destination_state}
+                      cargoType={freight.cargo_type}
+                      weightKg={freight.weight_kg}
+                      valueBrl={freight.value_brl}
+                      distanceKm={freight.distance_km ?? undefined}
+                      pickupDate={freight.pickup_date}
+                      companyName={freight.company_name}
+                      requiredVehicleType={freight.required_vehicle_type ?? undefined}
+                      onApply={handleApply}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -245,6 +340,38 @@ export default function Index() {
         }}
         userId={user?.id || null}
       />
+
+      {/* Freight Form Dialog for Admin */}
+      <FreightFormDialog
+        open={formDialogOpen}
+        onClose={() => {
+          setFormDialogOpen(false);
+          setEditingFreight(null);
+        }}
+        freight={editingFreight}
+        onSuccess={fetchFreights}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o frete de{" "}
+              <strong>{freightToDelete?.origin_city}/{freightToDelete?.origin_state}</strong> para{" "}
+              <strong>{freightToDelete?.destination_city}/{freightToDelete?.destination_state}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
