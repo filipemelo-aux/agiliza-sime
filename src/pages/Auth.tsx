@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -35,18 +36,35 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleRedirectAfterAuth = async (userId: string) => {
+    // Check if user has pending loading order
+    const pendingOrder = await checkPendingLoadingOrder(userId);
+    if (pendingOrder) {
+      toast({
+        title: "Ordem de carregamento pendente",
+        description: `Você tem uma ordem pendente para ${pendingOrder.originCity}/${pendingOrder.originState} → ${pendingOrder.destinationCity}/${pendingOrder.destinationState}`,
+      });
+      navigate("/my-applications");
+    } else {
+      navigate("/");
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
-          navigate("/");
+          // Defer to avoid blocking
+          setTimeout(() => {
+            handleRedirectAfterAuth(session.user.id);
+          }, 0);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate("/");
+        handleRedirectAfterAuth(session.user.id);
       }
     });
 
@@ -128,11 +146,11 @@ export default function Auth() {
           return;
         }
 
+        // The onAuthStateChange will handle the redirect
         toast({
           title: "Bem-vindo de volta!",
           description: "Login realizado com sucesso.",
         });
-        navigate("/");
       }
     } catch (error: any) {
       toast({
