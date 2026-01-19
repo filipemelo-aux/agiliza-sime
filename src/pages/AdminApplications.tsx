@@ -762,10 +762,10 @@ export default function AdminApplications() {
                   </p>
                 </div>
                 {selectedFile && (
-                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2 overflow-hidden max-w-full">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate max-w-full">
                         {selectedFile.name}
                       </p>
                       <p className="text-xs text-green-600 dark:text-green-400">
