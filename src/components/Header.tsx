@@ -48,44 +48,28 @@ export function Header() {
           >
             Fretes
           </Link>
-          {user && !loading && (
+          {user && !loading && !isAdmin && (
             <>
-              {!isAdmin && (
-                <>
-                  <Link
-                    to="/my-vehicles"
-                    className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive("/my-vehicles") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Veículos
-                  </Link>
-                  <Link
-                    to="/my-applications"
-                    className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive("/my-applications") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Ordens
-                  </Link>
-                </>
-              )}
-              {isAdmin && (
-                <Link
-                  to="/admin/applications"
-                  className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                    isActive("/admin/applications") 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Candidaturas
-                </Link>
-              )}
+              <Link
+                to="/my-vehicles"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/my-vehicles") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Veículos
+              </Link>
+              <Link
+                to="/my-applications"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/my-applications") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Ordens
+              </Link>
             </>
           )}
         </nav>
