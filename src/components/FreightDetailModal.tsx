@@ -378,6 +378,15 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             </div>
           )}
 
+          {isAdmin && (
+            <div className="border-t border-border pt-6">
+              <div className="bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg p-4 text-center">
+                <p className="font-semibold">👤 Modo Administrador</p>
+                <p className="text-sm mt-1">Administradores não podem se candidatar a fretes. Apenas motoristas podem solicitar ordens de carregamento.</p>
+              </div>
+            </div>
+          )}
+
           {!userId && !isAdmin && (
             <div className="border-t border-border pt-6">
               <p className="text-center text-muted-foreground">
