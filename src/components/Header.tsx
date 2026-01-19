@@ -1,16 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Truck, User, LogOut, Menu, X, Settings } from "lucide-react";
+import { Truck, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useUserRole();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -28,20 +27,20 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border glass-effect">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <Truck className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold font-display text-foreground">
+          <span className="text-xl font-bold font-display text-foreground hidden sm:block">
             Trans<span className="text-accent">Porta</span>
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        {/* Navigation - Always Visible */}
+        <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-x-auto">
           <Link
             to="/"
-            className={`text-sm font-medium transition-colors ${
+            className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               isActive("/") 
                 ? "text-primary" 
                 : "text-muted-foreground hover:text-foreground"
@@ -49,95 +48,72 @@ export function Header() {
           >
             Fretes
           </Link>
-          {user && (
+          {user && !loading && (
             <>
               {!isAdmin && (
                 <>
                   <Link
                     to="/my-vehicles"
-                    className={`text-sm font-medium transition-colors ${
+                    className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       isActive("/my-vehicles") 
                         ? "text-primary" 
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Meus Veículos
+                    Veículos
                   </Link>
                   <Link
                     to="/my-applications"
-                    className={`text-sm font-medium transition-colors ${
+                    className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       isActive("/my-applications") 
                         ? "text-primary" 
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Minhas Ordens
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className={`text-sm font-medium transition-colors ${
-                      isActive("/profile") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Meu Perfil
+                    Ordens
                   </Link>
                 </>
               )}
               {isAdmin && (
-                <>
-                  <Link
-                    to="/admin/freights"
-                    className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                      isActive("/admin/freights") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    Fretes
-                  </Link>
-                  <Link
-                    to="/admin/applications"
-                    className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                      isActive("/admin/applications") 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    Candidaturas Pendentes
-                  </Link>
-                </>
+                <Link
+                  to="/admin/applications"
+                  className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                    isActive("/admin/applications") 
+                      ? "text-primary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Candidaturas
+                </Link>
               )}
             </>
           )}
         </nav>
 
-        {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Actions */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {user ? (
             <>
               <NotificationBell userId={user.id} />
+              <UserAvatar userId={user.id} showName size="sm" />
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={handleLogout}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground h-8 w-8"
+                title="Sair"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
+                <LogOut className="w-4 h-4" />
               </Button>
             </>
           ) : (
             <>
               <Link to="/auth">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
                   Entrar
                 </Button>
               </Link>
-              <Link to="/auth?mode=signup">
+              <Link to="/auth?mode=signup" className="hidden sm:block">
                 <Button className="btn-transport-accent" size="sm">
                   Cadastrar
                 </Button>
@@ -145,108 +121,7 @@ export function Header() {
             </>
           )}
         </div>
-
-        {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center gap-2">
-          {user && <NotificationBell userId={user.id} />}
-          <button
-            className="p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
-        </div>
       </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background animate-slide-up">
-          <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
-            <Link
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 text-sm font-medium"
-            >
-              Fretes
-            </Link>
-            {user ? (
-              <>
-                {!isAdmin && (
-                  <>
-                    <Link
-                      to="/my-vehicles"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 text-sm font-medium"
-                    >
-                      Meus Veículos
-                    </Link>
-                    <Link
-                      to="/my-applications"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 text-sm font-medium"
-                    >
-                      Minhas Ordens de Carregamento
-                    </Link>
-                    <Link
-                      to="/profile"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 text-sm font-medium"
-                    >
-                      Meu Perfil
-                    </Link>
-                  </>
-                )}
-                {isAdmin && (
-                  <>
-                    <Link
-                      to="/admin/freights"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 text-sm font-medium flex items-center gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Admin - Gerenciar Fretes
-                    </Link>
-                    <Link
-                      to="/admin/applications"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 text-sm font-medium flex items-center gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Admin - Candidaturas Pendentes
-                    </Link>
-                  </>
-                )}
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="py-2 text-sm font-medium text-destructive text-left"
-                >
-                  Sair
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-3 pt-2">
-                <Link to="/auth" className="flex-1">
-                  <Button variant="outline" className="w-full">
-                    Entrar
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=signup" className="flex-1">
-                  <Button className="btn-transport-accent w-full">
-                    Cadastrar
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </nav>
-        </div>
-      )}
     </header>
   );
 }
