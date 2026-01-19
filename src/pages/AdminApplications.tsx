@@ -181,7 +181,7 @@ export default function AdminApplications() {
     } catch (error) {
       console.error("Error fetching applications:", error);
       toast({
-        title: "Erro ao carregar candidaturas",
+        title: "Erro ao carregar ordens de carregamento",
         description: "Tente recarregar a página.",
         variant: "destructive",
       });
@@ -240,8 +240,8 @@ export default function AdminApplications() {
       // Send notification to driver
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: appToReject.user_id,
-        title: "Candidatura Rejeitada",
-        message: `Sua candidatura para o frete ${appToReject.freight.origin_city}/${appToReject.freight.origin_state} → ${appToReject.freight.destination_city}/${appToReject.freight.destination_state} foi rejeitada. Motivo: ${rejectReason}`,
+        title: "Ordem de Carregamento Rejeitada",
+        message: `Sua solicitação de ordem de carregamento para o frete ${appToReject.freight.origin_city}/${appToReject.freight.origin_state} → ${appToReject.freight.destination_city}/${appToReject.freight.destination_state} foi rejeitada. Motivo: ${rejectReason}`,
         type: "application_rejected",
         data: JSON.parse(JSON.stringify({
           application_id: appToReject.id,
@@ -253,7 +253,7 @@ export default function AdminApplications() {
       if (notifError) throw notifError;
 
       toast({
-        title: "Candidatura rejeitada",
+        title: "Ordem de carregamento rejeitada",
         description: "O motorista foi notificado sobre a rejeição.",
       });
 
@@ -445,7 +445,7 @@ export default function AdminApplications() {
         await supabase.from("notifications").insert({
           user_id: paymentApp.user_id,
           title: "Pagamento Realizado",
-          message: `O adiantamento do frete ${paymentApp.freight.origin_city}/${paymentApp.freight.origin_state} → ${paymentApp.freight.destination_city}/${paymentApp.freight.destination_state} foi depositado. O comprovante está disponível em Minhas Candidaturas.`,
+          message: `O adiantamento do frete ${paymentApp.freight.origin_city}/${paymentApp.freight.origin_state} → ${paymentApp.freight.destination_city}/${paymentApp.freight.destination_state} foi depositado. O comprovante está disponível em Minhas Ordens de Carregamento.`,
           type: "payment_completed",
           data: JSON.parse(JSON.stringify({
             application_id: paymentApp.id,
@@ -534,7 +534,7 @@ export default function AdminApplications() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold font-display">Candidaturas</h1>
+          <h1 className="text-3xl font-bold font-display">Ordens de Carregamento</h1>
           <p className="text-muted-foreground">Gerencie as solicitações de ordem de carregamento</p>
         </div>
 
@@ -545,7 +545,7 @@ export default function AdminApplications() {
         ) : applications.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhuma candidatura</h3>
+            <h3 className="text-xl font-semibold mb-2">Nenhuma ordem de carregamento</h3>
             <p className="text-muted-foreground">As solicitações de motoristas aparecerão aqui.</p>
           </div>
         ) : (
@@ -834,7 +834,7 @@ export default function AdminApplications() {
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Candidatura:</span>
+                            <span className="text-muted-foreground">Solicitação:</span>
                             <span className="font-medium">
                               {new Date(app.applied_at).toLocaleDateString("pt-BR")}
                             </span>
@@ -859,7 +859,7 @@ export default function AdminApplications() {
                           onClick={(e) => handleRejectClick(app, e)}
                         >
                           <XCircle className="w-4 h-4 mr-2" />
-                          Rejeitar Candidatura
+                          Rejeitar Ordem
                         </Button>
                       </div>
                     )}

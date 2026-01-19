@@ -75,7 +75,7 @@ export function Header() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Candidaturas
+                Ordens
               </Link>
             </>
           )}
