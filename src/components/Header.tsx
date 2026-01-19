@@ -22,12 +22,13 @@ export function Header() {
   };
 
   const isActive = (path: string) => location.pathname === path;
+  const isActivePrefix = (prefix: string) => location.pathname.startsWith(prefix);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border glass-effect">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+        <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-2 shrink-0">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <Truck className="w-6 h-6 text-primary-foreground" />
           </div>
@@ -38,18 +39,55 @@ export function Header() {
 
         {/* Navigation - Always Visible */}
         <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-x-auto">
-          <Link
-            to="/"
-            className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-              isActive("/") 
-                ? "text-primary" 
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Fretes
-          </Link>
+          {/* Admin Navigation */}
+          {user && !loading && isAdmin && (
+            <>
+              <Link
+                to="/admin"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/admin") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Fretes
+              </Link>
+              <Link
+                to="/admin/applications"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/admin/applications") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Candidaturas
+              </Link>
+            </>
+          )}
+          
+          {/* User Navigation */}
           {user && !loading && !isAdmin && (
             <>
+              <Link
+                to="/"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive("/") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Fretes
+              </Link>
               <Link
                 to="/my-vehicles"
                 className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
@@ -71,6 +109,20 @@ export function Header() {
                 Ordens
               </Link>
             </>
+          )}
+          
+          {/* Not logged in */}
+          {!user && !loading && (
+            <Link
+              to="/"
+              className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                isActive("/") 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Fretes
+            </Link>
           )}
         </nav>
 
