@@ -740,27 +740,39 @@ export default function AdminApplications() {
               {/* File Upload */}
               <div className="space-y-2">
                 <Label>Anexar Ordem (PDF, DOC, JPG)</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
+                <div 
+                  className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) {
+                        console.log("File selected via dynamic input:", file.name);
+                        setSelectedFile(file);
+                      }
+                    };
+                    input.click();
+                  }}
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {selectedFile ? "Alterar arquivo" : "Selecionar arquivo"}
-                </Button>
-                {selectedFile && (
-                  <p className="text-sm text-green-600 flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" />
-                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {selectedFile ? "Clique para alterar o arquivo" : "Clique para selecionar um arquivo"}
                   </p>
+                </div>
+                {selectedFile && (
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
 
