@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface FreightDetailModalProps {
   freight: {
@@ -52,6 +53,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
   const [submitting, setSubmitting] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     if (userId && freight) {
@@ -311,8 +313,8 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             </div>
           )}
 
-          {/* Apply Section */}
-          {userId && !hasApplied && (
+          {/* Apply Section - Only for non-admin users */}
+          {userId && !isAdmin && !hasApplied && (
             <div className="border-t border-border pt-6 space-y-4">
               <h4 className="font-semibold">Solicitar Ordem de Carregamento</h4>
               
@@ -347,7 +349,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             </div>
           )}
 
-          {hasApplied && (
+          {!isAdmin && hasApplied && (
             <div className="border-t border-border pt-6">
               <div className="bg-primary/10 text-primary rounded-lg p-4 text-center">
                 <p className="font-semibold">✓ Você já se candidatou a este frete</p>
@@ -356,7 +358,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             </div>
           )}
 
-          {!userId && (
+          {!userId && !isAdmin && (
             <div className="border-t border-border pt-6">
               <p className="text-center text-muted-foreground">
                 Faça login para se candidatar a este frete.
