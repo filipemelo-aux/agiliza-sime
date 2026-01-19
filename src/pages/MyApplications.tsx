@@ -276,14 +276,17 @@ export default function MyApplications() {
     return status;
   };
 
-  const getPaymentStatusBadge = (paymentStatus: string | null) => {
+  const getPaymentStatusBadge = (paymentStatus: string | null, hasLoadingProof: boolean) => {
     if (paymentStatus === "paid") {
       return <Badge className="bg-green-500/20 text-green-500 border-green-500/30">Pago</Badge>;
     }
     if (paymentStatus === "requested") {
       return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pagamento Solicitado</Badge>;
     }
-    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando</Badge>;
+    if (hasLoadingProof) {
+      return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Adiantamento</Badge>;
+    }
+    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Comprovante</Badge>;
   };
 
   if (loading) {
@@ -343,7 +346,7 @@ export default function MyApplications() {
                       {app.status === "approved" && app.loading_order_url && (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">•</span>
-                          {getPaymentStatusBadge(app.payment_status)}
+                          {getPaymentStatusBadge(app.payment_status, !!app.loading_proof_url)}
                         </div>
                       )}
                     </div>
