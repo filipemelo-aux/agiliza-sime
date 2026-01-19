@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Truck, User, FileText, Upload, Send, Phone, CreditCard, Car, 
   CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, MapPin,
-  Calendar, Package, Scale, DollarSign
+  Calendar, Package, Scale, DollarSign, Banknote, Download, Eye
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,11 @@ interface ApplicationWithDetails {
   applied_at: string;
   loading_order_url: string | null;
   loading_order_sent_at: string | null;
+  loading_proof_url: string | null;
+  loading_proof_sent_at: string | null;
+  payment_status: string | null;
+  payment_receipt_url: string | null;
+  payment_completed_at: string | null;
   freight_id: string;
   user_id: string;
   vehicle_id: string;
@@ -100,6 +105,13 @@ export default function AdminApplications() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [appToReject, setAppToReject] = useState<ApplicationWithDetails | null>(null);
+
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentApp, setPaymentApp] = useState<ApplicationWithDetails | null>(null);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentAction, setPaymentAction] = useState<"request" | "confirm">("request");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -334,6 +346,136 @@ export default function AdminApplications() {
     }
   };
 
+  const handleViewLoadingProof = async (app: ApplicationWithDetails) => {
+    if (!app.loading_proof_url) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from("freight-proofs")
+        .download(app.loading_proof_url);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (error: any) {
+      console.error("Error viewing loading proof:", error);
+      toast({
+        title: "Erro ao visualizar",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenPaymentModal = (app: ApplicationWithDetails, action: "request" | "confirm") => {
+    setPaymentApp(app);
+    setPaymentAction(action);
+    setPaymentFile(null);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentAction = async () => {
+    if (!paymentApp) return;
+
+    setProcessingPayment(true);
+
+    try {
+      if (paymentAction === "request") {
+        // Mark payment as requested
+        const { error: updateError } = await supabase
+          .from("freight_applications")
+          .update({ payment_status: "requested" })
+          .eq("id", paymentApp.id);
+
+        if (updateError) throw updateError;
+
+        // Notify driver
+        await supabase.from("notifications").insert({
+          user_id: paymentApp.user_id,
+          title: "Pagamento Solicitado",
+          message: `O adiantamento do frete ${paymentApp.freight.origin_city}/${paymentApp.freight.origin_state} → ${paymentApp.freight.destination_city}/${paymentApp.freight.destination_state} foi solicitado.`,
+          type: "payment_requested",
+          data: JSON.parse(JSON.stringify({
+            application_id: paymentApp.id,
+            freight_id: paymentApp.freight_id,
+          })),
+        });
+
+        toast({
+          title: "Pagamento solicitado",
+          description: "O motorista foi notificado.",
+        });
+      } else {
+        // Confirm payment with receipt
+        if (!paymentFile) {
+          toast({
+            title: "Comprovante obrigatório",
+            description: "Anexe o comprovante de pagamento.",
+            variant: "destructive",
+          });
+          setProcessingPayment(false);
+          return;
+        }
+
+        const fileExt = paymentFile.name.split('.').pop();
+        const fileName = `payment_receipt/${paymentApp.id}_${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("freight-proofs")
+          .upload(fileName, paymentFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { error: updateError } = await supabase
+          .from("freight_applications")
+          .update({
+            payment_status: "paid",
+            payment_receipt_url: fileName,
+            payment_completed_at: new Date().toISOString(),
+          })
+          .eq("id", paymentApp.id);
+
+        if (updateError) throw updateError;
+
+        // Notify driver
+        await supabase.from("notifications").insert({
+          user_id: paymentApp.user_id,
+          title: "Pagamento Realizado",
+          message: `O adiantamento do frete ${paymentApp.freight.origin_city}/${paymentApp.freight.origin_state} → ${paymentApp.freight.destination_city}/${paymentApp.freight.destination_state} foi depositado. O comprovante está disponível em Minhas Candidaturas.`,
+          type: "payment_completed",
+          data: JSON.parse(JSON.stringify({
+            application_id: paymentApp.id,
+            freight_id: paymentApp.freight_id,
+            payment_receipt_url: fileName,
+          })),
+        });
+
+        toast({
+          title: "Pagamento confirmado",
+          description: "O motorista foi notificado e pode baixar o comprovante.",
+        });
+      }
+
+      setPaymentModalOpen(false);
+      setPaymentApp(null);
+      setPaymentFile(null);
+      fetchApplications();
+    } catch (error: any) {
+      console.error("Error processing payment:", error);
+      toast({
+        title: "Erro ao processar",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const toggleExpand = (appId: string) => {
     setExpandedCard(expandedCard === appId ? null : appId);
   };
@@ -362,6 +504,16 @@ export default function AdminApplications() {
       return <Badge className="bg-red-500/20 text-red-500 border-red-500/30">Rejeitado</Badge>;
     }
     return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Pendente</Badge>;
+  };
+
+  const getPaymentStatusBadge = (paymentStatus: string | null) => {
+    if (paymentStatus === "paid") {
+      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30">Pago</Badge>;
+    }
+    if (paymentStatus === "requested") {
+      return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pgto Solicitado</Badge>;
+    }
+    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando</Badge>;
   };
 
   if (roleLoading) {
@@ -417,6 +569,16 @@ export default function AdminApplications() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{app.profile.full_name}</span>
                           {getStatusBadge(app.status, !!app.loading_order_url)}
+                          {app.status === "approved" && app.loading_order_url && (
+                            <>
+                              {getPaymentStatusBadge(app.payment_status)}
+                              {app.loading_proof_url && (
+                                <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30">
+                                  Carregado
+                                </Badge>
+                              )}
+                            </>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {app.freight.origin_city}/{app.freight.origin_state} → {app.freight.destination_city}/{app.freight.destination_state}
@@ -701,6 +863,92 @@ export default function AdminApplications() {
                         </Button>
                       </div>
                     )}
+
+                    {/* Actions for approved applications */}
+                    {app.status === "approved" && app.loading_order_url && (
+                      <div className="mt-4 pt-4 border-t border-border space-y-4">
+                        {/* Loading Proof Section */}
+                        <div className="bg-secondary/30 rounded-lg p-4">
+                          <h5 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Comprovante de Carregamento
+                          </h5>
+                          {app.loading_proof_url ? (
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm text-green-600 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4" />
+                                Recebido em {new Date(app.loading_proof_sent_at!).toLocaleDateString("pt-BR")}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewLoadingProof(app)}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                Visualizar
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-yellow-600 flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              Aguardando envio pelo motorista
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Payment Section */}
+                        {app.loading_proof_url && (
+                          <div className="bg-secondary/30 rounded-lg p-4">
+                            <h5 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                              <Banknote className="w-4 h-4" />
+                              Pagamento do Adiantamento
+                            </h5>
+                            
+                            {app.payment_status === "pending" && (
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-yellow-600 flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  Aguardando solicitação
+                                </p>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleOpenPaymentModal(app, "request")}
+                                >
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Solicitar Pagamento
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {app.payment_status === "requested" && (
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-blue-600 flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  Pagamento solicitado
+                                </p>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => handleOpenPaymentModal(app, "confirm")}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Confirmar Pagamento
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {app.payment_status === "paid" && (
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-green-600 flex items-center gap-1">
+                                  <CheckCircle className="w-4 h-4" />
+                                  Pago em {new Date(app.payment_completed_at!).toLocaleDateString("pt-BR")}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -808,27 +1056,26 @@ export default function AdminApplications() {
 
           {appToReject && (
             <div className="space-y-4">
-              {/* Application Summary */}
-              <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/20">
+              <div className="bg-secondary/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <User className="w-4 h-4 text-destructive" />
-                  <span className="font-semibold">{appToReject.profile.full_name}</span>
+                  <Truck className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">
+                    {appToReject.freight.origin_city}/{appToReject.freight.origin_state} → {appToReject.freight.destination_city}/{appToReject.freight.destination_state}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {appToReject.freight.origin_city}/{appToReject.freight.origin_state} → {appToReject.freight.destination_city}/{appToReject.freight.destination_state}
+                  {appToReject.profile.full_name} • {appToReject.vehicle.plate}
                 </p>
               </div>
 
-              {/* Reject Reason */}
-              <div>
-                <Label htmlFor="rejectReason">Motivo da Rejeição *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="reject-reason">Motivo da rejeição *</Label>
                 <Textarea
-                  id="rejectReason"
-                  placeholder="Informe o motivo da rejeição para o motorista..."
+                  id="reject-reason"
+                  placeholder="Informe o motivo..."
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  className="mt-2"
-                  rows={4}
+                  className="min-h-[100px]"
                 />
               </div>
 
@@ -848,6 +1095,104 @@ export default function AdminApplications() {
                   {rejecting ? "Rejeitando..." : "Confirmar Rejeição"}
                 </Button>
               </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent 
+          className="max-w-md"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display">
+              {paymentAction === "request" ? "Solicitar Pagamento" : "Confirmar Pagamento"}
+            </DialogTitle>
+            <DialogDescription>
+              {paymentAction === "request"
+                ? "Informe que o pagamento do adiantamento foi solicitado."
+                : "Anexe o comprovante de pagamento para confirmar o depósito."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {paymentApp && (
+            <div className="space-y-4">
+              <div className="bg-secondary/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">
+                    {paymentApp.freight.origin_city}/{paymentApp.freight.origin_state} → {paymentApp.freight.destination_city}/{paymentApp.freight.destination_state}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {paymentApp.profile.full_name}
+                </p>
+                <p className="text-lg font-bold text-primary mt-2">
+                  {paymentApp.freight.value_brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </p>
+              </div>
+
+              {paymentAction === "confirm" && (
+                <div className="space-y-2">
+                  <Label>Anexar Comprovante (PDF, JPG, PNG)</Label>
+                  <div 
+                    className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.jpg,.jpeg,.png';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          setPaymentFile(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {paymentFile ? "Clique para alterar o arquivo" : "Clique para selecionar um arquivo"}
+                    </p>
+                  </div>
+                  {paymentFile && (
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2 w-full">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <div className="overflow-hidden flex-1">
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                          {paymentFile.name}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {(paymentFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Button
+                onClick={handlePaymentAction}
+                disabled={processingPayment || (paymentAction === "confirm" && !paymentFile)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {processingPayment ? (
+                  "Processando..."
+                ) : paymentAction === "request" ? (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Sinalizar Pagamento Solicitado
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirmar Pagamento
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </DialogContent>
