@@ -255,18 +255,29 @@ export default function AdminApplications() {
   };
 
   const handleUploadAndSend = async () => {
-    if (!selectedApp || !selectedFile) return;
+    if (!selectedApp || !selectedFile) {
+      console.log("Upload validation failed:", { selectedApp: !!selectedApp, selectedFile: !!selectedFile });
+      return;
+    }
 
     setUploadingFile(true);
+    console.log("Starting upload for file:", selectedFile.name);
 
     try {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${selectedApp.id}_${Date.now()}.${fileExt}`;
-      const filePath = `orders/${fileName}`;
+      const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log("Uploading to path:", filePath);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("loading-orders")
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      console.log("Upload result:", { uploadData, uploadError });
 
       if (uploadError) throw uploadError;
 
@@ -557,24 +568,56 @@ export default function AdminApplications() {
                           {(app.vehicle.trailer_plate_1 || app.vehicle.trailer_plate_2 || app.vehicle.trailer_plate_3) && (
                             <>
                               <div className="border-t border-border my-2 pt-2">
-                                <span className="text-muted-foreground text-xs">Carretas</span>
+                                <span className="text-muted-foreground text-xs">
+                                  {app.vehicle.vehicle_type === "rodotrem" ? "Dolly / Carretas" : "Carretas"}
+                                </span>
                               </div>
                               {app.vehicle.trailer_plate_1 && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Carreta 1:</span>
-                                  <span className="font-medium">{app.vehicle.trailer_plate_1}</span>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      {app.vehicle.vehicle_type === "rodotrem" ? "Dolly:" : "Carreta 1:"}
+                                    </span>
+                                    <span className="font-medium">{app.vehicle.trailer_plate_1}</span>
+                                  </div>
+                                  {app.vehicle.trailer_renavam_1 && (
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-muted-foreground">RENAVAM:</span>
+                                      <span className="font-medium">{app.vehicle.trailer_renavam_1}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               {app.vehicle.trailer_plate_2 && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Carreta 2:</span>
-                                  <span className="font-medium">{app.vehicle.trailer_plate_2}</span>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      {app.vehicle.vehicle_type === "rodotrem" ? "Carreta 1:" : "Carreta 2:"}
+                                    </span>
+                                    <span className="font-medium">{app.vehicle.trailer_plate_2}</span>
+                                  </div>
+                                  {app.vehicle.trailer_renavam_2 && (
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-muted-foreground">RENAVAM:</span>
+                                      <span className="font-medium">{app.vehicle.trailer_renavam_2}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               {app.vehicle.trailer_plate_3 && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Carreta 3:</span>
-                                  <span className="font-medium">{app.vehicle.trailer_plate_3}</span>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      {app.vehicle.vehicle_type === "rodotrem" ? "Carreta 2:" : "Carreta 3:"}
+                                    </span>
+                                    <span className="font-medium">{app.vehicle.trailer_plate_3}</span>
+                                  </div>
+                                  {app.vehicle.trailer_renavam_3 && (
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-muted-foreground">RENAVAM:</span>
+                                      <span className="font-medium">{app.vehicle.trailer_renavam_3}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </>
