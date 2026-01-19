@@ -308,16 +308,16 @@ export default function MyApplications() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold font-display">Minhas Candidaturas</h1>
+          <h1 className="text-3xl font-bold font-display">Minhas Ordens de Carregamento</h1>
           <p className="text-muted-foreground">Acompanhe suas solicitações de ordem de carregamento</p>
         </div>
 
         {applications.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhuma candidatura</h3>
+            <h3 className="text-xl font-semibold mb-2">Nenhuma ordem de carregamento</h3>
             <p className="text-muted-foreground mb-6">
-              Você ainda não se candidatou a nenhum frete.
+              Você ainda não solicitou nenhuma ordem de carregamento.
             </p>
             <Button onClick={() => navigate("/")} className="btn-transport-accent">
               Ver Fretes Disponíveis
@@ -363,7 +363,7 @@ export default function MyApplications() {
                     </p>
 
                     <p className="text-sm text-muted-foreground mt-1">
-                      Candidatura: {new Date(app.applied_at).toLocaleDateString("pt-BR", {
+                      Solicitação: {new Date(app.applied_at).toLocaleDateString("pt-BR", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric",

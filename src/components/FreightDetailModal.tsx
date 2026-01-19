@@ -167,7 +167,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
     } catch (error: any) {
       console.error("Error applying:", error);
       toast({
-        title: "Erro ao enviar candidatura",
+        title: "Erro ao enviar solicitação",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
@@ -355,7 +355,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
             <div className="border-t border-border pt-6">
               <div className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-lg p-4 text-center">
                 <p className="font-semibold">⏳ Aguardando Aprovação</p>
-                <p className="text-sm mt-1">Sua candidatura está sendo analisada pela transportadora.</p>
+                <p className="text-sm mt-1">Sua solicitação está sendo analisada pela transportadora.</p>
               </div>
             </div>
           )}
@@ -363,8 +363,8 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
           {!isAdmin && applicationStatus === "approved" && (
             <div className="border-t border-border pt-6">
               <div className="bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg p-4 text-center">
-                <p className="font-semibold">✓ Candidatura Aprovada</p>
-                <p className="text-sm mt-1">Parabéns! Sua candidatura foi aprovada. Verifique suas aplicações para mais detalhes.</p>
+                <p className="font-semibold">✓ Ordem Aprovada</p>
+                <p className="text-sm mt-1">Parabéns! Sua ordem de carregamento foi aprovada. Verifique suas ordens para mais detalhes.</p>
               </div>
             </div>
           )}
@@ -372,8 +372,8 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
           {!isAdmin && applicationStatus === "rejected" && (
             <div className="border-t border-border pt-6">
               <div className="bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg p-4 text-center">
-                <p className="font-semibold">✗ Candidatura Rejeitada</p>
-                <p className="text-sm mt-1">Infelizmente sua candidatura não foi aprovada para este frete.</p>
+                <p className="font-semibold">✗ Ordem Rejeitada</p>
+                <p className="text-sm mt-1">Infelizmente sua solicitação de ordem de carregamento não foi aprovada para este frete.</p>
               </div>
             </div>
           )}
