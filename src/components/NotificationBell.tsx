@@ -89,7 +89,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                     <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-1.5" />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">
+                <p className="text-xs text-muted-foreground text-left w-full break-words whitespace-normal">
                   {notification.message}
                 </p>
                 <div className="flex items-center justify-between w-full">
