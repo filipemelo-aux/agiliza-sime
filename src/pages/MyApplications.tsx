@@ -162,10 +162,26 @@ export default function MyApplications() {
 
       if (error) throw error;
 
-      const url = URL.createObjectURL(data);
+      // Get the original file extension from the stored URL
+      const originalExtension = app.payment_receipt_url.split('.').pop() || 'pdf';
+      
+      // Create blob with correct mime type based on extension
+      const mimeTypes: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+      };
+      
+      const mimeType = mimeTypes[originalExtension.toLowerCase()] || data.type;
+      const blob = new Blob([data], { type: mimeType });
+      
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `comprovante_pagamento_${app.freight.origin_city}_${app.freight.destination_city}.pdf`;
+      a.download = `comprovante_pagamento_${app.freight.origin_city}_${app.freight.destination_city}.${originalExtension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
