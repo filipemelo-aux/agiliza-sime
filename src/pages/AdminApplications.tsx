@@ -638,7 +638,7 @@ export default function AdminApplications() {
                           onClick={() => handleAccept(app)}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Aceitar e Anexar Ordem
+                          Aceitar
                         </Button>
                         <Button
                           variant="destructive"
