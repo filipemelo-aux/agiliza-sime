@@ -178,13 +178,19 @@ export default function AdminApplications() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File input change event triggered");
+    console.log("Files:", e.target.files);
     const file = e.target.files?.[0];
     if (file) {
+      console.log("File selected:", file.name, file.type, file.size);
       setSelectedFile(file);
+    } else {
+      console.log("No file selected");
     }
   };
 
   const handleAccept = (app: ApplicationWithDetails) => {
+    console.log("Opening upload modal for application:", app.id);
     setSelectedApp(app);
     setDetailOpen(true);
     setSelectedFile(null);
@@ -729,16 +735,17 @@ export default function AdminApplications() {
               {/* File Upload */}
               <div>
                 <Label htmlFor="loadingOrder">Anexar Ordem (PDF, DOC, JPG)</Label>
-                <Input
+                <input
                   id="loadingOrder"
                   type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
                   onChange={handleFileChange}
-                  className="mt-2"
+                  className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                 />
                 {selectedFile && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    ✓ {selectedFile.name}
+                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                   </p>
                 )}
               </div>
