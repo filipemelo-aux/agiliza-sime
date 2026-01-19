@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Truck, User, FileText, Upload, Send, Phone, CreditCard, Car, 
@@ -92,6 +92,7 @@ export default function AdminApplications() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   
   // Reject modal state
@@ -709,7 +710,11 @@ export default function AdminApplications() {
 
       {/* Accept & Upload Modal */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent 
+          className="max-w-md"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-display">Enviar Ordem de Carregamento</DialogTitle>
             <DialogDescription>
@@ -733,17 +738,26 @@ export default function AdminApplications() {
               </div>
 
               {/* File Upload */}
-              <div>
-                <Label htmlFor="loadingOrder">Anexar Ordem (PDF, DOC, JPG)</Label>
+              <div className="space-y-2">
+                <Label>Anexar Ordem (PDF, DOC, JPG)</Label>
                 <input
-                  id="loadingOrder"
+                  ref={fileInputRef}
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
                   onChange={handleFileChange}
-                  className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                  className="hidden"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {selectedFile ? "Alterar arquivo" : "Selecionar arquivo"}
+                </Button>
                 {selectedFile && (
-                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                  <p className="text-sm text-green-600 flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
                     {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                   </p>
