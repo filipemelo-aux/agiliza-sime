@@ -506,12 +506,15 @@ export default function AdminApplications() {
     return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Carregamento</Badge>;
   };
 
-  const getPaymentStatusBadge = (paymentStatus: string | null) => {
+  const getPaymentStatusBadge = (paymentStatus: string | null, hasLoadingProof: boolean) => {
     if (paymentStatus === "paid") {
       return <Badge className="bg-green-500/20 text-green-500 border-green-500/30">Pago</Badge>;
     }
     if (paymentStatus === "requested") {
       return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pgto Solicitado</Badge>;
+    }
+    if (hasLoadingProof) {
+      return <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">Adiantamento Pendente</Badge>;
     }
     return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Carregamento</Badge>;
   };
@@ -571,7 +574,7 @@ export default function AdminApplications() {
                           {getStatusBadge(app.status, !!app.loading_order_url)}
                           {app.status === "approved" && app.loading_order_url && (
                             <>
-                              {getPaymentStatusBadge(app.payment_status)}
+                              {getPaymentStatusBadge(app.payment_status, !!app.loading_proof_url)}
                               {app.loading_proof_url && (
                                 <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30">
                                   Carregado
