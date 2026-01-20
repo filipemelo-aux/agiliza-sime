@@ -503,7 +503,7 @@ export default function AdminApplications() {
     if (status === "rejected") {
       return <Badge className="bg-red-500/20 text-red-500 border-red-500/30">Rejeitado</Badge>;
     }
-    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Pendente</Badge>;
+    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Carregamento</Badge>;
   };
 
   const getPaymentStatusBadge = (paymentStatus: string | null) => {
@@ -513,7 +513,7 @@ export default function AdminApplications() {
     if (paymentStatus === "requested") {
       return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Pgto Solicitado</Badge>;
     }
-    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando</Badge>;
+    return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Aguardando Carregamento</Badge>;
   };
 
   if (roleLoading) {
