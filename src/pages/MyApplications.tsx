@@ -286,7 +286,7 @@ export default function MyApplications() {
 
   const getStatusLabel = (status: string, hasOrder: boolean) => {
     if (hasOrder) return "Ordem Disponível";
-    if (status === "pending") return "Aguardando Aprovação";
+    if (status === "pending") return "Aguardando Carregamento";
     if (status === "approved") return "Aprovado";
     if (status === "rejected") return "Rejeitado";
     return status;
