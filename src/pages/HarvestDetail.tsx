@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ interface HarvestJob {
   payment_closing_day: number;
   status: string;
   notes: string | null;
+  client_id: string | null;
+  client_name?: string;
 }
 
 interface Assignment {
@@ -82,7 +84,18 @@ export default function HarvestDetail() {
         .maybeSingle();
       if (jobErr) throw jobErr;
       if (!jobData) { navigate("/admin/harvest"); return; }
-      setJob(jobData);
+      
+      // Enrich with client name
+      let enrichedJob = { ...jobData, client_name: undefined as string | undefined };
+      if (jobData.client_id) {
+        const { data: clientData } = await supabase
+          .from("profiles")
+          .select("full_name, nome_fantasia")
+          .eq("id", jobData.client_id)
+          .maybeSingle();
+        enrichedJob.client_name = clientData?.nome_fantasia || clientData?.full_name || undefined;
+      }
+      setJob(enrichedJob);
 
       // Fetch assignments
       const { data: assignData } = await supabase
@@ -222,6 +235,11 @@ export default function HarvestDetail() {
             <p className="text-muted-foreground flex items-center gap-1 text-sm">
               <MapPin className="h-3.5 w-3.5" /> {job.location}
             </p>
+            {job.client_name && (
+              <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                <Building2 className="h-3.5 w-3.5" /> {job.client_name}
+              </p>
+            )}
           </div>
           <Badge variant={job.status === "active" ? "default" : "secondary"} className={job.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}>
             {job.status === "active" ? "Ativo" : "Encerrado"}
