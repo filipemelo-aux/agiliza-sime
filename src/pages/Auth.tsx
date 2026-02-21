@@ -182,14 +182,11 @@ export default function Auth() {
       {/* Left Panel - Form */}
       <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
         <div className="max-w-md w-full mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <img src={logo} alt="SIME Transportes" className="h-14 w-auto" />
-            <div>
-              <h1 className="text-2xl font-bold font-display">SIME TRANSPORTES</h1>
-              <p className="text-sm text-muted-foreground">
-                {isSignup ? "Crie sua conta" : "Acesse sua conta"}
-              </p>
-            </div>
+          <div className="flex flex-col items-center mb-8">
+            <img src={logo} alt="SIME Transportes" className="h-28 w-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              {isSignup ? "Crie sua conta" : "Acesse sua conta"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
