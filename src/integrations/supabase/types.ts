@@ -334,6 +334,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
           avatar_url: string | null
           bank_account: string | null
           bank_account_type: string | null
@@ -342,9 +349,11 @@ export type Database = {
           category: string
           cnpj: string | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
           nome_fantasia: string | null
+          notes: string | null
           person_type: string | null
           phone: string
           pix_key: string | null
@@ -354,6 +363,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
           bank_account?: string | null
           bank_account_type?: string | null
@@ -362,9 +378,11 @@ export type Database = {
           category?: string
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
           nome_fantasia?: string | null
+          notes?: string | null
           person_type?: string | null
           phone: string
           pix_key?: string | null
@@ -374,6 +392,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
           bank_account?: string | null
           bank_account_type?: string | null
@@ -382,9 +407,11 @@ export type Database = {
           category?: string
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
           nome_fantasia?: string | null
+          notes?: string | null
           person_type?: string | null
           phone?: string
           pix_key?: string | null
