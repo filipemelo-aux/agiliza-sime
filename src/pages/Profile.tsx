@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { maskPhone, unmaskPhone } from "@/lib/masks";
 
 interface Profile {
   id: string;
@@ -94,7 +95,7 @@ export default function Profile() {
       setProfile(data);
       setEditData({
         full_name: data.full_name,
-        phone: data.phone,
+        phone: maskPhone(data.phone || ""),
         bank_name: data.bank_name || "",
         bank_agency: data.bank_agency || "",
         bank_account: data.bank_account || "",
@@ -130,7 +131,7 @@ export default function Profile() {
     try {
       const updateData = {
         full_name: editData.full_name,
-        phone: editData.phone,
+        phone: unmaskPhone(editData.phone),
         bank_name: editData.bank_name || null,
         bank_agency: editData.bank_agency || null,
         bank_account: editData.bank_account || null,
@@ -204,7 +205,7 @@ export default function Profile() {
                     if (profile) {
                       setEditData({
                         full_name: profile.full_name,
-                        phone: profile.phone,
+                        phone: maskPhone(profile.phone || ""),
                         bank_name: profile.bank_name || "",
                         bank_agency: profile.bank_agency || "",
                         bank_account: profile.bank_account || "",
@@ -267,13 +268,14 @@ export default function Profile() {
                   {editing ? (
                     <Input
                       value={editData.phone}
+                      maxLength={15}
                       onChange={(e) =>
-                        setEditData({ ...editData, phone: e.target.value })
+                        setEditData({ ...editData, phone: maskPhone(e.target.value) })
                       }
                       className="input-transport"
                     />
                   ) : (
-                    <p className="font-medium">{profile.phone}</p>
+                    <p className="font-medium">{maskPhone(profile.phone)}</p>
                   )}
                 </div>
               </div>
