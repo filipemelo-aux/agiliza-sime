@@ -1,4 +1,4 @@
-import "@fontsource/exo/700.css";
+import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FileText, Package, Sprout, Users, LogOut, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -91,7 +91,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <SidebarTrigger />
               <img src={logo} alt="SIME" className="h-9 w-auto" />
-              <span className="text-lg font-bold text-foreground whitespace-nowrap hidden sm:block" style={{ fontFamily: "'Exo', sans-serif" }}>
+              <span className="text-lg text-primary whitespace-nowrap hidden sm:block" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
                 SIME <span className="text-accent">TRANSPORTES</span>
               </span>
             </div>
