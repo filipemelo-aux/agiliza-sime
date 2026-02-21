@@ -49,6 +49,13 @@ interface DriverOption {
   full_name: string;
 }
 
+interface VehicleOption {
+  id: string;
+  plate: string;
+  brand: string;
+  model: string;
+}
+
 export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin, loading: roleLoading } = useUserRole();
@@ -57,12 +64,14 @@ export default function HarvestDetail() {
   const [job, setJob] = useState<HarvestJob | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [assignForm, setAssignForm] = useState({
     user_id: "",
+    vehicle_id: "",
     start_date: new Date().toISOString().split("T")[0],
     daily_value: "",
   });
@@ -142,13 +151,13 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      // Fetch available drivers (all motoristas)
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("category", "motorista")
-        .order("full_name");
-      setDrivers(profilesData || []);
+      // Fetch available drivers and vehicles
+      const [profilesRes, vehiclesRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").eq("category", "motorista").order("full_name"),
+        supabase.from("vehicles").select("id, plate, brand, model").order("plate"),
+      ]);
+      setDrivers(profilesRes.data || []);
+      setVehicles(vehiclesRes.data || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -168,13 +177,14 @@ export default function HarvestDetail() {
       const { error } = await supabase.from("harvest_assignments").insert({
         harvest_job_id: id,
         user_id: assignForm.user_id,
+        vehicle_id: assignForm.vehicle_id || null,
         start_date: assignForm.start_date,
         daily_value: dailyVal,
       });
       if (error) throw error;
       toast({ title: "Motorista vinculado com sucesso!" });
       setDialogOpen(false);
-      setAssignForm({ user_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "" });
+      setAssignForm({ user_id: "", vehicle_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "" });
       fetchAll();
     } catch (error: any) {
       if (error.message?.includes("duplicate")) {
@@ -441,6 +451,21 @@ export default function HarvestDetail() {
                     </Select>
                   )}
                 </div>
+                <div className="space-y-2">
+                  <Label>Veículo</Label>
+                  {vehicles.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum veículo cadastrado.</p>
+                  ) : (
+                    <Select value={assignForm.vehicle_id} onValueChange={(v) => setAssignForm({ ...assignForm, vehicle_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o veículo..." /></SelectTrigger>
+                      <SelectContent>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Data Início</Label>
@@ -472,6 +497,7 @@ export default function HarvestDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Motorista</TableHead>
+                  <TableHead>Veículo</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Dias</TableHead>
                   <TableHead>Diária</TableHead>
@@ -484,6 +510,7 @@ export default function HarvestDetail() {
                 {assignments.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.driver_name}</TableCell>
+                    <TableCell>{a.vehicle_plate}</TableCell>
                     <TableCell>{formatDate(a.start_date)}</TableCell>
                     <TableCell>{a.days_worked}</TableCell>
                     <TableCell>{formatCurrency(a.daily_value || dailyValue)}</TableCell>
