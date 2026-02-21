@@ -483,6 +483,29 @@ export default function AdminDrivers() {
                   {viewPersonDocs.cnh_expiry && <p className="ml-4"><span className="text-muted-foreground">Validade:</span> {new Date(viewPersonDocs.cnh_expiry).toLocaleDateString("pt-BR")}</p>}
                 </div>
               )}
+              {/* Veículos vinculados */}
+              {viewPerson.category === "motorista" && (() => {
+                const driverVehicles = vehicles.filter(v => v.driver_id === viewPerson.user_id);
+                if (driverVehicles.length === 0) return null;
+                return (
+                  <div className="pt-1 border-t border-border">
+                    <p className="text-muted-foreground flex items-center gap-1 mb-1"><Car className="h-3.5 w-3.5" /> Veículos</p>
+                    {driverVehicles.map(v => {
+                      const trailerLabels = TRAILER_LABELS[v.vehicle_type] || [];
+                      const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
+                      return (
+                        <div key={v.id} className="ml-4 mb-2">
+                          <p><span className="text-muted-foreground">Cavalo:</span> <strong>{v.plate}</strong> — {v.brand} {v.model} ({VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type})</p>
+                          {trailerPlates.map((plate, i) => (
+                            <p key={i} className="ml-2"><span className="text-muted-foreground">{trailerLabels[i] || `Impl. ${i+1}`}:</span> {plate}</p>
+                          ))}
+                          {v.owner_name && <p><span className="text-muted-foreground">Patrão:</span> {v.owner_name}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {viewPerson.bank_name && (
                 <p><span className="text-muted-foreground">Banco:</span> {viewPerson.bank_name} | Ag: {viewPerson.bank_agency} | Conta: {viewPerson.bank_account}</p>
               )}
