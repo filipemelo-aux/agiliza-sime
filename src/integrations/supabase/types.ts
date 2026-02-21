@@ -355,7 +355,7 @@ export type Database = {
           nome_fantasia: string | null
           notes: string | null
           person_type: string | null
-          phone: string
+          phone: string | null
           pix_key: string | null
           pix_key_type: string | null
           razao_social: string | null
@@ -384,7 +384,7 @@ export type Database = {
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
-          phone: string
+          phone?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
@@ -413,7 +413,7 @@ export type Database = {
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
-          phone?: string
+          phone?: string | null
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
