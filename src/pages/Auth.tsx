@@ -49,18 +49,7 @@ export default function Auth() {
     if (isAdmin) {
       navigate("/admin");
     } else {
-      // Check if user has a profile (completed registration)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (!profile) {
-        navigate("/register");
-      } else {
-        navigate("/driver");
-      }
+      navigate("/driver");
     }
   };
 
