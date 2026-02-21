@@ -159,7 +159,7 @@ export default function HarvestDetail() {
 
           const endDate = a.end_date ? new Date(a.end_date) : new Date();
           const startDate = new Date(a.start_date);
-          const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+          const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
           return {
             ...a,
