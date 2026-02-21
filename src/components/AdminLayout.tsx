@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Package, Sprout, Users, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, FileText, Briefcase, Users, LogOut, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,8 +23,7 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Ordens", url: "/admin/applications", icon: FileText },
-  { title: "Fretes", url: "/freights", icon: Package },
-  { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+  { title: "Serviços", url: "/admin/services", icon: Briefcase },
   { title: "Cadastros", url: "/admin/drivers", icon: Users },
 ];
 
@@ -34,6 +33,9 @@ function SidebarNav() {
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
+    if (url === "/admin/services") {
+      return location.pathname.startsWith("/admin/services") || location.pathname.startsWith("/admin/harvest") || location.pathname === "/freights";
+    }
     return location.pathname.startsWith(url);
   };
 

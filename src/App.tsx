@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
 import AdminHarvest from "./pages/AdminHarvest";
+import AdminServices from "./pages/AdminServices";
 import HarvestDetail from "./pages/HarvestDetail";
 import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/applications" element={<AdminApplications />} />
           <Route path="/admin/drivers" element={<AdminDrivers />} />
+          <Route path="/admin/services" element={<AdminServices />} />
           <Route path="/admin/harvest" element={<AdminHarvest />} />
           <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
           {/* Redirects for removed standalone vehicle pages */}
