@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, Pencil } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, Pencil, FileText, TrendingUp, MinusCircle } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
@@ -24,10 +25,18 @@ interface HarvestJob {
   total_third_party_vehicles: number;
   monthly_value: number;
   payment_closing_day: number;
+  payment_value: number;
   status: string;
   notes: string | null;
   client_id: string | null;
   client_name?: string;
+}
+
+interface Discount {
+  id: string;
+  type: string;
+  description: string;
+  value: number;
 }
 
 interface Assignment {
@@ -37,11 +46,13 @@ interface Assignment {
   start_date: string;
   end_date: string | null;
   daily_value: number | null;
+  company_daily_value: number | null;
   status: string;
+  discounts: Discount[];
+  company_discounts: Discount[];
   driver_name?: string;
   vehicle_plate?: string;
   days_worked?: number;
-  total_value?: number;
 }
 
 interface DriverOption {
@@ -56,6 +67,14 @@ interface VehicleOption {
   model: string;
 }
 
+const DISCOUNT_TYPES = [
+  { value: "falta", label: "Falta" },
+  { value: "diesel", label: "Abastecimento Diesel" },
+  { value: "manutencao", label: "Manutenção" },
+  { value: "adiantamento", label: "Adiantamento" },
+  { value: "outros", label: "Outros" },
+];
+
 export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin, loading: roleLoading } = useUserRole();
@@ -68,12 +87,20 @@ export default function HarvestDetail() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
+  const [companyDiscountDialogOpen, setCompanyDiscountDialogOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [saving, setSaving] = useState(false);
   const [assignForm, setAssignForm] = useState({
     user_id: "",
     vehicle_id: "",
     start_date: new Date().toISOString().split("T")[0],
     daily_value: "",
+  });
+  const [discountForm, setDiscountForm] = useState({
+    type: "falta",
+    description: "",
+    value: "",
   });
   const [editForm, setEditForm] = useState({
     farm_name: "",
@@ -98,7 +125,6 @@ export default function HarvestDetail() {
   const fetchAll = async () => {
     if (!id) return;
     try {
-      // Fetch job
       const { data: jobData, error: jobErr } = await supabase
         .from("harvest_jobs")
         .select("*")
@@ -106,8 +132,7 @@ export default function HarvestDetail() {
         .maybeSingle();
       if (jobErr) throw jobErr;
       if (!jobData) { navigate("/admin/harvest"); return; }
-      
-      // Enrich with client name
+
       let enrichedJob = { ...jobData, client_name: undefined as string | undefined };
       if (jobData.client_id) {
         const { data: clientData } = await supabase
@@ -119,16 +144,14 @@ export default function HarvestDetail() {
       }
       setJob(enrichedJob);
 
-      // Fetch assignments
       const { data: assignData } = await supabase
         .from("harvest_assignments")
         .select("*")
         .eq("harvest_job_id", id)
         .order("start_date", { ascending: true });
 
-      // Enrich with driver names and vehicle plates
       const enriched = await Promise.all(
-        (assignData || []).map(async (a) => {
+        (assignData || []).map(async (a: any) => {
           const [profileRes, vehicleRes] = await Promise.all([
             supabase.from("profiles").select("full_name").eq("user_id", a.user_id).maybeSingle(),
             a.vehicle_id ? supabase.from("vehicles").select("plate").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -137,28 +160,25 @@ export default function HarvestDetail() {
           const endDate = a.end_date ? new Date(a.end_date) : new Date();
           const startDate = new Date(a.start_date);
           const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-          const pv = (jobData as any).payment_value || jobData.monthly_value;
-          const dailyVal = a.daily_value || (pv / 30);
-          
+
           return {
             ...a,
+            discounts: Array.isArray(a.discounts) ? a.discounts : [],
+            company_discounts: Array.isArray(a.company_discounts) ? a.company_discounts : [],
             driver_name: profileRes.data?.full_name || "Desconhecido",
             vehicle_plate: vehicleRes.data?.plate || "—",
             days_worked: daysWorked,
-            total_value: daysWorked * dailyVal,
           };
         })
       );
       setAssignments(enriched);
 
-      // Fetch drivers with "colheita" service linked
       const { data: colheitaDriverIds } = await supabase
         .from("driver_services")
         .select("user_id")
         .eq("service_type", "colheita");
-      
+
       const driverUserIds = (colheitaDriverIds || []).map((d: any) => d.user_id);
-      
       let driversData: any[] = [];
       if (driverUserIds.length > 0) {
         const { data } = await supabase
@@ -168,12 +188,12 @@ export default function HarvestDetail() {
           .order("full_name");
         driversData = data || [];
       }
-      
+
       const { data: vehiclesData } = await supabase
         .from("vehicles")
         .select("id, plate, brand, model")
         .order("plate");
-      
+
       setDrivers(driversData);
       setVehicles(vehiclesData || []);
     } catch (error) {
@@ -184,32 +204,46 @@ export default function HarvestDetail() {
   };
 
   const handleAssign = async () => {
-    if (!assignForm.user_id || !id) {
+    if (!assignForm.user_id || !id || !job) {
       toast({ title: "Selecione um motorista", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      const pv = (job as any)?.payment_value || job?.monthly_value || 0;
+      const pv = job.payment_value || job.monthly_value;
       const dailyVal = assignForm.daily_value ? parseFloat(assignForm.daily_value) : (pv / 30);
+      const companyDailyVal = job.monthly_value / 30;
       const { error } = await supabase.from("harvest_assignments").insert({
         harvest_job_id: id,
         user_id: assignForm.user_id,
         vehicle_id: assignForm.vehicle_id || null,
         start_date: assignForm.start_date,
         daily_value: dailyVal,
+        company_daily_value: companyDailyVal,
       });
       if (error) throw error;
+
+      // Auto-link driver_services if not already
+      const { data: existing } = await supabase
+        .from("driver_services")
+        .select("id")
+        .eq("user_id", assignForm.user_id)
+        .eq("service_type", "colheita")
+        .maybeSingle();
+      if (!existing) {
+        await supabase.from("driver_services").insert({
+          user_id: assignForm.user_id,
+          service_type: "colheita",
+          assigned_by: user?.id,
+        });
+      }
+
       toast({ title: "Motorista vinculado com sucesso!" });
       setDialogOpen(false);
       setAssignForm({ user_id: "", vehicle_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "" });
       fetchAll();
     } catch (error: any) {
-      if (error.message?.includes("duplicate")) {
-        toast({ title: "Motorista já vinculado a este serviço", variant: "destructive" });
-      } else {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-      }
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -220,6 +254,22 @@ export default function HarvestDetail() {
       const { error } = await supabase.from("harvest_assignments").delete().eq("id", assignmentId);
       if (error) throw error;
       toast({ title: "Motorista removido" });
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleToggleAssignmentStatus = async (assignment: Assignment) => {
+    const newStatus = assignment.status === "active" ? "inactive" : "active";
+    try {
+      const updateData: any = { status: newStatus };
+      if (newStatus === "inactive" && !assignment.end_date) {
+        updateData.end_date = new Date().toISOString().split("T")[0];
+      }
+      const { error } = await supabase.from("harvest_assignments").update(updateData).eq("id", assignment.id);
+      if (error) throw error;
+      toast({ title: newStatus === "active" ? "Motorista reativado" : "Motorista desativado" });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -248,7 +298,7 @@ export default function HarvestDetail() {
       harvest_period_end: job.harvest_period_end || "",
       total_third_party_vehicles: String(job.total_third_party_vehicles),
       monthly_value: String(job.monthly_value),
-      payment_value: String((job as any).payment_value || ""),
+      payment_value: String(job.payment_value || ""),
       payment_closing_day: String(job.payment_closing_day),
       notes: job.notes || "",
     });
@@ -281,11 +331,77 @@ export default function HarvestDetail() {
     }
   };
 
+  // Discount handlers
+  const openDiscountDialog = (assignment: Assignment) => {
+    setSelectedAssignment(assignment);
+    setDiscountForm({ type: "falta", description: "", value: "" });
+    setDiscountDialogOpen(true);
+  };
+
+  const openCompanyDiscountDialog = (assignment: Assignment) => {
+    setSelectedAssignment(assignment);
+    setDiscountForm({ type: "falta", description: "", value: "" });
+    setCompanyDiscountDialogOpen(true);
+  };
+
+  const handleAddDiscount = async (isCompany: boolean) => {
+    if (!selectedAssignment || !discountForm.value) {
+      toast({ title: "Informe o valor do desconto", variant: "destructive" });
+      return;
+    }
+    const newDiscount: Discount = {
+      id: crypto.randomUUID(),
+      type: discountForm.type,
+      description: discountForm.description || DISCOUNT_TYPES.find(d => d.value === discountForm.type)?.label || "",
+      value: parseFloat(discountForm.value),
+    };
+    const field = isCompany ? "company_discounts" : "discounts";
+    const currentDiscounts = isCompany ? selectedAssignment.company_discounts : selectedAssignment.discounts;
+    const updated = [...currentDiscounts, newDiscount];
+
+    try {
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update({ [field]: updated } as any)
+        .eq("id", selectedAssignment.id);
+      if (error) throw error;
+      toast({ title: "Desconto adicionado!" });
+      setDiscountDialogOpen(false);
+      setCompanyDiscountDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleRemoveDiscount = async (assignmentId: string, discountId: string, isCompany: boolean) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    const field = isCompany ? "company_discounts" : "discounts";
+    const currentDiscounts = isCompany ? assignment.company_discounts : assignment.discounts;
+    const updated = currentDiscounts.filter(d => d.id !== discountId);
+
+    try {
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update({ [field]: updated } as any)
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast({ title: "Desconto removido" });
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const formatDate = (date: string) =>
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
+
+  const getTotalDiscounts = (discounts: Discount[]) =>
+    discounts.reduce((sum, d) => sum + d.value, 0);
 
   if (roleLoading || loading) {
     return (
@@ -297,9 +413,30 @@ export default function HarvestDetail() {
 
   if (!job) return null;
 
-  const paymentValue = (job as any).payment_value || job.monthly_value;
+  const paymentValue = job.payment_value || job.monthly_value;
   const dailyValue = paymentValue / 30;
-  const totalPaid = assignments.reduce((sum, a) => sum + (a.total_value || 0), 0);
+  const companyDailyValue = job.monthly_value / 30;
+
+  // Calculate totals for each assignment
+  const getAgregadoData = (a: Assignment) => {
+    const dv = a.daily_value || dailyValue;
+    const days = a.days_worked || 0;
+    const totalBruto = days * dv;
+    const totalDescontos = getTotalDiscounts(a.discounts);
+    const totalLiquido = totalBruto - totalDescontos;
+    return { dv, days, totalBruto, totalDescontos, totalLiquido };
+  };
+
+  const getFaturamentoData = (a: Assignment) => {
+    const dvEmpresa = a.company_daily_value || companyDailyValue;
+    const days = a.days_worked || 0;
+    const totalBruto = days * dvEmpresa;
+    const agregado = getAgregadoData(a);
+    const liquidoTerceiros = agregado.totalLiquido;
+    const descontosEmpresa = getTotalDiscounts(a.company_discounts);
+    const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
+    return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
+  };
 
   return (
     <AdminLayout>
@@ -402,7 +539,7 @@ export default function HarvestDetail() {
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Valor Contrato</p>
               <p className="font-semibold text-sm">{formatCurrency(job.monthly_value)}</p>
-              <p className="text-xs text-muted-foreground">{formatCurrency(job.monthly_value / 30)}/dia</p>
+              <p className="text-xs text-muted-foreground">{formatCurrency(companyDailyValue)}/dia</p>
             </CardContent>
           </Card>
           <Card className="border-border">
@@ -421,9 +558,9 @@ export default function HarvestDetail() {
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Total a Pagar</p>
-              <p className="font-semibold text-sm">{formatCurrency(totalPaid)}</p>
-              <p className="text-xs text-muted-foreground">acumulado</p>
+              <p className="text-xs text-muted-foreground">Total Líquido</p>
+              <p className="font-semibold text-sm">{formatCurrency(assignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
+              <p className="text-xs text-muted-foreground">terceiros</p>
             </CardContent>
           </Card>
         </div>
@@ -437,117 +574,294 @@ export default function HarvestDetail() {
           </Card>
         )}
 
-        {/* Assignments */}
+        {/* Vincular Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Vincular Motorista</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label>Motorista *</Label>
+                <Select value={assignForm.user_id} onValueChange={(v) => setAssignForm({ ...assignForm, user_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {drivers.length === 0 ? (
+                      <SelectItem value="_none" disabled>Nenhum motorista</SelectItem>
+                    ) : drivers.map((d) => (
+                      <SelectItem key={d.user_id} value={d.user_id}>{d.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Veículo</Label>
+                <Select value={assignForm.vehicle_id} onValueChange={(v) => setAssignForm({ ...assignForm, vehicle_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o veículo..." /></SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data Início</Label>
+                  <Input type="date" value={assignForm.start_date} onChange={(e) => setAssignForm({ ...assignForm, start_date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Diária (R$)</Label>
+                  <Input type="number" step="0.01" value={assignForm.daily_value} onChange={(e) => setAssignForm({ ...assignForm, daily_value: e.target.value })} placeholder={dailyValue.toFixed(2)} />
+                </div>
+              </div>
+              <Button onClick={handleAssign} disabled={saving || !assignForm.user_id} className="w-full btn-transport-accent">
+                {saving ? "Salvando..." : "Vincular Motorista"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Discount Dialog (Agregados) */}
+        <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Desconto — {selectedAssignment?.driver_name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label>Tipo de Desconto</Label>
+                <Select value={discountForm.type} onValueChange={(v) => setDiscountForm({ ...discountForm, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DISCOUNT_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$) *</Label>
+                <Input type="number" step="0.01" value={discountForm.value} onChange={(e) => setDiscountForm({ ...discountForm, value: e.target.value })} placeholder="0.00" />
+              </div>
+              {selectedAssignment && selectedAssignment.discounts.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
+                  {selectedAssignment.discounts.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
+                      <span>{d.description || d.type} — {formatCurrency(d.value)}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, false)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button onClick={() => handleAddDiscount(false)} disabled={!discountForm.value} className="w-full btn-transport-accent">
+                Adicionar Desconto
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Discount Dialog (Faturamento) */}
+        <Dialog open={companyDiscountDialogOpen} onOpenChange={setCompanyDiscountDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Desconto Empresa — {selectedAssignment?.driver_name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$) *</Label>
+                <Input type="number" step="0.01" value={discountForm.value} onChange={(e) => setDiscountForm({ ...discountForm, value: e.target.value })} placeholder="0.00" />
+              </div>
+              {selectedAssignment && selectedAssignment.company_discounts.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
+                  {selectedAssignment.company_discounts.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
+                      <span>{d.description || "Desconto"} — {formatCurrency(d.value)}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, true)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button onClick={() => handleAddDiscount(true)} disabled={!discountForm.value} className="w-full btn-transport-accent">
+                Adicionar Desconto
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== RELATÓRIO COLHEITA - AGREGADOS ===== */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold font-display flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Motoristas Vinculados
+            <FileText className="h-5 w-5 text-primary" />
+            Relatório Colheita — Agregados
           </h2>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="btn-transport-accent">
-                <Plus className="h-4 w-4 mr-1" /> Vincular
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Vincular Motorista</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2">
-                <div className="space-y-2">
-                   <Label>Motorista *</Label>
-                  {drivers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum motorista cadastrado. Vá em <Link to="/admin/drivers" className="text-primary underline">Motoristas</Link> e cadastre primeiro.</p>
-                  ) : (
-                    <Select value={assignForm.user_id} onValueChange={(v) => setAssignForm({ ...assignForm, user_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {drivers.map((d) => (
-                          <SelectItem key={d.user_id} value={d.user_id}>{d.full_name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Veículo</Label>
-                  {vehicles.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum veículo cadastrado.</p>
-                  ) : (
-                    <Select value={assignForm.vehicle_id} onValueChange={(v) => setAssignForm({ ...assignForm, vehicle_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o veículo..." /></SelectTrigger>
-                      <SelectContent>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Data Início</Label>
-                    <Input type="date" value={assignForm.start_date} onChange={(e) => setAssignForm({ ...assignForm, start_date: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor Diária (R$)</Label>
-                    <Input type="number" step="0.01" value={assignForm.daily_value} onChange={(e) => setAssignForm({ ...assignForm, daily_value: e.target.value })} placeholder={dailyValue.toFixed(2)} />
-                  </div>
-                </div>
-                <Button onClick={handleAssign} disabled={saving || drivers.length === 0} className="w-full btn-transport-accent">
-                  {saving ? "Salvando..." : "Vincular Motorista"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" className="btn-transport-accent" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Vincular
+          </Button>
         </div>
 
         {assignments.length === 0 ? (
-          <Card>
+          <Card className="mb-8">
             <CardContent className="py-12 text-center">
               <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Nenhum motorista vinculado a este serviço.</p>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Motorista</TableHead>
-                  <TableHead>Veículo</TableHead>
-                  <TableHead>Início</TableHead>
-                  <TableHead>Dias</TableHead>
-                  <TableHead>Diária</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignments.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.driver_name}</TableCell>
-                    <TableCell>{a.vehicle_plate}</TableCell>
-                    <TableCell>{formatDate(a.start_date)}</TableCell>
-                    <TableCell>{a.days_worked}</TableCell>
-                    <TableCell>{formatCurrency(a.daily_value || dailyValue)}</TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(a.total_value || 0)}</TableCell>
-                    <TableCell>
-                      <Badge variant={a.status === "active" ? "default" : "secondary"} className={a.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}>
-                        {a.status === "active" ? "Ativo" : "Encerrado"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleRemoveAssignment(a.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+          <Card className="border-border overflow-hidden mb-8">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Motorista</TableHead>
+                    <TableHead>Placa</TableHead>
+                    <TableHead>Início</TableHead>
+                    <TableHead className="text-center">Dias</TableHead>
+                    <TableHead>Vl. Diária</TableHead>
+                    <TableHead>Descontos</TableHead>
+                    <TableHead>Total Líquido</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {assignments.map((a) => {
+                    const data = getAgregadoData(a);
+                    return (
+                      <TableRow key={a.id} className={a.status !== "active" ? "opacity-60" : ""}>
+                        <TableCell className="font-medium">{a.driver_name}</TableCell>
+                        <TableCell>{a.vehicle_plate}</TableCell>
+                        <TableCell>{formatDate(a.start_date)}</TableCell>
+                        <TableCell className="text-center">{data.days}</TableCell>
+                        <TableCell>{formatCurrency(data.dv)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className={data.totalDescontos > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                              {data.totalDescontos > 0 ? `- ${formatCurrency(data.totalDescontos)}` : "—"}
+                            </span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDiscountDialog(a)}>
+                              <MinusCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          {a.discounts.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {a.discounts.map(d => (
+                                <p key={d.id} className="text-xs text-muted-foreground">{d.description || d.type}: {formatCurrency(d.value)}</p>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(data.totalLiquido)}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Switch
+                              checked={a.status === "active"}
+                              onCheckedChange={() => handleToggleAssignmentStatus(a)}
+                            />
+                            <span className="text-xs">{a.status === "active" ? "Ativo" : "Inativo"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleRemoveAssignment(a.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
+        )}
+
+        {/* ===== RELATÓRIO COLHEITA - FATURAMENTO ===== */}
+        {assignments.length > 0 && (
+          <>
+            <h2 className="text-xl font-bold font-display flex items-center gap-2 mb-4">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Relatório Colheita — Faturamento
+            </h2>
+            <Card className="border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Motorista</TableHead>
+                      <TableHead>Placa</TableHead>
+                      <TableHead>Início</TableHead>
+                      <TableHead className="text-center">Dias</TableHead>
+                      <TableHead>Diária Empresa</TableHead>
+                      <TableHead>Total Bruto</TableHead>
+                      <TableHead>Líq. Terceiros</TableHead>
+                      <TableHead>Descontos</TableHead>
+                      <TableHead>Fat. Líquido</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignments.map((a) => {
+                      const fat = getFaturamentoData(a);
+                      return (
+                        <TableRow key={a.id} className={a.status !== "active" ? "opacity-60" : ""}>
+                          <TableCell className="font-medium">{a.driver_name}</TableCell>
+                          <TableCell>{a.vehicle_plate}</TableCell>
+                          <TableCell>{formatDate(a.start_date)}</TableCell>
+                          <TableCell className="text-center">{fat.days}</TableCell>
+                          <TableCell>{formatCurrency(fat.dvEmpresa)}</TableCell>
+                          <TableCell>{formatCurrency(fat.totalBruto)}</TableCell>
+                          <TableCell className="text-orange-500">{formatCurrency(fat.liquidoTerceiros)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span className={fat.descontosEmpresa > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                                {fat.descontosEmpresa > 0 ? `- ${formatCurrency(fat.descontosEmpresa)}` : "—"}
+                              </span>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openCompanyDiscountDialog(a)}>
+                                <MinusCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-bold text-green-600">{formatCurrency(fat.faturamentoLiquido)}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Switch
+                                checked={a.status === "active"}
+                                onCheckedChange={() => handleToggleAssignmentStatus(a)}
+                              />
+                              <span className="text-xs">{a.status === "active" ? "Ativo" : "Inativo"}</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {/* Totals row */}
+                    <TableRow className="bg-muted/50 font-semibold">
+                      <TableCell colSpan={5} className="text-right">TOTAIS</TableCell>
+                      <TableCell>{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-orange-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
+                      <TableCell className="text-destructive">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
+                      <TableCell className="text-green-600">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </>
         )}
       </main>
     </AdminLayout>
