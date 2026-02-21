@@ -522,27 +522,39 @@ export default function HarvestDetail() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         {/* Back + Title */}
-        <div className="flex items-center gap-3 mb-6">
-          <Link to="/admin/harvest">
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold font-display">{job.farm_name}</h1>
-            <p className="text-muted-foreground flex items-center gap-1 text-sm">
-              <MapPin className="h-3.5 w-3.5" /> {job.location}
-            </p>
-            {job.client_name && (
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-center gap-3">
+            <Link to="/admin/harvest">
+              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
+            </Link>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold font-display truncate">{job.farm_name}</h1>
               <p className="text-muted-foreground flex items-center gap-1 text-sm">
-                <Building2 className="h-3.5 w-3.5" /> {job.client_name}
+                <MapPin className="h-3.5 w-3.5 shrink-0" /> {job.location}
               </p>
-            )}
+              {job.client_name && (
+                <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                  <Building2 className="h-3.5 w-3.5 shrink-0" /> {job.client_name}
+                </p>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Badge variant={job.status === "active" ? "default" : "secondary"} className={job.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}>
+                {job.status === "active" ? "Ativo" : "Encerrado"}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={handleToggleStatus}>
+                {job.status === "active" ? "Encerrar" : "Reativar"}
+              </Button>
+            </div>
           </div>
-          <Badge variant={job.status === "active" ? "default" : "secondary"} className={job.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}>
-            {job.status === "active" ? "Ativo" : "Encerrado"}
-          </Badge>
-          <Button variant="outline" size="sm" onClick={handleToggleStatus}>
-            {job.status === "active" ? "Encerrar" : "Reativar"}
-          </Button>
+          <div className="flex sm:hidden items-center gap-2 pl-12">
+            <Badge variant={job.status === "active" ? "default" : "secondary"} className={`text-[11px] px-2 py-0.5 ${job.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}`}>
+              {job.status === "active" ? "Ativo" : "Encerrado"}
+            </Badge>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={handleToggleStatus}>
+              {job.status === "active" ? "Encerrar" : "Reativar"}
+            </Button>
+          </div>
         </div>
 
 
