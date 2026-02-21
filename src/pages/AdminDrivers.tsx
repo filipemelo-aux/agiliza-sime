@@ -370,7 +370,21 @@ export default function AdminDrivers() {
                             <span>{driver.address_city}/{driver.address_state}</span>
                           )}
                         </div>
-
+                        {driver.category === "motorista" && (() => {
+                          const driverVehicles = vehicles.filter(v => v.driver_id === driver.user_id);
+                          if (driverVehicles.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-x-4 gap-y-0 mt-1 text-xs text-muted-foreground">
+                              {driverVehicles.map(v => (
+                                <span key={v.id}>
+                                  <Car className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                                  {v.plate} ({v.brand} {v.model})
+                                  {v.owner_name && <> · Patrão: <strong className="text-foreground">{v.owner_name}</strong></>}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
