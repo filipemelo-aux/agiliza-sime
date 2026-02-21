@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
-import Register from "./pages/Register";
+// Register page removed — admin handles all registrations
 import Profile from "./pages/Profile";
 import DriverDashboard from "./pages/DriverDashboard";
 import Index from "./pages/Index";
@@ -29,7 +29,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Auth />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<Navigate to="/admin" replace />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/driver" element={<DriverDashboard />} />
             <Route path="/freights" element={<Index />} />
