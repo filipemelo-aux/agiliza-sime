@@ -102,6 +102,7 @@ export default function HarvestDetail() {
     description: "",
     value: "",
   });
+  const [filterEndDate, setFilterEndDate] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -366,9 +367,22 @@ export default function HarvestDetail() {
   const companyDailyValue = job.monthly_value / 30;
 
   // Calculate totals for each assignment
+  // Calculate days considering the filter end date
+  const getFilteredDays = (a: Assignment) => {
+    const startDate = new Date(a.start_date + "T00:00:00");
+    const effectiveEnd = filterEndDate
+      ? new Date(filterEndDate + "T00:00:00")
+      : a.end_date
+        ? new Date(a.end_date + "T00:00:00")
+        : new Date();
+    // Don't allow negative days - if filter date is before start, return 0
+    if (effectiveEnd < startDate) return 0;
+    return Math.max(1, Math.ceil((effectiveEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  };
+
   const getAgregadoData = (a: Assignment) => {
     const dv = a.daily_value || dailyValue;
-    const days = a.days_worked || 0;
+    const days = getFilteredDays(a);
     const totalBruto = days * dv;
     const totalDescontos = getTotalDiscounts(a.discounts);
     const totalLiquido = totalBruto - totalDescontos;
@@ -377,7 +391,7 @@ export default function HarvestDetail() {
 
   const getFaturamentoData = (a: Assignment) => {
     const dvEmpresa = a.company_daily_value || companyDailyValue;
-    const days = a.days_worked || 0;
+    const days = getFilteredDays(a);
     const totalBruto = days * dvEmpresa;
     const agregado = getAgregadoData(a);
     const liquidoTerceiros = agregado.totalLiquido;
@@ -606,6 +620,29 @@ export default function HarvestDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Date filter */}
+        <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+          <Calendar className="h-4 w-4 text-primary shrink-0" />
+          <Label className="text-xs font-medium whitespace-nowrap">Data de Fechamento:</Label>
+          <Input
+            type="date"
+            value={filterEndDate}
+            onChange={(e) => setFilterEndDate(e.target.value)}
+            className="h-8 text-xs w-40"
+            placeholder="Selecionar data..."
+          />
+          {filterEndDate && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setFilterEndDate("")}>
+              Limpar
+            </Button>
+          )}
+          {filterEndDate && (
+            <span className="text-xs text-muted-foreground">
+              Calculando dias até {formatDate(filterEndDate)}
+            </span>
+          )}
+        </div>
 
         {/* ===== RELATÓRIO COLHEITA - AGREGADOS ===== */}
         <div className="flex items-center justify-between mb-3">
