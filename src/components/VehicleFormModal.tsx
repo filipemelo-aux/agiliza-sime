@@ -79,9 +79,10 @@ interface VehicleFormModalProps {
   onOpenChange: (open: boolean) => void;
   vehicleId?: string | null; // null = create mode
   onSaved: () => void;
+  defaultDriverId?: string | null;
 }
 
-export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: VehicleFormModalProps) {
+export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defaultDriverId }: VehicleFormModalProps) {
   const isEdit = !!vehicleId;
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -97,8 +98,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
       supabase.from("profiles").select("user_id, full_name, category").order("full_name").then(({ data }) => {
         setProfiles((data as any[]) || []);
       });
+      // Set default driver if provided (create mode)
+      if (!vehicleId && defaultDriverId) {
+        setForm(prev => ({ ...prev, driverId: defaultDriverId }));
+      }
     }
-  }, [open]);
+  }, [open, defaultDriverId, vehicleId]);
 
   // Load vehicle data in edit mode
   useEffect(() => {
