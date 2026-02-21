@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2 } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, Pencil } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,11 +59,23 @@ export default function HarvestDetail() {
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [assignForm, setAssignForm] = useState({
     user_id: "",
     start_date: new Date().toISOString().split("T")[0],
     daily_value: "",
+  });
+  const [editForm, setEditForm] = useState({
+    farm_name: "",
+    location: "",
+    harvest_period_start: "",
+    harvest_period_end: "",
+    total_third_party_vehicles: "1",
+    monthly_value: "",
+    payment_value: "",
+    payment_closing_day: "30",
+    notes: "",
   });
 
   useEffect(() => {
@@ -198,6 +211,48 @@ export default function HarvestDetail() {
     }
   };
 
+  const openEditDialog = () => {
+    if (!job) return;
+    setEditForm({
+      farm_name: job.farm_name,
+      location: job.location,
+      harvest_period_start: job.harvest_period_start,
+      harvest_period_end: job.harvest_period_end || "",
+      total_third_party_vehicles: String(job.total_third_party_vehicles),
+      monthly_value: String(job.monthly_value),
+      payment_value: String((job as any).payment_value || ""),
+      payment_closing_day: String(job.payment_closing_day),
+      notes: job.notes || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm.farm_name || !editForm.monthly_value || !id) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("harvest_jobs").update({
+        farm_name: editForm.farm_name,
+        location: editForm.location,
+        harvest_period_start: editForm.harvest_period_start,
+        harvest_period_end: editForm.harvest_period_end || null,
+        total_third_party_vehicles: parseInt(editForm.total_third_party_vehicles),
+        monthly_value: parseFloat(editForm.monthly_value),
+        payment_value: editForm.payment_value ? parseFloat(editForm.payment_value) : parseFloat(editForm.monthly_value),
+        payment_closing_day: parseInt(editForm.payment_closing_day),
+        notes: editForm.notes || null,
+      }).eq("id", id);
+      if (error) throw error;
+      toast({ title: "Serviço atualizado!" });
+      setEditDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
@@ -240,10 +295,71 @@ export default function HarvestDetail() {
           <Badge variant={job.status === "active" ? "default" : "secondary"} className={job.status === "active" ? "bg-green-500/20 text-green-600 border-0" : ""}>
             {job.status === "active" ? "Ativo" : "Encerrado"}
           </Badge>
+          <Button variant="outline" size="icon" onClick={openEditDialog}>
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={handleToggleStatus}>
             {job.status === "active" ? "Encerrar" : "Reativar"}
           </Button>
         </div>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Serviço de Colheita</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fazenda / Local *</Label>
+                  <Input value={editForm.farm_name} onChange={(e) => setEditForm({ ...editForm, farm_name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cidade/Estado *</Label>
+                  <Input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Início do Período</Label>
+                  <Input type="date" value={editForm.harvest_period_start} onChange={(e) => setEditForm({ ...editForm, harvest_period_start: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fim do Período</Label>
+                  <Input type="date" value={editForm.harvest_period_end} onChange={(e) => setEditForm({ ...editForm, harvest_period_end: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Qtd. Veículos</Label>
+                  <Input type="number" min="1" value={editForm.total_third_party_vehicles} onChange={(e) => setEditForm({ ...editForm, total_third_party_vehicles: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Dia Fechamento</Label>
+                  <Input type="number" min="1" max="31" value={editForm.payment_closing_day} onChange={(e) => setEditForm({ ...editForm, payment_closing_day: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valor Contrato (R$) *</Label>
+                  <Input type="number" step="0.01" value={editForm.monthly_value} onChange={(e) => setEditForm({ ...editForm, monthly_value: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor a Pagar Terceiros (R$)</Label>
+                  <Input type="number" step="0.01" value={editForm.payment_value} onChange={(e) => setEditForm({ ...editForm, payment_value: e.target.value })} placeholder="Mesmo do contrato" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} />
+              </div>
+              <Button onClick={handleEditSave} disabled={saving} className="w-full btn-transport-accent">
+                {saving ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
