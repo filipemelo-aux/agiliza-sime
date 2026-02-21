@@ -151,13 +151,31 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      // Fetch available drivers and vehicles
-      const [profilesRes, vehiclesRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name").eq("category", "motorista").order("full_name"),
-        supabase.from("vehicles").select("id, plate, brand, model").order("plate"),
-      ]);
-      setDrivers(profilesRes.data || []);
-      setVehicles(vehiclesRes.data || []);
+      // Fetch drivers with "colheita" service linked
+      const { data: colheitaDriverIds } = await supabase
+        .from("driver_services")
+        .select("user_id")
+        .eq("service_type", "colheita");
+      
+      const driverUserIds = (colheitaDriverIds || []).map((d: any) => d.user_id);
+      
+      let driversData: any[] = [];
+      if (driverUserIds.length > 0) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", driverUserIds)
+          .order("full_name");
+        driversData = data || [];
+      }
+      
+      const { data: vehiclesData } = await supabase
+        .from("vehicles")
+        .select("id, plate, brand, model")
+        .order("plate");
+      
+      setDrivers(driversData);
+      setVehicles(vehiclesData || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
