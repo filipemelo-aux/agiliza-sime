@@ -16,9 +16,9 @@ export type Database = {
     Tables: {
       driver_documents: {
         Row: {
-          cnh_category: string
-          cnh_expiry: string
-          cnh_number: string
+          cnh_category: string | null
+          cnh_expiry: string | null
+          cnh_number: string | null
           cpf: string | null
           created_at: string
           id: string
@@ -26,9 +26,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          cnh_category: string
-          cnh_expiry: string
-          cnh_number: string
+          cnh_category?: string | null
+          cnh_expiry?: string | null
+          cnh_number?: string | null
           cpf?: string | null
           created_at?: string
           id?: string
@@ -36,9 +36,9 @@ export type Database = {
           user_id: string
         }
         Update: {
-          cnh_category?: string
-          cnh_expiry?: string
-          cnh_number?: string
+          cnh_category?: string | null
+          cnh_expiry?: string | null
+          cnh_number?: string | null
           cpf?: string | null
           created_at?: string
           id?: string

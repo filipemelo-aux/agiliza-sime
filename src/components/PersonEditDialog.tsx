@@ -357,9 +357,9 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
         const docPayload = {
           user_id: person.user_id,
           cpf: unmaskCPF(form.cpf) || null,
-          cnh_number: form.cnh_number,
-          cnh_category: form.cnh_category,
-          cnh_expiry: form.cnh_expiry,
+          cnh_number: form.cnh_number || null,
+          cnh_category: form.cnh_category || null,
+          cnh_expiry: form.cnh_expiry || null,
         };
         const { data: existing } = await supabase
           .from("driver_documents")
@@ -438,13 +438,13 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       if (error) throw error;
 
       // Save CNH for motorista
-      if (form.category === "motorista" && (form.cnh_number || form.cpf) && form.cnh_expiry) {
+      if (form.category === "motorista" && (form.cnh_number || form.cpf)) {
         await supabase.from("driver_documents").insert({
           user_id: profileUserId,
           cpf: unmaskCPF(form.cpf) || null,
-          cnh_number: form.cnh_number,
-          cnh_category: form.cnh_category,
-          cnh_expiry: form.cnh_expiry,
+          cnh_number: form.cnh_number || null,
+          cnh_category: form.cnh_category || null,
+          cnh_expiry: form.cnh_expiry || null,
         });
       }
 
