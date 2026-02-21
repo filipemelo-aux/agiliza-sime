@@ -558,9 +558,16 @@ export default function HarvestDetail() {
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Total Líquido</p>
+              <p className="text-xs text-muted-foreground">Total Líquido a Pagar</p>
               <p className="font-semibold text-sm">{formatCurrency(assignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
               <p className="text-xs text-muted-foreground">terceiros</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Lucro Líquido</p>
+              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
+              <p className="text-xs text-muted-foreground">faturamento</p>
             </CardContent>
           </Card>
         </div>
