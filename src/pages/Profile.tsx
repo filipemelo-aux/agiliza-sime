@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { maskPhone, unmaskPhone } from "@/lib/masks";
+import { maskPhone, unmaskPhone, maskName } from "@/lib/masks";
 
 interface Profile {
   id: string;
@@ -94,9 +94,9 @@ export default function Profile() {
 
       setProfile(data);
       setEditData({
-        full_name: data.full_name,
+        full_name: maskName(data.full_name || ""),
         phone: maskPhone(data.phone || ""),
-        bank_name: data.bank_name || "",
+        bank_name: maskName(data.bank_name || ""),
         bank_agency: data.bank_agency || "",
         bank_account: data.bank_account || "",
         bank_account_type: data.bank_account_type || "",
@@ -204,9 +204,9 @@ export default function Profile() {
                     setEditing(false);
                     if (profile) {
                       setEditData({
-                        full_name: profile.full_name,
+                        full_name: maskName(profile.full_name || ""),
                         phone: maskPhone(profile.phone || ""),
-                        bank_name: profile.bank_name || "",
+                        bank_name: maskName(profile.bank_name || ""),
                         bank_agency: profile.bank_agency || "",
                         bank_account: profile.bank_account || "",
                         bank_account_type: profile.bank_account_type || "",
@@ -243,7 +243,7 @@ export default function Profile() {
                     <Input
                       value={editData.full_name}
                       onChange={(e) =>
-                        setEditData({ ...editData, full_name: e.target.value })
+                        setEditData({ ...editData, full_name: maskName(e.target.value) })
                       }
                       className="input-transport text-xl font-semibold"
                     />
@@ -296,7 +296,7 @@ export default function Profile() {
                       <Input
                         value={editData.bank_name}
                         onChange={(e) =>
-                          setEditData({ ...editData, bank_name: e.target.value })
+                          setEditData({ ...editData, bank_name: maskName(e.target.value) })
                         }
                         placeholder="Nome do banco"
                         className="input-transport"
