@@ -11,7 +11,8 @@ import {
   XCircle,
   ArrowRight,
   DollarSign,
-  MapPin
+  MapPin,
+  Sprout
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -321,6 +322,15 @@ export default function AdminDashboard() {
                       <span className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         Gerenciar Motoristas
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to="/admin/harvest">
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2">
+                        <Sprout className="h-4 w-4" />
+                        Gerenciar Colheitas
                       </span>
                       <ArrowRight className="h-4 w-4" />
                     </Button>

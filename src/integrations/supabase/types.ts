@@ -200,6 +200,105 @@ export type Database = {
         }
         Relationships: []
       }
+      harvest_assignments: {
+        Row: {
+          created_at: string
+          daily_value: number | null
+          end_date: string | null
+          harvest_job_id: string
+          id: string
+          start_date: string
+          status: string
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          daily_value?: number | null
+          end_date?: string | null
+          harvest_job_id: string
+          id?: string
+          start_date?: string
+          status?: string
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          daily_value?: number | null
+          end_date?: string | null
+          harvest_job_id?: string
+          id?: string
+          start_date?: string
+          status?: string
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "harvest_assignments_harvest_job_id_fkey"
+            columns: ["harvest_job_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "harvest_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      harvest_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          farm_name: string
+          harvest_period_end: string | null
+          harvest_period_start: string
+          id: string
+          location: string
+          monthly_value: number
+          notes: string | null
+          payment_closing_day: number
+          status: string
+          total_third_party_vehicles: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          farm_name: string
+          harvest_period_end?: string | null
+          harvest_period_start: string
+          id?: string
+          location: string
+          monthly_value?: number
+          notes?: string | null
+          payment_closing_day?: number
+          status?: string
+          total_third_party_vehicles?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          farm_name?: string
+          harvest_period_end?: string | null
+          harvest_period_start?: string
+          id?: string
+          location?: string
+          monthly_value?: number
+          notes?: string | null
+          payment_closing_day?: number
+          status?: string
+          total_third_party_vehicles?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

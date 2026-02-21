@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Truck, LogOut } from "lucide-react";
+import { Truck, LogOut, Sprout } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +85,16 @@ export function Header() {
                 }`}
               >
                 Motoristas
+              </Link>
+              <Link
+                to="/admin/harvest"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActivePrefix("/admin/harvest") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Colheitas
               </Link>
             </>
           )}
