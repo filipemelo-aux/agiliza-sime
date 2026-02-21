@@ -78,17 +78,12 @@ export default function AdminSettings() {
         profileMap[p.user_id] = { name: p.full_name, email: p.email };
       });
 
-      const systemUsers: SystemUser[] = Array.from(userIds).map((uid) => {
-        // For the current logged-in user, use auth email as fallback
-        const profileEmail = profileMap[uid]?.email;
-        const fallbackEmail = uid === user?.id ? user?.email || "" : "";
-        return {
-          id: uid,
-          email: profileEmail || fallbackEmail,
-          roles: roleMap[uid] || [],
-          profile_name: profileMap[uid]?.name || null,
-        };
-      });
+      const systemUsers: SystemUser[] = Array.from(userIds).map((uid) => ({
+        id: uid,
+        email: profileMap[uid]?.email || "",
+        roles: roleMap[uid] || [],
+        profile_name: profileMap[uid]?.name || null,
+      }));
 
       setUsers(systemUsers);
     } catch (err: any) {
