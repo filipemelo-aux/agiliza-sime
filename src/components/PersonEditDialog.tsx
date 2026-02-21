@@ -278,7 +278,7 @@ function formToPayload(form: FormState) {
   const isMotorista = form.category === "motorista";
   return {
     full_name: form.full_name.trim(),
-    phone: unmaskPhone(form.phone) || "",
+    phone: unmaskPhone(form.phone) || null,
     email: form.email.trim() || null,
     person_type: isMotorista ? "cpf" : form.person_type,
     cnpj: !isMotorista && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
