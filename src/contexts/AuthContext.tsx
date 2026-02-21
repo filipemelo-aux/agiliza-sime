@@ -53,21 +53,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         const newUser = session?.user ?? null;
-        setUser(newUser);
 
         if (newUser) {
-          // Only fetch roles on initial sign in or user change, not on token refresh
+          // Only update state on actual user change, not token refresh
           if (event === 'SIGNED_IN' || newUser.id !== currentUserId) {
             currentUserId = newUser.id;
+            setUser(newUser);
             setTimeout(() => {
               fetchRoles(newUser.id);
             }, 0);
           }
+          // Skip setUser on TOKEN_REFRESHED to avoid unnecessary re-renders
         } else {
-          currentUserId = null;
-          setRoles([]);
-          setIsAdmin(false);
-          setRolesLoading(false);
+          if (currentUserId !== null) {
+            currentUserId = null;
+            setUser(null);
+            setRoles([]);
+            setIsAdmin(false);
+            setRolesLoading(false);
+          }
         }
         setLoading(false);
       }

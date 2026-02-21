@@ -168,7 +168,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!validatePlate(unmaskPlate(form.plate))) e.plate = "Placa inválida";
-    if (!validateRenavam(form.renavam)) e.renavam = "RENAVAM inválido";
+    if (form.renavam && !validateRenavam(form.renavam)) e.renavam = "RENAVAM inválido";
     if (!form.vehicleType) e.vehicleType = "Selecione o tipo";
     if (!form.brand.trim() || form.brand.trim().length < 2) e.brand = "Marca obrigatória";
     if (!form.model.trim() || form.model.trim().length < 2) e.model = "Modelo obrigatório";
@@ -176,18 +176,19 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
     if (!year || year < 1990 || year > new Date().getFullYear() + 1) e.year = "Ano inválido";
     if (!form.cargoType) e.cargoType = "Selecione a carroceria";
 
+    // Trailer plates and renavams are optional — only validate format if filled
     const tc = trailerRequirements[form.vehicleType] || { count: 0 };
     if (tc.count >= 1) {
-      if (!validatePlate(unmaskPlate(form.trailerPlate1))) e.trailerPlate1 = "Placa inválida";
-      if (!validateRenavam(form.trailerRenavam1)) e.trailerRenavam1 = "RENAVAM inválido";
+      if (form.trailerPlate1 && !validatePlate(unmaskPlate(form.trailerPlate1))) e.trailerPlate1 = "Placa inválida";
+      if (form.trailerRenavam1 && !validateRenavam(form.trailerRenavam1)) e.trailerRenavam1 = "RENAVAM inválido";
     }
     if (tc.count >= 2) {
-      if (!validatePlate(unmaskPlate(form.trailerPlate2))) e.trailerPlate2 = "Placa inválida";
-      if (!validateRenavam(form.trailerRenavam2)) e.trailerRenavam2 = "RENAVAM inválido";
+      if (form.trailerPlate2 && !validatePlate(unmaskPlate(form.trailerPlate2))) e.trailerPlate2 = "Placa inválida";
+      if (form.trailerRenavam2 && !validateRenavam(form.trailerRenavam2)) e.trailerRenavam2 = "RENAVAM inválido";
     }
     if (tc.count >= 3) {
-      if (!validatePlate(unmaskPlate(form.trailerPlate3))) e.trailerPlate3 = "Placa inválida";
-      if (!validateRenavam(form.trailerRenavam3)) e.trailerRenavam3 = "RENAVAM inválido";
+      if (form.trailerPlate3 && !validatePlate(unmaskPlate(form.trailerPlate3))) e.trailerPlate3 = "Placa inválida";
+      if (form.trailerRenavam3 && !validateRenavam(form.trailerRenavam3)) e.trailerRenavam3 = "RENAVAM inválido";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -318,7 +319,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
                     {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">RENAVAM *</Label>
+                    <Label className="text-xs">RENAVAM</Label>
                     <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
                     {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
                   </div>
@@ -378,12 +379,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
                         return (
                           <div key={i} className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border border-border">
                             <div className="space-y-1">
-                              <Label className="text-xs">{trailerConfig.labels[i]} *</Label>
+                              <Label className="text-xs">{trailerConfig.labels[i]}</Label>
                               <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
                               {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs">RENAVAM *</Label>
+                              <Label className="text-xs">RENAVAM</Label>
                               <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
                               {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
                             </div>
