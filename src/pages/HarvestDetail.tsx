@@ -447,14 +447,14 @@ export default function HarvestDetail() {
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Total Líquido a Pagar</p>
-              <p className="font-semibold text-sm">{formatCurrency(assignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
+              <p className="font-semibold text-sm">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
               <p className="text-xs text-muted-foreground">terceiros</p>
             </CardContent>
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
+              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
               <p className="text-xs text-muted-foreground">faturamento</p>
             </CardContent>
           </Card>
@@ -747,10 +747,10 @@ export default function HarvestDetail() {
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
                       <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
-                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
-                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
+                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
