@@ -431,14 +431,16 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const payload = { ...formToPayload(form), user_id: user.id };
+      // Use a unique ID for admin-created profiles (not the admin's own user_id)
+      const profileUserId = crypto.randomUUID();
+      const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
       if (error) throw error;
 
       // Save CNH for motorista
       if (form.category === "motorista" && form.cnh_number && form.cpf && form.cnh_expiry) {
         await supabase.from("driver_documents").insert({
-          user_id: user.id,
+          user_id: profileUserId,
           cpf: unmaskCPF(form.cpf),
           cnh_number: form.cnh_number,
           cnh_category: form.cnh_category,
