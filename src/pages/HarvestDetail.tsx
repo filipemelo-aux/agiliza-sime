@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
@@ -271,6 +272,55 @@ export default function HarvestDetail() {
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
+  };
+
+  const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
+    const activeAssignments = assignments.filter(a => a.status === "active");
+    if (activeAssignments.length === 0) {
+      toast({ title: "Nenhum dado ativo para exportar", variant: "destructive" });
+      return;
+    }
+    const lines: string[] = [];
+    const sep = ";";
+
+    if (type === "agregados" || type === "ambos") {
+      lines.push(`RELATÓRIO AGREGADOS — ${job!.farm_name}`);
+      if (filterEndDate) lines.push(`Fechamento até: ${formatDate(filterEndDate)}`);
+      lines.push(["Motorista", "Placa", "Início", "Dias", "Diária", "Bruto", "Descontos", "Líquido"].join(sep));
+      activeAssignments.forEach(a => {
+        const d = getAgregadoData(a);
+        lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), d.days, formatCurrency(d.dv), formatCurrency(d.totalBruto), formatCurrency(d.totalDescontos), formatCurrency(d.totalLiquido)].join(sep));
+      });
+      const totAgr = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totAgr)].join(sep));
+      lines.push("");
+    }
+
+    if (type === "faturamento" || type === "ambos") {
+      lines.push(`RELATÓRIO FATURAMENTO — ${job!.farm_name}`);
+      if (filterEndDate) lines.push(`Fechamento até: ${formatDate(filterEndDate)}`);
+      lines.push(["Motorista", "Placa", "Início", "Dias", "Diária Emp.", "Bruto", "Líq. Terc.", "Descontos Emp.", "Fat. Líquido"].join(sep));
+      activeAssignments.forEach(a => {
+        const f = getFaturamentoData(a);
+        lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), f.days, formatCurrency(f.dvEmpresa), formatCurrency(f.totalBruto), formatCurrency(f.liquidoTerceiros), formatCurrency(f.descontosEmpresa), formatCurrency(f.faturamentoLiquido)].join(sep));
+      });
+      const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
+      const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
+      const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
+      const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
+      lines.push(["", "", "", "", "TOTAIS", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
+    }
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const suffix = type === "ambos" ? "completo" : type;
+    link.download = `relatorio-${suffix}-${job!.farm_name.replace(/\s+/g, "-").toLowerCase()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Relatório exportado!" });
   };
 
   const handleToggleAssignmentStatus = async (assignment: Assignment) => {
@@ -673,9 +723,29 @@ export default function HarvestDetail() {
             <FileText className="h-4 w-4 text-primary" />
             Relatório Colheita — Agregados
           </h2>
-          <Button size="sm" className="btn-transport-accent h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-3 w-3 mr-1" /> Vincular
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs px-2">
+                  <Download className="h-3 w-3 mr-1" /> Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportCSV("agregados")}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> Apenas Agregados
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
+                  <TrendingUp className="h-3.5 w-3.5 mr-2" /> Apenas Faturamento
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportCSV("ambos")}>
+                  <Download className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm" className="btn-transport-accent h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-3 w-3 mr-1" /> Vincular Motorista
+            </Button>
+          </div>
         </div>
 
         {assignments.length === 0 ? (
