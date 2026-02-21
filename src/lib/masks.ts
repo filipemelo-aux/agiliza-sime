@@ -152,3 +152,12 @@ export const validatePhone = (phone: string): boolean => {
   const numbers = phone.replace(/\D/g, "");
   return numbers.length >= 10 && numbers.length <= 11;
 };
+
+export const maskCEP = (value: string): string => {
+  const numbers = value.replace(/\D/g, "").slice(0, 8);
+  return numbers.replace(/(\d{5})(\d)/, "$1-$2");
+};
+
+export const unmaskCEP = (value: string): string => {
+  return value.replace(/\D/g, "");
+};

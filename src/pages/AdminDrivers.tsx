@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -18,22 +18,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
-import { PersonEditDialog } from "@/components/PersonEditDialog";
-
-interface DriverProfile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  phone: string;
-  person_type: string | null;
-  cnpj: string | null;
-  razao_social: string | null;
-  nome_fantasia: string | null;
-  category: string;
-  services: string[];
-}
+import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
 
 const CATEGORY_LABELS: Record<string, string> = {
+  __all__: "Todos",
   motorista: "Motoristas",
   cliente: "Clientes",
   fornecedor: "Fornecedores",
@@ -49,22 +37,21 @@ export default function AdminDrivers() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
+  const [drivers, setDrivers] = useState<PersonProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("motorista");
+  const [activeTab, setActiveTab] = useState("__all__");
 
   // Service assignment
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<DriverProfile | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<PersonProfile | null>(null);
   const [selectedService, setSelectedService] = useState("");
 
-  // Edit
-  const [editPerson, setEditPerson] = useState<DriverProfile | null>(null);
+  // Edit / Create / Delete
+  const [editPerson, setEditPerson] = useState<PersonProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-
-  // Delete
-  const [deletePerson, setDeletePerson] = useState<DriverProfile | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deletePerson, setDeletePerson] = useState<PersonProfile | null>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -86,7 +73,7 @@ export default function AdminDrivers() {
         .from("driver_services" as any)
         .select("*");
 
-      const driversWithServices = (profiles || []).map((p: any) => ({
+      const driversWithServices: PersonProfile[] = (profiles || []).map((p: any) => ({
         id: p.id,
         user_id: p.user_id,
         full_name: p.full_name,
@@ -96,6 +83,21 @@ export default function AdminDrivers() {
         razao_social: p.razao_social,
         nome_fantasia: p.nome_fantasia,
         category: p.category || "motorista",
+        email: p.email,
+        address_street: p.address_street,
+        address_number: p.address_number,
+        address_complement: p.address_complement,
+        address_neighborhood: p.address_neighborhood,
+        address_city: p.address_city,
+        address_state: p.address_state,
+        address_zip: p.address_zip,
+        notes: p.notes,
+        bank_name: p.bank_name,
+        bank_agency: p.bank_agency,
+        bank_account: p.bank_account,
+        bank_account_type: p.bank_account_type,
+        pix_key_type: p.pix_key_type,
+        pix_key: p.pix_key,
         services: ((services as any[]) || [])
           .filter((s: any) => s.user_id === p.user_id)
           .map((s: any) => s.service_type),
@@ -116,15 +118,14 @@ export default function AdminDrivers() {
       const { error } = await supabase
         .from("driver_services" as any)
         .insert({ user_id: selectedDriver.user_id, service_type: selectedService, assigned_by: user?.id } as any);
-
       if (error) {
         if (error.code === "23505") {
-          toast({ title: "Serviço já vinculado", description: "Este cadastro já possui este serviço.", variant: "destructive" });
+          toast({ title: "Serviço já vinculado", variant: "destructive" });
           return;
         }
         throw error;
       }
-      toast({ title: "Serviço vinculado!", description: `"${selectedService}" vinculado a ${selectedDriver.full_name}.` });
+      toast({ title: "Serviço vinculado!" });
       setAssignDialogOpen(false);
       setSelectedService("");
       fetchDrivers();
@@ -151,12 +152,9 @@ export default function AdminDrivers() {
   const handleDelete = async () => {
     if (!deletePerson) return;
     try {
-      // Remove services first
       await supabase.from("driver_services" as any).delete().eq("user_id", deletePerson.user_id);
-      // Remove profile
       const { error } = await supabase.from("profiles").delete().eq("id", deletePerson.id);
       if (error) throw error;
-
       toast({ title: "Cadastro excluído!" });
       setDeletePerson(null);
       fetchDrivers();
@@ -165,15 +163,18 @@ export default function AdminDrivers() {
     }
   };
 
-  const filteredDrivers = drivers.filter(
-    (d) =>
-      d.category === activeTab &&
-      (d.full_name.toLowerCase().includes(search.toLowerCase()) ||
-        (d.cnpj && d.cnpj.includes(search)) ||
-        (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())))
-  );
+  const filteredDrivers = drivers.filter((d) => {
+    const matchCategory = activeTab === "__all__" || d.category === activeTab;
+    const matchSearch =
+      d.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      (d.cnpj && d.cnpj.includes(search)) ||
+      (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())) ||
+      (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
+    return matchCategory && matchSearch;
+  });
 
-  const countByCategory = (cat: string) => drivers.filter((d) => d.category === cat).length;
+  const countByCategory = (cat: string) =>
+    cat === "__all__" ? drivers.length : drivers.filter((d) => d.category === cat).length;
 
   if (roleLoading) {
     return (
@@ -192,6 +193,9 @@ export default function AdminDrivers() {
             <h1 className="text-3xl font-bold font-display">Cadastros</h1>
             <p className="text-muted-foreground">Gerencie pessoas cadastradas no sistema</p>
           </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Cadastro
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -212,7 +216,7 @@ export default function AdminDrivers() {
         <div className="relative mb-6 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, CNPJ ou razão social..."
+            placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -227,7 +231,7 @@ export default function AdminDrivers() {
           <Card>
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum cadastro encontrado nesta categoria.</p>
+              <p className="text-muted-foreground">Nenhum cadastro encontrado.</p>
             </CardContent>
           </Card>
         ) : (
@@ -237,19 +241,25 @@ export default function AdminDrivers() {
                 <CardContent className="py-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold truncate">{driver.full_name}</h3>
                         <Badge variant="outline" className="text-xs shrink-0">
                           {driver.person_type === "cnpj" ? "CNPJ" : "CPF"}
                         </Badge>
-                        <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || ""}`}>
-                          {CATEGORY_LABELS[driver.category] ? driver.category.charAt(0).toUpperCase() + driver.category.slice(1) : driver.category}
+                        <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
+                          {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                         </Badge>
                       </div>
                       {driver.person_type === "cnpj" && driver.razao_social && (
                         <p className="text-sm text-muted-foreground">{driver.razao_social}</p>
                       )}
-                      <p className="text-sm text-muted-foreground">{driver.phone}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0 text-sm text-muted-foreground">
+                        {driver.phone && <span>{driver.phone}</span>}
+                        {driver.email && <span>{driver.email}</span>}
+                        {driver.address_city && driver.address_state && (
+                          <span>{driver.address_city}/{driver.address_state}</span>
+                        )}
+                      </div>
 
                       {/* Services (only for motorista) */}
                       {driver.category === "motorista" && (
@@ -311,23 +321,11 @@ export default function AdminDrivers() {
                         </Dialog>
                       )}
 
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => { setEditPerson(driver); setEditOpen(true); }}
-                        title="Editar"
-                      >
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeletePerson(driver)}
-                        title="Excluir"
-                      >
+                      <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePerson(driver)} title="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -340,11 +338,14 @@ export default function AdminDrivers() {
       </main>
 
       {/* Edit Dialog */}
-      <PersonEditDialog
-        person={editPerson}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onSaved={fetchDrivers}
+      <PersonEditDialog person={editPerson} open={editOpen} onOpenChange={setEditOpen} onSaved={fetchDrivers} />
+
+      {/* Create Dialog */}
+      <PersonCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={fetchDrivers}
+        defaultCategory={activeTab !== "__all__" ? activeTab : undefined}
       />
 
       {/* Delete Confirmation */}
