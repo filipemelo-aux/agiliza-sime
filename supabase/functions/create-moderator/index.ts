@@ -64,17 +64,20 @@ serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    await adminClient.from("profiles").insert({
+    const { error: profileError } = await adminClient.from("profiles").insert({
       user_id: userId,
       full_name: name,
       email,
       category: "motorista",
+      phone: null,
     });
+    if (profileError) throw new Error("Erro ao criar perfil: " + profileError.message);
 
-    await adminClient.from("user_roles").insert({
+    const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: userId,
       role: assignRole,
     });
+    if (roleError) throw new Error("Erro ao atribuir papel: " + roleError.message);
 
     return new Response(JSON.stringify({ success: true, userId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
