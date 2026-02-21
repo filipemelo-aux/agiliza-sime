@@ -610,7 +610,7 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
       {/* Phone + Email */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Telefone *</Label>
+          <Label className="text-xs">Telefone</Label>
           <Input value={form.phone} maxLength={15} onChange={(e) => setForm((p) => ({ ...p, phone: maskPhone(e.target.value) }))} placeholder="(11) 99999-9999" />
         </div>
         <div className="space-y-1">
