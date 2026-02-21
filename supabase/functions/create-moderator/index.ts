@@ -27,14 +27,17 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Check caller roles
     const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin");
+      .eq("user_id", caller.id);
 
-    if (!callerRoles || callerRoles.length === 0) {
-      throw new Error("Apenas administradores podem criar usuários");
+    const isAdmin = callerRoles?.some((r: any) => r.role === "admin");
+    const isModerator = callerRoles?.some((r: any) => r.role === "moderator");
+
+    if (!isAdmin && !isModerator) {
+      throw new Error("Sem permissão para criar usuários");
     }
 
     const { email, password, name, role } = await req.json();
@@ -46,7 +49,11 @@ serve(async (req) => {
       throw new Error("Senha deve ter pelo menos 6 caracteres");
     }
 
-    const assignRole = role === "moderator" ? "moderator" : "user";
+    // Moderators can only create "user" role
+    let assignRole = role === "moderator" ? "moderator" : "user";
+    if (isModerator && !isAdmin && assignRole === "moderator") {
+      throw new Error("Moderadores só podem criar usuários comuns");
+    }
 
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,

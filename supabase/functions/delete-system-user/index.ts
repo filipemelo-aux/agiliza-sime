@@ -27,45 +27,51 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is admin
+    // Check caller roles
     const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin");
+      .eq("user_id", caller.id);
 
-    if (!callerRoles || callerRoles.length === 0) {
-      throw new Error("Apenas administradores podem excluir usuários");
+    const isAdmin = callerRoles?.some((r: any) => r.role === "admin");
+    const isModerator = callerRoles?.some((r: any) => r.role === "moderator");
+
+    if (!isAdmin && !isModerator) {
+      throw new Error("Sem permissão para excluir usuários");
     }
 
     const { userId } = await req.json();
     if (!userId) throw new Error("userId é obrigatório");
 
-    // Prevent deleting self
     if (userId === caller.id) {
       throw new Error("Você não pode excluir sua própria conta");
     }
 
-    // Prevent deleting other admins
+    // Check target roles
     const { data: targetRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin");
+      .eq("user_id", userId);
 
-    if (targetRoles && targetRoles.length > 0) {
+    const targetIsAdmin = targetRoles?.some((r: any) => r.role === "admin");
+    const targetIsModerator = targetRoles?.some((r: any) => r.role === "moderator");
+
+    // Admin can't be deleted
+    if (targetIsAdmin) {
       throw new Error("Não é possível excluir um administrador");
     }
 
-    // Delete user roles
+    // Moderator can only delete "user" (not other moderators)
+    if (isModerator && !isAdmin && targetIsModerator) {
+      throw new Error("Moderadores não podem excluir outros moderadores");
+    }
+
+    // Clean up related data
     await adminClient.from("user_roles").delete().eq("user_id", userId);
-    // Delete profile
     await adminClient.from("profiles").delete().eq("user_id", userId);
-    // Delete driver docs
     await adminClient.from("driver_documents").delete().eq("user_id", userId);
-    // Delete driver services
     await adminClient.from("driver_services").delete().eq("user_id", userId);
-    // Delete auth user
+    
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;
 
