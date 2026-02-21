@@ -224,7 +224,7 @@ export default function AdminSettings() {
             <Settings className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold">Configurações</h1>
           </div>
-          {isCurrentUserAdmin && (
+          {hasAccess && (
             <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
               <UserPlus className="w-4 h-4" />
               Novo Usuário
@@ -253,9 +253,11 @@ export default function AdminSettings() {
           ) : (
             filtered.map((u) => {
               const isTargetAdmin = u.roles.includes("admin");
+              const isTargetModerator = u.roles.includes("moderator");
               const isSelf = u.id === user?.id;
-              const canEdit = isCurrentUserAdmin || (!isTargetAdmin);
-              const canDelete = isCurrentUserAdmin && !isSelf && !isTargetAdmin;
+              // Admin: CRUD on moderator & user. Moderator: CRUD on user only.
+              const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
+              const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
 
               return (
                 <Card key={u.id} className="border border-border">
@@ -333,7 +335,7 @@ export default function AdminSettings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">Usuário</SelectItem>
-                  <SelectItem value="moderator">Moderador</SelectItem>
+                  {isCurrentUserAdmin && <SelectItem value="moderator">Moderador</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
