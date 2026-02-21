@@ -47,6 +47,7 @@ const emptyForm = {
   harvest_period_end: "",
   total_third_party_vehicles: "1",
   monthly_value: "",
+  payment_value: "",
   payment_closing_day: "30",
   notes: "",
   client_id: "",
@@ -143,6 +144,7 @@ export default function AdminHarvest() {
         harvest_period_end: form.harvest_period_end || null,
         total_third_party_vehicles: parseInt(form.total_third_party_vehicles),
         monthly_value: parseFloat(form.monthly_value),
+        payment_value: form.payment_value ? parseFloat(form.payment_value) : parseFloat(form.monthly_value),
         payment_closing_day: parseInt(form.payment_closing_day),
         notes: form.notes || null,
         client_id: form.client_id || null,
@@ -264,18 +266,24 @@ export default function AdminHarvest() {
                   <Input type="date" value={form.harvest_period_end} onChange={(e) => setForm({ ...form, harvest_period_end: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Qtd. Veículos</Label>
                   <Input type="number" min="1" value={form.total_third_party_vehicles} onChange={(e) => setForm({ ...form, total_third_party_vehicles: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Mensal (R$) *</Label>
+                  <Label>Dia Fechamento</Label>
+                  <Input type="number" min="1" max="31" value={form.payment_closing_day} onChange={(e) => setForm({ ...form, payment_closing_day: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valor Contrato (R$) *</Label>
                   <Input type="number" step="0.01" value={form.monthly_value} onChange={(e) => setForm({ ...form, monthly_value: e.target.value })} placeholder="0.00" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Dia Fechamento</Label>
-                  <Input type="number" min="1" max="31" value={form.payment_closing_day} onChange={(e) => setForm({ ...form, payment_closing_day: e.target.value })} />
+                  <Label>Valor a Pagar Terceiros (R$)</Label>
+                  <Input type="number" step="0.01" value={form.payment_value} onChange={(e) => setForm({ ...form, payment_value: e.target.value })} placeholder="Mesmo do contrato" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -304,7 +312,8 @@ export default function AdminHarvest() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => {
-              const dailyValue = job.monthly_value / 30;
+              const paymentVal = (job as any).payment_value || job.monthly_value;
+              const dailyValue = paymentVal / 30;
               return (
                 <div key={job.id}>
                   <Card
@@ -317,17 +326,18 @@ export default function AdminHarvest() {
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                             setEditingJob(job);
-                            setForm({
-                              farm_name: job.farm_name,
-                              location: job.location,
-                              harvest_period_start: job.harvest_period_start,
-                              harvest_period_end: job.harvest_period_end || "",
-                              total_third_party_vehicles: String(job.total_third_party_vehicles),
-                              monthly_value: String(job.monthly_value),
-                              payment_closing_day: String(job.payment_closing_day),
-                              notes: job.notes || "",
-                              client_id: job.client_id || "",
-                            });
+                          setForm({
+                            farm_name: job.farm_name,
+                            location: job.location,
+                            harvest_period_start: job.harvest_period_start,
+                            harvest_period_end: job.harvest_period_end || "",
+                            total_third_party_vehicles: String(job.total_third_party_vehicles),
+                            monthly_value: String(job.monthly_value),
+                            payment_value: String((job as any).payment_value || ""),
+                            payment_closing_day: String(job.payment_closing_day),
+                            notes: job.notes || "",
+                            client_id: job.client_id || "",
+                          });
                             setDialogOpen(true);
                           }}>
                             <Pencil className="h-3.5 w-3.5" />
@@ -377,7 +387,7 @@ export default function AdminHarvest() {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span>{formatCurrency(job.monthly_value)}/mês</span>
+                        <span>{formatCurrency(paymentVal)}/mês</span>
                         <span className="text-muted-foreground">({formatCurrency(dailyValue)}/dia)</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">

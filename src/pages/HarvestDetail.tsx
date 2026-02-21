@@ -115,7 +115,8 @@ export default function HarvestDetail() {
           const endDate = a.end_date ? new Date(a.end_date) : new Date();
           const startDate = new Date(a.start_date);
           const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-          const dailyVal = a.daily_value || (jobData.monthly_value / 30);
+          const pv = (jobData as any).payment_value || jobData.monthly_value;
+          const dailyVal = a.daily_value || (pv / 30);
           
           return {
             ...a,
@@ -128,20 +129,13 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      // Fetch available drivers (with colheita service)
-      const { data: serviceDrivers } = await supabase
-        .from("driver_services")
-        .select("user_id")
-        .eq("service_type", "colheita");
-
-      if (serviceDrivers && serviceDrivers.length > 0) {
-        const userIds = serviceDrivers.map((s) => s.user_id);
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", userIds);
-        setDrivers(profilesData || []);
-      }
+      // Fetch available drivers (all motoristas)
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("category", "motorista")
+        .order("full_name");
+      setDrivers(profilesData || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -156,7 +150,8 @@ export default function HarvestDetail() {
     }
     setSaving(true);
     try {
-      const dailyVal = assignForm.daily_value ? parseFloat(assignForm.daily_value) : (job ? job.monthly_value / 30 : 0);
+      const pv = (job as any)?.payment_value || job?.monthly_value || 0;
+      const dailyVal = assignForm.daily_value ? parseFloat(assignForm.daily_value) : (pv / 30);
       const { error } = await supabase.from("harvest_assignments").insert({
         harvest_job_id: id,
         user_id: assignForm.user_id,
@@ -219,7 +214,8 @@ export default function HarvestDetail() {
 
   if (!job) return null;
 
-  const dailyValue = job.monthly_value / 30;
+  const paymentValue = (job as any).payment_value || job.monthly_value;
+  const dailyValue = paymentValue / 30;
   const totalPaid = assignments.reduce((sum, a) => sum + (a.total_value || 0), 0);
 
   return (
@@ -250,7 +246,7 @@ export default function HarvestDetail() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Período</p>
@@ -260,8 +256,14 @@ export default function HarvestDetail() {
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground">Valor Mensal</p>
+              <p className="text-xs text-muted-foreground">Valor Contrato</p>
               <p className="font-semibold text-sm">{formatCurrency(job.monthly_value)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Valor a Pagar</p>
+              <p className="font-semibold text-sm">{formatCurrency(paymentValue)}</p>
               <p className="text-xs text-muted-foreground">{formatCurrency(dailyValue)}/dia</p>
             </CardContent>
           </Card>
@@ -308,9 +310,9 @@ export default function HarvestDetail() {
               </DialogHeader>
               <div className="space-y-4 mt-2">
                 <div className="space-y-2">
-                  <Label>Motorista (serviço colheita) *</Label>
+                   <Label>Motorista *</Label>
                   {drivers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum motorista com serviço "colheita" vinculado. Vá em <Link to="/admin/drivers" className="text-primary underline">Motoristas</Link> e vincule primeiro.</p>
+                    <p className="text-sm text-muted-foreground">Nenhum motorista cadastrado. Vá em <Link to="/admin/drivers" className="text-primary underline">Motoristas</Link> e cadastre primeiro.</p>
                   ) : (
                     <Select value={assignForm.user_id} onValueChange={(v) => setAssignForm({ ...assignForm, user_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>

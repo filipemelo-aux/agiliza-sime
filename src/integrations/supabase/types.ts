@@ -264,6 +264,7 @@ export type Database = {
           monthly_value: number
           notes: string | null
           payment_closing_day: number
+          payment_value: number
           status: string
           total_third_party_vehicles: number
           updated_at: string
@@ -280,6 +281,7 @@ export type Database = {
           monthly_value?: number
           notes?: string | null
           payment_closing_day?: number
+          payment_value?: number
           status?: string
           total_third_party_vehicles?: number
           updated_at?: string
@@ -296,6 +298,7 @@ export type Database = {
           monthly_value?: number
           notes?: string | null
           payment_closing_day?: number
+          payment_value?: number
           status?: string
           total_third_party_vehicles?: number
           updated_at?: string
