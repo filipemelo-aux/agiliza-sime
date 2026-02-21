@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { maskPhone } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
 import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -365,7 +366,7 @@ export default function AdminDrivers() {
                           <p className="text-sm text-muted-foreground">{driver.razao_social}</p>
                         )}
                         <div className="flex flex-wrap gap-x-4 gap-y-0 text-sm text-muted-foreground">
-                          {driver.phone && <span>{driver.phone}</span>}
+                          {driver.phone && <span>{maskPhone(driver.phone)}</span>}
                           {driver.email && <span>{driver.email}</span>}
                           {driver.address_city && driver.address_state && (
                             <span>{driver.address_city}/{driver.address_state}</span>
@@ -489,7 +490,7 @@ export default function AdminDrivers() {
               )}
               {viewPerson.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {viewPerson.cnpj}</p>}
               {viewPersonDocs?.cpf && <p><span className="text-muted-foreground">CPF:</span> {viewPersonDocs.cpf}</p>}
-              {viewPerson.phone && <p><span className="text-muted-foreground">Telefone:</span> {viewPerson.phone}</p>}
+              {viewPerson.phone && <p><span className="text-muted-foreground">Telefone:</span> {maskPhone(viewPerson.phone)}</p>}
               {viewPerson.email && <p><span className="text-muted-foreground">E-mail:</span> {viewPerson.email}</p>}
               {viewPerson.address_city && viewPerson.address_state && (
                 <p><span className="text-muted-foreground">Cidade:</span> {viewPerson.address_city}/{viewPerson.address_state}</p>

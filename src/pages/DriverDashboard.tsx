@@ -9,6 +9,7 @@ import { FreightCard } from "@/components/FreightCard";
 import { FreightDetailModal } from "@/components/FreightDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { maskPhone } from "@/lib/masks";
 
 interface ProfileData {
   full_name: string;
@@ -131,7 +132,7 @@ export default function DriverDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Telefone</p>
-                  <p className="font-medium">{profile.phone}</p>
+                  <p className="font-medium">{maskPhone(profile.phone)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Tipo</p>
