@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
+import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
@@ -88,6 +89,10 @@ export default function AdminDrivers() {
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletePerson, setDeletePerson] = useState<PersonProfile | null>(null);
+
+  // Vehicle modal
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
+  const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -243,7 +248,11 @@ export default function AdminDrivers() {
             <h1 className="text-3xl font-bold font-display">Cadastros</h1>
             <p className="text-muted-foreground">Gerencie pessoas e veículos do sistema</p>
           </div>
-          {!isVehicleTab && (
+          {isVehicleTab ? (
+            <Button onClick={() => { setEditVehicleId(null); setVehicleModalOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Veículo
+            </Button>
+          ) : (
             <Button onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Novo Cadastro
             </Button>
@@ -324,7 +333,7 @@ export default function AdminDrivers() {
                             {!v.driver_name && !v.owner_name && <span className="italic">Sem vínculo</span>}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/edit-vehicle/${v.id}`)}>
+                        <Button variant="outline" size="sm" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }}>
                           <Pencil className="h-4 w-4 mr-1" /> Editar
                         </Button>
                       </div>
@@ -433,6 +442,7 @@ export default function AdminDrivers() {
 
       <PersonEditDialog person={editPerson} open={editOpen} onOpenChange={setEditOpen} onSaved={fetchAll} />
       <PersonCreateDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchAll} defaultCategory={!isVehicleTab && activeTab !== "__all__" ? activeTab : undefined} />
+      <VehicleFormModal open={vehicleModalOpen} onOpenChange={setVehicleModalOpen} vehicleId={editVehicleId} onSaved={fetchAll} />
 
       <AlertDialog open={!!deletePerson} onOpenChange={(open) => !open && setDeletePerson(null)}>
         <AlertDialogContent>

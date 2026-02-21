@@ -2,15 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import DriverDashboard from "./pages/DriverDashboard";
 import Index from "./pages/Index";
-import MyVehicles from "./pages/MyVehicles";
-import AddVehicle from "./pages/AddVehicle";
-import EditVehicle from "./pages/EditVehicle";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
@@ -33,15 +30,16 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/driver" element={<DriverDashboard />} />
           <Route path="/freights" element={<Index />} />
-          <Route path="/my-vehicles" element={<MyVehicles />} />
           <Route path="/my-applications" element={<MyApplications />} />
-          <Route path="/add-vehicle" element={<AddVehicle />} />
-          <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/applications" element={<AdminApplications />} />
           <Route path="/admin/drivers" element={<AdminDrivers />} />
           <Route path="/admin/harvest" element={<AdminHarvest />} />
           <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
+          {/* Redirects for removed standalone vehicle pages */}
+          <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
+          <Route path="/add-vehicle" element={<Navigate to="/admin/drivers" replace />} />
+          <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/drivers" replace />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
