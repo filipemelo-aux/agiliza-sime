@@ -40,8 +40,7 @@ function SidebarNav() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       {/* Branding no topo da sidebar */}
-      <div className="h-16 flex items-center gap-2 px-3 border-b border-sidebar-border shrink-0">
-        <img src={logo} alt="SIME" className="h-8 w-auto shrink-0" />
+      <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
           SIME <span className="text-accent">TRANSPORTES</span>
         </span>
