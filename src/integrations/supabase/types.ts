@@ -339,6 +339,7 @@ export type Database = {
           bank_account_type: string | null
           bank_agency: string | null
           bank_name: string | null
+          category: string
           cnpj: string | null
           created_at: string
           full_name: string
@@ -358,6 +359,7 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          category?: string
           cnpj?: string | null
           created_at?: string
           full_name: string
@@ -377,6 +379,7 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          category?: string
           cnpj?: string | null
           created_at?: string
           full_name?: string
