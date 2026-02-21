@@ -562,7 +562,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         email: data.email && data.email !== "null" ? data.email.toLowerCase() : p.email,
         address_street: data.logradouro ? maskName(data.logradouro) : p.address_street,
         address_number: data.numero || p.address_number,
-        address_complement: data.complemento || p.address_complement,
+        address_complement: data.complemento ? maskName(data.complemento) : p.address_complement,
         address_neighborhood: data.bairro ? maskName(data.bairro) : p.address_neighborhood,
         address_city: data.municipio ? maskName(data.municipio) : p.address_city,
         address_state: data.uf || p.address_state,
