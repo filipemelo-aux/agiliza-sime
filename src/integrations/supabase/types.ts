@@ -253,6 +253,7 @@ export type Database = {
       }
       harvest_jobs: {
         Row: {
+          client_id: string | null
           created_at: string
           created_by: string | null
           farm_name: string
@@ -268,6 +269,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           farm_name: string
@@ -283,6 +285,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           farm_name?: string
@@ -297,7 +300,15 @@ export type Database = {
           total_third_party_vehicles?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "harvest_jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
