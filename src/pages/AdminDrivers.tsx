@@ -43,6 +43,12 @@ interface VehicleRow {
   year: number;
   vehicle_type: string;
   cargo_type: string | null;
+  trailer_plate_1: string | null;
+  trailer_plate_2: string | null;
+  trailer_plate_3: string | null;
+  driver_id: string | null;
+  owner_id: string | null;
+  driver_name?: string;
   owner_name?: string;
 }
 
@@ -54,6 +60,14 @@ const VEHICLE_TYPE_LABELS: Record<string, string> = {
   rodotrem: "Rodotrem",
   bitrem: "Bitrem",
   treminhao: "Treminhão",
+};
+
+const TRAILER_LABELS: Record<string, string[]> = {
+  carreta: ["Carreta"],
+  carreta_ls: ["Carreta"],
+  bitrem: ["1ª Carreta", "2ª Carreta"],
+  rodotrem: ["1ª Carreta", "Dolly", "2ª Carreta"],
+  treminhao: ["1º Reboque", "2º Reboque"],
 };
 
 export default function AdminDrivers() {
@@ -127,8 +141,13 @@ export default function AdminDrivers() {
       setDrivers(driversWithServices);
 
       const vehicleRows: VehicleRow[] = (vehiclesRes.data || []).map((v: any) => {
-        const owner = profiles.find((p: any) => p.user_id === v.user_id);
-        return { ...v, owner_name: owner?.full_name || "—" };
+        const driver = profiles.find((p: any) => p.user_id === v.driver_id);
+        const owner = profiles.find((p: any) => p.user_id === v.owner_id);
+        return {
+          ...v,
+          driver_name: driver?.full_name || undefined,
+          owner_name: owner?.full_name || undefined,
+        };
       });
       setVehicles(vehicleRows);
     } catch (error: any) {
@@ -199,6 +218,7 @@ export default function AdminDrivers() {
     v.plate.toLowerCase().includes(search.toLowerCase()) ||
     v.brand.toLowerCase().includes(search.toLowerCase()) ||
     v.model.toLowerCase().includes(search.toLowerCase()) ||
+    (v.driver_name && v.driver_name.toLowerCase().includes(search.toLowerCase())) ||
     (v.owner_name && v.owner_name.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -273,26 +293,47 @@ export default function AdminDrivers() {
             </Card>
           ) : (
             <div className="grid gap-3">
-              {filteredVehicles.map((v) => (
-                <Card key={v.id} className="border-border">
-                  <CardContent className="py-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold">{v.plate}</h3>
-                          <Badge variant="outline" className="text-xs">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
-                          {v.cargo_type && <Badge variant="secondary" className="text-xs">{v.cargo_type}</Badge>}
+              {filteredVehicles.map((v) => {
+                const trailerLabels = TRAILER_LABELS[v.vehicle_type] || [];
+                const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
+                return (
+                  <Card key={v.id} className="border-border">
+                    <CardContent className="py-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold">🚛 {v.plate}</h3>
+                            <Badge variant="outline" className="text-xs">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
+                            {v.cargo_type && <Badge variant="secondary" className="text-xs capitalize">{v.cargo_type}</Badge>}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{v.brand} {v.model} • {v.year}</p>
+
+                          {/* Conjunto de placas */}
+                          {trailerPlates.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {trailerPlates.map((plate, i) => (
+                                <Badge key={i} variant="outline" className="text-xs gap-1 bg-muted/50">
+                                  {trailerLabels[i] || `Impl. ${i+1}`}: {plate}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Vínculos */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-0 mt-1.5 text-xs text-muted-foreground">
+                            {v.driver_name && <span>Motorista: <strong className="text-foreground">{v.driver_name}</strong></span>}
+                            {v.owner_name && <span>Proprietário: <strong className="text-foreground">{v.owner_name}</strong></span>}
+                            {!v.driver_name && !v.owner_name && <span className="italic">Sem vínculo</span>}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{v.brand} {v.model} • {v.year}</p>
-                        <p className="text-xs text-muted-foreground">Proprietário: {v.owner_name}</p>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/edit-vehicle/${v.id}`)}>
+                          <Pencil className="h-4 w-4 mr-1" /> Editar
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/edit-vehicle/${v.id}`)}>
-                        <Pencil className="h-4 w-4 mr-1" /> Editar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )
         ) : (

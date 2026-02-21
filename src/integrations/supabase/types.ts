@@ -487,9 +487,11 @@ export type Database = {
           brand: string
           cargo_type: string | null
           created_at: string
+          driver_id: string | null
           id: string
           is_active: boolean | null
           model: string
+          owner_id: string | null
           plate: string
           renavam: string
           trailer_plate_1: string | null
@@ -508,9 +510,11 @@ export type Database = {
           brand: string
           cargo_type?: string | null
           created_at?: string
+          driver_id?: string | null
           id?: string
           is_active?: boolean | null
           model: string
+          owner_id?: string | null
           plate: string
           renavam: string
           trailer_plate_1?: string | null
@@ -529,9 +533,11 @@ export type Database = {
           brand?: string
           cargo_type?: string | null
           created_at?: string
+          driver_id?: string | null
           id?: string
           is_active?: boolean | null
           model?: string
+          owner_id?: string | null
           plate?: string
           renavam?: string
           trailer_plate_1?: string | null
