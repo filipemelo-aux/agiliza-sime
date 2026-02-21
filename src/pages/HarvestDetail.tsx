@@ -374,6 +374,7 @@ export default function HarvestDetail() {
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Valor Contrato</p>
               <p className="font-semibold text-sm">{formatCurrency(job.monthly_value)}</p>
+              <p className="text-xs text-muted-foreground">{formatCurrency(job.monthly_value / 30)}/dia</p>
             </CardContent>
           </Card>
           <Card className="border-border">
