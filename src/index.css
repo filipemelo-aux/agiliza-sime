@@ -46,14 +46,14 @@
 
     --radius: 0.75rem;
 
-    --sidebar-background: 214 48% 15%;
-    --sidebar-foreground: 214 15% 92%;
-    --sidebar-primary: 46 91% 53%;
-    --sidebar-primary-foreground: 214 48% 15%;
-    --sidebar-accent: 214 48% 22%;
-    --sidebar-accent-foreground: 214 15% 92%;
-    --sidebar-border: 214 48% 25%;
-    --sidebar-ring: 46 91% 53%;
+    --sidebar-background: 213 40% 95%;
+    --sidebar-foreground: 214 48% 25%;
+    --sidebar-primary: 214 48% 33%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 45% 88%;
+    --sidebar-accent-foreground: 214 48% 20%;
+    --sidebar-border: 213 30% 88%;
+    --sidebar-ring: 214 48% 33%;
 
     /* Custom transport gradients */
     --gradient-primary: linear-gradient(135deg, hsl(214 48% 33%) 0%, hsl(214 55% 25%) 100%);
