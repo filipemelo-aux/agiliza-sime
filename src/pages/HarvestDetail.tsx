@@ -704,80 +704,73 @@ export default function HarvestDetail() {
         </Dialog>
 
         {/* ===== RELATÓRIO COLHEITA - AGREGADOS ===== */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold font-display flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold font-display flex items-center gap-1.5">
+            <FileText className="h-4 w-4 text-primary" />
             Relatório Colheita — Agregados
           </h2>
-          <Button size="sm" className="btn-transport-accent" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Vincular
+          <Button size="sm" className="btn-transport-accent h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-3 w-3 mr-1" /> Vincular
           </Button>
         </div>
 
         {assignments.length === 0 ? (
-          <Card className="mb-8">
-            <CardContent className="py-12 text-center">
-              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum motorista vinculado a este serviço.</p>
+          <Card className="mb-6">
+            <CardContent className="py-8 text-center">
+              <User className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Nenhum motorista vinculado a este serviço.</p>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-border overflow-hidden mb-8">
+          <Card className="border-border overflow-hidden mb-6">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="text-xs">
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
                     <TableHead>Motorista</TableHead>
                     <TableHead>Placa</TableHead>
                     <TableHead>Início</TableHead>
                     <TableHead className="text-center">Dias</TableHead>
-                    <TableHead>Vl. Diária</TableHead>
+                    <TableHead>Diária</TableHead>
                     <TableHead>Descontos</TableHead>
-                    <TableHead>Total Líquido</TableHead>
+                    <TableHead>Líquido</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {assignments.map((a) => {
                     const data = getAgregadoData(a);
                     return (
-                      <TableRow key={a.id} className={a.status !== "active" ? "opacity-60" : ""}>
-                        <TableCell className="font-medium">{a.driver_name}</TableCell>
-                        <TableCell>{a.vehicle_plate}</TableCell>
-                        <TableCell>{formatDate(a.start_date)}</TableCell>
+                      <TableRow key={a.id} className={`[&>td]:py-1.5 [&>td]:px-2 ${a.status !== "active" ? "opacity-50" : ""}`}>
+                        <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
+                        <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
                         <TableCell className="text-center">{data.days}</TableCell>
-                        <TableCell>{formatCurrency(data.dv)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatCurrency(data.dv)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className={data.totalDescontos > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                          <div className="flex items-center gap-0.5">
+                            <span className={data.totalDescontos > 0 ? "text-destructive font-medium whitespace-nowrap" : "text-muted-foreground"}>
                               {data.totalDescontos > 0 ? `- ${formatCurrency(data.totalDescontos)}` : "—"}
                             </span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openDiscountDialog(a)}>
-                              <MinusCircle className="h-3.5 w-3.5" />
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openDiscountDialog(a)}>
+                              <MinusCircle className="h-3 w-3" />
                             </Button>
                           </div>
-                          {a.discounts.length > 0 && (
-                            <div className="mt-1 space-y-0.5">
-                              {a.discounts.map(d => (
-                                <p key={d.id} className="text-xs text-muted-foreground">{d.description || d.type}: {formatCurrency(d.value)}</p>
-                              ))}
-                            </div>
-                          )}
                         </TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(data.totalLiquido)}</TableCell>
+                        <TableCell className="font-semibold whitespace-nowrap">{formatCurrency(data.totalLiquido)}</TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1">
                             <Switch
                               checked={a.status === "active"}
                               onCheckedChange={() => handleToggleAssignmentStatus(a)}
+                              className="scale-75"
                             />
-                            <span className="text-xs">{a.status === "active" ? "Ativo" : "Inativo"}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleRemoveAssignment(a.id)}>
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleRemoveAssignment(a.id)}>
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -792,24 +785,24 @@ export default function HarvestDetail() {
         {/* ===== RELATÓRIO COLHEITA - FATURAMENTO ===== */}
         {assignments.length > 0 && (
           <>
-            <h2 className="text-xl font-bold font-display flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-bold font-display flex items-center gap-1.5 mb-3">
+              <TrendingUp className="h-4 w-4 text-primary" />
               Relatório Colheita — Faturamento
             </h2>
             <Card className="border-border overflow-hidden">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="text-xs">
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
                       <TableHead>Motorista</TableHead>
                       <TableHead>Placa</TableHead>
                       <TableHead>Início</TableHead>
                       <TableHead className="text-center">Dias</TableHead>
-                      <TableHead>Diária Empresa</TableHead>
-                      <TableHead>Total Bruto</TableHead>
-                      <TableHead>Líq. Terceiros</TableHead>
+                      <TableHead>Diária Emp.</TableHead>
+                      <TableHead>Bruto</TableHead>
+                      <TableHead>Líq. Terc.</TableHead>
                       <TableHead>Descontos</TableHead>
-                      <TableHead>Fat. Líquido</TableHead>
+                      <TableHead>Fat. Líq.</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -817,44 +810,43 @@ export default function HarvestDetail() {
                     {assignments.map((a) => {
                       const fat = getFaturamentoData(a);
                       return (
-                        <TableRow key={a.id} className={a.status !== "active" ? "opacity-60" : ""}>
-                          <TableCell className="font-medium">{a.driver_name}</TableCell>
-                          <TableCell>{a.vehicle_plate}</TableCell>
-                          <TableCell>{formatDate(a.start_date)}</TableCell>
+                        <TableRow key={a.id} className={`[&>td]:py-1.5 [&>td]:px-2 ${a.status !== "active" ? "opacity-50" : ""}`}>
+                          <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
+                          <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
                           <TableCell className="text-center">{fat.days}</TableCell>
-                          <TableCell>{formatCurrency(fat.dvEmpresa)}</TableCell>
-                          <TableCell>{formatCurrency(fat.totalBruto)}</TableCell>
-                          <TableCell className="text-orange-500">{formatCurrency(fat.liquidoTerceiros)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(fat.dvEmpresa)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(fat.totalBruto)}</TableCell>
+                          <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(fat.liquidoTerceiros)}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className={fat.descontosEmpresa > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                            <div className="flex items-center gap-0.5">
+                              <span className={fat.descontosEmpresa > 0 ? "text-destructive font-medium whitespace-nowrap" : "text-muted-foreground"}>
                                 {fat.descontosEmpresa > 0 ? `- ${formatCurrency(fat.descontosEmpresa)}` : "—"}
                               </span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openCompanyDiscountDialog(a)}>
-                                <MinusCircle className="h-3.5 w-3.5" />
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openCompanyDiscountDialog(a)}>
+                                <MinusCircle className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell className="font-bold text-green-600">{formatCurrency(fat.faturamentoLiquido)}</TableCell>
+                          <TableCell className="font-bold text-green-600 whitespace-nowrap">{formatCurrency(fat.faturamentoLiquido)}</TableCell>
                           <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1">
                               <Switch
                                 checked={a.status === "active"}
                                 onCheckedChange={() => handleToggleAssignmentStatus(a)}
+                                className="scale-75"
                               />
-                              <span className="text-xs">{a.status === "active" ? "Ativo" : "Inativo"}</span>
                             </div>
                           </TableCell>
                         </TableRow>
                       );
                     })}
-                    {/* Totals row */}
-                    <TableRow className="bg-muted/50 font-semibold">
-                      <TableCell colSpan={5} className="text-right">TOTAIS</TableCell>
-                      <TableCell>{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-orange-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
-                      <TableCell className="text-destructive">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
-                      <TableCell className="text-green-600">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                    <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
+                      <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
+                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
