@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search } from "lucide-react";
+import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -20,7 +23,6 @@ import { useToast } from "@/hooks/use-toast";
 interface SystemUser {
   id: string;
   email: string;
-  created_at: string;
   roles: string[];
   profile_name: string | null;
 }
@@ -31,11 +33,20 @@ export default function AdminSettings() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Create
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "user" });
   const [creating, setCreating] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState<SystemUser | null>(null);
-  const [confirmPromote, setConfirmPromote] = useState<SystemUser | null>(null);
+
+  // Edit
+  const [editUser, setEditUser] = useState<SystemUser | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", role: "" });
+  const [saving, setSaving] = useState(false);
+
+  // Delete
+  const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
@@ -44,21 +55,16 @@ export default function AdminSettings() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Get all user_roles
       const { data: allRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role");
-
       if (rolesError) throw rolesError;
 
-      // Get profiles for names
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, email");
-
       if (profilesError) throw profilesError;
 
-      // Group roles by user_id
       const roleMap: Record<string, string[]> = {};
       const userIds = new Set<string>();
       (allRoles || []).forEach((r) => {
@@ -67,7 +73,6 @@ export default function AdminSettings() {
         roleMap[r.user_id].push(r.role);
       });
 
-      // Build user list from roles (only users that have roles)
       const profileMap: Record<string, { name: string; email: string | null }> = {};
       (profiles || []).forEach((p) => {
         profileMap[p.user_id] = { name: p.full_name, email: p.email };
@@ -76,7 +81,6 @@ export default function AdminSettings() {
       const systemUsers: SystemUser[] = Array.from(userIds).map((uid) => ({
         id: uid,
         email: profileMap[uid]?.email || "",
-        created_at: "",
         roles: roleMap[uid] || [],
         profile_name: profileMap[uid]?.name || null,
       }));
@@ -94,65 +98,94 @@ export default function AdminSettings() {
     if (hasAccess) fetchUsers();
   }, [hasAccess]);
 
-  const handleCreateModerator = async () => {
+  // --- Create User ---
+  const handleCreateUser = async () => {
     if (!createForm.email || !createForm.password || !createForm.name) {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
       return;
     }
     setCreating(true);
     try {
-      // Create auth user via edge function
       const { data, error } = await supabase.functions.invoke("create-moderator", {
         body: {
           email: createForm.email,
           password: createForm.password,
           name: createForm.name,
+          role: createForm.role,
         },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast({ title: "Moderador criado com sucesso!" });
+      toast({ title: "Usuário criado com sucesso!" });
       setShowCreateDialog(false);
-      setCreateForm({ email: "", password: "", name: "" });
+      setCreateForm({ email: "", password: "", name: "", role: "user" });
       fetchUsers();
     } catch (err: any) {
-      toast({ title: "Erro ao criar moderador", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao criar usuário", description: err.message, variant: "destructive" });
     } finally {
       setCreating(false);
     }
   };
 
-  const handleToggleModeratorRole = async (targetUser: SystemUser, action: "add" | "remove") => {
-    // Moderators can't change admin roles
-    if (!isCurrentUserAdmin && targetUser.roles.includes("admin")) {
-      toast({ title: "Sem permissão", description: "Moderadores não podem alterar perfis de administradores.", variant: "destructive" });
-      return;
-    }
+  // --- Edit User ---
+  const openEdit = (u: SystemUser) => {
+    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : "user";
+    setEditForm({ name: u.profile_name || "", email: u.email || "", role: mainRole });
+    setEditUser(u);
+  };
 
+  const handleSaveEdit = async () => {
+    if (!editUser || !editForm.name) return;
+    setSaving(true);
     try {
-      if (action === "add") {
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({ user_id: targetUser.id, role: "moderator" });
-        if (error) throw error;
-        toast({ title: "Papel de moderador adicionado!" });
-      } else {
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", targetUser.id)
-          .eq("role", "moderator");
-        if (error) throw error;
-        toast({ title: "Papel de moderador removido!" });
+      // Update profile
+      const { error: profError } = await supabase
+        .from("profiles")
+        .update({ full_name: editForm.name, email: editForm.email })
+        .eq("user_id", editUser.id);
+      if (profError) throw profError;
+
+      // Update role if admin and changed
+      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : "user";
+      if (isCurrentUserAdmin && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
+        // Remove old non-admin roles
+        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "user"]);
+        // Add new role if not just "user" (user role is default, only moderator needs explicit entry)
+        if (editForm.role === "moderator") {
+          await supabase.from("user_roles").insert({ user_id: editUser.id, role: "moderator" });
+        }
       }
+
+      toast({ title: "Usuário atualizado!" });
+      setEditUser(null);
       fetchUsers();
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setConfirmRemove(null);
-    setConfirmPromote(null);
+  };
+
+  // --- Delete User ---
+  const handleDeleteUser = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-system-user", {
+        body: { userId: confirmDelete.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Usuário excluído!" });
+      setConfirmDelete(null);
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const filtered = users.filter((u) => {
@@ -194,12 +227,11 @@ export default function AdminSettings() {
           {isCurrentUserAdmin && (
             <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
               <UserPlus className="w-4 h-4" />
-              Novo Moderador
+              Novo Usuário
             </Button>
           )}
         </div>
 
-        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -210,7 +242,6 @@ export default function AdminSettings() {
           />
         </div>
 
-        {/* Users list */}
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-muted-foreground">Usuários do Sistema</h2>
           {loading ? (
@@ -222,10 +253,9 @@ export default function AdminSettings() {
           ) : (
             filtered.map((u) => {
               const isTargetAdmin = u.roles.includes("admin");
-              const isTargetModerator = u.roles.includes("moderator");
               const isSelf = u.id === user?.id;
-              // Moderators can't touch admins
-              const canManage = isCurrentUserAdmin || (!isTargetAdmin && !isSelf);
+              const canEdit = isCurrentUserAdmin || (!isTargetAdmin);
+              const canDelete = isCurrentUserAdmin && !isSelf && !isTargetAdmin;
 
               return (
                 <Card key={u.id} className="border border-border">
@@ -241,32 +271,18 @@ export default function AdminSettings() {
                       <span className="text-sm text-muted-foreground truncate">{u.email || "—"}</span>
                     </div>
 
-                    {canManage && !isSelf && (
-                      <div className="flex gap-2">
-                        {!isTargetModerator && !isTargetAdmin && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setConfirmPromote(u)}
-                            className="gap-1 text-purple-400 border-purple-400/30 hover:bg-purple-500/10"
-                          >
-                            <Shield className="w-3.5 h-3.5" />
-                            Tornar Moderador
-                          </Button>
-                        )}
-                        {isTargetModerator && isCurrentUserAdmin && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setConfirmRemove(u)}
-                            className="gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Remover Moderador
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex gap-2">
+                      {canEdit && (
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(u)} title="Editar">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -275,12 +291,12 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* Create Moderator Dialog */}
+      {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Criar Moderador</DialogTitle>
-            <DialogDescription>Crie uma conta de moderador com acesso ao CRM.</DialogDescription>
+            <DialogTitle>Novo Usuário</DialogTitle>
+            <DialogDescription>Crie uma conta de acesso ao sistema.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
@@ -288,7 +304,7 @@ export default function AdminSettings() {
               <Input
                 value={createForm.name}
                 onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Nome do moderador"
+                placeholder="Nome do usuário"
               />
             </div>
             <div className="space-y-2">
@@ -297,7 +313,7 @@ export default function AdminSettings() {
                 type="email"
                 value={createForm.email}
                 onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="moderador@email.com"
+                placeholder="usuario@email.com"
               />
             </div>
             <div className="space-y-2">
@@ -309,47 +325,86 @@ export default function AdminSettings() {
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
-            <Button onClick={handleCreateModerator} disabled={creating} className="w-full">
-              {creating ? "Criando..." : "Criar Moderador"}
+            <div className="space-y-2">
+              <Label>Perfil de acesso</Label>
+              <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="moderator">Moderador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleCreateUser} disabled={creating} className="w-full">
+              {creating ? "Criando..." : "Criar Usuário"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Confirm Promote */}
-      <AlertDialog open={!!confirmPromote} onOpenChange={() => setConfirmPromote(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tornar Moderador?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmPromote?.profile_name || confirmPromote?.email} terá acesso ao CRM com permissões de moderador.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmPromote && handleToggleModeratorRole(confirmPromote, "add")}>
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Edit User Dialog */}
+      <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Atualize as informações do usuário.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Nome completo</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+              />
+            </div>
+            {isCurrentUserAdmin && editUser && !editUser.roles.includes("admin") && (
+              <div className="space-y-2">
+                <Label>Perfil de acesso</Label>
+                <Select value={editForm.role} onValueChange={(v) => setEditForm((p) => ({ ...p, role: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="moderator">Moderador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button onClick={handleSaveEdit} disabled={saving} className="w-full">
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Confirm Remove */}
-      <AlertDialog open={!!confirmRemove} onOpenChange={() => setConfirmRemove(null)}>
+      {/* Confirm Delete */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover papel de Moderador?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Usuário?</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmRemove?.profile_name || confirmRemove?.email} perderá acesso ao CRM.
+              {confirmDelete?.profile_name || confirmDelete?.email} será removido permanentemente do sistema. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmRemove && handleToggleModeratorRole(confirmRemove, "remove")}
+              onClick={handleDeleteUser}
+              disabled={deleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Remover
+              {deleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -27,6 +27,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Verify caller is admin
     const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
@@ -34,42 +35,41 @@ serve(async (req) => {
       .eq("role", "admin");
 
     if (!callerRoles || callerRoles.length === 0) {
-      throw new Error("Apenas administradores podem criar usuários");
+      throw new Error("Apenas administradores podem excluir usuários");
     }
 
-    const { email, password, name, role } = await req.json();
+    const { userId } = await req.json();
+    if (!userId) throw new Error("userId é obrigatório");
 
-    if (!email || !password || !name) {
-      throw new Error("Email, senha e nome são obrigatórios");
+    // Prevent deleting self
+    if (userId === caller.id) {
+      throw new Error("Você não pode excluir sua própria conta");
     }
-    if (password.length < 6) {
-      throw new Error("Senha deve ter pelo menos 6 caracteres");
+
+    // Prevent deleting other admins
+    const { data: targetRoles } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin");
+
+    if (targetRoles && targetRoles.length > 0) {
+      throw new Error("Não é possível excluir um administrador");
     }
 
-    const assignRole = role === "moderator" ? "moderator" : "user";
+    // Delete user roles
+    await adminClient.from("user_roles").delete().eq("user_id", userId);
+    // Delete profile
+    await adminClient.from("profiles").delete().eq("user_id", userId);
+    // Delete driver docs
+    await adminClient.from("driver_documents").delete().eq("user_id", userId);
+    // Delete driver services
+    await adminClient.from("driver_services").delete().eq("user_id", userId);
+    // Delete auth user
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+    if (deleteError) throw deleteError;
 
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (createError) throw createError;
-
-    const userId = newUser.user.id;
-
-    await adminClient.from("profiles").insert({
-      user_id: userId,
-      full_name: name,
-      email,
-      category: "motorista",
-    });
-
-    await adminClient.from("user_roles").insert({
-      user_id: userId,
-      role: assignRole,
-    });
-
-    return new Response(JSON.stringify({ success: true, userId }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
