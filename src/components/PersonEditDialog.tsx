@@ -430,29 +430,32 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>({ ...emptyForm, category: defaultCategory || "motorista" });
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) setForm({ ...emptyForm, category: defaultCategory || "motorista" });
+    if (open) {
+      setForm({ ...emptyForm, category: defaultCategory || "motorista" });
+      setCreatedUserId(null);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleCreate = async () => {
+  const doCreate = async (): Promise<string | null> => {
     if (!form.full_name.trim()) {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
-      return;
+      return null;
     }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      // Use a unique ID for admin-created profiles (not the admin's own user_id)
       const profileUserId = crypto.randomUUID();
       const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
       if (error) throw error;
 
-      // Save CNH for motorista
       if (form.category === "motorista") {
         const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
         if (hasCnhData) {
@@ -466,32 +469,62 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
         }
       }
 
-      toast({ title: "Cadastro criado com sucesso!" });
-      onOpenChange(false);
-      onCreated();
+      setCreatedUserId(profileUserId);
+      return profileUserId;
     } catch (error: any) {
       toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCreate = async () => {
+    const uid = await doCreate();
+    if (uid) {
+      toast({ title: "Cadastro criado com sucesso!" });
+      onOpenChange(false);
+      onCreated();
+    }
+  };
+
+  const handleCreateAndAddVehicle = async () => {
+    const uid = await doCreate();
+    if (uid) {
+      toast({ title: "Cadastro criado! Agora cadastre o veículo." });
+      onOpenChange(false);
+      onCreated();
+      setVehicleModalOpen(true);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle>Novo Cadastro</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[70vh]">
-          <div className="px-6 pb-6">
-            <PersonFormFields form={form} setForm={setForm} />
-            <Button className="w-full mt-4" onClick={handleCreate} disabled={loading}>
-              {loading ? "Criando..." : "Criar Cadastro"}
-            </Button>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle>Novo Cadastro</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh]">
+            <div className="px-6 pb-6">
+              <PersonFormFields form={form} setForm={setForm} onAddVehicle={form.category === "motorista" ? handleCreateAndAddVehicle : undefined} />
+              <Button className="w-full mt-4" onClick={handleCreate} disabled={loading}>
+                {loading ? "Criando..." : "Criar Cadastro"}
+              </Button>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      {createdUserId && (
+        <VehicleFormModal
+          open={vehicleModalOpen}
+          onOpenChange={setVehicleModalOpen}
+          vehicleId={null}
+          onSaved={onCreated}
+          defaultDriverId={createdUserId}
+        />
+      )}
+    </>
   );
 }
 
@@ -641,7 +674,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
       {/* Vehicle management note - motorista edit only */}
-      {isMotorista && isEdit && onAddVehicle && (
+      {isMotorista && onAddVehicle && (
         <div className="pt-1">
           <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onAddVehicle}>
             <Car className="h-4 w-4" />
