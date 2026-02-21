@@ -95,6 +95,7 @@ export default function AdminDrivers() {
   const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
   const [viewPersonDocs, setViewPersonDocs] = useState<{ cpf: string | null; cnh_number: string | null; cnh_category: string | null; cnh_expiry: string | null } | null>(null);
   const [viewVehicle, setViewVehicle] = useState<VehicleRow | null>(null);
+  const [viewPersonHarvests, setViewPersonHarvests] = useState<{ farm_name: string; client_name: string | null }[]>([]);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -388,9 +389,28 @@ export default function AdminDrivers() {
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={async () => {
                           setViewPerson(driver);
                           setViewPersonDocs(null);
+                          setViewPersonHarvests([]);
                           if (driver.category === "motorista") {
-                            const { data } = await supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle();
-                            setViewPersonDocs(data || null);
+                            const [docsRes, assignmentsRes] = await Promise.all([
+                              supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
+                              supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
+                            ]);
+                            setViewPersonDocs(docsRes.data || null);
+                            const assignments = assignmentsRes.data || [];
+                            if (assignments.length > 0) {
+                              const jobIds = assignments.map((a: any) => a.harvest_job_id);
+                              const { data: jobs } = await supabase.from("harvest_jobs").select("farm_name, client_id").in("id", jobIds);
+                              const clientIds = (jobs || []).map((j: any) => j.client_id).filter(Boolean);
+                              let clientMap: Record<string, string> = {};
+                              if (clientIds.length > 0) {
+                                const { data: clients } = await supabase.from("profiles").select("id, full_name").in("id", clientIds);
+                                (clients || []).forEach((c: any) => { clientMap[c.id] = c.full_name; });
+                              }
+                              setViewPersonHarvests((jobs || []).map((j: any) => ({
+                                farm_name: j.farm_name,
+                                client_name: j.client_id ? clientMap[j.client_id] || null : null,
+                              })));
+                            }
                           }
                         }} title="Visualizar">
                           <Eye className="h-4 w-4" />
@@ -448,7 +468,7 @@ export default function AdminDrivers() {
       </AlertDialog>
 
       {/* View person modal */}
-      <Dialog open={!!viewPerson} onOpenChange={(open) => { if (!open) { setViewPerson(null); setViewPersonDocs(null); } }}>
+      <Dialog open={!!viewPerson} onOpenChange={(open) => { if (!open) { setViewPerson(null); setViewPersonDocs(null); setViewPersonHarvests([]); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Detalhes do Cadastro</DialogTitle>
@@ -514,6 +534,18 @@ export default function AdminDrivers() {
               )}
               {viewPerson.notes && (
                 <p><span className="text-muted-foreground">Obs:</span> {viewPerson.notes}</p>
+              )}
+              {viewPersonHarvests.length > 0 && (
+                <div className="pt-1 border-t border-border">
+                  <p className="text-muted-foreground mb-1">🌾 Colheita</p>
+                  {viewPersonHarvests.map((h, i) => (
+                    <p key={i} className="ml-4">
+                      <span className="text-muted-foreground">Colheita:</span>{" "}
+                      {h.client_name ? <strong>{h.client_name}</strong> : h.farm_name}
+                      {h.client_name && <span className="text-muted-foreground"> ({h.farm_name})</span>}
+                    </p>
+                  ))}
+                </div>
               )}
               {viewPerson.services.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
