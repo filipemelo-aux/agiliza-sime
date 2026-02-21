@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Sprout, Plus, MapPin, Calendar, Users, DollarSign, ChevronRight, Pencil, Trash2, Building2 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,23 +128,6 @@ export default function AdminHarvest() {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (job: HarvestJob, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setEditingJob(job);
-    setForm({
-      farm_name: job.farm_name,
-      location: job.location,
-      harvest_period_start: job.harvest_period_start,
-      harvest_period_end: job.harvest_period_end || "",
-      total_third_party_vehicles: String(job.total_third_party_vehicles),
-      monthly_value: String(job.monthly_value),
-      payment_closing_day: String(job.payment_closing_day),
-      notes: job.notes || "",
-      client_id: job.client_id || "",
-    });
-    setDialogOpen(true);
-  };
 
   const handleSave = async () => {
     if (!form.farm_name || !form.location || !form.harvest_period_start || !form.monthly_value) {
@@ -185,9 +168,8 @@ export default function AdminHarvest() {
     }
   };
 
-  const handleDelete = async (jobId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDelete = async (jobId: string) => {
+    
     try {
       // Delete assignments first
       await supabase.from("harvest_assignments").delete().eq("harvest_job_id", jobId);
@@ -324,22 +306,39 @@ export default function AdminHarvest() {
             {jobs.map((job) => {
               const dailyValue = job.monthly_value / 30;
               return (
-                <Link key={job.id} to={`/admin/harvest/${job.id}`}>
-                  <Card className="border-border bg-card hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full">
+                <div key={job.id}>
+                  <Card
+                    className="border-border bg-card hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full"
+                    onClick={() => navigate(`/admin/harvest/${job.id}`)}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg font-display">{job.farm_name}</CardTitle>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => openEditDialog(job, e)}>
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                            setEditingJob(job);
+                            setForm({
+                              farm_name: job.farm_name,
+                              location: job.location,
+                              harvest_period_start: job.harvest_period_start,
+                              harvest_period_end: job.harvest_period_end || "",
+                              total_third_party_vehicles: String(job.total_third_party_vehicles),
+                              monthly_value: String(job.monthly_value),
+                              payment_closing_day: String(job.payment_closing_day),
+                              notes: job.notes || "",
+                              client_id: job.client_id || "",
+                            });
+                            setDialogOpen(true);
+                          }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir serviço?</AlertDialogTitle>
                                 <AlertDialogDescription>
@@ -348,7 +347,7 @@ export default function AdminHarvest() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={(e) => handleDelete(job.id, e)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                <AlertDialogAction onClick={() => handleDelete(job.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                   Excluir
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -390,7 +389,7 @@ export default function AdminHarvest() {
                       </div>
                     </CardContent>
                   </Card>
-                </Link>
+                </div>
               );
             })}
           </div>
