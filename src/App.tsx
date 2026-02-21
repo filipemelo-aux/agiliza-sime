@@ -14,6 +14,8 @@ import EditVehicle from "./pages/EditVehicle";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
+import AdminHarvest from "./pages/AdminHarvest";
+import HarvestDetail from "./pages/HarvestDetail";
 import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +40,8 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/applications" element={<AdminApplications />} />
           <Route path="/admin/drivers" element={<AdminDrivers />} />
+          <Route path="/admin/harvest" element={<AdminHarvest />} />
+          <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
