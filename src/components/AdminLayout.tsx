@@ -30,7 +30,7 @@ const menuItems = [
 
 function SidebarNav() {
   const location = useLocation();
-  const { open } = useSidebar();
+  const { setOpenMobile } = useSidebar();
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
@@ -39,7 +39,16 @@ function SidebarNav() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <div className="h-16" />
+      {/* Spacer para o header fixo - apenas desktop */}
+      <div className="h-16 hidden md:block" />
+
+      {/* Header dentro da sidebar mobile com logo */}
+      <div className="flex items-center gap-3 p-4 md:hidden border-b border-border">
+        <img src={logo} alt="SIME" className="h-8 w-auto" />
+        <span className="text-base text-primary" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
+          SIME <span className="text-accent">TRANSPORTES</span>
+        </span>
+      </div>
 
       <SidebarContent>
         <SidebarGroup>
@@ -52,7 +61,7 @@ function SidebarNav() {
                     isActive={isActive(item.url, item.exact)}
                     tooltip={item.title}
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} onClick={() => setOpenMobile(false)}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -89,7 +98,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {/* Top bar */}
           <header className="sticky top-0 z-50 h-16 border-b border-border glass-effect flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
-              <SidebarTrigger />
+              <SidebarTrigger className="h-8 w-8">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
               <img src={logo} alt="SIME" className="h-9 w-auto" />
               <span className="text-lg text-primary whitespace-nowrap hidden sm:block" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
                 SIME <span className="text-accent">TRANSPORTES</span>
