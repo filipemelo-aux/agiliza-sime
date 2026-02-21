@@ -739,78 +739,77 @@ export default function HarvestDetail() {
           </DialogContent>
         </Dialog>
 
-        {/* Period filter */}
-        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
-          <Calendar className="h-4 w-4 text-primary shrink-0" />
-          <Label className="text-xs font-medium whitespace-nowrap">Período de Fechamento:</Label>
-          <div className="flex items-center gap-1.5">
+        {/* Period filter + actions */}
+        <div className="flex flex-col gap-2 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Calendar className="h-4 w-4 text-primary shrink-0" />
+              <Label className="text-xs font-medium whitespace-nowrap">Período de Fechamento:</Label>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2">
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Excel (CSV)</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => exportCSV("agregados")}>
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Agregados
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Faturamento
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportCSV("ambos")}>
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">PDF</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => exportPDF("agregados")}>
+                    <File className="h-3.5 w-3.5 mr-2" /> Agregados
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF("faturamento")}>
+                    <File className="h-3.5 w-3.5 mr-2" /> Faturamento
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF("ambos")}>
+                    <File className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <Input
               type="date"
               value={filterStartDate}
               onChange={(e) => setFilterStartDate(e.target.value)}
-              className="h-8 text-xs w-40"
+              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
             />
             <span className="text-xs text-muted-foreground">até</span>
             <Input
               type="date"
               value={filterEndDate}
               onChange={(e) => setFilterEndDate(e.target.value)}
-              className="h-8 text-xs w-40"
+              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
             />
+            {(filterStartDate || filterEndDate) && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
+                Limpar
+              </Button>
+            )}
           </div>
-          {(filterStartDate || filterEndDate) && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
-              Limpar
-            </Button>
-          )}
-          {(filterStartDate && filterEndDate) && (
-            <span className="text-xs text-muted-foreground">
-              De {formatDate(filterStartDate)} até {formatDate(filterEndDate)}
-            </span>
-          )}
         </div>
 
         {/* ===== RELATÓRIO COLHEITA - AGREGADOS ===== */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center mb-3">
           <h2 className="text-base font-bold font-display flex items-center gap-1.5">
             <FileText className="h-4 w-4 text-primary" />
             Relatório Colheita — Agregados
           </h2>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-xs px-2">
-                  <Download className="h-3 w-3 mr-1" /> Exportar
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Excel (CSV)</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => exportCSV("agregados")}>
-                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Agregados
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
-                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Faturamento
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportCSV("ambos")}>
-                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">PDF</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => exportPDF("agregados")}>
-                  <File className="h-3.5 w-3.5 mr-2" /> Agregados
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportPDF("faturamento")}>
-                  <File className="h-3.5 w-3.5 mr-2" /> Faturamento
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportPDF("ambos")}>
-                  <File className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" className="btn-transport-accent h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
-              <Plus className="h-3 w-3 mr-1" /> Vincular Motorista
-            </Button>
-          </div>
         </div>
 
         {assignments.length === 0 ? (
