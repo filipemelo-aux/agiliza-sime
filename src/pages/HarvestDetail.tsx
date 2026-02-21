@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
@@ -321,6 +321,48 @@ export default function HarvestDetail() {
     link.click();
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!" });
+  };
+
+  const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
+    const activeAssignments = assignments.filter(a => a.status === "active");
+    if (activeAssignments.length === 0) {
+      toast({ title: "Nenhum dado ativo para exportar", variant: "destructive" });
+      return;
+    }
+    const tableStyle = `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}`;
+    let html = "";
+    if (type === "agregados" || type === "ambos") {
+      html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
+      if (filterEndDate) html += `<h3>Fechamento até: ${formatDate(filterEndDate)}</h3>`;
+      html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
+      activeAssignments.forEach(a => {
+        const d = getAgregadoData(a);
+        html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
+      });
+      const totAgr = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+      html += `<tr class="total-row"><td colspan="7" class="right">TOTAL</td><td class="right">${formatCurrency(totAgr)}</td></tr></tbody></table>`;
+    }
+    if (type === "faturamento" || type === "ambos") {
+      html += `<h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
+      if (filterEndDate) html += `<h3>Fechamento até: ${formatDate(filterEndDate)}</h3>`;
+      html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
+      activeAssignments.forEach(a => {
+        const f = getFaturamentoData(a);
+        html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
+      });
+      const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
+      const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
+      const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
+      const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
+      html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
+    }
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}@media print{@page{margin:15mm}}</style></head><body>${html}</body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 300);
+    }
   };
 
   const handleToggleAssignmentStatus = async (assignment: Assignment) => {
@@ -730,15 +772,27 @@ export default function HarvestDetail() {
                   <Download className="h-3 w-3 mr-1" /> Exportar
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Excel (CSV)</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => exportCSV("agregados")}>
-                  <FileText className="h-3.5 w-3.5 mr-2" /> Apenas Agregados
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Agregados
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
-                  <TrendingUp className="h-3.5 w-3.5 mr-2" /> Apenas Faturamento
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Faturamento
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportCSV("ambos")}>
-                  <Download className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">PDF</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => exportPDF("agregados")}>
+                  <File className="h-3.5 w-3.5 mr-2" /> Agregados
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportPDF("faturamento")}>
+                  <File className="h-3.5 w-3.5 mr-2" /> Faturamento
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportPDF("ambos")}>
+                  <File className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
