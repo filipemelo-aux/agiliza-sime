@@ -130,7 +130,7 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Complemento</Label>
-          <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: e.target.value }))} placeholder="Apto, Sala..." />
+          <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: maskName(e.target.value) }))} placeholder="Apto, Sala..." />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Bairro</Label>
