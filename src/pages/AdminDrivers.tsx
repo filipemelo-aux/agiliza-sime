@@ -353,9 +353,6 @@ export default function AdminDrivers() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold truncate">{driver.full_name}</h3>
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            {driver.person_type === "cnpj" ? "CNPJ" : "CPF"}
-                          </Badge>
                           <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                             {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                           </Badge>
