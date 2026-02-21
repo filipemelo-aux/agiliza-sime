@@ -168,9 +168,14 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      // Fetch only drivers (category=motorista), excluding already assigned and the current admin
+      // Fetch only drivers, excluding admins/moderators and already assigned
       const assignedUserIds = (assignData || []).map((a: any) => a.user_id);
-      const excludeIds = [...assignedUserIds, ...(user?.id ? [user.id] : [])];
+      const { data: systemUserRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "moderator"]);
+      const systemUserIds = (systemUserRoles || []).map((r: any) => r.user_id);
+      const excludeIds = [...new Set([...assignedUserIds, ...systemUserIds])];
       const { data: allDrivers } = await supabase
         .from("profiles")
         .select("user_id, full_name")
