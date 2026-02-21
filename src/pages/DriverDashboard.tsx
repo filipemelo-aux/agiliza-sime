@@ -178,7 +178,7 @@ export default function DriverDashboard() {
               <Truck className="h-5 w-5 text-primary" />
               Meus Veículos ({vehicles.length})
             </CardTitle>
-            <Link to="/my-vehicles">
+            <Link to="/admin/drivers">
               <Button variant="ghost" size="sm">
                 Ver todos <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -202,7 +202,7 @@ export default function DriverDashboard() {
             ) : (
               <div className="text-center py-4">
                 <p className="text-muted-foreground mb-2">Nenhum veículo cadastrado</p>
-                <Link to="/add-vehicle">
+                <Link to="/admin/drivers">
                   <Button size="sm">Adicionar Veículo</Button>
                 </Link>
               </div>

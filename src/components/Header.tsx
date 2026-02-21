@@ -123,9 +123,9 @@ export function Header() {
                 Fretes
               </Link>
               <Link
-                to="/my-vehicles"
+                to="/admin/drivers"
                 className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive("/my-vehicles") 
+                  isActive("/admin/drivers") 
                     ? "text-primary" 
                     : "text-muted-foreground hover:text-foreground"
                 }`}
