@@ -103,6 +103,7 @@ export default function HarvestDetail() {
     description: "",
     value: "",
   });
+  const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
   const [editingDailyValue, setEditingDailyValue] = useState("");
@@ -136,6 +137,7 @@ export default function HarvestDetail() {
         enrichedJob.client_name = clientData?.nome_fantasia || clientData?.full_name || undefined;
       }
       setJob(enrichedJob);
+      if (!filterStartDate) setFilterStartDate(jobData.harvest_period_start);
 
       const { data: assignData } = await supabase
         .from("harvest_assignments")
@@ -285,7 +287,7 @@ export default function HarvestDetail() {
 
     if (type === "agregados" || type === "ambos") {
       lines.push(`RELATÓRIO AGREGADOS — ${job!.farm_name}`);
-      if (filterEndDate) lines.push(`Fechamento até: ${formatDate(filterEndDate)}`);
+      if (filterStartDate || filterEndDate) lines.push(`Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}`);
       lines.push(["Motorista", "Placa", "Início", "Dias", "Diária", "Bruto", "Descontos", "Líquido"].join(sep));
       activeAssignments.forEach(a => {
         const d = getAgregadoData(a);
@@ -298,7 +300,7 @@ export default function HarvestDetail() {
 
     if (type === "faturamento" || type === "ambos") {
       lines.push(`RELATÓRIO FATURAMENTO — ${job!.farm_name}`);
-      if (filterEndDate) lines.push(`Fechamento até: ${formatDate(filterEndDate)}`);
+      if (filterStartDate || filterEndDate) lines.push(`Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}`);
       lines.push(["Motorista", "Placa", "Início", "Dias", "Diária Emp.", "Bruto", "Líq. Terc.", "Descontos Emp.", "Fat. Líquido"].join(sep));
       activeAssignments.forEach(a => {
         const f = getFaturamentoData(a);
@@ -333,7 +335,7 @@ export default function HarvestDetail() {
     let html = "";
     if (type === "agregados" || type === "ambos") {
       html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
-      if (filterEndDate) html += `<h3>Fechamento até: ${formatDate(filterEndDate)}</h3>`;
+      if (filterStartDate || filterEndDate) html += `<h3>Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}</h3>`;
       html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
       activeAssignments.forEach(a => {
         const d = getAgregadoData(a);
@@ -344,7 +346,7 @@ export default function HarvestDetail() {
     }
     if (type === "faturamento" || type === "ambos") {
       html += `<h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
-      if (filterEndDate) html += `<h3>Fechamento até: ${formatDate(filterEndDate)}</h3>`;
+      if (filterStartDate || filterEndDate) html += `<h3>Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}</h3>`;
       html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
       activeAssignments.forEach(a => {
         const f = getFaturamentoData(a);
@@ -484,15 +486,17 @@ export default function HarvestDetail() {
   // Calculate totals for each assignment
   // Calculate days considering the filter end date
   const getFilteredDays = (a: Assignment) => {
-    const startDate = new Date(a.start_date + "T00:00:00");
+    const assignStart = new Date(a.start_date + "T00:00:00");
+    const effectiveStart = filterStartDate
+      ? new Date(Math.max(assignStart.getTime(), new Date(filterStartDate + "T00:00:00").getTime()))
+      : assignStart;
     const effectiveEnd = filterEndDate
       ? new Date(filterEndDate + "T00:00:00")
       : a.end_date
         ? new Date(a.end_date + "T00:00:00")
         : new Date();
-    // Don't allow negative days - if filter date is before start, return 0
-    if (effectiveEnd < startDate) return 0;
-    return Math.max(1, Math.ceil((effectiveEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    if (effectiveEnd < effectiveStart) return 0;
+    return Math.max(1, Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 
   const getAgregadoData = (a: Assignment) => {
@@ -736,25 +740,33 @@ export default function HarvestDetail() {
           </DialogContent>
         </Dialog>
 
-        {/* Date filter */}
-        <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+        {/* Period filter */}
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border border-border">
           <Calendar className="h-4 w-4 text-primary shrink-0" />
-          <Label className="text-xs font-medium whitespace-nowrap">Data de Fechamento:</Label>
-          <Input
-            type="date"
-            value={filterEndDate}
-            onChange={(e) => setFilterEndDate(e.target.value)}
-            className="h-8 text-xs w-40"
-            placeholder="Selecionar data..."
-          />
-          {filterEndDate && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setFilterEndDate("")}>
+          <Label className="text-xs font-medium whitespace-nowrap">Período de Fechamento:</Label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="date"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+              className="h-8 text-xs w-40"
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <Input
+              type="date"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+              className="h-8 text-xs w-40"
+            />
+          </div>
+          {(filterStartDate || filterEndDate) && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
               Limpar
             </Button>
           )}
-          {filterEndDate && (
+          {(filterStartDate && filterEndDate) && (
             <span className="text-xs text-muted-foreground">
-              Calculando dias até {formatDate(filterEndDate)}
+              De {formatDate(filterStartDate)} até {formatDate(filterEndDate)}
             </span>
           )}
         </div>
