@@ -38,15 +38,15 @@ export default function Auth() {
   const { toast } = useToast();
 
   const handleRedirectAfterAuth = async (userId: string) => {
-    // Check if user is admin
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
 
     const isAdmin = roles?.some((r) => r.role === "admin");
+    const isModerator = roles?.some((r) => r.role === "moderator");
     
-    if (isAdmin) {
+    if (isAdmin || isModerator) {
       navigate("/admin");
     } else {
       navigate("/driver");
