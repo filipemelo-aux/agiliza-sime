@@ -177,3 +177,17 @@ export const maskName = (value: string): string => {
     })
     .join(" ");
 };
+
+// Currency mask: formats number as R$ 1.234,56
+export const maskCurrency = (value: string): string => {
+  const numbers = value.replace(/\D/g, "");
+  if (!numbers) return "";
+  const amount = parseInt(numbers) / 100;
+  return amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+export const unmaskCurrency = (value: string): string => {
+  const numbers = value.replace(/\D/g, "");
+  if (!numbers) return "";
+  return (parseInt(numbers) / 100).toString();
+};
