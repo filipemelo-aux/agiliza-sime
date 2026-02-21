@@ -3,17 +3,18 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import DriverDashboard from "./pages/DriverDashboard";
+import Index from "./pages/Index";
 import MyVehicles from "./pages/MyVehicles";
 import AddVehicle from "./pages/AddVehicle";
 import EditVehicle from "./pages/EditVehicle";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
-import MyApplications from "./pages/MyApplications";
 import AdminDrivers from "./pages/AdminDrivers";
+import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,10 +26,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Auth />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/driver" element={<DriverDashboard />} />
+          <Route path="/freights" element={<Index />} />
           <Route path="/my-vehicles" element={<MyVehicles />} />
           <Route path="/my-applications" element={<MyApplications />} />
           <Route path="/add-vehicle" element={<AddVehicle />} />

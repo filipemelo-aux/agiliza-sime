@@ -37,16 +37,29 @@ export default function Auth() {
   const { toast } = useToast();
 
   const handleRedirectAfterAuth = async (userId: string) => {
-    // Check if user has pending loading order
-    const pendingOrder = await checkPendingLoadingOrder(userId);
-    if (pendingOrder) {
-      toast({
-        title: "Ordem de carregamento pendente",
-        description: `Você tem uma ordem pendente para ${pendingOrder.originCity}/${pendingOrder.originState} → ${pendingOrder.destinationCity}/${pendingOrder.destinationState}`,
-      });
-      navigate("/my-applications");
+    // Check if user is admin
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    const isAdmin = roles?.some((r) => r.role === "admin");
+    
+    if (isAdmin) {
+      navigate("/admin");
     } else {
-      navigate("/");
+      // Check if user has a profile (completed registration)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!profile) {
+        navigate("/register");
+      } else {
+        navigate("/driver");
+      }
     }
   };
 
@@ -167,21 +180,13 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Form */}
       <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
-        </Link>
-
         <div className="max-w-md w-full mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
               <Truck className="w-7 h-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-display">TransPorta</h1>
+              <h1 className="text-2xl font-bold font-display">SIME TRANSPORTES</h1>
               <p className="text-sm text-muted-foreground">
                 {isSignup ? "Crie sua conta" : "Acesse sua conta"}
               </p>
@@ -289,11 +294,11 @@ export default function Auth() {
           <div className="text-center text-primary-foreground">
             <Truck className="w-24 h-24 mx-auto mb-8 opacity-90" />
             <h2 className="text-3xl font-bold font-display mb-4">
-              Comece a transportar hoje
+              SIME TRANSPORTES
             </h2>
             <p className="text-lg opacity-90 max-w-md">
-              Milhares de fretes disponíveis em todo o Brasil. Cadastre-se e
-              encontre as melhores oportunidades.
+              CRM completo para gestão de fretes e colheita.
+              Acesse sua conta para começar.
             </p>
           </div>
         </div>
