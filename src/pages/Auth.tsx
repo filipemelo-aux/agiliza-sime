@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Truck, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,9 +183,7 @@ export default function Auth() {
       <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
         <div className="max-w-md w-full mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Truck className="w-7 h-7 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="SIME Transportes" className="h-14 w-auto" />
             <div>
               <h1 className="text-2xl font-bold font-display">SIME TRANSPORTES</h1>
               <p className="text-sm text-muted-foreground">
@@ -292,7 +291,7 @@ export default function Auth() {
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-primary/80 relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center p-12">
           <div className="text-center text-primary-foreground">
-            <Truck className="w-24 h-24 mx-auto mb-8 opacity-90" />
+            <img src={logo} alt="SIME Transportes" className="h-32 w-auto mx-auto mb-8 drop-shadow-lg" />
             <h2 className="text-3xl font-bold font-display mb-4">
               SIME TRANSPORTES
             </h2>
