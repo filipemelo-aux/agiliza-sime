@@ -319,8 +319,8 @@ export default function AdminHarvest() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => {
-              const paymentVal = (job as any).payment_value || job.monthly_value;
-              const dailyValue = paymentVal / 30;
+              const contractVal = job.monthly_value;
+              const dailyValue = contractVal / 30;
               return (
                 <div key={job.id}>
                   <Card
@@ -394,7 +394,7 @@ export default function AdminHarvest() {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span>{formatCurrency(paymentVal)}/mês</span>
+                        <span>{formatCurrency(contractVal)}/mês</span>
                         <span className="text-muted-foreground">({formatCurrency(dailyValue)}/dia)</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
