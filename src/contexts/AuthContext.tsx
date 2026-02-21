@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   roles: AppRole[];
   isAdmin: boolean;
+  isModerator: boolean;
   loading: boolean;
 }
 
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   roles: [],
   isAdmin: false,
+  isModerator: false,
   loading: true,
 });
 
@@ -22,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(true);
 
@@ -38,10 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userRoles = data?.map((r) => r.role as AppRole) || [];
       setRoles(userRoles);
       setIsAdmin(userRoles.includes("admin"));
+      setIsModerator(userRoles.includes("moderator"));
     } catch (error) {
       console.error("Error fetching roles:", error);
       setRoles([]);
       setIsAdmin(false);
+      setIsModerator(false);
     } finally {
       setRolesLoading(false);
     }
@@ -73,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setRoles([]);
             setIsAdmin(false);
+            setIsModerator(false);
             setRolesLoading(false);
           }
         }
@@ -104,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoading = loading || (user !== null && rolesLoading);
 
   return (
-    <AuthContext.Provider value={{ user, roles, isAdmin, loading: isLoading }}>
+    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, loading: isLoading }}>
       {children}
     </AuthContext.Provider>
   );
