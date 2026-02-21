@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Truck, LogOut } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -34,9 +35,7 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to={isAdmin ? "/admin" : "/driver"} className="flex items-center gap-2 shrink-0">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Truck className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="SIME Transportes" className="h-10 w-auto" />
           <span className="text-xl font-bold font-display text-foreground hidden sm:block">
             SIME <span className="text-accent">TRANSPORTES</span>
           </span>
