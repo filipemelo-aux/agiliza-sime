@@ -120,7 +120,7 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">Rua</Label>
-          <Input value={form.address_street} onChange={(e) => setForm((p) => ({ ...p, address_street: e.target.value }))} placeholder="Rua / Av." />
+          <Input value={form.address_street} onChange={(e) => setForm((p) => ({ ...p, address_street: maskName(e.target.value) }))} placeholder="Rua / Av." />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Número</Label>
@@ -134,13 +134,13 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Bairro</Label>
-          <Input value={form.address_neighborhood} onChange={(e) => setForm((p) => ({ ...p, address_neighborhood: e.target.value }))} />
+          <Input value={form.address_neighborhood} onChange={(e) => setForm((p) => ({ ...p, address_neighborhood: maskName(e.target.value) }))} />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Cidade</Label>
-          <Input value={form.address_city} onChange={(e) => setForm((p) => ({ ...p, address_city: e.target.value }))} />
+          <Input value={form.address_city} onChange={(e) => setForm((p) => ({ ...p, address_city: maskName(e.target.value) }))} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">UF</Label>
@@ -246,23 +246,23 @@ function CNHFields({ form, setForm }: { form: FormState; setForm: React.Dispatch
 
 function personToForm(person: PersonProfile): FormState {
   return {
-    full_name: person.full_name || "",
+    full_name: person.full_name ? maskName(person.full_name) : "",
     phone: maskPhone(person.phone || ""),
     email: person.email || "",
     person_type: person.category === "motorista" ? "cpf" : (person.person_type || "cpf"),
     cpf: "",
     cnpj: person.cnpj ? maskCNPJ(person.cnpj) : "",
-    razao_social: person.razao_social || "",
-    nome_fantasia: person.nome_fantasia || "",
+    razao_social: person.razao_social ? maskName(person.razao_social) : "",
+    nome_fantasia: person.nome_fantasia ? maskName(person.nome_fantasia) : "",
     category: person.category || "motorista",
     cnh_number: "",
     cnh_category: "",
     cnh_expiry: "",
-    address_street: person.address_street || "",
+    address_street: person.address_street ? maskName(person.address_street) : "",
     address_number: person.address_number || "",
     address_complement: person.address_complement || "",
-    address_neighborhood: person.address_neighborhood || "",
-    address_city: person.address_city || "",
+    address_neighborhood: person.address_neighborhood ? maskName(person.address_neighborhood) : "",
+    address_city: person.address_city ? maskName(person.address_city) : "",
     address_state: person.address_state || "",
     address_zip: person.address_zip ? maskCEP(person.address_zip) : "",
     notes: person.notes || "",
