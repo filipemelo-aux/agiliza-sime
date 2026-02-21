@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,8 @@ export default function HarvestDetail() {
     value: "",
   });
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
+  const [editingDailyValue, setEditingDailyValue] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -244,6 +246,27 @@ export default function HarvestDetail() {
       const { error } = await supabase.from("harvest_assignments").delete().eq("id", assignmentId);
       if (error) throw error;
       toast({ title: "Motorista removido" });
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleSaveDailyValue = async (assignmentId: string) => {
+    const parsed = parseFloat(editingDailyValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update({ daily_value: parsed })
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast({ title: "Diária atualizada!" });
+      setEditingDailyId(null);
+      setEditingDailyValue("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -688,7 +711,38 @@ export default function HarvestDetail() {
                         <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
                         <TableCell className="text-center">{data.days}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatCurrency(data.dv)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {editingDailyId === a.id ? (
+                            <div className="flex items-center gap-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">R$</span>
+                                <Input
+                                  className="h-6 text-xs w-24 pl-7"
+                                  value={editingDailyValue ? maskCurrency(String(Math.round(parseFloat(editingDailyValue) * 100))) : ""}
+                                  onChange={(e) => setEditingDailyValue(unmaskCurrency(e.target.value))}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveDailyValue(a.id);
+                                    if (e.key === "Escape") { setEditingDailyId(null); setEditingDailyValue(""); }
+                                  }}
+                                />
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 text-green-600" onClick={() => handleSaveDailyValue(a.id)}>
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingDailyId(null); setEditingDailyValue(""); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5">
+                              <span>{formatCurrency(data.dv)}</span>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingDailyId(a.id); setEditingDailyValue(String(data.dv)); }}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-0.5">
                             <span className={data.totalDescontos > 0 ? "text-destructive font-medium whitespace-nowrap" : "text-muted-foreground"}>
