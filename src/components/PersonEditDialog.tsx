@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Car } from "lucide-react";
+import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
@@ -314,11 +315,11 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
 
   useEffect(() => {
     if (person) {
       const f = personToForm(person);
-      // Load CNH data for motorista
       if (person.category === "motorista") {
         supabase
           .from("driver_documents")
@@ -388,21 +389,32 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle>Editar Cadastro</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[70vh]">
-          <div className="px-6 pb-6">
-            <PersonFormFields form={form} setForm={setForm} isEdit />
-            <Button className="w-full mt-4" onClick={handleSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle>Editar Cadastro</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh]">
+            <div className="px-6 pb-6">
+              <PersonFormFields form={form} setForm={setForm} isEdit onAddVehicle={person?.category === "motorista" ? () => setVehicleModalOpen(true) : undefined} />
+              <Button className="w-full mt-4" onClick={handleSave} disabled={loading}>
+                {loading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      {person && (
+        <VehicleFormModal
+          open={vehicleModalOpen}
+          onOpenChange={setVehicleModalOpen}
+          vehicleId={null}
+          onSaved={onSaved}
+          defaultDriverId={person.user_id}
+        />
+      )}
+    </>
   );
 }
 
@@ -484,7 +496,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 }
 
 // ---- SHARED FORM FIELDS ----
-function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean }) {
+function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean; onAddVehicle?: () => void }) {
   const isMotorista = form.category === "motorista";
   const isProprietario = form.category === "proprietario";
   const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario";
@@ -629,11 +641,12 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
       {/* Vehicle management note - motorista edit only */}
-      {isMotorista && isEdit && (
+      {isMotorista && isEdit && onAddVehicle && (
         <div className="pt-1">
-          <p className="text-xs text-muted-foreground italic">
-            Gerencie veículos pela aba "Veículos" na página de Cadastros.
-          </p>
+          <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onAddVehicle}>
+            <Car className="h-4 w-4" />
+            Cadastrar Veículo para este Motorista
+          </Button>
         </div>
       )}
 
