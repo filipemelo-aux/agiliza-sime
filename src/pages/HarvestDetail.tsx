@@ -168,24 +168,14 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      const { data: colheitaDriverIds } = await supabase
-        .from("driver_services")
-        .select("user_id")
-        .eq("service_type", "colheita");
-
-      const driverUserIds = (colheitaDriverIds || []).map((d: any) => d.user_id);
-      // Filter out drivers already assigned to this harvest job
+      // Fetch all drivers (category=motorista), excluding already assigned ones
       const assignedUserIds = (assignData || []).map((a: any) => a.user_id);
-      const availableDriverIds = driverUserIds.filter((uid: string) => !assignedUserIds.includes(uid));
-      let driversData: any[] = [];
-      if (availableDriverIds.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", availableDriverIds)
-          .order("full_name");
-        driversData = data || [];
-      }
+      const { data: allDrivers } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("category", "motorista")
+        .order("full_name");
+      const driversData = (allDrivers || []).filter((d: any) => !assignedUserIds.includes(d.user_id));
 
       const { data: vehiclesData } = await supabase
         .from("vehicles")
