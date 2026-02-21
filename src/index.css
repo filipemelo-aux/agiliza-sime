@@ -4,32 +4,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TransPorta - Design System for Freight Transport App
-   Industrial, professional theme with dark tones and amber accents
+/* SIME TRANSPORTES - Design System
+   Colors derived from logo: Navy blue (#2B4C7E), Medium blue (#3B7DD8), Yellow (#F5C518)
 */
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 30% 10%;
+    --background: 216 25% 96%;
+    --foreground: 216 40% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 10%;
+    --card-foreground: 216 40% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 216 40% 15%;
 
-    --primary: 220 70% 45%;
+    --primary: 214 48% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 30% 20%;
+    --secondary: 214 20% 90%;
+    --secondary-foreground: 214 40% 20%;
 
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 214 15% 93%;
+    --muted-foreground: 214 15% 45%;
 
-    --accent: 35 95% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 46 91% 53%;
+    --accent-foreground: 214 48% 15%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -37,57 +37,57 @@
     --success: 142 70% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 95% 55%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 46 91% 53%;
+    --warning-foreground: 214 48% 15%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 220 70% 45%;
+    --border: 214 15% 86%;
+    --input: 214 15% 86%;
+    --ring: 214 48% 33%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 25% 12%;
-    --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 35 95% 55%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 220 25% 18%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border: 220 25% 20%;
-    --sidebar-ring: 35 95% 55%;
+    --sidebar-background: 214 48% 15%;
+    --sidebar-foreground: 214 15% 92%;
+    --sidebar-primary: 46 91% 53%;
+    --sidebar-primary-foreground: 214 48% 15%;
+    --sidebar-accent: 214 48% 22%;
+    --sidebar-accent-foreground: 214 15% 92%;
+    --sidebar-border: 214 48% 25%;
+    --sidebar-ring: 46 91% 53%;
 
     /* Custom transport gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 70% 45%) 0%, hsl(220 80% 35%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(35 95% 55%) 0%, hsl(25 90% 50%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(220 25% 12%) 0%, hsl(220 30% 8%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(214 48% 33%) 0%, hsl(214 55% 25%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(46 91% 53%) 0%, hsl(40 88% 48%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(214 48% 15%) 0%, hsl(214 50% 10%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(214 20% 98%) 100%);
     
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 30% 10% / 0.1), 0 2px 4px -2px hsl(220 30% 10% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(220 30% 10% / 0.1), 0 4px 6px -4px hsl(220 30% 10% / 0.1);
-    --shadow-freight: 0 4px 20px -2px hsl(220 70% 45% / 0.15);
+    --shadow-sm: 0 1px 2px 0 hsl(214 40% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(214 40% 15% / 0.1), 0 2px 4px -2px hsl(214 40% 15% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(214 40% 15% / 0.1), 0 4px 6px -4px hsl(214 40% 15% / 0.1);
+    --shadow-freight: 0 4px 20px -2px hsl(214 48% 33% / 0.15);
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
+    --background: 214 45% 8%;
+    --foreground: 214 15% 95%;
 
-    --card: 220 25% 12%;
-    --card-foreground: 220 15% 95%;
+    --card: 214 45% 12%;
+    --card-foreground: 214 15% 95%;
 
-    --popover: 220 25% 12%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 214 45% 12%;
+    --popover-foreground: 214 15% 95%;
 
-    --primary: 35 95% 55%;
-    --primary-foreground: 0 0% 10%;
+    --primary: 46 91% 53%;
+    --primary-foreground: 214 48% 12%;
 
-    --secondary: 220 25% 18%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 214 40% 18%;
+    --secondary-foreground: 214 15% 90%;
 
-    --muted: 220 25% 15%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 214 35% 15%;
+    --muted-foreground: 214 15% 60%;
 
-    --accent: 220 70% 50%;
+    --accent: 213 60% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 50%;
@@ -96,21 +96,21 @@
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 95% 55%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 46 91% 53%;
+    --warning-foreground: 214 48% 12%;
 
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 35 95% 55%;
+    --border: 214 35% 20%;
+    --input: 214 35% 20%;
+    --ring: 46 91% 53%;
 
-    --sidebar-background: 220 30% 6%;
-    --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 35 95% 55%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 220 25% 12%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border: 220 25% 15%;
-    --sidebar-ring: 35 95% 55%;
+    --sidebar-background: 214 50% 6%;
+    --sidebar-foreground: 214 15% 90%;
+    --sidebar-primary: 46 91% 53%;
+    --sidebar-primary-foreground: 214 48% 12%;
+    --sidebar-accent: 214 45% 12%;
+    --sidebar-accent-foreground: 214 15% 90%;
+    --sidebar-border: 214 40% 15%;
+    --sidebar-ring: 46 91% 53%;
   }
 }
 
