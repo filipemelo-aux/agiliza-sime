@@ -353,10 +353,10 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
       if (error) throw error;
 
       // Save CNH for motorista
-      if (form.category === "motorista" && form.cnh_number) {
+      if (form.category === "motorista" && (form.cnh_number || form.cpf)) {
         const docPayload = {
           user_id: person.user_id,
-          cpf: unmaskCPF(form.cpf),
+          cpf: unmaskCPF(form.cpf) || null,
           cnh_number: form.cnh_number,
           cnh_category: form.cnh_category,
           cnh_expiry: form.cnh_expiry,
@@ -369,7 +369,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
 
         if (existing) {
           await supabase.from("driver_documents").update(docPayload).eq("user_id", person.user_id);
-        } else if (form.cpf && form.cnh_expiry) {
+        } else if (form.cnh_expiry) {
           await supabase.from("driver_documents").insert(docPayload);
         }
       }
@@ -438,10 +438,10 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       if (error) throw error;
 
       // Save CNH for motorista
-      if (form.category === "motorista" && form.cnh_number && form.cpf && form.cnh_expiry) {
+      if (form.category === "motorista" && (form.cnh_number || form.cpf) && form.cnh_expiry) {
         await supabase.from("driver_documents").insert({
           user_id: profileUserId,
-          cpf: unmaskCPF(form.cpf),
+          cpf: unmaskCPF(form.cpf) || null,
           cnh_number: form.cnh_number,
           cnh_category: form.cnh_category,
           cnh_expiry: form.cnh_expiry,
@@ -554,7 +554,7 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
       {/* CPF - moved before name */}
       {(isMotorista || form.person_type === "cpf") && (
         <div className="space-y-1">
-          <Label className="text-xs">CPF {isMotorista && "*"}</Label>
+          <Label className="text-xs">CPF</Label>
           <Input value={form.cpf} maxLength={14} onChange={(e) => setForm((p) => ({ ...p, cpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" />
         </div>
       )}

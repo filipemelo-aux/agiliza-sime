@@ -1,0 +1,1 @@
+ALTER TABLE public.driver_documents ALTER COLUMN cpf DROP NOT NULL;

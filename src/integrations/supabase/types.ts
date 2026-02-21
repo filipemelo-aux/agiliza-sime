@@ -19,7 +19,7 @@ export type Database = {
           cnh_category: string
           cnh_expiry: string
           cnh_number: string
-          cpf: string
+          cpf: string | null
           created_at: string
           id: string
           updated_at: string
@@ -29,7 +29,7 @@ export type Database = {
           cnh_category: string
           cnh_expiry: string
           cnh_number: string
-          cpf: string
+          cpf?: string | null
           created_at?: string
           id?: string
           updated_at?: string
@@ -39,7 +39,7 @@ export type Database = {
           cnh_category?: string
           cnh_expiry?: string
           cnh_number?: string
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           id?: string
           updated_at?: string
