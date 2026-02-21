@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Loader2 } from "lucide-react";
 
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
@@ -484,6 +485,45 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
   const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario";
   const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario";
   const showCNPJ = !isMotorista && form.person_type === "cnpj";
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [cnpjError, setCnpjError] = useState("");
+
+  const handleCnpjLookup = useCallback(async () => {
+    const raw = unmaskCNPJ(form.cnpj);
+    if (raw.length !== 14) {
+      setCnpjError("CNPJ deve ter 14 dígitos");
+      return;
+    }
+    setCnpjLoading(true);
+    setCnpjError("");
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+      if (!res.ok) {
+        setCnpjError("CNPJ não encontrado");
+        return;
+      }
+      const data = await res.json();
+      setForm((p) => ({
+        ...p,
+        razao_social: data.razao_social || p.razao_social,
+        nome_fantasia: data.nome_fantasia || p.nome_fantasia,
+        full_name: data.nome_fantasia || data.razao_social || p.full_name,
+        phone: data.ddd_telefone_1 ? maskPhone(data.ddd_telefone_1.replace(/\D/g, "")) : p.phone,
+        email: data.email && data.email !== "null" ? data.email.toLowerCase() : p.email,
+        address_street: data.logradouro || p.address_street,
+        address_number: data.numero || p.address_number,
+        address_complement: data.complemento || p.address_complement,
+        address_neighborhood: data.bairro || p.address_neighborhood,
+        address_city: data.municipio || p.address_city,
+        address_state: data.uf || p.address_state,
+        address_zip: data.cep ? maskCEP(data.cep.replace(/\D/g, "")) : p.address_zip,
+      }));
+    } catch {
+      setCnpjError("Erro ao consultar CNPJ");
+    } finally {
+      setCnpjLoading(false);
+    }
+  }, [form.cnpj, setForm]);
 
   return (
     <div className="space-y-3 pt-2">
@@ -512,13 +552,7 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
         </div>
       )}
 
-      {/* Name */}
-      <div className="space-y-1">
-        <Label className="text-xs">Nome Completo *</Label>
-        <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} />
-      </div>
-
-      {/* CPF - always for motorista, optional for others with cpf type */}
+      {/* CPF - moved before name */}
       {(isMotorista || form.person_type === "cpf") && (
         <div className="space-y-1">
           <Label className="text-xs">CPF {isMotorista && "*"}</Label>
@@ -526,12 +560,34 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
         </div>
       )}
 
-      {/* CNPJ fields */}
+      {/* CNPJ with auto-lookup - moved before name */}
       {showCNPJ && (
         <>
           <div className="space-y-1">
             <Label className="text-xs">CNPJ</Label>
-            <Input value={form.cnpj} maxLength={18} onChange={(e) => setForm((p) => ({ ...p, cnpj: maskCNPJ(e.target.value) }))} placeholder="00.000.000/0000-00" />
+            <div className="flex gap-2">
+              <Input
+                value={form.cnpj}
+                maxLength={18}
+                onChange={(e) => {
+                  setCnpjError("");
+                  setForm((p) => ({ ...p, cnpj: maskCNPJ(e.target.value) }));
+                }}
+                placeholder="00.000.000/0000-00"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleCnpjLookup}
+                disabled={cnpjLoading || unmaskCNPJ(form.cnpj).length < 14}
+                title="Buscar CNPJ"
+              >
+                {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+            {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -545,6 +601,12 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
           </div>
         </>
       )}
+
+      {/* Name */}
+      <div className="space-y-1">
+        <Label className="text-xs">{showCNPJ ? "Nome / Razão Social *" : "Nome Completo *"}</Label>
+        <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} />
+      </div>
 
       {/* Phone + Email */}
       <div className="grid grid-cols-2 gap-3">
@@ -570,10 +632,10 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
         </div>
       )}
 
-      {/* Address - clients and suppliers */}
+      {/* Address - clients, suppliers, and proprietários */}
       {showAddress && <AddressFields form={form} setForm={setForm} />}
 
-      {/* Bank - drivers and suppliers */}
+      {/* Bank - drivers, suppliers, and proprietários */}
       {showBank && <BankFields form={form} setForm={setForm} />}
 
       {/* Notes */}
