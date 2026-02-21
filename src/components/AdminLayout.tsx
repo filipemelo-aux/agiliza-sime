@@ -1,3 +1,4 @@
+import "@fontsource/exo/700.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FileText, Package, Sprout, Users, LogOut, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -38,14 +39,7 @@ function SidebarNav() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <div className="flex items-center gap-2 p-4 h-16">
-        <img src={logo} alt="SIME" className="h-8 w-auto shrink-0" />
-        {open && (
-          <span className="text-sm font-bold font-display text-foreground whitespace-nowrap">
-            SIME <span className="text-accent">TRANSPORTES</span>
-          </span>
-        )}
-      </div>
+      <div className="h-16" />
 
       <SidebarContent>
         <SidebarGroup>
@@ -94,24 +88,28 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
           <header className="sticky top-0 z-50 h-16 border-b border-border glass-effect flex items-center justify-between px-4">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2 sm:gap-3">
-              {user && (
-                <>
-                  <NotificationBell userId={user.id} />
-                  <UserAvatar userId={user.id} showName size="sm" />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleLogout}
-                    className="text-muted-foreground hover:text-foreground h-8 w-8"
-                    title="Sair"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
+            <div className="flex items-center gap-3">
+              <SidebarTrigger />
+              <img src={logo} alt="SIME" className="h-9 w-auto" />
+              <span className="text-lg font-bold text-foreground whitespace-nowrap hidden sm:block" style={{ fontFamily: "'Exo', sans-serif" }}>
+                SIME <span className="text-accent">TRANSPORTES</span>
+              </span>
             </div>
+            {user && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <NotificationBell userId={user.id} />
+                <UserAvatar userId={user.id} showName size="sm" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  title="Sair"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </header>
           <main className="flex-1">
             {children}
