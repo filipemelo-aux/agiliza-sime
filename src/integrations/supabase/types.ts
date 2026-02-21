@@ -202,8 +202,11 @@ export type Database = {
       }
       harvest_assignments: {
         Row: {
+          company_daily_value: number | null
+          company_discounts: Json | null
           created_at: string
           daily_value: number | null
+          discounts: Json | null
           end_date: string | null
           harvest_job_id: string
           id: string
@@ -213,8 +216,11 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          company_daily_value?: number | null
+          company_discounts?: Json | null
           created_at?: string
           daily_value?: number | null
+          discounts?: Json | null
           end_date?: string | null
           harvest_job_id: string
           id?: string
@@ -224,8 +230,11 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          company_daily_value?: number | null
+          company_discounts?: Json | null
           created_at?: string
           daily_value?: number | null
+          discounts?: Json | null
           end_date?: string | null
           harvest_job_id?: string
           id?: string
