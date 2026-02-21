@@ -174,12 +174,15 @@ export default function HarvestDetail() {
         .eq("service_type", "colheita");
 
       const driverUserIds = (colheitaDriverIds || []).map((d: any) => d.user_id);
+      // Filter out drivers already assigned to this harvest job
+      const assignedUserIds = (assignData || []).map((a: any) => a.user_id);
+      const availableDriverIds = driverUserIds.filter((uid: string) => !assignedUserIds.includes(uid));
       let driversData: any[] = [];
-      if (driverUserIds.length > 0) {
+      if (availableDriverIds.length > 0) {
         const { data } = await supabase
           .from("profiles")
           .select("user_id, full_name")
-          .in("user_id", driverUserIds)
+          .in("user_id", availableDriverIds)
           .order("full_name");
         driversData = data || [];
       }
