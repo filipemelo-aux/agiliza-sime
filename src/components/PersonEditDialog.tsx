@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +14,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
   { value: "cliente", label: "Cliente" },
-  { value: "fornecedor", label: "Fornecedor" },
 ];
 
 const CNH_CATEGORIES = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
@@ -562,13 +559,12 @@ function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm:
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
-      {/* Vehicle link - motorista edit only */}
+      {/* Vehicle management note - motorista edit only */}
       {isMotorista && isEdit && (
         <div className="pt-1">
-          <Link to="/admin/vehicles" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-            <ExternalLink className="h-3.5 w-3.5" />
-            Gerenciar Veículos
-          </Link>
+          <p className="text-xs text-muted-foreground italic">
+            Gerencie veículos pela aba "Veículos" na página de Cadastros.
+          </p>
         </div>
       )}
 

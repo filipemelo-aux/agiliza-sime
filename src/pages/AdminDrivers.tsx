@@ -24,14 +24,12 @@ const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
   motorista: "Motoristas",
   cliente: "Clientes",
-  fornecedor: "Fornecedores",
   veiculos: "Veículos",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
   motorista: "bg-blue-500/20 text-blue-400",
   cliente: "bg-amber-500/20 text-amber-400",
-  fornecedor: "bg-purple-500/20 text-purple-400",
 };
 
 interface VehicleRow {
