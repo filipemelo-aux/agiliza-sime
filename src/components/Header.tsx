@@ -38,7 +38,7 @@ export function Header() {
             <Truck className="w-6 h-6 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold font-display text-foreground hidden sm:block">
-            Trans<span className="text-accent">Porta</span>
+            SIME <span className="text-accent">TRANSPORTES</span>
           </span>
         </Link>
 
@@ -76,6 +76,16 @@ export function Header() {
                 }`}
               >
                 Ordens
+              </Link>
+              <Link
+                to="/admin/drivers"
+                className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActivePrefix("/admin/drivers") 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Motoristas
               </Link>
             </>
           )}

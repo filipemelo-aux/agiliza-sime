@@ -12,17 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   maskCPF, unmaskCPF, maskPhone, unmaskPhone, maskPlate, unmaskPlate,
   maskRenavam, maskCNH, maskYear, maskOnlyLettersNumbers,
-  validateCPF, validatePlate, validateRenavam, validateCNH, validatePhone
+  maskCNPJ, unmaskCNPJ,
+  validateCPF, validateCNPJ, validatePlate, validateRenavam, validateCNH, validatePhone
 } from "@/lib/masks";
 
 const vehicleTypes = [
   { value: "truck", label: "Truck" },
-  { value: "bitruck", label: "Bitruck" },
-  { value: "carreta", label: "Carreta" },
-  { value: "carreta_ls", label: "Carreta LS" },
-  { value: "rodotrem", label: "Rodotrem" },
+  { value: "carreta_ls", label: "LS (Carreta Simples)" },
   { value: "bitrem", label: "Bitrem" },
-  { value: "treminhao", label: "Treminhão" },
+  { value: "rodotrem", label: "Rodotrem" },
 ];
 
 const cnhCategories = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
@@ -47,6 +45,10 @@ export default function Register() {
     cnhNumber: "",
     cnhCategory: "",
     cnhExpiry: "",
+    personType: "cpf" as "cpf" | "cnpj",
+    cnpj: "",
+    razaoSocial: "",
+    nomeFantasia: "",
   });
 
   const [vehicleData, setVehicleData] = useState({
@@ -88,6 +90,9 @@ export default function Register() {
       case "cpf":
         maskedValue = maskCPF(value);
         break;
+      case "cnpj":
+        maskedValue = maskCNPJ(value);
+        break;
       case "phone":
         maskedValue = maskPhone(value);
         break;
@@ -95,7 +100,9 @@ export default function Register() {
         maskedValue = maskCNH(value);
         break;
       case "fullName":
-        maskedValue = value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+      case "razaoSocial":
+      case "nomeFantasia":
+        maskedValue = value.replace(/[^A-Za-zÀ-ÿ0-9\s&.-]/g, "");
         break;
     }
     
@@ -140,6 +147,16 @@ export default function Register() {
     const cpfNumbers = unmaskCPF(profileData.cpf);
     if (!validateCPF(cpfNumbers)) {
       newErrors.cpf = "CPF inválido";
+    }
+    
+    if (profileData.personType === "cnpj") {
+      const cnpjNumbers = unmaskCNPJ(profileData.cnpj);
+      if (!validateCNPJ(cnpjNumbers)) {
+        newErrors.cnpj = "CNPJ inválido";
+      }
+      if (!profileData.razaoSocial.trim() || profileData.razaoSocial.trim().length < 3) {
+        newErrors.razaoSocial = "Razão Social é obrigatória";
+      }
     }
     
     const phoneNumbers = unmaskPhone(profileData.phone);
@@ -219,7 +236,11 @@ export default function Register() {
         user_id: user.id,
         full_name: profileData.fullName.trim(),
         phone: unmaskPhone(profileData.phone),
-      });
+        person_type: profileData.personType,
+        cnpj: profileData.personType === "cnpj" ? unmaskCNPJ(profileData.cnpj) : null,
+        razao_social: profileData.personType === "cnpj" ? profileData.razaoSocial.trim() : null,
+        nome_fantasia: profileData.personType === "cnpj" ? profileData.nomeFantasia.trim() : null,
+      } as any);
 
       if (profileError) throw profileError;
 
@@ -320,6 +341,75 @@ export default function Register() {
               </div>
 
               <div className="bg-card rounded-xl border border-border p-6 space-y-5">
+                {/* Tipo de Pessoa */}
+                <div className="space-y-3">
+                  <Label>Tipo de Cadastro *</Label>
+                  <RadioGroup
+                    value={profileData.personType}
+                    onValueChange={(value: "cpf" | "cnpj") => setProfileData(prev => ({ ...prev, personType: value }))}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cpf" id="person-cpf" />
+                      <Label htmlFor="person-cpf" className="font-normal cursor-pointer">
+                        Autônomo (CPF)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cnpj" id="person-cnpj" />
+                      <Label htmlFor="person-cnpj" className="font-normal cursor-pointer">
+                        Proprietário / Empresa (CNPJ)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* CNPJ fields */}
+                {profileData.personType === "cnpj" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 rounded-lg bg-muted/50 border border-border">
+                    <div className="space-y-2">
+                      <Label htmlFor="cnpj">CNPJ *</Label>
+                      <Input
+                        id="cnpj"
+                        name="cnpj"
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                        value={profileData.cnpj}
+                        onChange={handleProfileChange}
+                        className="input-transport"
+                      />
+                      {errors.cnpj && (
+                        <p className="text-sm text-destructive">{errors.cnpj}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="razaoSocial">Razão Social *</Label>
+                      <Input
+                        id="razaoSocial"
+                        name="razaoSocial"
+                        placeholder="Empresa Ltda"
+                        value={profileData.razaoSocial}
+                        onChange={handleProfileChange}
+                        className="input-transport"
+                      />
+                      {errors.razaoSocial && (
+                        <p className="text-sm text-destructive">{errors.razaoSocial}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
+                      <Input
+                        id="nomeFantasia"
+                        name="nomeFantasia"
+                        placeholder="Nome Fantasia (opcional)"
+                        value={profileData.nomeFantasia}
+                        onChange={handleProfileChange}
+                        className="input-transport"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="fullName">Nome Completo *</Label>

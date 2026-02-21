@@ -13,6 +13,7 @@ import EditVehicle from "./pages/EditVehicle";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import MyApplications from "./pages/MyApplications";
+import AdminDrivers from "./pages/AdminDrivers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/edit-vehicle/:id" element={<EditVehicle />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/applications" element={<AdminApplications />} />
+          <Route path="/admin/drivers" element={<AdminDrivers />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
