@@ -108,13 +108,16 @@ export default function AdminDrivers() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [profilesRes, servicesRes, vehiclesRes] = await Promise.all([
+      const [profilesRes, servicesRes, vehiclesRes, rolesRes] = await Promise.all([
         supabase.from("profiles").select("*").order("full_name"),
         supabase.from("driver_services" as any).select("*"),
         supabase.from("vehicles").select("*").order("brand"),
+        supabase.from("user_roles").select("user_id"),
       ]);
 
-      const profiles = profilesRes.data || [];
+      // Exclude system users (admin/moderator) from cadastros listing
+      const systemUserIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+      const profiles = (profilesRes.data || []).filter((p: any) => !systemUserIds.has(p.user_id));
       const services = (servicesRes.data as any[]) || [];
 
       const driversWithServices: PersonProfile[] = profiles.map((p: any) => ({
