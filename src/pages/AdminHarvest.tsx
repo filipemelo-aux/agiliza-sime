@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sprout, Plus, MapPin, Calendar, Users, DollarSign, ChevronRight, Pencil, Trash2, Building2 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
+import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 interface ClientOption {
   id: string;
@@ -216,7 +217,7 @@ export default function AdminHarvest() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingJob(null); }}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingJob ? "Editar Serviço" : "Novo Serviço de Colheita"}</DialogTitle>
             </DialogHeader>
@@ -279,11 +280,17 @@ export default function AdminHarvest() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Valor Contrato (R$) *</Label>
-                  <Input type="number" step="0.01" value={form.monthly_value} onChange={(e) => setForm({ ...form, monthly_value: e.target.value })} placeholder="0.00" />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={maskCurrency(String(Math.round(parseFloat(form.monthly_value || "0") * 100)))} onChange={(e) => setForm({ ...form, monthly_value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Valor a Pagar Terceiros (R$)</Label>
-                  <Input type="number" step="0.01" value={form.payment_value} onChange={(e) => setForm({ ...form, payment_value: e.target.value })} placeholder="Mesmo do contrato" />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={form.payment_value ? maskCurrency(String(Math.round(parseFloat(form.payment_value) * 100))) : ""} onChange={(e) => setForm({ ...form, payment_value: unmaskCurrency(e.target.value) })} placeholder="Mesmo do contrato" />
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">

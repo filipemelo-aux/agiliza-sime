@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 import type { Database } from "@/integrations/supabase/types";
 
 type VehicleType = Database["public"]["Enums"]["vehicle_type"];
@@ -234,14 +235,15 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             {/* Value and Distance */}
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.value_brl}
-                onChange={(e) => setFormData({ ...formData, value_brl: e.target.value })}
-                required
-                className="input-transport"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <Input
+                  className="input-transport pl-10"
+                  value={formData.value_brl ? maskCurrency(String(Math.round(parseFloat(formData.value_brl) * 100))) : ""}
+                  onChange={(e) => setFormData({ ...formData, value_brl: unmaskCurrency(e.target.value) })}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Distância (km)</Label>
