@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Truck, Wheat, Search, Pencil, Trash2, Car } from "lucide-react";
+import { Users, Plus, Truck, Wheat, Search, Pencil, Trash2, Car, Eye } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,11 @@ export default function AdminDrivers() {
   // Vehicle modal
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
+  const [deleteVehicle, setDeleteVehicle] = useState<VehicleRow | null>(null);
+
+  // View modals
+  const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
+  const [viewVehicle, setViewVehicle] = useState<VehicleRow | null>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate("/");
@@ -199,6 +204,19 @@ export default function AdminDrivers() {
       if (error) throw error;
       toast({ title: "Cadastro excluído!" });
       setDeletePerson(null);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!deleteVehicle) return;
+    try {
+      const { error } = await supabase.from("vehicles").delete().eq("id", deleteVehicle.id);
+      if (error) throw error;
+      toast({ title: "Veículo excluído!" });
+      setDeleteVehicle(null);
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -333,9 +351,17 @@ export default function AdminDrivers() {
                             {!v.driver_name && !v.owner_name && <span className="italic">Sem vínculo</span>}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }}>
-                          <Pencil className="h-4 w-4 mr-1" /> Editar
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewVehicle(v)} title="Visualizar">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteVehicle(v)} title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -400,14 +426,14 @@ export default function AdminDrivers() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         {driver.category === "motorista" && (
                           <Dialog
                             open={assignDialogOpen && selectedDriver?.id === driver.id}
                             onOpenChange={(open) => { setAssignDialogOpen(open); if (open) { setSelectedDriver(driver); setSelectedService(""); } }}
                           >
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-1" /> Serviço</Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8" title="Vincular Serviço"><Plus className="h-4 w-4" /></Button>
                             </DialogTrigger>
                             <DialogContent>
                               <DialogHeader><DialogTitle>Vincular Serviço - {driver.full_name}</DialogTitle></DialogHeader>
@@ -424,6 +450,9 @@ export default function AdminDrivers() {
                             </DialogContent>
                           </Dialog>
                         )}
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewPerson(driver)} title="Visualizar">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -444,6 +473,7 @@ export default function AdminDrivers() {
       <PersonCreateDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchAll} defaultCategory={!isVehicleTab && activeTab !== "__all__" ? activeTab : undefined} />
       <VehicleFormModal open={vehicleModalOpen} onOpenChange={setVehicleModalOpen} vehicleId={editVehicleId} onSaved={fetchAll} />
 
+      {/* Delete person confirmation */}
       <AlertDialog open={!!deletePerson} onOpenChange={(open) => !open && setDeletePerson(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -458,6 +488,103 @@ export default function AdminDrivers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete vehicle confirmation */}
+      <AlertDialog open={!!deleteVehicle} onOpenChange={(open) => !open && setDeleteVehicle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir veículo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o veículo <strong>{deleteVehicle?.plate}</strong> ({deleteVehicle?.brand} {deleteVehicle?.model})? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteVehicle} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View person modal */}
+      <Dialog open={!!viewPerson} onOpenChange={(open) => !open && setViewPerson(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Cadastro</DialogTitle>
+          </DialogHeader>
+          {viewPerson && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-base">{viewPerson.full_name}</span>
+                <Badge className={`text-xs ${CATEGORY_COLORS[viewPerson.category] || "bg-muted text-muted-foreground"}`}>
+                  {viewPerson.category.charAt(0).toUpperCase() + viewPerson.category.slice(1)}
+                </Badge>
+              </div>
+              {viewPerson.person_type === "cnpj" && viewPerson.razao_social && (
+                <p className="text-muted-foreground">{viewPerson.razao_social}</p>
+              )}
+              {viewPerson.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {viewPerson.cnpj}</p>}
+              {viewPerson.phone && <p><span className="text-muted-foreground">Telefone:</span> {viewPerson.phone}</p>}
+              {viewPerson.email && <p><span className="text-muted-foreground">E-mail:</span> {viewPerson.email}</p>}
+              {viewPerson.address_city && viewPerson.address_state && (
+                <p><span className="text-muted-foreground">Cidade:</span> {viewPerson.address_city}/{viewPerson.address_state}</p>
+              )}
+              {viewPerson.address_street && (
+                <p><span className="text-muted-foreground">Endereço:</span> {viewPerson.address_street}{viewPerson.address_number ? `, ${viewPerson.address_number}` : ""}{viewPerson.address_complement ? ` - ${viewPerson.address_complement}` : ""}</p>
+              )}
+              {viewPerson.bank_name && (
+                <p><span className="text-muted-foreground">Banco:</span> {viewPerson.bank_name} | Ag: {viewPerson.bank_agency} | Conta: {viewPerson.bank_account}</p>
+              )}
+              {viewPerson.pix_key && (
+                <p><span className="text-muted-foreground">PIX:</span> {viewPerson.pix_key}</p>
+              )}
+              {viewPerson.notes && (
+                <p><span className="text-muted-foreground">Obs:</span> {viewPerson.notes}</p>
+              )}
+              {viewPerson.services.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-muted-foreground">Serviços:</span>
+                  {viewPerson.services.map((s) => (
+                    <Badge key={s} variant="secondary" className="text-xs">{s === "fretes" ? "Fretes" : "Colheita"}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View vehicle modal */}
+      <Dialog open={!!viewVehicle} onOpenChange={(open) => !open && setViewVehicle(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Veículo</DialogTitle>
+          </DialogHeader>
+          {viewVehicle && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-base">🚛 {viewVehicle.plate}</span>
+                <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
+                {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
+              </div>
+              <p><span className="text-muted-foreground">Veículo:</span> {viewVehicle.brand} {viewVehicle.model} • {viewVehicle.year}</p>
+              {(() => {
+                const trailerLabels = TRAILER_LABELS[viewVehicle.vehicle_type] || [];
+                const trailerPlates = [viewVehicle.trailer_plate_1, viewVehicle.trailer_plate_2, viewVehicle.trailer_plate_3].filter(Boolean);
+                return trailerPlates.length > 0 ? (
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground">Conjunto:</span>
+                    {trailerPlates.map((plate, i) => (
+                      <p key={i} className="ml-2">{trailerLabels[i] || `Impl. ${i+1}`}: <strong>{plate}</strong></p>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+              {viewVehicle.driver_name && <p><span className="text-muted-foreground">Motorista:</span> {viewVehicle.driver_name}</p>}
+              {viewVehicle.owner_name && <p><span className="text-muted-foreground">Proprietário:</span> {viewVehicle.owner_name}</p>}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
