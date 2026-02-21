@@ -19,6 +19,8 @@ interface ClientOption {
   id: string;
   full_name: string;
   nome_fantasia: string | null;
+  address_city: string | null;
+  address_state: string | null;
 }
 
 interface HarvestJob {
@@ -76,7 +78,7 @@ export default function AdminHarvest() {
   const fetchClients = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, nome_fantasia")
+      .select("id, full_name, nome_fantasia, address_city, address_state")
       .eq("category", "cliente")
       .order("full_name");
     setClients(data || []);
@@ -237,7 +239,17 @@ export default function AdminHarvest() {
             <div className="space-y-4 mt-2">
               <div className="space-y-2">
                 <Label>Contratante (Cliente)</Label>
-                <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                <Select value={form.client_id} onValueChange={(v) => {
+                  const client = clients.find((c) => c.id === v);
+                  const updates: Partial<typeof form> = { client_id: v };
+                  if (client && !editingJob) {
+                    if (!form.farm_name) updates.farm_name = client.nome_fantasia || client.full_name;
+                    if (!form.location && client.address_city) {
+                      updates.location = [client.address_city, client.address_state].filter(Boolean).join("/");
+                    }
+                  }
+                  setForm((prev) => ({ ...prev, ...updates }));
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um cliente..." />
                   </SelectTrigger>
