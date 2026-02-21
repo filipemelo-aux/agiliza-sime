@@ -39,13 +39,10 @@ function SidebarNav() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      {/* Spacer para o header fixo - apenas desktop */}
-      <div className="h-16 hidden md:block" />
-
-      {/* Header dentro da sidebar mobile com logo */}
-      <div className="flex items-center gap-3 p-4 md:hidden border-b border-border">
-        <img src={logo} alt="SIME" className="h-8 w-auto" />
-        <span className="text-base text-primary" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
+      {/* Branding no topo da sidebar */}
+      <div className="h-16 flex items-center gap-2 px-3 border-b border-sidebar-border shrink-0">
+        <img src={logo} alt="SIME" className="h-8 w-auto shrink-0" />
+        <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
           SIME <span className="text-accent">TRANSPORTES</span>
         </span>
       </div>
@@ -102,9 +99,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
               <img src={logo} alt="SIME" className="h-9 w-auto" />
-              <span className="text-lg text-primary whitespace-nowrap hidden sm:block" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
-                SIME <span className="text-accent">TRANSPORTES</span>
-              </span>
             </div>
             {user && (
               <div className="flex items-center gap-2 sm:gap-3">
