@@ -49,13 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let currentUserId: string | null = null;
+    let initialized = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Ignore token refresh events entirely — they don't change user identity
+        if (event === 'TOKEN_REFRESHED') return;
+
         const newUser = session?.user ?? null;
 
         if (newUser) {
-          // Only update state on actual user change, not token refresh
           if (event === 'SIGNED_IN' || newUser.id !== currentUserId) {
             currentUserId = newUser.id;
             setUser(newUser);
@@ -63,9 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               fetchRoles(newUser.id);
             }, 0);
           }
-          // Skip setUser on TOKEN_REFRESHED to avoid unnecessary re-renders
         } else {
-          if (currentUserId !== null) {
+          // Only sign out if we explicitly got a SIGNED_OUT event
+          if (event === 'SIGNED_OUT' && currentUserId !== null) {
             currentUserId = null;
             setUser(null);
             setRoles([]);
@@ -73,18 +76,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setRolesLoading(false);
           }
         }
-        setLoading(false);
+        if (!initialized) {
+          initialized = true;
+          setLoading(false);
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        currentUserId = sessionUser.id;
+        fetchRoles(sessionUser.id);
       } else {
         setRolesLoading(false);
       }
-      setLoading(false);
+      if (!initialized) {
+        initialized = true;
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
