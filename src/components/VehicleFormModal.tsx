@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +89,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<VehicleFormData>(emptyVehicle);
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+  const [driverIsOwner, setDriverIsOwner] = useState(false);
 
   // Load profiles for driver/owner linking
   useEffect(() => {
@@ -126,11 +128,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
         });
+        // Check if driver is owner
+        const dId = (data as any).driver_id || "";
+        const oId = (data as any).owner_id || "";
+        setDriverIsOwner(!!dId && dId === oId);
         setFetching(false);
       });
     } else if (open && !isEdit) {
       setForm(emptyVehicle);
       setErrors({});
+      setDriverIsOwner(false);
     }
   }, [open, vehicleId, isEdit]);
 
@@ -202,7 +209,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
     trailer_plate_3: unmaskPlate(form.trailerPlate3) || null,
     trailer_renavam_3: form.trailerRenavam3 || null,
     driver_id: form.driverId || null,
-    owner_id: form.ownerId || null,
+    owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
   });
 
   const handleSubmit = async () => {
@@ -230,7 +237,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
   };
 
   const motoristas = profiles.filter((p) => p.category === "motorista");
-
+  const proprietarios = profiles.filter((p) => p.category === "proprietario");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
@@ -251,7 +258,13 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Motorista</Label>
-                      <Select value={form.driverId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, driverId: v === "__none__" ? "" : v }))}>
+                      <Select value={form.driverId || "__none__"} onValueChange={(v) => {
+                        const newDriverId = v === "__none__" ? "" : v;
+                        setForm((p) => ({ ...p, driverId: newDriverId }));
+                        if (driverIsOwner) {
+                          setForm((p) => ({ ...p, driverId: newDriverId, ownerId: newDriverId }));
+                        }
+                      }}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Nenhum</SelectItem>
@@ -261,14 +274,37 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved }: Veh
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Proprietário</Label>
-                      <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Nenhum</SelectItem>
-                          {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      {driverIsOwner ? (
+                        <Input value={motoristas.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
+                      ) : (
+                        <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Nenhum</SelectItem>
+                            {proprietarios.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="driver-is-owner"
+                      checked={driverIsOwner}
+                      onCheckedChange={(checked) => {
+                        const isChecked = !!checked;
+                        setDriverIsOwner(isChecked);
+                        if (isChecked) {
+                          setForm((p) => ({ ...p, ownerId: p.driverId }));
+                        } else {
+                          setForm((p) => ({ ...p, ownerId: "" }));
+                        }
+                      }}
+                      disabled={!form.driverId}
+                    />
+                    <Label htmlFor="driver-is-owner" className="text-sm font-normal cursor-pointer">
+                      Motorista é o proprietário do conjunto
+                    </Label>
                   </div>
                 </div>
 

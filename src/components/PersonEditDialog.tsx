@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
   { value: "cliente", label: "Cliente" },
+  { value: "proprietario", label: "Proprietário" },
 ];
 
 const CNH_CATEGORIES = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
@@ -479,8 +480,9 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 // ---- SHARED FORM FIELDS ----
 function PersonFormFields({ form, setForm, isEdit }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean }) {
   const isMotorista = form.category === "motorista";
-  const showAddress = form.category === "cliente" || form.category === "fornecedor";
-  const showBank = form.category === "motorista" || form.category === "fornecedor";
+  const isProprietario = form.category === "proprietario";
+  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario";
+  const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario";
   const showCNPJ = !isMotorista && form.person_type === "cnpj";
 
   return (
