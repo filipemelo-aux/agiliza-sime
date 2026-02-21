@@ -14,7 +14,7 @@ import {
   MapPin,
   Sprout
 } from "lucide-react";
-import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,8 +163,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AdminLayout>
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -392,6 +391,6 @@ export default function AdminDashboard() {
           </>
         )}
       </main>
-    </div>
+    </AdminLayout>
   );
 }

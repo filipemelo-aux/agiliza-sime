@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User } from "lucide-react";
-import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -210,8 +210,7 @@ export default function HarvestDetail() {
   const totalPaid = assignments.reduce((sum, a) => sum + (a.total_value || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         {/* Back + Title */}
         <div className="flex items-center gap-3 mb-6">
@@ -369,6 +368,6 @@ export default function HarvestDetail() {
           </Card>
         )}
       </main>
-    </div>
+    </AdminLayout>
   );
 }

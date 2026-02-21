@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, Plus, Truck, Wheat, Search } from "lucide-react";
-import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,8 +169,7 @@ export default function AdminDrivers() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AdminLayout>
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
@@ -299,6 +298,6 @@ export default function AdminDrivers() {
           </div>
         )}
       </main>
-    </div>
+    </AdminLayout>
   );
 }
