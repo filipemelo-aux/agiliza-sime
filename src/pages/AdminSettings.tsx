@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil } from "lucide-react";
+import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { maskName } from "@/lib/masks";
 
 interface SystemUser {
   id: string;
@@ -43,6 +44,9 @@ export default function AdminSettings() {
   const [editUser, setEditUser] = useState<SystemUser | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", role: "" });
   const [saving, setSaving] = useState(false);
+
+  // View
+  const [viewUser, setViewUser] = useState<SystemUser | null>(null);
 
   // Delete
   const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
@@ -273,7 +277,10 @@ export default function AdminSettings() {
                       <span className="text-sm text-muted-foreground truncate">{u.email || "—"}</span>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setViewUser(u)} title="Visualizar">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       {canEdit && (
                         <Button size="icon" variant="ghost" onClick={() => openEdit(u)} title="Editar">
                           <Pencil className="w-4 h-4" />
@@ -305,7 +312,7 @@ export default function AdminSettings() {
               <Label>Nome completo</Label>
               <Input
                 value={createForm.name}
-                onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) => setCreateForm((p) => ({ ...p, name: maskName(e.target.value) }))}
                 placeholder="Nome do usuário"
               />
             </div>
@@ -358,7 +365,7 @@ export default function AdminSettings() {
               <Label>Nome completo</Label>
               <Input
                 value={editForm.name}
-                onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) => setEditForm((p) => ({ ...p, name: maskName(e.target.value) }))}
               />
             </div>
             <div className="space-y-2">
@@ -411,6 +418,36 @@ export default function AdminSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View User Dialog */}
+      <Dialog open={!!viewUser} onOpenChange={() => setViewUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogDescription>Informações da conta do sistema.</DialogDescription>
+          </DialogHeader>
+          {viewUser && (
+            <div className="space-y-3 mt-2">
+              <div>
+                <span className="text-sm text-muted-foreground">Nome</span>
+                <p className="font-medium">{viewUser.profile_name || "Sem nome"}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">E-mail</span>
+                <p className="font-medium">{viewUser.email || "—"}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Perfil de acesso</span>
+                <div className="flex gap-2 mt-1">
+                  {viewUser.roles.map((r) => (
+                    <span key={r}>{getRoleBadge(r)}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH } from "@/lib/masks";
+import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
@@ -642,11 +642,11 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Razão Social</Label>
-              <Input value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} />
+              <Input value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: maskName(e.target.value) }))} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Nome Fantasia</Label>
-              <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} />
+              <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} />
             </div>
           </div>
         </>
@@ -655,7 +655,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* Name */}
       <div className="space-y-1">
         <Label className="text-xs">{showCNPJ ? "Nome / Razão Social *" : "Nome Completo *"}</Label>
-        <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} />
+        <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
       </div>
 
       {/* Phone + Email */}
