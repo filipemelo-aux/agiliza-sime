@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 import type { Database } from "@/integrations/supabase/types";
 
 type VehicleType = Database["public"]["Enums"]["vehicle_type"];
@@ -162,7 +162,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
               <Label>Cidade de Origem</Label>
               <Input
                 value={formData.origin_city}
-                onChange={(e) => setFormData({ ...formData, origin_city: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, origin_city: maskName(e.target.value) })}
                 required
                 className="input-transport"
               />
@@ -189,7 +189,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
               <Label>Cidade de Destino</Label>
               <Input
                 value={formData.destination_city}
-                onChange={(e) => setFormData({ ...formData, destination_city: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, destination_city: maskName(e.target.value) })}
                 required
                 className="input-transport"
               />
@@ -216,7 +216,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
               <Label>Tipo de Carga</Label>
               <Input
                 value={formData.cargo_type}
-                onChange={(e) => setFormData({ ...formData, cargo_type: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, cargo_type: maskName(e.target.value) })}
                 required
                 className="input-transport"
               />
@@ -281,7 +281,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
               <Label>Nome da Empresa</Label>
               <Input
                 value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, company_name: maskName(e.target.value) })}
                 required
                 className="input-transport"
               />

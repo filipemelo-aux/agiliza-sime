@@ -169,7 +169,7 @@ function BankFields({ form, setForm }: { form: FormState; setForm: React.Dispatc
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Banco</Label>
-          <Input value={form.bank_name} onChange={(e) => setForm((p) => ({ ...p, bank_name: e.target.value }))} />
+          <Input value={form.bank_name} onChange={(e) => setForm((p) => ({ ...p, bank_name: maskName(e.target.value) }))} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Agência</Label>

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
-import { maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 
 interface ClientOption {
   id: string;
@@ -250,11 +250,11 @@ export default function AdminHarvest() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Fazenda / Local *</Label>
-                  <Input value={form.farm_name} onChange={(e) => setForm({ ...form, farm_name: e.target.value })} placeholder="Nome da fazenda" />
+                  <Input value={form.farm_name} onChange={(e) => setForm({ ...form, farm_name: maskName(e.target.value) })} placeholder="Nome da fazenda" />
                 </div>
                 <div className="space-y-2">
                   <Label>Cidade/Estado *</Label>
-                  <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Cidade/Estado" />
+                  <Input value={form.location} onChange={(e) => setForm({ ...form, location: maskName(e.target.value) })} placeholder="Cidade/Estado" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
