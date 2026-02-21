@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, Car, Eye } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,7 @@ export default function AdminDrivers() {
 
   // View modals
   const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
+  const [viewPersonDocs, setViewPersonDocs] = useState<{ cpf: string | null; cnh_number: string | null; cnh_category: string | null; cnh_expiry: string | null } | null>(null);
   const [viewVehicle, setViewVehicle] = useState<VehicleRow | null>(null);
 
   useEffect(() => {
@@ -373,7 +374,14 @@ export default function AdminDrivers() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewPerson(driver)} title="Visualizar">
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={async () => {
+                          setViewPerson(driver);
+                          setViewPersonDocs(null);
+                          if (driver.category === "motorista") {
+                            const { data } = await supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle();
+                            setViewPersonDocs(data || null);
+                          }
+                        }} title="Visualizar">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
@@ -429,7 +437,7 @@ export default function AdminDrivers() {
       </AlertDialog>
 
       {/* View person modal */}
-      <Dialog open={!!viewPerson} onOpenChange={(open) => !open && setViewPerson(null)}>
+      <Dialog open={!!viewPerson} onOpenChange={(open) => { if (!open) { setViewPerson(null); setViewPersonDocs(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Detalhes do Cadastro</DialogTitle>
@@ -446,6 +454,7 @@ export default function AdminDrivers() {
                 <p className="text-muted-foreground">{viewPerson.razao_social}</p>
               )}
               {viewPerson.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {viewPerson.cnpj}</p>}
+              {viewPersonDocs?.cpf && <p><span className="text-muted-foreground">CPF:</span> {viewPersonDocs.cpf}</p>}
               {viewPerson.phone && <p><span className="text-muted-foreground">Telefone:</span> {viewPerson.phone}</p>}
               {viewPerson.email && <p><span className="text-muted-foreground">E-mail:</span> {viewPerson.email}</p>}
               {viewPerson.address_city && viewPerson.address_state && (
@@ -453,6 +462,15 @@ export default function AdminDrivers() {
               )}
               {viewPerson.address_street && (
                 <p><span className="text-muted-foreground">Endereço:</span> {viewPerson.address_street}{viewPerson.address_number ? `, ${viewPerson.address_number}` : ""}{viewPerson.address_complement ? ` - ${viewPerson.address_complement}` : ""}</p>
+              )}
+              {/* CNH data */}
+              {viewPersonDocs && (viewPersonDocs.cnh_number || viewPersonDocs.cnh_category) && (
+                <div className="pt-1 border-t border-border">
+                  <p className="text-muted-foreground flex items-center gap-1 mb-1"><FileText className="h-3.5 w-3.5" /> Habilitação (CNH)</p>
+                  {viewPersonDocs.cnh_number && <p className="ml-4"><span className="text-muted-foreground">Número:</span> {viewPersonDocs.cnh_number}</p>}
+                  {viewPersonDocs.cnh_category && <p className="ml-4"><span className="text-muted-foreground">Categoria:</span> {viewPersonDocs.cnh_category}</p>}
+                  {viewPersonDocs.cnh_expiry && <p className="ml-4"><span className="text-muted-foreground">Validade:</span> {new Date(viewPersonDocs.cnh_expiry).toLocaleDateString("pt-BR")}</p>}
+                </div>
               )}
               {viewPerson.bank_name && (
                 <p><span className="text-muted-foreground">Banco:</span> {viewPerson.bank_name} | Ag: {viewPerson.bank_agency} | Conta: {viewPerson.bank_account}</p>
