@@ -168,14 +168,15 @@ export default function HarvestDetail() {
       );
       setAssignments(enriched);
 
-      // Fetch all drivers (category=motorista), excluding already assigned ones
+      // Fetch only drivers (category=motorista), excluding already assigned and the current admin
       const assignedUserIds = (assignData || []).map((a: any) => a.user_id);
+      const excludeIds = [...assignedUserIds, ...(user?.id ? [user.id] : [])];
       const { data: allDrivers } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .eq("category", "motorista")
         .order("full_name");
-      const driversData = (allDrivers || []).filter((d: any) => !assignedUserIds.includes(d.user_id));
+      const driversData = (allDrivers || []).filter((d: any) => !excludeIds.includes(d.user_id));
 
       const { data: vehiclesData } = await supabase
         .from("vehicles")
