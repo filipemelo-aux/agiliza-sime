@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Truck, Wheat, Search, Pencil, Trash2, Car, Eye } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, Car, Eye } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -80,11 +79,6 @@ export default function AdminDrivers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("__all__");
-
-  // Service assignment
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<PersonProfile | null>(null);
-  const [selectedService, setSelectedService] = useState("");
 
   // Edit / Create / Delete
   const [editPerson, setEditPerson] = useState<PersonProfile | null>(null);
@@ -164,37 +158,6 @@ export default function AdminDrivers() {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAssignService = async () => {
-    if (!selectedDriver || !selectedService) return;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("driver_services" as any)
-        .insert({ user_id: selectedDriver.user_id, service_type: selectedService, assigned_by: user?.id } as any);
-      if (error) {
-        if (error.code === "23505") { toast({ title: "Serviço já vinculado", variant: "destructive" }); return; }
-        throw error;
-      }
-      toast({ title: "Serviço vinculado!" });
-      setAssignDialogOpen(false);
-      setSelectedService("");
-      fetchAll();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const handleRemoveService = async (userId: string, serviceType: string) => {
-    try {
-      const { error } = await supabase.from("driver_services" as any).delete().eq("user_id", userId).eq("service_type", serviceType);
-      if (error) throw error;
-      toast({ title: "Serviço removido!" });
-      fetchAll();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
   };
 
@@ -407,51 +370,9 @@ export default function AdminDrivers() {
                           )}
                         </div>
 
-                        {driver.category === "motorista" && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {driver.services.map((svc) => (
-                              <Badge
-                                key={svc}
-                                className={`cursor-pointer ${svc === "fretes" ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" : "bg-green-500/20 text-green-400 hover:bg-green-500/30"}`}
-                                onClick={() => handleRemoveService(driver.user_id, svc)}
-                                title="Clique para remover"
-                              >
-                                {svc === "fretes" ? <Truck className="h-3 w-3 mr-1" /> : <Wheat className="h-3 w-3 mr-1" />}
-                                {svc === "fretes" ? "Fretes" : "Colheita"}
-                                <span className="ml-1 text-xs opacity-60">×</span>
-                              </Badge>
-                            ))}
-                            {driver.services.length === 0 && (
-                              <span className="text-xs text-muted-foreground italic">Sem serviço vinculado</span>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        {driver.category === "motorista" && (
-                          <Dialog
-                            open={assignDialogOpen && selectedDriver?.id === driver.id}
-                            onOpenChange={(open) => { setAssignDialogOpen(open); if (open) { setSelectedDriver(driver); setSelectedService(""); } }}
-                          >
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="icon" className="h-8 w-8" title="Vincular Serviço"><Plus className="h-4 w-4" /></Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader><DialogTitle>Vincular Serviço - {driver.full_name}</DialogTitle></DialogHeader>
-                              <div className="space-y-4 pt-4">
-                                <Select value={selectedService} onValueChange={setSelectedService}>
-                                  <SelectTrigger><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
-                                  <SelectContent>
-                                    {!driver.services.includes("fretes") && <SelectItem value="fretes">Fretes</SelectItem>}
-                                    {!driver.services.includes("colheita") && <SelectItem value="colheita">Colheita</SelectItem>}
-                                  </SelectContent>
-                                </Select>
-                                <Button className="w-full" onClick={handleAssignService} disabled={!selectedService}>Vincular</Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewPerson(driver)} title="Visualizar">
                           <Eye className="h-4 w-4" />
                         </Button>
