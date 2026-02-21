@@ -278,7 +278,7 @@ function formToPayload(form: FormState) {
   const isMotorista = form.category === "motorista";
   return {
     full_name: form.full_name.trim(),
-    phone: unmaskPhone(form.phone),
+    phone: unmaskPhone(form.phone) || "",
     email: form.email.trim() || null,
     person_type: isMotorista ? "cpf" : form.person_type,
     cnpj: !isMotorista && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
@@ -418,15 +418,12 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
   useEffect(() => {
     if (open) setForm({ ...emptyForm, category: defaultCategory || "motorista" });
-  }, [open, defaultCategory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleCreate = async () => {
     if (!form.full_name.trim()) {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
-      return;
-    }
-    if (!unmaskPhone(form.phone) || unmaskPhone(form.phone).length < 10) {
-      toast({ title: "Telefone é obrigatório", variant: "destructive" });
       return;
     }
     setLoading(true);
