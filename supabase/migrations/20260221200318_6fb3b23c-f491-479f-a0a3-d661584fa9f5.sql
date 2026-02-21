@@ -1,0 +1,1 @@
+ALTER TABLE public.harvest_jobs ADD COLUMN payment_value numeric NOT NULL DEFAULT 0;
