@@ -353,24 +353,27 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
       if (error) throw error;
 
       // Save CNH for motorista
-      if (form.category === "motorista" && (form.cnh_number || form.cpf)) {
-        const docPayload = {
-          user_id: person.user_id,
-          cpf: unmaskCPF(form.cpf) || null,
-          cnh_number: form.cnh_number || null,
-          cnh_category: form.cnh_category || null,
-          cnh_expiry: form.cnh_expiry || null,
-        };
-        const { data: existing } = await supabase
-          .from("driver_documents")
-          .select("id")
-          .eq("user_id", person.user_id)
-          .maybeSingle();
+      if (form.category === "motorista") {
+        const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
+        if (hasCnhData) {
+          const docPayload = {
+            user_id: person.user_id,
+            cpf: unmaskCPF(form.cpf) || null,
+            cnh_number: form.cnh_number || null,
+            cnh_category: form.cnh_category || null,
+            cnh_expiry: form.cnh_expiry || null,
+          };
+          const { data: existing } = await supabase
+            .from("driver_documents")
+            .select("id")
+            .eq("user_id", person.user_id)
+            .maybeSingle();
 
-        if (existing) {
-          await supabase.from("driver_documents").update(docPayload).eq("user_id", person.user_id);
-        } else if (form.cnh_expiry) {
-          await supabase.from("driver_documents").insert(docPayload);
+          if (existing) {
+            await supabase.from("driver_documents").update(docPayload).eq("user_id", person.user_id);
+          } else {
+            await supabase.from("driver_documents").insert(docPayload);
+          }
         }
       }
 
@@ -438,14 +441,17 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       if (error) throw error;
 
       // Save CNH for motorista
-      if (form.category === "motorista" && (form.cnh_number || form.cpf)) {
-        await supabase.from("driver_documents").insert({
-          user_id: profileUserId,
-          cpf: unmaskCPF(form.cpf) || null,
-          cnh_number: form.cnh_number || null,
-          cnh_category: form.cnh_category || null,
-          cnh_expiry: form.cnh_expiry || null,
-        });
+      if (form.category === "motorista") {
+        const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
+        if (hasCnhData) {
+          await supabase.from("driver_documents").insert({
+            user_id: profileUserId,
+            cpf: unmaskCPF(form.cpf) || null,
+            cnh_number: form.cnh_number || null,
+            cnh_category: form.cnh_category || null,
+            cnh_expiry: form.cnh_expiry || null,
+          });
+        }
       }
 
       toast({ title: "Cadastro criado com sucesso!" });
