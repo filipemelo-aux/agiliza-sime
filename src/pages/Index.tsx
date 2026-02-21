@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Truck, Plus, Edit2, Trash2, Filter, X } from "lucide-react";
 import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { FreightCard } from "@/components/FreightCard";
 import { FreightDetailModal } from "@/components/FreightDetailModal";
 import { FreightFormDialog } from "@/components/FreightFormDialog";
@@ -203,9 +204,12 @@ export default function Index() {
     return true;
   });
 
+  const Wrapper = isAdmin ? AdminLayout : ({ children }: { children: React.ReactNode }) => (
+    <div className="min-h-screen bg-background"><Header />{children}</div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <Wrapper>
 
       {/* Freights Section */}
       <section className="py-8">
@@ -499,6 +503,6 @@ export default function Index() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Wrapper>
   );
 }

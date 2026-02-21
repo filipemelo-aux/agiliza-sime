@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, MapPin,
   Calendar, Package, Scale, DollarSign, Banknote, Download, Eye
 } from "lucide-react";
-import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -532,8 +532,7 @@ export default function AdminApplications() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <AdminLayout>
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -1200,6 +1199,6 @@ export default function AdminApplications() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminLayout>
   );
 }
