@@ -161,3 +161,19 @@ export const maskCEP = (value: string): string => {
 export const unmaskCEP = (value: string): string => {
   return value.replace(/\D/g, "");
 };
+
+const LOWERCASE_PREFIXES = new Set(["da", "das", "de", "do", "dos", "e"]);
+
+export const maskName = (value: string): string => {
+  return value
+    .split(" ")
+    .map((word, index) => {
+      if (!word) return word;
+      const lower = word.toLowerCase();
+      if (index > 0 && LOWERCASE_PREFIXES.has(lower)) {
+        return lower;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+};

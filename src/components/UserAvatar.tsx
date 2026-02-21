@@ -27,6 +27,22 @@ export function UserAvatar({ userId, showName = false, size = "md" }: UserAvatar
     };
 
     fetchProfile();
+
+    // Subscribe to profile changes to keep avatar/name in sync
+    const channel = supabase
+      .channel(`avatar-profile-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.new) {
+            setProfile({ full_name: payload.new.full_name, avatar_url: payload.new.avatar_url });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   const sizeClasses = {
