@@ -47,6 +47,30 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_services: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          service_type: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          service_type: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          service_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       freight_applications: {
         Row: {
           applied_at: string
@@ -216,12 +240,16 @@ export type Database = {
           bank_account_type: string | null
           bank_agency: string | null
           bank_name: string | null
+          cnpj: string | null
           created_at: string
           full_name: string
           id: string
+          nome_fantasia: string | null
+          person_type: string | null
           phone: string
           pix_key: string | null
           pix_key_type: string | null
+          razao_social: string | null
           updated_at: string
           user_id: string
         }
@@ -231,12 +259,16 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cnpj?: string | null
           created_at?: string
           full_name: string
           id?: string
+          nome_fantasia?: string | null
+          person_type?: string | null
           phone: string
           pix_key?: string | null
           pix_key_type?: string | null
+          razao_social?: string | null
           updated_at?: string
           user_id: string
         }
@@ -246,12 +278,16 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cnpj?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          nome_fantasia?: string | null
+          person_type?: string | null
           phone?: string
           pix_key?: string | null
           pix_key_type?: string | null
+          razao_social?: string | null
           updated_at?: string
           user_id?: string
         }

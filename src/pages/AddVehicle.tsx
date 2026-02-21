@@ -17,22 +17,16 @@ import {
 // Define trailer requirements per vehicle type
 const trailerRequirements: Record<string, { count: number; labels: string[] }> = {
   truck: { count: 0, labels: [] },
-  bitruck: { count: 0, labels: [] },
-  carreta: { count: 1, labels: ["Placa da Carreta"] },
-  carreta_ls: { count: 1, labels: ["Placa da Carreta LS"] },
-  rodotrem: { count: 3, labels: ["Placa da 1ª Carreta", "Placa do Dolly", "Placa da 2ª Carreta"] },
+  carreta_ls: { count: 1, labels: ["Placa da Carreta"] },
   bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
-  treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
+  rodotrem: { count: 3, labels: ["Placa da 1ª Carreta", "Placa do Dolly", "Placa da 2ª Carreta"] },
 };
 
 const vehicleTypes = [
   { value: "truck", label: "Truck" },
-  { value: "bitruck", label: "Bitruck" },
-  { value: "carreta", label: "Carreta" },
-  { value: "carreta_ls", label: "Carreta LS" },
-  { value: "rodotrem", label: "Rodotrem" },
+  { value: "carreta_ls", label: "LS (Carreta Simples)" },
   { value: "bitrem", label: "Bitrem" },
-  { value: "treminhao", label: "Treminhão" },
+  { value: "rodotrem", label: "Rodotrem" },
 ];
 
 const cargoTypes = [

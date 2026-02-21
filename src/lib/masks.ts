@@ -60,6 +60,50 @@ export const maskOnlyLettersNumbers = (value: string): string => {
   return value.replace(/[^A-Za-z0-9\s]/g, "");
 };
 
+export const maskCNPJ = (value: string): string => {
+  const numbers = value.replace(/\D/g, "").slice(0, 14);
+  return numbers
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+};
+
+export const unmaskCNPJ = (value: string): string => {
+  return value.replace(/\D/g, "");
+};
+
+export const validateCNPJ = (cnpj: string): boolean => {
+  const numbers = cnpj.replace(/\D/g, "");
+  if (numbers.length !== 14) return false;
+  if (/^(\d)\1+$/.test(numbers)) return false;
+  
+  let size = numbers.length - 2;
+  let nums = numbers.substring(0, size);
+  const digits = numbers.substring(size);
+  let sum = 0;
+  let pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(nums.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(0))) return false;
+  
+  size = size + 1;
+  nums = numbers.substring(0, size);
+  sum = 0;
+  pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(nums.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(1))) return false;
+  
+  return true;
+};
+
 // Validation functions
 export const validateCPF = (cpf: string): boolean => {
   const numbers = cpf.replace(/\D/g, "");

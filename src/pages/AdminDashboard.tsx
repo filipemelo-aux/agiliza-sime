@@ -168,7 +168,7 @@ export default function AdminDashboard() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold font-display">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Visão geral do sistema TransPorta</p>
+          <p className="text-muted-foreground">Visão geral do sistema SIME TRANSPORTES</p>
         </div>
 
         {loading ? (
@@ -312,6 +312,15 @@ export default function AdminDashboard() {
                             {stats.pendingApplications}
                           </span>
                         )}
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to="/admin/drivers">
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Gerenciar Motoristas
                       </span>
                       <ArrowRight className="h-4 w-4" />
                     </Button>
