@@ -152,8 +152,8 @@ export default function HarvestDetail() {
             a.vehicle_id ? supabase.from("vehicles").select("plate").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
 
-          const endDate = a.end_date ? new Date(a.end_date) : new Date();
-          const startDate = new Date(a.start_date);
+          const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+          const startDate = new Date(a.start_date + "T00:00:00");
           const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
           return {
