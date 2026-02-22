@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 // Register page removed — admin handles all registrations
-import Profile from "./pages/Profile";
+// Profile page moved into AdminSettings
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
@@ -39,7 +39,7 @@ const App = () => (
             <Route path="/" element={<Auth />} />
             <Route path="/register" element={<Navigate to="/admin" replace />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/profile" element={<Profile />} />
+            <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/drivers" element={<AdminDrivers />} />
             <Route path="/admin/services" element={<AdminServices />} />
@@ -48,7 +48,7 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/freights" element={<Index />} />
             {/* Redirects for removed pages */}
-            <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
+            <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/driver" element={<Navigate to="/admin" replace />} />
             <Route path="/my-applications" element={<Navigate to="/admin/applications" replace />} />
             <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
