@@ -154,7 +154,7 @@ export default function HarvestDetail() {
 
           const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
           const startDate = new Date(a.start_date + "T00:00:00");
-          const daysWorked = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+          const daysWorked = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
           return {
             ...a,
@@ -493,9 +493,9 @@ export default function HarvestDetail() {
       ? new Date(filterEndDate + "T00:00:00")
       : a.end_date
         ? new Date(a.end_date + "T00:00:00")
-        : new Date();
+        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
     if (effectiveEnd < effectiveStart) return 0;
-    return Math.max(1, Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    return Math.max(1, Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 
   const getAgregadoData = (a: Assignment) => {
