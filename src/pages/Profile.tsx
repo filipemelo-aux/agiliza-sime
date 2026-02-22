@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Header } from "@/components/Header";
+import { AdminLayout } from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskName } from "@/lib/masks";
@@ -166,8 +166,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
+      <AdminLayout>
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto">
             <div className="animate-pulse space-y-4">
@@ -176,14 +175,12 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
+    <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
@@ -476,6 +473,6 @@ export default function Profile() {
           )}
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
