@@ -210,7 +210,7 @@ export default function AdminDashboard() {
           <>
             {/* Overview Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="border-border bg-card">
+              <Card className="border-border bg-card cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/admin/harvest")}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Serviços Ativos</CardTitle>
                   <Sprout className="h-4 w-4 text-primary" />
