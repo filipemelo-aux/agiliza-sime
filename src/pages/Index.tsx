@@ -215,12 +215,12 @@ export default function Index() {
       <section className="py-8">
         <div className="container mx-auto px-4">
           {/* Header with counter and filter */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full">
-                <Truck className="w-5 h-5" />
-                <span className="text-xl font-bold font-display">{freights.length}</span>
-                <span className="text-sm font-medium">fretes disponíveis</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+                <Truck className="w-4 h-4 shrink-0" />
+                <span className="text-lg font-bold font-display">{freights.length}</span>
+                <span className="text-sm font-medium whitespace-nowrap">fretes disponíveis</span>
               </div>
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
@@ -233,7 +233,7 @@ export default function Index() {
             <div className="flex items-center gap-2">
               <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2">
                     <Filter className="w-4 h-4" />
                     Filtrar
                     {hasActiveFilters && (
@@ -331,9 +331,10 @@ export default function Index() {
               </Sheet>
 
               {isAdmin && (
-                <Button onClick={handleAddFreight} className="btn-transport-accent">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Frete
+                <Button onClick={handleAddFreight} size="sm" className="btn-transport-accent">
+                  <Plus className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">Adicionar Frete</span>
+                  <span className="sm:hidden">Adicionar</span>
                 </Button>
               )}
             </div>
@@ -376,7 +377,7 @@ export default function Index() {
           )}
 
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="freight-card animate-pulse">
                   <div className="h-6 bg-muted rounded w-3/4 mb-4" />
@@ -404,7 +405,7 @@ export default function Index() {
               )}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredFreights.map((freight, index) => (
                 <div
                   key={freight.id}
