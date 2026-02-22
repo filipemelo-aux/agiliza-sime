@@ -39,6 +39,7 @@ interface ActiveHarvestJob {
   location: string;
   status: string;
   monthly_value: number;
+  payment_value: number;
   assignmentCount: number;
 }
 
@@ -130,6 +131,7 @@ export default function AdminDashboard() {
           location: j.location,
           status: j.status,
           monthly_value: j.monthly_value,
+          payment_value: j.payment_value,
           assignmentCount: assignments.filter(a => a.harvest_job_id === j.id && a.status === "active").length,
         }));
 
@@ -206,6 +208,32 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
+            {/* Net Profit Highlight */}
+            {activeJobs.length > 0 && (
+              <div className="mb-8">
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="pt-6 pb-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <TrendingUp className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Lucro Líquido Mensal Ativo</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {formatCurrency(activeJobs.reduce((s, j) => s + (j.monthly_value - j.payment_value) * j.assignmentCount, 0))}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground hidden sm:block">
+                        Receita - Custos dos {activeJobs.reduce((s, j) => s + j.assignmentCount, 0)} veículo(s) ativo(s)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {/* Overview Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <Card className="border-border bg-card">
@@ -222,7 +250,7 @@ export default function AdminDashboard() {
               <Card className="border-border bg-card">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Motoristas</CardTitle>
-                  <Users className="h-4 w-4 text-green-500" />
+                  <Users className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalDrivers}</div>
@@ -247,7 +275,7 @@ export default function AdminDashboard() {
                 <Card className="border-border bg-card">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Candidaturas</CardTitle>
-                    <FileText className="h-4 w-4 text-yellow-500" />
+                    <FileText className="h-4 w-4 text-primary" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.pendingApplications}</div>
@@ -257,8 +285,8 @@ export default function AdminDashboard() {
               ) : (
                 <Card className="border-border bg-card">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Colheitas</CardTitle>
-                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Valor Bruto Mensal</CardTitle>
+                    <DollarSign className="h-4 w-4 text-primary" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
