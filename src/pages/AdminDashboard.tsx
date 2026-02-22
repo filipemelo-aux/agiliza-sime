@@ -467,39 +467,7 @@ export default function AdminDashboard() {
                     )}
                   </CardContent>
                 </Card>
-              ) : (
-                <Card className="border-border bg-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg font-display">Resumo de Serviços</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {activeJobs.length === 0 ? (
-                      <p className="text-muted-foreground text-sm text-center py-4">
-                        Nenhum serviço ativo no momento
-                      </p>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <span className="text-sm text-muted-foreground">Colheitas ativas</span>
-                          <span className="font-bold">{stats.activeHarvestJobs}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <span className="text-sm text-muted-foreground">Motoristas alocados</span>
-                          <span className="font-bold">
-                            {activeJobs.reduce((s, j) => s + j.assignmentCount, 0)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <span className="text-sm text-muted-foreground">Valor mensal total</span>
-                          <span className="font-bold text-primary">
-                            {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+              ) : null}
             </div>
           </>
         )}
