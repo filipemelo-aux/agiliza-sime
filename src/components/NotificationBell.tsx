@@ -26,9 +26,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     if (notification.data?.navigate_to) {
       navigate(notification.data.navigate_to);
     } else if (notification.type === 'loading_order') {
-      navigate('/my-applications');
+      navigate('/admin/applications');
     } else if (notification.type === 'application_rejected') {
-      navigate('/my-applications');
+      navigate('/admin/applications');
     } else if (notification.type === 'freight_application') {
       navigate('/admin/applications');
     }

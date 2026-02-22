@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Briefcase, Users, LogOut, Menu, Settings } from "lucide-react";
+import { LayoutDashboard, FileText, Briefcase, Users, LogOut, Menu, Settings, UserCircle } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ const menuItems = [
   { title: "Ordens", url: "/admin/applications", icon: FileText },
   { title: "Serviços", url: "/admin/services", icon: Briefcase },
   { title: "Cadastros", url: "/admin/drivers", icon: Users },
+  { title: "Meu Perfil", url: "/admin/profile", icon: UserCircle },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 

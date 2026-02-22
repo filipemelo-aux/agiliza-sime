@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 // Register page removed — admin handles all registrations
 import Profile from "./pages/Profile";
-import DriverDashboard from "./pages/DriverDashboard";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
@@ -16,7 +15,6 @@ import AdminHarvest from "./pages/AdminHarvest";
 import AdminServices from "./pages/AdminServices";
 import AdminSettings from "./pages/AdminSettings";
 import HarvestDetail from "./pages/HarvestDetail";
-import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -40,18 +38,19 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/register" element={<Navigate to="/admin" replace />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/driver" element={<DriverDashboard />} />
-            <Route path="/freights" element={<Index />} />
-            <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/profile" element={<Profile />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/drivers" element={<AdminDrivers />} />
             <Route path="/admin/services" element={<AdminServices />} />
             <Route path="/admin/harvest" element={<AdminHarvest />} />
             <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
-            {/* Redirects for removed standalone vehicle pages */}
+            <Route path="/freights" element={<Index />} />
+            {/* Redirects for removed pages */}
+            <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
+            <Route path="/driver" element={<Navigate to="/admin" replace />} />
+            <Route path="/my-applications" element={<Navigate to="/admin/applications" replace />} />
             <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
             <Route path="/add-vehicle" element={<Navigate to="/admin/drivers" replace />} />
             <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/drivers" replace />} />

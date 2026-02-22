@@ -67,7 +67,7 @@ export function UserAvatar({ userId, showName = false, size = "md" }: UserAvatar
   };
 
   return (
-    <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+    <Link to="/admin/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
       <Avatar className={sizeClasses[size]}>
         {profile?.avatar_url && (
           <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
