@@ -262,7 +262,7 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value, 0))}
+                      {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">valor mensal ativo</p>
                   </CardContent>
@@ -300,7 +300,7 @@ export default function AdminDashboard() {
                             <span className="text-muted-foreground flex items-center gap-1">
                               <Users className="h-3 w-3" /> {job.assignmentCount} motorista{job.assignmentCount !== 1 ? "s" : ""}
                             </span>
-                            <span className="font-medium text-primary">{formatCurrency(job.monthly_value)}/mês</span>
+                            <span className="font-medium text-primary">{formatCurrency(job.monthly_value * job.assignmentCount)}/mês</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -475,7 +475,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                           <span className="text-sm text-muted-foreground">Valor mensal total</span>
                           <span className="font-bold text-primary">
-                            {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value, 0))}
+                            {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
                           </span>
                         </div>
                       </div>
