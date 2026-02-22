@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye, UserCircle, Users as UsersIcon } from "lucide-react";
+import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -21,7 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { maskName } from "@/lib/masks";
-import { ProfileTab } from "@/components/ProfileTab";
 
 interface SystemUser {
   id: string;
@@ -199,6 +197,14 @@ export default function AdminSettings() {
     );
   });
 
+  if (!hasAccess) {
+    return (
+      <AdminLayout>
+        <div className="p-6 text-center text-muted-foreground">Acesso negado.</div>
+      </AdminLayout>
+    );
+  }
+
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "admin":
@@ -213,100 +219,78 @@ export default function AdminSettings() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Settings className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Configurações</h1>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Settings className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold">Configurações</h1>
+          </div>
+          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            Novo Usuário
+          </Button>
         </div>
 
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="profile" className="gap-2">
-              <UserCircle className="w-4 h-4" />
-              Meu Perfil
-            </TabsTrigger>
-            {hasAccess && (
-              <TabsTrigger value="users" className="gap-2">
-                <UsersIcon className="w-4 h-4" />
-                Usuários
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar usuários..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
-          <TabsContent value="profile" className="mt-6">
-            <ProfileTab />
-          </TabsContent>
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-muted-foreground">Usuários do Sistema</h2>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
+          ) : (
+            filtered.map((u) => {
+              const isTargetAdmin = u.roles.includes("admin");
+              const isTargetModerator = u.roles.includes("moderator");
+              const isSelf = u.id === user?.id;
+              const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
+              const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
 
-          {hasAccess && (
-            <TabsContent value="users" className="mt-6 space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="relative max-w-md flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar usuários..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-                  <UserPlus className="w-4 h-4" />
-                  Novo Usuário
-                </Button>
-              </div>
+              return (
+                <Card key={u.id} className="border border-border">
+                  <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold truncate">{u.profile_name || "Sem nome"}</span>
+                        {u.roles.map((r) => (
+                          <span key={r}>{getRoleBadge(r)}</span>
+                        ))}
+                        {isSelf && <Badge variant="outline" className="text-xs">Você</Badge>}
+                      </div>
+                      <span className="text-sm text-muted-foreground truncate">{u.email || "—"}</span>
+                    </div>
 
-              <div className="space-y-3">
-                {loading ? (
-                  <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                  </div>
-                ) : filtered.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
-                ) : (
-                  filtered.map((u) => {
-                    const isTargetAdmin = u.roles.includes("admin");
-                    const isTargetModerator = u.roles.includes("moderator");
-                    const isSelf = u.id === user?.id;
-                    const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
-                    const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
-
-                    return (
-                      <Card key={u.id} className="border border-border">
-                        <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
-                          <div className="flex flex-col gap-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold truncate">{u.profile_name || "Sem nome"}</span>
-                              {u.roles.map((r) => (
-                                <span key={r}>{getRoleBadge(r)}</span>
-                              ))}
-                              {isSelf && <Badge variant="outline" className="text-xs">Você</Badge>}
-                            </div>
-                            <span className="text-sm text-muted-foreground truncate">{u.email || "—"}</span>
-                          </div>
-
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => setViewUser(u)} title="Visualizar">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {canEdit && (
-                              <Button size="icon" variant="ghost" onClick={() => openEdit(u)} title="Editar">
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {canDelete && (
-                              <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </TabsContent>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setViewUser(u)} title="Visualizar">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(u)} title="Editar">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
-        </Tabs>
+        </div>
       </div>
 
       {/* Create User Dialog */}
