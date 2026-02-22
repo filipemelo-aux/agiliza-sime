@@ -208,32 +208,6 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            {/* Net Profit Highlight */}
-            {activeJobs.length > 0 && (
-              <div className="mb-8">
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardContent className="pt-6 pb-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Lucro Líquido Mensal Ativo</p>
-                          <p className="text-2xl font-bold text-primary">
-                            {formatCurrency(activeJobs.reduce((s, j) => s + (j.monthly_value - j.payment_value) * j.assignmentCount, 0))}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground hidden sm:block">
-                        Receita - Custos dos {activeJobs.reduce((s, j) => s + j.assignmentCount, 0)} veículo(s) ativo(s)
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
             {/* Overview Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <Card className="border-border bg-card">
@@ -283,18 +257,33 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-border bg-card">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Valor Bruto Mensal</CardTitle>
-                    <DollarSign className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">valor mensal ativo</p>
-                  </CardContent>
-                </Card>
+                <>
+                  <Card className="border-border bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Valor Bruto Mensal</CardTitle>
+                      <DollarSign className="h-4 w-4 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">valor mensal ativo</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Lucro Líquido Mensal</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-primary">
+                        {formatCurrency(activeJobs.reduce((s, j) => s + (j.monthly_value - j.payment_value) * j.assignmentCount, 0))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">receita - custos</p>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </div>
 
