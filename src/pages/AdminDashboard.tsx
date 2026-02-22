@@ -258,26 +258,26 @@ export default function AdminDashboard() {
                 </Card>
               ) : (
                 <>
-                  <Card className="border-border bg-card">
+                  <Card className="border-border bg-card overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">Valor Bruto Mensal</CardTitle>
-                      <DollarSign className="h-4 w-4 text-primary" />
+                      <DollarSign className="h-4 w-4 text-primary shrink-0" />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
+                    <CardContent className="min-w-0">
+                      <div className="text-base sm:text-2xl font-bold truncate">
                         {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">valor mensal ativo</p>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-primary/20 bg-primary/5">
+                  <Card className="border-primary/20 bg-primary/5 overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">Lucro Líquido Mensal</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <TrendingUp className="h-4 w-4 text-primary shrink-0" />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-primary">
+                    <CardContent className="min-w-0">
+                      <div className="text-base sm:text-2xl font-bold text-primary truncate">
                         {formatCurrency(activeJobs.reduce((s, j) => s + (j.monthly_value - j.payment_value) * j.assignmentCount, 0))}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">receita - custos</p>
