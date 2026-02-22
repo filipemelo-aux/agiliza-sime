@@ -12,7 +12,8 @@ export const unmaskCPF = (value: string): string => {
   return value.replace(/\D/g, "");
 };
 
-export const maskPhone = (value: string): string => {
+export const maskPhone = (value: string | null | undefined): string => {
+  if (!value) return "";
   const numbers = value.replace(/\D/g, "").slice(0, 11);
   if (numbers.length <= 10) {
     return numbers
