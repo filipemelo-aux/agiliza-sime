@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardStats {
   totalDrivers: number;
@@ -51,7 +52,9 @@ interface RecentApplication {
 
 export default function AdminDashboard() {
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [userName, setUserName] = useState("");
   const [stats, setStats] = useState<DashboardStats>({
     totalDrivers: 0,
     activeHarvestJobs: 0,
@@ -66,6 +69,13 @@ export default function AdminDashboard() {
   const [activeJobs, setActiveJobs] = useState<ActiveHarvestJob[]>([]);
   const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle()
+        .then(({ data }) => { if (data) setUserName(data.full_name.split(" ")[0]); });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -183,6 +193,9 @@ export default function AdminDashboard() {
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
+          {userName && (
+            <p className="text-lg text-muted-foreground mb-1">Olá, <span className="font-semibold text-foreground">{userName}</span>!</p>
+          )}
           <h1 className="text-3xl font-bold font-display">Painel Administrativo</h1>
           <p className="text-muted-foreground">Visão geral do sistema SIME TRANSPORTES</p>
         </div>
