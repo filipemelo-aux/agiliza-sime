@@ -152,7 +152,8 @@ export default function HarvestDetail() {
             a.vehicle_id ? supabase.from("vehicles").select("plate").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
 
-          const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+          const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+          const endDate = a.end_date ? (a.status === "active" ? new Date(Math.max(new Date(a.end_date + "T00:00:00").getTime(), today.getTime())) : new Date(a.end_date + "T00:00:00")) : today;
           const startDate = new Date(a.start_date + "T00:00:00");
           const daysWorked = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
@@ -489,11 +490,12 @@ export default function HarvestDetail() {
     const effectiveStart = filterStartDate
       ? new Date(Math.max(assignStart.getTime(), new Date(filterStartDate + "T00:00:00").getTime()))
       : assignStart;
+    const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
     const effectiveEnd = filterEndDate
       ? new Date(filterEndDate + "T00:00:00")
       : a.end_date
-        ? new Date(a.end_date + "T00:00:00")
-        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+        ? (a.status === "active" ? new Date(Math.max(new Date(a.end_date + "T00:00:00").getTime(), today.getTime())) : new Date(a.end_date + "T00:00:00"))
+        : today;
     if (effectiveEnd < effectiveStart) return 0;
     return Math.max(1, Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
