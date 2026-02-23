@@ -16,6 +16,7 @@ import AdminServices from "./pages/AdminServices";
 import AdminSettings from "./pages/AdminSettings";
 import HarvestDetail from "./pages/HarvestDetail";
 import NotFound from "./pages/NotFound";
+import { UpdateNotification } from "./components/UpdateNotification";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <UpdateNotification />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
