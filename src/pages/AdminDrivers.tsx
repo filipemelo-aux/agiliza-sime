@@ -99,8 +99,12 @@ export default function AdminDrivers() {
   const [viewPersonHarvests, setViewPersonHarvests] = useState<{ farm_name: string; client_name: string | null }[]>([]);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) navigate("/");
-  }, [isAdmin, roleLoading, navigate]);
+    // Only redirect after initial load, not on subsequent re-renders
+    if (!roleLoading && !isAdmin) {
+      const timer = setTimeout(() => navigate("/"), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [roleLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isAdmin) fetchAll();
