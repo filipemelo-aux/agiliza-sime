@@ -64,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUser = session?.user ?? null;
 
         if (newUser) {
-          if (event === 'SIGNED_IN' || newUser.id !== currentUserId) {
+          // Only re-fetch roles if user identity actually changed
+          if (newUser.id !== currentUserId) {
             currentUserId = newUser.id;
             setUser(newUser);
             setTimeout(() => {

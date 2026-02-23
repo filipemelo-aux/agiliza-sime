@@ -56,8 +56,8 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session?.user) {
-          // Defer to avoid blocking
+        // Only redirect on explicit sign-in, not on token refreshes
+        if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(() => {
             handleRedirectAfterAuth(session.user.id);
           }, 0);
