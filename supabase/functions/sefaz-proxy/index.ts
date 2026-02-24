@@ -42,7 +42,11 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 async function decryptPassword(encrypted: string): Promise<string> {
   const key = await getEncryptionKey();
   const [ivB64, ctB64] = encrypted.split(":");
-  if (!ivB64 || !ctB64) throw new Error("Invalid encrypted password format");
+  if (!ivB64 || !ctB64) {
+    // Fallback: password may be stored in plain text (legacy)
+    console.warn("[SEFAZ Proxy] Password not encrypted, using as plain text. Please re-encrypt.");
+    return encrypted;
+  }
   const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
   const ciphertext = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0));
   const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);

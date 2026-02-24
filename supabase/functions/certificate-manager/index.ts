@@ -264,6 +264,44 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Re-encrypt a plain-text password that was stored without encryption
+    if (action === "/re-encrypt" || action === "re-encrypt") {
+      const { certificate_id } = body;
+      if (!certificate_id) {
+        return json({ success: false, error: "certificate_id obrigatório" }, 400);
+      }
+
+      const { data: cert, error: certErr } = await serviceClient
+        .from("fiscal_certificates")
+        .select("id, nome, senha_criptografada")
+        .eq("id", certificate_id)
+        .single();
+
+      if (certErr || !cert) {
+        return json({ success: false, error: "Certificado não encontrado" }, 404);
+      }
+
+      // Check if already encrypted (contains ':')
+      if (cert.senha_criptografada.includes(":")) {
+        return json({ success: true, message: "Senha já está criptografada" });
+      }
+
+      // The stored value IS the plain-text password — encrypt it now
+      const encryptedPassword = await encryptPassword(cert.senha_criptografada);
+
+      const { error: updateErr } = await serviceClient
+        .from("fiscal_certificates")
+        .update({ senha_criptografada: encryptedPassword })
+        .eq("id", certificate_id);
+
+      if (updateErr) {
+        return json({ success: false, error: "Erro ao atualizar" }, 500);
+      }
+
+      console.log(`[certificate-manager] Re-encrypted password for cert "${cert.nome}" by user ${userId}`);
+      return json({ success: true, message: "Senha re-criptografada com sucesso" });
+    }
+
     return json({ success: false, error: "Ação não reconhecida" }, 404);
   } catch (e: any) {
     const msg = e.message || "Erro interno";
