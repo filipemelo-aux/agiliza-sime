@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { CargaSearchInput } from "./CargaSearchInput";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -848,6 +849,30 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* Carga */}
           <section className="space-y-3">
             <SectionHeader icon={Package} title="Carga" />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Buscar carga cadastrada</Label>
+              <CargaSearchInput
+                placeholder="Buscar carga por produto, remetente..."
+                onSelect={(carga) => {
+                  set("produto_predominante", carga.produto_predominante);
+                  set("peso_bruto", Number(carga.peso_bruto) || 0);
+                  set("valor_carga", Number(carga.valor_carga) || 0);
+                  if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
+                  if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
+                  // Auto-fill remetente/destinatário if empty
+                  if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
+                  if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
+                  if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
+                  if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
+                  if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
+                  if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
+                }}
+                onClear={() => {
+                  set("produto_predominante", "");
+                  set("peso_bruto", 0);
+                }}
+              />
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Produto Predominante</Label>
@@ -971,7 +996,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               <PersonSearchInput
                 categories={["motorista"]}
                 placeholder="Buscar motorista cadastrado..."
-                onSelect={(person) => set("motorista_id", person.user_id)}
+                onSelect={async (person) => {
+                  set("motorista_id", person.user_id);
+                  // Auto-fill vehicle if driver is linked to one
+                  try {
+                    const { data: vehicles } = await supabase
+                      .from("vehicles")
+                      .select("plate, antt_number")
+                      .eq("driver_id", person.id)
+                      .eq("is_active", true)
+                      .limit(1);
+                    if (vehicles && vehicles.length > 0) {
+                      set("placa_veiculo", maskPlate(vehicles[0].plate));
+                      if (vehicles[0].antt_number) set("rntrc", vehicles[0].antt_number);
+                    }
+                  } catch {}
+                }}
                 onClear={() => set("motorista_id", null)}
               />
             </div>

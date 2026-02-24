@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown, Package } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ const menuItems = [
     children: [
       { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
+      { title: "Cargas", url: "/admin/cargas", icon: Package },
     ],
   },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
