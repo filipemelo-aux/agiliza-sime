@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -224,10 +225,18 @@ export default function AdminSettings() {
             <Settings className="w-6 h-6 text-primary" />
             <h1 className="text-2xl font-bold">Configurações</h1>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-            <UserPlus className="w-4 h-4" />
-            Novo Usuário
-          </Button>
+          <div className="flex gap-2">
+            <Link to="/admin/freight/fiscal-settings">
+              <Button variant="outline" className="gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Config. Fiscais
+              </Button>
+            </Link>
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <UserPlus className="w-4 h-4" />
+              Novo Usuário
+            </Button>
+          </div>
         </div>
 
         <div className="relative max-w-md">

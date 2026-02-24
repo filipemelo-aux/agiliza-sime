@@ -248,7 +248,7 @@ export default function AdminDashboard() {
               {stats.totalFreights > 0 ? (
                 <Card className="border-border bg-card">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Candidaturas</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Ordens Pendentes</CardTitle>
                     <FileText className="h-4 w-4 text-primary" />
                   </CardHeader>
                   <CardContent>
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold font-display">Serviços em Execução</h2>
-                  <Link to="/admin/services">
+                  <Link to="/admin/harvest">
                     <Button variant="ghost" size="sm" className="text-muted-foreground">
                       Ver todos <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
@@ -379,11 +379,11 @@ export default function AdminDashboard() {
                   <CardTitle className="text-lg font-display">Ações Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Link to="/admin/services">
+                  <Link to="/admin/harvest">
                     <Button variant="outline" className="w-full justify-between">
                       <span className="flex items-center gap-2">
                         <Sprout className="h-4 w-4" />
-                        Gerenciar Serviços
+                        Gerenciar Colheita
                       </span>
                       <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
                         <Button variant="outline" className="w-full justify-between">
                           <span className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            Ver Candidaturas
+                            Ver Ordens de Carregamento
                             {stats.pendingApplications > 0 && (
                               <span className="bg-yellow-500 text-yellow-950 text-xs px-2 py-0.5 rounded-full">
                                 {stats.pendingApplications}
@@ -431,7 +431,7 @@ export default function AdminDashboard() {
               {stats.totalFreights > 0 ? (
                 <Card className="border-border bg-card">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-display">Candidaturas Recentes</CardTitle>
+                    <CardTitle className="text-lg font-display">Ordens Recentes</CardTitle>
                     <Link to="/admin/applications">
                       <Button variant="ghost" size="sm">Ver todas</Button>
                     </Link>
