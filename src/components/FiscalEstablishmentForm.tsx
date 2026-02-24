@@ -63,6 +63,8 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
   const [form, setForm] = useState(defaultForm);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCertId, setSelectedCertId] = useState<string>("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [cnpjError, setCnpjError] = useState("");
 
   // Load certificates
   useEffect(() => {
@@ -120,6 +122,36 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
   }, [establishment, open]);
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleCnpjLookup = useCallback(async (cnpjValue?: string) => {
+    const raw = unmaskCNPJ(cnpjValue || form.cnpj);
+    if (raw.length !== 14) return;
+    setCnpjLoading(true);
+    setCnpjError("");
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+      if (!res.ok) {
+        setCnpjError("CNPJ não encontrado");
+        return;
+      }
+      const data = await res.json();
+      setForm((p) => ({
+        ...p,
+        razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,
+        nome_fantasia: data.nome_fantasia ? maskName(data.nome_fantasia) : p.nome_fantasia,
+        endereco_logradouro: data.logradouro ? maskName(data.logradouro) : p.endereco_logradouro,
+        endereco_numero: data.numero || p.endereco_numero,
+        endereco_bairro: data.bairro ? maskName(data.bairro) : p.endereco_bairro,
+        endereco_municipio: data.municipio ? maskName(data.municipio) : p.endereco_municipio,
+        endereco_uf: data.uf || p.endereco_uf,
+        endereco_cep: data.cep ? maskCEP(data.cep.replace(/\D/g, "")) : p.endereco_cep,
+      }));
+    } catch {
+      setCnpjError("Erro ao consultar CNPJ");
+    } finally {
+      setCnpjLoading(false);
+    }
+  }, [form.cnpj]);
 
   const { lookupCep, loading: cepLoading, error: cepError } = useCepLookup(
     useCallback((data) => {
@@ -243,7 +275,22 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">CNPJ *</Label>
-              <Input value={form.cnpj} onChange={(e) => set("cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
+              <div className="relative">
+                <Input
+                  value={form.cnpj}
+                  onChange={(e) => {
+                    setCnpjError("");
+                    const masked = maskCNPJ(e.target.value);
+                    const raw = unmaskCNPJ(masked);
+                    set("cnpj", masked);
+                    if (raw.length === 14) handleCnpjLookup(masked);
+                  }}
+                  maxLength={18}
+                  placeholder="00.000.000/0000-00"
+                />
+                {cnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Inscrição Estadual</Label>

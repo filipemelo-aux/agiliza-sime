@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, DollarSign, Truck, FileText } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2 } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
@@ -94,6 +94,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [form, setForm] = useState(defaultForm);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
+  const [remetenteCnpjLoading, setRemetenteCnpjLoading] = useState(false);
+  const [remetenteCnpjError, setRemetenteCnpjError] = useState("");
+  const [destCnpjLoading, setDestCnpjLoading] = useState(false);
+  const [destCnpjError, setDestCnpjError] = useState("");
 
   // Load establishments
   useEffect(() => {
@@ -155,6 +159,31 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   }, [cte, open]);
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
+
+  const lookupCnpj = useCallback(async (raw: string, prefix: "remetente" | "destinatario") => {
+    const setLoading = prefix === "remetente" ? setRemetenteCnpjLoading : setDestCnpjLoading;
+    const setError = prefix === "remetente" ? setRemetenteCnpjError : setDestCnpjError;
+    if (raw.length !== 14) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+      if (!res.ok) { setError("CNPJ não encontrado"); return; }
+      const data = await res.json();
+      setForm((p) => ({
+        ...p,
+        [`${prefix}_nome`]: data.razao_social ? maskName(data.razao_social) : p[`${prefix}_nome` as keyof typeof p],
+        [`${prefix}_uf`]: data.uf || p[`${prefix}_uf` as keyof typeof p],
+        [`${prefix}_endereco`]: data.logradouro
+          ? `${maskName(data.logradouro)}${data.numero ? `, ${data.numero}` : ""}${data.bairro ? ` - ${maskName(data.bairro)}` : ""}`
+          : p[`${prefix}_endereco` as keyof typeof p],
+      }));
+    } catch {
+      setError("Erro ao consultar CNPJ");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Auto-calculate ICMS
   useEffect(() => {
@@ -252,7 +281,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">CNPJ / CPF</Label>
-                <Input value={form.remetente_cnpj} onChange={(e) => set("remetente_cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
+                <div className="relative">
+                  <Input
+                    value={form.remetente_cnpj}
+                    onChange={(e) => {
+                      setRemetenteCnpjError("");
+                      const masked = maskCNPJ(e.target.value);
+                      set("remetente_cnpj", masked);
+                      const raw = unmaskCNPJ(masked);
+                      if (raw.length === 14) lookupCnpj(raw, "remetente");
+                    }}
+                    maxLength={18}
+                    placeholder="00.000.000/0000-00"
+                  />
+                  {remetenteCnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                {remetenteCnpjError && <p className="text-xs text-destructive">{remetenteCnpjError}</p>}
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">Inscrição Estadual</Label>
@@ -288,7 +332,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">CNPJ / CPF</Label>
-                <Input value={form.destinatario_cnpj} onChange={(e) => set("destinatario_cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
+                <div className="relative">
+                  <Input
+                    value={form.destinatario_cnpj}
+                    onChange={(e) => {
+                      setDestCnpjError("");
+                      const masked = maskCNPJ(e.target.value);
+                      set("destinatario_cnpj", masked);
+                      const raw = unmaskCNPJ(masked);
+                      if (raw.length === 14) lookupCnpj(raw, "destinatario");
+                    }}
+                    maxLength={18}
+                    placeholder="00.000.000/0000-00"
+                  />
+                  {destCnpjLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                {destCnpjError && <p className="text-xs text-destructive">{destCnpjError}</p>}
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">Inscrição Estadual</Label>
