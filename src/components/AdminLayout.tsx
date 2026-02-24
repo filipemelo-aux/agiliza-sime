@@ -35,7 +35,7 @@ function SidebarNav() {
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return location.pathname === url;
     if (url === "/admin/services") {
-      return location.pathname.startsWith("/admin/services") || location.pathname.startsWith("/admin/harvest") || location.pathname === "/freights";
+      return location.pathname.startsWith("/admin/services") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/freight") || location.pathname === "/freights";
     }
     return location.pathname.startsWith(url);
   };
