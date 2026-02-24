@@ -5,8 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
-// Register page removed — admin handles all registrations
-// Profile page moved into AdminSettings
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
@@ -15,6 +13,10 @@ import AdminHarvest from "./pages/AdminHarvest";
 import AdminServices from "./pages/AdminServices";
 import AdminSettings from "./pages/AdminSettings";
 import HarvestDetail from "./pages/HarvestDetail";
+import FreightDashboard from "./pages/FreightDashboard";
+import FreightCte from "./pages/FreightCte";
+import FreightMdfe from "./pages/FreightMdfe";
+import FreightFiscalSettings from "./pages/FreightFiscalSettings";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 
@@ -23,7 +25,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       retry: 1,
     },
   },
@@ -48,6 +50,10 @@ const App = () => (
             <Route path="/admin/harvest" element={<AdminHarvest />} />
             <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/freight/dashboard" element={<FreightDashboard />} />
+            <Route path="/admin/freight/cte" element={<FreightCte />} />
+            <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
+            <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/freights" element={<Index />} />
             {/* Redirects for removed pages */}
             <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />

@@ -14,6 +14,181 @@ export type Database = {
   }
   public: {
     Tables: {
+      ctes: {
+        Row: {
+          aliquota_icms: number
+          base_calculo_icms: number
+          cfop: string
+          chave_acesso: string | null
+          created_at: string
+          created_by: string
+          cst_icms: string
+          data_autorizacao: string | null
+          data_emissao: string | null
+          destinatario_cnpj: string | null
+          destinatario_endereco: string | null
+          destinatario_ie: string | null
+          destinatario_municipio_ibge: string | null
+          destinatario_nome: string
+          destinatario_uf: string | null
+          id: string
+          motivo_rejeicao: string | null
+          motorista_id: string | null
+          municipio_destino_ibge: string | null
+          municipio_destino_nome: string | null
+          municipio_origem_ibge: string | null
+          municipio_origem_nome: string | null
+          natureza_operacao: string
+          numero: number | null
+          observacoes: string | null
+          peso_bruto: number | null
+          placa_veiculo: string | null
+          produto_predominante: string | null
+          protocolo_autorizacao: string | null
+          remetente_cnpj: string | null
+          remetente_endereco: string | null
+          remetente_ie: string | null
+          remetente_municipio_ibge: string | null
+          remetente_nome: string
+          remetente_uf: string | null
+          rntrc: string | null
+          serie: number
+          status: string
+          tomador_id: string | null
+          uf_destino: string | null
+          uf_origem: string | null
+          updated_at: string
+          valor_carga: number
+          valor_frete: number
+          valor_icms: number
+          veiculo_id: string | null
+          xml_autorizado: string | null
+          xml_enviado: string | null
+        }
+        Insert: {
+          aliquota_icms?: number
+          base_calculo_icms?: number
+          cfop?: string
+          chave_acesso?: string | null
+          created_at?: string
+          created_by: string
+          cst_icms?: string
+          data_autorizacao?: string | null
+          data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          destinatario_endereco?: string | null
+          destinatario_ie?: string | null
+          destinatario_municipio_ibge?: string | null
+          destinatario_nome: string
+          destinatario_uf?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          municipio_destino_ibge?: string | null
+          municipio_destino_nome?: string | null
+          municipio_origem_ibge?: string | null
+          municipio_origem_nome?: string | null
+          natureza_operacao?: string
+          numero?: number | null
+          observacoes?: string | null
+          peso_bruto?: number | null
+          placa_veiculo?: string | null
+          produto_predominante?: string | null
+          protocolo_autorizacao?: string | null
+          remetente_cnpj?: string | null
+          remetente_endereco?: string | null
+          remetente_ie?: string | null
+          remetente_municipio_ibge?: string | null
+          remetente_nome: string
+          remetente_uf?: string | null
+          rntrc?: string | null
+          serie?: number
+          status?: string
+          tomador_id?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+          valor_carga?: number
+          valor_frete?: number
+          valor_icms?: number
+          veiculo_id?: string | null
+          xml_autorizado?: string | null
+          xml_enviado?: string | null
+        }
+        Update: {
+          aliquota_icms?: number
+          base_calculo_icms?: number
+          cfop?: string
+          chave_acesso?: string | null
+          created_at?: string
+          created_by?: string
+          cst_icms?: string
+          data_autorizacao?: string | null
+          data_emissao?: string | null
+          destinatario_cnpj?: string | null
+          destinatario_endereco?: string | null
+          destinatario_ie?: string | null
+          destinatario_municipio_ibge?: string | null
+          destinatario_nome?: string
+          destinatario_uf?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string | null
+          municipio_destino_ibge?: string | null
+          municipio_destino_nome?: string | null
+          municipio_origem_ibge?: string | null
+          municipio_origem_nome?: string | null
+          natureza_operacao?: string
+          numero?: number | null
+          observacoes?: string | null
+          peso_bruto?: number | null
+          placa_veiculo?: string | null
+          produto_predominante?: string | null
+          protocolo_autorizacao?: string | null
+          remetente_cnpj?: string | null
+          remetente_endereco?: string | null
+          remetente_ie?: string | null
+          remetente_municipio_ibge?: string | null
+          remetente_nome?: string
+          remetente_uf?: string | null
+          rntrc?: string | null
+          serie?: number
+          status?: string
+          tomador_id?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+          valor_carga?: number
+          valor_frete?: number
+          valor_icms?: number
+          veiculo_id?: string | null
+          xml_autorizado?: string | null
+          xml_enviado?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ctes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_tomador_id_fkey"
+            columns: ["tomador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_documents: {
         Row: {
           cnh_category: string | null
@@ -67,6 +242,117 @@ export type Database = {
           created_at?: string
           id?: string
           service_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fiscal_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fiscal_settings: {
+        Row: {
+          ambiente: string
+          certificado_a1_path: string | null
+          cnpj: string
+          codigo_municipio_ibge: string | null
+          created_at: string
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_logradouro: string | null
+          endereco_municipio: string | null
+          endereco_numero: string | null
+          endereco_uf: string | null
+          id: string
+          inscricao_estadual: string
+          nome_fantasia: string | null
+          razao_social: string
+          regime_tributario: string
+          senha_certificado_encrypted: string | null
+          serie_cte: number
+          serie_mdfe: number
+          uf_emissao: string
+          ultimo_numero_cte: number
+          ultimo_numero_mdfe: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ambiente?: string
+          certificado_a1_path?: string | null
+          cnpj: string
+          codigo_municipio_ibge?: string | null
+          created_at?: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          id?: string
+          inscricao_estadual: string
+          nome_fantasia?: string | null
+          razao_social: string
+          regime_tributario?: string
+          senha_certificado_encrypted?: string | null
+          serie_cte?: number
+          serie_mdfe?: number
+          uf_emissao?: string
+          ultimo_numero_cte?: number
+          ultimo_numero_mdfe?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ambiente?: string
+          certificado_a1_path?: string | null
+          cnpj?: string
+          codigo_municipio_ibge?: string | null
+          created_at?: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          id?: string
+          inscricao_estadual?: string
+          nome_fantasia?: string | null
+          razao_social?: string
+          regime_tributario?: string
+          senha_certificado_encrypted?: string | null
+          serie_cte?: number
+          serie_mdfe?: number
+          uf_emissao?: string
+          ultimo_numero_cte?: number
+          ultimo_numero_mdfe?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -318,6 +604,102 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdfe: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string
+          created_by: string
+          data_autorizacao: string | null
+          data_emissao: string | null
+          data_encerramento: string | null
+          id: string
+          lista_ctes: string[] | null
+          motorista_id: string | null
+          municipio_carregamento_ibge: string | null
+          municipio_descarregamento_ibge: string | null
+          numero: number | null
+          placa_veiculo: string
+          protocolo_autorizacao: string | null
+          protocolo_encerramento: string | null
+          rntrc: string | null
+          serie: number
+          status: string
+          uf_carregamento: string | null
+          uf_descarregamento: string | null
+          updated_at: string
+          veiculo_id: string | null
+          xml_autorizado: string | null
+          xml_enviado: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string
+          created_by: string
+          data_autorizacao?: string | null
+          data_emissao?: string | null
+          data_encerramento?: string | null
+          id?: string
+          lista_ctes?: string[] | null
+          motorista_id?: string | null
+          municipio_carregamento_ibge?: string | null
+          municipio_descarregamento_ibge?: string | null
+          numero?: number | null
+          placa_veiculo: string
+          protocolo_autorizacao?: string | null
+          protocolo_encerramento?: string | null
+          rntrc?: string | null
+          serie?: number
+          status?: string
+          uf_carregamento?: string | null
+          uf_descarregamento?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+          xml_autorizado?: string | null
+          xml_enviado?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string
+          created_by?: string
+          data_autorizacao?: string | null
+          data_emissao?: string | null
+          data_encerramento?: string | null
+          id?: string
+          lista_ctes?: string[] | null
+          motorista_id?: string | null
+          municipio_carregamento_ibge?: string | null
+          municipio_descarregamento_ibge?: string | null
+          numero?: number | null
+          placa_veiculo?: string
+          protocolo_autorizacao?: string | null
+          protocolo_encerramento?: string | null
+          rntrc?: string | null
+          serie?: number
+          status?: string
+          uf_carregamento?: string | null
+          uf_descarregamento?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+          xml_autorizado?: string | null
+          xml_enviado?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdfe_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdfe_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -598,6 +980,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_cte_number: { Args: never; Returns: number }
+      next_mdfe_number: { Args: never; Returns: number }
       user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {
