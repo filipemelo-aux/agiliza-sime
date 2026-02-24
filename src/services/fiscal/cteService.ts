@@ -159,18 +159,20 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       throw new Error(`XML inválido: ${validationErrors.join(", ")}`);
     }
 
-    // 7. Assinar
+    // 7. Assinar (passa establishment_id para buscar certificado vinculado)
     const { signed_xml } = await signXml({
       xml,
       document_type: "cte",
       document_id: cte_id,
+      establishment_id: cte.establishment_id,
     });
 
-    // 7. Enviar à SEFAZ
+    // 8. Enviar à SEFAZ (passa establishment_id para ambiente/UF correto)
     const sefazResponse = await sendToSefaz({
       action: "autorizar_cte",
       signed_xml,
       document_id: cte_id,
+      establishment_id: cte.establishment_id,
     });
 
     // 8. Atualizar banco
@@ -235,9 +237,10 @@ export async function cancelarCte(
   chaveAcesso: string,
   protocolo: string,
   justificativa: string,
-  userId: string
+  userId: string,
+  establishmentId?: string
 ): Promise<SefazResponse> {
-  const response = await cancelarDocumento("cte", chaveAcesso, protocolo, justificativa);
+  const response = await cancelarDocumento("cte", chaveAcesso, protocolo, justificativa, establishmentId);
 
   if (response.success) {
     await supabase.from("ctes").update({ status: "cancelado" }).eq("id", cteId);
