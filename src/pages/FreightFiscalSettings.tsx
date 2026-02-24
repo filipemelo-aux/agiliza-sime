@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
+import { maskCNPJ, unmaskCNPJ, maskCEP, unmaskCEP, maskName, maskOnlyNumbers } from "@/lib/masks";
+import { useCepLookup } from "@/hooks/useCepLookup";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -56,7 +58,7 @@ export default function FreightFiscalSettings() {
       if (data) {
         setSettingsId(data.id);
         setForm({
-          cnpj: data.cnpj || "",
+          cnpj: data.cnpj ? maskCNPJ(data.cnpj) : "",
           inscricao_estadual: data.inscricao_estadual || "",
           razao_social: data.razao_social || "",
           nome_fantasia: data.nome_fantasia || "",
@@ -72,7 +74,7 @@ export default function FreightFiscalSettings() {
           endereco_bairro: data.endereco_bairro || "",
           endereco_municipio: data.endereco_municipio || "",
           endereco_uf: data.endereco_uf || "SP",
-          endereco_cep: data.endereco_cep || "",
+          endereco_cep: data.endereco_cep ? maskCEP(data.endereco_cep) : "",
           ambiente: data.ambiente || "homologacao",
         });
       }
@@ -87,7 +89,7 @@ export default function FreightFiscalSettings() {
     if (!user) return;
     setSaving(true);
     try {
-      const payload = { ...form, user_id: user.id };
+      const payload = { ...form, cnpj: unmaskCNPJ(form.cnpj) || form.cnpj, endereco_cep: unmaskCEP(form.endereco_cep) || form.endereco_cep, user_id: user.id };
       if (settingsId) {
         const { error } = await supabase
           .from("fiscal_settings")
@@ -112,6 +114,19 @@ export default function FreightFiscalSettings() {
   };
 
   const set = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
+
+  const { lookupCep, loading: cepLoading, error: cepError } = useCepLookup(
+    useCallback((data) => {
+      setForm((p) => ({
+        ...p,
+        endereco_logradouro: data.street || p.endereco_logradouro,
+        endereco_bairro: data.neighborhood || p.endereco_bairro,
+        endereco_municipio: data.city || p.endereco_municipio,
+        endereco_uf: data.state || p.endereco_uf,
+        endereco_cep: data.cep || p.endereco_cep,
+      }));
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -143,19 +158,19 @@ export default function FreightFiscalSettings() {
             <CardContent className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>CNPJ</Label>
-                <Input value={form.cnpj} onChange={(e) => set("cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+                <Input value={form.cnpj} onChange={(e) => set("cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
               </div>
               <div className="space-y-2">
                 <Label>Inscrição Estadual</Label>
-                <Input value={form.inscricao_estadual} onChange={(e) => set("inscricao_estadual", e.target.value)} />
+                <Input value={form.inscricao_estadual} onChange={(e) => set("inscricao_estadual", maskOnlyNumbers(e.target.value))} />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Razão Social</Label>
-                <Input value={form.razao_social} onChange={(e) => set("razao_social", e.target.value)} />
+                <Input value={form.razao_social} onChange={(e) => set("razao_social", maskName(e.target.value))} />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Nome Fantasia</Label>
-                <Input value={form.nome_fantasia} onChange={(e) => set("nome_fantasia", e.target.value)} />
+                <Input value={form.nome_fantasia} onChange={(e) => set("nome_fantasia", maskName(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>Regime Tributário</Label>
@@ -189,7 +204,7 @@ export default function FreightFiscalSettings() {
               </div>
               <div className="space-y-2">
                 <Label>Cód. Município IBGE</Label>
-                <Input value={form.codigo_municipio_ibge} onChange={(e) => set("codigo_municipio_ibge", e.target.value)} />
+                <Input value={form.codigo_municipio_ibge} onChange={(e) => set("codigo_municipio_ibge", maskOnlyNumbers(e.target.value))} maxLength={7} />
               </div>
             </CardContent>
           </Card>
@@ -198,21 +213,39 @@ export default function FreightFiscalSettings() {
           <Card className="border-border bg-card">
             <CardHeader><CardTitle className="font-display">Endereço</CardTitle></CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Logradouro</Label>
-                <Input value={form.endereco_logradouro} onChange={(e) => set("endereco_logradouro", e.target.value)} />
+              <div className="space-y-2">
+                <Label>CEP</Label>
+                <div className="relative">
+                  <Input
+                    value={form.endereco_cep}
+                    maxLength={9}
+                    onChange={(e) => {
+                      const masked = maskCEP(e.target.value);
+                      set("endereco_cep", masked);
+                      const raw = masked.replace(/\D/g, "");
+                      if (raw.length === 8) lookupCep(raw);
+                    }}
+                    placeholder="00000-000"
+                  />
+                  {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                {cepError && <p className="text-xs text-destructive">{cepError}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Número</Label>
                 <Input value={form.endereco_numero} onChange={(e) => set("endereco_numero", e.target.value)} />
               </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Logradouro</Label>
+                <Input value={form.endereco_logradouro} onChange={(e) => set("endereco_logradouro", maskName(e.target.value))} />
+              </div>
               <div className="space-y-2">
                 <Label>Bairro</Label>
-                <Input value={form.endereco_bairro} onChange={(e) => set("endereco_bairro", e.target.value)} />
+                <Input value={form.endereco_bairro} onChange={(e) => set("endereco_bairro", maskName(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>Município</Label>
-                <Input value={form.endereco_municipio} onChange={(e) => set("endereco_municipio", e.target.value)} />
+                <Input value={form.endereco_municipio} onChange={(e) => set("endereco_municipio", maskName(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>UF</Label>
@@ -222,10 +255,6 @@ export default function FreightFiscalSettings() {
                     {UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>CEP</Label>
-                <Input value={form.endereco_cep} onChange={(e) => set("endereco_cep", e.target.value)} />
               </div>
             </CardContent>
           </Card>

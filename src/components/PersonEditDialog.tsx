@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,21 +114,52 @@ const emptyForm: FormState = {
 };
 
 function AddressFields({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
+  const { lookupCep, loading: cepLoading, error: cepError } = useCepLookup(
+    useCallback((data) => {
+      setForm((p) => ({
+        ...p,
+        address_street: data.street || p.address_street,
+        address_neighborhood: data.neighborhood || p.address_neighborhood,
+        address_city: data.city || p.address_city,
+        address_state: data.state || p.address_state,
+        address_zip: data.cep || p.address_zip,
+      }));
+    }, [setForm])
+  );
+
   return (
     <>
       <Separator />
       <p className="text-sm font-medium text-muted-foreground">Endereço</p>
       <div className="grid grid-cols-3 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">CEP</Label>
+          <div className="relative">
+            <Input
+              value={form.address_zip}
+              maxLength={9}
+              onChange={(e) => {
+                const masked = maskCEP(e.target.value);
+                setForm((p) => ({ ...p, address_zip: masked }));
+                const raw = masked.replace(/\D/g, "");
+                if (raw.length === 8) lookupCep(raw);
+              }}
+              placeholder="00000-000"
+            />
+            {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
+          {cepError && <p className="text-xs text-destructive">{cepError}</p>}
+        </div>
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">Rua</Label>
           <Input value={form.address_street} onChange={(e) => setForm((p) => ({ ...p, address_street: maskName(e.target.value) }))} placeholder="Rua / Av." />
         </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Número</Label>
           <Input value={form.address_number} onChange={(e) => setForm((p) => ({ ...p, address_number: e.target.value }))} placeholder="Nº" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Complemento</Label>
           <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: maskName(e.target.value) }))} placeholder="Apto, Sala..." />
@@ -137,7 +169,7 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
           <Input value={form.address_neighborhood} onChange={(e) => setForm((p) => ({ ...p, address_neighborhood: maskName(e.target.value) }))} />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Cidade</Label>
           <Input value={form.address_city} onChange={(e) => setForm((p) => ({ ...p, address_city: maskName(e.target.value) }))} />
@@ -151,10 +183,6 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
               {STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">CEP</Label>
-          <Input value={form.address_zip} maxLength={9} onChange={(e) => setForm((p) => ({ ...p, address_zip: maskCEP(e.target.value) }))} placeholder="00000-000" />
         </div>
       </div>
     </>
@@ -675,7 +703,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
         <div className="space-y-1">
           <Label className="text-xs">E-mail</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" />
+          <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value.toLowerCase() }))} placeholder="email@exemplo.com" />
         </div>
       </div>
 
