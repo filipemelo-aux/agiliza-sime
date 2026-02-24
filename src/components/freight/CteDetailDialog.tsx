@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,8 +6,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Send, Loader2 } from "lucide-react";
 import { maskCNPJ } from "@/lib/masks";
+import { useToast } from "@/hooks/use-toast";
+import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
@@ -42,7 +48,29 @@ function Row({ label, value }: { label: string; value: string | number | null | 
   );
 }
 
-export function CteDetailDialog({ open, onOpenChange, cte }: Props) {
+export function CteDetailDialog({ open, onOpenChange, cte, onUpdated }: Props) {
+  const [transmitting, setTransmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleTransmit = async () => {
+    setTransmitting(true);
+    try {
+      const result = await emitirCteViaService(cte.id);
+      if (result.success) {
+        toast({ title: "CT-e transmitido", description: "O documento foi enviado para a SEFAZ com sucesso." });
+        onUpdated();
+        onOpenChange(false);
+      } else {
+        toast({ title: "Erro na transmissão", description: result.error || "Erro desconhecido", variant: "destructive" });
+        onUpdated();
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setTransmitting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -119,6 +147,29 @@ export function CteDetailDialog({ open, onOpenChange, cte }: Props) {
                 <h4 className="text-xs font-semibold text-destructive uppercase tracking-wider mb-1">Motivo da Rejeição</h4>
                 <p className="text-sm">{cte.motivo_rejeicao}</p>
               </div>
+            </>
+          )}
+
+          {cte.status === "rascunho" && (
+            <>
+              <Separator />
+              <Button
+                onClick={handleTransmit}
+                disabled={transmitting}
+                className="w-full gap-2"
+              >
+                {transmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Transmitindo...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Transmitir para SEFAZ
+                  </>
+                )}
+              </Button>
             </>
           )}
         </div>
