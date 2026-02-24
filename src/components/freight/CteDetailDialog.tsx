@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { maskCNPJ } from "@/lib/masks";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
@@ -58,7 +59,7 @@ export function CteDetailDialog({ open, onOpenChange, cte }: Props) {
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Remetente</h4>
             <Row label="Nome" value={cte.remetente_nome} />
-            <Row label="CNPJ" value={cte.remetente_cnpj} />
+            <Row label="CNPJ" value={cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : null} />
             <Row label="UF" value={cte.remetente_uf} />
           </div>
 
@@ -67,7 +68,7 @@ export function CteDetailDialog({ open, onOpenChange, cte }: Props) {
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Destinatário</h4>
             <Row label="Nome" value={cte.destinatario_nome} />
-            <Row label="CNPJ" value={cte.destinatario_cnpj} />
+            <Row label="CNPJ" value={cte.destinatario_cnpj ? maskCNPJ(cte.destinatario_cnpj) : null} />
             <Row label="UF" value={cte.destinatario_uf} />
           </div>
 
