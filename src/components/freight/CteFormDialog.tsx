@@ -165,6 +165,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const handleSave = async () => {
     if (!user) return;
+    if (!selectedEstId) {
+      toast({ title: "Campos obrigatórios", description: "Selecione o estabelecimento emissor.", variant: "destructive" });
+      return;
+    }
     if (!form.remetente_nome || !form.destinatario_nome) {
       toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
@@ -179,7 +183,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         placa_veiculo: unmaskPlate(form.placa_veiculo) || form.placa_veiculo,
         created_by: user.id,
         status: "rascunho",
-        establishment_id: selectedEstId || null,
+        establishment_id: selectedEstId,
       };
 
       if (cte) {
@@ -211,8 +215,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Emitente (Estabelecimento) */}
-          {establishments.length > 0 && (
-            <section className="space-y-3">
+          <section className="space-y-3">
               <SectionHeader icon={Building2} title="Emitente" />
               <div className="space-y-1.5">
                 <Label className="text-xs">Estabelecimento *</Label>
@@ -227,8 +230,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+              {establishments.length === 0 && (
+                <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+              )}
             </section>
-          )}
 
           {/* Remetente */}
           <section className="space-y-3">

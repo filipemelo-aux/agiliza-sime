@@ -20,10 +20,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskCNPJ, unmaskCNPJ, maskCEP, unmaskCEP, maskName, maskOnlyNumbers } from "@/lib/masks";
 import { useCepLookup } from "@/hooks/useCepLookup";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Establishment = Tables<"fiscal_establishments">;
+type Certificate = Tables<"fiscal_certificates">;
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -60,6 +61,35 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [selectedCertId, setSelectedCertId] = useState<string>("");
+
+  // Load certificates
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("fiscal_certificates")
+      .select("*")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => {
+        setCertificates(data || []);
+      });
+
+    // Load existing link
+    if (establishment) {
+      supabase
+        .from("establishment_certificates")
+        .select("certificate_id")
+        .eq("establishment_id", establishment.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setSelectedCertId(data?.certificate_id || "");
+        });
+    } else {
+      setSelectedCertId("");
+    }
+  }, [open, establishment]);
 
   useEffect(() => {
     if (establishment) {
@@ -117,20 +147,35 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
         endereco_cep: unmaskCEP(form.endereco_cep) || form.endereco_cep,
       };
 
+      let estId: string;
       if (establishment) {
         const { error } = await supabase
           .from("fiscal_establishments")
           .update(payload)
           .eq("id", establishment.id);
         if (error) throw error;
+        estId = establishment.id;
         toast({ title: "Estabelecimento atualizado" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("fiscal_establishments")
-          .insert(payload);
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        estId = data.id;
         toast({ title: "Estabelecimento criado" });
       }
+
+      // Manage certificate link
+      await supabase.from("establishment_certificates").delete().eq("establishment_id", estId);
+      if (selectedCertId) {
+        await supabase.from("establishment_certificates").insert({
+          establishment_id: estId,
+          certificate_id: selectedCertId,
+        });
+      }
+
       onSaved();
       onOpenChange(false);
     } catch (err: any) {
@@ -166,6 +211,24 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
               <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
               <Label className="text-xs">Ativo</Label>
             </div>
+          </div>
+
+          {/* Certificado Digital */}
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Certificado Digital
+            </Label>
+            <Select value={selectedCertId} onValueChange={setSelectedCertId}>
+              <SelectTrigger><SelectValue placeholder="Nenhum certificado vinculado" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum</SelectItem>
+                {certificates.map((cert) => (
+                  <SelectItem key={cert.id} value={cert.id}>
+                    {cert.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Dados */}
