@@ -411,32 +411,46 @@ export type Database = {
       fiscal_logs: {
         Row: {
           action: string
+          cnpj_emissor: string | null
           created_at: string
           details: Json | null
           entity_id: string | null
           entity_type: string
+          establishment_id: string | null
           id: string
           user_id: string
         }
         Insert: {
           action: string
+          cnpj_emissor?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
           entity_type: string
+          establishment_id?: string | null
           id?: string
           user_id: string
         }
         Update: {
           action?: string
+          cnpj_emissor?: string | null
           created_at?: string
           details?: Json | null
           entity_id?: string | null
           entity_type?: string
+          establishment_id?: string | null
           id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_logs_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fiscal_settings: {
         Row: {

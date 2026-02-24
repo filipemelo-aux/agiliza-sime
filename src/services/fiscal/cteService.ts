@@ -202,13 +202,15 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       entity_type: "cte",
       entity_id: cte_id,
       action: sefazResponse.success ? "autorizado" : "rejeitado",
+      establishment_id: cte.establishment_id,
+      cnpj_emissor: establishment.cnpj,
       details: {
         numero,
         chave_acesso: sefazResponse.chave_acesso,
         protocolo: sefazResponse.protocolo,
         motivo: sefazResponse.motivo_rejeicao,
       },
-    });
+    } as any);
 
     return {
       success: sefazResponse.success,
@@ -250,8 +252,9 @@ export async function cancelarCte(
       entity_type: "cte",
       entity_id: cteId,
       action: "cancelado",
+      establishment_id: establishmentId || null,
       details: { chave_acesso: chaveAcesso, justificativa },
-    });
+    } as any);
   }
 
   return response;
