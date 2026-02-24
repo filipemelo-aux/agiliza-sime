@@ -171,7 +171,7 @@ export default function FreightCte() {
                         currency: "BRL",
                       })}
                     </span>
-                    {cte.status === "rascunho" && (
+                    {(cte.status === "rascunho" || cte.status === "rejeitado") && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -204,6 +204,10 @@ export default function FreightCte() {
           onOpenChange={(open) => !open && setDetailCte(null)}
           cte={detailCte}
           onUpdated={fetchCtes}
+          onEdit={(cte) => {
+            setDetailCte(null);
+            handleEdit(cte);
+          }}
         />
       )}
     </AdminLayout>

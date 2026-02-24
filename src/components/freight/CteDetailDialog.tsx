@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Pencil } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
@@ -45,6 +45,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   cte: Cte;
   onUpdated: () => void;
+  onEdit?: (cte: Cte) => void;
 }
 
 const fmt = (v: number) =>
@@ -76,9 +77,10 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
   );
 }
 
-export function CteDetailDialog({ open, onOpenChange, cte, onUpdated }: Props) {
+export function CteDetailDialog({ open, onOpenChange, cte, onUpdated, onEdit }: Props) {
   const [transmitting, setTransmitting] = useState(false);
   const { toast } = useToast();
+  const canEdit = cte.status === "rascunho" || cte.status === "rejeitado";
 
   const handleTransmit = async () => {
     setTransmitting(true);
@@ -262,26 +264,43 @@ export function CteDetailDialog({ open, onOpenChange, cte, onUpdated }: Props) {
             </>
           )}
 
-          {cte.status === "rascunho" && (
+          {canEdit && (
             <>
               <Separator />
-              <Button
-                onClick={handleTransmit}
-                disabled={transmitting}
-                className="w-full gap-2"
-              >
-                {transmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Transmitindo...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Transmitir para SEFAZ
-                  </>
+              <div className="flex gap-2">
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onEdit(cte);
+                    }}
+                    className="flex-1 gap-2"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Editar CT-e
+                  </Button>
                 )}
-              </Button>
+                {cte.status === "rascunho" && (
+                  <Button
+                    onClick={handleTransmit}
+                    disabled={transmitting}
+                    className="flex-1 gap-2"
+                  >
+                    {transmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Transmitindo...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Transmitir para SEFAZ
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </div>
