@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
+import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,6 +127,7 @@ export default function FreightFiscalSettings() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8 max-w-3xl">
+        <BackButton to="/admin/services" label="Serviços" />
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold font-display">Configurações Fiscais</h1>
           <Button onClick={handleSave} disabled={saving} className="gap-2">
