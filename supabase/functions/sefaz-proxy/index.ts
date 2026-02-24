@@ -127,8 +127,15 @@ async function fetchCertificate(
   let password: string;
   try {
     password = await decryptPassword(encryptedPassword);
-  } catch {
-    throw new Error("Erro ao descriptografar senha do certificado");
+  } catch (decryptErr: any) {
+    console.error("[SEFAZ Proxy] Falha ao descriptografar senha:", {
+      error: decryptErr.message,
+      certPath,
+      encryptedPasswordLength: encryptedPassword?.length,
+      encryptedPasswordPreview: encryptedPassword?.substring(0, 20) + "...",
+      hasColon: encryptedPassword?.includes(":"),
+    });
+    throw new Error(`Erro ao descriptografar senha do certificado: ${decryptErr.message}`);
   }
 
   return { pfxBase64, password, cnpj: certCnpj };
