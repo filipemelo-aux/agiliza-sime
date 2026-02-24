@@ -256,6 +256,72 @@ export type Database = {
         }
         Relationships: []
       }
+      establishment_certificates: {
+        Row: {
+          certificate_id: string
+          created_at: string
+          establishment_id: string
+          id: string
+        }
+        Insert: {
+          certificate_id: string
+          created_at?: string
+          establishment_id: string
+          id?: string
+        }
+        Update: {
+          certificate_id?: string
+          created_at?: string
+          establishment_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_certificates_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_certificates_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_certificates: {
+        Row: {
+          ativo: boolean
+          caminho_storage: string
+          created_at: string
+          id: string
+          nome: string
+          senha_criptografada: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          caminho_storage: string
+          created_at?: string
+          id?: string
+          nome: string
+          senha_criptografada: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          caminho_storage?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          senha_criptografada?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fiscal_establishments: {
         Row: {
           active: boolean | null
