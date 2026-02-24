@@ -118,9 +118,36 @@ Deno.serve(async (req) => {
           })
           .eq("id", job.id);
 
+        // If this was a contingency job, mark for resend in normal mode
+        if (job.contingency_mode && job.contingency_mode !== "normal" && !job.requires_resend) {
+          await client
+            .from("fiscal_queue")
+            .update({ requires_resend: true })
+            .eq("id", job.id);
+        }
+
         results.push({ id: job.id, status: "completed" });
       } catch (err: any) {
+        const isSefazDown = isSefazOfflineErr(err.message);
         const canRetry = attempt < job.max_attempts && isRetryableError(err.message);
+
+        // Auto-detect SEFAZ offline → activate contingency
+        if (isSefazDown && job.establishment_id) {
+          await handleContingencyActivation(client, job, err.message);
+          // Re-queue with contingency mode
+          await client
+            .from("fiscal_queue")
+            .update({
+              status: "pending",
+              contingency_mode: await getEstablishmentContingency(client, job.establishment_id),
+              next_retry_at: new Date(Date.now() + 5000).toISOString(),
+              error_message: `SEFAZ offline detectado: ${err.message}`,
+            })
+            .eq("id", job.id);
+
+          results.push({ id: job.id, status: "contingency_activated" });
+          continue;
+        }
 
         await client
           .from("fiscal_queue")
@@ -152,6 +179,12 @@ Deno.serve(async (req) => {
         results.push({ id: job.id, status: canRetry ? "retry" : "failed", error: err.message });
       }
     }
+
+    // ── 4. Check for resendable jobs (contingency → normal) ────
+    await processResendQueue(client);
+
+    // ── 5. Check if contingency can be deactivated ───────────
+    await checkContingencyRecovery(client);
 
     return json({ success: true, processed: results.length, results });
   } catch (e: any) {
@@ -202,7 +235,7 @@ async function processCteEmit(job: any, client: any, attempt: number) {
     signed_xml: cte.xml_enviado || "<placeholder/>",
     establishment_id: job.establishment_id,
     document_id: job.entity_id,
-  });
+  }, job.contingency_mode);
   const responseTimeMs = Date.now() - startTime;
 
   if (sefazResult.success && sefazResult.status === "autorizado") {
@@ -281,7 +314,7 @@ async function processCteCancel(job: any, payload: any, client: any, attempt: nu
     justificativa: payload.justificativa,
     establishment_id: job.establishment_id,
     document_id: job.entity_id,
-  });
+  }, job.contingency_mode);
   const responseTimeMs = Date.now() - startTime;
 
   if (sefazResult.success) {
@@ -350,7 +383,7 @@ async function processMdfeEmit(job: any, client: any, attempt: number) {
     signed_xml: mdfe.xml_enviado || "<placeholder/>",
     establishment_id: job.establishment_id,
     document_id: job.entity_id,
-  });
+  }, job.contingency_mode);
   const responseTimeMs = Date.now() - startTime;
 
   if (sefazResult.success && sefazResult.status === "autorizado") {
@@ -417,7 +450,7 @@ async function processMdfeEncerrar(job: any, client: any, attempt: number) {
     protocolo: mdfe.protocolo_autorizacao,
     establishment_id: job.establishment_id,
     document_id: job.entity_id,
-  });
+  }, job.contingency_mode);
   const responseTimeMs = Date.now() - startTime;
 
   if (sefazResult.success) {
@@ -485,15 +518,19 @@ async function fetchEstablishment(client: any, id: string) {
   return data;
 }
 
-async function callSefazProxy(params: Record<string, unknown>) {
+async function callSefazProxy(params: Record<string, unknown>, contingencyMode?: string) {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/sefaz-proxy`;
+  const body = { ...params };
+  if (contingencyMode && contingencyMode !== "normal") {
+    body.contingency_mode = contingencyMode;
+  }
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
   return await res.json();
 }
@@ -554,4 +591,214 @@ function backoffMs(attempt: number): number {
 function isRetryableError(msg: string): boolean {
   const nonRetryable = ["não encontrado", "não está em rascunho", "desconhecido", "FORBIDDEN"];
   return !nonRetryable.some((s) => msg.toLowerCase().includes(s.toLowerCase()));
+}
+
+function isSefazOfflineErr(msg: string): boolean {
+  const patterns = [
+    "timeout", "timed out", "connection refused", "econnrefused",
+    "service unavailable", "503", "502", "504",
+    "serviço indisponível", "fora do ar", "cstat: 108", "cstat: 109",
+  ];
+  const lower = msg.toLowerCase();
+  return patterns.some((p) => lower.includes(p));
+}
+
+// ─── Contingency Management ─────────────────────────────────
+
+async function getEstablishmentContingency(client: any, establishmentId: string): Promise<string> {
+  const { data } = await client
+    .from("fiscal_establishments")
+    .select("contingency_mode, endereco_uf")
+    .eq("id", establishmentId)
+    .single();
+
+  if (data?.contingency_mode && data.contingency_mode !== "normal") {
+    return data.contingency_mode;
+  }
+
+  // Auto-determine SVC based on UF
+  const svcAnUfs = new Set(["SP", "MG", "MS", "MT", "PR"]);
+  const uf = (data?.endereco_uf || "SP").toUpperCase();
+  return svcAnUfs.has(uf) ? "svc_an" : "svc_rs";
+}
+
+async function handleContingencyActivation(client: any, job: any, errorMessage: string) {
+  const establishmentId = job.establishment_id;
+  if (!establishmentId) return;
+
+  // Check if already in contingency
+  const { data: est } = await client
+    .from("fiscal_establishments")
+    .select("contingency_mode, endereco_uf")
+    .eq("id", establishmentId)
+    .single();
+
+  if (est?.contingency_mode && est.contingency_mode !== "normal") {
+    return; // Already in contingency
+  }
+
+  const svcAnUfs = new Set(["SP", "MG", "MS", "MT", "PR"]);
+  const uf = (est?.endereco_uf || "SP").toUpperCase();
+  const newMode = svcAnUfs.has(uf) ? "svc_an" : "svc_rs";
+
+  // Activate contingency
+  await client
+    .from("fiscal_establishments")
+    .update({
+      contingency_mode: newMode,
+      contingency_activated_at: new Date().toISOString(),
+      contingency_justification: `Auto-detectado: ${errorMessage}`.substring(0, 500),
+    })
+    .eq("id", establishmentId);
+
+  // Count pending documents
+  const { count } = await client
+    .from("fiscal_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("establishment_id", establishmentId)
+    .in("status", ["pending", "processing"]);
+
+  // Record contingency event
+  await client.from("contingency_events").insert({
+    establishment_id: establishmentId,
+    event_type: "auto_detected",
+    previous_mode: "normal",
+    new_mode: newMode,
+    reason: "SEFAZ indisponível detectado automaticamente",
+    detected_error: errorMessage.substring(0, 1000),
+    documents_pending: count || 0,
+    created_by: job.created_by,
+  });
+
+  // Log
+  await logStructured(client, {
+    user_id: job.created_by,
+    entity_type: job.job_type.startsWith("cte") ? "cte" : "mdfe",
+    entity_id: job.entity_id,
+    action: "contingencia_ativada",
+    establishment_id: establishmentId,
+    details: {
+      new_mode: newMode,
+      detected_error: errorMessage.substring(0, 200),
+      documents_pending: count || 0,
+    },
+  });
+
+  console.log(`[Worker] Contingency activated for establishment ${establishmentId}: ${newMode}`);
+}
+
+/**
+ * Process jobs that were completed in contingency and need resending in normal mode.
+ */
+async function processResendQueue(client: any) {
+  const { data: resendJobs } = await client
+    .from("fiscal_queue")
+    .select("*")
+    .eq("status", "completed")
+    .eq("requires_resend", true)
+    .limit(3);
+
+  if (!resendJobs || resendJobs.length === 0) return;
+
+  for (const job of resendJobs) {
+    // Check if establishment is back to normal
+    const { data: est } = await client
+      .from("fiscal_establishments")
+      .select("contingency_mode")
+      .eq("id", job.establishment_id)
+      .single();
+
+    if (est?.contingency_mode && est.contingency_mode !== "normal") {
+      continue; // Still in contingency, skip
+    }
+
+    // Create a new job for resending in normal mode
+    await client.from("fiscal_queue").insert({
+      job_type: job.job_type,
+      entity_id: job.entity_id,
+      establishment_id: job.establishment_id,
+      payload: { ...job.payload, resend: true },
+      contingency_mode: "normal",
+      original_job_id: job.id,
+      created_by: job.created_by,
+    });
+
+    // Mark original as no longer requiring resend
+    await client
+      .from("fiscal_queue")
+      .update({ requires_resend: false })
+      .eq("id", job.id);
+
+    await logStructured(client, {
+      user_id: job.created_by,
+      entity_type: job.job_type.startsWith("cte") ? "cte" : "mdfe",
+      entity_id: job.entity_id,
+      action: "reenvio_enfileirado",
+      establishment_id: job.establishment_id,
+      details: { original_job_id: job.id, original_contingency_mode: job.contingency_mode },
+    });
+
+    console.log(`[Worker] Resend job created for ${job.entity_id} (original: ${job.id})`);
+  }
+}
+
+/**
+ * Check if SEFAZ is back online and deactivate contingency.
+ * Tries a status service call for each establishment in contingency.
+ */
+async function checkContingencyRecovery(client: any) {
+  const { data: establishments } = await client
+    .from("fiscal_establishments")
+    .select("id, contingency_mode, endereco_uf, ambiente")
+    .neq("contingency_mode", "normal")
+    .eq("active", true);
+
+  if (!establishments || establishments.length === 0) return;
+
+  for (const est of establishments) {
+    try {
+      // Try status service in normal mode to check if SEFAZ is back
+      const statusResult = await callSefazProxy(
+        {
+          action: est.endereco_uf ? "status_cte" : "status_cte",
+          establishment_id: est.id,
+        },
+        "normal" // Force normal mode for the check
+      );
+
+      if (statusResult.success || (statusResult.cStat && !["108", "109"].includes(statusResult.cStat))) {
+        // SEFAZ is back! Deactivate contingency
+        const previousMode = est.contingency_mode;
+
+        await client
+          .from("fiscal_establishments")
+          .update({
+            contingency_mode: "normal",
+            contingency_activated_at: null,
+            contingency_justification: null,
+          })
+          .eq("id", est.id);
+
+        // Count docs to resend
+        const { count } = await client
+          .from("fiscal_queue")
+          .select("id", { count: "exact", head: true })
+          .eq("establishment_id", est.id)
+          .eq("requires_resend", true);
+
+        await client.from("contingency_events").insert({
+          establishment_id: est.id,
+          event_type: "deactivated",
+          previous_mode: previousMode,
+          new_mode: "normal",
+          reason: "SEFAZ normalizado - detectado automaticamente",
+          documents_pending: count || 0,
+        });
+
+        console.log(`[Worker] Contingency deactivated for ${est.id}, ${count || 0} docs to resend`);
+      }
+    } catch {
+      // Still offline, keep contingency
+    }
+  }
 }

@@ -9,6 +9,7 @@
  */
 
 export type SefazAmbiente = "homologacao" | "producao";
+export type ContingencyMode = "normal" | "svc_an" | "svc_rs" | "offline";
 
 export interface SefazEndpoints {
   cteAutorizacao: string;
@@ -214,6 +215,64 @@ const ENDPOINTS_PROD: Record<string, SefazEndpoints> = {
   SE: SVRS_PROD, TO: SVRS_PROD,
 };
 
+// ── SVC (Serviço Virtual de Contingência) ────────────────────
+
+const SVC_AN_HOMOLOG: SefazEndpoints = {
+  cteAutorizacao: "https://cte-homologacao.svc.fazenda.gov.br/ws/cterecepcao/CTeRecepcao.asmx",
+  cteConsulta: "https://cte-homologacao.svc.fazenda.gov.br/ws/cteconsulta/CTeConsulta.asmx",
+  cteEvento: "https://cte-homologacao.svc.fazenda.gov.br/ws/cterecepcaoevento/CTeRecepcaoEvento.asmx",
+  cteStatusServico: "https://cte-homologacao.svc.fazenda.gov.br/ws/ctestatusservico/CTeStatusServico.asmx",
+  mdfeAutorizacao: SVRS_HOMOLOG.mdfeAutorizacao,
+  mdfeConsulta: SVRS_HOMOLOG.mdfeConsulta,
+  mdfeEvento: SVRS_HOMOLOG.mdfeEvento,
+  mdfeStatusServico: SVRS_HOMOLOG.mdfeStatusServico,
+  mdfeEncerramento: SVRS_HOMOLOG.mdfeEncerramento,
+  mdfeDistribuicao: SVRS_HOMOLOG.mdfeDistribuicao,
+};
+
+const SVC_RS_HOMOLOG: SefazEndpoints = {
+  cteAutorizacao: "https://cte-homologacao.svrs.rs.gov.br/ws/cterecepcao/CTeRecepcao.asmx",
+  cteConsulta: "https://cte-homologacao.svrs.rs.gov.br/ws/cteconsulta/CTeConsulta.asmx",
+  cteEvento: "https://cte-homologacao.svrs.rs.gov.br/ws/cterecepcaoevento/CTeRecepcaoEvento.asmx",
+  cteStatusServico: "https://cte-homologacao.svrs.rs.gov.br/ws/ctestatusservico/CTeStatusServico.asmx",
+  mdfeAutorizacao: SVRS_HOMOLOG.mdfeAutorizacao,
+  mdfeConsulta: SVRS_HOMOLOG.mdfeConsulta,
+  mdfeEvento: SVRS_HOMOLOG.mdfeEvento,
+  mdfeStatusServico: SVRS_HOMOLOG.mdfeStatusServico,
+  mdfeEncerramento: SVRS_HOMOLOG.mdfeEncerramento,
+  mdfeDistribuicao: SVRS_HOMOLOG.mdfeDistribuicao,
+};
+
+const SVC_AN_PROD: SefazEndpoints = {
+  cteAutorizacao: "https://cte.svc.fazenda.gov.br/ws/cterecepcao/CTeRecepcao.asmx",
+  cteConsulta: "https://cte.svc.fazenda.gov.br/ws/cteconsulta/CTeConsulta.asmx",
+  cteEvento: "https://cte.svc.fazenda.gov.br/ws/cterecepcaoevento/CTeRecepcaoEvento.asmx",
+  cteStatusServico: "https://cte.svc.fazenda.gov.br/ws/ctestatusservico/CTeStatusServico.asmx",
+  mdfeAutorizacao: SVRS_PROD.mdfeAutorizacao,
+  mdfeConsulta: SVRS_PROD.mdfeConsulta,
+  mdfeEvento: SVRS_PROD.mdfeEvento,
+  mdfeStatusServico: SVRS_PROD.mdfeStatusServico,
+  mdfeEncerramento: SVRS_PROD.mdfeEncerramento,
+  mdfeDistribuicao: SVRS_PROD.mdfeDistribuicao,
+};
+
+const SVC_RS_PROD: SefazEndpoints = {
+  cteAutorizacao: "https://cte.svrs.rs.gov.br/ws/cterecepcao/CTeRecepcao.asmx",
+  cteConsulta: "https://cte.svrs.rs.gov.br/ws/cteconsulta/CTeConsulta.asmx",
+  cteEvento: "https://cte.svrs.rs.gov.br/ws/cterecepcaoevento/CTeRecepcaoEvento.asmx",
+  cteStatusServico: "https://cte.svrs.rs.gov.br/ws/ctestatusservico/CTeStatusServico.asmx",
+  mdfeAutorizacao: SVRS_PROD.mdfeAutorizacao,
+  mdfeConsulta: SVRS_PROD.mdfeConsulta,
+  mdfeEvento: SVRS_PROD.mdfeEvento,
+  mdfeStatusServico: SVRS_PROD.mdfeStatusServico,
+  mdfeEncerramento: SVRS_PROD.mdfeEncerramento,
+  mdfeDistribuicao: SVRS_PROD.mdfeDistribuicao,
+};
+
+// UFs that use SVC-AN (Ambiente Nacional) as contingency
+const UFS_SVC_AN = new Set(["SP", "MG", "MS", "MT", "PR"]);
+// All others use SVC-RS
+
 // ── Código IBGE da UF ────────────────────────────────────────
 
 export const UF_CODIGO_IBGE: Record<string, string> = {
@@ -227,13 +286,27 @@ export const UF_CODIGO_IBGE: Record<string, string> = {
 // ── Public API ───────────────────────────────────────────────
 
 /**
- * Resolve os endpoints SEFAZ para uma UF e ambiente.
- * Fallback para SVRS se a UF não tiver endpoints dedicados.
+ * Resolve os endpoints SEFAZ para uma UF, ambiente e modo de contingência.
  */
-export function getSefazEndpoints(uf: string, ambiente: SefazAmbiente): SefazEndpoints {
+export function getSefazEndpoints(
+  uf: string,
+  ambiente: SefazAmbiente,
+  contingency: ContingencyMode = "normal"
+): SefazEndpoints {
   const upperUf = uf.toUpperCase();
-  const map = ambiente === "producao" ? ENDPOINTS_PROD : ENDPOINTS_HOMOLOG;
-  const fallback = ambiente === "producao" ? SVRS_PROD : SVRS_HOMOLOG;
+  const isProd = ambiente === "producao";
+
+  // Contingência SVC
+  if (contingency === "svc_an") {
+    return isProd ? SVC_AN_PROD : SVC_AN_HOMOLOG;
+  }
+  if (contingency === "svc_rs") {
+    return isProd ? SVC_RS_PROD : SVC_RS_HOMOLOG;
+  }
+
+  // Normal
+  const map = isProd ? ENDPOINTS_PROD : ENDPOINTS_HOMOLOG;
+  const fallback = isProd ? SVRS_PROD : SVRS_HOMOLOG;
   return map[upperUf] || fallback;
 }
 
@@ -243,9 +316,10 @@ export function getSefazEndpoints(uf: string, ambiente: SefazAmbiente): SefazEnd
 export function getSefazUrl(
   uf: string,
   ambiente: SefazAmbiente,
-  action: string
+  action: string,
+  contingency: ContingencyMode = "normal"
 ): string {
-  const endpoints = getSefazEndpoints(uf, ambiente);
+  const endpoints = getSefazEndpoints(uf, ambiente, contingency);
 
   const actionMap: Record<string, keyof SefazEndpoints> = {
     autorizar_cte: "cteAutorizacao",
@@ -273,4 +347,29 @@ export function getSefazUrl(
  */
 export function getTpAmb(ambiente: SefazAmbiente): string {
   return ambiente === "producao" ? "1" : "2";
+}
+
+/**
+ * Determines which SVC to use for a given UF.
+ */
+export function getDefaultSvcMode(uf: string): ContingencyMode {
+  return UFS_SVC_AN.has(uf.toUpperCase()) ? "svc_an" : "svc_rs";
+}
+
+/**
+ * Checks if a SEFAZ error indicates the service is offline/unavailable.
+ */
+export function isSefazOfflineError(cStat: string, errorMessage?: string): boolean {
+  const offlineCodes = new Set(["108", "109", "999"]);
+  if (offlineCodes.has(cStat)) return true;
+  if (errorMessage) {
+    const offlinePatterns = [
+      "timeout", "timed out", "connection refused", "ECONNREFUSED",
+      "service unavailable", "503", "502", "504",
+      "serviço indisponível", "fora do ar",
+    ];
+    const lower = errorMessage.toLowerCase();
+    return offlinePatterns.some((p) => lower.includes(p));
+  }
+  return false;
 }
