@@ -73,6 +73,8 @@ export type Database = {
           base_calculo_icms: number
           cfop: string
           chave_acesso: string | null
+          chaves_nfe_ref: string[] | null
+          componentes_frete: Json | null
           created_at: string
           created_by: string
           cst_icms: string
@@ -85,11 +87,22 @@ export type Database = {
           destinatario_nome: string
           destinatario_uf: string | null
           establishment_id: string
+          expedidor_cnpj: string | null
+          expedidor_endereco: string | null
+          expedidor_ie: string | null
+          expedidor_municipio_ibge: string | null
+          expedidor_nome: string | null
+          expedidor_uf: string | null
           id: string
+          ind_ie_toma: number | null
+          info_quantidade: Json | null
+          modal: string | null
           motivo_rejeicao: string | null
           motorista_id: string | null
           municipio_destino_ibge: string | null
           municipio_destino_nome: string | null
+          municipio_envio_ibge: string | null
+          municipio_envio_nome: string | null
           municipio_origem_ibge: string | null
           municipio_origem_nome: string | null
           natureza_operacao: string
@@ -99,22 +112,42 @@ export type Database = {
           placa_veiculo: string | null
           produto_predominante: string | null
           protocolo_autorizacao: string | null
+          recebedor_cnpj: string | null
+          recebedor_endereco: string | null
+          recebedor_ie: string | null
+          recebedor_municipio_ibge: string | null
+          recebedor_nome: string | null
+          recebedor_uf: string | null
           remetente_cnpj: string | null
           remetente_endereco: string | null
           remetente_ie: string | null
           remetente_municipio_ibge: string | null
           remetente_nome: string
           remetente_uf: string | null
+          retira: number | null
           rntrc: string | null
           serie: number
           status: string
+          tomador_cnpj: string | null
+          tomador_endereco: string | null
           tomador_id: string | null
+          tomador_ie: string | null
+          tomador_municipio_ibge: string | null
+          tomador_nome: string | null
+          tomador_tipo: number | null
+          tomador_uf: string | null
+          tp_cte: number | null
+          tp_serv: number | null
           uf_destino: string | null
+          uf_envio: string | null
           uf_origem: string | null
           updated_at: string
           valor_carga: number
+          valor_carga_averb: number | null
           valor_frete: number
           valor_icms: number
+          valor_receber: number | null
+          valor_total_tributos: number | null
           veiculo_id: string | null
           xml_autorizado: string | null
           xml_enviado: string | null
@@ -124,6 +157,8 @@ export type Database = {
           base_calculo_icms?: number
           cfop?: string
           chave_acesso?: string | null
+          chaves_nfe_ref?: string[] | null
+          componentes_frete?: Json | null
           created_at?: string
           created_by: string
           cst_icms?: string
@@ -136,11 +171,22 @@ export type Database = {
           destinatario_nome: string
           destinatario_uf?: string | null
           establishment_id: string
+          expedidor_cnpj?: string | null
+          expedidor_endereco?: string | null
+          expedidor_ie?: string | null
+          expedidor_municipio_ibge?: string | null
+          expedidor_nome?: string | null
+          expedidor_uf?: string | null
           id?: string
+          ind_ie_toma?: number | null
+          info_quantidade?: Json | null
+          modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
           municipio_destino_ibge?: string | null
           municipio_destino_nome?: string | null
+          municipio_envio_ibge?: string | null
+          municipio_envio_nome?: string | null
           municipio_origem_ibge?: string | null
           municipio_origem_nome?: string | null
           natureza_operacao?: string
@@ -150,22 +196,42 @@ export type Database = {
           placa_veiculo?: string | null
           produto_predominante?: string | null
           protocolo_autorizacao?: string | null
+          recebedor_cnpj?: string | null
+          recebedor_endereco?: string | null
+          recebedor_ie?: string | null
+          recebedor_municipio_ibge?: string | null
+          recebedor_nome?: string | null
+          recebedor_uf?: string | null
           remetente_cnpj?: string | null
           remetente_endereco?: string | null
           remetente_ie?: string | null
           remetente_municipio_ibge?: string | null
           remetente_nome: string
           remetente_uf?: string | null
+          retira?: number | null
           rntrc?: string | null
           serie?: number
           status?: string
+          tomador_cnpj?: string | null
+          tomador_endereco?: string | null
           tomador_id?: string | null
+          tomador_ie?: string | null
+          tomador_municipio_ibge?: string | null
+          tomador_nome?: string | null
+          tomador_tipo?: number | null
+          tomador_uf?: string | null
+          tp_cte?: number | null
+          tp_serv?: number | null
           uf_destino?: string | null
+          uf_envio?: string | null
           uf_origem?: string | null
           updated_at?: string
           valor_carga?: number
+          valor_carga_averb?: number | null
           valor_frete?: number
           valor_icms?: number
+          valor_receber?: number | null
+          valor_total_tributos?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
           xml_enviado?: string | null
@@ -175,6 +241,8 @@ export type Database = {
           base_calculo_icms?: number
           cfop?: string
           chave_acesso?: string | null
+          chaves_nfe_ref?: string[] | null
+          componentes_frete?: Json | null
           created_at?: string
           created_by?: string
           cst_icms?: string
@@ -187,11 +255,22 @@ export type Database = {
           destinatario_nome?: string
           destinatario_uf?: string | null
           establishment_id?: string
+          expedidor_cnpj?: string | null
+          expedidor_endereco?: string | null
+          expedidor_ie?: string | null
+          expedidor_municipio_ibge?: string | null
+          expedidor_nome?: string | null
+          expedidor_uf?: string | null
           id?: string
+          ind_ie_toma?: number | null
+          info_quantidade?: Json | null
+          modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
           municipio_destino_ibge?: string | null
           municipio_destino_nome?: string | null
+          municipio_envio_ibge?: string | null
+          municipio_envio_nome?: string | null
           municipio_origem_ibge?: string | null
           municipio_origem_nome?: string | null
           natureza_operacao?: string
@@ -201,22 +280,42 @@ export type Database = {
           placa_veiculo?: string | null
           produto_predominante?: string | null
           protocolo_autorizacao?: string | null
+          recebedor_cnpj?: string | null
+          recebedor_endereco?: string | null
+          recebedor_ie?: string | null
+          recebedor_municipio_ibge?: string | null
+          recebedor_nome?: string | null
+          recebedor_uf?: string | null
           remetente_cnpj?: string | null
           remetente_endereco?: string | null
           remetente_ie?: string | null
           remetente_municipio_ibge?: string | null
           remetente_nome?: string
           remetente_uf?: string | null
+          retira?: number | null
           rntrc?: string | null
           serie?: number
           status?: string
+          tomador_cnpj?: string | null
+          tomador_endereco?: string | null
           tomador_id?: string | null
+          tomador_ie?: string | null
+          tomador_municipio_ibge?: string | null
+          tomador_nome?: string | null
+          tomador_tipo?: number | null
+          tomador_uf?: string | null
+          tp_cte?: number | null
+          tp_serv?: number | null
           uf_destino?: string | null
+          uf_envio?: string | null
           uf_origem?: string | null
           updated_at?: string
           valor_carga?: number
+          valor_carga_averb?: number | null
           valor_frete?: number
           valor_icms?: number
+          valor_receber?: number | null
+          valor_total_tributos?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
           xml_enviado?: string | null
