@@ -790,7 +790,7 @@ export type Database = {
           data_autorizacao: string | null
           data_emissao: string | null
           data_encerramento: string | null
-          establishment_id: string | null
+          establishment_id: string
           id: string
           lista_ctes: string[] | null
           motorista_id: string | null
@@ -817,7 +817,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
-          establishment_id?: string | null
+          establishment_id: string
           id?: string
           lista_ctes?: string[] | null
           motorista_id?: string | null
@@ -844,7 +844,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
-          establishment_id?: string | null
+          establishment_id?: string
           id?: string
           lista_ctes?: string[] | null
           motorista_id?: string | null
