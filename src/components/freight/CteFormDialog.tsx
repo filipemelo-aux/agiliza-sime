@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -16,10 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { MapPin, Building2, DollarSign, Truck, FileText } from "lucide-react";
 import type { Cte } from "@/pages/FreightCte";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -71,6 +73,15 @@ const defaultForm = {
   peso_bruto: 0,
   observacoes: "",
 };
+
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pb-1">
+      <Icon className="w-4 h-4 text-primary" />
+      <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">{title}</h3>
+    </div>
+  );
+}
 
 export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
@@ -161,202 +172,232 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="font-display">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+          <SheetTitle className="font-display text-xl">
             {cte ? "Editar CT-e" : "Novo CT-e (Rascunho)"}
-          </DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[75vh] px-6 pb-6">
-          <div className="space-y-6 pt-4">
-            {/* Remetente */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Remetente</legend>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Nome / Razão Social *</Label>
-                  <Input value={form.remetente_nome} onChange={(e) => set("remetente_nome", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>CNPJ/CPF</Label>
-                  <Input value={form.remetente_cnpj} onChange={(e) => set("remetente_cnpj", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>IE</Label>
-                  <Input value={form.remetente_ie} onChange={(e) => set("remetente_ie", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF</Label>
-                  <Select value={form.remetente_uf || undefined} onValueChange={(v) => set("remetente_uf", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Cód. Município IBGE</Label>
-                  <Input value={form.remetente_municipio_ibge} onChange={(e) => set("remetente_municipio_ibge", e.target.value)} />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Endereço</Label>
-                  <Input value={form.remetente_endereco} onChange={(e) => set("remetente_endereco", e.target.value)} />
-                </div>
-              </div>
-            </fieldset>
+          </SheetTitle>
+        </SheetHeader>
 
-            {/* Destinatário */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Destinatário</legend>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Nome / Razão Social *</Label>
-                  <Input value={form.destinatario_nome} onChange={(e) => set("destinatario_nome", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>CNPJ/CPF</Label>
-                  <Input value={form.destinatario_cnpj} onChange={(e) => set("destinatario_cnpj", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>IE</Label>
-                  <Input value={form.destinatario_ie} onChange={(e) => set("destinatario_ie", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF</Label>
-                  <Select value={form.destinatario_uf || undefined} onValueChange={(v) => set("destinatario_uf", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Cód. Município IBGE</Label>
-                  <Input value={form.destinatario_municipio_ibge} onChange={(e) => set("destinatario_municipio_ibge", e.target.value)} />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Endereço</Label>
-                  <Input value={form.destinatario_endereco} onChange={(e) => set("destinatario_endereco", e.target.value)} />
-                </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {/* Remetente */}
+          <section className="space-y-3">
+            <SectionHeader icon={Building2} title="Remetente" />
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
+              <div className="sm:col-span-4 space-y-1.5">
+                <Label className="text-xs">Nome / Razão Social *</Label>
+                <Input value={form.remetente_nome} onChange={(e) => set("remetente_nome", e.target.value)} placeholder="Nome completo ou razão social" />
               </div>
-            </fieldset>
-
-            {/* Prestação */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Prestação</legend>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Município Origem</Label>
-                  <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>IBGE Origem</Label>
-                  <Input value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF Origem</Label>
-                  <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Município Destino</Label>
-                  <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>IBGE Destino</Label>
-                  <Input value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF Destino</Label>
-                  <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">UF</Label>
+                <Select value={form.remetente_uf || undefined} onValueChange={(v) => set("remetente_uf", v)}>
+                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                  <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
-            </fieldset>
-
-            {/* Valores */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Valores e Tributos</legend>
-              <div className="grid sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Valor Frete (R$)</Label>
-                  <Input type="number" step="0.01" value={form.valor_frete} onChange={(e) => set("valor_frete", Number(e.target.value))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Valor Carga (R$)</Label>
-                  <Input type="number" step="0.01" value={form.valor_carga} onChange={(e) => set("valor_carga", Number(e.target.value))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Alíquota ICMS (%)</Label>
-                  <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Base Cálculo ICMS</Label>
-                  <Input type="number" value={form.base_calculo_icms} disabled className="bg-muted" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Valor ICMS</Label>
-                  <Input type="number" value={form.valor_icms} disabled className="bg-muted" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>CST ICMS</Label>
-                  <Input value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
-                </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">CNPJ / CPF</Label>
+                <Input value={form.remetente_cnpj} onChange={(e) => set("remetente_cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
               </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>CFOP</Label>
-                  <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Natureza da Operação</Label>
-                  <Input value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
-                </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Inscrição Estadual</Label>
+                <Input value={form.remetente_ie} onChange={(e) => set("remetente_ie", e.target.value)} placeholder="IE" />
               </div>
-            </fieldset>
-
-            {/* Transporte */}
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Transporte</legend>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Placa do Veículo</Label>
-                  <Input value={form.placa_veiculo} onChange={(e) => set("placa_veiculo", e.target.value.toUpperCase())} maxLength={7} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>RNTRC</Label>
-                  <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Produto Predominante</Label>
-                  <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Peso Bruto (kg)</Label>
-                  <Input type="number" step="0.01" value={form.peso_bruto} onChange={(e) => set("peso_bruto", Number(e.target.value))} />
-                </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Cód. Município IBGE</Label>
+                <Input value={form.remetente_municipio_ibge} onChange={(e) => set("remetente_municipio_ibge", e.target.value)} placeholder="0000000" />
               </div>
-            </fieldset>
-
-            {/* Observações */}
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} />
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Endereço</Label>
+                <Input value={form.remetente_endereco} onChange={(e) => set("remetente_endereco", e.target.value)} placeholder="Logradouro, nº, bairro" />
+              </div>
             </div>
+          </section>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
-              </Button>
+          <Separator />
+
+          {/* Destinatário */}
+          <section className="space-y-3">
+            <SectionHeader icon={Building2} title="Destinatário" />
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
+              <div className="sm:col-span-4 space-y-1.5">
+                <Label className="text-xs">Nome / Razão Social *</Label>
+                <Input value={form.destinatario_nome} onChange={(e) => set("destinatario_nome", e.target.value)} placeholder="Nome completo ou razão social" />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">UF</Label>
+                <Select value={form.destinatario_uf || undefined} onValueChange={(v) => set("destinatario_uf", v)}>
+                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                  <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">CNPJ / CPF</Label>
+                <Input value={form.destinatario_cnpj} onChange={(e) => set("destinatario_cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+              </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Inscrição Estadual</Label>
+                <Input value={form.destinatario_ie} onChange={(e) => set("destinatario_ie", e.target.value)} placeholder="IE" />
+              </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Cód. Município IBGE</Label>
+                <Input value={form.destinatario_municipio_ibge} onChange={(e) => set("destinatario_municipio_ibge", e.target.value)} placeholder="0000000" />
+              </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Endereço</Label>
+                <Input value={form.destinatario_endereco} onChange={(e) => set("destinatario_endereco", e.target.value)} placeholder="Logradouro, nº, bairro" />
+              </div>
             </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+          </section>
+
+          <Separator />
+
+          {/* Prestação — Origem / Destino */}
+          <section className="space-y-3">
+            <SectionHeader icon={MapPin} title="Prestação" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Origem */}
+              <Card className="border-border bg-muted/30">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Origem</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Município</Label>
+                    <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", e.target.value)} placeholder="Nome do município" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">IBGE</Label>
+                      <Input value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">UF</Label>
+                      <Select value={form.uf_origem || undefined} onValueChange={(v) => set("uf_origem", v)}>
+                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              {/* Destino */}
+              <Card className="border-border bg-muted/30">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Destino</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Município</Label>
+                    <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", e.target.value)} placeholder="Nome do município" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">IBGE</Label>
+                      <Input value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">UF</Label>
+                      <Select value={form.uf_destino || undefined} onValueChange={(v) => set("uf_destino", v)}>
+                        <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                        <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Valores e Tributos */}
+          <section className="space-y-3">
+            <SectionHeader icon={DollarSign} title="Valores e Tributos" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor Frete (R$)</Label>
+                <Input type="number" step="0.01" value={form.valor_frete} onChange={(e) => set("valor_frete", Number(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor Carga (R$)</Label>
+                <Input type="number" step="0.01" value={form.valor_carga} onChange={(e) => set("valor_carga", Number(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Alíquota ICMS (%)</Label>
+                <Input type="number" step="0.01" value={form.aliquota_icms} onChange={(e) => set("aliquota_icms", Number(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Base Cálculo ICMS</Label>
+                <Input type="number" value={form.base_calculo_icms} disabled className="bg-muted text-muted-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor ICMS</Label>
+                <Input type="number" value={form.valor_icms} disabled className="bg-muted text-muted-foreground" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">CST ICMS</Label>
+                <Input value={form.cst_icms} onChange={(e) => set("cst_icms", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">CFOP</Label>
+                <Select value={form.cfop} onValueChange={(v) => set("cfop", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CFOPS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Natureza da Operação</Label>
+                <Input value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Transporte */}
+          <section className="space-y-3">
+            <SectionHeader icon={Truck} title="Transporte" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Placa</Label>
+                <Input value={form.placa_veiculo} onChange={(e) => set("placa_veiculo", e.target.value.toUpperCase())} maxLength={7} placeholder="ABC1D23" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">RNTRC</Label>
+                <Input value={form.rntrc} onChange={(e) => set("rntrc", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Produto Predominante</Label>
+                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", e.target.value)} placeholder="Ex: Soja" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Peso Bruto (kg)</Label>
+                <Input type="number" step="0.01" value={form.peso_bruto} onChange={(e) => set("peso_bruto", Number(e.target.value))} />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Observações */}
+          <section className="space-y-3">
+            <SectionHeader icon={FileText} title="Observações" />
+            <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} placeholder="Informações complementares..." />
+          </section>
+        </div>
+
+        {/* Footer fixo */}
+        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-3 bg-background">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
