@@ -6,12 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus, Building2, Pencil } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCEP, unmaskCEP, maskName, maskOnlyNumbers } from "@/lib/masks";
 import { useCepLookup } from "@/hooks/useCepLookup";
+import { FiscalEstablishmentForm } from "@/components/FiscalEstablishmentForm";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Establishment = Tables<"fiscal_establishments">;
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -21,6 +26,11 @@ export default function FreightFiscalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
+
+  // Establishments
+  const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingEst, setEditingEst] = useState<Establishment | null>(null);
 
   const [form, setForm] = useState({
     cnpj: "",
@@ -44,18 +54,20 @@ export default function FreightFiscalSettings() {
   });
 
   useEffect(() => {
-    fetchSettings();
+    fetchAll();
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchAll = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("fiscal_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      if (data) {
+      const [settingsRes, estRes] = await Promise.all([
+        supabase.from("fiscal_settings").select("*").limit(1).maybeSingle(),
+        supabase.from("fiscal_establishments").select("*").order("type", { ascending: true }).order("razao_social"),
+      ]);
+
+      if (settingsRes.error) throw settingsRes.error;
+      if (settingsRes.data) {
+        const data = settingsRes.data;
         setSettingsId(data.id);
         setForm({
           cnpj: data.cnpj ? maskCNPJ(data.cnpj) : "",
@@ -78,6 +90,10 @@ export default function FreightFiscalSettings() {
           ambiente: data.ambiente || "homologacao",
         });
       }
+
+      if (!estRes.error && estRes.data) {
+        setEstablishments(estRes.data);
+      }
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -91,17 +107,10 @@ export default function FreightFiscalSettings() {
     try {
       const payload = { ...form, cnpj: unmaskCNPJ(form.cnpj) || form.cnpj, endereco_cep: unmaskCEP(form.endereco_cep) || form.endereco_cep, user_id: user.id };
       if (settingsId) {
-        const { error } = await supabase
-          .from("fiscal_settings")
-          .update(payload)
-          .eq("id", settingsId);
+        const { error } = await supabase.from("fiscal_settings").update(payload).eq("id", settingsId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("fiscal_settings")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("fiscal_settings").insert(payload).select("id").single();
         if (error) throw error;
         setSettingsId(data.id);
       }
@@ -141,7 +150,7 @@ export default function FreightFiscalSettings() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <BackButton to="/admin/services" label="Serviços" />
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold font-display">Configurações Fiscais</h1>
@@ -152,12 +161,63 @@ export default function FreightFiscalSettings() {
         </div>
 
         <div className="space-y-6">
-          {/* Dados da empresa */}
+          {/* Estabelecimentos */}
           <Card className="border-border bg-card">
-            <CardHeader><CardTitle className="font-display">Dados da Empresa</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-display flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Estabelecimentos (Matriz e Filiais)
+              </CardTitle>
+              <Button
+                size="sm"
+                className="gap-1"
+                onClick={() => { setEditingEst(null); setFormOpen(true); }}
+              >
+                <Plus className="w-4 h-4" /> Novo
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {establishments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum estabelecimento cadastrado. Crie a Matriz e suas Filiais.</p>
+              ) : (
+                <div className="space-y-3">
+                  {establishments.map((est) => (
+                    <div
+                      key={est.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant={est.type === "matriz" ? "default" : "secondary"} className="text-[10px] uppercase">
+                            {est.type}
+                          </Badge>
+                          {!est.active && <Badge variant="outline" className="text-[10px]">Inativo</Badge>}
+                        </div>
+                        <p className="font-medium text-sm truncate">{est.razao_social}</p>
+                        <p className="text-xs text-muted-foreground">
+                          CNPJ: {maskCNPJ(est.cnpj)} · Série CT-e: {est.serie_cte} · Último nº: {est.ultimo_numero_cte}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setEditingEst(est); setFormOpen(true); }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Dados da empresa (fiscal_settings global) */}
+          <Card className="border-border bg-card">
+            <CardHeader><CardTitle className="font-display">Configurações Globais (Certificado)</CardTitle></CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>CNPJ</Label>
+                <Label>CNPJ Principal</Label>
                 <Input value={form.cnpj} onChange={(e) => set("cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
               </div>
               <div className="space-y-2">
@@ -167,10 +227,6 @@ export default function FreightFiscalSettings() {
               <div className="space-y-2 sm:col-span-2">
                 <Label>Razão Social</Label>
                 <Input value={form.razao_social} onChange={(e) => set("razao_social", maskName(e.target.value))} />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Nome Fantasia</Label>
-                <Input value={form.nome_fantasia} onChange={(e) => set("nome_fantasia", maskName(e.target.value))} />
               </div>
               <div className="space-y-2">
                 <Label>Regime Tributário</Label>
@@ -187,102 +243,20 @@ export default function FreightFiscalSettings() {
                 <Label>UF Emissão</Label>
                 <Select value={form.uf_emissao} onValueChange={(v) => set("uf_emissao", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Ambiente</Label>
-                <Select value={form.ambiente} onValueChange={(v) => set("ambiente", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="homologacao">Homologação</SelectItem>
-                    <SelectItem value="producao">Produção</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Cód. Município IBGE</Label>
-                <Input value={form.codigo_municipio_ibge} onChange={(e) => set("codigo_municipio_ibge", maskOnlyNumbers(e.target.value))} maxLength={7} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Endereço */}
-          <Card className="border-border bg-card">
-            <CardHeader><CardTitle className="font-display">Endereço</CardTitle></CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>CEP</Label>
-                <div className="relative">
-                  <Input
-                    value={form.endereco_cep}
-                    maxLength={9}
-                    onChange={(e) => {
-                      const masked = maskCEP(e.target.value);
-                      set("endereco_cep", masked);
-                      const raw = masked.replace(/\D/g, "");
-                      if (raw.length === 8) lookupCep(raw);
-                    }}
-                    placeholder="00000-000"
-                  />
-                  {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
-                </div>
-                {cepError && <p className="text-xs text-destructive">{cepError}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Número</Label>
-                <Input value={form.endereco_numero} onChange={(e) => set("endereco_numero", e.target.value)} />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Logradouro</Label>
-                <Input value={form.endereco_logradouro} onChange={(e) => set("endereco_logradouro", maskName(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Bairro</Label>
-                <Input value={form.endereco_bairro} onChange={(e) => set("endereco_bairro", maskName(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Município</Label>
-                <Input value={form.endereco_municipio} onChange={(e) => set("endereco_municipio", maskName(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>UF</Label>
-                <Select value={form.endereco_uf} onValueChange={(v) => set("endereco_uf", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UFS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Séries e Numeração */}
-          <Card className="border-border bg-card">
-            <CardHeader><CardTitle className="font-display">Séries e Numeração</CardTitle></CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Série CT-e</Label>
-                <Input type="number" value={form.serie_cte} onChange={(e) => set("serie_cte", Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Último Nº CT-e</Label>
-                <Input type="number" value={form.ultimo_numero_cte} onChange={(e) => set("ultimo_numero_cte", Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Série MDF-e</Label>
-                <Input type="number" value={form.serie_mdfe} onChange={(e) => set("serie_mdfe", Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Último Nº MDF-e</Label>
-                <Input type="number" value={form.ultimo_numero_mdfe} onChange={(e) => set("ultimo_numero_mdfe", Number(e.target.value))} />
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <FiscalEstablishmentForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        establishment={editingEst}
+        onSaved={fetchAll}
+      />
     </AdminLayout>
   );
 }

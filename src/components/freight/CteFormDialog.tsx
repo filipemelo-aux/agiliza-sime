@@ -24,6 +24,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Building2, DollarSign, Truck, FileText } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import type { Cte } from "@/pages/FreightCte";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Establishment = Tables<"fiscal_establishments">;
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -89,6 +92,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [selectedEstId, setSelectedEstId] = useState<string>("");
+
+  // Load establishments
+  useEffect(() => {
+    supabase
+      .from("fiscal_establishments")
+      .select("*")
+      .eq("active", true)
+      .order("type")
+      .order("razao_social")
+      .then(({ data }) => {
+        if (data) {
+          setEstablishments(data);
+          if (!selectedEstId && data.length > 0) {
+            setSelectedEstId(data[0].id);
+          }
+        }
+      });
+  }, [open]);
 
   useEffect(() => {
     if (cte) {
@@ -125,6 +148,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         peso_bruto: Number(cte.peso_bruto) || 0,
         observacoes: cte.observacoes || "",
       });
+      if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
     } else {
       setForm(defaultForm);
     }
@@ -155,6 +179,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         placa_veiculo: unmaskPlate(form.placa_veiculo) || form.placa_veiculo,
         created_by: user.id,
         status: "rascunho",
+        establishment_id: selectedEstId || null,
       };
 
       if (cte) {
@@ -185,6 +210,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {/* Emitente (Estabelecimento) */}
+          {establishments.length > 0 && (
+            <section className="space-y-3">
+              <SectionHeader icon={Building2} title="Emitente" />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Estabelecimento *</Label>
+                <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                  <SelectContent>
+                    {establishments.map((est) => (
+                      <SelectItem key={est.id} value={est.id}>
+                        {est.type === "matriz" ? "🏢" : "🏬"} {est.razao_social} ({maskCNPJ(est.cnpj)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </section>
+          )}
+
           {/* Remetente */}
           <section className="space-y-3">
             <SectionHeader icon={Building2} title="Remetente" />
