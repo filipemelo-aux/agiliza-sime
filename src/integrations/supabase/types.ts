@@ -1194,6 +1194,60 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_entries: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      security_audit_log: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          function_name: string
+          id: string
+          source_ip: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          function_name: string
+          id?: string
+          source_ip?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          function_name?: string
+          id?: string
+          source_ip?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       trailers: {
         Row: {
           capacity_kg: number
@@ -1330,6 +1384,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: { _key: string; _max_requests?: number; _window_seconds?: number }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          remaining: number
+          reset_at: string
+        }[]
+      }
       claim_queue_jobs: {
         Args: { _batch_size?: number; _instance_id: string }
         Returns: {
@@ -1362,6 +1425,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cleanup_rate_limit_entries: { Args: never; Returns: number }
       get_my_masked_documents: {
         Args: never
         Returns: {

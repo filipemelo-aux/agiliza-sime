@@ -1,32 +1,42 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import {
+  securityMiddleware,
+  secureJson,
+  secureError,
+  corsHeaders,
+  sanitizeXml,
+  logSecurityEvent,
+  VALIDATION_SCHEMAS,
+} from "../_shared/security.ts";
 import { getSefazUrl, getTpAmb, UF_CODIGO_IBGE, getDefaultSvcMode, isSefazOfflineError, type SefazAmbiente, type ContingencyMode } from "./sefazEndpoints.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 /**
  * Proxy de Comunicação com SEFAZ (Webservices SOAP)
- *
- * Fluxo:
- * 1. Receber requisição JSON (action + signed_xml + establishment_id)
- * 2. Buscar config do estabelecimento (ambiente, UF)
- * 3. Resolver endpoint SEFAZ correto (UF × ambiente)
- * 4. Buscar certificado vinculado para mTLS
- * 5. Montar envelope SOAP
- * 6. Enviar HTTPS com mTLS
- * 7. Retornar JSON simplificado
+ * 
+ * Security:
+ * - Rate limiting (DB-backed)
+ * - Payload validation & sanitization
+ * - Security headers (Helmet)
+ * - XML XXE protection
+ * - Audit logging
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Security middleware: rate limit + payload validation
+  const security = await securityMiddleware(req, "sefaz-proxy", {
+    validateSchema: VALIDATION_SCHEMAS.sefaz_proxy,
+    maxBodySize: 600_000, // 600KB max (XML can be large)
+  });
+
+  if (!security.ok) return security.response!;
+
   try {
+    const body = security.body!;
     const {
       action,
       signed_xml,
@@ -36,18 +46,47 @@ serve(async (req) => {
       document_id,
       establishment_id,
       contingency_mode: requestedContingency,
-    } = await req.json();
+    } = body as Record<string, any>;
 
     if (!action) {
       throw new Error("Parâmetro 'action' é obrigatório");
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // Validate action is in allowed list
+    const allowedActions = [
+      "autorizar_cte", "consultar_cte", "cancelar_cte", "status_cte",
+      "autorizar_mdfe", "consultar_mdfe", "cancelar_mdfe", "encerrar_mdfe",
+      "status_mdfe", "distribuicao_mdfe",
+    ];
+    if (!allowedActions.includes(action)) {
+      await logSecurityEvent(security.client, {
+        event_type: "invalid_action",
+        source_ip: security.clientIp,
+        function_name: "sefaz-proxy",
+        details: { action },
+      });
+      throw new Error(`Ação '${action}' não suportada`);
+    }
 
-    // ── Determinar ambiente e UF do estabelecimento ─────────────────────
+    // Sanitize XML if present (XXE protection)
+    let cleanXml = signed_xml;
+    if (signed_xml && typeof signed_xml === "string") {
+      try {
+        cleanXml = sanitizeXml(signed_xml);
+      } catch (e: any) {
+        await logSecurityEvent(security.client, {
+          event_type: "xxe_blocked",
+          source_ip: security.clientIp,
+          function_name: "sefaz-proxy",
+          details: { action, error: e.message },
+        });
+        return secureError(e.message, 400);
+      }
+    }
+
+    const supabaseClient = security.client;
+
+    // ── Determinar ambiente e UF do estabelecimento ─────────────
     let ambiente: SefazAmbiente = "homologacao";
     let uf = "SP";
     let contingencyMode: ContingencyMode = requestedContingency || "normal";
@@ -62,7 +101,6 @@ serve(async (req) => {
       if (est) {
         ambiente = (est.ambiente as SefazAmbiente) || "homologacao";
         uf = est.endereco_uf || "SP";
-        // Use establishment contingency mode if not explicitly overridden
         if (!requestedContingency && est.contingency_mode && est.contingency_mode !== "normal") {
           contingencyMode = est.contingency_mode as ContingencyMode;
         }
@@ -83,7 +121,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Resolve SEFAZ endpoint (with contingency) ───────────────────────
+    // ── Resolve SEFAZ endpoint ──────────────────────────────────
     const sefazUrl = getSefazUrl(uf, ambiente, action, contingencyMode);
     const tpAmb = getTpAmb(ambiente);
     const cUF = UF_CODIGO_IBGE[uf.toUpperCase()] || "35";
@@ -91,18 +129,6 @@ serve(async (req) => {
     console.log(
       `[SEFAZ Proxy] Ação: ${action} | Ambiente: ${ambiente} (tpAmb=${tpAmb}) | UF: ${uf} (cUF=${cUF}) | Contingência: ${contingencyMode} | URL: ${sefazUrl}`
     );
-
-    // =====================================================================
-    // COMUNICAÇÃO SOAP (Placeholder — simulação)
-    //
-    // Em produção:
-    // 1. Buscar certificado do establishment via establishment_certificates
-    // 2. Montar envelope SOAP com o XML assinado
-    // 3. fetch(sefazUrl) com mTLS (certificado PFX)
-    // 4. Parsear retorno XML
-    //
-    // O endpoint correto já está resolvido em sefazUrl acima.
-    // =====================================================================
 
     // Simular delay de rede
     await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 1200));
@@ -113,7 +139,6 @@ serve(async (req) => {
       chave_acesso ||
       `${cUF}${new Date().getFullYear()}${String(Math.random()).slice(2, 36).padEnd(34, "0")}`;
     const mockProtocolo = protocolo || `${cUF.slice(0,1)}35${Date.now()}`;
-
     const docLabel = action.includes("cte") ? "CT-e" : "MDF-e";
 
     switch (action) {
@@ -128,7 +153,7 @@ serve(async (req) => {
             chave_acesso: mockChave,
             protocolo: mockProtocolo,
             data_autorizacao: new Date().toISOString(),
-            xml_autorizado: signed_xml,
+            xml_autorizado: cleanXml,
             sefaz_url: sefazUrl,
             ambiente,
             tpAmb,
@@ -195,18 +220,11 @@ serve(async (req) => {
         throw new Error(`Ação '${action}' não suportada`);
     }
 
-    // Inject contingency mode into all responses
     responseData.contingency_mode = contingencyMode;
 
-    return new Response(JSON.stringify(responseData), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return secureJson(responseData);
   } catch (error: any) {
     console.error("[SEFAZ Proxy Error]", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+    return secureError(error.message);
   }
 });
