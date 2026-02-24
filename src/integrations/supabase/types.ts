@@ -31,7 +31,7 @@ export type Database = {
           destinatario_municipio_ibge: string | null
           destinatario_nome: string
           destinatario_uf: string | null
-          establishment_id: string | null
+          establishment_id: string
           id: string
           motivo_rejeicao: string | null
           motorista_id: string | null
@@ -82,7 +82,7 @@ export type Database = {
           destinatario_municipio_ibge?: string | null
           destinatario_nome: string
           destinatario_uf?: string | null
-          establishment_id?: string | null
+          establishment_id: string
           id?: string
           motivo_rejeicao?: string | null
           motorista_id?: string | null
@@ -133,7 +133,7 @@ export type Database = {
           destinatario_municipio_ibge?: string | null
           destinatario_nome?: string
           destinatario_uf?: string | null
-          establishment_id?: string | null
+          establishment_id?: string
           id?: string
           motivo_rejeicao?: string | null
           motorista_id?: string | null
