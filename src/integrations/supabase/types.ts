@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      cargas: {
+        Row: {
+          chaves_nfe_ref: string[] | null
+          created_at: string
+          created_by: string
+          destinatario_cnpj: string | null
+          destinatario_nome: string | null
+          id: string
+          municipio_destino_nome: string | null
+          municipio_origem_nome: string | null
+          observacoes: string | null
+          peso_bruto: number
+          produto_predominante: string
+          remetente_cnpj: string | null
+          remetente_nome: string | null
+          uf_destino: string | null
+          uf_origem: string | null
+          unidade: string
+          updated_at: string
+          valor_carga: number
+          valor_carga_averb: number | null
+        }
+        Insert: {
+          chaves_nfe_ref?: string[] | null
+          created_at?: string
+          created_by: string
+          destinatario_cnpj?: string | null
+          destinatario_nome?: string | null
+          id?: string
+          municipio_destino_nome?: string | null
+          municipio_origem_nome?: string | null
+          observacoes?: string | null
+          peso_bruto?: number
+          produto_predominante: string
+          remetente_cnpj?: string | null
+          remetente_nome?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          unidade?: string
+          updated_at?: string
+          valor_carga?: number
+          valor_carga_averb?: number | null
+        }
+        Update: {
+          chaves_nfe_ref?: string[] | null
+          created_at?: string
+          created_by?: string
+          destinatario_cnpj?: string | null
+          destinatario_nome?: string | null
+          id?: string
+          municipio_destino_nome?: string | null
+          municipio_origem_nome?: string | null
+          observacoes?: string | null
+          peso_bruto?: number
+          produto_predominante?: string
+          remetente_cnpj?: string | null
+          remetente_nome?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          unidade?: string
+          updated_at?: string
+          valor_carga?: number
+          valor_carga_averb?: number | null
+        }
+        Relationships: []
+      }
       contingency_events: {
         Row: {
           created_at: string
