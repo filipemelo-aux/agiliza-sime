@@ -128,12 +128,14 @@ export async function emitirMdfe({ mdfe_id, user_id }: EmitirMdfeParams): Promis
       entity_type: "mdfe",
       entity_id: mdfe_id,
       action: sefazResponse.success ? "autorizado" : "rejeitado",
+      establishment_id: mdfe.establishment_id,
+      cnpj_emissor: establishment.cnpj,
       details: {
         numero,
         chave_acesso: sefazResponse.chave_acesso,
         protocolo: sefazResponse.protocolo,
       },
-    });
+    } as any);
 
     return {
       success: sefazResponse.success,
@@ -175,7 +177,7 @@ export async function cancelarMdfe(
       entity_id: mdfeId,
       action: "cancelado",
       details: { chave_acesso: chaveAcesso, justificativa },
-    });
+    } as any);
   }
 
   return response;
@@ -210,7 +212,7 @@ export async function encerrarMdfe(
       entity_id: mdfeId,
       action: "encerrado",
       details: { chave_acesso: chaveAcesso },
-    });
+    } as any);
   }
 
   return response;
