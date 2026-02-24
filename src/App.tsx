@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
+import AdminPeople from "./pages/AdminPeople";
+import AdminVehicles from "./pages/AdminVehicles";
 import AdminHarvest from "./pages/AdminHarvest";
 
 import AdminSettings from "./pages/AdminSettings";
@@ -46,7 +48,9 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
-            <Route path="/admin/drivers" element={<AdminDrivers />} />
+            <Route path="/admin/people" element={<AdminPeople />} />
+            <Route path="/admin/vehicles" element={<AdminVehicles />} />
+            <Route path="/admin/drivers" element={<Navigate to="/admin/people" replace />} />
             <Route path="/admin/services" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/harvest" element={<AdminHarvest />} />
             <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
@@ -60,10 +64,9 @@ const App = () => (
             {/* Redirects for removed pages */}
             <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/driver" element={<Navigate to="/admin" replace />} />
-            <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
-            <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
-            <Route path="/add-vehicle" element={<Navigate to="/admin/drivers" replace />} />
-            <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/drivers" replace />} />
+            <Route path="/my-vehicles" element={<Navigate to="/admin/vehicles" replace />} />
+            <Route path="/add-vehicle" element={<Navigate to="/admin/vehicles" replace />} />
+            <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/vehicles" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
