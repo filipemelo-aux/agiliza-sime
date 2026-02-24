@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/AdminLayout";
+import { BackButton } from "@/components/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 
@@ -6,6 +7,7 @@ export default function FreightMdfe() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
+        <BackButton to="/admin/services" label="Serviços" />
         <h1 className="text-3xl font-bold font-display mb-6">MDF-e</h1>
         <Card className="border-border bg-card">
           <CardContent className="py-16 text-center">

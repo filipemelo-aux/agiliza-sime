@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
+import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +103,7 @@ export default function FreightCte() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
+        <BackButton to="/admin/services" label="Serviços" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
           <Button onClick={handleNew} className="btn-transport-accent gap-2">
