@@ -21,8 +21,9 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2 } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { PersonSearchInput } from "./PersonSearchInput";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -267,6 +268,25 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* Remetente */}
           <section className="space-y-3">
             <SectionHeader icon={Building2} title="Remetente" />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Buscar no cadastro</Label>
+              <PersonSearchInput
+                placeholder="Buscar remetente cadastrado..."
+                selectedName={form.remetente_nome || undefined}
+                onSelect={(person) => {
+                  setForm((p) => ({
+                    ...p,
+                    remetente_nome: person.razao_social || person.full_name,
+                    remetente_cnpj: person.cnpj ? maskCNPJ(person.cnpj) : p.remetente_cnpj,
+                    remetente_uf: person.address_state || p.remetente_uf,
+                    remetente_endereco: [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || p.remetente_endereco,
+                  }));
+                }}
+                onClear={() => {
+                  setForm((p) => ({ ...p, remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_uf: "" }));
+                }}
+              />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
               <div className="sm:col-span-4 space-y-1.5">
                 <Label className="text-xs">Nome / Razão Social *</Label>
@@ -318,6 +338,25 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* Destinatário */}
           <section className="space-y-3">
             <SectionHeader icon={Building2} title="Destinatário" />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Buscar no cadastro</Label>
+              <PersonSearchInput
+                placeholder="Buscar destinatário cadastrado..."
+                selectedName={form.destinatario_nome || undefined}
+                onSelect={(person) => {
+                  setForm((p) => ({
+                    ...p,
+                    destinatario_nome: person.razao_social || person.full_name,
+                    destinatario_cnpj: person.cnpj ? maskCNPJ(person.cnpj) : p.destinatario_cnpj,
+                    destinatario_uf: person.address_state || p.destinatario_uf,
+                    destinatario_endereco: [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || p.destinatario_endereco,
+                  }));
+                }}
+                onClear={() => {
+                  setForm((p) => ({ ...p, destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_uf: "" }));
+                }}
+              />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
               <div className="sm:col-span-4 space-y-1.5">
                 <Label className="text-xs">Nome / Razão Social *</Label>
@@ -494,6 +533,17 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* Transporte */}
           <section className="space-y-3">
             <SectionHeader icon={Truck} title="Transporte" />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Buscar motorista</Label>
+              <PersonSearchInput
+                categories={["motorista"]}
+                placeholder="Buscar motorista cadastrado..."
+                onSelect={(person) => {
+                  set("motorista_id", person.user_id);
+                }}
+                onClear={() => set("motorista_id", null)}
+              />
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Placa</Label>

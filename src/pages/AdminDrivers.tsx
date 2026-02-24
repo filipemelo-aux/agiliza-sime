@@ -26,6 +26,7 @@ const TAB_LABELS: Record<string, string> = {
   motorista: "Motoristas",
   cliente: "Clientes",
   proprietario: "Proprietários",
+  fornecedor: "Fornecedores",
   veiculos: "Veículos",
 };
 
@@ -33,6 +34,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   motorista: "bg-blue-500/20 text-blue-400",
   cliente: "bg-amber-500/20 text-amber-400",
   proprietario: "bg-emerald-500/20 text-emerald-400",
+  fornecedor: "bg-purple-500/20 text-purple-400",
 };
 
 interface VehicleRow {
