@@ -452,6 +452,71 @@ export type Database = {
           },
         ]
       }
+      fiscal_queue: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          entity_id: string
+          error_message: string | null
+          establishment_id: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          result: Json | null
+          started_at: string | null
+          status: string
+          timeout_seconds: number
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          entity_id: string
+          error_message?: string | null
+          establishment_id?: string | null
+          id?: string
+          job_type: string
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          timeout_seconds?: number
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          entity_id?: string
+          error_message?: string | null
+          establishment_id?: string | null
+          id?: string
+          job_type?: string
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          timeout_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_queue_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_settings: {
         Row: {
           ambiente: string
