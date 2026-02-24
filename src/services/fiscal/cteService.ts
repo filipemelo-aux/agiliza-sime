@@ -22,7 +22,7 @@ export interface EmitirCteResult {
 }
 
 /**
- * Busca configurações fiscais do emitente
+ * Busca configurações fiscais globais (certificado, regime)
  */
 async function fetchFiscalSettings() {
   const { data, error } = await supabase
@@ -33,7 +33,21 @@ async function fetchFiscalSettings() {
 
   if (error) throw new Error(`Erro ao buscar config fiscal: ${error.message}`);
   if (!data) throw new Error("Configurações fiscais não encontradas. Configure antes de emitir.");
+  return data;
+}
 
+/**
+ * Busca dados do estabelecimento emitente
+ */
+async function fetchEstablishment(establishmentId: string) {
+  const { data, error } = await supabase
+    .from("fiscal_establishments")
+    .select("*")
+    .eq("id", establishmentId)
+    .single();
+
+  if (error) throw new Error(`Estabelecimento não encontrado: ${error.message}`);
+  if (!data.active) throw new Error("Estabelecimento inativo. Ative-o antes de emitir.");
   return data;
 }
 
@@ -57,41 +71,50 @@ async function fetchCte(cteId: string) {
 export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<EmitirCteResult> {
   try {
     // 1. Buscar dados
-    const [cte, settings] = await Promise.all([
-      fetchCte(cte_id),
-      fetchFiscalSettings(),
-    ]);
+    const cte = await fetchCte(cte_id);
 
     if (cte.status !== "rascunho") {
       throw new Error(`CT-e não está em rascunho (status: ${cte.status})`);
     }
 
-    // 2. Obter próximo número
-    const { data: nextNum, error: numError } = await supabase.rpc("next_cte_number");
+    if (!cte.establishment_id) {
+      throw new Error("CT-e sem estabelecimento vinculado. Selecione o emitente.");
+    }
+
+    // 2. Buscar establishment + settings em paralelo
+    const [establishment, settings] = await Promise.all([
+      fetchEstablishment(cte.establishment_id),
+      fetchFiscalSettings(),
+    ]);
+
+    // 3. Obter próximo número do estabelecimento
+    const { data: nextNum, error: numError } = await supabase.rpc("next_cte_number", {
+      _establishment_id: cte.establishment_id,
+    });
     if (numError) throw new Error(`Erro ao gerar número: ${numError.message}`);
 
     const numero = nextNum as number;
 
-    // 3. Montar dados para XML
+    // 4. Montar dados para XML (usando dados do establishment)
     const xmlData: CteXmlData = {
       numero,
-      serie: settings.serie_cte,
+      serie: establishment.serie_cte ?? 1,
       cfop: cte.cfop,
       natureza_operacao: cte.natureza_operacao,
-      ambiente: settings.ambiente as "homologacao" | "producao",
-      uf_emissao: settings.uf_emissao,
+      ambiente: (establishment.ambiente || settings.ambiente) as "homologacao" | "producao",
+      uf_emissao: establishment.endereco_uf || settings.uf_emissao,
       data_emissao: new Date().toISOString(),
 
-      emitente_cnpj: settings.cnpj,
-      emitente_ie: settings.inscricao_estadual,
-      emitente_razao_social: settings.razao_social,
-      emitente_nome_fantasia: settings.nome_fantasia || undefined,
-      emitente_endereco_logradouro: settings.endereco_logradouro || undefined,
-      emitente_endereco_numero: settings.endereco_numero || undefined,
-      emitente_endereco_bairro: settings.endereco_bairro || undefined,
-      emitente_endereco_municipio_ibge: settings.codigo_municipio_ibge || undefined,
-      emitente_endereco_uf: settings.endereco_uf || undefined,
-      emitente_endereco_cep: settings.endereco_cep || undefined,
+      emitente_cnpj: establishment.cnpj,
+      emitente_ie: establishment.inscricao_estadual || undefined,
+      emitente_razao_social: establishment.razao_social,
+      emitente_nome_fantasia: establishment.nome_fantasia || undefined,
+      emitente_endereco_logradouro: establishment.endereco_logradouro || undefined,
+      emitente_endereco_numero: establishment.endereco_numero || undefined,
+      emitente_endereco_bairro: establishment.endereco_bairro || undefined,
+      emitente_endereco_municipio_ibge: establishment.codigo_municipio_ibge || undefined,
+      emitente_endereco_uf: establishment.endereco_uf || undefined,
+      emitente_endereco_cep: establishment.endereco_cep || undefined,
 
       remetente_nome: cte.remetente_nome,
       remetente_cnpj: cte.remetente_cnpj || undefined,

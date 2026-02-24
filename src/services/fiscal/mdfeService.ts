@@ -27,44 +27,55 @@ export interface EmitirMdfeResult {
 export async function emitirMdfe({ mdfe_id, user_id }: EmitirMdfeParams): Promise<EmitirMdfeResult> {
   try {
     // 1. Buscar dados
-    const [mdfeResult, settingsResult] = await Promise.all([
-      supabase.from("mdfe").select("*").eq("id", mdfe_id).single(),
-      supabase.from("fiscal_settings").select("*").limit(1).maybeSingle(),
-    ]);
-
+    const mdfeResult = await supabase.from("mdfe").select("*").eq("id", mdfe_id).single();
     if (mdfeResult.error) throw new Error(`MDF-e não encontrado: ${mdfeResult.error.message}`);
-    if (settingsResult.error) throw new Error(`Config fiscal: ${settingsResult.error.message}`);
-    if (!settingsResult.data) throw new Error("Configure as configurações fiscais antes de emitir.");
-
     const mdfe = mdfeResult.data;
-    const settings = settingsResult.data;
 
     if (mdfe.status !== "rascunho") {
       throw new Error(`MDF-e não está em rascunho (status: ${mdfe.status})`);
     }
 
-    // 2. Próximo número
-    const { data: nextNum, error: numError } = await supabase.rpc("next_mdfe_number");
+    if (!mdfe.establishment_id) {
+      throw new Error("MDF-e sem estabelecimento vinculado. Selecione o emitente.");
+    }
+
+    // 2. Buscar establishment + settings
+    const [estResult, settingsResult] = await Promise.all([
+      supabase.from("fiscal_establishments").select("*").eq("id", mdfe.establishment_id).single(),
+      supabase.from("fiscal_settings").select("*").limit(1).maybeSingle(),
+    ]);
+
+    if (estResult.error) throw new Error(`Estabelecimento não encontrado: ${estResult.error.message}`);
+    if (settingsResult.error) throw new Error(`Config fiscal: ${settingsResult.error.message}`);
+    if (!settingsResult.data) throw new Error("Configure as configurações fiscais antes de emitir.");
+
+    const establishment = estResult.data;
+    const settings = settingsResult.data;
+
+    // 3. Próximo número do estabelecimento
+    const { data: nextNum, error: numError } = await supabase.rpc("next_mdfe_number", {
+      _establishment_id: mdfe.establishment_id,
+    });
     if (numError) throw new Error(`Erro ao gerar número: ${numError.message}`);
 
     const numero = nextNum as number;
 
-    // 3. Montar XML
+    // 4. Montar XML com dados do establishment
     const xmlData: MdfeXmlData = {
       numero,
-      serie: settings.serie_mdfe,
-      ambiente: settings.ambiente as "homologacao" | "producao",
+      serie: establishment.serie_mdfe ?? 1,
+      ambiente: (establishment.ambiente || settings.ambiente) as "homologacao" | "producao",
       uf_carregamento: mdfe.uf_carregamento || undefined,
       uf_descarregamento: mdfe.uf_descarregamento || undefined,
       municipio_carregamento_ibge: mdfe.municipio_carregamento_ibge || undefined,
       municipio_descarregamento_ibge: mdfe.municipio_descarregamento_ibge || undefined,
       placa_veiculo: mdfe.placa_veiculo,
-      rntrc: mdfe.rntrc || undefined,
+      rntrc: mdfe.rntrc || establishment.rntrc || undefined,
       lista_ctes: mdfe.lista_ctes || [],
-      emitente_cnpj: settings.cnpj,
-      emitente_ie: settings.inscricao_estadual,
-      emitente_razao_social: settings.razao_social,
-      emitente_uf: settings.uf_emissao,
+      emitente_cnpj: establishment.cnpj,
+      emitente_ie: establishment.inscricao_estadual || settings.inscricao_estadual,
+      emitente_razao_social: establishment.razao_social,
+      emitente_uf: establishment.endereco_uf || settings.uf_emissao,
       data_emissao: new Date().toISOString(),
     };
 

@@ -31,6 +31,7 @@ export type Database = {
           destinatario_municipio_ibge: string | null
           destinatario_nome: string
           destinatario_uf: string | null
+          establishment_id: string | null
           id: string
           motivo_rejeicao: string | null
           motorista_id: string | null
@@ -81,6 +82,7 @@ export type Database = {
           destinatario_municipio_ibge?: string | null
           destinatario_nome: string
           destinatario_uf?: string | null
+          establishment_id?: string | null
           id?: string
           motivo_rejeicao?: string | null
           motorista_id?: string | null
@@ -131,6 +133,7 @@ export type Database = {
           destinatario_municipio_ibge?: string | null
           destinatario_nome?: string
           destinatario_uf?: string | null
+          establishment_id?: string | null
           id?: string
           motivo_rejeicao?: string | null
           motorista_id?: string | null
@@ -166,6 +169,13 @@ export type Database = {
           xml_enviado?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ctes_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ctes_motorista_id_fkey"
             columns: ["motorista_id"]
@@ -245,6 +255,92 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      fiscal_establishments: {
+        Row: {
+          active: boolean | null
+          ambiente: string | null
+          cnpj: string
+          codigo_municipio_ibge: string | null
+          created_at: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_logradouro: string | null
+          endereco_municipio: string | null
+          endereco_numero: string | null
+          endereco_uf: string | null
+          fiscal_settings_id: string | null
+          id: string
+          inscricao_estadual: string | null
+          nome_fantasia: string | null
+          razao_social: string
+          rntrc: string | null
+          serie_cte: number | null
+          serie_mdfe: number | null
+          type: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_cte: number | null
+          ultimo_numero_mdfe: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          ambiente?: string | null
+          cnpj: string
+          codigo_municipio_ibge?: string | null
+          created_at?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          fiscal_settings_id?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          nome_fantasia?: string | null
+          razao_social: string
+          rntrc?: string | null
+          serie_cte?: number | null
+          serie_mdfe?: number | null
+          type?: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_cte?: number | null
+          ultimo_numero_mdfe?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          ambiente?: string | null
+          cnpj?: string
+          codigo_municipio_ibge?: string | null
+          created_at?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          fiscal_settings_id?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string
+          rntrc?: string | null
+          serie_cte?: number | null
+          serie_mdfe?: number | null
+          type?: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_cte?: number | null
+          ultimo_numero_mdfe?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_establishments_fiscal_settings_id_fkey"
+            columns: ["fiscal_settings_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_settings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fiscal_logs: {
         Row: {
@@ -628,6 +724,7 @@ export type Database = {
           data_autorizacao: string | null
           data_emissao: string | null
           data_encerramento: string | null
+          establishment_id: string | null
           id: string
           lista_ctes: string[] | null
           motorista_id: string | null
@@ -654,6 +751,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
+          establishment_id?: string | null
           id?: string
           lista_ctes?: string[] | null
           motorista_id?: string | null
@@ -680,6 +778,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_emissao?: string | null
           data_encerramento?: string | null
+          establishment_id?: string | null
           id?: string
           lista_ctes?: string[] | null
           motorista_id?: string | null
@@ -700,6 +799,13 @@ export type Database = {
           xml_enviado?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mdfe_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mdfe_motorista_id_fkey"
             columns: ["motorista_id"]
@@ -992,13 +1098,18 @@ export type Database = {
         }
         Returns: boolean
       }
-      next_cte_number: { Args: never; Returns: number }
-      next_mdfe_number: { Args: never; Returns: number }
+      next_cte_number:
+        | { Args: never; Returns: number }
+        | { Args: { _establishment_id: string }; Returns: number }
+      next_mdfe_number:
+        | { Args: never; Returns: number }
+        | { Args: { _establishment_id: string }; Returns: number }
       user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
       document_status: "pending" | "approved" | "rejected" | "expired"
+      establishment_type: "matriz" | "filial"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       vehicle_type:
         | "truck"
@@ -1137,6 +1248,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       document_status: ["pending", "approved", "rejected", "expired"],
+      establishment_type: ["matriz", "filial"],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       vehicle_type: [
         "truck",
