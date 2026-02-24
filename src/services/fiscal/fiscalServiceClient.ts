@@ -49,12 +49,21 @@ async function callFiscalService<T = any>(
 
 // ─── CT-e ────────────────────────────────────────────────────
 
-export async function emitirCteViaService(cteId: string) {
-  return callFiscalService("/cte/emit", "POST", { cte_id: cteId });
+/**
+ * Emitir CT-e. Por padrão usa modo síncrono (resposta imediata).
+ * Passe sync: false para usar fila assíncrona.
+ */
+export async function emitirCteViaService(cteId: string, options?: { sync?: boolean }) {
+  const sync = options?.sync ?? true; // default sync
+  return callFiscalService("/cte/emit", "POST", { cte_id: cteId, sync });
 }
 
-export async function cancelarCteViaService(cteId: string, justificativa: string) {
-  return callFiscalService("/cte/cancel", "POST", { cte_id: cteId, justificativa });
+/**
+ * Cancelar CT-e. Por padrão usa modo síncrono.
+ */
+export async function cancelarCteViaService(cteId: string, justificativa: string, options?: { sync?: boolean }) {
+  const sync = options?.sync ?? true;
+  return callFiscalService("/cte/cancel", "POST", { cte_id: cteId, justificativa, sync });
 }
 
 export async function consultarCteViaService(cteId: string) {

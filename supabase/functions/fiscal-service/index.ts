@@ -119,14 +119,26 @@ async function triggerWorker() {
   }
 }
 
+async function callSefazProxyDirect(params: Record<string, unknown>) {
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/sefaz-proxy`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    },
+    body: JSON.stringify(params),
+  });
+  return await res.json();
+}
+
 // ─── Route Handlers ──────────────────────────────────────────
 
 async function handleCteEmit(body: any, userId: string, client: any) {
-  // Validate with schema
   const validation = validatePayload(body, VALIDATION_SCHEMAS.cte_emit);
   if (!validation.valid) return secureError(validation.errors.join("; "), 422);
 
-  const { cte_id } = body;
+  const { cte_id, sync } = body;
   const cte = await fetchCte(client, cte_id);
   if (cte.status !== "rascunho") return secureError(`CT-e não está em rascunho (status: ${cte.status})`);
   if (!cte.establishment_id) return secureError("CT-e sem estabelecimento vinculado.");
@@ -138,6 +150,96 @@ async function handleCteEmit(body: any, userId: string, client: any) {
   });
   if (numErr) return secureError(`Erro ao gerar número: ${numErr.message}`);
 
+  // ── Synchronous mode: call sefaz-proxy directly ──────────
+  if (sync) {
+    await client.from("ctes").update({
+      numero,
+      data_emissao: new Date().toISOString(),
+      status: "processando",
+    }).eq("id", cte_id);
+
+    try {
+      const startTime = Date.now();
+      const sefazResult = await callSefazProxyDirect({
+        action: "autorizar_cte",
+        signed_xml: cte.xml_enviado || "<placeholder/>",
+        establishment_id: cte.establishment_id,
+        document_id: cte_id,
+      });
+      const responseTimeMs = Date.now() - startTime;
+
+      if (sefazResult.success && sefazResult.status === "autorizado") {
+        await client.from("ctes").update({
+          status: "autorizado",
+          chave_acesso: sefazResult.chave_acesso,
+          protocolo_autorizacao: sefazResult.protocolo,
+          data_autorizacao: sefazResult.data_autorizacao,
+          xml_autorizado: sefazResult.xml_autorizado,
+        }).eq("id", cte_id);
+
+        await logFiscal(client, {
+          user_id: userId,
+          entity_type: "cte",
+          entity_id: cte_id,
+          action: "autorizado",
+          establishment_id: cte.establishment_id,
+          cnpj_emissor: establishment.cnpj,
+          sefaz_code: sefazResult.cStat || "100",
+          sefaz_message: sefazResult.xMotivo || "Autorizado",
+          response_time_ms: responseTimeMs,
+          ambiente: sefazResult.ambiente,
+          details: { numero, chave_acesso: sefazResult.chave_acesso, protocolo: sefazResult.protocolo, sync: true },
+        });
+
+        return secureJson({
+          success: true,
+          sync: true,
+          numero,
+          status: "autorizado",
+          chave_acesso: sefazResult.chave_acesso,
+          protocolo: sefazResult.protocolo,
+          data_autorizacao: sefazResult.data_autorizacao,
+          establishment_id: cte.establishment_id,
+        });
+      } else {
+        const motivo = sefazResult.motivo_rejeicao || sefazResult.error || "Rejeitado pela SEFAZ";
+        await client.from("ctes").update({
+          status: "rejeitado",
+          motivo_rejeicao: motivo,
+        }).eq("id", cte_id);
+
+        await logFiscal(client, {
+          user_id: userId,
+          entity_type: "cte",
+          entity_id: cte_id,
+          action: "rejeitado",
+          establishment_id: cte.establishment_id,
+          cnpj_emissor: establishment.cnpj,
+          sefaz_code: sefazResult.cStat || "999",
+          sefaz_message: motivo,
+          response_time_ms: responseTimeMs,
+          ambiente: sefazResult.ambiente,
+          details: { numero, motivo, sync: true },
+        });
+
+        return secureJson({
+          success: false,
+          sync: true,
+          numero,
+          status: "rejeitado",
+          motivo_rejeicao: motivo,
+          cStat: sefazResult.cStat,
+          establishment_id: cte.establishment_id,
+        });
+      }
+    } catch (syncErr: any) {
+      // On sync error, revert to rascunho so user can retry
+      await client.from("ctes").update({ status: "rascunho" }).eq("id", cte_id);
+      return secureError(`Erro na comunicação: ${syncErr.message}`, 502);
+    }
+  }
+
+  // ── Async mode (queue) — original behavior ───────────────
   await client.from("ctes").update({
     numero,
     data_emissao: new Date().toISOString(),
@@ -164,17 +266,56 @@ async function handleCteEmit(body: any, userId: string, client: any) {
 
   triggerWorker();
 
-  return secureJson({ success: true, numero, queue_job_id: jobId, establishment_id: cte.establishment_id });
+  return secureJson({ success: true, sync: false, numero, queue_job_id: jobId, establishment_id: cte.establishment_id });
 }
 
 async function handleCteCancel(body: any, userId: string, client: any) {
   const validation = validatePayload(body, VALIDATION_SCHEMAS.cte_cancel);
   if (!validation.valid) return secureError(validation.errors.join("; "), 422);
 
-  const { cte_id, justificativa } = body;
+  const { cte_id, justificativa, sync } = body;
   const cte = await fetchCte(client, cte_id);
   if (cte.status !== "autorizado") return secureError("Só é possível cancelar CT-e autorizado.");
 
+  const establishment = cte.establishment_id
+    ? await fetchEstablishment(client, cte.establishment_id).catch(() => null)
+    : null;
+
+  // ── Synchronous mode ─────────────────────────────────────
+  if (sync) {
+    await client.from("ctes").update({ status: "processando" }).eq("id", cte_id);
+
+    try {
+      const sefazResult = await callSefazProxyDirect({
+        action: "cancelar_cte",
+        chave_acesso: cte.chave_acesso,
+        protocolo: cte.protocolo_autorizacao,
+        justificativa,
+        establishment_id: cte.establishment_id,
+        document_id: cte_id,
+      });
+
+      if (sefazResult.success) {
+        await client.from("ctes").update({ status: "cancelado" }).eq("id", cte_id);
+        await logFiscal(client, {
+          user_id: userId, entity_type: "cte", entity_id: cte_id,
+          action: "cancelado", establishment_id: cte.establishment_id,
+          cnpj_emissor: establishment?.cnpj,
+          details: { chave_acesso: cte.chave_acesso, justificativa, sync: true },
+        });
+        return secureJson({ success: true, sync: true, status: "cancelado" });
+      } else {
+        await client.from("ctes").update({ status: "autorizado" }).eq("id", cte_id);
+        const motivo = sefazResult.motivo_rejeicao || sefazResult.error || "Erro no cancelamento";
+        return secureJson({ success: false, sync: true, motivo_rejeicao: motivo, cStat: sefazResult.cStat });
+      }
+    } catch (syncErr: any) {
+      await client.from("ctes").update({ status: "autorizado" }).eq("id", cte_id);
+      return secureError(`Erro na comunicação: ${syncErr.message}`, 502);
+    }
+  }
+
+  // ── Async mode ───────────────────────────────────────────
   await client.from("ctes").update({ status: "processando" }).eq("id", cte_id);
 
   const jobId = await enqueueJob(client, {
@@ -184,10 +325,6 @@ async function handleCteCancel(body: any, userId: string, client: any) {
     payload: { justificativa },
     created_by: userId,
   });
-
-  const establishment = cte.establishment_id
-    ? await fetchEstablishment(client, cte.establishment_id).catch(() => null)
-    : null;
 
   await logFiscal(client, {
     user_id: userId,
@@ -201,7 +338,7 @@ async function handleCteCancel(body: any, userId: string, client: any) {
 
   triggerWorker();
 
-  return secureJson({ success: true, queue_job_id: jobId });
+  return secureJson({ success: true, sync: false, queue_job_id: jobId });
 }
 
 async function handleCteStatus(cteId: string, client: any) {
