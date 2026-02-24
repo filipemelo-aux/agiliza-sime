@@ -411,6 +411,8 @@ export type Database = {
       fiscal_logs: {
         Row: {
           action: string
+          ambiente: string | null
+          attempt: number | null
           cnpj_emissor: string | null
           created_at: string
           details: Json | null
@@ -418,10 +420,18 @@ export type Database = {
           entity_type: string
           establishment_id: string | null
           id: string
+          queue_job_id: string | null
+          response_time_ms: number | null
+          sefaz_code: string | null
+          sefaz_message: string | null
+          sefaz_url: string | null
+          uf: string | null
           user_id: string
         }
         Insert: {
           action: string
+          ambiente?: string | null
+          attempt?: number | null
           cnpj_emissor?: string | null
           created_at?: string
           details?: Json | null
@@ -429,10 +439,18 @@ export type Database = {
           entity_type: string
           establishment_id?: string | null
           id?: string
+          queue_job_id?: string | null
+          response_time_ms?: number | null
+          sefaz_code?: string | null
+          sefaz_message?: string | null
+          sefaz_url?: string | null
+          uf?: string | null
           user_id: string
         }
         Update: {
           action?: string
+          ambiente?: string | null
+          attempt?: number | null
           cnpj_emissor?: string | null
           created_at?: string
           details?: Json | null
@@ -440,6 +458,12 @@ export type Database = {
           entity_type?: string
           establishment_id?: string | null
           id?: string
+          queue_job_id?: string | null
+          response_time_ms?: number | null
+          sefaz_code?: string | null
+          sefaz_message?: string | null
+          sefaz_url?: string | null
+          uf?: string | null
           user_id?: string
         }
         Relationships: [

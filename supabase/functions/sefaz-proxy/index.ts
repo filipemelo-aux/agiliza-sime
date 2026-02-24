@@ -109,6 +109,8 @@ serve(async (req) => {
       `${cUF}${new Date().getFullYear()}${String(Math.random()).slice(2, 36).padEnd(34, "0")}`;
     const mockProtocolo = protocolo || `${cUF.slice(0,1)}35${Date.now()}`;
 
+    const docLabel = action.includes("cte") ? "CT-e" : "MDF-e";
+
     switch (action) {
       case "autorizar_cte":
       case "autorizar_mdfe":
@@ -116,6 +118,8 @@ serve(async (req) => {
           responseData = {
             success: true,
             status: "autorizado",
+            cStat: "100",
+            xMotivo: `Autorizado o uso do ${docLabel}`,
             chave_acesso: mockChave,
             protocolo: mockProtocolo,
             data_autorizacao: new Date().toISOString(),
@@ -124,12 +128,13 @@ serve(async (req) => {
             ambiente,
             tpAmb,
             cUF,
-            raw_response: `<retorno><cStat>100</cStat><xMotivo>Autorizado o uso do ${action.includes("cte") ? "CT-e" : "MDF-e"}</xMotivo></retorno>`,
           };
         } else {
           responseData = {
             success: false,
             status: "rejeitado",
+            cStat: "999",
+            xMotivo: "Erro simulado na SEFAZ (ambiente de testes)",
             motivo_rejeicao: "Rejeição 999: Erro simulado na SEFAZ (ambiente de testes)",
             sefaz_url: sefazUrl,
             ambiente,
@@ -144,6 +149,8 @@ serve(async (req) => {
         responseData = {
           success: true,
           status: "autorizado",
+          cStat: "100",
+          xMotivo: `${docLabel} localizado`,
           chave_acesso: mockChave,
           protocolo: mockProtocolo,
           data_autorizacao: new Date().toISOString(),
@@ -157,6 +164,8 @@ serve(async (req) => {
         responseData = {
           success: true,
           status: "cancelado",
+          cStat: "135",
+          xMotivo: `Evento registrado e vinculado a ${docLabel}`,
           protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
           data_autorizacao: new Date().toISOString(),
           sefaz_url: sefazUrl,
@@ -168,6 +177,8 @@ serve(async (req) => {
         responseData = {
           success: true,
           status: "encerrado",
+          cStat: "135",
+          xMotivo: "Evento registrado e vinculado a MDF-e",
           protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
           data_autorizacao: new Date().toISOString(),
           sefaz_url: sefazUrl,
