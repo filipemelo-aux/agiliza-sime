@@ -41,7 +41,7 @@ function SidebarNav() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
       {/* Branding no topo da sidebar */}
       <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
@@ -49,7 +49,7 @@ function SidebarNav() {
         </span>
       </div>
 
-      <SidebarContent>
+      <SidebarContent className="overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -94,8 +94,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex w-full">
         <SidebarNav />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top bar */}
-          <header className="sticky top-0 z-50 h-16 border-b border-border glass-effect flex items-center justify-between px-4">
+          {/* Top bar - fixed with glass effect */}
+          <header className="fixed top-0 right-0 left-0 z-50 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 peer-data-[state=expanded]:md:pl-[calc(var(--sidebar-width)+1rem)]">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8">
                 <Menu className="h-5 w-5" />
@@ -118,7 +118,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </header>
-          <main className="flex-1">
+          {/* Spacer for fixed header */}
+          <div className="h-16 shrink-0" />
+          <main className="flex-1 overflow-y-auto">
             {children}
           </main>
         </div>
