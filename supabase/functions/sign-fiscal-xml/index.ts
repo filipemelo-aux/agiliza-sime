@@ -11,17 +11,46 @@ const corsHeaders = {
 /**
  * Assinatura Digital de Documentos Fiscais (CT-e / MDF-e)
  *
- * Fluxo:
- * 1. Receber XML + document_type + document_id + establishment_id
- * 2. Buscar certificado vinculado ao estabelecimento (establishment_certificates → fiscal_certificates)
- * 3. Baixar .pfx do Storage (bucket fiscal-certificates)
- * 4. Assinar digitalmente o XML (XMLDSig)
- * 5. Retornar XML assinado
- *
  * Segurança:
  * - Certificado A1 NUNCA sai desta edge function
- * - Senha descriptografada apenas em memória
+ * - Senha descriptografada apenas em memória, zerada após uso
+ * - Nenhum dado sensível nos logs
  */
+
+// ── Decryption (matches certificate-manager encryption) ──────
+
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("CERTIFICATE_ENCRYPTION_KEY");
+  if (!secret) {
+    throw new Error("CERTIFICATE_ENCRYPTION_KEY not configured");
+  }
+  const encoded = new TextEncoder().encode(secret);
+  const hash = await crypto.subtle.digest("SHA-256", encoded);
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, [
+    "decrypt",
+  ]);
+}
+
+async function decryptPassword(encrypted: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const [ivB64, ctB64] = encrypted.split(":");
+
+  if (!ivB64 || !ctB64) {
+    throw new Error("Invalid encrypted password format");
+  }
+
+  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
+  const ciphertext = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0));
+
+  const plainBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext
+  );
+
+  return new TextDecoder().decode(plainBuffer);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -41,43 +70,33 @@ serve(async (req) => {
 
     // ── Buscar certificado ──────────────────────────────────────────────
     let certPath: string | null = null;
-    let certPassword: string | null = null;
+    let encryptedPassword: string | null = null;
     let certCnpj = "";
 
     if (establishment_id) {
-      // 1. Buscar vínculo establishment → certificate
-      const { data: link, error: linkErr } = await supabaseClient
+      const { data: link } = await supabaseClient
         .from("establishment_certificates")
         .select("certificate_id")
         .eq("establishment_id", establishment_id)
         .limit(1)
         .maybeSingle();
 
-      if (linkErr) {
-        console.warn("Erro ao buscar vínculo certificado:", linkErr.message);
-      }
-
       if (link?.certificate_id) {
-        // 2. Buscar dados do certificado
-        const { data: cert, error: certErr } = await supabaseClient
+        const { data: cert } = await supabaseClient
           .from("fiscal_certificates")
           .select("caminho_storage, senha_criptografada, nome")
           .eq("id", link.certificate_id)
           .eq("ativo", true)
           .single();
 
-        if (certErr) {
-          console.warn("Erro ao buscar certificado:", certErr.message);
-        }
-
         if (cert) {
           certPath = cert.caminho_storage;
-          certPassword = cert.senha_criptografada;
-          console.log(`Usando certificado "${cert.nome}" para establishment ${establishment_id}`);
+          encryptedPassword = cert.senha_criptografada;
+          // Log certificate name only, never password
+          console.log(`[sign-fiscal-xml] Using certificate: "${cert.nome}"`);
         }
       }
 
-      // 3. Buscar CNPJ do estabelecimento
       const { data: est } = await supabaseClient
         .from("fiscal_establishments")
         .select("cnpj")
@@ -87,7 +106,7 @@ serve(async (req) => {
       if (est) certCnpj = est.cnpj;
     }
 
-    // Fallback: buscar do fiscal_settings (compatibilidade)
+    // Fallback: fiscal_settings
     if (!certPath) {
       const { data: settings } = await supabaseClient
         .from("fiscal_settings")
@@ -97,12 +116,12 @@ serve(async (req) => {
 
       if (settings?.certificado_a1_path) {
         certPath = settings.certificado_a1_path;
-        certPassword = settings.senha_certificado_encrypted;
+        encryptedPassword = settings.senha_certificado_encrypted;
         if (!certCnpj) certCnpj = settings.cnpj;
       }
     }
 
-    if (!certPath) {
+    if (!certPath || !encryptedPassword) {
       throw new Error(
         "Certificado A1 não encontrado. Vincule um certificado ao estabelecimento."
       );
@@ -119,15 +138,24 @@ serve(async (req) => {
 
     const pfxBuffer = await certBlob.arrayBuffer();
 
+    // ── Decrypt password in memory ──────────────────────────────────────
+    let certPassword: string;
+    try {
+      certPassword = await decryptPassword(encryptedPassword);
+    } catch {
+      throw new Error("Erro ao descriptografar senha do certificado");
+    }
+
+    // Log only non-sensitive info
     console.log(
-      `Assinando XML ${document_type} ${document_id} | CNPJ emitente: ${certCnpj} | PFX: ${certPath} (${pfxBuffer.byteLength} bytes)`
+      `[sign-fiscal-xml] Signing ${document_type} ${document_id} | CNPJ: ${certCnpj} | PFX size: ${pfxBuffer.byteLength} bytes`
     );
 
     // =====================================================================
-    // LÓGICA DE ASSINATURA (Placeholder para desenvolvimento)
+    // LÓGICA DE ASSINATURA (Placeholder)
     //
     // Em produção, usar biblioteca compatível com Deno para XMLDSig:
-    // 1. Parsear PFX com a senha
+    // 1. Parsear PFX com certPassword
     // 2. Extrair chave privada + certificado X.509
     // 3. Calcular hash SHA-256 do nodo <infCte> ou <infMDFe>
     // 4. Assinar hash com RSA-SHA256
@@ -166,6 +194,9 @@ serve(async (req) => {
       signedXml = xml.replace("</MDFe>", `${signaturePlaceholder}</MDFe>`);
     }
 
+    // Clear password from memory
+    certPassword = "";
+
     return new Response(
       JSON.stringify({
         signed_xml: signedXml,
@@ -178,7 +209,8 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error("[sign-fiscal-xml Error]", error.message);
+    // Never log sensitive data in errors
+    console.error("[sign-fiscal-xml] Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, ShieldCheck } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -32,22 +32,33 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
       return;
     }
 
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith(".pfx") && !fileName.endsWith(".p12")) {
+      toast({ title: "Apenas arquivos .pfx ou .p12", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo excede 10MB", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
     try {
-      const filePath = `certificates/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("fiscal-certificates")
-        .upload(filePath, file);
-      if (uploadError) throw uploadError;
+      // Send file + password to edge function (never stored in frontend)
+      const formData = new FormData();
+      formData.append("nome", nome);
+      formData.append("senha", senha);
+      formData.append("file", file);
 
-      const { error } = await supabase.from("fiscal_certificates").insert({
-        nome,
-        caminho_storage: filePath,
-        senha_criptografada: senha, // In production, encrypt before storing
+      const { data, error } = await supabase.functions.invoke("certificate-manager", {
+        body: formData,
       });
-      if (error) throw error;
 
-      toast({ title: "Certificado salvo com sucesso" });
+      if (error) throw error;
+      if (data && !data.success) throw new Error(data.error || "Erro ao salvar certificado");
+
+      toast({ title: "Certificado salvo com segurança", description: "Senha criptografada no servidor." });
       setNome("");
       setSenha("");
       setFile(null);
@@ -64,9 +75,18 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display">Upload Certificado A1</DialogTitle>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            Upload Certificado A1
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground">
+              🔒 O certificado e a senha são enviados diretamente ao servidor e criptografados. 
+              Nenhum dado sensível é armazenado no navegador.
+            </p>
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Nome do Certificado *</Label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Certificado Matriz 2026" />
@@ -91,7 +111,7 @@ export function CertificateUploadDialog({ open, onOpenChange, onSaved }: Props) 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Salvando...</> : "Salvar"}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Enviando...</> : "Salvar com Segurança"}
           </Button>
         </DialogFooter>
       </DialogContent>
