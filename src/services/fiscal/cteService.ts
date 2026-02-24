@@ -150,16 +150,16 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       rntrc: cte.rntrc || undefined,
     };
 
-    // 4. Gerar XML
-    const xml = buildCteXml(xmlData);
+    // 5. Gerar XML (agora retorna { xml, chave_acesso })
+    const { xml, chave_acesso } = buildCteXml(xmlData);
 
-    // 5. Validar
+    // 6. Validar
     const validationErrors = validateXmlForSigning(xml, "cte");
     if (validationErrors.length > 0) {
       throw new Error(`XML inválido: ${validationErrors.join(", ")}`);
     }
 
-    // 6. Assinar
+    // 7. Assinar
     const { signed_xml } = await signXml({
       xml,
       document_type: "cte",
@@ -176,13 +176,14 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
     // 8. Atualizar banco
     const updateData: Record<string, any> = {
       numero,
+      chave_acesso,
       data_emissao: new Date().toISOString(),
       xml_enviado: signed_xml,
     };
 
     if (sefazResponse.success) {
       updateData.status = "autorizado";
-      updateData.chave_acesso = sefazResponse.chave_acesso;
+      updateData.chave_acesso = sefazResponse.chave_acesso || chave_acesso;
       updateData.protocolo_autorizacao = sefazResponse.protocolo;
       updateData.data_autorizacao = sefazResponse.data_autorizacao;
       updateData.xml_autorizado = sefazResponse.xml_autorizado;
@@ -210,7 +211,7 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
     return {
       success: sefazResponse.success,
       numero,
-      chave_acesso: sefazResponse.chave_acesso || undefined,
+      chave_acesso: sefazResponse.chave_acesso || chave_acesso || undefined,
       protocolo: sefazResponse.protocolo || undefined,
       motivo_rejeicao: sefazResponse.motivo_rejeicao || undefined,
     };
