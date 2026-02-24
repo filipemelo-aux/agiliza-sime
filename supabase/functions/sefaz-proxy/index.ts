@@ -1,7 +1,7 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import { getSefazUrl, getTpAmb, UF_CODIGO_IBGE, type SefazAmbiente } from "./sefazEndpoints.ts";
+import { getSefazUrl, getTpAmb, UF_CODIGO_IBGE, getDefaultSvcMode, isSefazOfflineError, type SefazAmbiente, type ContingencyMode } from "./sefazEndpoints.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +35,7 @@ serve(async (req) => {
       justificativa,
       document_id,
       establishment_id,
+      contingency_mode: requestedContingency,
     } = await req.json();
 
     if (!action) {
@@ -49,23 +50,27 @@ serve(async (req) => {
     // ── Determinar ambiente e UF do estabelecimento ─────────────────────
     let ambiente: SefazAmbiente = "homologacao";
     let uf = "SP";
+    let contingencyMode: ContingencyMode = requestedContingency || "normal";
 
     if (establishment_id) {
       const { data: est } = await supabaseClient
         .from("fiscal_establishments")
-        .select("ambiente, endereco_uf, cnpj")
+        .select("ambiente, endereco_uf, cnpj, contingency_mode")
         .eq("id", establishment_id)
         .single();
 
       if (est) {
         ambiente = (est.ambiente as SefazAmbiente) || "homologacao";
         uf = est.endereco_uf || "SP";
+        // Use establishment contingency mode if not explicitly overridden
+        if (!requestedContingency && est.contingency_mode && est.contingency_mode !== "normal") {
+          contingencyMode = est.contingency_mode as ContingencyMode;
+        }
         console.log(
-          `[SEFAZ] Establishment ${establishment_id} | CNPJ: ${est.cnpj} | Ambiente: ${ambiente} | UF: ${uf}`
+          `[SEFAZ] Establishment ${establishment_id} | CNPJ: ${est.cnpj} | Ambiente: ${ambiente} | UF: ${uf} | Contingência: ${contingencyMode}`
         );
       }
     } else {
-      // Fallback: fiscal_settings
       const { data: settings } = await supabaseClient
         .from("fiscal_settings")
         .select("ambiente, uf_emissao")
@@ -78,13 +83,13 @@ serve(async (req) => {
       }
     }
 
-    // ── Resolve SEFAZ endpoint ──────────────────────────────────────────
-    const sefazUrl = getSefazUrl(uf, ambiente, action);
+    // ── Resolve SEFAZ endpoint (with contingency) ───────────────────────
+    const sefazUrl = getSefazUrl(uf, ambiente, action, contingencyMode);
     const tpAmb = getTpAmb(ambiente);
     const cUF = UF_CODIGO_IBGE[uf.toUpperCase()] || "35";
 
     console.log(
-      `[SEFAZ Proxy] Ação: ${action} | Ambiente: ${ambiente} (tpAmb=${tpAmb}) | UF: ${uf} (cUF=${cUF}) | URL: ${sefazUrl}`
+      `[SEFAZ Proxy] Ação: ${action} | Ambiente: ${ambiente} (tpAmb=${tpAmb}) | UF: ${uf} (cUF=${cUF}) | Contingência: ${contingencyMode} | URL: ${sefazUrl}`
     );
 
     // =====================================================================
@@ -189,6 +194,9 @@ serve(async (req) => {
       default:
         throw new Error(`Ação '${action}' não suportada`);
     }
+
+    // Inject contingency mode into all responses
+    responseData.contingency_mode = contingencyMode;
 
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

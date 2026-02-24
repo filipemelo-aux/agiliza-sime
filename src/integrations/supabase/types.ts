@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      contingency_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          detected_error: string | null
+          documents_pending: number | null
+          documents_resent: number | null
+          establishment_id: string
+          event_type: string
+          id: string
+          new_mode: string
+          previous_mode: string
+          reason: string | null
+          resolved_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          detected_error?: string | null
+          documents_pending?: number | null
+          documents_resent?: number | null
+          establishment_id: string
+          event_type: string
+          id?: string
+          new_mode: string
+          previous_mode?: string
+          reason?: string | null
+          resolved_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          detected_error?: string | null
+          documents_pending?: number | null
+          documents_resent?: number | null
+          establishment_id?: string
+          event_type?: string
+          id?: string
+          new_mode?: string
+          previous_mode?: string
+          reason?: string | null
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contingency_events_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ctes: {
         Row: {
           aliquota_icms: number
@@ -328,6 +381,10 @@ export type Database = {
           ambiente: string | null
           cnpj: string
           codigo_municipio_ibge: string | null
+          contingency_activated_at: string | null
+          contingency_justification: string | null
+          contingency_mode: string | null
+          contingency_protocol: string | null
           created_at: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -353,6 +410,10 @@ export type Database = {
           ambiente?: string | null
           cnpj: string
           codigo_municipio_ibge?: string | null
+          contingency_activated_at?: string | null
+          contingency_justification?: string | null
+          contingency_mode?: string | null
+          contingency_protocol?: string | null
           created_at?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -378,6 +439,10 @@ export type Database = {
           ambiente?: string | null
           cnpj?: string
           codigo_municipio_ibge?: string | null
+          contingency_activated_at?: string | null
+          contingency_justification?: string | null
+          contingency_mode?: string | null
+          contingency_protocol?: string | null
           created_at?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -480,6 +545,7 @@ export type Database = {
         Row: {
           attempts: number
           completed_at: string | null
+          contingency_mode: string | null
           created_at: string
           created_by: string
           entity_id: string
@@ -489,7 +555,9 @@ export type Database = {
           job_type: string
           max_attempts: number
           next_retry_at: string | null
+          original_job_id: string | null
           payload: Json
+          requires_resend: boolean | null
           result: Json | null
           started_at: string | null
           status: string
@@ -498,6 +566,7 @@ export type Database = {
         Insert: {
           attempts?: number
           completed_at?: string | null
+          contingency_mode?: string | null
           created_at?: string
           created_by: string
           entity_id: string
@@ -507,7 +576,9 @@ export type Database = {
           job_type: string
           max_attempts?: number
           next_retry_at?: string | null
+          original_job_id?: string | null
           payload?: Json
+          requires_resend?: boolean | null
           result?: Json | null
           started_at?: string | null
           status?: string
@@ -516,6 +587,7 @@ export type Database = {
         Update: {
           attempts?: number
           completed_at?: string | null
+          contingency_mode?: string | null
           created_at?: string
           created_by?: string
           entity_id?: string
@@ -525,7 +597,9 @@ export type Database = {
           job_type?: string
           max_attempts?: number
           next_retry_at?: string | null
+          original_job_id?: string | null
           payload?: Json
+          requires_resend?: boolean | null
           result?: Json | null
           started_at?: string | null
           status?: string
