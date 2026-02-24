@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Building2, DollarSign, Truck, FileText } from "lucide-react";
+import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import type { Cte } from "@/pages/FreightCte";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -92,14 +93,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   useEffect(() => {
     if (cte) {
       setForm({
-        remetente_nome: cte.remetente_nome || "",
-        remetente_cnpj: cte.remetente_cnpj || "",
+        remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
+        remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
         remetente_endereco: cte.remetente_endereco || "",
         remetente_municipio_ibge: cte.remetente_municipio_ibge || "",
         remetente_uf: cte.remetente_uf || "",
-        destinatario_nome: cte.destinatario_nome || "",
-        destinatario_cnpj: cte.destinatario_cnpj || "",
+        destinatario_nome: cte.destinatario_nome ? maskName(cte.destinatario_nome) : "",
+        destinatario_cnpj: cte.destinatario_cnpj ? maskCNPJ(cte.destinatario_cnpj) : "",
         destinatario_ie: cte.destinatario_ie || "",
         destinatario_endereco: cte.destinatario_endereco || "",
         destinatario_municipio_ibge: cte.destinatario_municipio_ibge || "",
@@ -113,14 +114,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         cfop: cte.cfop || "6353",
         natureza_operacao: cte.natureza_operacao || "PRESTACAO DE SERVICO DE TRANSPORTE",
         municipio_origem_ibge: cte.municipio_origem_ibge || "",
-        municipio_origem_nome: cte.municipio_origem_nome || "",
+        municipio_origem_nome: cte.municipio_origem_nome ? maskName(cte.municipio_origem_nome) : "",
         uf_origem: cte.uf_origem || "",
         municipio_destino_ibge: cte.municipio_destino_ibge || "",
-        municipio_destino_nome: cte.municipio_destino_nome || "",
+        municipio_destino_nome: cte.municipio_destino_nome ? maskName(cte.municipio_destino_nome) : "",
         uf_destino: cte.uf_destino || "",
-        placa_veiculo: cte.placa_veiculo || "",
+        placa_veiculo: cte.placa_veiculo ? maskPlate(cte.placa_veiculo) : "",
         rntrc: cte.rntrc || "",
-        produto_predominante: cte.produto_predominante || "",
+        produto_predominante: cte.produto_predominante ? maskName(cte.produto_predominante) : "",
         peso_bruto: Number(cte.peso_bruto) || 0,
         observacoes: cte.observacoes || "",
       });
@@ -149,6 +150,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     try {
       const payload = {
         ...form,
+        remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
+        destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || form.destinatario_cnpj,
+        placa_veiculo: unmaskPlate(form.placa_veiculo) || form.placa_veiculo,
         created_by: user.id,
         status: "rascunho",
       };
@@ -187,7 +191,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
               <div className="sm:col-span-4 space-y-1.5">
                 <Label className="text-xs">Nome / Razão Social *</Label>
-                <Input value={form.remetente_nome} onChange={(e) => set("remetente_nome", e.target.value)} placeholder="Nome completo ou razão social" />
+                <Input value={form.remetente_nome} onChange={(e) => set("remetente_nome", maskName(e.target.value))} placeholder="Nome completo ou razão social" />
               </div>
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs">UF</Label>
@@ -198,7 +202,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">CNPJ / CPF</Label>
-                <Input value={form.remetente_cnpj} onChange={(e) => set("remetente_cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+                <Input value={form.remetente_cnpj} onChange={(e) => set("remetente_cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">Inscrição Estadual</Label>
@@ -223,7 +227,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
               <div className="sm:col-span-4 space-y-1.5">
                 <Label className="text-xs">Nome / Razão Social *</Label>
-                <Input value={form.destinatario_nome} onChange={(e) => set("destinatario_nome", e.target.value)} placeholder="Nome completo ou razão social" />
+                <Input value={form.destinatario_nome} onChange={(e) => set("destinatario_nome", maskName(e.target.value))} placeholder="Nome completo ou razão social" />
               </div>
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs">UF</Label>
@@ -234,7 +238,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">CNPJ / CPF</Label>
-                <Input value={form.destinatario_cnpj} onChange={(e) => set("destinatario_cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+                <Input value={form.destinatario_cnpj} onChange={(e) => set("destinatario_cnpj", maskCNPJ(e.target.value))} maxLength={18} placeholder="00.000.000/0000-00" />
               </div>
               <div className="sm:col-span-3 space-y-1.5">
                 <Label className="text-xs">Inscrição Estadual</Label>
@@ -265,7 +269,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <CardContent className="px-4 pb-4 space-y-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", e.target.value)} placeholder="Nome do município" />
+                    <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -290,7 +294,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <CardContent className="px-4 pb-4 space-y-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Município</Label>
-                    <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", e.target.value)} placeholder="Nome do município" />
+                    <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -318,11 +322,25 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor Frete (R$)</Label>
-                <Input type="number" step="0.01" value={form.valor_frete} onChange={(e) => set("valor_frete", Number(e.target.value))} />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input
+                    className="pl-10"
+                    value={form.valor_frete ? maskCurrency(String(Math.round(form.valor_frete * 100))) : ""}
+                    onChange={(e) => set("valor_frete", Number(unmaskCurrency(e.target.value)) || 0)}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor Carga (R$)</Label>
-                <Input type="number" step="0.01" value={form.valor_carga} onChange={(e) => set("valor_carga", Number(e.target.value))} />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input
+                    className="pl-10"
+                    value={form.valor_carga ? maskCurrency(String(Math.round(form.valor_carga * 100))) : ""}
+                    onChange={(e) => set("valor_carga", Number(unmaskCurrency(e.target.value)) || 0)}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Alíquota ICMS (%)</Label>
@@ -330,11 +348,17 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Base Cálculo ICMS</Label>
-                <Input type="number" value={form.base_calculo_icms} disabled className="bg-muted text-muted-foreground" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.base_calculo_icms ? maskCurrency(String(Math.round(form.base_calculo_icms * 100))) : "0,00"} disabled />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor ICMS</Label>
-                <Input type="number" value={form.valor_icms} disabled className="bg-muted text-muted-foreground" />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input className="pl-10 bg-muted text-muted-foreground" value={form.valor_icms ? maskCurrency(String(Math.round(form.valor_icms * 100))) : "0,00"} disabled />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">CST ICMS</Label>
@@ -364,7 +388,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Placa</Label>
-                <Input value={form.placa_veiculo} onChange={(e) => set("placa_veiculo", e.target.value.toUpperCase())} maxLength={7} placeholder="ABC1D23" />
+                <Input value={form.placa_veiculo} onChange={(e) => set("placa_veiculo", maskPlate(e.target.value))} maxLength={8} placeholder="ABC-1D23" className="uppercase" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">RNTRC</Label>
@@ -372,7 +396,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Produto Predominante</Label>
-                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", e.target.value)} placeholder="Ex: Soja" />
+                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: Soja" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Peso Bruto (kg)</Label>
