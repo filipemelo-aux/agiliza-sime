@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-fiscal-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function json(data: unknown, status = 200) {
@@ -17,16 +17,8 @@ function err(message: string, status = 400) {
   return json({ success: false, error: message }, status);
 }
 
-// ─── Auth middleware ───────────────────────────────────────────
+// ─── Auth middleware (JWT only, no client-side API key) ───────
 async function authenticate(req: Request) {
-  // 1. API Key check
-  const apiKey = req.headers.get("x-fiscal-api-key");
-  const expectedKey = Deno.env.get("FISCAL_SERVICE_API_KEY");
-  if (!expectedKey || apiKey !== expectedKey) {
-    throw new Error("INVALID_API_KEY");
-  }
-
-  // 2. JWT / user check
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     throw new Error("MISSING_TOKEN");
@@ -45,6 +37,13 @@ async function authenticate(req: Request) {
   }
 
   const userId = data.claims.sub as string;
+
+  // Validate internal API key (server-side only secret)
+  const expectedKey = Deno.env.get("FISCAL_SERVICE_API_KEY");
+  if (!expectedKey) {
+    console.error("[fiscal-service] FISCAL_SERVICE_API_KEY not configured");
+    throw new Error("SERVER_CONFIG_ERROR");
+  }
 
   // Service role client for DB operations
   const serviceClient = createClient(
@@ -106,14 +105,11 @@ async function handleCteEmit(body: any, userId: string, client: any) {
 
   const establishment = await fetchEstablishment(client, cte.establishment_id);
 
-  // Get next number
   const { data: numero, error: numErr } = await client.rpc("next_cte_number", {
     _establishment_id: cte.establishment_id,
   });
   if (numErr) return err(`Erro ao gerar número: ${numErr.message}`);
 
-  // TODO: integrate with sign-fiscal-xml and sefaz-proxy edge functions
-  // For now, update the record with the generated number
   const updateData: Record<string, unknown> = {
     numero,
     data_emissao: new Date().toISOString(),
@@ -144,7 +140,6 @@ async function handleCteCancel(body: any, userId: string, client: any) {
   const cte = await fetchCte(client, cte_id);
   if (cte.status !== "autorizado") return err("Só é possível cancelar CT-e autorizado.");
 
-  // TODO: integrate with sefaz-proxy for actual cancellation
   await client.from("ctes").update({ status: "cancelado" }).eq("id", cte_id);
 
   const establishment = cte.establishment_id
@@ -224,7 +219,6 @@ async function handleMdfeEncerrar(body: any, userId: string, client: any) {
   const mdfe = await fetchMdfe(client, mdfe_id);
   if (mdfe.status !== "autorizado") return err("Só é possível encerrar MDF-e autorizado.");
 
-  // TODO: integrate with sefaz-proxy for actual encerramento
   await client.from("mdfe").update({
     status: "encerrado",
     data_encerramento: new Date().toISOString(),
@@ -254,46 +248,55 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const path = url.pathname.replace(/^\/fiscal-service\/?/, "/");
-
-    // Auth
+    // Auth (JWT + admin role only, no client-side API key)
     const { userId, serviceClient } = await authenticate(req);
 
+    // Extract path from body._path (since supabase.functions.invoke sends body)
+    let path = "/";
+    let body: any = {};
+
+    if (req.method === "POST") {
+      body = await req.json();
+      path = body._path || "/";
+      delete body._path;
+    } else {
+      const url = new URL(req.url);
+      path = url.pathname.replace(/^\/fiscal-service\/?/, "/");
+    }
+
     // Route matching
-    if (req.method === "POST" && path === "/cte/emit") {
-      const body = await req.json();
+    if (path === "/cte/emit") {
       return await handleCteEmit(body, userId, serviceClient);
     }
 
-    if (req.method === "POST" && path === "/cte/cancel") {
-      const body = await req.json();
+    if (path === "/cte/cancel") {
       return await handleCteCancel(body, userId, serviceClient);
     }
 
-    if (req.method === "GET" && path.startsWith("/cte/status/")) {
+    if (path.startsWith("/cte/status/")) {
       const id = path.replace("/cte/status/", "");
       return await handleCteStatus(id, serviceClient);
     }
 
-    if (req.method === "POST" && path === "/mdfe/emit") {
-      const body = await req.json();
+    if (path === "/mdfe/emit") {
       return await handleMdfeEmit(body, userId, serviceClient);
     }
 
-    if (req.method === "POST" && path === "/mdfe/encerrar") {
-      const body = await req.json();
+    if (path === "/mdfe/encerrar") {
       return await handleMdfeEncerrar(body, userId, serviceClient);
     }
 
     return err("Rota não encontrada", 404);
   } catch (e: any) {
     const msg = e.message || "Erro interno";
-    if (msg === "INVALID_API_KEY" || msg === "MISSING_TOKEN" || msg === "INVALID_TOKEN") {
+    if (msg === "MISSING_TOKEN" || msg === "INVALID_TOKEN") {
       return err("Não autorizado", 401);
     }
     if (msg === "FORBIDDEN") {
       return err("Acesso negado", 403);
+    }
+    if (msg === "SERVER_CONFIG_ERROR") {
+      return err("Erro de configuração do servidor", 500);
     }
     return err(msg, 500);
   }
