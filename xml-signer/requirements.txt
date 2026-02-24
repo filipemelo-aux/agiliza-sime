@@ -1,0 +1,5 @@
+flask==3.1.0
+signxml==4.0.2
+cryptography==44.0.0
+lxml==5.3.1
+gunicorn==23.0.0
