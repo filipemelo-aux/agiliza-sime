@@ -130,6 +130,16 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       destinatario_municipio_ibge: cte.destinatario_municipio_ibge || undefined,
       destinatario_uf: cte.destinatario_uf || undefined,
 
+      // Tomador — default to remetente (0) if not specified
+      tomador_tipo: (cte as any).tomador_tipo || "0",
+      tomador_cnpj: (cte as any).tomador_cnpj || undefined,
+      tomador_cpf: (cte as any).tomador_cpf || undefined,
+      tomador_ie: (cte as any).tomador_ie || undefined,
+      tomador_razao_social: (cte as any).tomador_razao_social || undefined,
+      tomador_endereco: (cte as any).tomador_endereco || undefined,
+      tomador_municipio_ibge: (cte as any).tomador_municipio_ibge || undefined,
+      tomador_uf: (cte as any).tomador_uf || undefined,
+
       municipio_origem_ibge: cte.municipio_origem_ibge || undefined,
       municipio_origem_nome: cte.municipio_origem_nome || undefined,
       uf_origem: cte.uf_origem || undefined,
@@ -147,7 +157,11 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
       produto_predominante: cte.produto_predominante || undefined,
       peso_bruto: cte.peso_bruto || undefined,
       placa_veiculo: cte.placa_veiculo || undefined,
-      rntrc: cte.rntrc || undefined,
+      rntrc: cte.rntrc || establishment.rntrc || undefined,
+
+      // Motorista
+      motorista_nome: (cte as any).motorista_nome || undefined,
+      motorista_cpf: (cte as any).motorista_cpf || undefined,
     };
 
     // 5. Gerar XML (agora retorna { xml, chave_acesso })
