@@ -553,6 +553,8 @@ export type Database = {
           establishment_id: string | null
           id: string
           job_type: string
+          locked_at: string | null
+          locked_by: string | null
           max_attempts: number
           next_retry_at: string | null
           original_job_id: string | null
@@ -574,6 +576,8 @@ export type Database = {
           establishment_id?: string | null
           id?: string
           job_type: string
+          locked_at?: string | null
+          locked_by?: string | null
           max_attempts?: number
           next_retry_at?: string | null
           original_job_id?: string | null
@@ -595,6 +599,8 @@ export type Database = {
           establishment_id?: string | null
           id?: string
           job_type?: string
+          locked_at?: string | null
+          locked_by?: string | null
           max_attempts?: number
           next_retry_at?: string | null
           original_job_id?: string | null
@@ -1324,6 +1330,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_queue_jobs: {
+        Args: { _batch_size?: number; _instance_id: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          contingency_mode: string | null
+          created_at: string
+          created_by: string
+          entity_id: string
+          error_message: string | null
+          establishment_id: string | null
+          id: string
+          job_type: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_retry_at: string | null
+          original_job_id: string | null
+          payload: Json
+          requires_resend: boolean | null
+          result: Json | null
+          started_at: string | null
+          status: string
+          timeout_seconds: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "fiscal_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_my_masked_documents: {
         Args: never
         Returns: {
@@ -1347,6 +1385,10 @@ export type Database = {
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
+      reset_stale_queue_locks: {
+        Args: { _timeout_seconds?: number }
+        Returns: number
+      }
       user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {

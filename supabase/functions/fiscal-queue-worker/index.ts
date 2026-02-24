@@ -14,16 +14,25 @@ function json(data: unknown, status = 200) {
 }
 
 /**
- * fiscal-queue-worker
+ * fiscal-queue-worker — Stateless, multi-instance distributed worker
  *
- * Processes pending jobs from fiscal_queue table.
- * Called via pg_cron every minute or manually.
+ * Scalability guarantees:
+ * 1. STATELESS: No in-memory state; all state in DB
+ * 2. ATOMIC CLAIMING: Uses FOR UPDATE SKIP LOCKED via claim_queue_jobs()
+ * 3. INSTANCE ID: Each invocation gets a unique ID for lock tracking
+ * 4. CRASH RECOVERY: reset_stale_queue_locks() reclaims orphaned jobs
+ * 5. DOCKER-READY: No local filesystem, no env coupling beyond secrets
+ *
+ * Can run N instances concurrently (cron, manual trigger, auto-scale).
  */
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Unique instance ID per invocation — enables lock tracking
+  const instanceId = `worker-${crypto.randomUUID().slice(0, 8)}-${Date.now()}`;
 
   const client = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -34,63 +43,42 @@ Deno.serve(async (req) => {
   const results: any[] = [];
 
   try {
-    // ── 1. Reset timed-out jobs ──────────────────────────────
-    const { data: timedOut } = await client
-      .from("fiscal_queue")
-      .select("id, attempts, max_attempts, timeout_seconds")
-      .eq("status", "processing")
-      .lt("started_at", new Date(Date.now() - 120_000).toISOString());
+    console.log(`[Worker ${instanceId}] Starting...`);
 
-    if (timedOut && timedOut.length > 0) {
-      for (const job of timedOut) {
-        const canRetry = job.attempts < job.max_attempts;
-        await client
-          .from("fiscal_queue")
-          .update({
-            status: canRetry ? "pending" : "timeout",
-            error_message: "Timeout: processamento excedeu o tempo limite",
-            next_retry_at: canRetry
-              ? new Date(Date.now() + backoffMs(job.attempts)).toISOString()
-              : null,
-          })
-          .eq("id", job.id);
-      }
-      console.log(`[Worker] Reset ${timedOut.length} timed-out jobs`);
+    // ── 1. Reset stale locks (crashed instances) ─────────────
+    const { data: resetCount } = await client.rpc("reset_stale_queue_locks", {
+      _timeout_seconds: 120,
+    });
+    if (resetCount && resetCount > 0) {
+      console.log(`[Worker ${instanceId}] Reset ${resetCount} stale locks`);
     }
 
-    // ── 2. Pick pending jobs ─────────────────────────────────
-    const { data: jobs, error: fetchErr } = await client
-      .from("fiscal_queue")
-      .select("*")
-      .eq("status", "pending")
-      .lte("next_retry_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(BATCH_SIZE);
+    // ── 2. Atomic claim — FOR UPDATE SKIP LOCKED ─────────────
+    // Multiple instances calling this concurrently will NEVER get the same jobs
+    const { data: jobs, error: claimErr } = await client.rpc("claim_queue_jobs", {
+      _instance_id: instanceId,
+      _batch_size: BATCH_SIZE,
+    });
 
-    if (fetchErr) {
-      console.error("[Worker] Fetch error:", fetchErr.message);
-      return json({ success: false, error: fetchErr.message }, 500);
+    if (claimErr) {
+      console.error(`[Worker ${instanceId}] Claim error:`, claimErr.message);
+      return json({ success: false, error: claimErr.message }, 500);
     }
 
     if (!jobs || jobs.length === 0) {
-      return json({ success: true, processed: 0, message: "No pending jobs" });
+      return json({
+        success: true,
+        instance_id: instanceId,
+        processed: 0,
+        message: "No pending jobs",
+      });
     }
 
-    console.log(`[Worker] Processing ${jobs.length} jobs`);
+    console.log(`[Worker ${instanceId}] Claimed ${jobs.length} jobs: ${jobs.map((j: any) => j.id.slice(0, 8)).join(", ")}`);
 
-    // ── 3. Process each job ──────────────────────────────────
+    // ── 3. Process each claimed job ──────────────────────────
     for (const job of jobs) {
-      const attempt = job.attempts + 1;
-
-      // Mark as processing
-      await client
-        .from("fiscal_queue")
-        .update({
-          status: "processing",
-          started_at: new Date().toISOString(),
-          attempts: attempt,
-        })
-        .eq("id", job.id);
+      const attempt = job.attempts; // Already incremented by claim_queue_jobs
 
       // Log: tentativa de envio
       await logStructured(client, {
@@ -101,13 +89,13 @@ Deno.serve(async (req) => {
         establishment_id: job.establishment_id,
         queue_job_id: job.id,
         attempt,
-        details: { job_type: job.job_type, payload: job.payload },
+        details: { job_type: job.job_type, payload: job.payload, instance_id: instanceId },
       });
 
       try {
         const result = await processJob(job, client, attempt);
 
-        // Mark completed
+        // Mark completed + release lock
         await client
           .from("fiscal_queue")
           .update({
@@ -115,10 +103,12 @@ Deno.serve(async (req) => {
             result,
             completed_at: new Date().toISOString(),
             error_message: null,
+            locked_by: null,
+            locked_at: null,
           })
           .eq("id", job.id);
 
-        // If this was a contingency job, mark for resend in normal mode
+        // If contingency job, mark for resend
         if (job.contingency_mode && job.contingency_mode !== "normal" && !job.requires_resend) {
           await client
             .from("fiscal_queue")
@@ -134,7 +124,6 @@ Deno.serve(async (req) => {
         // Auto-detect SEFAZ offline → activate contingency
         if (isSefazDown && job.establishment_id) {
           await handleContingencyActivation(client, job, err.message);
-          // Re-queue with contingency mode
           await client
             .from("fiscal_queue")
             .update({
@@ -142,6 +131,8 @@ Deno.serve(async (req) => {
               contingency_mode: await getEstablishmentContingency(client, job.establishment_id),
               next_retry_at: new Date(Date.now() + 5000).toISOString(),
               error_message: `SEFAZ offline detectado: ${err.message}`,
+              locked_by: null,
+              locked_at: null,
             })
             .eq("id", job.id);
 
@@ -149,6 +140,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Release lock on failure
         await client
           .from("fiscal_queue")
           .update({
@@ -157,6 +149,8 @@ Deno.serve(async (req) => {
             next_retry_at: canRetry
               ? new Date(Date.now() + backoffMs(attempt)).toISOString()
               : null,
+            locked_by: null,
+            locked_at: null,
           })
           .eq("id", job.id);
 
@@ -164,7 +158,6 @@ Deno.serve(async (req) => {
           await updateEntityStatus(client, job, "erro", err.message);
         }
 
-        // Log: falha
         await logStructured(client, {
           user_id: job.created_by,
           entity_type: job.job_type.startsWith("cte") ? "cte" : "mdfe",
@@ -173,23 +166,30 @@ Deno.serve(async (req) => {
           establishment_id: job.establishment_id,
           queue_job_id: job.id,
           attempt,
-          details: { error: err.message, can_retry: canRetry },
+          details: { error: err.message, can_retry: canRetry, instance_id: instanceId },
         });
 
         results.push({ id: job.id, status: canRetry ? "retry" : "failed", error: err.message });
       }
     }
 
-    // ── 4. Check for resendable jobs (contingency → normal) ────
+    // ── 4. Resend queue (contingency → normal) ───────────────
     await processResendQueue(client);
 
-    // ── 5. Check if contingency can be deactivated ───────────
+    // ── 5. Check contingency recovery ────────────────────────
     await checkContingencyRecovery(client);
 
-    return json({ success: true, processed: results.length, results });
+    console.log(`[Worker ${instanceId}] Done. Processed ${results.length} jobs.`);
+
+    return json({
+      success: true,
+      instance_id: instanceId,
+      processed: results.length,
+      results,
+    });
   } catch (e: any) {
-    console.error("[Worker] Fatal error:", e.message);
-    return json({ success: false, error: e.message }, 500);
+    console.error(`[Worker ${instanceId}] Fatal error:`, e.message);
+    return json({ success: false, instance_id: instanceId, error: e.message }, 500);
   }
 });
 
@@ -197,7 +197,6 @@ Deno.serve(async (req) => {
 
 async function processJob(job: any, client: any, attempt: number) {
   const payload = job.payload || {};
-
   switch (job.job_type) {
     case "cte_emit":
       return await processCteEmit(job, client, attempt);
@@ -216,7 +215,6 @@ async function processCteEmit(job: any, client: any, attempt: number) {
   const cte = await fetchEntity(client, "ctes", job.entity_id);
   const establishment = await fetchEstablishment(client, job.establishment_id);
 
-  // Log: XML gerado
   await logStructured(client, {
     user_id: job.created_by,
     entity_type: "cte",
@@ -247,7 +245,6 @@ async function processCteEmit(job: any, client: any, attempt: number) {
       xml_autorizado: sefazResult.xml_autorizado,
     }).eq("id", job.entity_id);
 
-    // Log: autorização
     await logStructured(client, {
       user_id: job.created_by,
       entity_type: "cte",
@@ -271,7 +268,6 @@ async function processCteEmit(job: any, client: any, attempt: number) {
       },
     });
   } else {
-    // Log: rejeição
     await logStructured(client, {
       user_id: job.created_by,
       entity_type: "cte",
@@ -320,7 +316,6 @@ async function processCteCancel(job: any, payload: any, client: any, attempt: nu
   if (sefazResult.success) {
     await client.from("ctes").update({ status: "cancelado" }).eq("id", job.entity_id);
 
-    // Log: cancelamento
     await logStructured(client, {
       user_id: job.created_by,
       entity_type: "cte",
@@ -616,7 +611,6 @@ async function getEstablishmentContingency(client: any, establishmentId: string)
     return data.contingency_mode;
   }
 
-  // Auto-determine SVC based on UF
   const svcAnUfs = new Set(["SP", "MG", "MS", "MT", "PR"]);
   const uf = (data?.endereco_uf || "SP").toUpperCase();
   return svcAnUfs.has(uf) ? "svc_an" : "svc_rs";
@@ -626,7 +620,6 @@ async function handleContingencyActivation(client: any, job: any, errorMessage: 
   const establishmentId = job.establishment_id;
   if (!establishmentId) return;
 
-  // Check if already in contingency
   const { data: est } = await client
     .from("fiscal_establishments")
     .select("contingency_mode, endereco_uf")
@@ -634,14 +627,13 @@ async function handleContingencyActivation(client: any, job: any, errorMessage: 
     .single();
 
   if (est?.contingency_mode && est.contingency_mode !== "normal") {
-    return; // Already in contingency
+    return;
   }
 
   const svcAnUfs = new Set(["SP", "MG", "MS", "MT", "PR"]);
   const uf = (est?.endereco_uf || "SP").toUpperCase();
   const newMode = svcAnUfs.has(uf) ? "svc_an" : "svc_rs";
 
-  // Activate contingency
   await client
     .from("fiscal_establishments")
     .update({
@@ -651,14 +643,12 @@ async function handleContingencyActivation(client: any, job: any, errorMessage: 
     })
     .eq("id", establishmentId);
 
-  // Count pending documents
   const { count } = await client
     .from("fiscal_queue")
     .select("id", { count: "exact", head: true })
     .eq("establishment_id", establishmentId)
     .in("status", ["pending", "processing"]);
 
-  // Record contingency event
   await client.from("contingency_events").insert({
     establishment_id: establishmentId,
     event_type: "auto_detected",
@@ -670,7 +660,6 @@ async function handleContingencyActivation(client: any, job: any, errorMessage: 
     created_by: job.created_by,
   });
 
-  // Log
   await logStructured(client, {
     user_id: job.created_by,
     entity_type: job.job_type.startsWith("cte") ? "cte" : "mdfe",
@@ -687,9 +676,6 @@ async function handleContingencyActivation(client: any, job: any, errorMessage: 
   console.log(`[Worker] Contingency activated for establishment ${establishmentId}: ${newMode}`);
 }
 
-/**
- * Process jobs that were completed in contingency and need resending in normal mode.
- */
 async function processResendQueue(client: any) {
   const { data: resendJobs } = await client
     .from("fiscal_queue")
@@ -701,7 +687,6 @@ async function processResendQueue(client: any) {
   if (!resendJobs || resendJobs.length === 0) return;
 
   for (const job of resendJobs) {
-    // Check if establishment is back to normal
     const { data: est } = await client
       .from("fiscal_establishments")
       .select("contingency_mode")
@@ -709,10 +694,9 @@ async function processResendQueue(client: any) {
       .single();
 
     if (est?.contingency_mode && est.contingency_mode !== "normal") {
-      continue; // Still in contingency, skip
+      continue;
     }
 
-    // Create a new job for resending in normal mode
     await client.from("fiscal_queue").insert({
       job_type: job.job_type,
       entity_id: job.entity_id,
@@ -723,7 +707,6 @@ async function processResendQueue(client: any) {
       created_by: job.created_by,
     });
 
-    // Mark original as no longer requiring resend
     await client
       .from("fiscal_queue")
       .update({ requires_resend: false })
@@ -737,15 +720,9 @@ async function processResendQueue(client: any) {
       establishment_id: job.establishment_id,
       details: { original_job_id: job.id, original_contingency_mode: job.contingency_mode },
     });
-
-    console.log(`[Worker] Resend job created for ${job.entity_id} (original: ${job.id})`);
   }
 }
 
-/**
- * Check if SEFAZ is back online and deactivate contingency.
- * Tries a status service call for each establishment in contingency.
- */
 async function checkContingencyRecovery(client: any) {
   const { data: establishments } = await client
     .from("fiscal_establishments")
@@ -757,17 +734,12 @@ async function checkContingencyRecovery(client: any) {
 
   for (const est of establishments) {
     try {
-      // Try status service in normal mode to check if SEFAZ is back
       const statusResult = await callSefazProxy(
-        {
-          action: est.endereco_uf ? "status_cte" : "status_cte",
-          establishment_id: est.id,
-        },
-        "normal" // Force normal mode for the check
+        { action: "status_cte", establishment_id: est.id },
+        "normal"
       );
 
       if (statusResult.success || (statusResult.cStat && !["108", "109"].includes(statusResult.cStat))) {
-        // SEFAZ is back! Deactivate contingency
         const previousMode = est.contingency_mode;
 
         await client
@@ -779,7 +751,6 @@ async function checkContingencyRecovery(client: any) {
           })
           .eq("id", est.id);
 
-        // Count docs to resend
         const { count } = await client
           .from("fiscal_queue")
           .select("id", { count: "exact", head: true })
@@ -798,7 +769,7 @@ async function checkContingencyRecovery(client: any) {
         console.log(`[Worker] Contingency deactivated for ${est.id}, ${count || 0} docs to resend`);
       }
     } catch {
-      // Still offline, keep contingency
+      // Still offline
     }
   }
 }
