@@ -1,6 +1,7 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import {
   securityMiddleware,
   secureJson,
@@ -10,27 +11,239 @@ import {
   logSecurityEvent,
   VALIDATION_SCHEMAS,
 } from "../_shared/security.ts";
-import { getSefazUrl, getTpAmb, UF_CODIGO_IBGE, getDefaultSvcMode, isSefazOfflineError, type SefazAmbiente, type ContingencyMode } from "./sefazEndpoints.ts";
 
 /**
- * Proxy de Comunicação com SEFAZ (Webservices SOAP)
- * 
- * Security:
- * - Rate limiting (DB-backed)
- * - Payload validation & sanitization
- * - Security headers (Helmet)
- * - XML XXE protection
- * - Audit logging
+ * SEFAZ Proxy — Delega operações fiscais ao microserviço Docker
+ *
+ * Responsabilidades:
+ * - Autenticação e rate limiting
+ * - Buscar certificado PFX do storage + descriptografar senha
+ * - Determinar ambiente/UF do estabelecimento
+ * - Chamar o microserviço Docker (que faz assinatura + SOAP/mTLS)
+ * - Retornar resultado estruturado
+ *
+ * O microserviço Docker é responsável por:
+ * - Assinatura XMLDSig real
+ * - Montagem envelope SOAP
+ * - Comunicação mTLS com SEFAZ
+ * - Parsing da resposta XML
  */
+
+// ── Decryption ──────────────────────────────────────────────────
+
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("CERTIFICATE_ENCRYPTION_KEY");
+  if (!secret) throw new Error("CERTIFICATE_ENCRYPTION_KEY not configured");
+  const encoded = new TextEncoder().encode(secret);
+  const hash = await crypto.subtle.digest("SHA-256", encoded);
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["decrypt"]);
+}
+
+async function decryptPassword(encrypted: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const [ivB64, ctB64] = encrypted.split(":");
+  if (!ivB64 || !ctB64) throw new Error("Invalid encrypted password format");
+  const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
+  const ciphertext = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0));
+  const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return new TextDecoder().decode(plainBuffer);
+}
+
+// ── Buscar certificado ──────────────────────────────────────────
+
+interface CertificateInfo {
+  pfxBase64: string;
+  password: string;
+  cnpj: string;
+}
+
+async function fetchCertificate(
+  supabaseClient: any,
+  establishmentId?: string
+): Promise<CertificateInfo> {
+  let certPath: string | null = null;
+  let encryptedPassword: string | null = null;
+  let certCnpj = "";
+
+  if (establishmentId) {
+    const { data: link } = await supabaseClient
+      .from("establishment_certificates")
+      .select("certificate_id")
+      .eq("establishment_id", establishmentId)
+      .limit(1)
+      .maybeSingle();
+
+    if (link?.certificate_id) {
+      const { data: cert } = await supabaseClient
+        .from("fiscal_certificates")
+        .select("caminho_storage, senha_criptografada, nome")
+        .eq("id", link.certificate_id)
+        .eq("ativo", true)
+        .single();
+
+      if (cert) {
+        certPath = cert.caminho_storage;
+        encryptedPassword = cert.senha_criptografada;
+      }
+    }
+
+    const { data: est } = await supabaseClient
+      .from("fiscal_establishments")
+      .select("cnpj")
+      .eq("id", establishmentId)
+      .single();
+    if (est) certCnpj = est.cnpj;
+  }
+
+  if (!certPath) {
+    const { data: settings } = await supabaseClient
+      .from("fiscal_settings")
+      .select("certificado_a1_path, senha_certificado_encrypted, cnpj")
+      .limit(1)
+      .maybeSingle();
+
+    if (settings?.certificado_a1_path) {
+      certPath = settings.certificado_a1_path;
+      encryptedPassword = settings.senha_certificado_encrypted;
+      if (!certCnpj) certCnpj = settings.cnpj;
+    }
+  }
+
+  if (!certPath || !encryptedPassword) {
+    throw new Error("Certificado A1 não encontrado. Vincule um certificado ao estabelecimento.");
+  }
+
+  const { data: certBlob, error: downloadError } = await supabaseClient.storage
+    .from("fiscal-certificates")
+    .download(certPath);
+
+  if (downloadError || !certBlob) {
+    throw new Error("Erro ao baixar certificado A1 do storage");
+  }
+
+  const pfxBuffer = await certBlob.arrayBuffer();
+  const pfxBase64 = base64Encode(new Uint8Array(pfxBuffer));
+
+  let password: string;
+  try {
+    password = await decryptPassword(encryptedPassword);
+  } catch {
+    throw new Error("Erro ao descriptografar senha do certificado");
+  }
+
+  return { pfxBase64, password, cnpj: certCnpj };
+}
+
+// ── Chamar microserviço Docker ──────────────────────────────────
+
+async function callFiscalService(
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<any> {
+  const baseUrl = Deno.env.get("XML_SIGNER_URL");
+  if (!baseUrl) throw new Error("XML_SIGNER_URL not configured");
+
+  // XML_SIGNER_URL pode ser https://sime.fsm.app.br/sign — extrair base
+  const url = new URL(endpoint, baseUrl.replace(/\/sign$/, "/"));
+  const apiKey = Deno.env.get("XML_SIGNER_API_KEY") || "";
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apiKey ? { "X-API-Key": apiKey } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok && !result.success) {
+    throw new Error(result.error || `Microserviço retornou HTTP ${response.status}`);
+  }
+
+  return result;
+}
+
+// ── Action → Docker endpoint mapping ────────────────────────────
+
+interface ActionConfig {
+  dockerEndpoint: string;
+  requiresXml: boolean;
+  requiresChave: boolean;
+  requiresProtocolo: boolean;
+  requiresJustificativa: boolean;
+}
+
+const ACTION_MAP: Record<string, ActionConfig> = {
+  autorizar_cte: {
+    dockerEndpoint: "/cte/emit",
+    requiresXml: true,
+    requiresChave: false,
+    requiresProtocolo: false,
+    requiresJustificativa: false,
+  },
+  consultar_cte: {
+    dockerEndpoint: "/cte/consult",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: false,
+    requiresJustificativa: false,
+  },
+  cancelar_cte: {
+    dockerEndpoint: "/cte/cancel",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: true,
+    requiresJustificativa: true,
+  },
+  cce_cte: {
+    dockerEndpoint: "/cte/cce",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: false,
+    requiresJustificativa: false,
+  },
+  autorizar_mdfe: {
+    dockerEndpoint: "/mdfe/emit",
+    requiresXml: true,
+    requiresChave: false,
+    requiresProtocolo: false,
+    requiresJustificativa: false,
+  },
+  consultar_mdfe: {
+    dockerEndpoint: "/mdfe/consult",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: false,
+    requiresJustificativa: false,
+  },
+  cancelar_mdfe: {
+    dockerEndpoint: "/mdfe/cancel",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: true,
+    requiresJustificativa: true,
+  },
+  encerrar_mdfe: {
+    dockerEndpoint: "/mdfe/close",
+    requiresXml: false,
+    requiresChave: true,
+    requiresProtocolo: true,
+    requiresJustificativa: false,
+  },
+};
+
+// ── Handler principal ───────────────────────────────────────────
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Security middleware: rate limit + payload validation
   const security = await securityMiddleware(req, "sefaz-proxy", {
     validateSchema: VALIDATION_SCHEMAS.sefaz_proxy,
-    maxBodySize: 600_000, // 600KB max (XML can be large)
+    maxBodySize: 600_000,
   });
 
   if (!security.ok) return security.response!;
@@ -45,20 +258,14 @@ serve(async (req) => {
       justificativa,
       document_id,
       establishment_id,
-      contingency_mode: requestedContingency,
+      correcoes,
+      codigo_municipio,
     } = body as Record<string, any>;
 
-    if (!action) {
-      throw new Error("Parâmetro 'action' é obrigatório");
-    }
+    if (!action) throw new Error("Parâmetro 'action' é obrigatório");
 
-    // Validate action is in allowed list
-    const allowedActions = [
-      "autorizar_cte", "consultar_cte", "cancelar_cte", "status_cte",
-      "autorizar_mdfe", "consultar_mdfe", "cancelar_mdfe", "encerrar_mdfe",
-      "status_mdfe", "distribuicao_mdfe",
-    ];
-    if (!allowedActions.includes(action)) {
+    const config = ACTION_MAP[action];
+    if (!config) {
       await logSecurityEvent(security.client, {
         event_type: "invalid_action",
         source_ip: security.clientIp,
@@ -68,7 +275,7 @@ serve(async (req) => {
       throw new Error(`Ação '${action}' não suportada`);
     }
 
-    // Sanitize XML if present (XXE protection)
+    // Sanitize XML if present
     let cleanXml = signed_xml;
     if (signed_xml && typeof signed_xml === "string") {
       try {
@@ -86,27 +293,20 @@ serve(async (req) => {
 
     const supabaseClient = security.client;
 
-    // ── Determinar ambiente e UF do estabelecimento ─────────────
-    let ambiente: SefazAmbiente = "homologacao";
+    // ── Determinar ambiente e UF ────────────────────────────
+    let ambiente = "homologacao";
     let uf = "SP";
-    let contingencyMode: ContingencyMode = requestedContingency || "normal";
 
     if (establishment_id) {
       const { data: est } = await supabaseClient
         .from("fiscal_establishments")
-        .select("ambiente, endereco_uf, cnpj, contingency_mode")
+        .select("ambiente, endereco_uf, cnpj")
         .eq("id", establishment_id)
         .single();
 
       if (est) {
-        ambiente = (est.ambiente as SefazAmbiente) || "homologacao";
+        ambiente = est.ambiente || "homologacao";
         uf = est.endereco_uf || "SP";
-        if (!requestedContingency && est.contingency_mode && est.contingency_mode !== "normal") {
-          contingencyMode = est.contingency_mode as ContingencyMode;
-        }
-        console.log(
-          `[SEFAZ] Establishment ${establishment_id} | CNPJ: ${est.cnpj} | Ambiente: ${ambiente} | UF: ${uf} | Contingência: ${contingencyMode}`
-        );
       }
     } else {
       const { data: settings } = await supabaseClient
@@ -114,115 +314,74 @@ serve(async (req) => {
         .select("ambiente, uf_emissao")
         .limit(1)
         .maybeSingle();
-
       if (settings) {
-        ambiente = settings.ambiente as SefazAmbiente;
+        ambiente = settings.ambiente;
         uf = settings.uf_emissao;
       }
     }
 
-    // ── Resolve SEFAZ endpoint ──────────────────────────────────
-    const sefazUrl = getSefazUrl(uf, ambiente, action, contingencyMode);
-    const tpAmb = getTpAmb(ambiente);
-    const cUF = UF_CODIGO_IBGE[uf.toUpperCase()] || "35";
+    // ── Buscar certificado ──────────────────────────────────
+    const cert = await fetchCertificate(supabaseClient, establishment_id);
 
     console.log(
-      `[SEFAZ Proxy] Ação: ${action} | Ambiente: ${ambiente} (tpAmb=${tpAmb}) | UF: ${uf} (cUF=${cUF}) | Contingência: ${contingencyMode} | URL: ${sefazUrl}`
+      `[SEFAZ Proxy] Action: ${action} | Ambiente: ${ambiente} | UF: ${uf} | CNPJ: ${cert.cnpj}`
     );
 
-    // Simular delay de rede
-    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 1200));
+    // ── Montar payload para o microserviço Docker ───────────
+    const dockerPayload: Record<string, any> = {
+      pfx_base64: cert.pfxBase64,
+      password: cert.password,
+      uf,
+      ambiente,
+    };
 
-    let responseData: any = { success: false, status: "erro_simulado" };
-
-    const mockChave =
-      chave_acesso ||
-      `${cUF}${new Date().getFullYear()}${String(Math.random()).slice(2, 36).padEnd(34, "0")}`;
-    const mockProtocolo = protocolo || `${cUF.slice(0,1)}35${Date.now()}`;
-    const docLabel = action.includes("cte") ? "CT-e" : "MDF-e";
-
-    switch (action) {
-      case "autorizar_cte":
-      case "autorizar_mdfe":
-        if (Math.random() > 0.1) {
-          responseData = {
-            success: true,
-            status: "autorizado",
-            cStat: "100",
-            xMotivo: `Autorizado o uso do ${docLabel}`,
-            chave_acesso: mockChave,
-            protocolo: mockProtocolo,
-            data_autorizacao: new Date().toISOString(),
-            xml_autorizado: cleanXml,
-            sefaz_url: sefazUrl,
-            ambiente,
-            tpAmb,
-            cUF,
-          };
-        } else {
-          responseData = {
-            success: false,
-            status: "rejeitado",
-            cStat: "999",
-            xMotivo: "Erro simulado na SEFAZ (ambiente de testes)",
-            motivo_rejeicao: "Rejeição 999: Erro simulado na SEFAZ (ambiente de testes)",
-            sefaz_url: sefazUrl,
-            ambiente,
-            tpAmb,
-            cUF,
-          };
-        }
-        break;
-
-      case "consultar_cte":
-      case "consultar_mdfe":
-        responseData = {
-          success: true,
-          status: "autorizado",
-          cStat: "100",
-          xMotivo: `${docLabel} localizado`,
-          chave_acesso: mockChave,
-          protocolo: mockProtocolo,
-          data_autorizacao: new Date().toISOString(),
-          sefaz_url: sefazUrl,
-          ambiente,
-        };
-        break;
-
-      case "cancelar_cte":
-      case "cancelar_mdfe":
-        responseData = {
-          success: true,
-          status: "cancelado",
-          cStat: "135",
-          xMotivo: `Evento registrado e vinculado a ${docLabel}`,
-          protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
-          data_autorizacao: new Date().toISOString(),
-          sefaz_url: sefazUrl,
-          ambiente,
-        };
-        break;
-
-      case "encerrar_mdfe":
-        responseData = {
-          success: true,
-          status: "encerrado",
-          cStat: "135",
-          xMotivo: "Evento registrado e vinculado a MDF-e",
-          protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
-          data_autorizacao: new Date().toISOString(),
-          sefaz_url: sefazUrl,
-          ambiente,
-        };
-        break;
-
-      default:
-        throw new Error(`Ação '${action}' não suportada`);
+    if (config.requiresXml) {
+      dockerPayload.xml = cleanXml;
+      dockerPayload.document_id = document_id;
     }
+    if (config.requiresChave) {
+      dockerPayload.chave_acesso = chave_acesso;
+    }
+    if (config.requiresProtocolo) {
+      dockerPayload.protocolo = protocolo;
+    }
+    if (config.requiresJustificativa) {
+      dockerPayload.justificativa = justificativa;
+    }
+    if (action === "cce_cte") {
+      dockerPayload.correcoes = correcoes;
+    }
+    if (action === "encerrar_mdfe") {
+      dockerPayload.codigo_municipio = codigo_municipio;
+    }
+    dockerPayload.cnpj = cert.cnpj;
 
-    responseData.contingency_mode = contingencyMode;
+    // ── Chamar microserviço ─────────────────────────────────
+    const result = await callFiscalService(config.dockerEndpoint, dockerPayload);
 
-    return secureJson(responseData);
+    // Limpar dados sensíveis
+    cert.password = "";
+    cert.pfxBase64 = "";
+
+    // Normalizar resposta
+    const response: Record<string, any> = {
+      success: result.success ?? false,
+      status: result.success ? (result.cStat === "135" ? "cancelado" : "autorizado") : "rejeitado",
+      cStat: result.cStat || "",
+      xMotivo: result.xMotivo || "",
+      chave_acesso: result.chave_acesso || chave_acesso || "",
+      protocolo: result.protocolo || "",
+      data_autorizacao: result.data_autorizacao || "",
+      xml_autorizado: result.xml_autorizado || "",
+      signed_xml: result.signed_xml || "",
+      motivo_rejeicao: result.motivo_rejeicao || "",
+      sefaz_url: result.sefaz_url || "",
+      ambiente,
+      tpAmb: ambiente === "producao" ? "1" : "2",
+      cUF: result.cUF || "",
+    };
+
+    return secureJson(response);
   } catch (error: any) {
     console.error("[SEFAZ Proxy Error]", error.message);
     return secureError(error.message);
