@@ -9,7 +9,7 @@ export default function FreightFiscalSettings() {
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <BackButton to="/admin/services" label="Serviços" />
+        <BackButton to="/admin/settings" label="Configurações" />
         <h1 className="text-3xl font-bold font-display mb-6">Configurações Fiscais</h1>
 
         <Tabs defaultValue="establishments" className="space-y-6">

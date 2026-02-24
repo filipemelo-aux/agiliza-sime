@@ -11,7 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
 import AdminDrivers from "./pages/AdminDrivers";
 import AdminHarvest from "./pages/AdminHarvest";
-import AdminServices from "./pages/AdminServices";
+
 import AdminSettings from "./pages/AdminSettings";
 import HarvestDetail from "./pages/HarvestDetail";
 import FreightDashboard from "./pages/FreightDashboard";
@@ -47,7 +47,7 @@ const App = () => (
             <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/drivers" element={<AdminDrivers />} />
-            <Route path="/admin/services" element={<AdminServices />} />
+            <Route path="/admin/services" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/harvest" element={<AdminHarvest />} />
             <Route path="/admin/harvest/:id" element={<HarvestDetail />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
