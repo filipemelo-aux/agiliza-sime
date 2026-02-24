@@ -1,10 +1,9 @@
 /**
- * Cliente HTTP para o microserviço fiscal (edge function fiscal-service)
+ * Cliente para o microserviço fiscal (edge function fiscal-service)
+ * Usa supabase.functions.invoke() — sem API key no frontend.
  */
 
 import { supabase } from "@/integrations/supabase/client";
-
-const FISCAL_API_KEY = import.meta.env.VITE_FISCAL_API_KEY || "";
 
 interface FiscalResponse<T = any> {
   success: boolean;
@@ -17,32 +16,17 @@ async function callFiscalService<T = any>(
   method: "GET" | "POST" = "POST",
   body?: Record<string, unknown>
 ): Promise<FiscalResponse<T>> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
-  if (!token) {
-    return { success: false, error: "Usuário não autenticado." };
-  }
-
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/fiscal-service${path}`;
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-    "x-fiscal-api-key": FISCAL_API_KEY,
-    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-  };
-
-  const res = await fetch(url, {
+  const { data, error } = await supabase.functions.invoke("fiscal-service", {
     method,
-    headers,
-    body: method === "POST" && body ? JSON.stringify(body) : undefined,
+    body: { _path: path, ...body },
   });
 
-  const data = await res.json();
+  if (error) {
+    return { success: false, error: error.message || "Erro na requisição fiscal" };
+  }
 
-  if (!res.ok) {
-    return { success: false, error: data.error || `HTTP ${res.status}` };
+  if (data && data.success === false) {
+    return { success: false, error: data.error || "Erro desconhecido" };
   }
 
   return { success: true, data };
