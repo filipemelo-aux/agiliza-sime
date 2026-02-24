@@ -1,6 +1,7 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { getSefazUrl, getTpAmb, UF_CODIGO_IBGE, type SefazAmbiente } from "./sefazEndpoints.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,10 +15,11 @@ const corsHeaders = {
  * Fluxo:
  * 1. Receber requisição JSON (action + signed_xml + establishment_id)
  * 2. Buscar config do estabelecimento (ambiente, UF)
- * 3. Buscar certificado vinculado para mTLS
- * 4. Montar envelope SOAP
- * 5. Enviar HTTPS com mTLS
- * 6. Retornar JSON simplificado
+ * 3. Resolver endpoint SEFAZ correto (UF × ambiente)
+ * 4. Buscar certificado vinculado para mTLS
+ * 5. Montar envelope SOAP
+ * 6. Enviar HTTPS com mTLS
+ * 7. Retornar JSON simplificado
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,7 +47,7 @@ serve(async (req) => {
     );
 
     // ── Determinar ambiente e UF do estabelecimento ─────────────────────
-    let ambiente = "homologacao";
+    let ambiente: SefazAmbiente = "homologacao";
     let uf = "SP";
 
     if (establishment_id) {
@@ -56,10 +58,10 @@ serve(async (req) => {
         .single();
 
       if (est) {
-        ambiente = est.ambiente || "homologacao";
+        ambiente = (est.ambiente as SefazAmbiente) || "homologacao";
         uf = est.endereco_uf || "SP";
         console.log(
-          `[SEFAZ] Establishment ${establishment_id} | CNPJ: ${est.cnpj} | ${ambiente} | UF: ${uf}`
+          `[SEFAZ] Establishment ${establishment_id} | CNPJ: ${est.cnpj} | Ambiente: ${ambiente} | UF: ${uf}`
         );
       }
     } else {
@@ -71,22 +73,30 @@ serve(async (req) => {
         .maybeSingle();
 
       if (settings) {
-        ambiente = settings.ambiente;
+        ambiente = settings.ambiente as SefazAmbiente;
         uf = settings.uf_emissao;
       }
     }
 
-    console.log(`[SEFAZ Proxy] Ação: ${action}, Ambiente: ${ambiente}, UF: ${uf}`);
+    // ── Resolve SEFAZ endpoint ──────────────────────────────────────────
+    const sefazUrl = getSefazUrl(uf, ambiente, action);
+    const tpAmb = getTpAmb(ambiente);
+    const cUF = UF_CODIGO_IBGE[uf.toUpperCase()] || "35";
+
+    console.log(
+      `[SEFAZ Proxy] Ação: ${action} | Ambiente: ${ambiente} (tpAmb=${tpAmb}) | UF: ${uf} (cUF=${cUF}) | URL: ${sefazUrl}`
+    );
 
     // =====================================================================
-    // COMUNICAÇÃO SOAP (Placeholder)
+    // COMUNICAÇÃO SOAP (Placeholder — simulação)
     //
     // Em produção:
     // 1. Buscar certificado do establishment via establishment_certificates
-    // 2. Determinar URL do webservice (tabela UF × ambiente)
-    // 3. Montar envelope SOAP
-    // 4. fetch() com mTLS (certificado PFX)
-    // 5. Parsear retorno XML
+    // 2. Montar envelope SOAP com o XML assinado
+    // 3. fetch(sefazUrl) com mTLS (certificado PFX)
+    // 4. Parsear retorno XML
+    //
+    // O endpoint correto já está resolvido em sefazUrl acima.
     // =====================================================================
 
     // Simular delay de rede
@@ -96,8 +106,8 @@ serve(async (req) => {
 
     const mockChave =
       chave_acesso ||
-      `35${new Date().getFullYear()}${String(Math.random()).slice(2, 36).padEnd(34, "0")}`;
-    const mockProtocolo = protocolo || `135${Date.now()}`;
+      `${cUF}${new Date().getFullYear()}${String(Math.random()).slice(2, 36).padEnd(34, "0")}`;
+    const mockProtocolo = protocolo || `${cUF.slice(0,1)}35${Date.now()}`;
 
     switch (action) {
       case "autorizar_cte":
@@ -110,14 +120,21 @@ serve(async (req) => {
             protocolo: mockProtocolo,
             data_autorizacao: new Date().toISOString(),
             xml_autorizado: signed_xml,
-            raw_response: `<retorno>Autorizado o uso do ${action.includes("cte") ? "CT-e" : "MDF-e"}</retorno>`,
+            sefaz_url: sefazUrl,
+            ambiente,
+            tpAmb,
+            cUF,
+            raw_response: `<retorno><cStat>100</cStat><xMotivo>Autorizado o uso do ${action.includes("cte") ? "CT-e" : "MDF-e"}</xMotivo></retorno>`,
           };
         } else {
           responseData = {
             success: false,
             status: "rejeitado",
-            motivo_rejeicao:
-              "Rejeição 999: Erro simulado na SEFAZ (ambiente de testes)",
+            motivo_rejeicao: "Rejeição 999: Erro simulado na SEFAZ (ambiente de testes)",
+            sefaz_url: sefazUrl,
+            ambiente,
+            tpAmb,
+            cUF,
           };
         }
         break;
@@ -130,6 +147,8 @@ serve(async (req) => {
           chave_acesso: mockChave,
           protocolo: mockProtocolo,
           data_autorizacao: new Date().toISOString(),
+          sefaz_url: sefazUrl,
+          ambiente,
         };
         break;
 
@@ -138,8 +157,10 @@ serve(async (req) => {
         responseData = {
           success: true,
           status: "cancelado",
-          protocolo: `135${Date.now()}`,
+          protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
           data_autorizacao: new Date().toISOString(),
+          sefaz_url: sefazUrl,
+          ambiente,
         };
         break;
 
@@ -147,8 +168,10 @@ serve(async (req) => {
         responseData = {
           success: true,
           status: "encerrado",
-          protocolo: `135${Date.now()}`,
+          protocolo: `${cUF.slice(0,1)}35${Date.now()}`,
           data_autorizacao: new Date().toISOString(),
+          sefaz_url: sefazUrl,
+          ambiente,
         };
         break;
 
