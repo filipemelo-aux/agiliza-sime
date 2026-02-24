@@ -83,13 +83,24 @@ export function CteDetailDialog({ open, onOpenChange, cte, onUpdated }: Props) {
   const handleTransmit = async () => {
     setTransmitting(true);
     try {
-      const result = await emitirCteViaService(cte.id);
-      if (result.success) {
-        toast({ title: "CT-e transmitido", description: "O documento foi enviado para a SEFAZ com sucesso." });
+      const result = await emitirCteViaService(cte.id, { sync: true });
+      if (result.success && result.data?.success) {
+        const d = result.data;
+        if (d.status === "autorizado") {
+          toast({ title: "CT-e Autorizado!", description: `Chave: ${d.chave_acesso || "—"} | Protocolo: ${d.protocolo || "—"}` });
+        } else {
+          toast({ title: "CT-e transmitido", description: "Enviado com sucesso para processamento." });
+        }
         onUpdated();
         onOpenChange(false);
       } else {
-        toast({ title: "Erro na transmissão", description: result.error || "Erro desconhecido", variant: "destructive" });
+        const motivo = result.data?.motivo_rejeicao || result.error || "Erro desconhecido";
+        const cStat = result.data?.cStat;
+        toast({
+          title: cStat ? `Rejeitado (cStat: ${cStat})` : "Erro na transmissão",
+          description: motivo,
+          variant: "destructive",
+        });
         onUpdated();
       }
     } catch (err: any) {
