@@ -218,10 +218,10 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
             <Label className="text-xs flex items-center gap-1">
               <ShieldCheck className="w-3 h-3" /> Certificado Digital
             </Label>
-            <Select value={selectedCertId} onValueChange={setSelectedCertId}>
+            <Select value={selectedCertId || "none"} onValueChange={(v) => setSelectedCertId(v === "none" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Nenhum certificado vinculado" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {certificates.map((cert) => (
                   <SelectItem key={cert.id} value={cert.id}>
                     {cert.nome}
