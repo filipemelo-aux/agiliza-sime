@@ -18,6 +18,7 @@ const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
   { value: "cliente", label: "Cliente" },
   { value: "proprietario", label: "Proprietário" },
+  { value: "fornecedor", label: "Fornecedor" },
 ];
 
 const CNH_CATEGORIES = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
