@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
+import MyApplications from "./pages/MyApplications";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminApplications from "./pages/AdminApplications";
@@ -55,10 +56,11 @@ const App = () => (
             <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/freights" element={<Index />} />
+            <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
             <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/driver" element={<Navigate to="/admin" replace />} />
-            <Route path="/my-applications" element={<Navigate to="/admin/applications" replace />} />
+            <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
             <Route path="/my-vehicles" element={<Navigate to="/admin/drivers" replace />} />
             <Route path="/add-vehicle" element={<Navigate to="/admin/drivers" replace />} />
             <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/drivers" replace />} />

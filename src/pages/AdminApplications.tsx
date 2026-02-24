@@ -27,6 +27,10 @@ interface ApplicationWithDetails {
   payment_status: string | null;
   payment_receipt_url: string | null;
   payment_completed_at: string | null;
+  cte_number: string | null;
+  discharge_proof_url: string | null;
+  discharge_proof_status: string | null;
+  discharge_proof_sent_at: string | null;
   freight_id: string;
   user_id: string;
   vehicle_id: string;
@@ -480,6 +484,48 @@ export default function AdminApplications() {
     setExpandedCard(expandedCard === appId ? null : appId);
   };
 
+  const handleViewDischargeProof = async (app: ApplicationWithDetails) => {
+    if (!app.discharge_proof_url) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("discharge-proofs")
+        .download(app.discharge_proof_url);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      window.open(url, "_blank");
+    } catch (error: any) {
+      toast({ title: "Erro ao visualizar", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleDischargeAction = async (app: ApplicationWithDetails, action: "accepted" | "rejected") => {
+    try {
+      const { error } = await supabase
+        .from("freight_applications")
+        .update({ discharge_proof_status: action } as any)
+        .eq("id", app.id);
+      if (error) throw error;
+
+      const title = action === "accepted" ? "Comprovante de Descarga Aceito" : "Comprovante de Descarga Recusado";
+      const message = action === "accepted"
+        ? `Seu comprovante de descarga para ${app.freight.origin_city}/${app.freight.origin_state} → ${app.freight.destination_city}/${app.freight.destination_state} foi aceito.`
+        : `Seu comprovante de descarga para ${app.freight.origin_city}/${app.freight.origin_state} → ${app.freight.destination_city}/${app.freight.destination_state} foi recusado. Por favor, reenvie.`;
+
+      await supabase.from("notifications").insert({
+        user_id: app.user_id,
+        title,
+        message,
+        type: action === "accepted" ? "discharge_accepted" : "discharge_rejected",
+        data: JSON.parse(JSON.stringify({ application_id: app.id, freight_id: app.freight_id })),
+      });
+
+      toast({ title: action === "accepted" ? "Comprovante aceito" : "Comprovante recusado" });
+      fetchApplications();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   const maskCPF = (cpf: string) => {
     if (!cpf) return "";
     return `${cpf.substring(0, 3)}.${cpf.substring(3, 6)}.${cpf.substring(6, 9)}-${cpf.substring(9)}`;
@@ -573,12 +619,16 @@ export default function AdminApplications() {
                           {getStatusBadge(app.status, !!app.loading_order_url)}
                           {app.status === "approved" && app.loading_order_url && (
                             <>
-                              {getPaymentStatusBadge(app.payment_status, !!app.loading_proof_url)}
-                              {app.loading_proof_url && (
-                                <Badge className="bg-purple-500/20 text-purple-500 border-purple-500/30">
-                                  Carregado
-                                </Badge>
+                              {app.discharge_proof_status === "pending" && (
+                                <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30">Descarga Pendente</Badge>
                               )}
+                              {app.discharge_proof_status === "accepted" && (
+                                <Badge className="bg-green-500/20 text-green-500 border-green-500/30">Descarga Aceita</Badge>
+                              )}
+                              {app.discharge_proof_status === "rejected" && (
+                                <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">Descarga Recusada</Badge>
+                              )}
+                              {getPaymentStatusBadge(app.payment_status, !!app.loading_proof_url)}
                             </>
                           )}
                         </div>
@@ -898,12 +948,79 @@ export default function AdminApplications() {
                           )}
                         </div>
 
-                        {/* Payment Section */}
-                        {app.loading_proof_url && (
+                        {/* Discharge Proof Section */}
+                        <div className="bg-secondary/30 rounded-lg p-4">
+                          <h5 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Comprovante de Descarga
+                          </h5>
+                          {app.discharge_proof_url && app.discharge_proof_status === "pending" ? (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm text-blue-600 flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    Recebido em {new Date(app.discharge_proof_sent_at!).toLocaleDateString("pt-BR")}
+                                  </p>
+                                  {app.cte_number && (
+                                    <p className="text-xs text-muted-foreground mt-1">CT-e: {app.cte_number}</p>
+                                  )}
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => handleViewDischargeProof(app)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Visualizar
+                                </Button>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-green-600 hover:bg-green-700"
+                                  onClick={() => handleDischargeAction(app, "accepted")}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Aceitar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex-1"
+                                  onClick={() => handleDischargeAction(app, "rejected")}
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  Recusar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : app.discharge_proof_status === "accepted" ? (
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm text-green-600 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4" />
+                                Aceito {app.cte_number ? `(CT-e: ${app.cte_number})` : ""}
+                              </p>
+                              <Button size="sm" variant="outline" onClick={() => handleViewDischargeProof(app)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Visualizar
+                              </Button>
+                            </div>
+                          ) : app.discharge_proof_status === "rejected" ? (
+                            <p className="text-sm text-orange-600 flex items-center gap-1">
+                              <XCircle className="w-4 h-4" />
+                              Recusado — aguardando reenvio do motorista
+                            </p>
+                          ) : (
+                            <p className="text-sm text-yellow-600 flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              Aguardando envio pelo motorista
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Payment Section - now only after discharge accepted */}
+                        {app.discharge_proof_status === "accepted" && (
                           <div className="bg-secondary/30 rounded-lg p-4">
                             <h5 className="font-semibold text-sm mb-3 flex items-center gap-2">
                               <Banknote className="w-4 h-4" />
-                              Pagamento do Adiantamento
+                              Pagamento de Saldo
                             </h5>
                             
                             {app.payment_status === "pending" && (

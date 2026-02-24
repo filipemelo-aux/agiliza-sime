@@ -360,6 +360,10 @@ export type Database = {
       freight_applications: {
         Row: {
           applied_at: string
+          cte_number: string | null
+          discharge_proof_sent_at: string | null
+          discharge_proof_status: string | null
+          discharge_proof_url: string | null
           freight_id: string
           id: string
           loading_order_sent_at: string | null
@@ -375,6 +379,10 @@ export type Database = {
         }
         Insert: {
           applied_at?: string
+          cte_number?: string | null
+          discharge_proof_sent_at?: string | null
+          discharge_proof_status?: string | null
+          discharge_proof_url?: string | null
           freight_id: string
           id?: string
           loading_order_sent_at?: string | null
@@ -390,6 +398,10 @@ export type Database = {
         }
         Update: {
           applied_at?: string
+          cte_number?: string | null
+          discharge_proof_sent_at?: string | null
+          discharge_proof_status?: string | null
+          discharge_proof_url?: string | null
           freight_id?: string
           id?: string
           loading_order_sent_at?: string | null
