@@ -1,20 +1,25 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import {
+  securityMiddleware,
+  secureJson,
+  secureError,
+  corsHeaders,
+  sanitizeXml,
+  logSecurityEvent,
+  VALIDATION_SCHEMAS,
+} from "../_shared/security.ts";
 
 /**
  * Assinatura Digital de Documentos Fiscais (CT-e / MDF-e)
  *
- * Segurança:
- * - Certificado A1 NUNCA sai desta edge function
- * - Senha descriptografada apenas em memória, zerada após uso
- * - Nenhum dado sensível nos logs
+ * Security:
+ * - Rate limiting (DB-backed)
+ * - Payload validation (schema)
+ * - XML XXE protection
+ * - Certificate password never logged
+ * - Security headers (Helmet)
  */
 
 // ── Decryption (matches certificate-manager encryption) ──────
@@ -56,19 +61,35 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { xml, document_type, document_id, establishment_id } = await req.json();
+  // Security middleware: rate limit + payload validation
+  const security = await securityMiddleware(req, "sign-fiscal-xml", {
+    validateSchema: VALIDATION_SCHEMAS.sign_xml,
+    maxBodySize: 600_000,
+  });
 
-    if (!xml || !document_type || !document_id) {
-      throw new Error("Parâmetros obrigatórios: xml, document_type, document_id");
+  if (!security.ok) return security.response!;
+
+  try {
+    const body = security.body!;
+    const { xml, document_type, document_id, establishment_id } = body as Record<string, any>;
+
+    // Sanitize XML (XXE protection)
+    let cleanXml: string;
+    try {
+      cleanXml = sanitizeXml(xml);
+    } catch (e: any) {
+      await logSecurityEvent(security.client, {
+        event_type: "xxe_blocked",
+        source_ip: security.clientIp,
+        function_name: "sign-fiscal-xml",
+        details: { document_type, document_id, error: e.message },
+      });
+      return secureError(e.message, 400);
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseClient = security.client;
 
-    // ── Buscar certificado ──────────────────────────────────────────────
+    // ── Buscar certificado ──────────────────────────────────────
     let certPath: string | null = null;
     let encryptedPassword: string | null = null;
     let certCnpj = "";
@@ -92,7 +113,6 @@ serve(async (req) => {
         if (cert) {
           certPath = cert.caminho_storage;
           encryptedPassword = cert.senha_criptografada;
-          // Log certificate name only, never password
           console.log(`[sign-fiscal-xml] Using certificate: "${cert.nome}"`);
         }
       }
@@ -127,7 +147,7 @@ serve(async (req) => {
       );
     }
 
-    // ── Baixar PFX do Storage ───────────────────────────────────────────
+    // ── Baixar PFX do Storage ───────────────────────────────────
     const { data: certBlob, error: downloadError } = await supabaseClient.storage
       .from("fiscal-certificates")
       .download(certPath);
@@ -138,7 +158,7 @@ serve(async (req) => {
 
     const pfxBuffer = await certBlob.arrayBuffer();
 
-    // ── Decrypt password in memory ──────────────────────────────────────
+    // ── Decrypt password in memory ──────────────────────────────
     let certPassword: string;
     try {
       certPassword = await decryptPassword(encryptedPassword);
@@ -146,23 +166,11 @@ serve(async (req) => {
       throw new Error("Erro ao descriptografar senha do certificado");
     }
 
-    // Log only non-sensitive info
     console.log(
       `[sign-fiscal-xml] Signing ${document_type} ${document_id} | CNPJ: ${certCnpj} | PFX size: ${pfxBuffer.byteLength} bytes`
     );
 
-    // =====================================================================
-    // LÓGICA DE ASSINATURA (Placeholder)
-    //
-    // Em produção, usar biblioteca compatível com Deno para XMLDSig:
-    // 1. Parsear PFX com certPassword
-    // 2. Extrair chave privada + certificado X.509
-    // 3. Calcular hash SHA-256 do nodo <infCte> ou <infMDFe>
-    // 4. Assinar hash com RSA-SHA256
-    // 5. Montar <Signature> conforme padrão SEFAZ
-    // 6. Inserir no XML antes do fechamento da tag raiz
-    // =====================================================================
-
+    // ── Signature placeholder ───────────────────────────────────
     const timestampHash = Date.now().toString(36);
 
     const signaturePlaceholder = `
@@ -187,33 +195,23 @@ serve(async (req) => {
       </KeyInfo>
     </Signature>`;
 
-    let signedXml = xml;
+    let signedXml = cleanXml;
     if (document_type === "cte") {
-      signedXml = xml.replace("</CTe>", `${signaturePlaceholder}</CTe>`);
+      signedXml = cleanXml.replace("</CTe>", `${signaturePlaceholder}</CTe>`);
     } else if (document_type === "mdfe") {
-      signedXml = xml.replace("</MDFe>", `${signaturePlaceholder}</MDFe>`);
+      signedXml = cleanXml.replace("</MDFe>", `${signaturePlaceholder}</MDFe>`);
     }
 
     // Clear password from memory
     certPassword = "";
 
-    return new Response(
-      JSON.stringify({
-        signed_xml: signedXml,
-        digest_value: `SIM_DIGEST_${timestampHash}`,
-        signature_value: `SIM_SIG_${timestampHash}`,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
-  } catch (error: any) {
-    // Never log sensitive data in errors
-    console.error("[sign-fiscal-xml] Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+    return secureJson({
+      signed_xml: signedXml,
+      digest_value: `SIM_DIGEST_${timestampHash}`,
+      signature_value: `SIM_SIG_${timestampHash}`,
     });
+  } catch (error: any) {
+    console.error("[sign-fiscal-xml] Error:", error.message);
+    return secureError(error.message);
   }
 });

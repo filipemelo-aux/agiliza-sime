@@ -1,21 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-function err(message: string, status = 400) {
-  return json({ success: false, error: message }, status);
-}
+import {
+  securityMiddleware,
+  secureJson,
+  secureError,
+  getResponseHeaders,
+  corsHeaders,
+  sanitizePayload,
+  validatePayload,
+  logSecurityEvent,
+  getClientIp,
+  VALIDATION_SCHEMAS,
+} from "../_shared/security.ts";
 
 // ─── Auth middleware (JWT + admin role) ───────────────────────
 async function authenticate(req: Request) {
@@ -108,7 +103,6 @@ async function enqueueJob(client: any, params: {
   return data.id;
 }
 
-// Trigger the worker asynchronously (fire and forget)
 async function triggerWorker() {
   try {
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/fiscal-queue-worker`;
@@ -119,30 +113,31 @@ async function triggerWorker() {
         Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
       },
       body: JSON.stringify({ trigger: "fiscal-service" }),
-    }).catch(() => {}); // fire-and-forget
+    }).catch(() => {});
   } catch {
-    // ignore - worker will pick up via cron
+    // ignore
   }
 }
 
-// ─── Route: POST /cte/emit (now async via queue) ─────────────
-async function handleCteEmit(body: any, userId: string, client: any) {
-  const { cte_id } = body;
-  if (!cte_id) return err("cte_id obrigatório");
+// ─── Route Handlers ──────────────────────────────────────────
 
+async function handleCteEmit(body: any, userId: string, client: any) {
+  // Validate with schema
+  const validation = validatePayload(body, VALIDATION_SCHEMAS.cte_emit);
+  if (!validation.valid) return secureError(validation.errors.join("; "), 422);
+
+  const { cte_id } = body;
   const cte = await fetchCte(client, cte_id);
-  if (cte.status !== "rascunho") return err(`CT-e não está em rascunho (status: ${cte.status})`);
-  if (!cte.establishment_id) return err("CT-e sem estabelecimento vinculado.");
+  if (cte.status !== "rascunho") return secureError(`CT-e não está em rascunho (status: ${cte.status})`);
+  if (!cte.establishment_id) return secureError("CT-e sem estabelecimento vinculado.");
 
   const establishment = await fetchEstablishment(client, cte.establishment_id);
 
-  // Get next number
   const { data: numero, error: numErr } = await client.rpc("next_cte_number", {
     _establishment_id: cte.establishment_id,
   });
-  if (numErr) return err(`Erro ao gerar número: ${numErr.message}`);
+  if (numErr) return secureError(`Erro ao gerar número: ${numErr.message}`);
 
-  // Update CT-e to "processando" and enqueue
   await client.from("ctes").update({
     numero,
     data_emissao: new Date().toISOString(),
@@ -167,20 +162,18 @@ async function handleCteEmit(body: any, userId: string, client: any) {
     details: { numero, queue_job_id: jobId },
   });
 
-  // Trigger worker asynchronously
   triggerWorker();
 
-  return json({ success: true, numero, queue_job_id: jobId, establishment_id: cte.establishment_id });
+  return secureJson({ success: true, numero, queue_job_id: jobId, establishment_id: cte.establishment_id });
 }
 
-// ─── Route: POST /cte/cancel ─────────────────────────────────
 async function handleCteCancel(body: any, userId: string, client: any) {
-  const { cte_id, justificativa } = body;
-  if (!cte_id || !justificativa) return err("cte_id e justificativa obrigatórios");
-  if (justificativa.length < 15) return err("Justificativa deve ter no mínimo 15 caracteres");
+  const validation = validatePayload(body, VALIDATION_SCHEMAS.cte_cancel);
+  if (!validation.valid) return secureError(validation.errors.join("; "), 422);
 
+  const { cte_id, justificativa } = body;
   const cte = await fetchCte(client, cte_id);
-  if (cte.status !== "autorizado") return err("Só é possível cancelar CT-e autorizado.");
+  if (cte.status !== "autorizado") return secureError("Só é possível cancelar CT-e autorizado.");
 
   await client.from("ctes").update({ status: "processando" }).eq("id", cte_id);
 
@@ -208,14 +201,12 @@ async function handleCteCancel(body: any, userId: string, client: any) {
 
   triggerWorker();
 
-  return json({ success: true, queue_job_id: jobId });
+  return secureJson({ success: true, queue_job_id: jobId });
 }
 
-// ─── Route: GET /cte/status/:id ──────────────────────────────
 async function handleCteStatus(cteId: string, client: any) {
   const cte = await fetchCte(client, cteId);
 
-  // Also fetch latest queue job for this entity
   const { data: latestJob } = await client
     .from("fiscal_queue")
     .select("id, status, attempts, max_attempts, error_message, created_at, completed_at")
@@ -224,7 +215,7 @@ async function handleCteStatus(cteId: string, client: any) {
     .limit(1)
     .maybeSingle();
 
-  return json({
+  return secureJson({
     id: cte.id,
     numero: cte.numero,
     serie: cte.serie,
@@ -239,21 +230,21 @@ async function handleCteStatus(cteId: string, client: any) {
   });
 }
 
-// ─── Route: POST /mdfe/emit (now async via queue) ────────────
 async function handleMdfeEmit(body: any, userId: string, client: any) {
-  const { mdfe_id } = body;
-  if (!mdfe_id) return err("mdfe_id obrigatório");
+  const validation = validatePayload(body, VALIDATION_SCHEMAS.mdfe_emit);
+  if (!validation.valid) return secureError(validation.errors.join("; "), 422);
 
+  const { mdfe_id } = body;
   const mdfe = await fetchMdfe(client, mdfe_id);
-  if (mdfe.status !== "rascunho") return err(`MDF-e não está em rascunho (status: ${mdfe.status})`);
-  if (!mdfe.establishment_id) return err("MDF-e sem estabelecimento vinculado.");
+  if (mdfe.status !== "rascunho") return secureError(`MDF-e não está em rascunho (status: ${mdfe.status})`);
+  if (!mdfe.establishment_id) return secureError("MDF-e sem estabelecimento vinculado.");
 
   const establishment = await fetchEstablishment(client, mdfe.establishment_id);
 
   const { data: numero, error: numErr } = await client.rpc("next_mdfe_number", {
     _establishment_id: mdfe.establishment_id,
   });
-  if (numErr) return err(`Erro ao gerar número: ${numErr.message}`);
+  if (numErr) return secureError(`Erro ao gerar número: ${numErr.message}`);
 
   await client.from("mdfe").update({
     numero,
@@ -281,16 +272,16 @@ async function handleMdfeEmit(body: any, userId: string, client: any) {
 
   triggerWorker();
 
-  return json({ success: true, numero, queue_job_id: jobId, establishment_id: mdfe.establishment_id });
+  return secureJson({ success: true, numero, queue_job_id: jobId, establishment_id: mdfe.establishment_id });
 }
 
-// ─── Route: POST /mdfe/encerrar ──────────────────────────────
 async function handleMdfeEncerrar(body: any, userId: string, client: any) {
-  const { mdfe_id } = body;
-  if (!mdfe_id) return err("mdfe_id obrigatório");
+  const validation = validatePayload(body, VALIDATION_SCHEMAS.mdfe_encerrar);
+  if (!validation.valid) return secureError(validation.errors.join("; "), 422);
 
+  const { mdfe_id } = body;
   const mdfe = await fetchMdfe(client, mdfe_id);
-  if (mdfe.status !== "autorizado") return err("Só é possível encerrar MDF-e autorizado.");
+  if (mdfe.status !== "autorizado") return secureError("Só é possível encerrar MDF-e autorizado.");
 
   await client.from("mdfe").update({ status: "processando" }).eq("id", mdfe_id);
 
@@ -318,10 +309,9 @@ async function handleMdfeEncerrar(body: any, userId: string, client: any) {
 
   triggerWorker();
 
-  return json({ success: true, queue_job_id: jobId });
+  return secureJson({ success: true, queue_job_id: jobId });
 }
 
-// ─── Route: GET /queue/status/:jobId ─────────────────────────
 async function handleQueueStatus(jobId: string, client: any) {
   const { data, error } = await client
     .from("fiscal_queue")
@@ -329,9 +319,9 @@ async function handleQueueStatus(jobId: string, client: any) {
     .eq("id", jobId)
     .single();
 
-  if (error) return err("Job não encontrado", 404);
+  if (error) return secureError("Job não encontrado", 404);
 
-  return json({
+  return secureJson({
     id: data.id,
     job_type: data.job_type,
     entity_id: data.entity_id,
@@ -352,53 +342,55 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const clientIp = getClientIp(req);
+
   try {
+    // Security middleware: rate limiting + payload size check
+    const security = await securityMiddleware(req, "fiscal-service", {
+      maxBodySize: 512_000, // 512KB max for fiscal service
+    });
+
+    if (!security.ok) return security.response!;
+
     const { userId, serviceClient } = await authenticate(req);
 
     // Extract path from body._path
     let path = "/";
-    let body: any = {};
+    let body: any = security.body || {};
 
     if (req.method === "POST") {
-      body = await req.json();
       path = body._path || "/";
       delete body._path;
+      // Sanitize the body
+      body = sanitizePayload(body);
     } else {
       const url = new URL(req.url);
       path = url.pathname.replace(/^\/fiscal-service\/?/, "/");
     }
 
     // Route matching
-    if (path === "/cte/emit") {
-      return await handleCteEmit(body, userId, serviceClient);
-    }
-    if (path === "/cte/cancel") {
-      return await handleCteCancel(body, userId, serviceClient);
-    }
+    if (path === "/cte/emit") return await handleCteEmit(body, userId, serviceClient);
+    if (path === "/cte/cancel") return await handleCteCancel(body, userId, serviceClient);
     if (path.startsWith("/cte/status/")) {
       const id = path.replace("/cte/status/", "");
       return await handleCteStatus(id, serviceClient);
     }
-    if (path === "/mdfe/emit") {
-      return await handleMdfeEmit(body, userId, serviceClient);
-    }
-    if (path === "/mdfe/encerrar") {
-      return await handleMdfeEncerrar(body, userId, serviceClient);
-    }
+    if (path === "/mdfe/emit") return await handleMdfeEmit(body, userId, serviceClient);
+    if (path === "/mdfe/encerrar") return await handleMdfeEncerrar(body, userId, serviceClient);
     if (path.startsWith("/queue/status/")) {
       const jobId = path.replace("/queue/status/", "");
       return await handleQueueStatus(jobId, serviceClient);
     }
 
-    return err("Rota não encontrada", 404);
+    return secureError("Rota não encontrada", 404);
   } catch (e: any) {
     const msg = e.message || "Erro interno";
     if (msg === "MISSING_TOKEN" || msg === "INVALID_TOKEN") {
-      return err("Não autorizado", 401);
+      return secureError("Não autorizado", 401);
     }
     if (msg === "FORBIDDEN") {
-      return err("Acesso negado", 403);
+      return secureError("Acesso negado", 403);
     }
-    return err(msg, 500);
+    return secureError(msg, 500);
   }
 });
