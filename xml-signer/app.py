@@ -15,12 +15,14 @@ Endpoints:
 """
 
 import base64
+import glob
 import io
 import os
 import logging
 import tempfile
 import time
 from datetime import datetime
+from pathlib import Path
 
 from flask import Flask, request, jsonify
 from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
@@ -252,7 +254,82 @@ def sign_xml(xml_str: str, cert: InMemoryCert, doc_type: str, doc_id: str) -> di
     }
 
 
-# ── SOAP Envelope ────────────────────────────────────────────────
+# ── Validação XSD CT-e 4.00 ──────────────────────────────────────
+
+XSD_DIR = Path(os.environ.get("XSD_DIR", "/app/xsd"))
+_xsd_cache: dict[str, etree.XMLSchema] = {}
+
+
+def _load_xsd(schema_name: str) -> etree.XMLSchema | None:
+    """Carrega e cacheia schema XSD do diretório de schemas."""
+    if schema_name in _xsd_cache:
+        return _xsd_cache[schema_name]
+
+    xsd_path = XSD_DIR / schema_name
+    if not xsd_path.exists():
+        logger.warning(f"[XSD] Schema não encontrado: {xsd_path}")
+        return None
+
+    try:
+        with open(xsd_path, "rb") as f:
+            xsd_doc = etree.parse(f)
+        schema = etree.XMLSchema(xsd_doc)
+        _xsd_cache[schema_name] = schema
+        logger.info(f"[XSD] Schema carregado: {schema_name}")
+        return schema
+    except Exception as e:
+        logger.error(f"[XSD] Erro ao carregar {schema_name}: {e}")
+        return None
+
+
+def validate_cte_xsd(xml_str: str) -> list[str]:
+    """
+    Valida XML do CT-e contra o schema XSD oficial 4.00.
+    Retorna lista de erros (vazia = válido).
+    Se o XSD não estiver disponível, retorna vazia (skip gracioso).
+    """
+    schema = _load_xsd("cte_v4.00.xsd")
+    if schema is None:
+        # Tentar schema alternativo (enviCTe wrapper)
+        schema = _load_xsd("enviCTe_v4.00.xsd")
+    if schema is None:
+        # XSD não disponível — skip gracioso (não bloqueia emissão)
+        logger.info("[XSD] Nenhum schema XSD disponível — validação ignorada")
+        return []
+
+    try:
+        doc = etree.fromstring(xml_str.encode("utf-8"))
+        if schema.validate(doc):
+            return []
+
+        errors = []
+        for err in schema.error_log:
+            # Formatar erro de forma legível
+            line_info = f"linha {err.line}" if err.line else ""
+            errors.append(f"{err.message} {line_info}".strip())
+
+        # Limitar a 10 erros para não sobrecarregar a resposta
+        return errors[:10]
+    except etree.XMLSyntaxError as e:
+        return [f"XML malformado: {str(e)}"]
+
+
+def validate_mdfe_xsd(xml_str: str) -> list[str]:
+    """Valida XML do MDF-e contra schema XSD 3.00."""
+    schema = _load_xsd("mdfe_v3.00.xsd")
+    if schema is None:
+        return []
+
+    try:
+        doc = etree.fromstring(xml_str.encode("utf-8"))
+        if schema.validate(doc):
+            return []
+        return [err.message for err in schema.error_log][:10]
+    except etree.XMLSyntaxError as e:
+        return [f"XML malformado: {str(e)}"]
+
+
+
 
 def build_soap_envelope(xml_content: str, soap_action: str) -> str:
     """Monta envelope SOAP 1.2 para envio à SEFAZ."""
@@ -411,45 +488,160 @@ def send_to_sefaz(
 
 
 def extract_sefaz_response(body: etree._Element, doc_type: str = "cte") -> dict:
-    """Extrai campos relevantes da resposta SEFAZ."""
-    ns = NAMESPACES.get(doc_type, NAMESPACES["cte"])
+    """
+    Extrai campos relevantes da resposta SEFAZ com tratamento explícito de cStat.
 
-    # Procurar elementos comuns de resposta
+    Códigos tratados:
+      - 100: Autorizado o uso do CT-e/MDF-e
+      - 101: Cancelamento homologado
+      - 103: Lote recebido com sucesso (assíncrono — precisa consultar recibo)
+      - 104: Lote processado (contém protCTe/protMDFe dentro)
+      - 105: Lote em processamento (aguardar e consultar novamente)
+      - 135: Evento registrado e vinculado
+      - 150: Autorizado o uso (com observação)
+      - 204: Duplicidade de CT-e (já existe com mesma chave)
+      - 206-999: Códigos de rejeição
+    """
     result = {
         "success": False,
         "cStat": "",
+        "cStat_lote": "",
         "xMotivo": "",
+        "xMotivo_lote": "",
         "chave_acesso": "",
         "protocolo": "",
+        "nRec": "",
         "data_autorizacao": "",
         "xml_autorizado": "",
+        "status_detail": "",
     }
 
-    # Tentar vários padrões de resposta
+    # Primeiro pass: extrair cStat do retorno do lote (retEnviCTe / retConsReciCTe)
+    lote_cstat = ""
+    lote_xmotivo = ""
+    prot_cstat = ""
+    prot_xmotivo = ""
+
     for elem in body.iter():
         tag = etree.QName(elem).localname if isinstance(elem.tag, str) else ""
         text = (elem.text or "").strip()
 
+        # cStat pode aparecer no nível do lote E no nível do protocolo
         if tag == "cStat" and text:
-            result["cStat"] = text
+            parent_tag = ""
+            if elem.getparent() is not None:
+                parent_tag = etree.QName(elem.getparent()).localname if isinstance(elem.getparent().tag, str) else ""
+
+            if parent_tag in ("retEnviCTe", "retConsReciCTe", "retEnviMDFe", "retCTe", "retMDFe"):
+                lote_cstat = text
+            elif parent_tag in ("infProt", "protCTe", "protMDFe", "infEvento", "retEvento"):
+                prot_cstat = text
+            elif not lote_cstat:
+                # Fallback: primeiro cStat encontrado
+                lote_cstat = text
+
         elif tag == "xMotivo" and text:
-            result["xMotivo"] = text
+            parent_tag = ""
+            if elem.getparent() is not None:
+                parent_tag = etree.QName(elem.getparent()).localname if isinstance(elem.getparent().tag, str) else ""
+
+            if parent_tag in ("retEnviCTe", "retConsReciCTe", "retEnviMDFe", "retCTe", "retMDFe"):
+                lote_xmotivo = text
+            elif parent_tag in ("infProt", "protCTe", "protMDFe", "infEvento", "retEvento"):
+                prot_xmotivo = text
+            elif not lote_xmotivo:
+                lote_xmotivo = text
+
         elif tag in ("chCTe", "chMDFe") and text:
             result["chave_acesso"] = text
         elif tag == "nProt" and text:
             result["protocolo"] = text
+        elif tag == "nRec" and text:
+            result["nRec"] = text
         elif tag == "dhRecbto" and text:
             result["data_autorizacao"] = text
         elif tag in ("protCTe", "protMDFe"):
-            # Serializar protocolo completo
             result["xml_autorizado"] = etree.tostring(elem, encoding="unicode")
 
-    # Determinar sucesso baseado no cStat
-    success_codes = {"100", "150", "135"}
-    result["success"] = result["cStat"] in success_codes
+    # Usar cStat do protocolo se disponível, senão do lote
+    final_cstat = prot_cstat or lote_cstat
+    final_xmotivo = prot_xmotivo or lote_xmotivo
 
-    if not result["success"] and result["cStat"]:
-        result["motivo_rejeicao"] = f"Rejeição {result['cStat']}: {result['xMotivo']}"
+    result["cStat"] = final_cstat
+    result["xMotivo"] = final_xmotivo
+    result["cStat_lote"] = lote_cstat
+    result["xMotivo_lote"] = lote_xmotivo
+
+    # ── Tratamento explícito por código ──────────────────────
+    cstat = final_cstat
+
+    # Códigos de sucesso definitivo
+    if cstat in ("100", "150"):
+        result["success"] = True
+        result["status_detail"] = "autorizado"
+
+    elif cstat == "101":
+        result["success"] = True
+        result["status_detail"] = "cancelamento_homologado"
+
+    elif cstat == "135":
+        result["success"] = True
+        result["status_detail"] = "evento_registrado"
+
+    # Lote recebido — processamento assíncrono
+    elif cstat == "103":
+        result["success"] = True
+        result["status_detail"] = "lote_recebido"
+        result["xMotivo"] = f"Lote recebido com sucesso. nRec={result['nRec']}. Consultar recibo."
+
+    # Lote processado — verificar protocolo individual
+    elif cstat == "104":
+        # Se temos protocolo individual, verificar seu cStat
+        if prot_cstat in ("100", "150"):
+            result["success"] = True
+            result["status_detail"] = "autorizado"
+        elif prot_cstat == "204":
+            result["success"] = True  # Duplicidade não é erro fatal
+            result["status_detail"] = "duplicidade"
+            result["xMotivo"] = f"Duplicidade de CT-e: {prot_xmotivo}"
+        elif prot_cstat:
+            result["success"] = False
+            result["status_detail"] = "rejeitado"
+            result["motivo_rejeicao"] = f"Rejeição {prot_cstat}: {prot_xmotivo}"
+        else:
+            # 104 sem protocolo individual — tratar como sucesso parcial
+            result["success"] = True
+            result["status_detail"] = "lote_processado"
+
+    # Lote em processamento — precisa aguardar
+    elif cstat == "105":
+        result["success"] = False
+        result["status_detail"] = "em_processamento"
+        result["xMotivo"] = f"Lote em processamento. nRec={result['nRec']}. Aguardar e consultar."
+
+    # Duplicidade direta (sem ser dentro de 104)
+    elif cstat == "204":
+        result["success"] = True
+        result["status_detail"] = "duplicidade"
+        result["xMotivo"] = f"Duplicidade: {final_xmotivo}"
+
+    # Erros de serviço (temporários — retry)
+    elif cstat in ("108", "109", "999"):
+        result["success"] = False
+        result["status_detail"] = "servico_indisponivel"
+        result["motivo_rejeicao"] = f"Serviço indisponível ({cstat}): {final_xmotivo}"
+
+    # Rejeições genéricas (200-999 exceto os tratados acima)
+    elif cstat and int(cstat) >= 200:
+        result["success"] = False
+        result["status_detail"] = "rejeitado"
+        result["motivo_rejeicao"] = f"Rejeição {cstat}: {final_xmotivo}"
+
+    # Código desconhecido
+    elif cstat:
+        result["success"] = False
+        result["status_detail"] = "desconhecido"
+        result["motivo_rejeicao"] = f"Código {cstat}: {final_xmotivo}"
 
     return result
 
@@ -480,10 +672,19 @@ def get_tp_amb(ambiente: str) -> str:
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "version": "2.0.0", "capabilities": [
-        "sign", "cte/emit", "cte/consult", "cte/cancel", "cte/cce",
-        "mdfe/emit", "mdfe/consult", "mdfe/cancel", "mdfe/close",
-    ]}), 200
+    # Verificar XSDs disponíveis
+    xsd_files = list(XSD_DIR.glob("*.xsd")) if XSD_DIR.exists() else []
+    xsd_names = [f.name for f in xsd_files]
+    return jsonify({
+        "status": "ok",
+        "version": "2.1.0",
+        "xsd_available": len(xsd_files) > 0,
+        "xsd_schemas": xsd_names,
+        "capabilities": [
+            "sign", "cte/emit", "cte/consult", "cte/cancel", "cte/cce",
+            "mdfe/emit", "mdfe/consult", "mdfe/cancel", "mdfe/close",
+        ],
+    }), 200
 
 
 @app.route("/sign", methods=["POST"])
@@ -538,6 +739,19 @@ def cte_emit():
 
         cert = parse_cert_from_request(data)
         doc_id = data.get("document_id", "CTe_unknown")
+
+        # 0. Validar XML contra XSD (se disponível)
+        skip_xsd = data.get("skip_xsd_validation", False)
+        if not skip_xsd:
+            xsd_errors = validate_cte_xsd(data["xml"])
+            if xsd_errors:
+                logger.warning(f"[CTE EMIT] XSD validation failed: {xsd_errors}")
+                return jsonify({
+                    "success": False,
+                    "error": "Validação XSD falhou",
+                    "xsd_errors": xsd_errors,
+                    "status_detail": "xsd_invalido",
+                }), 400
 
         # 1. Assinar XML
         logger.info(f"[CTE EMIT] Assinando CT-e {doc_id}")
