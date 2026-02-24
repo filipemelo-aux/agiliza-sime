@@ -1,8 +1,8 @@
 /**
  * Assinatura digital de XML fiscal com certificado A1
  * 
- * A assinatura real requer o certificado .pfx no servidor (edge function).
- * Este módulo prepara o XML para envio e delega a assinatura à edge function.
+ * Delega assinatura à edge function que busca o certificado
+ * vinculado ao estabelecimento via establishment_certificates.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ export interface SignXmlRequest {
   xml: string;
   document_type: "cte" | "mdfe";
   document_id: string;
+  establishment_id?: string;
 }
 
 export interface SignXmlResponse {
@@ -21,7 +22,7 @@ export interface SignXmlResponse {
 
 /**
  * Envia o XML para a edge function de assinatura digital.
- * A edge function acessa o certificado A1 armazenado de forma segura.
+ * Passa establishment_id para que a function busque o certificado correto.
  */
 export async function signXml(request: SignXmlRequest): Promise<SignXmlResponse> {
   const { data, error } = await supabase.functions.invoke("sign-fiscal-xml", {
@@ -29,6 +30,7 @@ export async function signXml(request: SignXmlRequest): Promise<SignXmlResponse>
       xml: request.xml,
       document_type: request.document_type,
       document_id: request.document_id,
+      establishment_id: request.establishment_id,
     },
   });
 

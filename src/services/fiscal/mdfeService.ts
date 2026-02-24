@@ -87,18 +87,20 @@ export async function emitirMdfe({ mdfe_id, user_id }: EmitirMdfeParams): Promis
       throw new Error(`XML inválido: ${validationErrors.join(", ")}`);
     }
 
-    // 5. Assinar
+    // 5. Assinar (com establishment_id)
     const { signed_xml } = await signXml({
       xml,
       document_type: "mdfe",
       document_id: mdfe_id,
+      establishment_id: mdfe.establishment_id,
     });
 
-    // 6. Enviar à SEFAZ
+    // 6. Enviar à SEFAZ (com establishment_id)
     const sefazResponse = await sendToSefaz({
       action: "autorizar_mdfe",
       signed_xml,
       document_id: mdfe_id,
+      establishment_id: mdfe.establishment_id,
     });
 
     // 7. Atualizar banco

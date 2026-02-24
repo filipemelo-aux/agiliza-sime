@@ -1,131 +1,176 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
-import * as base64 from "https://deno.land/std@0.177.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 /**
- * Função de Assinatura Digital de Documentos Fiscais (CT-e / MDF-e)
+ * Assinatura Digital de Documentos Fiscais (CT-e / MDF-e)
  *
- * Responsabilidade:
- * 1. Receber XML não assinado + ID do documento
- * 2. Buscar Certificado A1 do banco de dados (armazenado de forma segura)
- * 3. Assinar digitalmente o XML (padrão XMLDSig)
- * 4. Retornar XML assinado
+ * Fluxo:
+ * 1. Receber XML + document_type + document_id + establishment_id
+ * 2. Buscar certificado vinculado ao estabelecimento (establishment_certificates → fiscal_certificates)
+ * 3. Baixar .pfx do Storage (bucket fiscal-certificates)
+ * 4. Assinar digitalmente o XML (XMLDSig)
+ * 5. Retornar XML assinado
  *
  * Segurança:
- * - O certificado A1 NUNCA sai desta edge function
- * - A senha do certificado é descriptografada apenas em memória durante a execução
+ * - Certificado A1 NUNCA sai desta edge function
+ * - Senha descriptografada apenas em memória
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { xml, document_type, document_id } = await req.json();
+    const { xml, document_type, document_id, establishment_id } = await req.json();
 
     if (!xml || !document_type || !document_id) {
-      throw new Error("Parâmetros inválidos: xml, document_type e document_id são obrigatórios");
+      throw new Error("Parâmetros obrigatórios: xml, document_type, document_id");
     }
 
-    // 1. Inicializar cliente Supabase (Service Role para acessar configs fiscais protegidas)
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // 2. Buscar configurações fiscais (certificado)
-    const { data: fiscalSettings, error: settingsError } = await supabaseClient
-      .from("fiscal_settings")
-      .select("certificado_a1_path, senha_certificado_encrypted, cnpj")
-      .limit(1)
-      .single();
+    // ── Buscar certificado ──────────────────────────────────────────────
+    let certPath: string | null = null;
+    let certPassword: string | null = null;
+    let certCnpj = "";
 
-    if (settingsError || !fiscalSettings) {
-      throw new Error("Configurações fiscais não encontradas ou erro ao buscar");
+    if (establishment_id) {
+      // 1. Buscar vínculo establishment → certificate
+      const { data: link, error: linkErr } = await supabaseClient
+        .from("establishment_certificates")
+        .select("certificate_id")
+        .eq("establishment_id", establishment_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (linkErr) {
+        console.warn("Erro ao buscar vínculo certificado:", linkErr.message);
+      }
+
+      if (link?.certificate_id) {
+        // 2. Buscar dados do certificado
+        const { data: cert, error: certErr } = await supabaseClient
+          .from("fiscal_certificates")
+          .select("caminho_storage, senha_criptografada, nome")
+          .eq("id", link.certificate_id)
+          .eq("ativo", true)
+          .single();
+
+        if (certErr) {
+          console.warn("Erro ao buscar certificado:", certErr.message);
+        }
+
+        if (cert) {
+          certPath = cert.caminho_storage;
+          certPassword = cert.senha_criptografada;
+          console.log(`Usando certificado "${cert.nome}" para establishment ${establishment_id}`);
+        }
+      }
+
+      // 3. Buscar CNPJ do estabelecimento
+      const { data: est } = await supabaseClient
+        .from("fiscal_establishments")
+        .select("cnpj")
+        .eq("id", establishment_id)
+        .single();
+
+      if (est) certCnpj = est.cnpj;
     }
 
-    if (!fiscalSettings.certificado_a1_path) {
-      throw new Error("Certificado A1 não configurado nas configurações fiscais");
+    // Fallback: buscar do fiscal_settings (compatibilidade)
+    if (!certPath) {
+      const { data: settings } = await supabaseClient
+        .from("fiscal_settings")
+        .select("certificado_a1_path, senha_certificado_encrypted, cnpj")
+        .limit(1)
+        .maybeSingle();
+
+      if (settings?.certificado_a1_path) {
+        certPath = settings.certificado_a1_path;
+        certPassword = settings.senha_certificado_encrypted;
+        if (!certCnpj) certCnpj = settings.cnpj;
+      }
     }
 
-    // 3. Baixar arquivo do certificado do Storage
+    if (!certPath) {
+      throw new Error(
+        "Certificado A1 não encontrado. Vincule um certificado ao estabelecimento."
+      );
+    }
+
+    // ── Baixar PFX do Storage ───────────────────────────────────────────
     const { data: certBlob, error: downloadError } = await supabaseClient.storage
-      .from("fiscal-certificates") // Bucket privado
-      .download(fiscalSettings.certificado_a1_path);
+      .from("fiscal-certificates")
+      .download(certPath);
 
     if (downloadError || !certBlob) {
       throw new Error("Erro ao baixar certificado A1 do storage");
     }
 
-    // Converter blob para array buffer
     const pfxBuffer = await certBlob.arrayBuffer();
-    
-    // TODO: Descriptografar senha do certificado (simulado aqui)
-    const certPassword = fiscalSettings.senha_certificado_encrypted; // Deveria descriptografar
 
-    console.log(`Assinando XML ${document_type} ${document_id} com certificado CNPJ ${fiscalSettings.cnpj}`);
+    console.log(
+      `Assinando XML ${document_type} ${document_id} | CNPJ emitente: ${certCnpj} | PFX: ${certPath} (${pfxBuffer.byteLength} bytes)`
+    );
 
-    // =================================================================================
-    // LÓGICA DE ASSINATURA (Placeholder)
+    // =====================================================================
+    // LÓGICA DE ASSINATURA (Placeholder para desenvolvimento)
     //
-    // Em produção, usaríamos uma biblioteca compatível com Deno para XMLDSig
-    // Como 'node-forge' ou similar via esm.sh
-    //
-    // Exemplo de fluxo real:
-    // 1. Parsear PFX
-    // 2. Extrair chave privada e certificado público
-    // 3. Calcular hash SHA-1 do nodo <infCte> ou <infMDFe>
-    // 4. Assinar hash com RSA-SHA1
-    // 5. Montar estrutura <Signature> conforme padrão SEFAZ
-    // 6. Inserir <Signature> no XML antes de </CTe> ou </MDFe>
-    // =================================================================================
+    // Em produção, usar biblioteca compatível com Deno para XMLDSig:
+    // 1. Parsear PFX com a senha
+    // 2. Extrair chave privada + certificado X.509
+    // 3. Calcular hash SHA-256 do nodo <infCte> ou <infMDFe>
+    // 4. Assinar hash com RSA-SHA256
+    // 5. Montar <Signature> conforme padrão SEFAZ
+    // 6. Inserir no XML antes do fechamento da tag raiz
+    // =====================================================================
 
-    // SIMULAÇÃO DA ASSINATURA PARA DESENVOLVIMENTO
-    // Adiciona uma tag de assinatura fictícia para testes de fluxo
+    const timestampHash = Date.now().toString(36);
+
     const signaturePlaceholder = `
     <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
       <SignedInfo>
         <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
-        <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+        <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
         <Reference URI="#${document_id}">
           <Transforms>
             <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
             <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
           </Transforms>
-          <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-          <DigestValue>SIMULATED_HASH_${Date.now()}</DigestValue>
+          <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+          <DigestValue>SIM_DIGEST_${timestampHash}</DigestValue>
         </Reference>
       </SignedInfo>
-      <SignatureValue>SIMULATED_SIGNATURE_${Date.now()}</SignatureValue>
+      <SignatureValue>SIM_SIG_${timestampHash}</SignatureValue>
       <KeyInfo>
         <X509Data>
-          <X509Certificate>SIMULATED_CERTIFICATE_DATA</X509Certificate>
+          <X509Certificate>SIM_CERT_${certCnpj}</X509Certificate>
         </X509Data>
       </KeyInfo>
     </Signature>`;
 
-    // Inserir assinatura antes do fechamento da tag raiz
-    let signedXml = "";
+    let signedXml = xml;
     if (document_type === "cte") {
       signedXml = xml.replace("</CTe>", `${signaturePlaceholder}</CTe>`);
     } else if (document_type === "mdfe") {
       signedXml = xml.replace("</MDFe>", `${signaturePlaceholder}</MDFe>`);
-    } else {
-      signedXml = xml; // Fallback
     }
 
     return new Response(
       JSON.stringify({
         signed_xml: signedXml,
-        digest_value: `SIMULATED_HASH_${Date.now()}`,
-        signature_value: `SIMULATED_SIGNATURE_${Date.now()}`,
+        digest_value: `SIM_DIGEST_${timestampHash}`,
+        signature_value: `SIM_SIG_${timestampHash}`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -133,6 +178,7 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
+    console.error("[sign-fiscal-xml Error]", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

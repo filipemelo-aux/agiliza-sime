@@ -24,6 +24,7 @@ export interface SefazRequest {
   protocolo?: string;
   justificativa?: string;
   document_id: string;
+  establishment_id?: string;
 }
 
 export interface SefazResponse {
@@ -38,7 +39,8 @@ export interface SefazResponse {
 }
 
 /**
- * Envia requisição para a SEFAZ via edge function
+ * Envia requisição para a SEFAZ via edge function.
+ * Passa establishment_id para que a function use o ambiente/UF/certificado correto.
  */
 export async function sendToSefaz(request: SefazRequest): Promise<SefazResponse> {
   const { data, error } = await supabase.functions.invoke("sefaz-proxy", {
@@ -66,7 +68,8 @@ export async function sendToSefaz(request: SefazRequest): Promise<SefazResponse>
  */
 export async function consultarSefaz(
   type: "cte" | "mdfe",
-  chaveAcesso: string
+  chaveAcesso: string,
+  establishmentId?: string
 ): Promise<SefazResponse> {
   const action: SefazAction = type === "cte" ? "consultar_cte" : "consultar_mdfe";
 
@@ -74,6 +77,7 @@ export async function consultarSefaz(
     action,
     chave_acesso: chaveAcesso,
     document_id: chaveAcesso,
+    establishment_id: establishmentId,
   });
 }
 
@@ -84,7 +88,8 @@ export async function cancelarDocumento(
   type: "cte" | "mdfe",
   chaveAcesso: string,
   protocolo: string,
-  justificativa: string
+  justificativa: string,
+  establishmentId?: string
 ): Promise<SefazResponse> {
   if (!justificativa || justificativa.length < 15) {
     throw new Error("Justificativa deve ter no mínimo 15 caracteres");
@@ -98,5 +103,6 @@ export async function cancelarDocumento(
     protocolo,
     justificativa,
     document_id: chaveAcesso,
+    establishment_id: establishmentId,
   });
 }
