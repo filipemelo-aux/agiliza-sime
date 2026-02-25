@@ -152,6 +152,10 @@ const defaultForm = {
   componentes_frete: [] as { xNome: string; vComp: number }[],
   info_quantidade: [] as { cUnid: string; tpMed: string; qCarga: number }[],
   chaves_nfe_ref: [] as string[],
+  // IDs
+  motorista_id: null as string | null,
+  veiculo_id: null as string | null,
+  tomador_id: null as string | null,
   // Obs
   observacoes: "",
 };
@@ -352,6 +356,9 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         componentes_frete: Array.isArray(cte.componentes_frete) ? cte.componentes_frete : [],
         info_quantidade: Array.isArray(cte.info_quantidade) ? cte.info_quantidade : [],
         chaves_nfe_ref: Array.isArray(cte.chaves_nfe_ref) ? cte.chaves_nfe_ref : [],
+        motorista_id: cte.motorista_id || null,
+        veiculo_id: cte.veiculo_id || null,
+        tomador_id: cte.tomador_id || null,
         observacoes: cte.observacoes || "",
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
@@ -421,7 +428,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         created_by: user.id,
         status: "rascunho",
         establishment_id: selectedEstId,
-        // Nullify empty actor fields
+        // Nullify empty fields to avoid FK violations
+        motorista_id: form.motorista_id || null,
+        veiculo_id: form.veiculo_id || null,
+        tomador_id: form.tomador_id || null,
         expedidor_nome: form.expedidor_nome || null,
         recebedor_nome: form.recebedor_nome || null,
         tomador_nome: form.tomador_nome || null,
@@ -997,20 +1007,20 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 categories={["motorista"]}
                 placeholder="Buscar motorista cadastrado..."
                 onSelect={async (person) => {
-                  set("motorista_id", person.user_id);
+                  set("motorista_id", person.id);
                   // Auto-fill vehicle if driver is linked to one
                   try {
-                    const { data: vehicles } = await supabase
-                      .from("vehicles")
-                      .select("plate, antt_number")
-                      .eq("driver_id", person.id)
-                      .eq("is_active", true)
-                      .limit(1);
-                    if (vehicles && vehicles.length > 0) {
-                      set("placa_veiculo", maskPlate(vehicles[0].plate));
-                      if (vehicles[0].antt_number) set("rntrc", vehicles[0].antt_number);
-                    }
-                  } catch {}
+                     const { data: vehicles } = await supabase
+                       .from("vehicles")
+                       .select("plate, antt_number")
+                       .eq("driver_id", person.user_id)
+                       .eq("is_active", true)
+                       .limit(1);
+                     if (vehicles && vehicles.length > 0) {
+                       set("placa_veiculo", maskPlate(vehicles[0].plate));
+                       if (vehicles[0].antt_number) set("rntrc", vehicles[0].antt_number);
+                     }
+                   } catch {}
                 }}
                 onClear={() => set("motorista_id", null)}
               />
