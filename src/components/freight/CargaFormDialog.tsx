@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Package, MapPin, Building2, Plus, X } from "lucide-react";
+import { Package, MapPin, Building2, Plus, X, Settings2 } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
 import type { Carga } from "@/pages/AdminCargas";
@@ -34,8 +34,27 @@ interface Props {
   onSaved: () => void;
 }
 
+const TIPOS_CARGA = [
+  "Granel Sólido",
+  "Granel Líquido",
+  "Frigorificada",
+  "Conteinerizada",
+  "Carga Geral",
+  "Neogranel",
+  "Perigosa (Granel Sólido)",
+  "Perigosa (Granel Líquido)",
+  "Perigosa (Carga Geral)",
+];
+
 const defaultForm = {
   produto_predominante: "",
+  tipo: "",
+  ativo: true,
+  cod_buonny: "",
+  cod_opentech: "",
+  tolerancia_quebra: 0,
+  ncm: "",
+  sinonimos: "",
   peso_bruto: 0,
   valor_carga: 0,
   valor_carga_averb: 0,
@@ -71,6 +90,13 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
     if (carga) {
       setForm({
         produto_predominante: carga.produto_predominante || "",
+        tipo: (carga as any).tipo || "",
+        ativo: (carga as any).ativo !== false,
+        cod_buonny: (carga as any).cod_buonny || "",
+        cod_opentech: (carga as any).cod_opentech || "",
+        tolerancia_quebra: Number((carga as any).tolerancia_quebra) || 0,
+        ncm: (carga as any).ncm || "",
+        sinonimos: (carga as any).sinonimos || "",
         peso_bruto: Number(carga.peso_bruto) || 0,
         valor_carga: Number(carga.valor_carga) || 0,
         valor_carga_averb: Number(carga.valor_carga_averb) || 0,
@@ -106,6 +132,12 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || null,
         destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || null,
         valor_carga_averb: form.valor_carga_averb || null,
+        tipo: form.tipo || null,
+        cod_buonny: form.cod_buonny || null,
+        cod_opentech: form.cod_opentech || null,
+        tolerancia_quebra: form.tolerancia_quebra || 0,
+        ncm: form.ncm || null,
+        sinonimos: form.sinonimos || null,
         created_by: user.id,
       };
 
@@ -141,10 +173,61 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
           <section className="space-y-3">
             <SectionHeader icon={Package} title="Dados da Carga" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">Produto Predominante *</Label>
-                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: Sulfato de Cálcio" />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Descrição (Produto) *</Label>
+                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: GESSO" />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tipo</Label>
+                <Select value={form.tipo || undefined} onValueChange={(v) => set("tipo", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_CARGA.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">NCM</Label>
+                <Input value={form.ncm} onChange={(e) => set("ncm", e.target.value.replace(/\D/g, ""))} placeholder="Ex: 25202090" maxLength={8} className="font-mono" />
+              </div>
+              <div className="flex items-center gap-2 pt-5">
+                <input type="checkbox" id="ativo" checked={form.ativo} onChange={(e) => set("ativo", e.target.checked)} className="rounded border-border" />
+                <Label htmlFor="ativo" className="text-xs cursor-pointer">Ativo</Label>
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Códigos e tolerância */}
+          <section className="space-y-3">
+            <SectionHeader icon={Settings2} title="Códigos e Tolerância" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cód. Buonny</Label>
+                <Input value={form.cod_buonny} onChange={(e) => set("cod_buonny", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cód. Opentech</Label>
+                <Input value={form.cod_opentech} onChange={(e) => set("cod_opentech", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tolerância de Quebra (%)</Label>
+                <Input type="number" step="0.01" value={form.tolerancia_quebra || ""} onChange={(e) => set("tolerancia_quebra", Number(e.target.value))} />
+              </div>
+              <div className="sm:col-span-3 space-y-1.5">
+                <Label className="text-xs">Sinônimos</Label>
+                <Input value={form.sinonimos} onChange={(e) => set("sinonimos", e.target.value)} placeholder="Ex: Gipsita, Sulfato de Cálcio" />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Peso e valores */}
+          <section className="space-y-3">
+            <SectionHeader icon={Package} title="Peso e Valores" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Peso Bruto</Label>
                 <Input type="number" step="0.01" value={form.peso_bruto || ""} onChange={(e) => set("peso_bruto", Number(e.target.value))} />

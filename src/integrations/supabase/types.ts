@@ -16,7 +16,10 @@ export type Database = {
     Tables: {
       cargas: {
         Row: {
+          ativo: boolean
           chaves_nfe_ref: string[] | null
+          cod_buonny: string | null
+          cod_opentech: string | null
           created_at: string
           created_by: string
           destinatario_cnpj: string | null
@@ -24,11 +27,15 @@ export type Database = {
           id: string
           municipio_destino_nome: string | null
           municipio_origem_nome: string | null
+          ncm: string | null
           observacoes: string | null
           peso_bruto: number
           produto_predominante: string
           remetente_cnpj: string | null
           remetente_nome: string | null
+          sinonimos: string | null
+          tipo: string | null
+          tolerancia_quebra: number | null
           uf_destino: string | null
           uf_origem: string | null
           unidade: string
@@ -37,7 +44,10 @@ export type Database = {
           valor_carga_averb: number | null
         }
         Insert: {
+          ativo?: boolean
           chaves_nfe_ref?: string[] | null
+          cod_buonny?: string | null
+          cod_opentech?: string | null
           created_at?: string
           created_by: string
           destinatario_cnpj?: string | null
@@ -45,11 +55,15 @@ export type Database = {
           id?: string
           municipio_destino_nome?: string | null
           municipio_origem_nome?: string | null
+          ncm?: string | null
           observacoes?: string | null
           peso_bruto?: number
           produto_predominante: string
           remetente_cnpj?: string | null
           remetente_nome?: string | null
+          sinonimos?: string | null
+          tipo?: string | null
+          tolerancia_quebra?: number | null
           uf_destino?: string | null
           uf_origem?: string | null
           unidade?: string
@@ -58,7 +72,10 @@ export type Database = {
           valor_carga_averb?: number | null
         }
         Update: {
+          ativo?: boolean
           chaves_nfe_ref?: string[] | null
+          cod_buonny?: string | null
+          cod_opentech?: string | null
           created_at?: string
           created_by?: string
           destinatario_cnpj?: string | null
@@ -66,11 +83,15 @@ export type Database = {
           id?: string
           municipio_destino_nome?: string | null
           municipio_origem_nome?: string | null
+          ncm?: string | null
           observacoes?: string | null
           peso_bruto?: number
           produto_predominante?: string
           remetente_cnpj?: string | null
           remetente_nome?: string | null
+          sinonimos?: string | null
+          tipo?: string | null
+          tolerancia_quebra?: number | null
           uf_destino?: string | null
           uf_origem?: string | null
           unidade?: string
