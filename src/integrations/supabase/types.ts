@@ -1289,6 +1289,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          inscricao_estadual: string | null
           nome_fantasia: string | null
           notes: string | null
           person_type: string | null
@@ -1318,6 +1319,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          inscricao_estadual?: string | null
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
@@ -1347,6 +1349,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          inscricao_estadual?: string | null
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
