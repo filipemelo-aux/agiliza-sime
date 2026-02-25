@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Instalar dependências de sistema para lxml e SSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev libxslt1-dev libssl-dev ca-certificates \
+    libxml2-dev libxslt1-dev libssl-dev ca-certificates curl \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar tmpfs para certificados temporários
@@ -28,5 +29,6 @@ EXPOSE 8080
 ENV TMPDIR=/tmp/certs
 ENV SEFAZ_TIMEOUT=30
 ENV XSD_DIR=/app/xsd
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "60", "app:app"]
