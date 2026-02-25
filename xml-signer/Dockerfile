@@ -4,9 +4,20 @@ WORKDIR /app
 
 # Instalar dependências de sistema para lxml e SSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev libxslt1-dev libssl-dev ca-certificates curl \
-    && update-ca-certificates \
+    libxml2-dev libxslt1-dev libssl-dev ca-certificates curl wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Baixar e instalar certificados raiz ICP-Brasil (necessários para SEFAZ)
+RUN mkdir -p /usr/local/share/ca-certificates/icp-brasil && \
+    wget -q -O /tmp/ACcompactado.zip "https://acraiz.icpbrasil.gov.br/credenciadas/CertificadosAC-ICP-Brasil/ACcompactado.zip" && \
+    apt-get update && apt-get install -y --no-install-recommends unzip && \
+    cd /tmp && unzip -o ACcompactado.zip -d /tmp/icp-brasil/ || true && \
+    find /tmp/icp-brasil/ -name "*.crt" -exec cp {} /usr/local/share/ca-certificates/icp-brasil/ \; || true && \
+    find /tmp/icp-brasil/ -name "*.pem" -exec sh -c 'cp "$1" /usr/local/share/ca-certificates/icp-brasil/$(basename "$1" .pem).crt' _ {} \; || true && \
+    update-ca-certificates && \
+    rm -rf /tmp/ACcompactado.zip /tmp/icp-brasil/ && \
+    apt-get purge -y unzip && apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Criar tmpfs para certificados temporários
 RUN mkdir -p /tmp/certs && chmod 700 /tmp/certs
