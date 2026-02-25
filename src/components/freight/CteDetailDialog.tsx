@@ -77,10 +77,18 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
   );
 }
 
-export function CteDetailDialog({ open, onOpenChange, cte, onUpdated, onEdit }: Props) {
+export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit }: Props) {
   const [transmitting, setTransmitting] = useState(false);
+  const [localCte, setLocalCte] = useState(cteProp);
   const { toast } = useToast();
+
+  // Sync with prop when dialog opens with a different CTE
+  useState(() => { setLocalCte(cteProp); });
+  if (cteProp.id !== localCte.id) setLocalCte(cteProp);
+
+  const cte = localCte;
   const canEdit = cte.status === "rascunho" || cte.status === "rejeitado";
+  const canTransmit = cte.status === "rascunho" || cte.status === "rejeitado";
 
   const handleTransmit = async () => {
     setTransmitting(true);
@@ -103,6 +111,13 @@ export function CteDetailDialog({ open, onOpenChange, cte, onUpdated, onEdit }: 
           description: motivo,
           variant: "destructive",
         });
+        // Update local state immediately so the user sees the error and can edit/retransmit
+        setLocalCte(prev => ({
+          ...prev,
+          status: "rejeitado",
+          motivo_rejeicao: motivo,
+          numero: result.data?.numero || prev.numero,
+        }));
         onUpdated();
       }
     } catch (err: any) {
@@ -281,7 +296,7 @@ export function CteDetailDialog({ open, onOpenChange, cte, onUpdated, onEdit }: 
                     Editar CT-e
                   </Button>
                 )}
-                {cte.status === "rascunho" && (
+                {canTransmit && (
                   <Button
                     onClick={handleTransmit}
                     disabled={transmitting}
@@ -295,7 +310,7 @@ export function CteDetailDialog({ open, onOpenChange, cte, onUpdated, onEdit }: 
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        Transmitir para SEFAZ
+                        {cte.status === "rejeitado" ? "Retransmitir para SEFAZ" : "Transmitir para SEFAZ"}
                       </>
                     )}
                   </Button>
