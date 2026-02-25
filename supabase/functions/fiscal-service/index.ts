@@ -140,7 +140,7 @@ async function handleCteEmit(body: any, userId: string, client: any) {
 
   const { cte_id, sync } = body;
   const cte = await fetchCte(client, cte_id);
-  if (cte.status !== "rascunho") return secureError(`CT-e não está em rascunho (status: ${cte.status})`);
+  if (cte.status !== "rascunho" && cte.status !== "rejeitado") return secureError(`CT-e não pode ser transmitido (status: ${cte.status})`);
   if (!cte.establishment_id) return secureError("CT-e sem estabelecimento vinculado.");
 
   const establishment = await fetchEstablishment(client, cte.establishment_id);
