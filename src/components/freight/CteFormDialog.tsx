@@ -204,6 +204,7 @@ function ActorSection({
           onSelect={(person) => {
             set(`${prefix}_nome`, person.razao_social || person.full_name);
             set(`${prefix}_cnpj`, person.cnpj ? maskCNPJ(person.cnpj) : form[`${prefix}_cnpj`]);
+            set(`${prefix}_ie`, person.inscricao_estadual || form[`${prefix}_ie`]);
             set(`${prefix}_uf`, person.address_state || form[`${prefix}_uf`]);
             set(`${prefix}_endereco`, [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean).join(", ") || form[`${prefix}_endereco`]);
           }}
