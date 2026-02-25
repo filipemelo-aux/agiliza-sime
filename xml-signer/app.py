@@ -469,7 +469,7 @@ def send_to_sefaz(
             data=envelope.encode("utf-8"),
             headers=headers,
             cert=cert.cert_tuple,
-            verify=True,
+            verify=os.environ.get("REQUESTS_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt"),
             timeout=timeout,
         )
         elapsed = int((time.time() - start) * 1000)
