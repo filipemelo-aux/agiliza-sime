@@ -162,6 +162,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
         endereco_municipio: data.city || p.endereco_municipio,
         endereco_uf: data.state || p.endereco_uf,
         endereco_cep: data.cep || p.endereco_cep,
+        codigo_municipio_ibge: data.ibge || p.codigo_municipio_ibge,
       }));
     }, [])
   );
