@@ -26,6 +26,7 @@ import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
+import { CargaFormDialog } from "./CargaFormDialog";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -147,6 +148,7 @@ const defaultForm = {
   placa_veiculo: "",
   rntrc: "",
   produto_predominante: "",
+  tipo_carga: "",
   peso_bruto: 0,
   // Carga
   componentes_frete: [] as { xNome: string; vComp: number }[],
@@ -271,6 +273,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
 
+  const [showCargaForm, setShowCargaForm] = useState(false);
+
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
   const [cnpjErrors, setCnpjErrors] = useState<Record<string, string>>({});
@@ -352,6 +356,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         placa_veiculo: cte.placa_veiculo ? maskPlate(cte.placa_veiculo) : "",
         rntrc: cte.rntrc || "",
         produto_predominante: cte.produto_predominante ? maskName(cte.produto_predominante) : "",
+        tipo_carga: (cte as any).tipo_carga || "",
         peso_bruto: Number(cte.peso_bruto) || 0,
         componentes_frete: Array.isArray(cte.componentes_frete) ? cte.componentes_frete : [],
         info_quantidade: Array.isArray(cte.info_quantidade) ? cte.info_quantidade : [],
@@ -460,6 +465,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const showTomadorFields = form.tomador_tipo === 4;
 
   return (
+  <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
@@ -858,35 +864,66 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
           {/* Carga */}
           <section className="space-y-3">
-            <SectionHeader icon={Package} title="Carga" />
+            <SectionHeader icon={Package} title="Informações da Carga" />
+            
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Buscar carga cadastrada</Label>
-              <CargaSearchInput
-                placeholder="Buscar carga por produto, remetente..."
-                onSelect={(carga) => {
-                  set("produto_predominante", carga.produto_predominante);
-                  set("peso_bruto", Number(carga.peso_bruto) || 0);
-                  set("valor_carga", Number(carga.valor_carga) || 0);
-                  if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
-                  if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
-                  // Auto-fill remetente/destinatário if empty
-                  if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
-                  if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
-                  if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
-                  if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
-                  if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
-                  if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
-                }}
-                onClear={() => {
-                  set("produto_predominante", "");
-                  set("peso_bruto", 0);
-                }}
-              />
+              <Label className="text-xs text-muted-foreground">Buscar carga cadastrada ou cadastrar nova</Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <CargaSearchInput
+                    placeholder="Buscar carga por produto..."
+                    selectedName={form.produto_predominante || undefined}
+                    onSelect={(carga) => {
+                      set("produto_predominante", carga.produto_predominante);
+                      set("peso_bruto", Number(carga.peso_bruto) || 0);
+                      set("valor_carga", Number(carga.valor_carga) || 0);
+                      if (carga.valor_carga_averb) set("valor_carga_averb", Number(carga.valor_carga_averb));
+                      if (carga.chaves_nfe_ref && carga.chaves_nfe_ref.length > 0) set("chaves_nfe_ref", carga.chaves_nfe_ref);
+                      if (carga.remetente_nome && !form.remetente_nome) set("remetente_nome", carga.remetente_nome);
+                      if (carga.destinatario_nome && !form.destinatario_nome) set("destinatario_nome", carga.destinatario_nome);
+                      if (carga.uf_origem && !form.uf_origem) set("uf_origem", carga.uf_origem);
+                      if (carga.uf_destino && !form.uf_destino) set("uf_destino", carga.uf_destino);
+                      if (carga.municipio_origem_nome && !form.municipio_origem_nome) set("municipio_origem_nome", carga.municipio_origem_nome);
+                      if (carga.municipio_destino_nome && !form.municipio_destino_nome) set("municipio_destino_nome", carga.municipio_destino_nome);
+                    }}
+                    onClear={() => {
+                      set("produto_predominante", "");
+                      set("peso_bruto", 0);
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 h-10 w-10"
+                  title="Cadastrar nova carga"
+                  onClick={() => setShowCargaForm(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
+              <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs">Produto Predominante</Label>
                 <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: Sulfato de Cálcio" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tipo da Carga</Label>
+                <Select value={form.tipo_carga || undefined} onValueChange={(v) => set("tipo_carga", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="granel_solido">Granel Sólido</SelectItem>
+                    <SelectItem value="granel_liquido">Granel Líquido</SelectItem>
+                    <SelectItem value="frigorificada">Frigorificada / Refrigerada</SelectItem>
+                    <SelectItem value="conteinerizada">Conteinerizada</SelectItem>
+                    <SelectItem value="carga_geral">Carga Geral</SelectItem>
+                    <SelectItem value="neogranel">Neogranel</SelectItem>
+                    <SelectItem value="perigosa">Perigosa (IMO)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Peso Bruto (kg)</Label>
@@ -1055,5 +1092,15 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </div>
       </SheetContent>
     </Sheet>
+
+    <CargaFormDialog
+      open={showCargaForm}
+      onOpenChange={setShowCargaForm}
+      carga={null}
+      onSaved={() => {
+        setShowCargaForm(false);
+      }}
+    />
+  </>
   );
 }
