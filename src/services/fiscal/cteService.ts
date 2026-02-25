@@ -73,8 +73,8 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
     // 1. Buscar dados
     const cte = await fetchCte(cte_id);
 
-    if (cte.status !== "rascunho") {
-      throw new Error(`CT-e não está em rascunho (status: ${cte.status})`);
+    if (cte.status !== "rascunho" && cte.status !== "rejeitado") {
+      throw new Error(`CT-e não pode ser transmitido (status: ${cte.status})`);
     }
 
     if (!cte.establishment_id) {
