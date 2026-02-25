@@ -63,6 +63,7 @@ interface FormState {
   person_type: string;
   cpf: string;
   cnpj: string;
+  inscricao_estadual: string;
   razao_social: string;
   nome_fantasia: string;
   category: string;
@@ -92,6 +93,7 @@ const emptyForm: FormState = {
   person_type: "cpf",
   cpf: "",
   cnpj: "",
+  inscricao_estadual: "",
   razao_social: "",
   nome_fantasia: "",
   category: "motorista",
@@ -281,6 +283,7 @@ function personToForm(person: PersonProfile): FormState {
     person_type: person.category === "motorista" ? "cpf" : (person.person_type || "cpf"),
     cpf: "",
     cnpj: person.cnpj ? maskCNPJ(person.cnpj) : "",
+    inscricao_estadual: (person as any).inscricao_estadual || "",
     razao_social: person.razao_social ? maskName(person.razao_social) : "",
     nome_fantasia: person.nome_fantasia ? maskName(person.nome_fantasia) : "",
     category: person.category || "motorista",
@@ -312,6 +315,7 @@ function formToPayload(form: FormState) {
     email: form.email.trim() || null,
     person_type: isMotorista ? "cpf" : form.person_type,
     cnpj: !isMotorista && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
+    inscricao_estadual: !isMotorista && form.person_type === "cnpj" ? form.inscricao_estadual.trim() || null : null,
     razao_social: !isMotorista && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
     nome_fantasia: !isMotorista && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
     category: form.category,
@@ -686,6 +690,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
               <Label className="text-xs">Nome Fantasia</Label>
               <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} />
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Inscrição Estadual (IE)</Label>
+            <Input value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value.replace(/\D/g, "") }))} placeholder="Somente números" />
           </div>
         </>
       )}

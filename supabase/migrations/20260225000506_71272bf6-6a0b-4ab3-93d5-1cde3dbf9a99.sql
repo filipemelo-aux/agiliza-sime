@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN inscricao_estadual text DEFAULT NULL;
