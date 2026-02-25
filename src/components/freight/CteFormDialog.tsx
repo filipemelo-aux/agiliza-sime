@@ -275,6 +275,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [selectedEstId, setSelectedEstId] = useState<string>("");
 
   const [showCargaForm, setShowCargaForm] = useState(false);
+  const [motoristaNome, setMotoristaNome] = useState<string | undefined>(undefined);
 
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
@@ -368,8 +369,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         observacoes: cte.observacoes || "",
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
+
+      // Load motorista name for display
+      if (cte.motorista_id) {
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", cte.motorista_id)
+          .single()
+          .then(({ data }) => {
+            if (data?.full_name) setMotoristaNome(data.full_name);
+          });
+      } else {
+        setMotoristaNome(undefined);
+      }
     } else {
       setForm(defaultForm);
+      setMotoristaNome(undefined);
     }
   }, [cte, open]);
 
@@ -1045,8 +1061,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               <PersonSearchInput
                 categories={["motorista"]}
                 placeholder="Buscar motorista cadastrado..."
+                selectedName={motoristaNome}
                 onSelect={async (person) => {
                   set("motorista_id", person.id);
+                  setMotoristaNome(person.full_name);
                   // Auto-fill vehicle if driver is linked to one
                   try {
                      const { data: vehicles } = await supabase
@@ -1061,7 +1079,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                      }
                    } catch {}
                 }}
-                onClear={() => set("motorista_id", null)}
+                onClear={() => {
+                  set("motorista_id", null);
+                  setMotoristaNome(undefined);
+                }}
               />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
