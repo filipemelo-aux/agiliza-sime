@@ -167,6 +167,13 @@ async function callFiscalService(
     body: JSON.stringify(body),
   });
 
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const text = await response.text();
+    console.error(`[SEFAZ Proxy] Microserviço retornou content-type inesperado: ${contentType}. Status: ${response.status}. Body preview: ${text.substring(0, 200)}`);
+    throw new Error(`Microserviço fiscal indisponível (HTTP ${response.status}). Verifique se o servidor Docker está online.`);
+  }
+
   const result = await response.json();
 
   if (!response.ok && !result.success) {
