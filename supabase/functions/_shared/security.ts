@@ -227,7 +227,7 @@ export const VALIDATION_SCHEMAS = {
 
 // ─── Data Sanitization ───────────────────────────────────────
 
-/** Remove potential XSS/injection characters from string */
+/** Remove potential XSS/injection characters from regular strings */
 export function sanitizeString(value: string): string {
   return value
     .replace(/[<>]/g, "") // Strip HTML tags
@@ -238,6 +238,23 @@ export function sanitizeString(value: string): string {
     .trim();
 }
 
+/** Preserve XML markup while removing unsafe control chars */
+export function sanitizeXmlContent(value: string): string {
+  return value
+    .replace(/\x00/g, "")
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F]/g, "");
+}
+
+function isXmlFieldKey(key: string): boolean {
+  return (
+    key === "xml" ||
+    key === "signed_xml" ||
+    key === "xml_enviado" ||
+    key === "xml_autorizado" ||
+    key.endsWith("_xml")
+  );
+}
+
 /** Deep sanitize an object — recursively clean all string values */
 export function sanitizePayload<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};
@@ -245,7 +262,9 @@ export function sanitizePayload<T extends Record<string, unknown>>(obj: T): T {
     // Sanitize keys too
     const cleanKey = sanitizeString(key);
     if (typeof value === "string") {
-      result[cleanKey] = sanitizeString(value);
+      result[cleanKey] = isXmlFieldKey(cleanKey)
+        ? sanitizeXmlContent(value)
+        : sanitizeString(value);
     } else if (Array.isArray(value)) {
       result[cleanKey] = value.map((item) =>
         typeof item === "string"
