@@ -11,6 +11,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { buildCteXml, validateCteData, type CteXmlData } from "./xmlBuilder";
+import { buscarCodigoIbgePorMunicipio, buscarCodigoIbgePorCep } from "@/lib/ibgeLookup";
 
 export interface PrepararCteResult {
   success: boolean;
@@ -82,7 +83,43 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     motoristaCpf = docRes.data?.cpf || undefined;
   }
 
-  // 5. Montar CteXmlData
+  // 5. Resolver códigos IBGE automaticamente (se ausentes)
+  const [
+    emitIbge,
+    origemIbge,
+    destinoIbge,
+  ] = await Promise.all([
+    // Emitente: tenta pelo CEP, depois pelo município+UF
+    !establishment.codigo_municipio_ibge && establishment.endereco_cep
+      ? buscarCodigoIbgePorCep(establishment.endereco_cep)
+      : Promise.resolve(establishment.codigo_municipio_ibge || undefined),
+    // Origem
+    !cte.municipio_origem_ibge && cte.municipio_origem_nome && cte.uf_origem
+      ? buscarCodigoIbgePorMunicipio(cte.uf_origem, cte.municipio_origem_nome)
+      : Promise.resolve(cte.municipio_origem_ibge || undefined),
+    // Destino
+    !cte.municipio_destino_ibge && cte.municipio_destino_nome && cte.uf_destino
+      ? buscarCodigoIbgePorMunicipio(cte.uf_destino, cte.municipio_destino_nome)
+      : Promise.resolve(cte.municipio_destino_ibge || undefined),
+  ]);
+
+  // Fallback: se emitente IBGE ainda não resolveu, tenta por município+UF
+  const emitIbgeFinal = emitIbge || (
+    establishment.endereco_municipio && establishment.endereco_uf
+      ? await buscarCodigoIbgePorMunicipio(establishment.endereco_uf, establishment.endereco_municipio)
+      : undefined
+  );
+
+  // Salvar IBGE do emitente no establishment para futuras emissões
+  if (emitIbgeFinal && !establishment.codigo_municipio_ibge) {
+    supabase
+      .from("fiscal_establishments")
+      .update({ codigo_municipio_ibge: emitIbgeFinal })
+      .eq("id", establishment.id)
+      .then(() => {}); // fire-and-forget
+  }
+
+  // 6. Montar CteXmlData
   const dataEmissao = new Date().toISOString();
   const xmlData: CteXmlData = {
     numero,
@@ -102,7 +139,7 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     emitente_endereco_logradouro: establishment.endereco_logradouro || undefined,
     emitente_endereco_numero: establishment.endereco_numero || undefined,
     emitente_endereco_bairro: establishment.endereco_bairro || undefined,
-    emitente_endereco_municipio_ibge: establishment.codigo_municipio_ibge || undefined,
+    emitente_endereco_municipio_ibge: emitIbgeFinal || establishment.codigo_municipio_ibge || undefined,
     emitente_endereco_uf: establishment.endereco_uf || undefined,
     emitente_endereco_cep: establishment.endereco_cep || undefined,
 
@@ -128,10 +165,10 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     tomador_municipio_ibge: cte.tomador_municipio_ibge || undefined,
     tomador_uf: cte.tomador_uf || undefined,
 
-    municipio_origem_ibge: cte.municipio_origem_ibge || undefined,
+    municipio_origem_ibge: origemIbge || cte.municipio_origem_ibge || undefined,
     municipio_origem_nome: cte.municipio_origem_nome || undefined,
     uf_origem: cte.uf_origem || undefined,
-    municipio_destino_ibge: cte.municipio_destino_ibge || undefined,
+    municipio_destino_ibge: destinoIbge || cte.municipio_destino_ibge || undefined,
     municipio_destino_nome: cte.municipio_destino_nome || undefined,
     uf_destino: cte.uf_destino || undefined,
 
@@ -153,7 +190,7 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     observacoes: cte.observacoes || undefined,
   };
 
-  // 6. Validar dados obrigatórios
+  // 7. Validar dados obrigatórios
   const validationErrors = validateCteData(xmlData);
   if (validationErrors.length > 0) {
     return {
@@ -162,10 +199,10 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     };
   }
 
-  // 7. Gerar XML
+  // 8. Gerar XML
   const { xml, chave_acesso } = buildCteXml(xmlData);
 
-  // 8. Salvar no banco
+  // 9. Salvar no banco
   const { error: updateErr } = await supabase
     .from("ctes")
     .update({

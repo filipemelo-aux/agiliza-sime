@@ -7,6 +7,7 @@ export interface CepData {
   city: string;
   state: string;
   cep: string;
+  ibge?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export function useCepLookup(onResult: (data: CepData) => void) {
         city: data.city ? maskName(data.city) : "",
         state: data.state || "",
         cep: maskCEP(cep),
+        ibge: data.city_ibge ? String(data.city_ibge) : undefined,
       });
     } catch {
       setError("Erro ao buscar CEP");
