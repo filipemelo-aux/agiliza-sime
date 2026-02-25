@@ -69,7 +69,7 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     const [profileRes, docRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, cnpj, person_type")
         .eq("id", cte.motorista_id)
         .single(),
       supabase
@@ -80,7 +80,10 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
     ]);
 
     motoristaNome = profileRes.data?.full_name || undefined;
-    motoristaCpf = docRes.data?.cpf || undefined;
+    // CPF: prioridade driver_documents, fallback perfil (pessoa física com CNPJ = CPF)
+    motoristaCpf = docRes.data?.cpf 
+      || (profileRes.data?.person_type === "cpf" && profileRes.data?.cnpj ? profileRes.data.cnpj : undefined)
+      || undefined;
   }
 
   // 5. Resolver códigos IBGE automaticamente (se ausentes)
