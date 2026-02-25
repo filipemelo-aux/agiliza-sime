@@ -19,6 +19,7 @@ interface PersonResult {
   address_neighborhood: string | null;
   address_city: string | null;
   address_state: string | null;
+  inscricao_estadual: string | null;
 }
 
 interface PersonSearchInputProps {
@@ -86,7 +87,7 @@ export function PersonSearchInput({
       try {
         const { data } = await supabase
           .from("profiles")
-          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state")
+          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual")
           .in("category", categories)
           .or(`full_name.ilike.%${q}%,razao_social.ilike.%${q}%,cnpj.ilike.%${q}%,nome_fantasia.ilike.%${q}%`)
           .order("full_name")
