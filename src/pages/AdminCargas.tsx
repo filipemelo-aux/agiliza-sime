@@ -13,6 +13,13 @@ import { CargaFormDialog } from "@/components/freight/CargaFormDialog";
 export interface Carga {
   id: string;
   produto_predominante: string;
+  tipo: string | null;
+  ativo: boolean;
+  cod_buonny: string | null;
+  cod_opentech: string | null;
+  tolerancia_quebra: number | null;
+  ncm: string | null;
+  sinonimos: string | null;
   peso_bruto: number;
   valor_carga: number;
   valor_carga_averb: number | null;
@@ -128,9 +135,12 @@ export default function AdminCargas() {
                       <Package className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <span className="font-semibold font-display">{carga.produto_predominante}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold font-display">{carga.produto_predominante}</span>
+                        {!carga.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+                      </div>
                       <p className="text-sm text-muted-foreground truncate">
-                        {carga.remetente_nome || "—"} → {carga.destinatario_nome || "—"}
+                        {carga.tipo || "Tipo não informado"} {carga.ncm ? `• NCM: ${carga.ncm}` : ""}
                       </p>
                     </div>
                   </div>
