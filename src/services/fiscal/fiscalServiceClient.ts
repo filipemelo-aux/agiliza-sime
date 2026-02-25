@@ -41,7 +41,7 @@ async function callFiscalService<T = any>(
   }
 
   if (data && data.success === false) {
-    return { success: false, error: data.error || "Erro desconhecido" };
+    return { success: false, error: data.error || data.motivo_rejeicao || "Erro desconhecido", data };
   }
 
   return { success: true, data };
