@@ -56,7 +56,7 @@ export default function AdminCargas() {
       const { data, error } = await supabase
         .from("cargas")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("produto_predominante", { ascending: true });
       if (error) throw error;
       setCargas((data as any[]) || []);
     } catch (err: any) {
@@ -67,12 +67,12 @@ export default function AdminCargas() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir esta carga?")) return;
+    if (!confirm("Excluir esta natureza de carga?")) return;
     const { error } = await supabase.from("cargas").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Carga excluída" });
+      toast({ title: "Natureza excluída" });
       fetchCargas();
     }
   };
@@ -82,8 +82,9 @@ export default function AdminCargas() {
     return (
       !q ||
       c.produto_predominante?.toLowerCase().includes(q) ||
-      c.remetente_nome?.toLowerCase().includes(q) ||
-      c.destinatario_nome?.toLowerCase().includes(q)
+      c.tipo?.toLowerCase().includes(q) ||
+      c.sinonimos?.toLowerCase().includes(q) ||
+      c.ncm?.includes(q)
     );
   });
 
@@ -92,17 +93,17 @@ export default function AdminCargas() {
       <div className="container mx-auto px-4 py-8">
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <h1 className="text-3xl font-bold font-display">Cargas</h1>
+          <h1 className="text-3xl font-bold font-display">Natureza de Cargas</h1>
           <Button onClick={() => { setEditingCarga(null); setFormOpen(true); }} className="btn-transport-accent gap-2">
             <Plus className="w-4 h-4" />
-            Nova Carga
+            Nova Natureza
           </Button>
         </div>
 
         <div className="relative mb-6 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por produto, remetente, destinatário..."
+            placeholder="Buscar por descrição, tipo, NCM..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -112,54 +113,47 @@ export default function AdminCargas() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhuma carga encontrada</h3>
-            <p className="text-muted-foreground">Clique em "Nova Carga" para cadastrar.</p>
+            <h3 className="text-xl font-semibold mb-2">Nenhuma natureza cadastrada</h3>
+            <p className="text-muted-foreground">Clique em "Nova Natureza" para cadastrar.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filtered.map((carga) => (
               <Card
                 key={carga.id}
                 className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
                 onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
               >
-                <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Package className="h-5 w-5 text-primary" />
+                <CardContent className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Package className="h-4 w-4 text-primary" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold font-display">{carga.produto_predominante}</span>
                         {!carga.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {carga.tipo || "Tipo não informado"} {carga.ncm ? `• NCM: ${carga.ncm}` : ""}
+                      <p className="text-xs text-muted-foreground truncate">
+                        {carga.tipo || "Tipo não informado"}
+                        {carga.ncm ? ` • NCM: ${carga.ncm}` : ""}
+                        {carga.sinonimos ? ` • ${carga.sinonimos}` : ""}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm shrink-0">
-                    <Badge variant="outline">{Number(carga.peso_bruto).toLocaleString("pt-BR")} {carga.unidade}</Badge>
-                    <span className="text-muted-foreground">
-                      {carga.uf_origem || "?"} → {carga.uf_destino || "?"}
-                    </span>
-                    <span className="font-semibold">
-                      {Number(carga.valor_carga).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(carga.id); }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(carga.id); }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </CardContent>
               </Card>
             ))}
