@@ -12,6 +12,7 @@ import { Send, Loader2, Pencil } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
+import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
@@ -93,6 +94,19 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const handleTransmit = async () => {
     setTransmitting(true);
     try {
+      // 1. Montar XML no frontend e salvar no banco
+      const prep = await prepararCteParaTransmissao(cte.id);
+      if (!prep.success) {
+        toast({
+          title: "Erro na preparação do XML",
+          description: prep.errors?.join("; ") || "Erro desconhecido",
+          variant: "destructive",
+        });
+        setTransmitting(false);
+        return;
+      }
+
+      // 2. Chamar fiscal-service (que agora usará o xml_enviado já pronto)
       const result = await emitirCteViaService(cte.id, { sync: true });
       if (result.success && result.data?.success) {
         const d = result.data;

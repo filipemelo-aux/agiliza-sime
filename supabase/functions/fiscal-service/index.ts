@@ -145,16 +145,24 @@ async function handleCteEmit(body: any, userId: string, client: any) {
 
   const establishment = await fetchEstablishment(client, cte.establishment_id);
 
-  const { data: numero, error: numErr } = await client.rpc("next_cte_number", {
-    _establishment_id: cte.establishment_id,
-  });
-  if (numErr) return secureError(`Erro ao gerar número: ${numErr.message}`);
+  // Use número já gerado pelo frontend (prepararCteParaTransmissao), ou gerar novo
+  let numero = cte.numero;
+  if (!numero) {
+    const { data: newNum, error: numErr } = await client.rpc("next_cte_number", {
+      _establishment_id: cte.establishment_id,
+    });
+    if (numErr) return secureError(`Erro ao gerar número: ${numErr.message}`);
+    numero = newNum;
+  }
+
+  // Verificar se o XML foi montado pelo frontend
+  if (!cte.xml_enviado || cte.xml_enviado === "<placeholder/>") {
+    return secureError("XML do CT-e não foi gerado. Tente novamente.");
+  }
 
   // ── Synchronous mode: call sefaz-proxy directly ──────────
   if (sync) {
     await client.from("ctes").update({
-      numero,
-      data_emissao: new Date().toISOString(),
       status: "processando",
     }).eq("id", cte_id);
 
@@ -162,7 +170,7 @@ async function handleCteEmit(body: any, userId: string, client: any) {
       const startTime = Date.now();
       const sefazResult = await callSefazProxyDirect({
         action: "autorizar_cte",
-        signed_xml: cte.xml_enviado || "<placeholder/>",
+        signed_xml: cte.xml_enviado,
         establishment_id: cte.establishment_id,
         document_id: cte_id,
       });
@@ -241,8 +249,6 @@ async function handleCteEmit(body: any, userId: string, client: any) {
 
   // ── Async mode (queue) — original behavior ───────────────
   await client.from("ctes").update({
-    numero,
-    data_emissao: new Date().toISOString(),
     status: "processando",
   }).eq("id", cte_id);
 
