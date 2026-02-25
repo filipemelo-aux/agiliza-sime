@@ -66,24 +66,33 @@ export async function prepararCteParaTransmissao(cteId: string): Promise<Prepara
   let motoristaCpf: string | undefined;
 
   if (cte.motorista_id) {
-    const [profileRes, docRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, cnpj, person_type")
-        .eq("id", cte.motorista_id)
-        .single(),
-      supabase
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("full_name, cnpj, person_type, user_id")
+      .eq("id", cte.motorista_id)
+      .maybeSingle();
+
+    motoristaNome = profileData?.full_name || undefined;
+
+    const fallbackCpfFromProfile =
+      profileData?.person_type === "cpf" && profileData?.cnpj
+        ? profileData.cnpj
+        : undefined;
+
+    let cpfFromDriverDocs: string | undefined;
+
+    if (profileData?.user_id) {
+      const { data: docData } = await supabase
         .from("driver_documents")
         .select("cpf")
-        .eq("user_id", cte.motorista_id)
-        .maybeSingle(),
-    ]);
+        .eq("user_id", profileData.user_id)
+        .maybeSingle();
 
-    motoristaNome = profileRes.data?.full_name || undefined;
+      cpfFromDriverDocs = docData?.cpf || undefined;
+    }
+
     // CPF: prioridade driver_documents, fallback perfil (pessoa física com CNPJ = CPF)
-    motoristaCpf = docRes.data?.cpf 
-      || (profileRes.data?.person_type === "cpf" && profileRes.data?.cnpj ? profileRes.data.cnpj : undefined)
-      || undefined;
+    motoristaCpf = cpfFromDriverDocs || fallbackCpfFromProfile;
   }
 
   // 5. Resolver códigos IBGE automaticamente (se ausentes)
