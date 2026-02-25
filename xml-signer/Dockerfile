@@ -10,13 +10,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Baixar e instalar certificados raiz ICP-Brasil (necessários para SEFAZ)
 RUN mkdir -p /usr/local/share/ca-certificates/icp-brasil && \
     wget -q -O /tmp/ACcompactado.zip "https://acraiz.icpbrasil.gov.br/credenciadas/CertificadosAC-ICP-Brasil/ACcompactado.zip" && \
-    apt-get update && apt-get install -y --no-install-recommends unzip && \
-    cd /tmp && unzip -o ACcompactado.zip -d /tmp/icp-brasil/ || true && \
-    find /tmp/icp-brasil/ -name "*.crt" -exec cp {} /usr/local/share/ca-certificates/icp-brasil/ \; || true && \
-    find /tmp/icp-brasil/ -name "*.pem" -exec sh -c 'cp "$1" /usr/local/share/ca-certificates/icp-brasil/$(basename "$1" .pem).crt' _ {} \; || true && \
+    apt-get update && apt-get install -y --no-install-recommends unzip openssl && \
+    cd /tmp && unzip -o ACcompactado.zip -d /tmp/icp-brasil && \
+    cert_count=$(find /tmp/icp-brasil/ -type f \( -iname "*.crt" -o -iname "*.pem" -o -iname "*.cer" \) | wc -l) && \
+    [ "$cert_count" -gt 0 ] && \
+    find /tmp/icp-brasil/ -type f \( -iname "*.crt" -o -iname "*.pem" -o -iname "*.cer" \) -print0 | \
+    while IFS= read -r -d '' cert; do \
+      target="/usr/local/share/ca-certificates/icp-brasil/$(basename "${cert%.*}").crt"; \
+      if grep -q "BEGIN CERTIFICATE" "$cert" 2>/dev/null; then \
+        cp "$cert" "$target"; \
+      else \
+        openssl x509 -inform DER -in "$cert" -out "$target"; \
+      fi; \
+    done && \
     update-ca-certificates && \
     rm -rf /tmp/ACcompactado.zip /tmp/icp-brasil/ && \
-    apt-get purge -y unzip && apt-get autoremove -y && \
+    apt-get purge -y unzip openssl && apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Criar tmpfs para certificados temporários
