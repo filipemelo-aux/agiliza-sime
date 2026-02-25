@@ -241,7 +241,8 @@ def sign_xml(xml_str: str, cert: InMemoryCert, doc_type: str, doc_id: str) -> di
         reference_uri=f"#{node_id}",
     )
 
-    signed_xml = etree.tostring(signed_root, xml_declaration=True, encoding="unicode")
+    signed_xml_body = etree.tostring(signed_root, encoding="unicode")
+    signed_xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + signed_xml_body
 
     digest_el = signed_root.find(".//ds:DigestValue", NAMESPACES)
     sig_val_el = signed_root.find(".//ds:SignatureValue", NAMESPACES)
