@@ -4,29 +4,43 @@ WORKDIR /app
 
 # Instalar dependências de sistema para lxml e SSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxml2-dev libxslt1-dev libssl-dev ca-certificates curl wget \
+    libxml2-dev libxslt1-dev libssl-dev ca-certificates curl wget openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Baixar e instalar certificados raiz ICP-Brasil (necessários para SEFAZ)
+# Copiar certificados ICP-Brasil locais (baixados via download-certs.sh)
+COPY certs/ /tmp/local-certs/
+
+# Instalar certificados locais + tentar baixar do ITI como complemento
 RUN mkdir -p /usr/local/share/ca-certificates/icp-brasil && \
-    wget -q -O /tmp/ACcompactado.zip "https://acraiz.icpbrasil.gov.br/credenciadas/CertificadosAC-ICP-Brasil/ACcompactado.zip" && \
-    apt-get update && apt-get install -y --no-install-recommends unzip openssl && \
-    cd /tmp && unzip -o ACcompactado.zip -d /tmp/icp-brasil && \
-    cert_count=$(find /tmp/icp-brasil/ -type f \( -iname "*.crt" -o -iname "*.pem" -o -iname "*.cer" \) | wc -l) && \
-    [ "$cert_count" -gt 0 ] && \
-    find /tmp/icp-brasil/ -type f \( -iname "*.crt" -o -iname "*.pem" -o -iname "*.cer" \) -print0 | \
-    while IFS= read -r -d '' cert; do \
-      target="/usr/local/share/ca-certificates/icp-brasil/$(basename "${cert%.*}").crt"; \
-      if grep -q "BEGIN CERTIFICATE" "$cert" 2>/dev/null; then \
-        cp "$cert" "$target"; \
-      else \
-        openssl x509 -inform DER -in "$cert" -out "$target"; \
-      fi; \
-    done && \
+    # 1) Instalar certificados locais da pasta certs/
+    if [ "$(ls -A /tmp/local-certs/*.crt 2>/dev/null)" ]; then \
+      for cert in /tmp/local-certs/*.crt; do \
+        cp "$cert" "/usr/local/share/ca-certificates/icp-brasil/$(basename "$cert")"; \
+      done; \
+      echo "Installed $(ls /usr/local/share/ca-certificates/icp-brasil/*.crt | wc -l) local certs"; \
+    fi && \
+    # 2) Tentar baixar do ITI como complemento (não falha se offline)
+    (wget -q -O /tmp/ACcompactado.zip \
+      "https://acraiz.icpbrasil.gov.br/credenciadas/CertificadosAC-ICP-Brasil/ACcompactado.zip" && \
+     apt-get update && apt-get install -y --no-install-recommends unzip && \
+     unzip -o -q /tmp/ACcompactado.zip -d /tmp/icp-brasil && \
+     find /tmp/icp-brasil/ -type f \( -iname "*.crt" -o -iname "*.pem" -o -iname "*.cer" \) -print0 | \
+     while IFS= read -r -d '' cert; do \
+       target="/usr/local/share/ca-certificates/icp-brasil/$(basename "${cert%.*}").crt"; \
+       if grep -q "BEGIN CERTIFICATE" "$cert" 2>/dev/null; then \
+         cp "$cert" "$target"; \
+       else \
+         openssl x509 -inform DER -in "$cert" -out "$target" 2>/dev/null || true; \
+       fi; \
+     done && \
+     rm -rf /tmp/ACcompactado.zip /tmp/icp-brasil/ && \
+     apt-get purge -y unzip && apt-get autoremove -y && \
+     rm -rf /var/lib/apt/lists/* \
+    ) || echo "⚠ Download ITI falhou, usando apenas certificados locais" && \
+    # 3) Atualizar bundle do sistema
     update-ca-certificates && \
-    rm -rf /tmp/ACcompactado.zip /tmp/icp-brasil/ && \
-    apt-get purge -y unzip openssl && apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/local-certs && \
+    echo "Total certs installed: $(ls /usr/local/share/ca-certificates/icp-brasil/ | wc -l)"
 
 # Criar tmpfs para certificados temporários
 RUN mkdir -p /tmp/certs && chmod 700 /tmp/certs
