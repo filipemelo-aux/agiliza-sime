@@ -91,7 +91,7 @@ const vehicleTypeLabels: Record<string, string> = {
 };
 
 export default function AdminApplications() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -118,16 +118,16 @@ export default function AdminApplications() {
   const [paymentAction, setPaymentAction] = useState<"request" | "confirm">("request");
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) {
+    if (!roleLoading && !isAdmin && !isModerator) {
       navigate("/");
     }
-  }, [isAdmin, roleLoading, navigate]);
+  }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isModerator) {
       fetchApplications();
     }
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchApplications = async () => {
     try {

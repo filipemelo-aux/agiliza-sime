@@ -52,7 +52,7 @@ interface RecentApplication {
 }
 
 export default function AdminDashboard() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
@@ -79,16 +79,16 @@ export default function AdminDashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) {
+    if (!roleLoading && !isAdmin && !isModerator) {
       navigate("/");
     }
-  }, [isAdmin, roleLoading, navigate]);
+  }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isModerator) {
       fetchDashboardData();
     }
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchDashboardData = async () => {
     try {
