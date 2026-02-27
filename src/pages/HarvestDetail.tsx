@@ -79,7 +79,7 @@ const DISCOUNT_TYPES = [
 
 export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, loading: roleLoading } = useUserRole();
+  const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [job, setJob] = useState<HarvestJob | null>(null);
@@ -109,8 +109,8 @@ export default function HarvestDetail() {
   const [editingDailyValue, setEditingDailyValue] = useState("");
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) navigate("/");
-  }, [isAdmin, roleLoading, navigate]);
+    if (!roleLoading && !isAdmin && !isModerator) navigate("/");
+  }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
     if (isAdmin && id) fetchAll();
