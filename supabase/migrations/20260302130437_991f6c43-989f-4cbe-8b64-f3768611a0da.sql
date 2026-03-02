@@ -1,0 +1,1 @@
+ALTER TABLE public.vehicles DROP CONSTRAINT vehicles_plate_key;
