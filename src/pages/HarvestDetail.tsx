@@ -163,9 +163,10 @@ export default function HarvestDetail() {
             const { data: ownerData } = await supabase
               .from("profiles")
               .select("full_name, nome_fantasia")
-              .eq("id", vehicleRes.data.owner_id)
+              .eq("user_id", vehicleRes.data.owner_id)
               .maybeSingle();
-            ownerName = ownerData?.nome_fantasia || ownerData?.full_name || "—";
+            const raw = ownerData?.nome_fantasia || ownerData?.full_name || "";
+            ownerName = raw ? raw.split(" ")[0] : "—";
           }
 
           const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
