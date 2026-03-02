@@ -189,7 +189,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin && !isModerator) return null;
 
   return (
     <AdminLayout>
