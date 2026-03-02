@@ -18,9 +18,10 @@ interface Props {
   establishments: any[];
   userId: string;
   onSaved: () => void;
+  editData?: any | null;
 }
 
-export function QuotationFormDialog({ type, open, onOpenChange, establishments, userId, onSaved }: Props) {
+export function QuotationFormDialog({ type, open, onOpenChange, establishments, userId, onSaved, editData }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [establishmentId, setEstablishmentId] = useState("");
@@ -50,9 +51,37 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
 
   const diaria = valorMensal ? (parseFloat(valorMensal) / 30) : 0;
 
+  // Populate fields when editing
   useEffect(() => {
-    if (establishments.length === 1) setEstablishmentId(establishments[0].id);
-  }, [establishments]);
+    if (editData) {
+      setEstablishmentId(editData.establishment_id || "");
+      setClientId(editData.client_id || null);
+      setClientName(editData.client?.razao_social || editData.client?.full_name || "");
+      setObservacoes(editData.observacoes || "");
+      setValidadeDias(editData.validade_dias || 15);
+
+      if (type === "frete") {
+        setOrigemCidade(editData.origem_cidade || "");
+        setOrigemUf(editData.origem_uf || "");
+        setDestinoCidade(editData.destino_cidade || "");
+        setDestinoUf(editData.destino_uf || "");
+        setCargaId(editData.carga_id || null);
+        setProduto(editData.produto || "");
+        setPesoKg(editData.peso_kg != null ? String(editData.peso_kg) : "");
+        setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
+      } else {
+        setPrevisaoInicio(editData.previsao_inicio || "");
+        setPrevisaoTermino(editData.previsao_termino || "");
+        setValorMensal(editData.valor_mensal_por_caminhao != null ? String(editData.valor_mensal_por_caminhao) : "");
+        setQtdCaminhoes(editData.quantidade_caminhoes != null ? String(editData.quantidade_caminhoes) : "1");
+        setAlimentacaoPorConta(editData.alimentacao_por_conta || "contratada");
+        setCombustivelPorConta(editData.combustivel_por_conta || "contratada");
+        setValorAlimentacaoDia(editData.valor_alimentacao_dia != null ? String(editData.valor_alimentacao_dia) : "");
+      }
+    } else if (establishments.length === 1) {
+      setEstablishmentId(establishments[0].id);
+    }
+  }, [editData, establishments]);
 
   const handleSave = async () => {
     if (!establishmentId) { toast({ title: "Selecione a empresa contratada", variant: "destructive" }); return; }
@@ -64,8 +93,11 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
       client_id: clientId,
       observacoes: observacoes || null,
       validade_dias: validadeDias,
-      created_by: userId,
     };
+
+    if (!editData) {
+      base.created_by = userId;
+    }
 
     if (type === "frete") {
       if (!origemCidade || !destinoCidade) { toast({ title: "Preencha origem e destino", variant: "destructive" }); setSaving(false); return; }
@@ -92,22 +124,34 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
       });
     }
 
-    const { error } = await supabase.from("quotations").insert(base);
+    let error;
+    if (editData) {
+      ({ error } = await supabase.from("quotations").update(base).eq("id", editData.id));
+    } else {
+      ({ error } = await supabase.from("quotations").insert(base));
+    }
+
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Cotação criada com sucesso" });
+      toast({ title: editData ? "Cotação atualizada com sucesso" : "Cotação criada com sucesso" });
       onOpenChange(false);
       onSaved();
     }
   };
 
+  const isEditing = !!editData;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{type === "frete" ? "Nova Cotação de Frete" : "Nova Cotação de Colheita"}</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? `Editar Cotação #${editData.numero}`
+              : type === "frete" ? "Nova Cotação de Frete" : "Nova Cotação de Colheita"}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -270,7 +314,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar Cotação
+              {isEditing ? "Salvar Alterações" : "Salvar Cotação"}
             </Button>
           </div>
         </div>

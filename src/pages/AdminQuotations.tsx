@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Sprout, Download, Trash2, Eye, CheckCircle, Clock, Send } from "lucide-react";
+import { Plus, FileText, Sprout, Download, Trash2, Eye, CheckCircle, Clock, Send, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +59,7 @@ export default function AdminQuotations() {
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<"frete" | "colheita">("frete");
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
+  const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
   const [establishments, setEstablishments] = useState<any[]>([]);
 
   const fetchQuotations = async () => {
@@ -192,6 +193,7 @@ export default function AdminQuotations() {
           {/* Action buttons */}
           <div className="flex gap-1 pt-1">
             <Button size="sm" variant="ghost" onClick={() => setDetailQuotation(q)} title="Ver"><Eye className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditQuotation(q)} title="Editar"><Pencil className="h-4 w-4" /></Button>
             <Button size="sm" variant="ghost" onClick={() => exportQuotationPDF(q, establishments)} title="PDF"><Download className="h-4 w-4" /></Button>
             <Button size="sm" variant="ghost" onClick={() => handleDelete(q.id)} title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
           </div>
@@ -255,6 +257,7 @@ export default function AdminQuotations() {
           {/* Action buttons */}
           <div className="flex gap-1 pt-1">
             <Button size="sm" variant="ghost" onClick={() => setDetailQuotation(q)} title="Ver"><Eye className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditQuotation(q)} title="Editar"><Pencil className="h-4 w-4" /></Button>
             <Button size="sm" variant="ghost" onClick={() => exportQuotationPDF(q, establishments)} title="PDF"><Download className="h-4 w-4" /></Button>
             <Button size="sm" variant="ghost" onClick={() => handleDelete(q.id)} title="Excluir"><Trash2 className="h-4 w-4 text-destructive" /></Button>
           </div>
@@ -325,6 +328,18 @@ export default function AdminQuotations() {
           establishments={establishments}
           userId={user.id}
           onSaved={fetchQuotations}
+        />
+      )}
+
+      {editQuotation && user && (
+        <QuotationFormDialog
+          type={editQuotation.type as "frete" | "colheita"}
+          open={!!editQuotation}
+          onOpenChange={(v) => { if (!v) setEditQuotation(null); }}
+          establishments={establishments}
+          userId={user.id}
+          onSaved={fetchQuotations}
+          editData={editQuotation}
         />
       )}
 
