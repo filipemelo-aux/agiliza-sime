@@ -38,8 +38,9 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
 
         <div className="space-y-1">
           <Row label="Empresa Contratada" value={q.establishment?.nome_fantasia || q.establishment?.razao_social} />
-          <Row label="Cliente" value={q.client?.full_name} />
+          <Row label="Cliente" value={q.client?.razao_social || q.client?.full_name} />
           <Row label="CNPJ Cliente" value={q.client?.cnpj} />
+          <Row label="Responsável" value={q.creator?.full_name} />
           <Row label="Status" value={q.status} />
           <Row label="Criada em" value={format(new Date(q.created_at), "dd/MM/yyyy HH:mm")} />
           <Row label="Validade" value={`${q.validade_dias || 15} dias`} />
@@ -66,6 +67,12 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
             <Row label="Diária/Caminhão" value={diaria ? formatCurrency(diaria) : null} />
             <Row label="Alimentação" value={q.alimentacao_por_conta === "contratante" ? "Por conta do Contratante" : "Por conta da Contratada"} />
             {q.alimentacao_por_conta === "contratante" && <Row label="Valor Alimentação/Dia" value={formatCurrency(q.valor_alimentacao_dia)} />}
+            {diaria != null && (
+              <Row
+                label="Diária Total (diária + alimentação)"
+                value={formatCurrency(diaria + (q.alimentacao_por_conta === "contratante" && q.valor_alimentacao_dia ? q.valor_alimentacao_dia : 0))}
+              />
+            )}
             <Row label="Combustível" value={q.combustivel_por_conta === "contratante" ? "Por conta do Contratante" : "Por conta da Contratada"} />
           </div>
         )}
