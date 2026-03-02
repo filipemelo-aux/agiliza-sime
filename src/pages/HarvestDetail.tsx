@@ -108,6 +108,8 @@ export default function HarvestDetail() {
   const [filterEndDate, setFilterEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
   const [editingDailyValue, setEditingDailyValue] = useState("");
+  const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
+  const [editingEndDateValue, setEditingEndDateValue] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
@@ -271,6 +273,26 @@ export default function HarvestDetail() {
       toast({ title: "Diária atualizada!" });
       setEditingDailyId(null);
       setEditingDailyValue("");
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleSaveEndDate = async (assignmentId: string) => {
+    try {
+      const updateData: any = { end_date: editingEndDateValue || null };
+      if (!editingEndDateValue) {
+        updateData.status = "active";
+      }
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update(updateData)
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast({ title: "Data final atualizada!" });
+      setEditingEndDateId(null);
+      setEditingEndDateValue("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -871,15 +893,16 @@ export default function HarvestDetail() {
               <Table className="text-xs">
                 <TableHeader>
                   <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
-                    <TableHead>Motorista</TableHead>
-                    <TableHead>Placa</TableHead>
-                    <TableHead>Início</TableHead>
-                    <TableHead className="text-center">Dias</TableHead>
-                    <TableHead>Diária</TableHead>
-                    <TableHead>Descontos</TableHead>
-                    <TableHead>Líquido</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="w-8"></TableHead>
+                     <TableHead>Motorista</TableHead>
+                     <TableHead>Placa</TableHead>
+                     <TableHead>Início</TableHead>
+                     <TableHead>Fim</TableHead>
+                     <TableHead className="text-center">Dias</TableHead>
+                     <TableHead>Diária</TableHead>
+                     <TableHead>Descontos</TableHead>
+                     <TableHead>Líquido</TableHead>
+                     <TableHead className="text-center">Status</TableHead>
+                     <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -890,6 +913,34 @@ export default function HarvestDetail() {
                         <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                         <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {editingEndDateId === a.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="date"
+                                className="h-6 text-xs w-28"
+                                value={editingEndDateValue}
+                                onChange={(e) => setEditingEndDateValue(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveEndDate(a.id);
+                                  if (e.key === "Escape") { setEditingEndDateId(null); setEditingEndDateValue(""); }
+                                }}
+                              />
+                              <Button variant="ghost" size="icon" className="h-5 w-5 text-green-600" onClick={() => handleSaveEndDate(a.id)}>
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingEndDateId(null); setEditingEndDateValue(""); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5 cursor-pointer" onClick={() => { setEditingEndDateId(a.id); setEditingEndDateValue(a.end_date || ""); }}>
+                              <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-center">{data.days}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           {editingDailyId === a.id ? (
@@ -972,6 +1023,7 @@ export default function HarvestDetail() {
                       <TableHead>Motorista</TableHead>
                       <TableHead>Placa</TableHead>
                       <TableHead>Início</TableHead>
+                      <TableHead>Fim</TableHead>
                       <TableHead className="text-center">Dias</TableHead>
                       <TableHead>Diária Emp.</TableHead>
                       <TableHead>Bruto</TableHead>
@@ -989,6 +1041,9 @@ export default function HarvestDetail() {
                           <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                           <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                          </TableCell>
                           <TableCell className="text-center">{fat.days}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatCurrency(fat.dvEmpresa)}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatCurrency(fat.totalBruto)}</TableCell>
@@ -1017,7 +1072,7 @@ export default function HarvestDetail() {
                       );
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
-                      <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
