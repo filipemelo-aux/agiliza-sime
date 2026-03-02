@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,8 @@ export default function HarvestDetail() {
   const [editingDailyValue, setEditingDailyValue] = useState("");
   const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
   const [editingEndDateValue, setEditingEndDateValue] = useState("");
+  const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
+  const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
@@ -524,6 +526,48 @@ export default function HarvestDetail() {
     return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
   };
 
+  const toggleSort = (current: { col: string; dir: "asc" | "desc" } | null, col: string): { col: string; dir: "asc" | "desc" } | null => {
+    if (!current || current.col !== col) return { col, dir: "asc" };
+    if (current.dir === "asc") return { col, dir: "desc" };
+    return null;
+  };
+
+  const SortIcon = ({ col, sort }: { col: string; sort: { col: string; dir: "asc" | "desc" } | null }) => {
+    if (!sort || sort.col !== col) return <ArrowUpDown className="h-3 w-3 ml-0.5 opacity-40" />;
+    return sort.dir === "asc" ? <ArrowUp className="h-3 w-3 ml-0.5" /> : <ArrowDown className="h-3 w-3 ml-0.5" />;
+  };
+
+  const sortAssignments = (list: Assignment[], sort: { col: string; dir: "asc" | "desc" } | null, getData: (a: Assignment) => any) => {
+    if (!sort) return list;
+    const sorted = [...list].sort((a, b) => {
+      const da = getData(a);
+      const db = getData(b);
+      let va: any, vb: any;
+      switch (sort.col) {
+        case "motorista": va = a.driver_name || ""; vb = b.driver_name || ""; break;
+        case "placa": va = a.vehicle_plate || ""; vb = b.vehicle_plate || ""; break;
+        case "inicio": va = a.start_date; vb = b.start_date; break;
+        case "fim": va = a.end_date || "9999"; vb = b.end_date || "9999"; break;
+        case "dias": va = da.days ?? da.days; vb = db.days ?? db.days; break;
+        case "diaria": va = da.dv ?? da.dvEmpresa; vb = db.dv ?? db.dvEmpresa; break;
+        case "descontos": va = da.totalDescontos ?? da.descontosEmpresa; vb = db.totalDescontos ?? db.descontosEmpresa; break;
+        case "liquido": va = da.totalLiquido ?? 0; vb = db.totalLiquido ?? 0; break;
+        case "diaria_emp": va = da.dvEmpresa; vb = db.dvEmpresa; break;
+        case "bruto": va = da.totalBruto; vb = db.totalBruto; break;
+        case "liq_terc": va = da.liquidoTerceiros; vb = db.liquidoTerceiros; break;
+        case "desc_emp": va = da.descontosEmpresa; vb = db.descontosEmpresa; break;
+        case "fat_liq": va = da.faturamentoLiquido; vb = db.faturamentoLiquido; break;
+        default: return 0;
+      }
+      if (typeof va === "string") return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sort.dir === "asc" ? va - vb : vb - va;
+    });
+    return sorted;
+  };
+
+  const sortedAgregados = sortAssignments(assignments, agregadoSort, getAgregadoData);
+  const sortedFaturamento = sortAssignments(assignments, faturamentoSort, getFaturamentoData);
+
   return (
     <AdminLayout>
       <main className="container mx-auto px-4 py-8">
@@ -874,19 +918,19 @@ export default function HarvestDetail() {
               <Table className="text-xs">
                 <TableHeader>
                   <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
-                     <TableHead>Motorista</TableHead>
-                     <TableHead>Placa</TableHead>
-                     <TableHead>Início</TableHead>
-                     <TableHead>Fim</TableHead>
-                     <TableHead className="text-center">Dias</TableHead>
-                     <TableHead>Diária</TableHead>
-                     <TableHead>Descontos</TableHead>
-                     <TableHead>Líquido</TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="text-center cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "diaria"))}><div className="flex items-center">Diária<SortIcon col="diaria" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "descontos"))}><div className="flex items-center">Descontos<SortIcon col="descontos" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "liquido"))}><div className="flex items-center">Líquido<SortIcon col="liquido" sort={agregadoSort} /></div></TableHead>
                      <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {assignments.map((a) => {
+                  {sortedAgregados.map((a) => {
                     const data = getAgregadoData(a);
                     return (
                       <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
@@ -991,20 +1035,20 @@ export default function HarvestDetail() {
                 <Table className="text-xs">
                   <TableHeader>
                     <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
-                      <TableHead>Motorista</TableHead>
-                      <TableHead>Placa</TableHead>
-                      <TableHead>Início</TableHead>
-                      <TableHead>Fim</TableHead>
-                      <TableHead className="text-center">Dias</TableHead>
-                      <TableHead>Diária Emp.</TableHead>
-                      <TableHead>Bruto</TableHead>
-                      <TableHead>Líq. Terc.</TableHead>
-                      <TableHead>Descontos</TableHead>
-                      <TableHead>Fat. Líq.</TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="text-center cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "diaria_emp"))}><div className="flex items-center">Diária Emp.<SortIcon col="diaria_emp" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "bruto"))}><div className="flex items-center">Bruto<SortIcon col="bruto" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "liq_terc"))}><div className="flex items-center">Líq. Terc.<SortIcon col="liq_terc" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "desc_emp"))}><div className="flex items-center">Descontos<SortIcon col="desc_emp" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "fat_liq"))}><div className="flex items-center">Fat. Líq.<SortIcon col="fat_liq" sort={faturamentoSort} /></div></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {assignments.map((a) => {
+                    {sortedFaturamento.map((a) => {
                       const fat = getFaturamentoData(a);
                       return (
                         <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
