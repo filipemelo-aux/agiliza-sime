@@ -54,6 +54,7 @@ interface Assignment {
   company_discounts: Discount[];
   driver_name?: string;
   vehicle_plate?: string;
+  owner_name?: string;
   days_worked?: number;
 }
 
@@ -154,8 +155,18 @@ export default function HarvestDetail() {
         (assignData || []).map(async (a: any) => {
           const [profileRes, vehicleRes] = await Promise.all([
             supabase.from("profiles").select("full_name").eq("user_id", a.user_id).maybeSingle(),
-            a.vehicle_id ? supabase.from("vehicles").select("plate").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
+            a.vehicle_id ? supabase.from("vehicles").select("plate, owner_id").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
+
+          let ownerName = "—";
+          if (vehicleRes.data?.owner_id) {
+            const { data: ownerData } = await supabase
+              .from("profiles")
+              .select("full_name, nome_fantasia")
+              .eq("id", vehicleRes.data.owner_id)
+              .maybeSingle();
+            ownerName = ownerData?.nome_fantasia || ownerData?.full_name || "—";
+          }
 
           const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
           const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : today;
@@ -168,6 +179,7 @@ export default function HarvestDetail() {
             company_discounts: Array.isArray(a.company_discounts) ? a.company_discounts : [],
             driver_name: profileRes.data?.full_name || "Desconhecido",
             vehicle_plate: vehicleRes.data?.plate || "—",
+            owner_name: ownerName,
             days_worked: daysWorked,
           };
         })
@@ -546,6 +558,7 @@ export default function HarvestDetail() {
       switch (sort.col) {
         case "motorista": va = a.driver_name || ""; vb = b.driver_name || ""; break;
         case "placa": va = a.vehicle_plate || ""; vb = b.vehicle_plate || ""; break;
+        case "proprietario": va = a.owner_name || ""; vb = b.owner_name || ""; break;
         case "inicio": va = a.start_date; vb = b.start_date; break;
         case "fim": va = a.end_date || "9999"; vb = b.end_date || "9999"; break;
         case "dias": va = da.days ?? da.days; vb = db.days ?? db.days; break;
@@ -920,6 +933,7 @@ export default function HarvestDetail() {
                   <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
                      <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={agregadoSort} /></div></TableHead>
                      <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={agregadoSort} /></div></TableHead>
+                     <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "proprietario"))}><div className="flex items-center">Proprietário<SortIcon col="proprietario" sort={agregadoSort} /></div></TableHead>
                      <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={agregadoSort} /></div></TableHead>
                      <TableHead className="cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={agregadoSort} /></div></TableHead>
                      <TableHead className="text-center cursor-pointer select-none" onClick={() => setAgregadoSort(toggleSort(agregadoSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={agregadoSort} /></div></TableHead>
@@ -936,6 +950,7 @@ export default function HarvestDetail() {
                       <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
                         <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                         <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                        <TableCell className="whitespace-nowrap">{a.owner_name}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           {editingEndDateId === a.id ? (
@@ -1037,6 +1052,7 @@ export default function HarvestDetail() {
                     <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
                       <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={faturamentoSort} /></div></TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={faturamentoSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "proprietario"))}><div className="flex items-center">Proprietário<SortIcon col="proprietario" sort={faturamentoSort} /></div></TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={faturamentoSort} /></div></TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={faturamentoSort} /></div></TableHead>
                       <TableHead className="text-center cursor-pointer select-none" onClick={() => setFaturamentoSort(toggleSort(faturamentoSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={faturamentoSort} /></div></TableHead>
@@ -1054,6 +1070,7 @@ export default function HarvestDetail() {
                         <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
                           <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                           <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                          <TableCell className="whitespace-nowrap">{a.owner_name}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
                           <TableCell className="whitespace-nowrap">
                             <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
@@ -1077,7 +1094,7 @@ export default function HarvestDetail() {
                       );
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
-                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell colSpan={7} className="text-right text-xs">TOTAIS</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
