@@ -97,6 +97,7 @@ export default function HarvestDetail() {
     vehicle_id: "",
     start_date: new Date().toISOString().split("T")[0],
     daily_value: "",
+    monthly_value: "",
   });
   const [discountForm, setDiscountForm] = useState({
     type: "falta",
@@ -235,7 +236,7 @@ export default function HarvestDetail() {
 
       toast({ title: "Motorista vinculado com sucesso!" });
       setDialogOpen(false);
-      setAssignForm({ user_id: "", vehicle_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "" });
+      setAssignForm({ user_id: "", vehicle_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "", monthly_value: "" });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -660,16 +661,33 @@ export default function HarvestDetail() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input type="date" value={assignForm.start_date} onChange={(e) => setAssignForm({ ...assignForm, start_date: e.target.value })} />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Data Início</Label>
-                  <Input type="date" value={assignForm.start_date} onChange={(e) => setAssignForm({ ...assignForm, start_date: e.target.value })} />
+                  <Label>Valor Mensal (R$)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={assignForm.monthly_value ? maskCurrency(String(Math.round(parseFloat(assignForm.monthly_value) * 100))) : ""} onChange={(e) => {
+                      const monthly = unmaskCurrency(e.target.value);
+                      const monthlyNum = parseFloat(monthly);
+                      const daily = !isNaN(monthlyNum) && monthlyNum > 0 ? String(monthlyNum / 30) : "";
+                      setAssignForm(prev => ({ ...prev, monthly_value: monthly, daily_value: daily }));
+                    }} placeholder={maskCurrency(String(Math.round(dailyValue * 30 * 100)))} />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Diária (R$)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                    <Input className="pl-10" value={assignForm.daily_value ? maskCurrency(String(Math.round(parseFloat(assignForm.daily_value) * 100))) : ""} onChange={(e) => setAssignForm({ ...assignForm, daily_value: unmaskCurrency(e.target.value) })} placeholder={maskCurrency(String(Math.round(dailyValue * 100)))} />
+                    <Input className="pl-10" value={assignForm.daily_value ? maskCurrency(String(Math.round(parseFloat(assignForm.daily_value) * 100))) : ""} onChange={(e) => {
+                      const daily = unmaskCurrency(e.target.value);
+                      const dailyNum = parseFloat(daily);
+                      const monthly = !isNaN(dailyNum) && dailyNum > 0 ? String(dailyNum * 30) : "";
+                      setAssignForm(prev => ({ ...prev, daily_value: daily, monthly_value: monthly }));
+                    }} placeholder={maskCurrency(String(Math.round(dailyValue * 100)))} />
                   </div>
                 </div>
               </div>
