@@ -624,7 +624,21 @@ export default function HarvestDetail() {
             <div className="space-y-4 mt-2">
               <div className="space-y-2">
                 <Label>Motorista *</Label>
-                <Select value={assignForm.user_id} onValueChange={(v) => setAssignForm({ ...assignForm, user_id: v })}>
+                <Select value={assignForm.user_id} onValueChange={async (v) => {
+                  setAssignForm(prev => ({ ...prev, user_id: v }));
+                  // Auto-lookup vehicle linked to this driver
+                  try {
+                    const { data: driverVehicle } = await supabase
+                      .from("vehicles")
+                      .select("id")
+                      .eq("driver_id", v)
+                      .eq("is_active", true)
+                      .maybeSingle();
+                    if (driverVehicle) {
+                      setAssignForm(prev => ({ ...prev, user_id: v, vehicle_id: driverVehicle.id }));
+                    }
+                  } catch {}
+                }}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {drivers.length === 0 ? (
