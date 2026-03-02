@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
@@ -156,7 +156,7 @@ export default function HarvestDetail() {
           ]);
 
           const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
-          const endDate = a.end_date ? (a.status === "active" ? new Date(Math.max(new Date(a.end_date + "T00:00:00").getTime(), today.getTime())) : new Date(a.end_date + "T00:00:00")) : today;
+          const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : today;
           const startDate = new Date(a.start_date + "T00:00:00");
           const daysWorked = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
@@ -282,9 +282,6 @@ export default function HarvestDetail() {
   const handleSaveEndDate = async (assignmentId: string) => {
     try {
       const updateData: any = { end_date: editingEndDateValue || null };
-      if (!editingEndDateValue) {
-        updateData.status = "active";
-      }
       const { error } = await supabase
         .from("harvest_assignments")
         .update(updateData)
@@ -387,22 +384,6 @@ export default function HarvestDetail() {
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
-    }
-  };
-
-  const handleToggleAssignmentStatus = async (assignment: Assignment) => {
-    const newStatus = assignment.status === "active" ? "inactive" : "active";
-    try {
-      const updateData: any = { status: newStatus };
-      if (newStatus === "inactive" && !assignment.end_date) {
-        updateData.end_date = new Date().toISOString().split("T")[0];
-      }
-      const { error } = await supabase.from("harvest_assignments").update(updateData).eq("id", assignment.id);
-      if (error) throw error;
-      toast({ title: newStatus === "active" ? "Motorista reativado" : "Motorista desativado" });
-      fetchAll();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
   };
 
@@ -517,7 +498,7 @@ export default function HarvestDetail() {
     const effectiveEnd = filterEndDate
       ? new Date(filterEndDate + "T00:00:00")
       : a.end_date
-        ? (a.status === "active" ? new Date(Math.max(new Date(a.end_date + "T00:00:00").getTime(), today.getTime())) : new Date(a.end_date + "T00:00:00"))
+        ? new Date(a.end_date + "T00:00:00")
         : today;
     if (effectiveEnd < effectiveStart) return 0;
     return Math.max(1, Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
@@ -901,7 +882,6 @@ export default function HarvestDetail() {
                      <TableHead>Diária</TableHead>
                      <TableHead>Descontos</TableHead>
                      <TableHead>Líquido</TableHead>
-                     <TableHead className="text-center">Status</TableHead>
                      <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -909,7 +889,7 @@ export default function HarvestDetail() {
                   {assignments.map((a) => {
                     const data = getAgregadoData(a);
                     return (
-                      <TableRow key={a.id} className={`[&>td]:py-1.5 [&>td]:px-2 ${a.status !== "active" ? "opacity-50" : ""}`}>
+                      <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
                         <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                         <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
@@ -985,15 +965,6 @@ export default function HarvestDetail() {
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold whitespace-nowrap">{formatCurrency(data.totalLiquido)}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <Switch
-                              checked={a.status === "active"}
-                              onCheckedChange={() => handleToggleAssignmentStatus(a)}
-                              className="scale-75"
-                            />
-                          </div>
-                        </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleRemoveAssignment(a.id)}>
                             <Trash2 className="h-3 w-3" />
@@ -1030,14 +1001,13 @@ export default function HarvestDetail() {
                       <TableHead>Líq. Terc.</TableHead>
                       <TableHead>Descontos</TableHead>
                       <TableHead>Fat. Líq.</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {assignments.map((a) => {
                       const fat = getFaturamentoData(a);
                       return (
-                        <TableRow key={a.id} className={`[&>td]:py-1.5 [&>td]:px-2 ${a.status !== "active" ? "opacity-50" : ""}`}>
+                        <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
                           <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                           <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
@@ -1059,15 +1029,6 @@ export default function HarvestDetail() {
                             </div>
                           </TableCell>
                           <TableCell className="font-bold text-green-600 whitespace-nowrap">{formatCurrency(fat.faturamentoLiquido)}</TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Switch
-                                checked={a.status === "active"}
-                                onCheckedChange={() => handleToggleAssignmentStatus(a)}
-                                className="scale-75"
-                              />
-                            </div>
-                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -1077,7 +1038,6 @@ export default function HarvestDetail() {
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
                       <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
-                      <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
