@@ -1383,6 +1383,115 @@ export type Database = {
         }
         Relationships: []
       }
+      quotations: {
+        Row: {
+          alimentacao_por_conta: string | null
+          carga_id: string | null
+          client_id: string | null
+          combustivel_por_conta: string | null
+          created_at: string
+          created_by: string
+          destino_cidade: string | null
+          destino_uf: string | null
+          establishment_id: string | null
+          id: string
+          numero: number
+          observacoes: string | null
+          origem_cidade: string | null
+          origem_uf: string | null
+          peso_kg: number | null
+          previsao_inicio: string | null
+          previsao_termino: string | null
+          produto: string | null
+          quantidade_caminhoes: number | null
+          status: string
+          type: string
+          updated_at: string
+          validade_dias: number | null
+          valor_alimentacao_dia: number | null
+          valor_frete: number | null
+          valor_mensal_por_caminhao: number | null
+        }
+        Insert: {
+          alimentacao_por_conta?: string | null
+          carga_id?: string | null
+          client_id?: string | null
+          combustivel_por_conta?: string | null
+          created_at?: string
+          created_by: string
+          destino_cidade?: string | null
+          destino_uf?: string | null
+          establishment_id?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          origem_cidade?: string | null
+          origem_uf?: string | null
+          peso_kg?: number | null
+          previsao_inicio?: string | null
+          previsao_termino?: string | null
+          produto?: string | null
+          quantidade_caminhoes?: number | null
+          status?: string
+          type: string
+          updated_at?: string
+          validade_dias?: number | null
+          valor_alimentacao_dia?: number | null
+          valor_frete?: number | null
+          valor_mensal_por_caminhao?: number | null
+        }
+        Update: {
+          alimentacao_por_conta?: string | null
+          carga_id?: string | null
+          client_id?: string | null
+          combustivel_por_conta?: string | null
+          created_at?: string
+          created_by?: string
+          destino_cidade?: string | null
+          destino_uf?: string | null
+          establishment_id?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          origem_cidade?: string | null
+          origem_uf?: string | null
+          peso_kg?: number | null
+          previsao_inicio?: string | null
+          previsao_termino?: string | null
+          produto?: string | null
+          quantidade_caminhoes?: number | null
+          status?: string
+          type?: string
+          updated_at?: string
+          validade_dias?: number | null
+          valor_alimentacao_dia?: number | null
+          valor_frete?: number | null
+          valor_mensal_por_caminhao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limit_entries: {
         Row: {
           created_at: string

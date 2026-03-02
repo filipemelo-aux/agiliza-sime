@@ -21,6 +21,7 @@ import FreightCte from "./pages/FreightCte";
 import FreightMdfe from "./pages/FreightMdfe";
 import FreightFiscalSettings from "./pages/FreightFiscalSettings";
 import AdminCargas from "./pages/AdminCargas";
+import AdminQuotations from "./pages/AdminQuotations";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
+            <Route path="/admin/quotations" element={<AdminQuotations />} />
             <Route path="/freights" element={<Index />} />
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
