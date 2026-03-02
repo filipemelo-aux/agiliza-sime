@@ -145,7 +145,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         setFetching(false);
       });
     } else if (open && !isEdit) {
-      setForm(emptyVehicle);
+      setForm(defaultDriverId ? { ...emptyVehicle, driverId: defaultDriverId } : emptyVehicle);
       setErrors({});
       setDriverIsOwner(false);
     }
