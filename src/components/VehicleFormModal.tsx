@@ -40,6 +40,11 @@ const cargoTypes = [
   { value: "graneleiro", label: "Graneleiro" },
 ];
 
+const VEHICLE_TYPE_LABELS: Record<string, string> = {
+  truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "Carreta LS",
+  rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
+};
+
 interface ProfileOption {
   user_id: string;
   full_name: string;
@@ -74,10 +79,19 @@ const emptyVehicle: VehicleFormData = {
   driverId: "", ownerId: "",
 };
 
+interface ExistingVehicle {
+  id: string;
+  plate: string;
+  brand: string;
+  model: string;
+  year: number;
+  vehicle_type: string;
+}
+
 interface VehicleFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  vehicleId?: string | null; // null = create mode
+  vehicleId?: string | null;
   onSaved: () => void;
   defaultDriverId?: string | null;
 }
@@ -92,6 +106,11 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [driverIsOwner, setDriverIsOwner] = useState(false);
 
+  // Link existing vehicle mode (only when creating with defaultDriverId)
+  const showLinkOption = !isEdit && !!defaultDriverId;
+  const [existingVehicles, setExistingVehicles] = useState<ExistingVehicle[]>([]);
+  const [selectedExistingId, setSelectedExistingId] = useState<string>("");
+
   // Load profiles for driver/owner linking (exclude system users)
   useEffect(() => {
     if (open) {
@@ -103,7 +122,14 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         const filtered = ((profilesRes.data as any[]) || []).filter((p: any) => !systemUserIds.has(p.user_id));
         setProfiles(filtered);
       });
-      // Set default driver if provided (create mode)
+
+      // Load existing vehicles for linking
+      if (showLinkOption) {
+        supabase.from("vehicles").select("id, plate, brand, model, year, vehicle_type").order("plate").then(({ data }) => {
+          setExistingVehicles((data as ExistingVehicle[]) || []);
+        });
+      }
+
       if (!vehicleId && defaultDriverId) {
         setForm(prev => ({ ...prev, driverId: defaultDriverId }));
       }
@@ -138,7 +164,6 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
         });
-        // Check if driver is owner
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
         setDriverIsOwner(!!dId && dId === oId);
@@ -148,6 +173,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
       setForm(defaultDriverId ? { ...emptyVehicle, driverId: defaultDriverId } : emptyVehicle);
       setErrors({});
       setDriverIsOwner(false);
+      setSelectedExistingId("");
     }
   }, [open, vehicleId, isEdit]);
 
@@ -186,7 +212,6 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     if (!year || year < 1990 || year > new Date().getFullYear() + 1) e.year = "Ano inválido";
     if (!form.cargoType) e.cargoType = "Selecione a carroceria";
 
-    // Trailer plates and renavams are optional — only validate format if filled
     const tc = trailerRequirements[form.vehicleType] || { count: 0 };
     if (tc.count >= 1) {
       if (form.trailerPlate1 && !validatePlate(unmaskPlate(form.trailerPlate1))) e.trailerPlate1 = "Placa inválida";
@@ -223,6 +248,36 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
   });
 
+  // Link existing vehicle to this driver
+  const handleLinkExisting = async () => {
+    if (!selectedExistingId || !defaultDriverId) return;
+    setLoading(true);
+    try {
+      // Duplicate the existing vehicle record with this driver
+      const { data: original, error: fetchErr } = await supabase
+        .from("vehicles").select("*").eq("id", selectedExistingId).single();
+      if (fetchErr || !original) throw new Error("Veículo não encontrado");
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const { id, created_at, updated_at, ...rest } = original as any;
+      const { error } = await supabase.from("vehicles").insert({
+        ...rest,
+        driver_id: defaultDriverId,
+        user_id: user.id,
+      });
+      if (error) throw error;
+      toast({ title: "Veículo vinculado ao motorista!" });
+      onOpenChange(false);
+      onSaved();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
@@ -249,11 +304,14 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
 
   const motoristas = profiles.filter((p) => p.category === "motorista");
   const proprietarios = profiles.filter((p) => p.category === "proprietario");
+
+  const isLinkingExisting = showLinkOption && !!selectedExistingId;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle>{isEdit ? "Editar Veículo" : "Novo Veículo"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar Veículo" : showLinkOption ? "Vincular Veículo" : "Novo Veículo"}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[75vh]">
           <div className="px-6 pb-6 space-y-4">
@@ -263,151 +321,183 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
               </div>
             ) : (
               <>
-                {/* Vínculos */}
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Motorista</Label>
-                      <Select value={form.driverId || "__none__"} onValueChange={(v) => {
-                        const newDriverId = v === "__none__" ? "" : v;
-                        setForm((p) => ({ ...p, driverId: newDriverId }));
-                        if (driverIsOwner) {
-                          setForm((p) => ({ ...p, driverId: newDriverId, ownerId: newDriverId }));
-                        }
-                      }}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                {/* Select existing vehicle option */}
+                {showLinkOption && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium">Selecionar conjunto já cadastrado</Label>
+                      <Select value={selectedExistingId || "__none__"} onValueChange={(v) => setSelectedExistingId(v === "__none__" ? "" : v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Nenhum — cadastrar novo" />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">Nenhum</SelectItem>
-                          {motoristas.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
+                          <SelectItem value="__none__">Nenhum — cadastrar novo</SelectItem>
+                          {existingVehicles.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {maskPlate(v.plate)} — {v.brand} {v.model} ({VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Proprietário</Label>
-                      {driverIsOwner ? (
-                        <Input value={motoristas.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
-                      ) : (
-                        <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Nenhum</SelectItem>
-                            {proprietarios.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="driver-is-owner"
-                      checked={driverIsOwner}
-                      onCheckedChange={(checked) => {
-                        const isChecked = !!checked;
-                        setDriverIsOwner(isChecked);
-                        if (isChecked) {
-                          setForm((p) => ({ ...p, ownerId: p.driverId }));
-                        } else {
-                          setForm((p) => ({ ...p, ownerId: "" }));
-                        }
-                      }}
-                      disabled={!form.driverId}
-                    />
-                    <Label htmlFor="driver-is-owner" className="text-sm font-normal cursor-pointer">
-                      Motorista é o proprietário do conjunto
-                    </Label>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Dados do veículo */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Placa do Cavalo *</Label>
-                    <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
-                    {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">RENAVAM</Label>
-                    <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
-                    {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Tipo de Veículo *</Label>
-                    <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{vehicleTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                    {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Marca *</Label>
-                    <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
-                    {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Modelo *</Label>
-                    <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
-                    {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ano *</Label>
-                    <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
-                    {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
-                  </div>
-                  <div className="col-span-2 space-y-1">
-                    <Label className="text-xs">ANTT (opcional)</Label>
-                    <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
-                  </div>
-                </div>
-
-                {/* Carroceria */}
-                <div className="space-y-2">
-                  <Label className="text-xs">Tipo de Carroceria *</Label>
-                  <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
-                    {cargoTypes.map((t) => (
-                      <div key={t.value} className="flex items-center space-x-2">
-                        <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
-                        <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                  {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
-                </div>
-
-                {/* Implementos */}
-                {trailerConfig.count > 0 && (
-                  <>
                     <Separator />
-                    <p className="text-sm font-medium text-muted-foreground">Implementos do Conjunto</p>
-                    <div className="space-y-3">
-                      {Array.from({ length: trailerConfig.count }).map((_, i) => {
-                        const idx = i + 1;
-                        const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
-                        const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
-                        return (
-                          <div key={i} className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-                            <div className="space-y-1">
-                              <Label className="text-xs">{trailerConfig.labels[i]}</Label>
-                              <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
-                              {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">RENAVAM</Label>
-                              <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
-                              {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   </>
                 )}
 
-                <Button className="w-full" onClick={handleSubmit} disabled={loading}>
-                  {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
-                </Button>
+                {/* If linking existing, show summary + button */}
+                {isLinkingExisting ? (
+                  <Button className="w-full" onClick={handleLinkExisting} disabled={loading}>
+                    {loading ? "Vinculando..." : "Vincular Veículo"}
+                  </Button>
+                ) : (
+                  <>
+                    {/* Vínculos */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Motorista</Label>
+                          <Select value={form.driverId || "__none__"} onValueChange={(v) => {
+                            const newDriverId = v === "__none__" ? "" : v;
+                            setForm((p) => ({ ...p, driverId: newDriverId }));
+                            if (driverIsOwner) {
+                              setForm((p) => ({ ...p, driverId: newDriverId, ownerId: newDriverId }));
+                            }
+                          }}>
+                            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Nenhum</SelectItem>
+                              {motoristas.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Proprietário</Label>
+                          {driverIsOwner ? (
+                            <Input value={motoristas.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
+                          ) : (
+                            <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
+                              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Nenhum</SelectItem>
+                                {proprietarios.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="driver-is-owner"
+                          checked={driverIsOwner}
+                          onCheckedChange={(checked) => {
+                            const isChecked = !!checked;
+                            setDriverIsOwner(isChecked);
+                            if (isChecked) {
+                              setForm((p) => ({ ...p, ownerId: p.driverId }));
+                            } else {
+                              setForm((p) => ({ ...p, ownerId: "" }));
+                            }
+                          }}
+                          disabled={!form.driverId}
+                        />
+                        <Label htmlFor="driver-is-owner" className="text-sm font-normal cursor-pointer">
+                          Motorista é o proprietário do conjunto
+                        </Label>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Dados do veículo */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Placa do Cavalo *</Label>
+                        <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
+                        {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">RENAVAM</Label>
+                        <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
+                        {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tipo de Veículo *</Label>
+                        <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>{vehicleTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Marca *</Label>
+                        <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
+                        {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Modelo *</Label>
+                        <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
+                        {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Ano *</Label>
+                        <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
+                        {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        <Label className="text-xs">ANTT (opcional)</Label>
+                        <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
+                      </div>
+                    </div>
+
+                    {/* Carroceria */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Tipo de Carroceria *</Label>
+                      <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
+                        {cargoTypes.map((t) => (
+                          <div key={t.value} className="flex items-center space-x-2">
+                            <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
+                            <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                      {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
+                    </div>
+
+                    {/* Implementos */}
+                    {trailerConfig.count > 0 && (
+                      <>
+                        <Separator />
+                        <p className="text-sm font-medium text-muted-foreground">Implementos do Conjunto</p>
+                        <div className="space-y-3">
+                          {Array.from({ length: trailerConfig.count }).map((_, i) => {
+                            const idx = i + 1;
+                            const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
+                            const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
+                            return (
+                              <div key={i} className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border border-border">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">{trailerConfig.labels[i]}</Label>
+                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
+                                  {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">RENAVAM</Label>
+                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
+                                  {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    <Button className="w-full" onClick={handleSubmit} disabled={loading}>
+                      {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
