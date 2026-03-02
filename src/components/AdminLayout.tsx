@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown, Package } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown, Package, ClipboardList } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +43,7 @@ const menuItems = [
       { title: "Cargas", url: "/admin/cargas", icon: Package },
     ],
   },
+  { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
