@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  maskPlate, unmaskPlate, maskRenavam, maskYear, maskOnlyLettersNumbers,
+  maskPlate, unmaskPlate, maskRenavam, maskYear, maskName,
   validatePlate, validateRenavam,
 } from "@/lib/masks";
 
@@ -92,11 +92,16 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [driverIsOwner, setDriverIsOwner] = useState(false);
 
-  // Load profiles for driver/owner linking
+  // Load profiles for driver/owner linking (exclude system users)
   useEffect(() => {
     if (open) {
-      supabase.from("profiles").select("user_id, full_name, category").order("full_name").then(({ data }) => {
-        setProfiles((data as any[]) || []);
+      Promise.all([
+        supabase.from("profiles").select("user_id, full_name, category").order("full_name"),
+        supabase.from("user_roles").select("user_id"),
+      ]).then(([profilesRes, rolesRes]) => {
+        const systemUserIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+        const filtered = ((profilesRes.data as any[]) || []).filter((p: any) => !systemUserIds.has(p.user_id));
+        setProfiles(filtered);
       });
       // Set default driver if provided (create mode)
       if (!vehicleId && defaultDriverId) {
@@ -153,8 +158,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     let masked = value;
     if (name === "plate" || name.startsWith("trailerPlate")) masked = maskPlate(value);
     else if (name === "renavam" || name.startsWith("trailerRenavam")) masked = maskRenavam(value);
+    else if (name === "brand" || name === "model") masked = maskName(value);
     else if (name === "year") masked = maskYear(value);
-    else if (name === "brand" || name === "model") masked = maskOnlyLettersNumbers(value);
     else if (name === "anttNumber") masked = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     setForm((p) => ({ ...p, [name]: masked }));
     setErrors((p) => ({ ...p, [name]: "" }));

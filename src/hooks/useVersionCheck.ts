@@ -8,6 +8,13 @@ interface VersionInfo {
   updatedAt: string;
 }
 
+function generateVersion(): string {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `1.0.0.${day}${month}`;
+}
+
 export function useVersionCheck() {
   const [currentVersion] = useState<string>(() => {
     return localStorage.getItem("app_version") || "";
@@ -74,7 +81,7 @@ export function useVersionCheck() {
   }, [checkVersion]);
 
   return {
-    currentVersion: currentVersion || "1.0.1",
+    currentVersion: currentVersion || generateVersion(),
     newVersion,
     showUpdate,
     applyUpdate,
