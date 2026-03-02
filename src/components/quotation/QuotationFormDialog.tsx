@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -24,6 +24,7 @@ interface Props {
 export function QuotationFormDialog({ type, open, onOpenChange, establishments, userId, onSaved, editData }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [formalizing, setFormalizing] = useState(false);
   const [establishmentId, setEstablishmentId] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -48,6 +49,30 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [alimentacaoPorConta, setAlimentacaoPorConta] = useState("contratada");
   const [combustivelPorConta, setCombustivelPorConta] = useState("contratada");
   const [valorAlimentacaoDia, setValorAlimentacaoDia] = useState("");
+
+  const handleFormalize = async () => {
+    if (!observacoes.trim()) {
+      toast({ title: "Digite algo nas observações antes de formalizar", variant: "destructive" });
+      return;
+    }
+    setFormalizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("formalize-text", {
+        body: { text: observacoes, businessType: type },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast({ title: data.error, variant: "destructive" });
+      } else if (data?.text) {
+        setObservacoes(data.text);
+        toast({ title: "Texto formalizado com sucesso" });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao formalizar texto", description: e.message, variant: "destructive" });
+    } finally {
+      setFormalizing(false);
+    }
+  };
 
   const diaria = valorMensal ? (parseFloat(valorMensal) / 30) : 0;
 
@@ -300,9 +325,22 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
 
           {/* Observações e validade */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-3">
-              <Label>Observações</Label>
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
+            <div className="col-span-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <Label>Observações</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={handleFormalize}
+                  disabled={formalizing || !observacoes.trim()}
+                >
+                  {formalizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  Formalizar com IA
+                </Button>
+              </div>
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} placeholder="Digite suas observações e clique em 'Formalizar com IA' para reescrever formalmente..." />
             </div>
             <div>
               <Label>Validade (dias)</Label>

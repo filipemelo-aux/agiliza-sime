@@ -1,1 +1,4 @@
 project_id = "hepdqbkiwdxqkgnwbxdc"
+
+[functions.formalize-text]
+verify_jwt = false
