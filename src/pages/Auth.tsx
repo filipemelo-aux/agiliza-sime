@@ -49,7 +49,7 @@ export default function Auth() {
     if (isAdmin || isModerator) {
       navigate("/admin");
     } else {
-      navigate("/admin/applications");
+      navigate("/my-applications");
     }
   };
 
