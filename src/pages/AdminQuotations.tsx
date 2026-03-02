@@ -276,17 +276,30 @@ export default function AdminQuotations() {
           </div>
         </div>
 
-        <Tabs defaultValue="frete" className="space-y-4">
+        <Tabs defaultValue="todos" className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
+              <TabsTrigger value="todos" className="gap-2">
+                Todos <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">{quotations.length}</Badge>
+              </TabsTrigger>
               <TabsTrigger value="frete" className="gap-2">
-                <FileText className="h-4 w-4" /> Frete
+                <FileText className="h-4 w-4" /> Frete <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">{freteQuotations.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="colheita" className="gap-2">
-                <Sprout className="h-4 w-4" /> Colheita
+                <Sprout className="h-4 w-4" /> Colheita <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">{colheitaQuotations.length}</Badge>
               </TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="todos">
+            {quotations.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">Nenhuma cotação criada</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {quotations.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="frete">
             <div className="flex justify-end mb-4">
