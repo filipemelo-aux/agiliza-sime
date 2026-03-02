@@ -59,8 +59,9 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
 
 <h2>Contratante (Cliente)</h2>
 <table>
-  <tr><td style="width:140px;font-weight:600">Nome / Razão Social</td><td>${q.client?.full_name || q.client?.razao_social || "—"}</td></tr>
+  <tr><td style="width:140px;font-weight:600">Nome / Razão Social</td><td>${q.client?.razao_social || q.client?.full_name || "—"}</td></tr>
   <tr><td style="font-weight:600">CNPJ</td><td>${q.client?.cnpj || "—"}</td></tr>
+  <tr><td style="font-weight:600">Responsável pela Cotação</td><td>${q.creator?.full_name || "—"}</td></tr>
 </table>
 
 ${isFrete ? `
@@ -82,6 +83,7 @@ ${isFrete ? `
   <tr class="highlight"><td style="font-weight:600">Valor da Diária (automático)</td><td>${diaria ? formatCurrency(diaria) : "—"}</td></tr>
   <tr><td style="font-weight:600">Alimentação por conta de</td><td>${q.alimentacao_por_conta === "contratante" ? "CONTRATANTE (Cliente)" : "CONTRATADA (SIME)"}</td></tr>
   ${q.alimentacao_por_conta === "contratante" ? `<tr><td style="font-weight:600">Valor Alimentação/Dia</td><td>${formatCurrency(q.valor_alimentacao_dia)}</td></tr>` : ""}
+  ${diaria ? `<tr class="highlight"><td style="font-weight:600">Diária Total (diária + alimentação)</td><td>${formatCurrency(diaria + (q.alimentacao_por_conta === "contratante" && q.valor_alimentacao_dia ? q.valor_alimentacao_dia : 0))}</td></tr>` : ""}
   <tr><td style="font-weight:600">Combustível por conta de</td><td>${q.combustivel_por_conta === "contratante" ? "CONTRATANTE (Cliente)" : "CONTRATADA (SIME)"}</td></tr>
 </table>
 `}

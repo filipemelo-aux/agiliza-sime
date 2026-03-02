@@ -46,6 +46,7 @@ interface Quotation {
   // joined
   client?: { full_name: string; cnpj: string | null; razao_social: string | null } | null;
   establishment?: { razao_social: string; nome_fantasia: string | null; cnpj: string } | null;
+  creator?: { full_name: string } | null;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -71,7 +72,23 @@ export default function AdminQuotations() {
       .from("quotations")
       .select("*, client:profiles!quotations_client_id_fkey(full_name, cnpj, razao_social), establishment:fiscal_establishments!quotations_establishment_id_fkey(razao_social, nome_fantasia, cnpj)")
       .order("created_at", { ascending: false });
-    setQuotations((data as any[]) || []);
+    
+    const items = (data as any[]) || [];
+    
+    // Fetch creator names (created_by = auth user_id, profiles.user_id)
+    const creatorIds = [...new Set(items.map((q) => q.created_by).filter(Boolean))];
+    if (creatorIds.length > 0) {
+      const { data: creators } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      const creatorMap = new Map((creators || []).map((c: any) => [c.user_id, c.full_name]));
+      items.forEach((q) => {
+        q.creator = { full_name: creatorMap.get(q.created_by) || null };
+      });
+    }
+    
+    setQuotations(items);
     setLoading(false);
   };
 
