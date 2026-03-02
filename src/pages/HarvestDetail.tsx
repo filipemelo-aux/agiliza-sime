@@ -300,9 +300,9 @@ export default function HarvestDetail() {
   };
 
   const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments.filter(a => a.status === "active");
+    const activeAssignments = assignments;
     if (activeAssignments.length === 0) {
-      toast({ title: "Nenhum dado ativo para exportar", variant: "destructive" });
+      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
     }
     const lines: string[] = [];
@@ -349,9 +349,9 @@ export default function HarvestDetail() {
   };
 
   const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments.filter(a => a.status === "active");
+    const activeAssignments = assignments;
     if (activeAssignments.length === 0) {
-      toast({ title: "Nenhum dado ativo para exportar", variant: "destructive" });
+      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
     }
     const tableStyle = `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}`;
@@ -616,14 +616,14 @@ export default function HarvestDetail() {
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Total Líquido a Pagar</p>
-              <p className="font-semibold text-sm">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
+              <p className="font-semibold text-sm">{formatCurrency(assignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
               <p className="text-xs text-muted-foreground">terceiros</p>
             </CardContent>
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
+              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
               <p className="text-xs text-muted-foreground">faturamento</p>
             </CardContent>
           </Card>
@@ -1073,10 +1073,10 @@ export default function HarvestDetail() {
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
                       <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
-                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
-                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.filter(a => a.status === "active").reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
+                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
