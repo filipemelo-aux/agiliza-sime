@@ -65,7 +65,7 @@ const App = () => (
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
             <Route path="/profile" element={<Navigate to="/admin/settings" replace />} />
-            <Route path="/driver" element={<Navigate to="/admin" replace />} />
+            <Route path="/driver" element={<Navigate to="/admin/applications" replace />} />
             <Route path="/my-vehicles" element={<Navigate to="/admin/vehicles" replace />} />
             <Route path="/add-vehicle" element={<Navigate to="/admin/vehicles" replace />} />
             <Route path="/edit-vehicle/:id" element={<Navigate to="/admin/vehicles" replace />} />
