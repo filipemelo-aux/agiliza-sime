@@ -724,7 +724,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         <div className="pt-1">
           <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={onAddVehicle}>
             <Car className="h-4 w-4" />
-            Cadastrar Veículo para este Motorista
+            Vincular Veículo a este Motorista
           </Button>
         </div>
       )}
