@@ -122,8 +122,8 @@ export default function HarvestDetail() {
   }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin && id) fetchAll();
-  }, [isAdmin, id]);
+    if ((isAdmin || isModerator) && id) fetchAll();
+  }, [isAdmin, isModerator, id]);
 
   const fetchAll = async () => {
     if (!id) return;
