@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,7 @@ export default function HarvestDetail() {
   const [editingStartDateValue, setEditingStartDateValue] = useState("");
   const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
+  const [driverSearch, setDriverSearch] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
@@ -344,7 +345,7 @@ export default function HarvestDetail() {
   };
 
   const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments;
+    const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
@@ -393,7 +394,7 @@ export default function HarvestDetail() {
   };
 
   const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments;
+    const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
@@ -618,8 +619,17 @@ export default function HarvestDetail() {
     return sorted;
   };
 
-  const sortedAgregados = sortAssignments(assignments, agregadoSort, getAgregadoData);
-  const sortedFaturamento = sortAssignments(assignments, faturamentoSort, getFaturamentoData);
+  const filterBySearch = (list: Assignment[]) => {
+    if (!driverSearch.trim()) return list;
+    const q = driverSearch.toLowerCase();
+    return list.filter(a =>
+      (a.driver_name || "").toLowerCase().includes(q) ||
+      (a.vehicle_plate || "").toLowerCase().includes(q)
+    );
+  };
+
+  const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData));
+  const sortedFaturamento = filterBySearch(sortAssignments(assignments, faturamentoSort, getFaturamentoData));
 
   return (
     <AdminLayout>
@@ -947,6 +957,15 @@ export default function HarvestDetail() {
                 Limpar
               </Button>
             )}
+          </div>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar motorista ou placa..."
+              value={driverSearch}
+              onChange={(e) => setDriverSearch(e.target.value)}
+              className="h-8 text-xs pl-8"
+            />
           </div>
         </div>
 
