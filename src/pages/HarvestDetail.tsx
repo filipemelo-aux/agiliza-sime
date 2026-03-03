@@ -85,6 +85,7 @@ export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const [job, setJob] = useState<HarvestJob | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
