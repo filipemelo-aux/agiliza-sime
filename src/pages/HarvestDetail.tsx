@@ -555,7 +555,9 @@ export default function HarvestDetail() {
     const dv = a.daily_value || dailyValue;
     const days = getFilteredDays(a);
     const totalBruto = days * dv;
-    const totalDescontos = getTotalDiscounts(a.discounts);
+    const isPropria = a.fleet_type === "propria";
+    // Frota própria: sem descontos no relatório de agregados
+    const totalDescontos = isPropria ? 0 : getTotalDiscounts(a.discounts);
     const totalLiquido = totalBruto - totalDescontos;
     return { dv, days, totalBruto, totalDescontos, totalLiquido };
   };
