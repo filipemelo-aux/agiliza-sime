@@ -987,8 +987,7 @@ export default function HarvestDetail() {
               <p className="text-sm text-muted-foreground">Nenhum motorista vinculado a este serviço.</p>
             </CardContent>
           </Card>
-        ) : (
-          {isMobile ? (
+        ) : isMobile ? (
             <div className="space-y-3 mb-6">
               {sortedAgregados.map((a) => {
                 const data = getAgregadoData(a);
