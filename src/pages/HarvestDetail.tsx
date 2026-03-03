@@ -988,6 +988,46 @@ export default function HarvestDetail() {
             </CardContent>
           </Card>
         ) : (
+          {isMobile ? (
+            <div className="space-y-3 mb-6">
+              {sortedAgregados.map((a) => {
+                const data = getAgregadoData(a);
+                return (
+                  <AgregadoMobileCard
+                    key={a.id}
+                    assignment={a}
+                    data={data}
+                    editingStartDateId={editingStartDateId}
+                    editingStartDateValue={editingStartDateValue}
+                    editingEndDateId={editingEndDateId}
+                    editingEndDateValue={editingEndDateValue}
+                    editingDailyId={editingDailyId}
+                    editingDailyValue={editingDailyValue}
+                    onStartEditStartDate={(id, val) => { setEditingStartDateId(id); setEditingStartDateValue(val); }}
+                    onSaveStartDate={handleSaveStartDate}
+                    onCancelStartDate={() => { setEditingStartDateId(null); setEditingStartDateValue(""); }}
+                    onChangeStartDate={setEditingStartDateValue}
+                    onStartEditEndDate={(id, val) => { setEditingEndDateId(id); setEditingEndDateValue(val); }}
+                    onSaveEndDate={handleSaveEndDate}
+                    onCancelEndDate={() => { setEditingEndDateId(null); setEditingEndDateValue(""); }}
+                    onChangeEndDate={setEditingEndDateValue}
+                    onStartEditDaily={(id, val) => { setEditingDailyId(id); setEditingDailyValue(val); }}
+                    onSaveDaily={handleSaveDailyValue}
+                    onCancelDaily={() => { setEditingDailyId(null); setEditingDailyValue(""); }}
+                    onChangeDaily={setEditingDailyValue}
+                    onOpenDiscount={openDiscountDialog}
+                    onRemove={handleRemoveAssignment}
+                  />
+                );
+              })}
+              {sortedAgregados.length > 0 && (
+                <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
+                  <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                </div>
+              )}
+            </div>
+          ) : (
           <Card className="border-border overflow-hidden mb-6">
             <div className="overflow-x-auto">
               <Table className="text-xs">
@@ -1125,7 +1165,7 @@ export default function HarvestDetail() {
               </Table>
             </div>
           </Card>
-        )}
+          )}
 
         {/* ===== RELATÓRIO COLHEITA - FATURAMENTO ===== */}
         {assignments.length > 0 && (
