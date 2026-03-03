@@ -68,6 +68,7 @@ interface VehicleFormData {
   trailerRenavam3: string;
   driverId: string;
   ownerId: string;
+  fleetType: string;
 }
 
 const emptyVehicle: VehicleFormData = {
@@ -76,7 +77,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate1: "", trailerRenavam1: "",
   trailerPlate2: "", trailerRenavam2: "",
   trailerPlate3: "", trailerRenavam3: "",
-  driverId: "", ownerId: "",
+  driverId: "", ownerId: "", fleetType: "terceiros",
 };
 
 interface ExistingVehicle {
@@ -163,6 +164,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           trailerRenavam3: data.trailer_renavam_3 || "",
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
+          fleetType: (data as any).fleet_type || "terceiros",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
@@ -246,6 +248,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     trailer_renavam_3: form.trailerRenavam3 || null,
     driver_id: form.driverId || null,
     owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
+    fleet_type: form.fleetType || "terceiros",
   });
 
   // Link existing vehicle to this driver
