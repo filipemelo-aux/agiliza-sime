@@ -345,7 +345,7 @@ export default function HarvestDetail() {
   };
 
   const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments;
+    const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
@@ -394,7 +394,7 @@ export default function HarvestDetail() {
   };
 
   const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
-    const activeAssignments = assignments;
+    const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
