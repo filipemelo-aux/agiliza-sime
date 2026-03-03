@@ -111,6 +111,8 @@ export default function HarvestDetail() {
   const [editingDailyValue, setEditingDailyValue] = useState("");
   const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
   const [editingEndDateValue, setEditingEndDateValue] = useState("");
+  const [editingStartDateId, setEditingStartDateId] = useState<string | null>(null);
+  const [editingStartDateValue, setEditingStartDateValue] = useState("");
   const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
 
@@ -313,6 +315,26 @@ export default function HarvestDetail() {
       toast({ title: "Data final atualizada!" });
       setEditingEndDateId(null);
       setEditingEndDateValue("");
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleSaveStartDate = async (assignmentId: string) => {
+    if (!editingStartDateValue) {
+      toast({ title: "Data de início é obrigatória", variant: "destructive" });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update({ start_date: editingStartDateValue })
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast({ title: "Data de início atualizada!" });
+      setEditingStartDateId(null);
+      setEditingStartDateValue("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -960,7 +982,34 @@ export default function HarvestDetail() {
                         <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                         <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                         <TableCell className="whitespace-nowrap">{a.owner_name}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {editingStartDateId === a.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="date"
+                                className="h-6 text-xs w-28"
+                                value={editingStartDateValue}
+                                onChange={(e) => setEditingStartDateValue(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveStartDate(a.id);
+                                  if (e.key === "Escape") { setEditingStartDateId(null); setEditingStartDateValue(""); }
+                                }}
+                              />
+                              <Button variant="ghost" size="icon" className="h-5 w-5 text-green-600" onClick={() => handleSaveStartDate(a.id)}>
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingStartDateId(null); setEditingStartDateValue(""); }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5 cursor-pointer" onClick={() => { setEditingStartDateId(a.id); setEditingStartDateValue(a.start_date); }}>
+                              <span>{formatDate(a.start_date)}</span>
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {editingEndDateId === a.id ? (
                             <div className="flex items-center gap-1">
@@ -1080,7 +1129,34 @@ export default function HarvestDetail() {
                           <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
                           <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
                           <TableCell className="whitespace-nowrap">{a.owner_name}</TableCell>
-                          <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {editingStartDateId === a.id ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="date"
+                                  className="h-6 text-xs w-28"
+                                  value={editingStartDateValue}
+                                  onChange={(e) => setEditingStartDateValue(e.target.value)}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveStartDate(a.id);
+                                    if (e.key === "Escape") { setEditingStartDateId(null); setEditingStartDateValue(""); }
+                                  }}
+                                />
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-green-600" onClick={() => handleSaveStartDate(a.id)}>
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingStartDateId(null); setEditingStartDateValue(""); }}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-0.5 cursor-pointer" onClick={() => { setEditingStartDateId(a.id); setEditingStartDateValue(a.start_date); }}>
+                                <span>{formatDate(a.start_date)}</span>
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
                           </TableCell>
