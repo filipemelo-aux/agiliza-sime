@@ -56,6 +56,7 @@ interface Assignment {
   vehicle_plate?: string;
   owner_name?: string;
   days_worked?: number;
+  fleet_type?: string;
 }
 
 interface DriverOption {
