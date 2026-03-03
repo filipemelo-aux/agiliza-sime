@@ -71,11 +71,11 @@ export default function AdminHarvest() {
   }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isModerator) {
       fetchJobs();
       fetchClients();
     }
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchClients = async () => {
     const { data } = await supabase
