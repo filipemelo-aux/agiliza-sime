@@ -193,6 +193,7 @@ export default function HarvestDetail() {
             vehicle_plate: vehicleRes.data?.plate || "—",
             owner_name: ownerName,
             days_worked: daysWorked,
+            fleet_type: vehicleRes.data?.fleet_type || "terceiros",
           };
         })
       );
