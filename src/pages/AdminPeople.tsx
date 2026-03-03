@@ -82,7 +82,7 @@ export default function AdminPeople() {
 
   useEffect(() => {
     if (isAdmin || isModerator) fetchAll();
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -161,7 +161,7 @@ export default function AdminPeople() {
       </div>
     );
   }
-  if (!isAdmin) return null;
+  if (!isAdmin && !isModerator) return null;
 
   return (
     <AdminLayout>
