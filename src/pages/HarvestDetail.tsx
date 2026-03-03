@@ -627,7 +627,8 @@ export default function HarvestDetail() {
     const q = driverSearch.toLowerCase();
     return list.filter(a =>
       (a.driver_name || "").toLowerCase().includes(q) ||
-      (a.vehicle_plate || "").toLowerCase().includes(q)
+      (a.vehicle_plate || "").toLowerCase().includes(q) ||
+      (a.owner_name || "").toLowerCase().includes(q)
     );
   };
 
