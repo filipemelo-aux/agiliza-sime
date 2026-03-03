@@ -619,8 +619,17 @@ export default function HarvestDetail() {
     return sorted;
   };
 
-  const sortedAgregados = sortAssignments(assignments, agregadoSort, getAgregadoData);
-  const sortedFaturamento = sortAssignments(assignments, faturamentoSort, getFaturamentoData);
+  const filterBySearch = (list: Assignment[]) => {
+    if (!driverSearch.trim()) return list;
+    const q = driverSearch.toLowerCase();
+    return list.filter(a =>
+      (a.driver_name || "").toLowerCase().includes(q) ||
+      (a.vehicle_plate || "").toLowerCase().includes(q)
+    );
+  };
+
+  const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData));
+  const sortedFaturamento = filterBySearch(sortAssignments(assignments, faturamentoSort, getFaturamentoData));
 
   return (
     <AdminLayout>
