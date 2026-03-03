@@ -60,7 +60,7 @@ export default function AdminVehicles() {
 
   useEffect(() => {
     if (isAdmin || isModerator) fetchVehicles();
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchVehicles = async () => {
     setLoading(true);

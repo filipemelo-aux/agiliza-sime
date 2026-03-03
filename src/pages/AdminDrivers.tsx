@@ -110,7 +110,7 @@ export default function AdminDrivers() {
 
   useEffect(() => {
     if (isAdmin || isModerator) fetchAll();
-  }, [isAdmin]);
+  }, [isAdmin, isModerator]);
 
   const fetchAll = async () => {
     setLoading(true);
