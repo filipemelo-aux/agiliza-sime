@@ -408,6 +408,25 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                           Motorista é o proprietário do conjunto
                         </Label>
                       </div>
+
+                      {/* Tipo de Frota */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Tipo de Frota</Label>
+                        <RadioGroup
+                          value={form.fleetType}
+                          onValueChange={(v) => setForm((p) => ({ ...p, fleetType: v }))}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="propria" id="fleet-propria" />
+                            <Label htmlFor="fleet-propria" className="text-sm font-normal cursor-pointer">Frota Própria</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="terceiros" id="fleet-terceiros" />
+                            <Label htmlFor="fleet-terceiros" className="text-sm font-normal cursor-pointer">Frota Terceiros</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
                     </div>
 
                     <Separator />
