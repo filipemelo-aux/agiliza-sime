@@ -56,6 +56,7 @@ interface Assignment {
   vehicle_plate?: string;
   owner_name?: string;
   days_worked?: number;
+  fleet_type?: string;
 }
 
 interface DriverOption {
@@ -157,7 +158,7 @@ export default function HarvestDetail() {
         (assignData || []).map(async (a: any) => {
           const [profileRes, vehicleRes] = await Promise.all([
             supabase.from("profiles").select("full_name").eq("user_id", a.user_id).maybeSingle(),
-            a.vehicle_id ? supabase.from("vehicles").select("plate, owner_id").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
+            a.vehicle_id ? supabase.from("vehicles").select("plate, owner_id, fleet_type").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
 
           let ownerName = "—";
@@ -192,6 +193,7 @@ export default function HarvestDetail() {
             vehicle_plate: vehicleRes.data?.plate || "—",
             owner_name: ownerName,
             days_worked: daysWorked,
+            fleet_type: vehicleRes.data?.fleet_type || "terceiros",
           };
         })
       );
@@ -553,7 +555,9 @@ export default function HarvestDetail() {
     const dv = a.daily_value || dailyValue;
     const days = getFilteredDays(a);
     const totalBruto = days * dv;
-    const totalDescontos = getTotalDiscounts(a.discounts);
+    const isPropria = a.fleet_type === "propria";
+    // Frota própria: sem descontos no relatório de agregados
+    const totalDescontos = isPropria ? 0 : getTotalDiscounts(a.discounts);
     const totalLiquido = totalBruto - totalDescontos;
     return { dv, days, totalBruto, totalDescontos, totalLiquido };
   };
@@ -564,7 +568,12 @@ export default function HarvestDetail() {
     const totalBruto = days * dvEmpresa;
     const agregado = getAgregadoData(a);
     const liquidoTerceiros = agregado.totalLiquido;
-    const descontosEmpresa = getTotalDiscounts(a.company_discounts);
+    const isPropria = a.fleet_type === "propria";
+    // Frota própria: diesel dos descontos do agregado vira desconto no faturamento
+    const dieselFromAgregado = isPropria
+      ? a.discounts.filter(d => d.type === "diesel").reduce((s, d) => s + d.value, 0)
+      : 0;
+    const descontosEmpresa = getTotalDiscounts(a.company_discounts) + dieselFromAgregado;
     const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
     return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
   };
