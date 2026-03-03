@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { AgregadoMobileCard, FaturamentoMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,6 +85,7 @@ export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const [job, setJob] = useState<HarvestJob | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -984,7 +987,46 @@ export default function HarvestDetail() {
               <p className="text-sm text-muted-foreground">Nenhum motorista vinculado a este serviço.</p>
             </CardContent>
           </Card>
-        ) : (
+        ) : isMobile ? (
+            <div className="space-y-3 mb-6">
+              {sortedAgregados.map((a) => {
+                const data = getAgregadoData(a);
+                return (
+                  <AgregadoMobileCard
+                    key={a.id}
+                    assignment={a}
+                    data={data}
+                    editingStartDateId={editingStartDateId}
+                    editingStartDateValue={editingStartDateValue}
+                    editingEndDateId={editingEndDateId}
+                    editingEndDateValue={editingEndDateValue}
+                    editingDailyId={editingDailyId}
+                    editingDailyValue={editingDailyValue}
+                    onStartEditStartDate={(id, val) => { setEditingStartDateId(id); setEditingStartDateValue(val); }}
+                    onSaveStartDate={handleSaveStartDate}
+                    onCancelStartDate={() => { setEditingStartDateId(null); setEditingStartDateValue(""); }}
+                    onChangeStartDate={setEditingStartDateValue}
+                    onStartEditEndDate={(id, val) => { setEditingEndDateId(id); setEditingEndDateValue(val); }}
+                    onSaveEndDate={handleSaveEndDate}
+                    onCancelEndDate={() => { setEditingEndDateId(null); setEditingEndDateValue(""); }}
+                    onChangeEndDate={setEditingEndDateValue}
+                    onStartEditDaily={(id, val) => { setEditingDailyId(id); setEditingDailyValue(val); }}
+                    onSaveDaily={handleSaveDailyValue}
+                    onCancelDaily={() => { setEditingDailyId(null); setEditingDailyValue(""); }}
+                    onChangeDaily={setEditingDailyValue}
+                    onOpenDiscount={openDiscountDialog}
+                    onRemove={handleRemoveAssignment}
+                  />
+                );
+              })}
+              {sortedAgregados.length > 0 && (
+                <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
+                  <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                </div>
+              )}
+            </div>
+          ) : (
           <Card className="border-border overflow-hidden mb-6">
             <div className="overflow-x-auto">
               <Table className="text-xs">
@@ -1122,7 +1164,8 @@ export default function HarvestDetail() {
               </Table>
             </div>
           </Card>
-        )}
+          )
+        }
 
         {/* ===== RELATÓRIO COLHEITA - FATURAMENTO ===== */}
         {assignments.length > 0 && (
@@ -1131,6 +1174,41 @@ export default function HarvestDetail() {
               <TrendingUp className="h-4 w-4 text-primary" />
               Relatório Colheita — Faturamento
             </h2>
+            {isMobile ? (
+              <div className="space-y-3">
+                {sortedFaturamento.map((a) => {
+                  const fat = getFaturamentoData(a);
+                  return (
+                    <FaturamentoMobileCard
+                      key={a.id}
+                      assignment={a}
+                      data={fat}
+                      onOpenCompanyDiscount={openCompanyDiscountDialog}
+                    />
+                  );
+                })}
+                {sortedFaturamento.length > 0 && (
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Bruto</span>
+                      <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Líq. Terceiros</span>
+                      <span className="text-orange-500">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Descontos</span>
+                      <span className="text-destructive">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fat. Líquido</span>
+                      <span className="text-lg font-bold text-green-600">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
             <Card className="border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <Table className="text-xs">
@@ -1217,6 +1295,7 @@ export default function HarvestDetail() {
                 </Table>
               </div>
             </Card>
+            )}
           </>
         )}
       </main>
