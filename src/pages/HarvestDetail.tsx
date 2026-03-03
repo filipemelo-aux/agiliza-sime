@@ -1174,6 +1174,41 @@ export default function HarvestDetail() {
               <TrendingUp className="h-4 w-4 text-primary" />
               Relatório Colheita — Faturamento
             </h2>
+            {isMobile ? (
+              <div className="space-y-3">
+                {sortedFaturamento.map((a) => {
+                  const fat = getFaturamentoData(a);
+                  return (
+                    <FaturamentoMobileCard
+                      key={a.id}
+                      assignment={a}
+                      data={fat}
+                      onOpenCompanyDiscount={openCompanyDiscountDialog}
+                    />
+                  );
+                })}
+                {sortedFaturamento.length > 0 && (
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Bruto</span>
+                      <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Líq. Terceiros</span>
+                      <span className="text-orange-500">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Descontos</span>
+                      <span className="text-destructive">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fat. Líquido</span>
+                      <span className="text-lg font-bold text-green-600">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
             <Card className="border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <Table className="text-xs">
@@ -1260,8 +1295,7 @@ export default function HarvestDetail() {
                 </Table>
               </div>
             </Card>
-          </>
-        )}
+            )}
       </main>
     </AdminLayout>
   );
