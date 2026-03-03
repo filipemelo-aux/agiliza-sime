@@ -158,7 +158,7 @@ export default function HarvestDetail() {
         (assignData || []).map(async (a: any) => {
           const [profileRes, vehicleRes] = await Promise.all([
             supabase.from("profiles").select("full_name").eq("user_id", a.user_id).maybeSingle(),
-            a.vehicle_id ? supabase.from("vehicles").select("plate, owner_id").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
+            a.vehicle_id ? supabase.from("vehicles").select("plate, owner_id, fleet_type").eq("id", a.vehicle_id).maybeSingle() : Promise.resolve({ data: null }),
           ]);
 
           let ownerName = "—";
