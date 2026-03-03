@@ -1296,6 +1296,8 @@ export default function HarvestDetail() {
               </div>
             </Card>
             )}
+          </>
+        )}
       </main>
     </AdminLayout>
   );
