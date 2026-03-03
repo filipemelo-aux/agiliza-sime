@@ -68,6 +68,7 @@ interface VehicleFormData {
   trailerRenavam3: string;
   driverId: string;
   ownerId: string;
+  fleetType: string;
 }
 
 const emptyVehicle: VehicleFormData = {
@@ -76,7 +77,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate1: "", trailerRenavam1: "",
   trailerPlate2: "", trailerRenavam2: "",
   trailerPlate3: "", trailerRenavam3: "",
-  driverId: "", ownerId: "",
+  driverId: "", ownerId: "", fleetType: "terceiros",
 };
 
 interface ExistingVehicle {
@@ -163,6 +164,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           trailerRenavam3: data.trailer_renavam_3 || "",
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
+          fleetType: (data as any).fleet_type || "terceiros",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
@@ -246,6 +248,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     trailer_renavam_3: form.trailerRenavam3 || null,
     driver_id: form.driverId || null,
     owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
+    fleet_type: form.fleetType || "terceiros",
   });
 
   // Link existing vehicle to this driver
@@ -404,6 +407,25 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         <Label htmlFor="driver-is-owner" className="text-sm font-normal cursor-pointer">
                           Motorista é o proprietário do conjunto
                         </Label>
+                      </div>
+
+                      {/* Tipo de Frota */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Tipo de Frota</Label>
+                        <RadioGroup
+                          value={form.fleetType}
+                          onValueChange={(v) => setForm((p) => ({ ...p, fleetType: v }))}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="propria" id="fleet-propria" />
+                            <Label htmlFor="fleet-propria" className="text-sm font-normal cursor-pointer">Frota Própria</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="terceiros" id="fleet-terceiros" />
+                            <Label htmlFor="fleet-terceiros" className="text-sm font-normal cursor-pointer">Frota Terceiros</Label>
+                          </div>
+                        </RadioGroup>
                       </div>
                     </div>
 
