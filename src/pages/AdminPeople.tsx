@@ -161,7 +161,7 @@ export default function AdminPeople() {
       </div>
     );
   }
-  if (!isAdmin) return null;
+  if (!isAdmin && !isModerator) return null;
 
   return (
     <AdminLayout>

@@ -233,7 +233,7 @@ export default function AdminDrivers() {
       </div>
     );
   }
-  if (!isAdmin) return null;
+  if (!isAdmin && !isModerator) return null;
 
   return (
     <AdminLayout>

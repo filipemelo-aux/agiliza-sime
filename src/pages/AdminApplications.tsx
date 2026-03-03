@@ -573,7 +573,7 @@ export default function AdminApplications() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isModerator) {
     return null;
   }
 
