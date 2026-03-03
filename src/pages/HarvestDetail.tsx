@@ -1164,7 +1164,8 @@ export default function HarvestDetail() {
               </Table>
             </div>
           </Card>
-          )}
+          )
+        }
 
         {/* ===== RELATÓRIO COLHEITA - FATURAMENTO ===== */}
         {assignments.length > 0 && (
