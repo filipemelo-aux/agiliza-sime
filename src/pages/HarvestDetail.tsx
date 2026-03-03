@@ -568,7 +568,12 @@ export default function HarvestDetail() {
     const totalBruto = days * dvEmpresa;
     const agregado = getAgregadoData(a);
     const liquidoTerceiros = agregado.totalLiquido;
-    const descontosEmpresa = getTotalDiscounts(a.company_discounts);
+    const isPropria = a.fleet_type === "propria";
+    // Frota própria: diesel dos descontos do agregado vira desconto no faturamento
+    const dieselFromAgregado = isPropria
+      ? a.discounts.filter(d => d.type === "diesel").reduce((s, d) => s + d.value, 0)
+      : 0;
+    const descontosEmpresa = getTotalDiscounts(a.company_discounts) + dieselFromAgregado;
     const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
     return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
   };
