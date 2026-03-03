@@ -1612,6 +1612,7 @@ export type Database = {
           cargo_type: string | null
           created_at: string
           driver_id: string | null
+          fleet_type: string
           id: string
           is_active: boolean | null
           model: string
@@ -1635,6 +1636,7 @@ export type Database = {
           cargo_type?: string | null
           created_at?: string
           driver_id?: string | null
+          fleet_type?: string
           id?: string
           is_active?: boolean | null
           model: string
@@ -1658,6 +1660,7 @@ export type Database = {
           cargo_type?: string | null
           created_at?: string
           driver_id?: string | null
+          fleet_type?: string
           id?: string
           is_active?: boolean | null
           model?: string
