@@ -121,6 +121,7 @@ export default function HarvestDetail() {
   const [editingStartDateValue, setEditingStartDateValue] = useState("");
   const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
+  const [clienteSort, setClienteSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [driverSearch, setDriverSearch] = useState("");
   const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
@@ -632,6 +633,18 @@ export default function HarvestDetail() {
     return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
   };
 
+  const getClienteData = (a: Assignment) => {
+    const dvCliente = job!.monthly_value / 30;
+    const days = getFilteredDays(a);
+    const totalBruto = days * dvCliente;
+    // Diesel from agregados + company_discounts, all filtered by period
+    const dieselDisc = filterDiscountsByPeriod(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0);
+    const companyDisc = filterDiscountsByPeriod(a.company_discounts).reduce((s, d) => s + d.value, 0);
+    const totalDescontos = dieselDisc + companyDisc;
+    const totalLiquido = totalBruto - totalDescontos;
+    return { dvCliente, days, totalBruto, totalDescontos, totalLiquido };
+  };
+
   const toggleSort = (current: { col: string; dir: "asc" | "desc" } | null, col: string): { col: string; dir: "asc" | "desc" } | null => {
     if (!current || current.col !== col) return { col, dir: "asc" };
     if (current.dir === "asc") return { col, dir: "desc" };
@@ -684,6 +697,7 @@ export default function HarvestDetail() {
 
   const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData));
   const sortedFaturamento = filterBySearch(sortAssignments(assignments, faturamentoSort, getFaturamentoData));
+  const sortedCliente = filterBySearch(sortAssignments(assignments, clienteSort, getClienteData));
 
   return (
     <AdminLayout>
