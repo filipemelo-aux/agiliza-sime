@@ -891,11 +891,17 @@ export default function HarvestDetail() {
                 <Label>Descrição</Label>
                 <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
               </div>
-              <div className="space-y-2">
-                <Label>Valor (R$) *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={discountForm.date} onChange={(e) => setDiscountForm({ ...discountForm, date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor (R$) *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+                  </div>
                 </div>
               </div>
               {selectedAssignment && selectedAssignment.company_discounts.length > 0 && (
@@ -903,7 +909,7 @@ export default function HarvestDetail() {
                   <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
                   {selectedAssignment.company_discounts.map((d) => (
                     <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
-                      <span>{d.description || "Desconto"} — {formatCurrency(d.value)}</span>
+                      <span>{d.date ? formatDate(d.date) + " — " : ""}{d.description || "Desconto"} — {formatCurrency(d.value)}</span>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, true)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
