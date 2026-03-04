@@ -378,8 +378,10 @@ export default function HarvestDetail() {
         const d = getAgregadoData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), d.days, formatCurrency(d.dv), formatCurrency(d.totalBruto), formatCurrency(d.totalDescontos), formatCurrency(d.totalLiquido)].join(sep));
       });
+      const totAgrDiarias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).dv, 0);
+      const totAgrDesc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0);
       const totAgr = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totAgr)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totAgrDiarias), "", formatCurrency(totAgrDesc), formatCurrency(totAgr)].join(sep));
       lines.push("");
     }
 
@@ -391,11 +393,12 @@ export default function HarvestDetail() {
         const f = getFaturamentoData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), f.days, formatCurrency(f.dvEmpresa), formatCurrency(f.totalBruto), formatCurrency(f.liquidoTerceiros), formatCurrency(f.descontosEmpresa), formatCurrency(f.faturamentoLiquido)].join(sep));
       });
+      const totFatDiariasCSV = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0);
       const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
       const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
-      lines.push(["", "", "", "", "TOTAIS", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totFatDiariasCSV), formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
     }
 
     if (type === "cliente" || type === "ambos") {
@@ -406,8 +409,10 @@ export default function HarvestDetail() {
         const c = getClienteData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), c.days, formatCurrency(c.dvCliente), formatCurrency(c.totalBruto), formatCurrency(c.totalDescontos), formatCurrency(c.totalLiquido)].join(sep));
       });
+      const totCliDiariasCSV = activeAssignments.reduce((s, a) => s + getClienteData(a).dvCliente, 0);
+      const totCliDescCSV = activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0);
       const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
-      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totCli)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totCliDiariasCSV), "", formatCurrency(totCliDescCSV), formatCurrency(totCli)].join(sep));
     }
 
     const bom = "\uFEFF";
