@@ -901,12 +901,42 @@ export default function HarvestDetail() {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
                   {selectedAssignment.discounts.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
-                      <span>{d.date ? formatDate(d.date) + " — " : ""}{d.description || d.type} — {formatCurrency(d.value)}</span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, false)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    editingDiscountId === d.id ? (
+                      <div key={d.id} className="space-y-2 bg-muted/50 rounded p-3 border border-border">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select value={editingDiscountData.type} onValueChange={(v) => setEditingDiscountData(prev => ({ ...prev, type: v }))}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {DISCOUNT_TYPES.map((t) => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input className="h-8 text-xs" value={editingDiscountData.description} onChange={(e) => setEditingDiscountData(prev => ({ ...prev, description: e.target.value }))} placeholder="Descrição" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="date" className="h-8 text-xs" value={editingDiscountData.date} onChange={(e) => setEditingDiscountData(prev => ({ ...prev, date: e.target.value }))} />
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">R$</span>
+                            <Input className="h-8 text-xs pl-7" value={editingDiscountData.value ? maskCurrency(String(Math.round(parseFloat(editingDiscountData.value) * 100))) : ""} onChange={(e) => setEditingDiscountData(prev => ({ ...prev, value: unmaskCurrency(e.target.value) }))} />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-7 text-xs flex-1" onClick={() => handleSaveEditDiscount(selectedAssignment.id, d.id, false)}>Salvar</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingDiscountId(null)}>Cancelar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
+                        <span className="cursor-pointer flex-1" onClick={() => { setEditingDiscountId(d.id); setEditingDiscountData({ type: d.type, description: d.description, value: String(d.value), date: d.date || "" }); }}>
+                          {d.date ? formatDate(d.date) + " — " : ""}{d.description || d.type} — {formatCurrency(d.value)}
+                          <Pencil className="h-3 w-3 text-muted-foreground inline ml-1.5" />
+                        </span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, false)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )
                   ))}
                 </div>
               )}
