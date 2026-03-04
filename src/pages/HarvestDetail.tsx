@@ -122,6 +122,8 @@ export default function HarvestDetail() {
   const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [driverSearch, setDriverSearch] = useState("");
+  const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
+  const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
