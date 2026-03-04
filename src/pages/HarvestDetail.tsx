@@ -525,6 +525,11 @@ export default function HarvestDetail() {
         .eq("id", selectedAssignment.id);
       if (error) throw error;
       toast({ title: "Desconto adicionado!" });
+      // Update selectedAssignment immediately so dialog shows new discount
+      setSelectedAssignment({
+        ...selectedAssignment,
+        [field]: updated,
+      });
       setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
       fetchAll();
     } catch (error: any) {
