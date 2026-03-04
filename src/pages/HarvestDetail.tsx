@@ -520,6 +520,41 @@ export default function HarvestDetail() {
     }
   };
 
+  const handleSaveEditDiscount = async (assignmentId: string, discountId: string, isCompany: boolean) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    const parsedValue = parseFloat(editingDiscountData.value);
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    const field = isCompany ? "company_discounts" : "discounts";
+    const currentDiscounts = isCompany ? assignment.company_discounts : assignment.discounts;
+    const updated = currentDiscounts.map(d =>
+      d.id === discountId
+        ? {
+            ...d,
+            type: editingDiscountData.type,
+            description: editingDiscountData.description || DISCOUNT_TYPES.find(t => t.value === editingDiscountData.type)?.label || "",
+            value: parsedValue,
+            date: editingDiscountData.date || undefined,
+          }
+        : d
+    );
+    try {
+      const { error } = await supabase
+        .from("harvest_assignments")
+        .update({ [field]: updated } as any)
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast({ title: "Desconto atualizado!" });
+      setEditingDiscountId(null);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
