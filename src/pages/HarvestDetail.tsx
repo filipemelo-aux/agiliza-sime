@@ -378,8 +378,10 @@ export default function HarvestDetail() {
         const d = getAgregadoData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), d.days, formatCurrency(d.dv), formatCurrency(d.totalBruto), formatCurrency(d.totalDescontos), formatCurrency(d.totalLiquido)].join(sep));
       });
+      const totAgrDiarias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).dv, 0);
+      const totAgrDesc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0);
       const totAgr = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totAgr)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totAgrDiarias), "", formatCurrency(totAgrDesc), formatCurrency(totAgr)].join(sep));
       lines.push("");
     }
 
@@ -391,11 +393,12 @@ export default function HarvestDetail() {
         const f = getFaturamentoData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), f.days, formatCurrency(f.dvEmpresa), formatCurrency(f.totalBruto), formatCurrency(f.liquidoTerceiros), formatCurrency(f.descontosEmpresa), formatCurrency(f.faturamentoLiquido)].join(sep));
       });
+      const totFatDiariasCSV = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0);
       const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
       const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
-      lines.push(["", "", "", "", "TOTAIS", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totFatDiariasCSV), formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
     }
 
     if (type === "cliente" || type === "ambos") {
@@ -406,8 +409,10 @@ export default function HarvestDetail() {
         const c = getClienteData(a);
         lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), c.days, formatCurrency(c.dvCliente), formatCurrency(c.totalBruto), formatCurrency(c.totalDescontos), formatCurrency(c.totalLiquido)].join(sep));
       });
+      const totCliDiariasCSV = activeAssignments.reduce((s, a) => s + getClienteData(a).dvCliente, 0);
+      const totCliDescCSV = activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0);
       const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
-      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totCli)].join(sep));
+      lines.push(["", "", "", "TOTAIS", formatCurrency(totCliDiariasCSV), "", formatCurrency(totCliDescCSV), formatCurrency(totCli)].join(sep));
     }
 
     const bom = "\uFEFF";
@@ -438,8 +443,10 @@ export default function HarvestDetail() {
         const d = getAgregadoData(a);
         html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
       });
+      const totAgrDiarias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).dv, 0);
+      const totAgrDesc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0);
       const totAgr = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-      html += `<tr class="total-row"><td colspan="7" class="right">TOTAL</td><td class="right">${formatCurrency(totAgr)}</td></tr></tbody></table>`;
+      html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="right">${formatCurrency(totAgrDiarias)}</td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgr)}</td></tr></tbody></table>`;
     }
     if (type === "faturamento" || type === "ambos") {
       html += `<h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
@@ -449,11 +456,12 @@ export default function HarvestDetail() {
         const f = getFaturamentoData(a);
         html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
       });
+      const totFatDiarias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0);
       const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
       const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
-      html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
+      html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="right">${formatCurrency(totFatDiarias)}</td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
     }
     if (type === "cliente" || type === "ambos") {
       html += `<h2>Relatório Cliente — ${job!.farm_name}</h2>`;
@@ -463,8 +471,10 @@ export default function HarvestDetail() {
         const c = getClienteData(a);
         html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
       });
+      const totCliDiarias = activeAssignments.reduce((s, a) => s + getClienteData(a).dvCliente, 0);
+      const totCliDesc = activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0);
       const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
-      html += `<tr class="total-row"><td colspan="7" class="right">TOTAL</td><td class="right">${formatCurrency(totCli)}</td></tr></tbody></table>`;
+      html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="right">${formatCurrency(totCliDiarias)}</td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCli)}</td></tr></tbody></table>`;
     }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -830,15 +840,15 @@ export default function HarvestDetail() {
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Total Líquido a Pagar</p>
-              <p className="font-semibold text-sm">{formatCurrency(assignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
-              <p className="text-xs text-muted-foreground">terceiros</p>
+              <p className="font-semibold text-sm">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</p>
+              <p className="text-xs text-muted-foreground">terceiros{(driverSearch || filterEndDate) ? " (filtrado)" : ""}</p>
             </CardContent>
           </Card>
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-              <p className="font-semibold text-sm text-green-500">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
-              <p className="text-xs text-muted-foreground">faturamento</p>
+              <p className="font-semibold text-sm text-green-500">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</p>
+              <p className="text-xs text-muted-foreground">faturamento{(driverSearch || filterEndDate) ? " (filtrado)" : ""}</p>
             </CardContent>
           </Card>
         </div>
@@ -1222,9 +1232,19 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedAgregados.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Diárias</span>
+                      <span>{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).dv, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Descontos</span>
+                      <span className="text-destructive">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1315,6 +1335,13 @@ export default function HarvestDetail() {
                         </TableRow>
                       );
                     })}
+                    <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
+                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).dv, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
@@ -1339,6 +1366,10 @@ export default function HarvestDetail() {
                 })}
                 {sortedFaturamento.length > 0 && (
                   <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Diárias Emp.</span>
+                      <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0))}</span>
+                    </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Bruto</span>
                       <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</span>
@@ -1435,11 +1466,12 @@ export default function HarvestDetail() {
                       );
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
-                      <TableCell colSpan={7} className="text-right text-xs">TOTAIS</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
-                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
-                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
+                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -1463,9 +1495,19 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedCliente.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Cliente</span>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</span>
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Diárias</span>
+                      <span>{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).dvCliente, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Descontos</span>
+                      <span className="text-destructive">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Cliente</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1510,10 +1552,11 @@ export default function HarvestDetail() {
                       );
                     })}
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
-                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</TableCell>
-                      <TableCell className="text-primary whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</TableCell>
+                      <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).dvCliente, 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</TableCell>
+                      <TableCell className="text-primary whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
