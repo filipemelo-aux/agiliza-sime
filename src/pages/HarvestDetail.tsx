@@ -413,7 +413,7 @@ export default function HarvestDetail() {
     toast({ title: "Relatório exportado!" });
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -445,6 +445,17 @@ export default function HarvestDetail() {
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
       html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
+    }
+    if (type === "cliente" || type === "ambos") {
+      html += `<h2>Relatório Cliente — ${job!.farm_name}</h2>`;
+      if (filterStartDate || filterEndDate) html += `<h3>Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}</h3>`;
+      html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
+      activeAssignments.forEach(a => {
+        const c = getClienteData(a);
+        html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
+      });
+      const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+      html += `<tr class="total-row"><td colspan="7" class="right">TOTAL</td><td class="right">${formatCurrency(totCli)}</td></tr></tbody></table>`;
     }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
