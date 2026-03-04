@@ -352,7 +352,7 @@ export default function HarvestDetail() {
     }
   };
 
-  const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
+  const exportCSV = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -387,6 +387,18 @@ export default function HarvestDetail() {
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
       lines.push(["", "", "", "", "TOTAIS", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
+    }
+
+    if (type === "cliente" || type === "ambos") {
+      lines.push(`RELATÓRIO CLIENTE — ${job!.farm_name}`);
+      if (filterStartDate || filterEndDate) lines.push(`Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}`);
+      lines.push(["Motorista", "Placa", "Início", "Dias", "Diária", "Bruto", "Descontos", "Líquido"].join(sep));
+      activeAssignments.forEach(a => {
+        const c = getClienteData(a);
+        lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), c.days, formatCurrency(c.dvCliente), formatCurrency(c.totalBruto), formatCurrency(c.totalDescontos), formatCurrency(c.totalLiquido)].join(sep));
+      });
+      const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totCli)].join(sep));
     }
 
     const bom = "\uFEFF";
