@@ -525,6 +525,11 @@ export default function HarvestDetail() {
         .eq("id", selectedAssignment.id);
       if (error) throw error;
       toast({ title: "Desconto adicionado!" });
+      // Update selectedAssignment immediately so dialog shows new discount
+      setSelectedAssignment({
+        ...selectedAssignment,
+        [field]: updated,
+      });
       setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
       fetchAll();
     } catch (error: any) {
@@ -546,6 +551,9 @@ export default function HarvestDetail() {
         .eq("id", assignmentId);
       if (error) throw error;
       toast({ title: "Desconto removido" });
+      if (selectedAssignment?.id === assignmentId) {
+        setSelectedAssignment({ ...assignment, [field]: updated });
+      }
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -581,6 +589,9 @@ export default function HarvestDetail() {
       if (error) throw error;
       toast({ title: "Desconto atualizado!" });
       setEditingDiscountId(null);
+      if (selectedAssignment?.id === assignmentId) {
+        setSelectedAssignment({ ...assignment, [field]: updated });
+      }
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
