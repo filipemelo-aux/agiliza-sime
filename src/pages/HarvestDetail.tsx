@@ -41,6 +41,7 @@ interface Discount {
   type: string;
   description: string;
   value: number;
+  date?: string;
 }
 
 interface Assignment {
@@ -108,6 +109,7 @@ export default function HarvestDetail() {
     type: "falta",
     description: "",
     value: "",
+    date: new Date().toISOString().split("T")[0],
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
@@ -455,13 +457,13 @@ export default function HarvestDetail() {
   // Discount handlers
   const openDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "" });
+    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
     setDiscountDialogOpen(true);
   };
 
   const openCompanyDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "" });
+    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
     setCompanyDiscountDialogOpen(true);
   };
 
@@ -475,6 +477,7 @@ export default function HarvestDetail() {
       type: discountForm.type,
       description: discountForm.description || DISCOUNT_TYPES.find(d => d.value === discountForm.type)?.label || "",
       value: parseFloat(discountForm.value),
+      date: discountForm.date || undefined,
     };
     const field = isCompany ? "company_discounts" : "discounts";
     const currentDiscounts = isCompany ? selectedAssignment.company_discounts : selectedAssignment.discounts;
@@ -521,8 +524,18 @@ export default function HarvestDetail() {
   const formatDate = (date: string) =>
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
+  const filterDiscountsByPeriod = (discounts: Discount[]) => {
+    if (!filterStartDate && !filterEndDate) return discounts;
+    return discounts.filter(d => {
+      if (!d.date) return true; // descontos sem data sempre aparecem
+      if (filterStartDate && d.date < filterStartDate) return false;
+      if (filterEndDate && d.date > filterEndDate) return false;
+      return true;
+    });
+  };
+
   const getTotalDiscounts = (discounts: Discount[]) =>
-    discounts.reduce((sum, d) => sum + d.value, 0);
+    filterDiscountsByPeriod(discounts).reduce((sum, d) => sum + d.value, 0);
 
   if (roleLoading || loading) {
     return (
@@ -575,7 +588,7 @@ export default function HarvestDetail() {
     const isPropria = a.fleet_type === "propria";
     // Frota própria: diesel dos descontos do agregado vira desconto no faturamento
     const dieselFromAgregado = isPropria
-      ? a.discounts.filter(d => d.type === "diesel").reduce((s, d) => s + d.value, 0)
+      ? filterDiscountsByPeriod(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0)
       : 0;
     const descontosEmpresa = getTotalDiscounts(a.company_discounts) + dieselFromAgregado;
     const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
@@ -834,11 +847,17 @@ export default function HarvestDetail() {
                 <Label>Descrição</Label>
                 <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
               </div>
-              <div className="space-y-2">
-                <Label>Valor (R$) *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={discountForm.date} onChange={(e) => setDiscountForm({ ...discountForm, date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor (R$) *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+                  </div>
                 </div>
               </div>
               {selectedAssignment && selectedAssignment.discounts.length > 0 && (
@@ -846,7 +865,7 @@ export default function HarvestDetail() {
                   <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
                   {selectedAssignment.discounts.map((d) => (
                     <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
-                      <span>{d.description || d.type} — {formatCurrency(d.value)}</span>
+                      <span>{d.date ? formatDate(d.date) + " — " : ""}{d.description || d.type} — {formatCurrency(d.value)}</span>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, false)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -872,11 +891,17 @@ export default function HarvestDetail() {
                 <Label>Descrição</Label>
                 <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
               </div>
-              <div className="space-y-2">
-                <Label>Valor (R$) *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                  <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={discountForm.date} onChange={(e) => setDiscountForm({ ...discountForm, date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor (R$) *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input className="pl-10" value={discountForm.value ? maskCurrency(String(Math.round(parseFloat(discountForm.value) * 100))) : ""} onChange={(e) => setDiscountForm({ ...discountForm, value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
+                  </div>
                 </div>
               </div>
               {selectedAssignment && selectedAssignment.company_discounts.length > 0 && (
@@ -884,7 +909,7 @@ export default function HarvestDetail() {
                   <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
                   {selectedAssignment.company_discounts.map((d) => (
                     <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
-                      <span>{d.description || "Desconto"} — {formatCurrency(d.value)}</span>
+                      <span>{d.date ? formatDate(d.date) + " — " : ""}{d.description || "Desconto"} — {formatCurrency(d.value)}</span>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, true)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
