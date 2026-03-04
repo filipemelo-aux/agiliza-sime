@@ -135,6 +135,14 @@ export default function HarvestDetail() {
     if ((isAdmin || isModerator) && id) fetchAll();
   }, [isAdmin, isModerator, id]);
 
+  // Keep selectedAssignment in sync with assignments after fetchAll
+  useEffect(() => {
+    if (selectedAssignment) {
+      const updated = assignments.find(a => a.id === selectedAssignment.id);
+      if (updated) setSelectedAssignment(updated);
+    }
+  }, [assignments]);
+
   const fetchAll = async () => {
     if (!id) return;
     try {
@@ -517,8 +525,7 @@ export default function HarvestDetail() {
         .eq("id", selectedAssignment.id);
       if (error) throw error;
       toast({ title: "Desconto adicionado!" });
-      setDiscountDialogOpen(false);
-      setCompanyDiscountDialogOpen(false);
+      setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
