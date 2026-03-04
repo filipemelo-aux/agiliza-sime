@@ -9,6 +9,7 @@ interface Discount {
   type: string;
   description: string;
   value: number;
+  date?: string;
 }
 
 interface Assignment {
