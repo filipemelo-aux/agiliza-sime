@@ -677,6 +677,9 @@ export default function HarvestDetail() {
         case "liq_terc": va = da.liquidoTerceiros; vb = db.liquidoTerceiros; break;
         case "desc_emp": va = da.descontosEmpresa; vb = db.descontosEmpresa; break;
         case "fat_liq": va = da.faturamentoLiquido; vb = db.faturamentoLiquido; break;
+        case "diaria_cli": va = da.dvCliente; vb = db.dvCliente; break;
+        case "desc_cli": va = da.totalDescontos; vb = db.totalDescontos; break;
+        case "liq_cli": va = da.totalLiquido; vb = db.totalLiquido; break;
         default: return 0;
       }
       if (typeof va === "string") return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
