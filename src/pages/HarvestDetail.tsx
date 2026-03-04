@@ -1073,8 +1073,11 @@ export default function HarvestDetail() {
                   <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
                     <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Faturamento
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportCSV("cliente")}>
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Cliente
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportCSV("ambos")}>
-                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Todos Relatórios
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">PDF</DropdownMenuLabel>
@@ -1084,8 +1087,11 @@ export default function HarvestDetail() {
                   <DropdownMenuItem onClick={() => exportPDF("faturamento")}>
                     <File className="h-3.5 w-3.5 mr-2" /> Faturamento
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF("cliente")}>
+                    <File className="h-3.5 w-3.5 mr-2" /> Cliente
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportPDF("ambos")}>
-                    <File className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                    <File className="h-3.5 w-3.5 mr-2" /> Todos Relatórios
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
