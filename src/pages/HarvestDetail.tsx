@@ -631,6 +631,19 @@ export default function HarvestDetail() {
   const dailyValue = paymentValue / 30;
   const companyDailyValue = job.monthly_value / 30;
 
+  const getCompanyDialogDiscounts = (a: Assignment) => {
+    const company = a.company_discounts.map((d) => ({ ...d, isCompany: true }));
+    const dieselFromAgregado = a.discounts
+      .filter((d) => d.type === "diesel")
+      .map((d) => ({ ...d, isCompany: false }));
+
+    return [...company, ...dieselFromAgregado].sort((x, y) => {
+      const dx = x.date || "";
+      const dy = y.date || "";
+      return dy.localeCompare(dx);
+    });
+  };
+
   // Calculate totals for each assignment
   // Calculate days considering the filter end date
   const getFilteredDays = (a: Assignment) => {
@@ -1030,12 +1043,12 @@ export default function HarvestDetail() {
                   </div>
                 </div>
               </div>
-              {selectedAssignment && selectedAssignment.company_discounts.length > 0 && (
+              {selectedAssignment && getCompanyDialogDiscounts(selectedAssignment).length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
-                  {selectedAssignment.company_discounts.map((d) => (
+                  <Label className="text-xs text-muted-foreground">Descontos existentes (Empresa + Diesel dos Agregados)</Label>
+                  {getCompanyDialogDiscounts(selectedAssignment).map((d) => (
                     editingDiscountId === d.id ? (
-                      <div key={d.id} className="space-y-2 bg-muted/50 rounded p-3 border border-border">
+                      <div key={`${d.isCompany ? "company" : "agregado"}-${d.id}`} className="space-y-2 bg-muted/50 rounded p-3 border border-border">
                         <Input className="h-8 text-xs" value={editingDiscountData.description} onChange={(e) => setEditingDiscountData(prev => ({ ...prev, description: e.target.value }))} placeholder="Descrição" />
                         <div className="grid grid-cols-2 gap-2">
                           <Input type="date" className="h-8 text-xs" value={editingDiscountData.date} onChange={(e) => setEditingDiscountData(prev => ({ ...prev, date: e.target.value }))} />
@@ -1045,17 +1058,17 @@ export default function HarvestDetail() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" className="h-7 text-xs flex-1" onClick={() => handleSaveEditDiscount(selectedAssignment.id, d.id, true)}>Salvar</Button>
+                          <Button size="sm" className="h-7 text-xs flex-1" onClick={() => handleSaveEditDiscount(selectedAssignment.id, d.id, d.isCompany)}>Salvar</Button>
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingDiscountId(null)}>Cancelar</Button>
                         </div>
                       </div>
                     ) : (
-                      <div key={d.id} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
+                      <div key={`${d.isCompany ? "company" : "agregado"}-${d.id}`} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-1.5">
                         <span className="cursor-pointer flex-1" onClick={() => { setEditingDiscountId(d.id); setEditingDiscountData({ type: d.type || "outros", description: d.description, value: String(d.value), date: d.date || "" }); }}>
                           {d.date ? formatDate(d.date) + " — " : ""}{d.description || "Desconto"} — {formatCurrency(d.value)}
                           <Pencil className="h-3 w-3 text-muted-foreground inline ml-1.5" />
                         </span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, true)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveDiscount(selectedAssignment.id, d.id, d.isCompany)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
