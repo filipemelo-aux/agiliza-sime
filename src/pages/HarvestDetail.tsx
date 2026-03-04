@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AgregadoMobileCard, FaturamentoMobileCard } from "@/components/harvest/HarvestMobileCards";
+import { AgregadoMobileCard, FaturamentoMobileCard, ClienteMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1449,6 +1449,86 @@ export default function HarvestDetail() {
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
                       <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+            )}
+          </>
+        )}
+
+        {/* ===== RELATÓRIO COLHEITA - CLIENTE ===== */}
+        {assignments.length > 0 && (
+          <>
+            <h2 className="text-base font-bold font-display flex items-center gap-1.5 mb-3 mt-6">
+              <Building2 className="h-4 w-4 text-primary" />
+              Relatório Colheita — Cliente
+            </h2>
+            {isMobile ? (
+              <div className="space-y-3">
+                {sortedCliente.map((a) => {
+                  const c = getClienteData(a);
+                  return (
+                    <ClienteMobileCard
+                      key={a.id}
+                      assignment={a}
+                      data={c}
+                    />
+                  );
+                })}
+                {sortedCliente.length > 0 && (
+                  <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Cliente</span>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+            <Card className="border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="text-center cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "diaria_cli"))}><div className="flex items-center">Diária<SortIcon col="diaria_cli" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "bruto"))}><div className="flex items-center">Bruto<SortIcon col="bruto" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "desc_cli"))}><div className="flex items-center">Descontos<SortIcon col="desc_cli" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "liq_cli"))}><div className="flex items-center">Líquido<SortIcon col="liq_cli" sort={clienteSort} /></div></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedCliente.map((a) => {
+                      const c = getClienteData(a);
+                      return (
+                        <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
+                          <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
+                          <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                          </TableCell>
+                          <TableCell className="text-center">{c.days}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(c.dvCliente)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(c.totalBruto)}</TableCell>
+                          <TableCell>
+                            <span className={c.totalDescontos > 0 ? "text-destructive font-medium whitespace-nowrap" : "text-muted-foreground"}>
+                              {c.totalDescontos > 0 ? `- ${formatCurrency(c.totalDescontos)}` : "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-bold text-primary whitespace-nowrap">{formatCurrency(c.totalLiquido)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
+                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</TableCell>
+                      <TableCell className="text-primary whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
