@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AgregadoMobileCard, FaturamentoMobileCard } from "@/components/harvest/HarvestMobileCards";
+import { AgregadoMobileCard, FaturamentoMobileCard, ClienteMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,7 @@ export default function HarvestDetail() {
   const [editingStartDateValue, setEditingStartDateValue] = useState("");
   const [agregadoSort, setAgregadoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [faturamentoSort, setFaturamentoSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
+  const [clienteSort, setClienteSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
   const [driverSearch, setDriverSearch] = useState("");
   const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
@@ -351,7 +352,7 @@ export default function HarvestDetail() {
     }
   };
 
-  const exportCSV = (type: "agregados" | "faturamento" | "ambos") => {
+  const exportCSV = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -388,6 +389,18 @@ export default function HarvestDetail() {
       lines.push(["", "", "", "", "TOTAIS", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
     }
 
+    if (type === "cliente" || type === "ambos") {
+      lines.push(`RELATÓRIO CLIENTE — ${job!.farm_name}`);
+      if (filterStartDate || filterEndDate) lines.push(`Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}`);
+      lines.push(["Motorista", "Placa", "Início", "Dias", "Diária", "Bruto", "Descontos", "Líquido"].join(sep));
+      activeAssignments.forEach(a => {
+        const c = getClienteData(a);
+        lines.push([a.driver_name, a.vehicle_plate, formatDate(a.start_date), c.days, formatCurrency(c.dvCliente), formatCurrency(c.totalBruto), formatCurrency(c.totalDescontos), formatCurrency(c.totalLiquido)].join(sep));
+      });
+      const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+      lines.push(["", "", "", "", "", "", "TOTAL", formatCurrency(totCli)].join(sep));
+    }
+
     const bom = "\uFEFF";
     const blob = new Blob([bom + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -400,7 +413,7 @@ export default function HarvestDetail() {
     toast({ title: "Relatório exportado!" });
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "ambos") => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -432,6 +445,17 @@ export default function HarvestDetail() {
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
       html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
+    }
+    if (type === "cliente" || type === "ambos") {
+      html += `<h2>Relatório Cliente — ${job!.farm_name}</h2>`;
+      if (filterStartDate || filterEndDate) html += `<h3>Período: ${filterStartDate ? formatDate(filterStartDate) : "início"} até ${filterEndDate ? formatDate(filterEndDate) : "atual"}</h3>`;
+      html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
+      activeAssignments.forEach(a => {
+        const c = getClienteData(a);
+        html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
+      });
+      const totCli = activeAssignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+      html += `<tr class="total-row"><td colspan="7" class="right">TOTAL</td><td class="right">${formatCurrency(totCli)}</td></tr></tbody></table>`;
     }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -632,6 +656,18 @@ export default function HarvestDetail() {
     return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
   };
 
+  const getClienteData = (a: Assignment) => {
+    const dvCliente = job!.monthly_value / 30;
+    const days = getFilteredDays(a);
+    const totalBruto = days * dvCliente;
+    // Diesel from agregados + company_discounts, all filtered by period
+    const dieselDisc = filterDiscountsByPeriod(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0);
+    const companyDisc = filterDiscountsByPeriod(a.company_discounts).reduce((s, d) => s + d.value, 0);
+    const totalDescontos = dieselDisc + companyDisc;
+    const totalLiquido = totalBruto - totalDescontos;
+    return { dvCliente, days, totalBruto, totalDescontos, totalLiquido };
+  };
+
   const toggleSort = (current: { col: string; dir: "asc" | "desc" } | null, col: string): { col: string; dir: "asc" | "desc" } | null => {
     if (!current || current.col !== col) return { col, dir: "asc" };
     if (current.dir === "asc") return { col, dir: "desc" };
@@ -664,6 +700,9 @@ export default function HarvestDetail() {
         case "liq_terc": va = da.liquidoTerceiros; vb = db.liquidoTerceiros; break;
         case "desc_emp": va = da.descontosEmpresa; vb = db.descontosEmpresa; break;
         case "fat_liq": va = da.faturamentoLiquido; vb = db.faturamentoLiquido; break;
+        case "diaria_cli": va = da.dvCliente; vb = db.dvCliente; break;
+        case "desc_cli": va = da.totalDescontos; vb = db.totalDescontos; break;
+        case "liq_cli": va = da.totalLiquido; vb = db.totalLiquido; break;
         default: return 0;
       }
       if (typeof va === "string") return sort.dir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -684,6 +723,7 @@ export default function HarvestDetail() {
 
   const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData));
   const sortedFaturamento = filterBySearch(sortAssignments(assignments, faturamentoSort, getFaturamentoData));
+  const sortedCliente = filterBySearch(sortAssignments(assignments, clienteSort, getClienteData));
 
   return (
     <AdminLayout>
@@ -1033,8 +1073,11 @@ export default function HarvestDetail() {
                   <DropdownMenuItem onClick={() => exportCSV("faturamento")}>
                     <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Faturamento
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportCSV("cliente")}>
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Cliente
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportCSV("ambos")}>
-                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-2" /> Todos Relatórios
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">PDF</DropdownMenuLabel>
@@ -1044,8 +1087,11 @@ export default function HarvestDetail() {
                   <DropdownMenuItem onClick={() => exportPDF("faturamento")}>
                     <File className="h-3.5 w-3.5 mr-2" /> Faturamento
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportPDF("cliente")}>
+                    <File className="h-3.5 w-3.5 mr-2" /> Cliente
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => exportPDF("ambos")}>
-                    <File className="h-3.5 w-3.5 mr-2" /> Ambos Relatórios
+                    <File className="h-3.5 w-3.5 mr-2" /> Todos Relatórios
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1403,6 +1449,86 @@ export default function HarvestDetail() {
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
                       <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+            )}
+          </>
+        )}
+
+        {/* ===== RELATÓRIO COLHEITA - CLIENTE ===== */}
+        {assignments.length > 0 && (
+          <>
+            <h2 className="text-base font-bold font-display flex items-center gap-1.5 mb-3 mt-6">
+              <Building2 className="h-4 w-4 text-primary" />
+              Relatório Colheita — Cliente
+            </h2>
+            {isMobile ? (
+              <div className="space-y-3">
+                {sortedCliente.map((a) => {
+                  const c = getClienteData(a);
+                  return (
+                    <ClienteMobileCard
+                      key={a.id}
+                      assignment={a}
+                      data={c}
+                    />
+                  );
+                })}
+                {sortedCliente.length > 0 && (
+                  <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Cliente</span>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+            <Card className="border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table className="text-xs">
+                  <TableHeader>
+                    <TableRow className="[&>th]:h-8 [&>th]:px-2 [&>th]:text-xs">
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "motorista"))}><div className="flex items-center">Motorista<SortIcon col="motorista" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "placa"))}><div className="flex items-center">Placa<SortIcon col="placa" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "inicio"))}><div className="flex items-center">Início<SortIcon col="inicio" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "fim"))}><div className="flex items-center">Fim<SortIcon col="fim" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="text-center cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "dias"))}><div className="flex items-center justify-center">Dias<SortIcon col="dias" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "diaria_cli"))}><div className="flex items-center">Diária<SortIcon col="diaria_cli" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "bruto"))}><div className="flex items-center">Bruto<SortIcon col="bruto" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "desc_cli"))}><div className="flex items-center">Descontos<SortIcon col="desc_cli" sort={clienteSort} /></div></TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => setClienteSort(toggleSort(clienteSort, "liq_cli"))}><div className="flex items-center">Líquido<SortIcon col="liq_cli" sort={clienteSort} /></div></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedCliente.map((a) => {
+                      const c = getClienteData(a);
+                      return (
+                        <TableRow key={a.id} className="[&>td]:py-1.5 [&>td]:px-2">
+                          <TableCell className="font-medium whitespace-nowrap">{a.driver_name}</TableCell>
+                          <TableCell className="font-mono">{a.vehicle_plate}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatDate(a.start_date)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                          </TableCell>
+                          <TableCell className="text-center">{c.days}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(c.dvCliente)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(c.totalBruto)}</TableCell>
+                          <TableCell>
+                            <span className={c.totalDescontos > 0 ? "text-destructive font-medium whitespace-nowrap" : "text-muted-foreground"}>
+                              {c.totalDescontos > 0 ? `- ${formatCurrency(c.totalDescontos)}` : "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-bold text-primary whitespace-nowrap">{formatCurrency(c.totalLiquido)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
+                      <TableCell colSpan={6} className="text-right text-xs">TOTAIS</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalBruto, 0))}</TableCell>
+                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</TableCell>
+                      <TableCell className="text-primary whitespace-nowrap">{formatCurrency(assignments.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

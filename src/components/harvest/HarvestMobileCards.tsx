@@ -279,3 +279,76 @@ export function FaturamentoMobileCard({ assignment: a, data, onOpenCompanyDiscou
     </div>
   );
 }
+
+// ─── Cliente Card ───
+
+interface ClienteData {
+  dvCliente: number;
+  days: number;
+  totalBruto: number;
+  totalDescontos: number;
+  totalLiquido: number;
+}
+
+interface ClienteCardProps {
+  assignment: Assignment;
+  data: ClienteData;
+}
+
+export function ClienteMobileCard({ assignment: a, data }: ClienteCardProps) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      {/* Header */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <User className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="font-semibold text-sm truncate">{a.driver_name}</span>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+          <Truck className="h-3 w-3 shrink-0" />
+          <span className="font-mono">{a.vehicle_plate}</span>
+        </div>
+      </div>
+
+      {/* Dates + Days */}
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Início</span>
+          <span>{formatDate(a.start_date)}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Fim</span>
+          <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Dias</span>
+          <Badge variant="secondary" className="text-xs font-semibold">{data.days}</Badge>
+        </div>
+      </div>
+
+      {/* Financial grid */}
+      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border text-sm">
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Diária</span>
+          <span>{formatCurrency(data.dvCliente)}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Bruto</span>
+          <span>{formatCurrency(data.totalBruto)}</span>
+        </div>
+        <div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground block">Descontos</span>
+          <span className={data.totalDescontos > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+            {data.totalDescontos > 0 ? `- ${formatCurrency(data.totalDescontos)}` : "—"}
+          </span>
+        </div>
+      </div>
+
+      {/* Total */}
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">Total Cliente</span>
+        <span className="text-base font-bold text-primary">{formatCurrency(data.totalLiquido)}</span>
+      </div>
+    </div>
+  );
+}
