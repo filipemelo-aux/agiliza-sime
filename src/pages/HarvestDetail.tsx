@@ -1232,9 +1232,19 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedAgregados.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Diárias</span>
+                      <span>{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).dv, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Descontos</span>
+                      <span className="text-destructive">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}</span>
+                    </div>
                   </div>
                 )}
               </div>
