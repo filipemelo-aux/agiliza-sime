@@ -588,7 +588,7 @@ export default function HarvestDetail() {
     const isPropria = a.fleet_type === "propria";
     // Frota própria: diesel dos descontos do agregado vira desconto no faturamento
     const dieselFromAgregado = isPropria
-      ? a.discounts.filter(d => d.type === "diesel").reduce((s, d) => s + d.value, 0)
+      ? filterDiscountsByPeriod(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0)
       : 0;
     const descontosEmpresa = getTotalDiscounts(a.company_discounts) + dieselFromAgregado;
     const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
