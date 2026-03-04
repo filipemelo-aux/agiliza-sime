@@ -41,6 +41,7 @@ interface Discount {
   type: string;
   description: string;
   value: number;
+  date?: string;
 }
 
 interface Assignment {
@@ -108,6 +109,7 @@ export default function HarvestDetail() {
     type: "falta",
     description: "",
     value: "",
+    date: new Date().toISOString().split("T")[0],
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
@@ -455,13 +457,13 @@ export default function HarvestDetail() {
   // Discount handlers
   const openDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "" });
+    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
     setDiscountDialogOpen(true);
   };
 
   const openCompanyDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "" });
+    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
     setCompanyDiscountDialogOpen(true);
   };
 
@@ -475,6 +477,7 @@ export default function HarvestDetail() {
       type: discountForm.type,
       description: discountForm.description || DISCOUNT_TYPES.find(d => d.value === discountForm.type)?.label || "",
       value: parseFloat(discountForm.value),
+      date: discountForm.date || undefined,
     };
     const field = isCompany ? "company_discounts" : "discounts";
     const currentDiscounts = isCompany ? selectedAssignment.company_discounts : selectedAssignment.discounts;
@@ -521,8 +524,18 @@ export default function HarvestDetail() {
   const formatDate = (date: string) =>
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
+  const filterDiscountsByPeriod = (discounts: Discount[]) => {
+    if (!filterStartDate && !filterEndDate) return discounts;
+    return discounts.filter(d => {
+      if (!d.date) return true; // descontos sem data sempre aparecem
+      if (filterStartDate && d.date < filterStartDate) return false;
+      if (filterEndDate && d.date > filterEndDate) return false;
+      return true;
+    });
+  };
+
   const getTotalDiscounts = (discounts: Discount[]) =>
-    discounts.reduce((sum, d) => sum + d.value, 0);
+    filterDiscountsByPeriod(discounts).reduce((sum, d) => sum + d.value, 0);
 
   if (roleLoading || loading) {
     return (
