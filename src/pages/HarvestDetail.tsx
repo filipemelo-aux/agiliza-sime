@@ -1367,6 +1367,10 @@ export default function HarvestDetail() {
                 {sortedFaturamento.length > 0 && (
                   <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
                     <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Total Diárias Emp.</span>
+                      <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Bruto</span>
                       <span>{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</span>
                     </div>
