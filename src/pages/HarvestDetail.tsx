@@ -132,6 +132,7 @@ export default function HarvestDetail() {
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pendingPdfType, setPendingPdfType] = useState<"agregados" | "faturamento" | "cliente" | "ambos">("agregados");
+  const [useCustomPdfDiscountPeriod, setUseCustomPdfDiscountPeriod] = useState(false);
   const [pdfDiscountStartDate, setPdfDiscountStartDate] = useState("");
   const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
@@ -437,6 +438,7 @@ export default function HarvestDetail() {
 
   const requestPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     setPendingPdfType(type);
+    setUseCustomPdfDiscountPeriod(useCustomDiscountPeriod);
     setPdfDiscountStartDate(discountStartDate);
     setPdfDiscountEndDate(discountEndDate);
     setPdfDialogOpen(true);
@@ -749,11 +751,24 @@ export default function HarvestDetail() {
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
   const filterDiscountsByPeriod = (discounts: Discount[]) => {
-    const startDate = discountStartDate || filterStartDate;
-    const endDate = discountEndDate || filterEndDate;
+    if (!useCustomDiscountPeriod) {
+      // When custom discount period is off, use main filter dates
+      const startDate = filterStartDate;
+      const endDate = filterEndDate;
+      if (!startDate && !endDate) return discounts;
+      return discounts.filter(d => {
+        if (!d.date) return true;
+        if (startDate && d.date < startDate) return false;
+        if (endDate && d.date > endDate) return false;
+        return true;
+      });
+    }
+    // Custom discount period is on
+    const startDate = discountStartDate;
+    const endDate = discountEndDate;
     if (!startDate && !endDate) return discounts;
     return discounts.filter(d => {
-      if (!d.date) return true; // descontos sem data sempre aparecem
+      if (!d.date) return true;
       if (startDate && d.date < startDate) return false;
       if (endDate && d.date > endDate) return false;
       return true;
