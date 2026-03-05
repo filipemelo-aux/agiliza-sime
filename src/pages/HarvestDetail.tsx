@@ -115,6 +115,8 @@ export default function HarvestDetail() {
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [discountStartDate, setDiscountStartDate] = useState("");
+  const [discountEndDate, setDiscountEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
   const [editingDailyValue, setEditingDailyValue] = useState("");
   const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
