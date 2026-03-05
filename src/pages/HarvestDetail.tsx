@@ -1345,7 +1345,7 @@ export default function HarvestDetail() {
                 className="h-8 text-xs flex-1 min-w-0"
               />
               {(filterStartDate || filterEndDate) && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setUseCustomDiscountPeriod(false); setDiscountStartDate(""); setDiscountEndDate(""); }}>
                   Limpar
                 </Button>
               )}
