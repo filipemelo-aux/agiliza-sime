@@ -131,7 +131,8 @@ export default function HarvestDetail() {
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pendingPdfType, setPendingPdfType] = useState<"agregados" | "faturamento" | "cliente" | "ambos">("agregados");
-  const [pdfIncludeDiscounts, setPdfIncludeDiscounts] = useState(true);
+  const [pdfDiscountStartDate, setPdfDiscountStartDate] = useState("");
+  const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
