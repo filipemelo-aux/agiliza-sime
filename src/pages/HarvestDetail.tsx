@@ -509,7 +509,7 @@ export default function HarvestDetail() {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
     }
-    const tableStyle = `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}`;
+    const tableStyle = `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}`;
     let html = "";
     const hasFilter = !!(filterStartDate || filterEndDate);
     const filterInicioLabel = filterStartDate ? formatDate(filterStartDate) : "início";
@@ -543,7 +543,7 @@ export default function HarvestDetail() {
       : '';
 
     if (type === "agregados" || type === "ambos") {
-      html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
+      html += `<div class="report-section"><h2>Relatório Agregados — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
@@ -564,11 +564,11 @@ export default function HarvestDetail() {
         const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table>`;
+        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table></div>`;
       }
     }
     if (type === "faturamento" || type === "ambos") {
-      html += `<h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
+      html += `<div class="report-section"><h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
@@ -593,11 +593,11 @@ export default function HarvestDetail() {
         const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
         const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
+        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
       }
     }
     if (type === "cliente" || type === "ambos") {
-      html += `<h2>Relatório Cliente — ${job!.farm_name}</h2>`;
+      html += `<div class="report-section"><h2>Relatório Cliente — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
@@ -618,7 +618,7 @@ export default function HarvestDetail() {
         const totCliDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
         const totCliDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
         const totCliLiq = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table>`;
+        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table></div>`;
       }
     }
     const printWindow = window.open("", "_blank");
