@@ -1791,27 +1791,41 @@ export default function HarvestDetail() {
             <DialogTitle className="text-base">Opções do Relatório PDF</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            <Label className="text-sm font-medium">Período dos Descontos</Label>
-            <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório. Deixe vazio para usar o mesmo período do filtro principal.</p>
             <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={pdfDiscountStartDate}
-                onChange={(e) => setPdfDiscountStartDate(e.target.value)}
-                className="h-8 text-xs flex-1"
+              <Checkbox
+                id="useCustomPdfDiscountPeriod"
+                checked={useCustomPdfDiscountPeriod}
+                onCheckedChange={(checked) => {
+                  setUseCustomPdfDiscountPeriod(!!checked);
+                  if (!checked) { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }
+                }}
               />
-              <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <Input
-                type="date"
-                value={pdfDiscountEndDate}
-                onChange={(e) => setPdfDiscountEndDate(e.target.value)}
-                className="h-8 text-xs flex-1"
-              />
+              <label htmlFor="useCustomPdfDiscountPeriod" className="text-sm font-medium cursor-pointer">Período de descontos personalizado</label>
             </div>
-            {(pdfDiscountStartDate || pdfDiscountEndDate) && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
-                Limpar período de descontos
-              </Button>
+            {useCustomPdfDiscountPeriod && (
+              <>
+                <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório.</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={pdfDiscountStartDate}
+                    onChange={(e) => setPdfDiscountStartDate(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0">até</span>
+                  <Input
+                    type="date"
+                    value={pdfDiscountEndDate}
+                    onChange={(e) => setPdfDiscountEndDate(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                  />
+                </div>
+                {(pdfDiscountStartDate || pdfDiscountEndDate) && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
+                    Limpar datas
+                  </Button>
+                )}
+              </>
             )}
           </div>
           <DialogFooter>
