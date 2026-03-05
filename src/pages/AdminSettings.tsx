@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye } from "lucide-react";
+import {
+  Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye,
+  RefreshCw, Building2, User, Users, ChevronRight,
+} from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -20,7 +24,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { maskName } from "@/lib/masks";
+import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
+import { CertificatesList } from "@/components/fiscal/CertificatesList";
 
 interface SystemUser {
   id: string;
@@ -29,12 +36,20 @@ interface SystemUser {
   profile_name: string | null;
 }
 
+interface ProfileData {
+  full_name: string;
+  email: string;
+  phone: string;
+}
+
 export default function AdminSettings() {
   const { user, isAdmin, roles } = useAuth();
   const { toast } = useToast();
+  const { currentVersion, applyUpdate } = useVersionCheck();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("geral");
 
   // Create
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -52,6 +67,11 @@ export default function AdminSettings() {
   // Delete
   const [confirmDelete, setConfirmDelete] = useState<SystemUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Profile
+  const [profile, setProfile] = useState<ProfileData>({ full_name: "", email: "", phone: "" });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
@@ -99,9 +119,37 @@ export default function AdminSettings() {
     }
   };
 
+  const fetchProfile = async () => {
+    if (!user) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, email, phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setProfile({
+          full_name: data.full_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (hasAccess) fetchUsers();
   }, [hasAccess]);
+
+  useEffect(() => {
+    if (user) fetchProfile();
+  }, [user]);
 
   // --- Create User ---
   const handleCreateUser = async () => {
@@ -189,6 +237,42 @@ export default function AdminSettings() {
     }
   };
 
+  // --- Save Profile ---
+  const handleSaveProfile = async () => {
+    if (!user || !profile.full_name) {
+      toast({ title: "Nome é obrigatório", variant: "destructive" });
+      return;
+    }
+    setProfileSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profile.full_name,
+          email: profile.email,
+          phone: profile.phone,
+        })
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast({ title: "Perfil atualizado com sucesso!" });
+      fetchUsers(); // refresh user list too
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar perfil", description: err.message, variant: "destructive" });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleForceUpdate = () => {
+    // Same behavior as the toast update: clear cache and reload
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name));
+      });
+    }
+    applyUpdate();
+  };
+
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     return (
@@ -220,86 +304,239 @@ export default function AdminSettings() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Settings className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold">Configurações</h1>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Configurações</h1>
+              <p className="text-sm text-muted-foreground">Gerencie o sistema, usuários e preferências</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Link to="/admin/freight/fiscal-settings">
-              <Button variant="outline" className="gap-2">
-                <ShieldCheck className="w-4 h-4" />
-                Config. Fiscais
-              </Button>
-            </Link>
-            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-              <UserPlus className="w-4 h-4" />
-              Novo Usuário
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs gap-1.5 h-7 px-3">
+              v{currentVersion}
+            </Badge>
+            <Button variant="outline" size="sm" className="gap-2 h-8" onClick={handleForceUpdate}>
+              <RefreshCw className="w-3.5 h-3.5" />
+              Atualizar Sistema
             </Button>
           </div>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar usuários..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <Separator />
 
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-muted-foreground">Usuários do Sistema</h2>
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+            <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
+              <Users className="w-4 h-4" />
+              Geral
+            </TabsTrigger>
+            <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
+              <Building2 className="w-4 h-4" />
+              Fiscal
+            </TabsTrigger>
+            <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
+              <User className="w-4 h-4" />
+              Meu Perfil
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ===== TAB GERAL ===== */}
+          <TabsContent value="geral" className="space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Usuários do Sistema</h2>
+                <p className="text-sm text-muted-foreground">Gerencie contas e permissões de acesso</p>
+              </div>
+              <Button onClick={() => setShowCreateDialog(true)} className="gap-2" size="sm">
+                <UserPlus className="w-4 h-4" />
+                Novo Usuário
+              </Button>
             </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
-          ) : (
-            filtered.map((u) => {
-              const isTargetAdmin = u.roles.includes("admin");
-              const isTargetModerator = u.roles.includes("moderator");
-              const isSelf = u.id === user?.id;
-              const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
-              const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
 
-              return (
-                <Card key={u.id} className="border border-border">
-                  <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold truncate">{u.profile_name || "Sem nome"}</span>
-                        {u.roles.map((r) => (
-                          <span key={r}>{getRoleBadge(r)}</span>
-                        ))}
-                        {isSelf && <Badge variant="outline" className="text-xs">Você</Badge>}
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, e-mail ou perfil..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
+              ) : (
+                filtered.map((u) => {
+                  const isTargetAdmin = u.roles.includes("admin");
+                  const isTargetModerator = u.roles.includes("moderator");
+                  const isSelf = u.id === user?.id;
+                  const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
+                  const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
+
+                  return (
+                    <Card key={u.id} className="border border-border hover:border-primary/30 transition-colors">
+                      <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold truncate text-sm">{u.profile_name || "Sem nome"}</span>
+                              {u.roles.map((r) => (
+                                <span key={r}>{getRoleBadge(r)}</span>
+                              ))}
+                              {isSelf && <Badge variant="outline" className="text-xs">Você</Badge>}
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate">{u.email || "—"}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setViewUser(u)} title="Visualizar">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {canEdit && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(u)} title="Editar">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ===== TAB FISCAL ===== */}
+          <TabsContent value="fiscal" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Configurações Fiscais</h2>
+              <p className="text-sm text-muted-foreground">Gerencie estabelecimentos e certificados digitais</p>
+            </div>
+
+            <Tabs defaultValue="establishments" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="establishments" className="gap-2 text-xs sm:text-sm">
+                  <Building2 className="w-4 h-4" />
+                  Estabelecimentos
+                </TabsTrigger>
+                <TabsTrigger value="certificates" className="gap-2 text-xs sm:text-sm">
+                  <ShieldCheck className="w-4 h-4" />
+                  Certificados
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="establishments">
+                <EstablishmentsList />
+              </TabsContent>
+
+              <TabsContent value="certificates">
+                <CertificatesList />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* ===== TAB MEU PERFIL ===== */}
+          <TabsContent value="perfil" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Meu Perfil</h2>
+              <p className="text-sm text-muted-foreground">Edite suas informações pessoais</p>
+            </div>
+
+            <Card className="max-w-lg">
+              <CardContent className="p-6 space-y-5">
+                {profileLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-7 h-7 text-primary" />
                       </div>
-                      <span className="text-sm text-muted-foreground truncate">{u.email || "—"}</span>
+                      <div>
+                        <p className="font-semibold">{profile.full_name || "Sem nome"}</p>
+                        <div className="flex items-center gap-2">
+                          {roles.map((r) => (
+                            <span key={r}>{getRoleBadge(r)}</span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Nome completo</Label>
+                        <Input
+                          value={profile.full_name}
+                          onChange={(e) => setProfile((p) => ({ ...p, full_name: maskName(e.target.value) }))}
+                          placeholder="Seu nome completo"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>E-mail</Label>
+                        <Input
+                          type="email"
+                          value={profile.email}
+                          onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                          placeholder="seu@email.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Telefone</Label>
+                        <Input
+                          value={profile.phone}
+                          onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={handleSaveProfile} disabled={profileSaving} className="w-full">
+                      {profileSaving ? "Salvando..." : "Salvar Perfil"}
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => setViewUser(u)} title="Visualizar">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      {canEdit && (
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(u)} title="Editar">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+            {/* Version / System Info */}
+            <Card className="max-w-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Informações do Sistema</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Versão atual</span>
+                  <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
+                </div>
+                <Separator />
+                <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleForceUpdate}>
+                  <RefreshCw className="w-4 h-4" />
+                  Verificar e Atualizar
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create User Dialog */}
