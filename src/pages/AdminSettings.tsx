@@ -423,6 +423,24 @@ export default function AdminSettings() {
                 })
               )}
             </div>
+
+            {/* Version / System Info */}
+            <Card className="max-w-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Informações do Sistema</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Versão atual</span>
+                  <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
+                </div>
+                <Separator />
+                <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleForceUpdate}>
+                  <RefreshCw className="w-4 h-4" />
+                  Verificar e Atualizar
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ===== TAB FISCAL ===== */}
@@ -518,23 +536,6 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
 
-            {/* Version / System Info */}
-            <Card className="max-w-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Informações do Sistema</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Versão atual</span>
-                  <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
-                </div>
-                <Separator />
-                <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleForceUpdate}>
-                  <RefreshCw className="w-4 h-4" />
-                  Verificar e Atualizar
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
