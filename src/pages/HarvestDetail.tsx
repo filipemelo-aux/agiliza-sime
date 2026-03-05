@@ -115,6 +115,7 @@ export default function HarvestDetail() {
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [useCustomDiscountPeriod, setUseCustomDiscountPeriod] = useState(false);
   const [discountStartDate, setDiscountStartDate] = useState("");
   const [discountEndDate, setDiscountEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export default function HarvestDetail() {
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pendingPdfType, setPendingPdfType] = useState<"agregados" | "faturamento" | "cliente" | "ambos">("agregados");
+  const [useCustomPdfDiscountPeriod, setUseCustomPdfDiscountPeriod] = useState(false);
   const [pdfDiscountStartDate, setPdfDiscountStartDate] = useState("");
   const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
@@ -436,16 +438,29 @@ export default function HarvestDetail() {
 
   const requestPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     setPendingPdfType(type);
+    setUseCustomPdfDiscountPeriod(useCustomDiscountPeriod);
     setPdfDiscountStartDate(discountStartDate);
     setPdfDiscountEndDate(discountEndDate);
     setPdfDialogOpen(true);
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", useCustomDisc: boolean, pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
     // Local discount filter for PDF using provided dates
     const pdfFilterDiscounts = (discounts: Discount[]) => {
-      const sd = pdfDiscStart || filterStartDate;
-      const ed = pdfDiscEnd || filterEndDate;
+      if (!useCustomDisc) {
+        // No custom period: use main filter dates
+        const sd = filterStartDate;
+        const ed = filterEndDate;
+        if (!sd && !ed) return discounts;
+        return discounts.filter(d => {
+          if (!d.date) return true;
+          if (sd && d.date < sd) return false;
+          if (ed && d.date > ed) return false;
+          return true;
+        });
+      }
+      const sd = pdfDiscStart;
+      const ed = pdfDiscEnd;
       if (!sd && !ed) return discounts;
       return discounts.filter(d => {
         if (!d.date) return true;
@@ -456,7 +471,7 @@ export default function HarvestDetail() {
     };
     const pdfGetTotalDiscounts = (discounts: Discount[]) =>
       pdfFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
-    const hasDiscountPeriod = !!(pdfDiscStart || pdfDiscEnd);
+    const hasDiscountPeriod = useCustomDisc && !!(pdfDiscStart || pdfDiscEnd);
 
     // Local data functions for PDF
     const pdfGetAgregadoData = (a: Assignment) => {
@@ -748,11 +763,24 @@ export default function HarvestDetail() {
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
   const filterDiscountsByPeriod = (discounts: Discount[]) => {
-    const startDate = discountStartDate || filterStartDate;
-    const endDate = discountEndDate || filterEndDate;
+    if (!useCustomDiscountPeriod) {
+      // When custom discount period is off, use main filter dates
+      const startDate = filterStartDate;
+      const endDate = filterEndDate;
+      if (!startDate && !endDate) return discounts;
+      return discounts.filter(d => {
+        if (!d.date) return true;
+        if (startDate && d.date < startDate) return false;
+        if (endDate && d.date > endDate) return false;
+        return true;
+      });
+    }
+    // Custom discount period is on
+    const startDate = discountStartDate;
+    const endDate = discountEndDate;
     if (!startDate && !endDate) return discounts;
     return discounts.filter(d => {
-      if (!d.date) return true; // descontos sem data sempre aparecem
+      if (!d.date) return true;
       if (startDate && d.date < startDate) return false;
       if (endDate && d.date > endDate) return false;
       return true;
@@ -1317,36 +1345,48 @@ export default function HarvestDetail() {
                 className="h-8 text-xs flex-1 min-w-0"
               />
               {(filterStartDate || filterEndDate) && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setUseCustomDiscountPeriod(false); setDiscountStartDate(""); setDiscountEndDate(""); }}>
                   Limpar
                 </Button>
               )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground shrink-0 font-medium">Descontos:</span>
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <Input
-                type="date"
-                value={discountStartDate}
-                onChange={(e) => setDiscountStartDate(e.target.value)}
-                className="h-8 text-xs flex-1 min-w-0"
-                placeholder="Início descontos"
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Checkbox
+                id="useCustomDiscountPeriod"
+                checked={useCustomDiscountPeriod}
+                onCheckedChange={(checked) => {
+                  setUseCustomDiscountPeriod(!!checked);
+                  if (!checked) { setDiscountStartDate(""); setDiscountEndDate(""); }
+                }}
               />
-              <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <Input
-                type="date"
-                value={discountEndDate}
-                onChange={(e) => setDiscountEndDate(e.target.value)}
-                className="h-8 text-xs flex-1 min-w-0"
-                placeholder="Fim descontos"
-              />
-              {(discountStartDate || discountEndDate) && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setDiscountStartDate(""); setDiscountEndDate(""); }}>
-                  ✕
-                </Button>
-              )}
+              <label htmlFor="useCustomDiscountPeriod" className="text-xs text-muted-foreground font-medium cursor-pointer">Período de descontos</label>
             </div>
+            {useCustomDiscountPeriod && (
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <Input
+                  type="date"
+                  value={discountStartDate}
+                  onChange={(e) => setDiscountStartDate(e.target.value)}
+                  className="h-8 text-xs flex-1 min-w-0"
+                  placeholder="Início descontos"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">até</span>
+                <Input
+                  type="date"
+                  value={discountEndDate}
+                  onChange={(e) => setDiscountEndDate(e.target.value)}
+                  className="h-8 text-xs flex-1 min-w-0"
+                  placeholder="Fim descontos"
+                />
+                {(discountStartDate || discountEndDate) && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                    ✕
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1763,32 +1803,46 @@ export default function HarvestDetail() {
             <DialogTitle className="text-base">Opções do Relatório PDF</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            <Label className="text-sm font-medium">Período dos Descontos</Label>
-            <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório. Deixe vazio para usar o mesmo período do filtro principal.</p>
             <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={pdfDiscountStartDate}
-                onChange={(e) => setPdfDiscountStartDate(e.target.value)}
-                className="h-8 text-xs flex-1"
+              <Checkbox
+                id="useCustomPdfDiscountPeriod"
+                checked={useCustomPdfDiscountPeriod}
+                onCheckedChange={(checked) => {
+                  setUseCustomPdfDiscountPeriod(!!checked);
+                  if (!checked) { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }
+                }}
               />
-              <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <Input
-                type="date"
-                value={pdfDiscountEndDate}
-                onChange={(e) => setPdfDiscountEndDate(e.target.value)}
-                className="h-8 text-xs flex-1"
-              />
+              <label htmlFor="useCustomPdfDiscountPeriod" className="text-sm font-medium cursor-pointer">Período de descontos personalizado</label>
             </div>
-            {(pdfDiscountStartDate || pdfDiscountEndDate) && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
-                Limpar período de descontos
-              </Button>
+            {useCustomPdfDiscountPeriod && (
+              <>
+                <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório.</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={pdfDiscountStartDate}
+                    onChange={(e) => setPdfDiscountStartDate(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0">até</span>
+                  <Input
+                    type="date"
+                    value={pdfDiscountEndDate}
+                    onChange={(e) => setPdfDiscountEndDate(e.target.value)}
+                    className="h-8 text-xs flex-1"
+                  />
+                </div>
+                {(pdfDiscountStartDate || pdfDiscountEndDate) && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
+                    Limpar datas
+                  </Button>
+                )}
+              </>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPdfDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfDiscountStartDate, pdfDiscountEndDate); }}>
+            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, useCustomPdfDiscountPeriod, pdfDiscountStartDate, pdfDiscountEndDate); }}>
               Gerar PDF
             </Button>
           </DialogFooter>
