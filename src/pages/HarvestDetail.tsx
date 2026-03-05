@@ -439,6 +439,29 @@ export default function HarvestDetail() {
     const filterInicioLabel = filterStartDate ? formatDate(filterStartDate) : "início";
     const filterFimLabel = filterEndDate ? formatDate(filterEndDate) : "atual";
 
+    const getEffectiveStart = (a: any) => {
+      if (!filterStartDate) return formatDate(a.start_date);
+      const aStart = new Date(a.start_date + "T00:00:00");
+      const fStart = new Date(filterStartDate + "T00:00:00");
+      return formatDate(aStart > fStart ? a.start_date : filterStartDate);
+    };
+
+    const getEffectiveFim = (a: any) => {
+      const fEnd = filterEndDate ? new Date(filterEndDate + "T00:00:00") : null;
+      if (a.end_date) {
+        const aEnd = new Date(a.end_date + "T00:00:00");
+        if (!fEnd || aEnd < fEnd) return { label: formatDate(a.end_date), early: true };
+        return { label: formatDate(filterEndDate!), early: false };
+      }
+      return { label: fEnd ? formatDate(filterEndDate!) : "em atividade", early: false };
+    };
+
+    const fimCell = (a: any) => {
+      const fim = getEffectiveFim(a);
+      if (fim.early) return `<td style="color:#c0392b;font-weight:600" title="Motorista saiu em ${fim.label}">${fim.label} ⚠</td>`;
+      return `<td>${fim.label}</td>`;
+    };
+
     if (type === "agregados" || type === "ambos") {
       html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}</h3>`;
@@ -446,7 +469,7 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const d = getAgregadoData(a);
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${filterInicioLabel}</td><td>${filterFimLabel}</td><td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
         });
         const totAgrDias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).days, 0);
         const totAgrDesc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0);
@@ -471,7 +494,7 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const f = getFaturamentoData(a);
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${filterInicioLabel}</td><td>${filterFimLabel}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
         });
         const totFatDias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).days, 0);
         const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
@@ -500,7 +523,7 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const c = getClienteData(a);
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${filterInicioLabel}</td><td>${filterFimLabel}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
         });
         const totCliDias = activeAssignments.reduce((s, a) => s + getClienteData(a).days, 0);
         const totCliDesc = activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0);
