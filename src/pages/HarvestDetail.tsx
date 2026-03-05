@@ -439,6 +439,29 @@ export default function HarvestDetail() {
     const filterInicioLabel = filterStartDate ? formatDate(filterStartDate) : "início";
     const filterFimLabel = filterEndDate ? formatDate(filterEndDate) : "atual";
 
+    const getEffectiveStart = (a: any) => {
+      if (!filterStartDate) return formatDate(a.start_date);
+      const aStart = new Date(a.start_date + "T00:00:00");
+      const fStart = new Date(filterStartDate + "T00:00:00");
+      return formatDate(aStart > fStart ? a.start_date : filterStartDate);
+    };
+
+    const getEffectiveFim = (a: any) => {
+      const fEnd = filterEndDate ? new Date(filterEndDate + "T00:00:00") : null;
+      if (a.end_date) {
+        const aEnd = new Date(a.end_date + "T00:00:00");
+        if (!fEnd || aEnd < fEnd) return { label: formatDate(a.end_date), early: true };
+        return { label: formatDate(filterEndDate!), early: false };
+      }
+      return { label: fEnd ? formatDate(filterEndDate!) : "em atividade", early: false };
+    };
+
+    const fimCell = (a: any) => {
+      const fim = getEffectiveFim(a);
+      if (fim.early) return `<td style="color:#c0392b;font-weight:600" title="Motorista saiu em ${fim.label}">${fim.label} ⚠</td>`;
+      return `<td>${fim.label}</td>`;
+    };
+
     if (type === "agregados" || type === "ambos") {
       html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}</h3>`;
