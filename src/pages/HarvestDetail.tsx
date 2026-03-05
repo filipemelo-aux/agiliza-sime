@@ -508,14 +508,16 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const f = getFaturamentoData(a);
-          const liqTerc = includeDiscounts ? f.liquidoTerceiros : f.totalBruto;
+          const liqTerc = includeDiscounts ? f.liquidoTerceiros : getAgregadoData(a).totalBruto;
           const descEmp = includeDiscounts ? f.descontosEmpresa : 0;
-          const fatLiq = f.totalBruto - (includeDiscounts ? f.liquidoTerceiros : f.totalBruto) - descEmp;
+          const fatLiq = f.totalBruto - liqTerc - descEmp;
           html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(liqTerc)}</td><td class="right">${formatCurrency(descEmp)}</td><td class="right">${formatCurrency(fatLiq)}</td></tr>`;
         });
         const totFatDias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).days, 0);
         const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
-        const totTerc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0) : totBruto;
+        const totTerc = includeDiscounts
+          ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0)
+          : activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
         const totDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0) : 0;
         const totFat = totBruto - totTerc - totDesc;
         html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
@@ -523,14 +525,16 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const f = getFaturamentoData(a);
-          const liqTerc = includeDiscounts ? f.liquidoTerceiros : f.totalBruto;
+          const liqTerc = includeDiscounts ? f.liquidoTerceiros : getAgregadoData(a).totalBruto;
           const descEmp = includeDiscounts ? f.descontosEmpresa : 0;
-          const fatLiq = f.totalBruto - (includeDiscounts ? f.liquidoTerceiros : f.totalBruto) - descEmp;
+          const fatLiq = f.totalBruto - liqTerc - descEmp;
           html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(liqTerc)}</td><td class="right">${formatCurrency(descEmp)}</td><td class="right">${formatCurrency(fatLiq)}</td></tr>`;
         });
         const totFatDias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).days, 0);
         const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
-        const totTerc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0) : totBruto;
+        const totTerc = includeDiscounts
+          ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0)
+          : activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
         const totDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0) : 0;
         const totFat = totBruto - totTerc - totDesc;
         html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
