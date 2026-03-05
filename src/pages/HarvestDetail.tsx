@@ -442,28 +442,56 @@ export default function HarvestDetail() {
   };
 
   const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
-    // Temporarily override discount dates for PDF generation
-    const origDiscStart = discountStartDate;
-    const origDiscEnd = discountEndDate;
-    setDiscountStartDate(pdfDiscStart);
-    setDiscountEndDate(pdfDiscEnd);
-    // We can't rely on setState being sync, so we use a local override approach
-    const localFilterDiscounts = (discounts: Discount[]) => {
-      const startDate = pdfDiscStart || filterStartDate;
-      const endDate = pdfDiscEnd || filterEndDate;
-      if (!startDate && !endDate) return discounts;
+    // Local discount filter for PDF using provided dates
+    const pdfFilterDiscounts = (discounts: Discount[]) => {
+      const sd = pdfDiscStart || filterStartDate;
+      const ed = pdfDiscEnd || filterEndDate;
+      if (!sd && !ed) return discounts;
       return discounts.filter(d => {
         if (!d.date) return true;
-        if (startDate && d.date < startDate) return false;
-        if (endDate && d.date > endDate) return false;
+        if (sd && d.date < sd) return false;
+        if (ed && d.date > ed) return false;
         return true;
       });
     };
-    const localGetTotalDiscounts = (discounts: Discount[]) =>
-      localFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
-    const includeDiscounts = !!(pdfDiscStart || pdfDiscEnd || filterStartDate || filterEndDate);
-    // Restore after
-    setTimeout(() => { setDiscountStartDate(origDiscStart); setDiscountEndDate(origDiscEnd); }, 0);
+    const pdfGetTotalDiscounts = (discounts: Discount[]) =>
+      pdfFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
+    const hasDiscountPeriod = !!(pdfDiscStart || pdfDiscEnd);
+
+    // Local data functions for PDF
+    const pdfGetAgregadoData = (a: Assignment) => {
+      const dv = a.daily_value || dailyValue;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dv;
+      const isPropria = a.fleet_type === "propria";
+      const totalDescontos = isPropria ? 0 : pdfGetTotalDiscounts(a.discounts);
+      const totalLiquido = totalBruto - totalDescontos;
+      return { dv, days, totalBruto, totalDescontos, totalLiquido };
+    };
+    const pdfGetFaturamentoData = (a: Assignment) => {
+      const dvEmpresa = a.company_daily_value || companyDailyValue;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dvEmpresa;
+      const agregado = pdfGetAgregadoData(a);
+      const liquidoTerceiros = agregado.totalLiquido;
+      const isPropria = a.fleet_type === "propria";
+      const dieselFromAgregado = isPropria
+        ? pdfFilterDiscounts(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0)
+        : 0;
+      const descontosEmpresa = pdfGetTotalDiscounts(a.company_discounts) + dieselFromAgregado;
+      const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
+      return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
+    };
+    const pdfGetClienteData = (a: Assignment) => {
+      const dvCliente = job!.monthly_value / 30;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dvCliente;
+      const dieselDisc = pdfFilterDiscounts(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0);
+      const companyDisc = pdfFilterDiscounts(a.company_discounts).reduce((s, d) => s + d.value, 0);
+      const totalDescontos = dieselDisc + companyDisc;
+      const totalLiquido = totalBruto - totalDescontos;
+      return { dvCliente, days, totalBruto, totalDescontos, totalLiquido };
+    };
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
