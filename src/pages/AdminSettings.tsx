@@ -412,7 +412,7 @@ export default function AdminSettings() {
                             </Button>
                           )}
                           {canDelete && (
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setConfirmDelete(u)} title="Excluir" className="text-destructive hover:text-destructive">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(u)} title="Excluir">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
