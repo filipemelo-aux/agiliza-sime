@@ -7,7 +7,8 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -126,6 +127,9 @@ export default function HarvestDetail() {
   const [driverSearch, setDriverSearch] = useState("");
   const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pendingPdfType, setPendingPdfType] = useState<"agregados" | "faturamento" | "cliente" | "ambos">("agregados");
+  const [pdfIncludeDiscounts, setPdfIncludeDiscounts] = useState(true);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
@@ -427,7 +431,13 @@ export default function HarvestDetail() {
     toast({ title: "Relatório exportado!" });
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
+  const requestPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
+    setPendingPdfType(type);
+    setPdfIncludeDiscounts(true);
+    setPdfDialogOpen(true);
+  };
+
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", includeDiscounts: boolean = true) => {
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
