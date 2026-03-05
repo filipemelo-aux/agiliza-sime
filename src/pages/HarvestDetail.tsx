@@ -436,7 +436,8 @@ export default function HarvestDetail() {
 
   const requestPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     setPendingPdfType(type);
-    setPdfIncludeDiscounts(true);
+    setPdfDiscountStartDate(discountStartDate);
+    setPdfDiscountEndDate(discountEndDate);
     setPdfDialogOpen(true);
   };
 
