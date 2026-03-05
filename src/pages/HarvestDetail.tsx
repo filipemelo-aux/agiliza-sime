@@ -1264,24 +1264,51 @@ export default function HarvestDetail() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Input
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => setFilterStartDate(e.target.value)}
-              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
-            />
-            <span className="text-xs text-muted-foreground">até</span>
-            <Input
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => setFilterEndDate(e.target.value)}
-              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
-            />
-            {(filterStartDate || filterEndDate) && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
-                Limpar
-              </Button>
-            )}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <Input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+              />
+              {(filterStartDate || filterEndDate) && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground shrink-0 font-medium">Descontos:</span>
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <Input
+                type="date"
+                value={discountStartDate}
+                onChange={(e) => setDiscountStartDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+                placeholder="Início descontos"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={discountEndDate}
+                onChange={(e) => setDiscountEndDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+                placeholder="Fim descontos"
+              />
+              {(discountStartDate || discountEndDate) && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                  ✕
+                </Button>
+              )}
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
