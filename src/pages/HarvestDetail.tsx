@@ -710,11 +710,13 @@ export default function HarvestDetail() {
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
   const filterDiscountsByPeriod = (discounts: Discount[]) => {
-    if (!filterStartDate && !filterEndDate) return discounts;
+    const startDate = discountStartDate || filterStartDate;
+    const endDate = discountEndDate || filterEndDate;
+    if (!startDate && !endDate) return discounts;
     return discounts.filter(d => {
       if (!d.date) return true; // descontos sem data sempre aparecem
-      if (filterStartDate && d.date < filterStartDate) return false;
-      if (filterEndDate && d.date > filterEndDate) return false;
+      if (startDate && d.date < startDate) return false;
+      if (endDate && d.date > endDate) return false;
       return true;
     });
   };
