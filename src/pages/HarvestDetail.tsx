@@ -727,11 +727,18 @@ export default function HarvestDetail() {
       ? new Date(Math.max(assignStart.getTime(), new Date(filterStartDate + "T00:00:00").getTime()))
       : assignStart;
     const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
-    const effectiveEnd = filterEndDate
-      ? new Date(filterEndDate + "T00:00:00")
-      : a.end_date
-        ? new Date(a.end_date + "T00:00:00")
-        : today;
+    const filterEnd = filterEndDate ? new Date(filterEndDate + "T00:00:00") : null;
+    const assignEnd = a.end_date ? new Date(a.end_date + "T00:00:00") : null;
+    let effectiveEnd: Date;
+    if (filterEnd && assignEnd) {
+      effectiveEnd = new Date(Math.min(filterEnd.getTime(), assignEnd.getTime()));
+    } else if (filterEnd) {
+      effectiveEnd = filterEnd;
+    } else if (assignEnd) {
+      effectiveEnd = assignEnd;
+    } else {
+      effectiveEnd = today;
+    }
     if (effectiveEnd < effectiveStart) return 0;
     return Math.max(1, Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
