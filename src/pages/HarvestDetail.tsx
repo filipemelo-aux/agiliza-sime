@@ -441,7 +441,29 @@ export default function HarvestDetail() {
     setPdfDialogOpen(true);
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", includeDiscounts: boolean = true) => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
+    // Temporarily override discount dates for PDF generation
+    const origDiscStart = discountStartDate;
+    const origDiscEnd = discountEndDate;
+    setDiscountStartDate(pdfDiscStart);
+    setDiscountEndDate(pdfDiscEnd);
+    // We can't rely on setState being sync, so we use a local override approach
+    const localFilterDiscounts = (discounts: Discount[]) => {
+      const startDate = pdfDiscStart || filterStartDate;
+      const endDate = pdfDiscEnd || filterEndDate;
+      if (!startDate && !endDate) return discounts;
+      return discounts.filter(d => {
+        if (!d.date) return true;
+        if (startDate && d.date < startDate) return false;
+        if (endDate && d.date > endDate) return false;
+        return true;
+      });
+    };
+    const localGetTotalDiscounts = (discounts: Discount[]) =>
+      localFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
+    const includeDiscounts = !!(pdfDiscStart || pdfDiscEnd || filterStartDate || filterEndDate);
+    // Restore after
+    setTimeout(() => { setDiscountStartDate(origDiscStart); setDiscountEndDate(origDiscEnd); }, 0);
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
