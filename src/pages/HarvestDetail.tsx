@@ -444,11 +444,23 @@ export default function HarvestDetail() {
     setPdfDialogOpen(true);
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", useCustomDisc: boolean, pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
     // Local discount filter for PDF using provided dates
     const pdfFilterDiscounts = (discounts: Discount[]) => {
-      const sd = pdfDiscStart || filterStartDate;
-      const ed = pdfDiscEnd || filterEndDate;
+      if (!useCustomDisc) {
+        // No custom period: use main filter dates
+        const sd = filterStartDate;
+        const ed = filterEndDate;
+        if (!sd && !ed) return discounts;
+        return discounts.filter(d => {
+          if (!d.date) return true;
+          if (sd && d.date < sd) return false;
+          if (ed && d.date > ed) return false;
+          return true;
+        });
+      }
+      const sd = pdfDiscStart;
+      const ed = pdfDiscEnd;
       if (!sd && !ed) return discounts;
       return discounts.filter(d => {
         if (!d.date) return true;
@@ -459,7 +471,7 @@ export default function HarvestDetail() {
     };
     const pdfGetTotalDiscounts = (discounts: Discount[]) =>
       pdfFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
-    const hasDiscountPeriod = !!(pdfDiscStart || pdfDiscEnd);
+    const hasDiscountPeriod = useCustomDisc && !!(pdfDiscStart || pdfDiscEnd);
 
     // Local data functions for PDF
     const pdfGetAgregadoData = (a: Assignment) => {
@@ -1830,7 +1842,7 @@ export default function HarvestDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPdfDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfDiscountStartDate, pdfDiscountEndDate); }}>
+            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, useCustomPdfDiscountPeriod, pdfDiscountStartDate, pdfDiscountEndDate); }}>
               Gerar PDF
             </Button>
           </DialogFooter>
