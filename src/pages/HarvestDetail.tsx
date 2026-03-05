@@ -1762,19 +1762,33 @@ export default function HarvestDetail() {
           <DialogHeader>
             <DialogTitle className="text-base">Opções do Relatório PDF</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center space-x-2 py-4">
-            <Checkbox
-              id="include-discounts"
-              checked={pdfIncludeDiscounts}
-              onCheckedChange={(v) => setPdfIncludeDiscounts(!!v)}
-            />
-            <label htmlFor="include-discounts" className="text-sm font-medium leading-none cursor-pointer">
-              Incluir descontos no período
-            </label>
+          <div className="space-y-3 py-4">
+            <Label className="text-sm font-medium">Período dos Descontos</Label>
+            <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório. Deixe vazio para usar o mesmo período do filtro principal.</p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={pdfDiscountStartDate}
+                onChange={(e) => setPdfDiscountStartDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={pdfDiscountEndDate}
+                onChange={(e) => setPdfDiscountEndDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+              />
+            </div>
+            {(pdfDiscountStartDate || pdfDiscountEndDate) && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
+                Limpar período de descontos
+              </Button>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPdfDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfIncludeDiscounts); }}>
+            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfDiscountStartDate, pdfDiscountEndDate); }}>
               Gerar PDF
             </Button>
           </DialogFooter>
