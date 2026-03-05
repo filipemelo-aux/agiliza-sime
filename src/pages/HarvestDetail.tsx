@@ -760,21 +760,8 @@ export default function HarvestDetail() {
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
   const filterDiscountsByPeriod = (discounts: Discount[]) => {
-    if (!useCustomDiscountPeriod) {
-      // When custom discount period is off, use main filter dates
-      const startDate = filterStartDate;
-      const endDate = filterEndDate;
-      if (!startDate && !endDate) return discounts;
-      return discounts.filter(d => {
-        if (!d.date) return true;
-        if (startDate && d.date < startDate) return false;
-        if (endDate && d.date > endDate) return false;
-        return true;
-      });
-    }
-    // Custom discount period is on
-    const startDate = discountStartDate;
-    const endDate = discountEndDate;
+    const startDate = filterStartDate;
+    const endDate = filterEndDate;
     if (!startDate && !endDate) return discounts;
     return discounts.filter(d => {
       if (!d.date) return true;
