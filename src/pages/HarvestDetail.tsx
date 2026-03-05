@@ -116,7 +116,6 @@ export default function HarvestDetail() {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
-  const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
   const [editingDailyValue, setEditingDailyValue] = useState("");
   const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
   const [editingEndDateValue, setEditingEndDateValue] = useState("");
