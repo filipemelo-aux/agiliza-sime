@@ -520,7 +520,7 @@ export default function HarvestDetail() {
     }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}@media print{@page{margin:15mm}}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
