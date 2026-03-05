@@ -115,6 +115,8 @@ export default function HarvestDetail() {
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const [discountStartDate, setDiscountStartDate] = useState("");
+  const [discountEndDate, setDiscountEndDate] = useState("");
   const [editingDailyId, setEditingDailyId] = useState<string | null>(null);
   const [editingDailyValue, setEditingDailyValue] = useState("");
   const [editingEndDateId, setEditingEndDateId] = useState<string | null>(null);
@@ -129,7 +131,8 @@ export default function HarvestDetail() {
   const [editingDiscountData, setEditingDiscountData] = useState<{ type: string; description: string; value: string; date: string }>({ type: "", description: "", value: "", date: "" });
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pendingPdfType, setPendingPdfType] = useState<"agregados" | "faturamento" | "cliente" | "ambos">("agregados");
-  const [pdfIncludeDiscounts, setPdfIncludeDiscounts] = useState(true);
+  const [pdfDiscountStartDate, setPdfDiscountStartDate] = useState("");
+  const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin && !isModerator) navigate("/");
@@ -433,11 +436,62 @@ export default function HarvestDetail() {
 
   const requestPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos") => {
     setPendingPdfType(type);
-    setPdfIncludeDiscounts(true);
+    setPdfDiscountStartDate(discountStartDate);
+    setPdfDiscountEndDate(discountEndDate);
     setPdfDialogOpen(true);
   };
 
-  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", includeDiscounts: boolean = true) => {
+  const exportPDF = (type: "agregados" | "faturamento" | "cliente" | "ambos", pdfDiscStart: string = "", pdfDiscEnd: string = "") => {
+    // Local discount filter for PDF using provided dates
+    const pdfFilterDiscounts = (discounts: Discount[]) => {
+      const sd = pdfDiscStart || filterStartDate;
+      const ed = pdfDiscEnd || filterEndDate;
+      if (!sd && !ed) return discounts;
+      return discounts.filter(d => {
+        if (!d.date) return true;
+        if (sd && d.date < sd) return false;
+        if (ed && d.date > ed) return false;
+        return true;
+      });
+    };
+    const pdfGetTotalDiscounts = (discounts: Discount[]) =>
+      pdfFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
+    const hasDiscountPeriod = !!(pdfDiscStart || pdfDiscEnd);
+
+    // Local data functions for PDF
+    const pdfGetAgregadoData = (a: Assignment) => {
+      const dv = a.daily_value || dailyValue;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dv;
+      const isPropria = a.fleet_type === "propria";
+      const totalDescontos = isPropria ? 0 : pdfGetTotalDiscounts(a.discounts);
+      const totalLiquido = totalBruto - totalDescontos;
+      return { dv, days, totalBruto, totalDescontos, totalLiquido };
+    };
+    const pdfGetFaturamentoData = (a: Assignment) => {
+      const dvEmpresa = a.company_daily_value || companyDailyValue;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dvEmpresa;
+      const agregado = pdfGetAgregadoData(a);
+      const liquidoTerceiros = agregado.totalLiquido;
+      const isPropria = a.fleet_type === "propria";
+      const dieselFromAgregado = isPropria
+        ? pdfFilterDiscounts(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0)
+        : 0;
+      const descontosEmpresa = pdfGetTotalDiscounts(a.company_discounts) + dieselFromAgregado;
+      const faturamentoLiquido = totalBruto - liquidoTerceiros - descontosEmpresa;
+      return { dvEmpresa, days, totalBruto, liquidoTerceiros, descontosEmpresa, faturamentoLiquido };
+    };
+    const pdfGetClienteData = (a: Assignment) => {
+      const dvCliente = job!.monthly_value / 30;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dvCliente;
+      const dieselDisc = pdfFilterDiscounts(a.discounts.filter(d => d.type === "diesel")).reduce((s, d) => s + d.value, 0);
+      const companyDisc = pdfFilterDiscounts(a.company_discounts).reduce((s, d) => s + d.value, 0);
+      const totalDescontos = dieselDisc + companyDisc;
+      const totalLiquido = totalBruto - totalDescontos;
+      return { dvCliente, days, totalBruto, totalDescontos, totalLiquido };
+    };
     const activeAssignments = filterBySearch(assignments);
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -472,101 +526,87 @@ export default function HarvestDetail() {
       return `<td>${fim.label}</td>`;
     };
 
+    const discPeriodLabel = hasDiscountPeriod
+      ? ` | Descontos: ${pdfDiscStart ? formatDate(pdfDiscStart) : "início"} até ${pdfDiscEnd ? formatDate(pdfDiscEnd) : "atual"}`
+      : '';
+
     if (type === "agregados" || type === "ambos") {
       html += `<h2>Relatório Agregados — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${!includeDiscounts ? ' — Sem descontos' : ''}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const d = getAgregadoData(a);
-          const desc = includeDiscounts ? d.totalDescontos : 0;
-          const liq = d.totalBruto - desc;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(desc)}</td><td class="right">${formatCurrency(liq)}</td></tr>`;
+          const d = pdfGetAgregadoData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
         });
-        const totAgrDias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).days, 0);
-        const totAgrDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0) : 0;
-        const totAgrBruto = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
-        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrBruto - totAgrDesc)}</td></tr></tbody></table>`;
+        const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
+        const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
+        const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
+        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const d = getAgregadoData(a);
-          const desc = includeDiscounts ? d.totalDescontos : 0;
-          const liq = d.totalBruto - desc;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(desc)}</td><td class="right">${formatCurrency(liq)}</td></tr>`;
+          const d = pdfGetAgregadoData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
         });
-        const totAgrDias = activeAssignments.reduce((s, a) => s + getAgregadoData(a).days, 0);
-        const totAgrDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0) : 0;
-        const totAgrBruto = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrBruto - totAgrDesc)}</td></tr></tbody></table>`;
+        const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
+        const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
+        const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
+        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table>`;
       }
     }
     if (type === "faturamento" || type === "ambos") {
       html += `<h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${!includeDiscounts ? ' — Sem descontos' : ''}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const f = getFaturamentoData(a);
-          const liqTerc = includeDiscounts ? f.liquidoTerceiros : getAgregadoData(a).totalBruto;
-          const descEmp = includeDiscounts ? f.descontosEmpresa : 0;
-          const fatLiq = f.totalBruto - liqTerc - descEmp;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(liqTerc)}</td><td class="right">${formatCurrency(descEmp)}</td><td class="right">${formatCurrency(fatLiq)}</td></tr>`;
+          const f = pdfGetFaturamentoData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
         });
-        const totFatDias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).days, 0);
-        const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
-        const totTerc = includeDiscounts
-          ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0)
-          : activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
-        const totDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0) : 0;
-        const totFat = totBruto - totTerc - totDesc;
+        const totFatDias = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).days, 0);
+        const totBruto = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).totalBruto, 0);
+        const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
+        const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
+        const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
         html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const f = getFaturamentoData(a);
-          const liqTerc = includeDiscounts ? f.liquidoTerceiros : getAgregadoData(a).totalBruto;
-          const descEmp = includeDiscounts ? f.descontosEmpresa : 0;
-          const fatLiq = f.totalBruto - liqTerc - descEmp;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(liqTerc)}</td><td class="right">${formatCurrency(descEmp)}</td><td class="right">${formatCurrency(fatLiq)}</td></tr>`;
+          const f = pdfGetFaturamentoData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
         });
-        const totFatDias = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).days, 0);
-        const totBruto = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
-        const totTerc = includeDiscounts
-          ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0)
-          : activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalBruto, 0);
-        const totDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0) : 0;
-        const totFat = totBruto - totTerc - totDesc;
+        const totFatDias = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).days, 0);
+        const totBruto = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).totalBruto, 0);
+        const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
+        const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
+        const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
         html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table>`;
       }
     }
     if (type === "cliente" || type === "ambos") {
       html += `<h2>Relatório Cliente — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${!includeDiscounts ? ' — Sem descontos' : ''}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
       if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const c = getClienteData(a);
-          const desc = includeDiscounts ? c.totalDescontos : 0;
-          const liq = c.totalBruto - desc;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(desc)}</td><td class="right">${formatCurrency(liq)}</td></tr>`;
+          const c = pdfGetClienteData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
         });
-        const totCliDias = activeAssignments.reduce((s, a) => s + getClienteData(a).days, 0);
-        const totCliDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0) : 0;
-        const totCliBruto = activeAssignments.reduce((s, a) => s + getClienteData(a).totalBruto, 0);
-        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliBruto - totCliDesc)}</td></tr></tbody></table>`;
+        const totCliDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
+        const totCliDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
+        const totCliLiq = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalLiquido, 0);
+        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
-          const c = getClienteData(a);
-          const desc = includeDiscounts ? c.totalDescontos : 0;
-          const liq = c.totalBruto - desc;
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(desc)}</td><td class="right">${formatCurrency(liq)}</td></tr>`;
+          const c = pdfGetClienteData(a);
+          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
         });
-        const totCliDias = activeAssignments.reduce((s, a) => s + getClienteData(a).days, 0);
-        const totCliDesc = includeDiscounts ? activeAssignments.reduce((s, a) => s + getClienteData(a).totalDescontos, 0) : 0;
-        const totCliBruto = activeAssignments.reduce((s, a) => s + getClienteData(a).totalBruto, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliBruto - totCliDesc)}</td></tr></tbody></table>`;
+        const totCliDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
+        const totCliDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
+        const totCliLiq = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalLiquido, 0);
+        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table>`;
       }
     }
     const printWindow = window.open("", "_blank");
@@ -708,11 +748,13 @@ export default function HarvestDetail() {
     new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
 
   const filterDiscountsByPeriod = (discounts: Discount[]) => {
-    if (!filterStartDate && !filterEndDate) return discounts;
+    const startDate = discountStartDate || filterStartDate;
+    const endDate = discountEndDate || filterEndDate;
+    if (!startDate && !endDate) return discounts;
     return discounts.filter(d => {
       if (!d.date) return true; // descontos sem data sempre aparecem
-      if (filterStartDate && d.date < filterStartDate) return false;
-      if (filterEndDate && d.date > filterEndDate) return false;
+      if (startDate && d.date < startDate) return false;
+      if (endDate && d.date > endDate) return false;
       return true;
     });
   };
@@ -1260,24 +1302,51 @@ export default function HarvestDetail() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Input
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => setFilterStartDate(e.target.value)}
-              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
-            />
-            <span className="text-xs text-muted-foreground">até</span>
-            <Input
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => setFilterEndDate(e.target.value)}
-              className="h-8 text-xs w-[calc(50%-16px)] min-w-0 flex-1"
-            />
-            {(filterStartDate || filterEndDate) && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); }}>
-                Limpar
-              </Button>
-            )}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <Input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+              />
+              {(filterStartDate || filterEndDate) && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setFilterStartDate(job?.harvest_period_start || ""); setFilterEndDate(""); setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground shrink-0 font-medium">Descontos:</span>
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <Input
+                type="date"
+                value={discountStartDate}
+                onChange={(e) => setDiscountStartDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+                placeholder="Início descontos"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={discountEndDate}
+                onChange={(e) => setDiscountEndDate(e.target.value)}
+                className="h-8 text-xs flex-1 min-w-0"
+                placeholder="Fim descontos"
+              />
+              {(discountStartDate || discountEndDate) && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 shrink-0" onClick={() => { setDiscountStartDate(""); setDiscountEndDate(""); }}>
+                  ✕
+                </Button>
+              )}
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1693,19 +1762,33 @@ export default function HarvestDetail() {
           <DialogHeader>
             <DialogTitle className="text-base">Opções do Relatório PDF</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center space-x-2 py-4">
-            <Checkbox
-              id="include-discounts"
-              checked={pdfIncludeDiscounts}
-              onCheckedChange={(v) => setPdfIncludeDiscounts(!!v)}
-            />
-            <label htmlFor="include-discounts" className="text-sm font-medium leading-none cursor-pointer">
-              Incluir descontos no período
-            </label>
+          <div className="space-y-3 py-4">
+            <Label className="text-sm font-medium">Período dos Descontos</Label>
+            <p className="text-xs text-muted-foreground">Defina o período dos descontos a incluir no relatório. Deixe vazio para usar o mesmo período do filtro principal.</p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={pdfDiscountStartDate}
+                onChange={(e) => setPdfDiscountStartDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">até</span>
+              <Input
+                type="date"
+                value={pdfDiscountEndDate}
+                onChange={(e) => setPdfDiscountEndDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+              />
+            </div>
+            {(pdfDiscountStartDate || pdfDiscountEndDate) && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setPdfDiscountStartDate(""); setPdfDiscountEndDate(""); }}>
+                Limpar período de descontos
+              </Button>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPdfDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfIncludeDiscounts); }}>
+            <Button size="sm" onClick={() => { setPdfDialogOpen(false); exportPDF(pendingPdfType, pdfDiscountStartDate, pdfDiscountEndDate); }}>
               Gerar PDF
             </Button>
           </DialogFooter>
