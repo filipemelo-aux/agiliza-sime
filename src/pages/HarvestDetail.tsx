@@ -504,7 +504,19 @@ export default function HarvestDetail() {
       const totalLiquido = totalBruto - totalDescontos;
       return { dvCliente, days, totalBruto, totalDescontos, totalLiquido };
     };
-    const activeAssignments = filterBySearch(assignments);
+    // When custom discount period is active, include assignments that have discounts
+    // in the discount period even if their work period doesn't overlap with main filter
+    let activeAssignments = filterBySearch(assignments);
+    if (useCustomDisc && (pdfDiscStart || pdfDiscEnd)) {
+      const filteredIds = new Set(activeAssignments.map(a => a.id));
+      const extraAssignments = assignments.filter(a => {
+        if (filteredIds.has(a.id)) return false;
+        // Check if this assignment has any discounts in the custom discount period
+        const allDiscounts = [...a.discounts, ...a.company_discounts];
+        return pdfFilterDiscounts(allDiscounts).length > 0;
+      });
+      activeAssignments = [...activeAssignments, ...extraAssignments];
+    }
     if (activeAssignments.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
