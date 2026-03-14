@@ -717,7 +717,7 @@ export default function HarvestDetail() {
           { label: "Total Dias", value: String(totDias) },
           { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
         ], "Total Cliente", formatCurrency(totLiq));
-        html += `</div>`;
+        html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
