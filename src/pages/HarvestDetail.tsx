@@ -626,6 +626,7 @@ export default function HarvestDetail() {
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
 
       if (useMobileLayout) {
+        html += `<div class="cards-grid">`;
         activeAssignments.forEach(a => { html += mobileAgregadoCard(a); });
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
