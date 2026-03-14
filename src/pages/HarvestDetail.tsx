@@ -676,7 +676,7 @@ export default function HarvestDetail() {
           { label: "Líq. Terceiros", value: formatCurrency(totTerc), className: "text-orange" },
           { label: "Desc. Empresa", value: formatCurrency(totDesc), className: "text-red" },
         ], "Fat. Líquido", formatCurrency(totFat));
-        html += `</div>`;
+        html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
