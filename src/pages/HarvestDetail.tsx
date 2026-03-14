@@ -521,7 +521,10 @@ export default function HarvestDetail() {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
     }
-    const tableStyle = `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}`;
+    const useMobileLayout = isMobile;
+    const tableStyle = useMobileLayout
+      ? `body{font-family:Arial,sans-serif;padding:12px;margin:0;background:#fff}h2{font-size:15px;margin:12px 0 4px}h3{font-size:12px;color:#666;margin:0 0 10px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.card{border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff;page-break-inside:avoid}.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}.card-name{font-weight:700;font-size:13px}.card-plate{font-size:11px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px;margin-bottom:6px;padding-top:6px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;font-size:11px;margin-bottom:6px;padding-top:6px;border-top:1px solid #eee}.card-label{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-bottom:1px}.card-value{font-size:12px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid #ddd;margin-top:4px}.card-total-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#888}.card-total-value{font-size:15px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:6px}.summary-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}.summary-total{display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:16px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
+      : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
     let html = "";
     const hasFilter = !!(filterStartDate || filterEndDate);
     const filterInicioLabel = filterStartDate ? formatDate(filterStartDate) : "início";
@@ -550,14 +553,89 @@ export default function HarvestDetail() {
       return `<td>${fim.label}</td>`;
     };
 
+    const fimCardValue = (a: any) => {
+      const fim = getEffectiveFim(a);
+      if (fim.early) return `<span class="text-red">${fim.label} ⚠</span>`;
+      return `<span>${fim.label}</span>`;
+    };
+
     const discPeriodLabel = hasDiscountPeriod
       ? ` | Descontos: ${pdfDiscStart ? formatDate(pdfDiscStart) : "início"} até ${pdfDiscEnd ? formatDate(pdfDiscEnd) : "atual"}`
       : '';
 
+    // ── Helper: mobile card builders ──
+    const mobileAgregadoCard = (a: Assignment) => {
+      const d = pdfGetAgregadoData(a);
+      return `<div class="card">
+        <div class="card-header"><div><div class="card-name">${a.driver_name}</div><div class="card-plate">${a.vehicle_plate}${a.owner_name && a.owner_name !== "—" ? ` · ${a.owner_name}` : ""}</div></div></div>
+        <div class="card-grid">
+          <div><div class="card-label">Início</div><div class="card-value">${hasFilter ? getEffectiveStart(a) : formatDate(a.start_date)}</div></div>
+          <div><div class="card-label">Fim</div><div class="card-value">${hasFilter ? fimCardValue(a) : (a.end_date ? formatDate(a.end_date) : "—")}</div></div>
+        </div>
+        <div class="card-grid3">
+          <div><div class="card-label">Dias</div><div class="card-value">${d.days}</div></div>
+          <div><div class="card-label">Diária</div><div class="card-value">${formatCurrency(d.dv)}</div></div>
+          <div><div class="card-label">Descontos</div><div class="card-value${d.totalDescontos > 0 ? " text-red" : ""}">${d.totalDescontos > 0 ? `- ${formatCurrency(d.totalDescontos)}` : "—"}</div></div>
+        </div>
+        <div class="card-total"><span class="card-total-label">Total Líquido</span><span class="card-total-value">${formatCurrency(d.totalLiquido)}</span></div>
+      </div>`;
+    };
+
+    const mobileFaturamentoCard = (a: Assignment) => {
+      const f = pdfGetFaturamentoData(a);
+      return `<div class="card">
+        <div class="card-header"><div><div class="card-name">${a.driver_name}</div><div class="card-plate">${a.vehicle_plate}${a.owner_name && a.owner_name !== "—" ? ` · ${a.owner_name}` : ""}</div></div></div>
+        <div class="card-grid">
+          <div><div class="card-label">Início</div><div class="card-value">${hasFilter ? getEffectiveStart(a) : formatDate(a.start_date)}</div></div>
+          <div><div class="card-label">Fim</div><div class="card-value">${hasFilter ? fimCardValue(a) : (a.end_date ? formatDate(a.end_date) : "—")}</div></div>
+        </div>
+        <div class="card-grid">
+          <div><div class="card-label">Dias</div><div class="card-value">${f.days}</div></div>
+          <div><div class="card-label">Diária Empresa</div><div class="card-value">${formatCurrency(f.dvEmpresa)}</div></div>
+          <div><div class="card-label">Bruto</div><div class="card-value">${formatCurrency(f.totalBruto)}</div></div>
+          <div><div class="card-label">Líq. Terceiros</div><div class="card-value text-orange">${formatCurrency(f.liquidoTerceiros)}</div></div>
+          <div><div class="card-label">Desc. Empresa</div><div class="card-value${f.descontosEmpresa > 0 ? " text-red" : ""}">${f.descontosEmpresa > 0 ? `- ${formatCurrency(f.descontosEmpresa)}` : "—"}</div></div>
+        </div>
+        <div class="card-total"><span class="card-total-label">Fat. Líquido</span><span class="text-green" style="font-size:15px">${formatCurrency(f.faturamentoLiquido)}</span></div>
+      </div>`;
+    };
+
+    const mobileClienteCard = (a: Assignment) => {
+      const c = pdfGetClienteData(a);
+      return `<div class="card">
+        <div class="card-header"><div><div class="card-name">${a.driver_name}</div><div class="card-plate">${a.vehicle_plate}</div></div></div>
+        <div class="card-grid">
+          <div><div class="card-label">Início</div><div class="card-value">${hasFilter ? getEffectiveStart(a) : formatDate(a.start_date)}</div></div>
+          <div><div class="card-label">Fim</div><div class="card-value">${hasFilter ? fimCardValue(a) : (a.end_date ? formatDate(a.end_date) : "—")}</div></div>
+        </div>
+        <div class="card-grid3">
+          <div><div class="card-label">Dias</div><div class="card-value">${c.days}</div></div>
+          <div><div class="card-label">Diária</div><div class="card-value">${formatCurrency(c.dvCliente)}</div></div>
+          <div><div class="card-label">Descontos</div><div class="card-value${c.totalDescontos > 0 ? " text-red" : ""}">${c.totalDescontos > 0 ? `- ${formatCurrency(c.totalDescontos)}` : "—"}</div></div>
+        </div>
+        <div class="card-total"><span class="card-total-label">Total Cliente</span><span class="card-total-value">${formatCurrency(c.totalLiquido)}</span></div>
+      </div>`;
+    };
+
+    const mobileSummary = (label: string, items: { label: string; value: string; className?: string }[], totalLabel: string, totalValue: string) => {
+      return `<div class="summary-card">${items.map(i => `<div class="summary-row"><span>${i.label}</span><span${i.className ? ` class="${i.className}"` : ""}>${i.value}</span></div>`).join("")}<div class="summary-total"><span class="card-total-label">${totalLabel}</span><span class="summary-total-value">${totalValue}</span></div></div>`;
+    };
+
     if (type === "agregados" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Agregados — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
-      if (hasFilter) {
+
+      if (useMobileLayout) {
+        activeAssignments.forEach(a => { html += mobileAgregadoCard(a); });
+        const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
+        const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
+        const totLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
+        html += mobileSummary("Agregados", [
+          { label: "Total Dias", value: String(totDias) },
+          { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
+        ], "Total Líquido", formatCurrency(totLiq));
+        html += `</div>`;
+      } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const d = pdfGetAgregadoData(a);
@@ -582,7 +660,22 @@ export default function HarvestDetail() {
     if (type === "faturamento" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
-      if (hasFilter) {
+
+      if (useMobileLayout) {
+        activeAssignments.forEach(a => { html += mobileFaturamentoCard(a); });
+        const totDias = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).days, 0);
+        const totBruto = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).totalBruto, 0);
+        const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
+        const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
+        const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
+        html += mobileSummary("Faturamento", [
+          { label: "Total Dias", value: String(totDias) },
+          { label: "Total Bruto", value: formatCurrency(totBruto) },
+          { label: "Líq. Terceiros", value: formatCurrency(totTerc), className: "text-orange" },
+          { label: "Desc. Empresa", value: formatCurrency(totDesc), className: "text-red" },
+        ], "Fat. Líquido", formatCurrency(totFat));
+        html += `</div>`;
+      } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const f = pdfGetFaturamentoData(a);
@@ -611,7 +704,18 @@ export default function HarvestDetail() {
     if (type === "cliente" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Cliente — ${job!.farm_name}</h2>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
-      if (hasFilter) {
+
+      if (useMobileLayout) {
+        activeAssignments.forEach(a => { html += mobileClienteCard(a); });
+        const totDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
+        const totDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
+        const totLiq = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalLiquido, 0);
+        html += mobileSummary("Cliente", [
+          { label: "Total Dias", value: String(totDias) },
+          { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
+        ], "Total Cliente", formatCurrency(totLiq));
+        html += `</div>`;
+      } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const c = pdfGetClienteData(a);
@@ -635,7 +739,7 @@ export default function HarvestDetail() {
     }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
