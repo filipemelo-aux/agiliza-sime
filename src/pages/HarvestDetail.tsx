@@ -523,7 +523,7 @@ export default function HarvestDetail() {
     }
     const useMobileLayout = isMobile;
     const tableStyle = useMobileLayout
-      ? `body{font-family:Arial,sans-serif;padding:12px;margin:0;background:#fff}h2{font-size:15px;margin:12px 0 4px}h3{font-size:12px;color:#666;margin:0 0 10px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.card{border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff;page-break-inside:avoid}.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}.card-name{font-weight:700;font-size:13px}.card-plate{font-size:11px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px;margin-bottom:6px;padding-top:6px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;font-size:11px;margin-bottom:6px;padding-top:6px;border-top:1px solid #eee}.card-label{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-bottom:1px}.card-value{font-size:12px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid #ddd;margin-top:4px}.card-total-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#888}.card-total-value{font-size:15px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:6px}.summary-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}.summary-total{display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:16px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
+      ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
       : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
     let html = "";
     const hasFilter = !!(filterStartDate || filterEndDate);
@@ -626,6 +626,7 @@ export default function HarvestDetail() {
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
 
       if (useMobileLayout) {
+        html += `<div class="cards-grid">`;
         activeAssignments.forEach(a => { html += mobileAgregadoCard(a); });
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
@@ -634,7 +635,7 @@ export default function HarvestDetail() {
           { label: "Total Dias", value: String(totDias) },
           { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
         ], "Total Líquido", formatCurrency(totLiq));
-        html += `</div>`;
+        html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
@@ -662,6 +663,7 @@ export default function HarvestDetail() {
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
 
       if (useMobileLayout) {
+        html += `<div class="cards-grid">`;
         activeAssignments.forEach(a => { html += mobileFaturamentoCard(a); });
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).days, 0);
         const totBruto = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).totalBruto, 0);
@@ -674,7 +676,7 @@ export default function HarvestDetail() {
           { label: "Líq. Terceiros", value: formatCurrency(totTerc), className: "text-orange" },
           { label: "Desc. Empresa", value: formatCurrency(totDesc), className: "text-red" },
         ], "Fat. Líquido", formatCurrency(totFat));
-        html += `</div>`;
+        html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
@@ -706,6 +708,7 @@ export default function HarvestDetail() {
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
 
       if (useMobileLayout) {
+        html += `<div class="cards-grid">`;
         activeAssignments.forEach(a => { html += mobileClienteCard(a); });
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
@@ -714,7 +717,7 @@ export default function HarvestDetail() {
           { label: "Total Dias", value: String(totDias) },
           { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
         ], "Total Cliente", formatCurrency(totLiq));
-        html += `</div>`;
+        html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
