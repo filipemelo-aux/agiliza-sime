@@ -64,6 +64,7 @@ const App = () => (
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
+            <Route path="/admin/financial" element={<AdminFinancial />} />
             <Route path="/freights" element={<Index />} />
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}

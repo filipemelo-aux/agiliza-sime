@@ -44,6 +44,7 @@ const menuItems = [
     ],
   },
   { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
+  { title: "Financeiro", url: "/admin/financial", icon: DollarSign },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
