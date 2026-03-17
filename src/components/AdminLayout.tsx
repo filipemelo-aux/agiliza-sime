@@ -31,9 +31,15 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
-  { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
-  { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
-  { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+  {
+    title: "Transporte",
+    icon: Car,
+    children: [
+      { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
+      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
+      { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+    ],
+  },
   {
     title: "Cadastros",
     icon: Users,
@@ -66,7 +72,8 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers" || location.pathname === "/admin/financial/categories";
+  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest");
+  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
   const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
   return (
@@ -84,7 +91,7 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : false;
+                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : item.title === "Transporte" ? isTransporteActive : false;
                   return (
                     <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
                       <SidebarMenuItem>
