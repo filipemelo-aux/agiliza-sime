@@ -37,6 +37,7 @@ const menuItems = [
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
@@ -50,7 +51,6 @@ const menuItems = [
       { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
     ],
   },
-  { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
   {
     title: "Financeiro",
     icon: DollarSign,
