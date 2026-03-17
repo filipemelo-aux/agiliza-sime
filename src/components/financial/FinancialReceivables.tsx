@@ -76,7 +76,7 @@ export function FinancialReceivables() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setNotes(""); setEditingId(null);
+    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null);
   };
 
   const handleSave = async () => {
