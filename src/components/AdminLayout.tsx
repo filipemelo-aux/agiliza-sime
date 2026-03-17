@@ -84,11 +84,12 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
+                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : false;
                   return (
-                    <Collapsible key={item.title} defaultOpen={isCadastrosActive} className="group/collapsible">
+                    <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton tooltip={item.title} isActive={isCadastrosActive}>
+                          <SidebarMenuButton tooltip={item.title} isActive={isGroupActive}>
                             <item.icon className="h-4 w-4" />
                             <span>{item.title}</span>
                             <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
