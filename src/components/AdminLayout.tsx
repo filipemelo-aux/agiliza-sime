@@ -91,7 +91,7 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : false;
+                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : item.title === "Transporte" ? isTransporteActive : false;
                   return (
                     <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
                       <SidebarMenuItem>
