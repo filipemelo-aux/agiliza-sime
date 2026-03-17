@@ -169,9 +169,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SidebarContent({ children, handleLogout, user }: { children: React.ReactNode; handleLogout: () => void; user: any }) {
-  const { state } = useSidebar();
+function SidebarContentInner({ children, handleLogout, user }: { children: React.ReactNode; handleLogout: () => void; user: any }) {
+  const { state, isMobile } = useSidebar();
   const isExpanded = state === "expanded";
+  const headerLeft = isMobile ? "0px" : isExpanded ? "var(--sidebar-width)" : "var(--sidebar-width-icon)";
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
