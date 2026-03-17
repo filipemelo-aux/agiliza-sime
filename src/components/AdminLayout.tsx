@@ -161,38 +161,50 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <SidebarNav />
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Top bar - fixed with glass effect */}
-           <header className="fixed top-0 right-0 left-0 z-50 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-              <img src={logo} alt="SIME" className="h-9 w-auto" />
-            </div>
-            {user && (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <NotificationBell userId={user.id} />
-                <UserAvatar userId={user.id} showName size="sm" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  title="Sair"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </header>
-          {/* Spacer for fixed header */}
-          <div className="h-16 shrink-0" />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
-        </div>
+        <SidebarContent handleLogout={handleLogout} user={user}>
+          {children}
+        </SidebarContent>
       </div>
     </SidebarProvider>
+  );
+}
+
+function SidebarContent({ children, handleLogout, user }: { children: React.ReactNode; handleLogout: () => void; user: any }) {
+  const { state } = useSidebar();
+  const isExpanded = state === "expanded";
+
+  return (
+    <div className="flex-1 flex flex-col min-w-0">
+      <header
+        className="fixed top-0 right-0 z-[55] h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 transition-[left] duration-200"
+        style={{ left: isExpanded ? "var(--sidebar-width)" : "var(--sidebar-width-icon)" }}
+      >
+        <div className="flex items-center gap-3">
+          <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
+            <Menu className="h-5 w-5" />
+          </SidebarTrigger>
+          <img src={logo} alt="SIME" className="h-9 w-auto" />
+        </div>
+        {user && (
+          <div className="flex items-center gap-2 sm:gap-3">
+            <NotificationBell userId={user.id} />
+            <UserAvatar userId={user.id} showName size="sm" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              title="Sair"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+      </header>
+      <div className="h-16 shrink-0" />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
   );
 }
