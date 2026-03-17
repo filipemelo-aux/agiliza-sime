@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 interface Payable {
   id: string;
@@ -55,6 +56,7 @@ export function FinancialPayables() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [creditorName, setCreditorName] = useState("");
+  const [creditorId, setCreditorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   const fetchData = async () => {
@@ -71,7 +73,7 @@ export function FinancialPayables() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setCreditorName(""); setNotes(""); setEditingId(null);
+    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setCreditorName(""); setCreditorId(null); setNotes(""); setEditingId(null);
   };
 
   const handleSave = async () => {
@@ -84,6 +86,7 @@ export function FinancialPayables() {
       amount: Number(amount),
       due_date: dueDate || null,
       creditor_name: creditorName.trim() || null,
+      creditor_id: creditorId || null,
       notes: notes.trim() || null,
     };
 
@@ -188,8 +191,20 @@ export function FinancialPayables() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Credor</Label>
-                  <Input value={creditorName} onChange={(e) => setCreditorName(e.target.value)} placeholder="Nome do credor" />
+                  <Label>Credor (Fornecedor)</Label>
+                  <PersonSearchInput
+                    categories={["fornecedor"]}
+                    placeholder="Buscar fornecedor cadastrado..."
+                    selectedName={creditorName || undefined}
+                    onSelect={(person) => {
+                      setCreditorName(person.full_name);
+                      setCreditorId(person.id);
+                    }}
+                    onClear={() => {
+                      setCreditorName("");
+                      setCreditorId(null);
+                    }}
+                  />
                 </div>
                 <div>
                   <Label>Observações</Label>

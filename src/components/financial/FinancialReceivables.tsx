@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 interface Receivable {
   id: string;
@@ -58,6 +59,7 @@ export function FinancialReceivables() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [debtorName, setDebtorName] = useState("");
+  const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   const fetchData = async () => {
@@ -74,7 +76,7 @@ export function FinancialReceivables() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setNotes(""); setEditingId(null);
+    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null);
   };
 
   const handleSave = async () => {
@@ -87,6 +89,7 @@ export function FinancialReceivables() {
       amount: Number(amount),
       due_date: dueDate || null,
       debtor_name: debtorName.trim() || null,
+      debtor_id: debtorId || null,
       notes: notes.trim() || null,
     };
 
@@ -191,8 +194,20 @@ export function FinancialReceivables() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Devedor</Label>
-                  <Input value={debtorName} onChange={(e) => setDebtorName(e.target.value)} placeholder="Nome do devedor" />
+                  <Label>Devedor (Cliente)</Label>
+                  <PersonSearchInput
+                    categories={["cliente"]}
+                    placeholder="Buscar cliente cadastrado..."
+                    selectedName={debtorName || undefined}
+                    onSelect={(person) => {
+                      setDebtorName(person.full_name);
+                      setDebtorId(person.id);
+                    }}
+                    onClear={() => {
+                      setDebtorName("");
+                      setDebtorId(null);
+                    }}
+                  />
                 </div>
                 <div>
                   <Label>Observações</Label>
