@@ -73,7 +73,7 @@ export function FinancialPayables() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setCreditorName(""); setNotes(""); setEditingId(null);
+    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setCreditorName(""); setCreditorId(null); setNotes(""); setEditingId(null);
   };
 
   const handleSave = async () => {
