@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Check, Search, Sprout } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -29,7 +29,7 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
-  _source?: "manual" | "harvest";
+  _source?: "manual" | "harvest" | "cte";
 }
 
 interface Category {
@@ -44,7 +44,16 @@ interface HarvestReceivable {
   monthly_value: number;
   totalLiquido: number;
   totalDays: number;
+  invoicedAmount: number;
   status: string;
+}
+
+interface CteReceivable {
+  id: string;
+  numero: number | null;
+  tomador_nome: string | null;
+  valor_frete: number;
+  data_emissao: string | null;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -53,6 +62,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   vencido: { label: "Vencido", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "secondary" },
   previsao: { label: "Previsão Colheita", variant: "secondary" },
+  previsao_cte: { label: "Previsão CT-e", variant: "outline" },
 };
 
 async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
@@ -63,10 +73,23 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
 
   if (!jobs || jobs.length === 0) return [];
 
+  // Get all harvest invoices to subtract invoiced amounts
+  const { data: harvestInvoices } = await supabase
+    .from("financial_invoices")
+    .select("harvest_job_id, total_amount, status")
+    .eq("source_type", "harvest" as any)
+    .neq("status", "cancelada" as any);
+
+  const invoicedByJob = new Map<string, number>();
+  for (const inv of (harvestInvoices as any[] || [])) {
+    if (inv.harvest_job_id) {
+      invoicedByJob.set(inv.harvest_job_id, (invoicedByJob.get(inv.harvest_job_id) || 0) + Number(inv.total_amount));
+    }
+  }
+
   const results: HarvestReceivable[] = [];
 
   for (const job of jobs) {
-    // Get client name
     let clientName: string | null = null;
     if (job.client_id) {
       const { data: client } = await supabase
@@ -77,7 +100,6 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
       clientName = client?.nome_fantasia || client?.full_name || null;
     }
 
-    // Get assignments
     const { data: assignments } = await supabase
       .from("harvest_assignments")
       .select("id, start_date, end_date, discounts, company_discounts")
@@ -87,7 +109,6 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
 
     const today = new Date().toISOString().split("T")[0];
     const dvCliente = job.monthly_value / 30;
-
     let totalLiquido = 0;
     let totalDays = 0;
 
@@ -110,6 +131,8 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
       totalDays += days;
     }
 
+    const invoiced = invoicedByJob.get(job.id) || 0;
+
     results.push({
       id: job.id,
       farm_name: job.farm_name,
@@ -117,6 +140,7 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
       monthly_value: job.monthly_value,
       totalLiquido,
       totalDays,
+      invoicedAmount: invoiced,
       status: job.status,
     });
   }
@@ -124,10 +148,29 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
   return results;
 }
 
+async function fetchCteReceivables(): Promise<CteReceivable[]> {
+  // Get CT-es that are already in invoices
+  const { data: invoicedItems } = await supabase
+    .from("financial_invoice_items")
+    .select("cte_id");
+  const invoicedCteIds = new Set((invoicedItems as any[] || []).map((i: any) => i.cte_id));
+
+  // Get all authorized CT-es
+  const { data: ctes } = await supabase
+    .from("ctes")
+    .select("id, numero, tomador_nome, valor_frete, data_emissao, status")
+    .eq("status", "autorizado")
+    .order("data_emissao", { ascending: false });
+
+  // Return only non-invoiced CT-es as forecasts
+  return ((ctes as any[]) || []).filter((c: any) => !invoicedCteIds.has(c.id));
+}
+
 export function FinancialReceivables() {
   const { user } = useAuth();
   const [items, setItems] = useState<Receivable[]>([]);
   const [harvestItems, setHarvestItems] = useState<HarvestReceivable[]>([]);
+  const [cteForecasts, setCteForecasts] = useState<CteReceivable[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -146,14 +189,16 @@ export function FinancialReceivables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }, harvestData] = await Promise.all([
+    const [{ data: recData }, { data: catData }, harvestData, cteData] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name").eq("type", "receivable" as any).eq("active", true),
       fetchHarvestReceivables(),
+      fetchCteReceivables(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
     setHarvestItems(harvestData);
+    setCteForecasts(cteData);
     setLoading(false);
   };
 
@@ -216,37 +261,60 @@ export function FinancialReceivables() {
 
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || "—";
 
-  // Combine manual items with harvest virtual items
-  const harvestAsReceivables: Receivable[] = harvestItems.map(h => ({
-    id: `harvest-${h.id}`,
-    description: `Colheita — ${h.farm_name}`,
+  // Harvest virtual items — only show remaining (not yet invoiced) amount
+  const harvestAsReceivables: Receivable[] = harvestItems
+    .filter(h => (h.totalLiquido - h.invoicedAmount) > 0)
+    .map(h => ({
+      id: `harvest-${h.id}`,
+      description: `Colheita — ${h.farm_name}`,
+      category_id: null,
+      amount: h.totalLiquido - h.invoicedAmount,
+      due_date: null,
+      status: "previsao",
+      paid_at: null,
+      paid_amount: null,
+      debtor_name: h.client_name,
+      cte_id: null,
+      invoice_id: null,
+      notes: `${h.totalDays} dias | Mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${h.invoicedAmount > 0 ? ` | Faturado: R$ ${h.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
+      created_at: new Date().toISOString(),
+      _source: "harvest" as const,
+    }));
+
+  // CT-e forecasts — authorized but not yet invoiced
+  const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
+    id: `cte-${c.id}`,
+    description: `CT-e #${c.numero || "—"}`,
     category_id: null,
-    amount: h.totalLiquido,
+    amount: Number(c.valor_frete),
     due_date: null,
-    status: "previsao",
+    status: "previsao_cte",
     paid_at: null,
     paid_amount: null,
-    debtor_name: h.client_name,
-    cte_id: null,
+    debtor_name: c.tomador_nome,
+    cte_id: c.id,
     invoice_id: null,
-    notes: `${h.totalDays} dias | Valor mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-    created_at: new Date().toISOString(),
-    _source: "harvest" as const,
+    notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
+    created_at: c.data_emissao || new Date().toISOString(),
+    _source: "cte" as const,
   }));
 
-  const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables];
+  const allItems = [
+    ...items.map(i => ({ ...i, _source: "manual" as const })),
+    ...harvestAsReceivables,
+    ...cteAsReceivables,
+  ];
 
   const filtered = allItems.filter(i => {
     const matchSearch = !search || i.description.toLowerCase().includes(search.toLowerCase()) || (i.debtor_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || filterStatus === "previsao"
-      ? (filterStatus === "all" ? true : i.status === "previsao")
-      : i.status === filterStatus;
+    const matchStatus = filterStatus === "all" || i.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
   const totalPendente = filtered.filter(i => i.status === "pendente").reduce((s, i) => s + Number(i.amount), 0);
   const totalPago = filtered.filter(i => i.status === "pago").reduce((s, i) => s + Number(i.paid_amount || i.amount), 0);
-  const totalPrevisao = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
+  const totalPrevisaoColheita = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
+  const totalPrevisaoCte = filtered.filter(i => i.status === "previsao_cte").reduce((s, i) => s + Number(i.amount), 0);
 
   return (
     <div className="space-y-4">
@@ -263,11 +331,19 @@ export function FinancialReceivables() {
             <p className="text-xl font-bold text-emerald-600">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
-        {totalPrevisao > 0 && (
+        {totalPrevisaoColheita > 0 && (
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><Sprout className="h-3 w-3" /> Previsão Colheita</p>
-              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisaoColheita.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            </CardContent>
+          </Card>
+        )}
+        {totalPrevisaoCte > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" /> Previsão CT-e</p>
+              <p className="text-xl font-bold text-violet-600">R$ {totalPrevisaoCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
         )}
@@ -340,13 +416,14 @@ export function FinancialReceivables() {
               <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>
                 <SelectItem value="previsao">Previsão Colheita</SelectItem>
+                <SelectItem value="previsao_cte">Previsão CT-e</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
@@ -372,18 +449,21 @@ export function FinancialReceivables() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id} className={item._source === "harvest" ? "bg-blue-500/5" : ""}>
+                    <TableRow key={item.id} className={item._source === "harvest" ? "bg-blue-500/5" : item._source === "cte" ? "bg-violet-500/5" : ""}>
                       <TableCell className="font-medium max-w-[200px]">
                         <div className="flex items-center gap-1.5">
                           {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
+                          {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-violet-500 shrink-0" />}
                           <span className="truncate">{item.description}</span>
                         </div>
-                        {item._source === "harvest" && item.notes && (
+                        {(item._source === "harvest" || item._source === "cte") && item.notes && (
                           <p className="text-[11px] text-muted-foreground mt-0.5">{item.notes}</p>
                         )}
                       </TableCell>
                       <TableCell>{item.debtor_name || "—"}</TableCell>
-                      <TableCell>{item._source === "harvest" ? "Colheita" : getCategoryName(item.category_id)}</TableCell>
+                      <TableCell>
+                        {item._source === "harvest" ? "Colheita" : item._source === "cte" ? "Frete" : getCategoryName(item.category_id)}
+                      </TableCell>
                       <TableCell className="text-right font-mono">
                         R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
@@ -394,7 +474,7 @@ export function FinancialReceivables() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {item._source !== "harvest" && (
+                        {item._source === "manual" && (
                           <div className="flex gap-1">
                             {item.status === "pendente" && (
                               <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
