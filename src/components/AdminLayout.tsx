@@ -44,7 +44,16 @@ const menuItems = [
     ],
   },
   { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
-  { title: "Financeiro", url: "/admin/financial", icon: DollarSign },
+  {
+    title: "Financeiro",
+    icon: DollarSign,
+    children: [
+      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
+      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
+      { title: "Cadastros", url: "/admin/financial/categories", icon: Settings },
+    ],
+  },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
@@ -58,6 +67,7 @@ function SidebarNav() {
   };
 
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers";
+  const isFinanceiroActive = location.pathname.startsWith("/admin/financial");
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
@@ -74,11 +84,12 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
+                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : false;
                   return (
-                    <Collapsible key={item.title} defaultOpen={isCadastrosActive} className="group/collapsible">
+                    <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton tooltip={item.title} isActive={isCadastrosActive}>
+                          <SidebarMenuButton tooltip={item.title} isActive={isGroupActive}>
                             <item.icon className="h-4 w-4" />
                             <span>{item.title}</span>
                             <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
