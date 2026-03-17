@@ -138,7 +138,7 @@ function SidebarNav() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      </SidebarContent>
+      </SidebarContentUI>
     </Sidebar>
   );
 }
