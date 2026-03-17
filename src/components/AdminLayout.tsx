@@ -77,7 +77,7 @@ function SidebarNav() {
   const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
+    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-[60]">
       {/* Branding no topo da sidebar */}
       <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
@@ -163,7 +163,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <SidebarNav />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar - fixed with glass effect */}
-          <header className="fixed top-0 right-0 left-0 z-50 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 peer-data-[state=expanded]:md:pl-[calc(var(--sidebar-width)+1rem)]">
+          <header className="fixed top-0 right-0 left-0 z-50 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8">
                 <Menu className="h-5 w-5" />
