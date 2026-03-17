@@ -52,7 +52,6 @@ const menuItems = [
       { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
-      { title: "Cadastros", url: "/admin/financial/categories", icon: Settings },
     ],
   },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
