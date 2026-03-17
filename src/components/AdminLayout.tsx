@@ -66,8 +66,8 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers";
-  const isFinanceiroActive = location.pathname.startsWith("/admin/financial");
+  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers" || location.pathname === "/admin/financial/categories";
+  const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
