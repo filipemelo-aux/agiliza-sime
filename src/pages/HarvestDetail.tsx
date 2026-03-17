@@ -603,7 +603,7 @@ export default function HarvestDetail() {
     const mobileClienteCard = (a: Assignment) => {
       const c = pdfGetClienteData(a);
       return `<div class="card">
-        <div class="card-header"><div><div class="card-name">${a.driver_name}</div><div class="card-plate">${a.vehicle_plate}</div></div></div>
+        <div class="card-header"><div><div class="card-name">${a.driver_name}</div><div class="card-plate">${a.vehicle_plate}${a.owner_name && a.owner_name !== "—" ? ` · ${a.owner_name}` : ""}</div></div></div>
         <div class="card-grid">
           <div><div class="card-label">Início</div><div class="card-value">${hasFilter ? getEffectiveStart(a) : formatDate(a.start_date)}</div></div>
           <div><div class="card-label">Fim</div><div class="card-value">${hasFilter ? fimCardValue(a) : (a.end_date ? formatDate(a.end_date) : "—")}</div></div>
