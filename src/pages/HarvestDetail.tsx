@@ -798,19 +798,18 @@ export default function HarvestDetail() {
     ? getPaymentForPeriod(filterStartDate, filterEndDate)
     : null;
 
-  const handleRegisterPayment = async () => {
+  const handleRegisterPayment = async (totalAmount: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
       return;
     }
     setSavingPayment(true);
     try {
-      const totalLiquido = filterBySearch(assignments).reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
       const { error } = await supabase.from("harvest_payments").insert({
         harvest_job_id: id,
         period_start: filterStartDate,
         period_end: filterEndDate,
-        total_amount: totalLiquido,
+        total_amount: totalAmount,
         created_by: user.id,
       } as any);
       if (error) throw error;
