@@ -177,7 +177,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
   return (
     <div className="flex-1 flex flex-col min-w-0">
       <header
-        className="fixed top-0 right-0 z-[55] h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 transition-[left] duration-200"
+        className="fixed top-0 right-0 z-30 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 transition-[left] duration-200"
         style={{ left: headerLeft }}
       >
         <div className="flex items-center gap-3">
