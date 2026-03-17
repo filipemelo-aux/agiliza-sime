@@ -86,6 +86,7 @@ export function FinancialPayables() {
       amount: Number(amount),
       due_date: dueDate || null,
       creditor_name: creditorName.trim() || null,
+      creditor_id: creditorId || null,
       notes: notes.trim() || null,
     };
 
