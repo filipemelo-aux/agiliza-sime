@@ -59,6 +59,7 @@ export function FinancialReceivables() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [debtorName, setDebtorName] = useState("");
+  const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   const fetchData = async () => {
