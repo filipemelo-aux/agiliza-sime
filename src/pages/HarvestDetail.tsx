@@ -688,7 +688,7 @@ export default function HarvestDetail() {
         const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
         const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
-        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
+        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
