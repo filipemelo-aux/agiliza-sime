@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Check, Search, Sprout, FileText } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -56,13 +56,17 @@ interface CteReceivable {
   data_emissao: string | null;
 }
 
+interface InvoiceSummary {
+  totalFaturado: number;
+  totalQuitado: number;
+}
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "outline" },
   pago: { label: "Pago", variant: "default" },
   vencido: { label: "Vencido", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "secondary" },
-  previsao: { label: "Previsão Colheita", variant: "secondary" },
-  previsao_cte: { label: "Previsão CT-e", variant: "outline" },
+  previsao: { label: "Previsão", variant: "secondary" },
 };
 
 async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
@@ -73,7 +77,6 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
 
   if (!jobs || jobs.length === 0) return [];
 
-  // Get all harvest invoices to subtract invoiced amounts
   const { data: harvestInvoices } = await supabase
     .from("financial_invoices")
     .select("harvest_job_id, total_amount, status")
@@ -149,21 +152,39 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
 }
 
 async function fetchCteReceivables(): Promise<CteReceivable[]> {
-  // Get CT-es that are already in invoices
   const { data: invoicedItems } = await supabase
     .from("financial_invoice_items")
     .select("cte_id");
   const invoicedCteIds = new Set((invoicedItems as any[] || []).map((i: any) => i.cte_id));
 
-  // Get all authorized CT-es
   const { data: ctes } = await supabase
     .from("ctes")
     .select("id, numero, tomador_nome, valor_frete, data_emissao, status")
     .eq("status", "autorizado")
     .order("data_emissao", { ascending: false });
 
-  // Return only non-invoiced CT-es as forecasts
   return ((ctes as any[]) || []).filter((c: any) => !invoicedCteIds.has(c.id));
+}
+
+async function fetchInvoiceSummary(): Promise<InvoiceSummary> {
+  const { data: invoices } = await supabase
+    .from("financial_invoices")
+    .select("total_amount, status")
+    .neq("status", "cancelada" as any);
+
+  let totalFaturado = 0;
+  let totalQuitado = 0;
+
+  for (const inv of (invoices as any[] || [])) {
+    const amount = Number(inv.total_amount);
+    if (inv.status === "paga") {
+      totalQuitado += amount;
+    } else if (inv.status === "aberta") {
+      totalFaturado += amount;
+    }
+  }
+
+  return { totalFaturado, totalQuitado };
 }
 
 export function FinancialReceivables() {
@@ -171,6 +192,7 @@ export function FinancialReceivables() {
   const [items, setItems] = useState<Receivable[]>([]);
   const [harvestItems, setHarvestItems] = useState<HarvestReceivable[]>([]);
   const [cteForecasts, setCteForecasts] = useState<CteReceivable[]>([]);
+  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary>({ totalFaturado: 0, totalQuitado: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -189,16 +211,18 @@ export function FinancialReceivables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }, harvestData, cteData] = await Promise.all([
+    const [{ data: recData }, { data: catData }, harvestData, cteData, invSummary] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name").eq("type", "receivable" as any).eq("active", true),
       fetchHarvestReceivables(),
       fetchCteReceivables(),
+      fetchInvoiceSummary(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
     setHarvestItems(harvestData);
     setCteForecasts(cteData);
+    setInvoiceSummary(invSummary);
     setLoading(false);
   };
 
@@ -288,7 +312,7 @@ export function FinancialReceivables() {
     category_id: null,
     amount: Number(c.valor_frete),
     due_date: null,
-    status: "previsao_cte",
+    status: "previsao",
     paid_at: null,
     paid_amount: null,
     debtor_name: c.tomador_nome,
@@ -311,39 +335,28 @@ export function FinancialReceivables() {
     return matchSearch && matchStatus;
   });
 
-  const totalPendente = filtered.filter(i => i.status === "pendente").reduce((s, i) => s + Number(i.amount), 0);
-  const totalPago = filtered.filter(i => i.status === "pago").reduce((s, i) => s + Number(i.paid_amount || i.amount), 0);
-  const totalPrevisaoColheita = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
-  const totalPrevisaoCte = filtered.filter(i => i.status === "previsao_cte").reduce((s, i) => s + Number(i.amount), 0);
+  const totalPrevisao = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Pendente</p>
-            <p className="text-xl font-bold text-orange-600">R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-muted-foreground">Total Pendente (Faturado)</p>
+            <p className="text-xl font-bold text-orange-600">R$ {invoiceSummary.totalFaturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Recebido</p>
-            <p className="text-xl font-bold text-emerald-600">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-muted-foreground">Total Recebido (Quitado)</p>
+            <p className="text-xl font-bold text-emerald-600">R$ {invoiceSummary.totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
-        {totalPrevisaoColheita > 0 && (
+        {totalPrevisao > 0 && (
           <Card>
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Sprout className="h-3 w-3" /> Previsão Colheita</p>
-              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisaoColheita.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-            </CardContent>
-          </Card>
-        )}
-        {totalPrevisaoCte > 0 && (
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" /> Previsão CT-e</p>
-              <p className="text-xl font-bold text-violet-600">R$ {totalPrevisaoCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Previsão de Recebimento</p>
+              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
         )}
@@ -422,8 +435,7 @@ export function FinancialReceivables() {
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>
-                <SelectItem value="previsao">Previsão Colheita</SelectItem>
-                <SelectItem value="previsao_cte">Previsão CT-e</SelectItem>
+                <SelectItem value="previsao">Previsão</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
