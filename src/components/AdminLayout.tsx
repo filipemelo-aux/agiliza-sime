@@ -34,10 +34,10 @@ const menuItems = [
     title: "Transporte",
     icon: Car,
     children: [
-      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
   {
@@ -46,7 +46,7 @@ const menuItems = [
     children: [
       { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
-      { title: "Cargas", url: "/admin/cargas", icon: Package },
+      { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
       { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
     ],
   },
