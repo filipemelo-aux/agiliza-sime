@@ -9,7 +9,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
   Sidebar,
-  SidebarContent,
+  SidebarContent as SidebarContentUI,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
