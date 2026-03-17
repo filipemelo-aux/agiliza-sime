@@ -14,6 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts_payable: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string
+          creditor_id: string | null
+          creditor_name: string | null
+          description: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          creditor_id?: string | null
+          creditor_name?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          creditor_id?: string | null
+          creditor_name?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_payable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_creditor_id_fkey"
+            columns: ["creditor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts_receivable: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string
+          cte_id: string | null
+          debtor_id: string | null
+          debtor_name: string | null
+          description: string
+          due_date: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          cte_id?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          cte_id?: string | null
+          debtor_id?: string | null
+          debtor_name?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_receivable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "financial_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           ativo: boolean
@@ -527,6 +679,122 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      financial_invoice_items: {
+        Row: {
+          amount: number
+          created_at: string
+          cte_id: string
+          id: string
+          invoice_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          cte_id: string
+          id?: string
+          invoice_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          cte_id?: string
+          id?: string
+          invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_invoice_items_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "financial_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_invoices: {
+        Row: {
+          created_at: string
+          created_by: string
+          debtor_id: string | null
+          debtor_name: string
+          due_date: string | null
+          id: string
+          invoice_number: number
+          notes: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          debtor_id?: string | null
+          debtor_name: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: number
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          debtor_id?: string | null
+          debtor_name?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: number
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_invoices_debtor_id_fkey"
+            columns: ["debtor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
