@@ -1521,6 +1521,37 @@ export default function HarvestDetail() {
               )}
             </div>
           </div>
+          {/* Payment status + register button */}
+          <div className="flex items-center justify-between gap-2">
+            {filterStartDate && filterEndDate ? (
+              currentPeriodPayment ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge className="bg-green-500/20 text-green-600 border-0 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Período Pago
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(currentPeriodPayment.total_amount)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                    <Clock className="h-3 w-3" />
+                    Não Pago
+                  </Badge>
+                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
+                  </Button>
+                </div>
+              )
+            ) : (
+              <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
