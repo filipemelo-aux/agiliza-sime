@@ -184,7 +184,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          <img src={logo} alt="SIME" className="h-9 w-auto" />
+          {!isExpanded && <img src={logo} alt="SIME" className="h-9 w-auto" />}
         </div>
         {user && (
           <div className="flex items-center gap-2 sm:gap-3">
