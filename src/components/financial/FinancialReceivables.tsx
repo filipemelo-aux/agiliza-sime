@@ -194,8 +194,20 @@ export function FinancialReceivables() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Devedor</Label>
-                  <Input value={debtorName} onChange={(e) => setDebtorName(e.target.value)} placeholder="Nome do devedor" />
+                  <Label>Devedor (Cliente)</Label>
+                  <PersonSearchInput
+                    categories={["cliente"]}
+                    placeholder="Buscar cliente cadastrado..."
+                    selectedName={debtorName || undefined}
+                    onSelect={(person) => {
+                      setDebtorName(person.full_name);
+                      setDebtorId(person.id);
+                    }}
+                    onClear={() => {
+                      setDebtorName("");
+                      setDebtorId(null);
+                    }}
+                  />
                 </div>
                 <div>
                   <Label>Observações</Label>

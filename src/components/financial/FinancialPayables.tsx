@@ -191,8 +191,20 @@ export function FinancialPayables() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Credor</Label>
-                  <Input value={creditorName} onChange={(e) => setCreditorName(e.target.value)} placeholder="Nome do credor" />
+                  <Label>Credor (Fornecedor)</Label>
+                  <PersonSearchInput
+                    categories={["fornecedor"]}
+                    placeholder="Buscar fornecedor cadastrado..."
+                    selectedName={creditorName || undefined}
+                    onSelect={(person) => {
+                      setCreditorName(person.full_name);
+                      setCreditorId(person.id);
+                    }}
+                    onClear={() => {
+                      setCreditorName("");
+                      setCreditorId(null);
+                    }}
+                  />
                 </div>
                 <div>
                   <Label>Observações</Label>
