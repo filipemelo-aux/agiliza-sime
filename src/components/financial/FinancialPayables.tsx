@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 interface Payable {
   id: string;
