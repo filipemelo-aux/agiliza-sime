@@ -737,7 +737,7 @@ export default function HarvestDetail() {
         const totCliDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
         const totCliDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
         const totCliLiq = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table></div>`;
+        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table></div>`;
       }
     }
     const printWindow = window.open("", "_blank");
