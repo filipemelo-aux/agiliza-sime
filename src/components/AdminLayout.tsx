@@ -44,7 +44,16 @@ const menuItems = [
     ],
   },
   { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
-  { title: "Financeiro", url: "/admin/financial", icon: DollarSign },
+  {
+    title: "Financeiro",
+    icon: DollarSign,
+    children: [
+      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
+      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
+      { title: "Cadastros", url: "/admin/financial/categories", icon: Settings },
+    ],
+  },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
