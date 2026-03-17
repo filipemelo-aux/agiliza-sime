@@ -732,7 +732,7 @@ export default function HarvestDetail() {
     }
     if (type === "cliente" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Cliente — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
         html += `<div class="cards-grid">`;
