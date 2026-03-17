@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Check, Search } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -29,6 +29,7 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
+  _source?: "manual" | "harvest";
 }
 
 interface Category {
@@ -36,16 +37,97 @@ interface Category {
   name: string;
 }
 
+interface HarvestReceivable {
+  id: string;
+  farm_name: string;
+  client_name: string | null;
+  monthly_value: number;
+  totalLiquido: number;
+  totalDays: number;
+  status: string;
+}
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "outline" },
   pago: { label: "Pago", variant: "default" },
   vencido: { label: "Vencido", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "secondary" },
+  previsao: { label: "Previsão Colheita", variant: "secondary" },
 };
+
+async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
+  const { data: jobs } = await supabase
+    .from("harvest_jobs")
+    .select("id, farm_name, monthly_value, harvest_period_start, harvest_period_end, client_id, status")
+    .eq("status", "active" as any);
+
+  if (!jobs || jobs.length === 0) return [];
+
+  const results: HarvestReceivable[] = [];
+
+  for (const job of jobs) {
+    // Get client name
+    let clientName: string | null = null;
+    if (job.client_id) {
+      const { data: client } = await supabase
+        .from("profiles")
+        .select("full_name, nome_fantasia")
+        .eq("id", job.client_id)
+        .maybeSingle();
+      clientName = client?.nome_fantasia || client?.full_name || null;
+    }
+
+    // Get assignments
+    const { data: assignments } = await supabase
+      .from("harvest_assignments")
+      .select("id, start_date, end_date, discounts, company_discounts")
+      .eq("harvest_job_id", job.id);
+
+    if (!assignments || assignments.length === 0) continue;
+
+    const today = new Date().toISOString().split("T")[0];
+    const dvCliente = job.monthly_value / 30;
+
+    let totalLiquido = 0;
+    let totalDays = 0;
+
+    for (const a of assignments) {
+      const startDate = new Date(a.start_date + "T00:00:00");
+      const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : new Date(today + "T00:00:00");
+      const days = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const bruto = days * dvCliente;
+
+      const discounts = Array.isArray(a.discounts) ? a.discounts : [];
+      const companyDiscounts = Array.isArray(a.company_discounts) ? a.company_discounts : [];
+
+      const dieselDisc = (discounts as any[])
+        .filter((d: any) => d.type === "diesel")
+        .reduce((s: number, d: any) => s + (d.value || 0), 0);
+      const companyDisc = (companyDiscounts as any[])
+        .reduce((s: number, d: any) => s + (d.value || 0), 0);
+
+      totalLiquido += bruto - dieselDisc - companyDisc;
+      totalDays += days;
+    }
+
+    results.push({
+      id: job.id,
+      farm_name: job.farm_name,
+      client_name: clientName,
+      monthly_value: job.monthly_value,
+      totalLiquido,
+      totalDays,
+      status: job.status,
+    });
+  }
+
+  return results;
+}
 
 export function FinancialReceivables() {
   const { user } = useAuth();
   const [items, setItems] = useState<Receivable[]>([]);
+  const [harvestItems, setHarvestItems] = useState<HarvestReceivable[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,12 +146,14 @@ export function FinancialReceivables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }] = await Promise.all([
+    const [{ data: recData }, { data: catData }, harvestData] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name").eq("type", "receivable" as any).eq("active", true),
+      fetchHarvestReceivables(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
+    setHarvestItems(harvestData);
     setLoading(false);
   };
 
@@ -132,18 +216,41 @@ export function FinancialReceivables() {
 
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || "—";
 
-  const filtered = items.filter(i => {
+  // Combine manual items with harvest virtual items
+  const harvestAsReceivables: Receivable[] = harvestItems.map(h => ({
+    id: `harvest-${h.id}`,
+    description: `Colheita — ${h.farm_name}`,
+    category_id: null,
+    amount: h.totalLiquido,
+    due_date: null,
+    status: "previsao",
+    paid_at: null,
+    paid_amount: null,
+    debtor_name: h.client_name,
+    cte_id: null,
+    invoice_id: null,
+    notes: `${h.totalDays} dias | Valor mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    created_at: new Date().toISOString(),
+    _source: "harvest" as const,
+  }));
+
+  const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables];
+
+  const filtered = allItems.filter(i => {
     const matchSearch = !search || i.description.toLowerCase().includes(search.toLowerCase()) || (i.debtor_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || i.status === filterStatus;
+    const matchStatus = filterStatus === "all" || filterStatus === "previsao"
+      ? (filterStatus === "all" ? true : i.status === "previsao")
+      : i.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
   const totalPendente = filtered.filter(i => i.status === "pendente").reduce((s, i) => s + Number(i.amount), 0);
   const totalPago = filtered.filter(i => i.status === "pago").reduce((s, i) => s + Number(i.paid_amount || i.amount), 0);
+  const totalPrevisao = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pendente</p>
@@ -156,6 +263,14 @@ export function FinancialReceivables() {
             <p className="text-xl font-bold text-emerald-600">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
+        {totalPrevisao > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Sprout className="h-3 w-3" /> Previsão Colheita</p>
+              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
@@ -225,12 +340,13 @@ export function FinancialReceivables() {
               <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>
+                <SelectItem value="previsao">Previsão Colheita</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
@@ -256,10 +372,18 @@ export function FinancialReceivables() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium max-w-[200px] truncate">{item.description}</TableCell>
+                    <TableRow key={item.id} className={item._source === "harvest" ? "bg-blue-500/5" : ""}>
+                      <TableCell className="font-medium max-w-[200px]">
+                        <div className="flex items-center gap-1.5">
+                          {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
+                          <span className="truncate">{item.description}</span>
+                        </div>
+                        {item._source === "harvest" && item.notes && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{item.notes}</p>
+                        )}
+                      </TableCell>
                       <TableCell>{item.debtor_name || "—"}</TableCell>
-                      <TableCell>{getCategoryName(item.category_id)}</TableCell>
+                      <TableCell>{item._source === "harvest" ? "Colheita" : getCategoryName(item.category_id)}</TableCell>
                       <TableCell className="text-right font-mono">
                         R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
@@ -270,16 +394,18 @@ export function FinancialReceivables() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          {item.status === "pendente" && (
-                            <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
-                              <Check className="h-4 w-4 text-emerald-600" />
+                        {item._source !== "harvest" && (
+                          <div className="flex gap-1">
+                            {item.status === "pendente" && (
+                              <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
+                                <Check className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </div>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
