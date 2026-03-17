@@ -784,6 +784,51 @@ export default function HarvestDetail() {
     }
   };
 
+  // Payment helpers
+  const getPaymentForPeriod = (periodStart: string, periodEnd: string) => {
+    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd);
+  };
+
+  const currentPeriodPayment = filterStartDate && filterEndDate
+    ? getPaymentForPeriod(filterStartDate, filterEndDate)
+    : null;
+
+  const handleRegisterPayment = async () => {
+    if (!filterStartDate || !filterEndDate || !id || !user) {
+      toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
+      return;
+    }
+    setSavingPayment(true);
+    try {
+      const totalLiquido = filterBySearch(assignments).reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+      const { error } = await supabase.from("harvest_payments").insert({
+        harvest_job_id: id,
+        period_start: filterStartDate,
+        period_end: filterEndDate,
+        total_amount: totalLiquido,
+        created_by: user.id,
+      } as any);
+      if (error) throw error;
+      toast({ title: "Pagamento registrado com sucesso!" });
+      setPaymentDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    try {
+      const { error } = await supabase.from("harvest_payments").delete().eq("id", paymentId);
+      if (error) throw error;
+      toast({ title: "Pagamento removido" });
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
 
   // Discount handlers
   const openDiscountDialog = (assignment: Assignment) => {
