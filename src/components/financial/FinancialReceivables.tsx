@@ -89,6 +89,7 @@ export function FinancialReceivables() {
       amount: Number(amount),
       due_date: dueDate || null,
       debtor_name: debtorName.trim() || null,
+      debtor_id: debtorId || null,
       notes: notes.trim() || null,
     };
 
