@@ -2048,6 +2048,7 @@ export default function HarvestDetail() {
                 </>
               );
             })()}
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
