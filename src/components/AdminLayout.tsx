@@ -85,7 +85,7 @@ function SidebarNav() {
         </span>
       </div>
 
-      <SidebarContent className="overflow-y-auto">
+      <SidebarContentUI className="overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
