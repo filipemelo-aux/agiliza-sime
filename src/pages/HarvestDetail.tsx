@@ -655,7 +655,7 @@ export default function HarvestDetail() {
         const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="3" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table></div>`;
+        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table></div>`;
       }
     }
     if (type === "faturamento" || type === "ambos") {
