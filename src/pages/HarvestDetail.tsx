@@ -105,7 +105,10 @@ export default function HarvestDetail() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [payments, setPayments] = useState<HarvestPayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [companyDiscountDialogOpen, setCompanyDiscountDialogOpen] = useState(false);
