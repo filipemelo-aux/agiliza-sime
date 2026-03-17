@@ -79,7 +79,8 @@ function SidebarNav() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-[60]">
       {/* Branding no topo da sidebar */}
-      <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
+      <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0 gap-2">
+        <img src={logo} alt="SIME" className="h-8 w-auto shrink-0" />
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
           SIME <span className="text-accent">TRANSPORTES</span>
         </span>
@@ -184,7 +185,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          <img src={logo} alt="SIME" className="h-9 w-auto" />
+          {!isExpanded && <img src={logo} alt="SIME" className="h-9 w-auto" />}
         </div>
         {user && (
           <div className="flex items-center gap-2 sm:gap-3">
