@@ -72,7 +72,7 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications");
+  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
   const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
