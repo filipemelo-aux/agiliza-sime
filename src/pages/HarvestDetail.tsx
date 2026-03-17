@@ -2028,20 +2028,26 @@ export default function HarvestDetail() {
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
             </div>
-            <div className="text-sm">
-              <p className="text-muted-foreground">Total Líquido Agregados:</p>
-              <p className="font-bold text-lg text-primary">
-                {formatCurrency(filterBySearch(assignments).reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleRegisterPayment} disabled={savingPayment}>
-              {savingPayment ? "Salvando..." : "Confirmar Pagamento"}
-            </Button>
-          </DialogFooter>
+            {(() => {
+              const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+              return (
+                <>
+                  <div className="text-sm">
+                    <p className="text-muted-foreground">Total Líquido Agregados:</p>
+                    <p className="font-bold text-lg text-primary">
+                      {formatCurrency(totalLiquido)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
+                  <DialogFooter>
+                    <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
+                    <Button size="sm" onClick={() => handleRegisterPayment(totalLiquido)} disabled={savingPayment}>
+                      {savingPayment ? "Salvando..." : "Confirmar Pagamento"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()}
         </DialogContent>
       </Dialog>
     </AdminLayout>
