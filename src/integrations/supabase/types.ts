@@ -756,9 +756,11 @@ export type Database = {
           debtor_id: string | null
           debtor_name: string
           due_date: string | null
+          harvest_job_id: string | null
           id: string
           invoice_number: number
           notes: string | null
+          source_type: string
           status: string
           total_amount: number
           updated_at: string
@@ -769,9 +771,11 @@ export type Database = {
           debtor_id?: string | null
           debtor_name: string
           due_date?: string | null
+          harvest_job_id?: string | null
           id?: string
           invoice_number?: number
           notes?: string | null
+          source_type?: string
           status?: string
           total_amount?: number
           updated_at?: string
@@ -782,9 +786,11 @@ export type Database = {
           debtor_id?: string | null
           debtor_name?: string
           due_date?: string | null
+          harvest_job_id?: string | null
           id?: string
           invoice_number?: number
           notes?: string | null
+          source_type?: string
           status?: string
           total_amount?: number
           updated_at?: string
@@ -795,6 +801,13 @@ export type Database = {
             columns: ["debtor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_invoices_harvest_job_id_fkey"
+            columns: ["harvest_job_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_jobs"
             referencedColumns: ["id"]
           },
         ]
