@@ -77,7 +77,7 @@ function SidebarNav() {
   const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
+    <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-[60]">
       {/* Branding no topo da sidebar */}
       <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
