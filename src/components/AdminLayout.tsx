@@ -41,6 +41,7 @@ const menuItems = [
       { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Cargas", url: "/admin/cargas", icon: Package },
+      { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
     ],
   },
   { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
