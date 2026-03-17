@@ -64,6 +64,17 @@ interface Assignment {
   fleet_type?: string;
 }
 
+interface HarvestPayment {
+  id: string;
+  harvest_job_id: string;
+  period_start: string;
+  period_end: string;
+  total_amount: number;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
 interface DriverOption {
   user_id: string;
   full_name: string;
