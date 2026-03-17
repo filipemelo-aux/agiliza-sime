@@ -34,10 +34,10 @@ const menuItems = [
     title: "Transporte",
     icon: Car,
     children: [
-      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
   {
