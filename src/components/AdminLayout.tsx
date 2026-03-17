@@ -41,6 +41,7 @@ const menuItems = [
       { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Cargas", url: "/admin/cargas", icon: Package },
+      { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
     ],
   },
   { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
@@ -51,7 +52,6 @@ const menuItems = [
       { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
-      { title: "Cadastros", url: "/admin/financial/categories", icon: Settings },
     ],
   },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
@@ -66,8 +66,8 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers";
-  const isFinanceiroActive = location.pathname.startsWith("/admin/financial");
+  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname === "/admin/drivers" || location.pathname === "/admin/financial/categories";
+  const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-40">
