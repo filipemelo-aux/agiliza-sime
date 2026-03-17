@@ -1432,6 +1432,47 @@ export type Database = {
           },
         ]
       }
+      harvest_payments: {
+        Row: {
+          created_at: string
+          created_by: string
+          harvest_job_id: string
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          harvest_job_id: string
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          total_amount?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          harvest_job_id?: string
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "harvest_payments_harvest_job_id_fkey"
+            columns: ["harvest_job_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mdfe: {
         Row: {
           chave_acesso: string | null

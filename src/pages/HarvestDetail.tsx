@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AgregadoMobileCard, FaturamentoMobileCard, ClienteMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -64,6 +64,17 @@ interface Assignment {
   fleet_type?: string;
 }
 
+interface HarvestPayment {
+  id: string;
+  harvest_job_id: string;
+  period_start: string;
+  period_end: string;
+  total_amount: number;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
 interface DriverOption {
   user_id: string;
   full_name: string;
@@ -94,7 +105,10 @@ export default function HarvestDetail() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [payments, setPayments] = useState<HarvestPayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [companyDiscountDialogOpen, setCompanyDiscountDialogOpen] = useState(false);
@@ -245,6 +259,14 @@ export default function HarvestDetail() {
 
       setDrivers(driversData);
       setVehicles(vehiclesData || []);
+
+      // Fetch payments for this harvest job
+      const { data: paymentsData } = await supabase
+        .from("harvest_payments")
+        .select("*")
+        .eq("harvest_job_id", id)
+        .order("period_start", { ascending: false });
+      setPayments(paymentsData || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -522,6 +544,11 @@ export default function HarvestDetail() {
       return;
     }
     const useMobileLayout = isMobile;
+    // Check payment status for this period in the PDF
+    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate) : null;
+    const paymentStatusHtml = pdfPayment
+      ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(pdfPayment.total_amount)}</span>`
+      : (filterStartDate && filterEndDate ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>` : '');
     const tableStyle = useMobileLayout
       ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
       : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
@@ -623,7 +650,7 @@ export default function HarvestDetail() {
 
     if (type === "agregados" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Agregados — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
         html += `<div class="cards-grid">`;
@@ -660,7 +687,7 @@ export default function HarvestDetail() {
     }
     if (type === "faturamento" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
         html += `<div class="cards-grid">`;
@@ -705,7 +732,7 @@ export default function HarvestDetail() {
     }
     if (type === "cliente" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Cliente — ${job!.farm_name}</h2>`;
-      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel}</h3>`;
+      if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
         html += `<div class="cards-grid">`;
@@ -762,6 +789,50 @@ export default function HarvestDetail() {
     }
   };
 
+  // Payment helpers
+  const getPaymentForPeriod = (periodStart: string, periodEnd: string) => {
+    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd);
+  };
+
+  const currentPeriodPayment = filterStartDate && filterEndDate
+    ? getPaymentForPeriod(filterStartDate, filterEndDate)
+    : null;
+
+  const handleRegisterPayment = async (totalAmount: number) => {
+    if (!filterStartDate || !filterEndDate || !id || !user) {
+      toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
+      return;
+    }
+    setSavingPayment(true);
+    try {
+      const { error } = await supabase.from("harvest_payments").insert({
+        harvest_job_id: id,
+        period_start: filterStartDate,
+        period_end: filterEndDate,
+        total_amount: totalAmount,
+        created_by: user.id,
+      } as any);
+      if (error) throw error;
+      toast({ title: "Pagamento registrado com sucesso!" });
+      setPaymentDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    try {
+      const { error } = await supabase.from("harvest_payments").delete().eq("id", paymentId);
+      if (error) throw error;
+      toast({ title: "Pagamento removido" });
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
 
   // Discount handlers
   const openDiscountDialog = (assignment: Assignment) => {
@@ -1454,6 +1525,37 @@ export default function HarvestDetail() {
               )}
             </div>
           </div>
+          {/* Payment status + register button */}
+          <div className="flex items-center justify-between gap-2">
+            {filterStartDate && filterEndDate ? (
+              currentPeriodPayment ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge className="bg-green-500/20 text-green-600 border-0 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Período Pago
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(currentPeriodPayment.total_amount)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                    <Clock className="h-3 w-3" />
+                    Não Pago
+                  </Badge>
+                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
+                  </Button>
+                </div>
+              )
+            ) : (
+              <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -1912,6 +2014,41 @@ export default function HarvestDetail() {
               Gerar PDF
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Registration Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="text-sm">
+              <p className="text-muted-foreground">Período:</p>
+              <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
+            </div>
+            {(() => {
+              const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+              return (
+                <>
+                  <div className="text-sm">
+                    <p className="text-muted-foreground">Total Líquido Agregados:</p>
+                    <p className="font-bold text-lg text-primary">
+                      {formatCurrency(totalLiquido)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
+                  <DialogFooter>
+                    <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
+                    <Button size="sm" onClick={() => handleRegisterPayment(totalLiquido)} disabled={savingPayment}>
+                      {savingPayment ? "Salvando..." : "Confirmar Pagamento"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()}
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
