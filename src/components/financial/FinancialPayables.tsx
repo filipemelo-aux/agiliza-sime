@@ -56,6 +56,7 @@ export function FinancialPayables() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [creditorName, setCreditorName] = useState("");
+  const [creditorId, setCreditorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
   const fetchData = async () => {
