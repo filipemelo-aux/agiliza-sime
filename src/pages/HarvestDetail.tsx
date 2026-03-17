@@ -732,7 +732,7 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const c = pdfGetClienteData(a);
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
+          html += `<tr><td>${a.driver_name}</td><td>${a.owner_name || "—"}</td><td>${a.vehicle_plate}</td><td>${formatDate(a.start_date)}</td><td class="center">${c.days}</td><td class="right">${formatCurrency(c.dvCliente)}</td><td class="right">${formatCurrency(c.totalBruto)}</td><td class="right">${formatCurrency(c.totalDescontos)}</td><td class="right">${formatCurrency(c.totalLiquido)}</td></tr>`;
         });
         const totCliDias = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).days, 0);
         const totCliDesc = activeAssignments.reduce((s, a) => s + pdfGetClienteData(a).totalDescontos, 0);
