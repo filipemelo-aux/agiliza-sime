@@ -681,7 +681,7 @@ export default function HarvestDetail() {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
           const f = pdfGetFaturamentoData(a);
-          html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
+          html += `<tr><td>${a.driver_name}</td><td>${a.owner_name || "—"}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${f.days}</td><td class="right">${formatCurrency(f.dvEmpresa)}</td><td class="right">${formatCurrency(f.totalBruto)}</td><td class="right">${formatCurrency(f.liquidoTerceiros)}</td><td class="right">${formatCurrency(f.descontosEmpresa)}</td><td class="right">${formatCurrency(f.faturamentoLiquido)}</td></tr>`;
         });
         const totFatDias = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).days, 0);
         const totBruto = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).totalBruto, 0);
