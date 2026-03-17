@@ -2012,6 +2012,34 @@ export default function HarvestDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Registration Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="text-sm">
+              <p className="text-muted-foreground">Período:</p>
+              <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
+            </div>
+            <div className="text-sm">
+              <p className="text-muted-foreground">Total Líquido Agregados:</p>
+              <p className="font-bold text-lg text-primary">
+                {formatCurrency(filterBySearch(assignments).reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0))}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleRegisterPayment} disabled={savingPayment}>
+              {savingPayment ? "Salvando..." : "Confirmar Pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
