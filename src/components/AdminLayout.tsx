@@ -161,9 +161,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <SidebarNav />
-        <SidebarContent handleLogout={handleLogout} user={user}>
+        <SidebarContentInner handleLogout={handleLogout} user={user}>
           {children}
-        </SidebarContent>
+        </SidebarContentInner>
       </div>
     </SidebarProvider>
   );
