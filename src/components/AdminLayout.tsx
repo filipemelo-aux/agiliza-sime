@@ -37,6 +37,7 @@ const menuItems = [
       { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
       { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
@@ -50,7 +51,6 @@ const menuItems = [
       { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
     ],
   },
-  { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
   {
     title: "Financeiro",
     icon: DollarSign,
@@ -72,7 +72,7 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications");
+  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
   const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
 
