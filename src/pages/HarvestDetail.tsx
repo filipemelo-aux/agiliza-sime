@@ -259,6 +259,14 @@ export default function HarvestDetail() {
 
       setDrivers(driversData);
       setVehicles(vehiclesData || []);
+
+      // Fetch payments for this harvest job
+      const { data: paymentsData } = await supabase
+        .from("harvest_payments")
+        .select("*")
+        .eq("harvest_job_id", id)
+        .order("period_start", { ascending: false });
+      setPayments(paymentsData || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
