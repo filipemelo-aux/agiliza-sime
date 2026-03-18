@@ -370,16 +370,18 @@ export function FinancialPayables() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          {item.status === "pendente" && (
-                            <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
-                              <Check className="h-4 w-4 text-emerald-600" />
+                        {item._source !== "harvest" && (
+                          <div className="flex gap-1">
+                            {item.status === "pendente" && (
+                              <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
+                                <Check className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </div>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
