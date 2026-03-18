@@ -1618,6 +1618,70 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_receipts: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          file_name: string
+          file_url: string
+          harvest_job_id: string | null
+          harvest_payment_id: string | null
+          id: string
+          person_id: string | null
+          person_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          file_name: string
+          file_url: string
+          harvest_job_id?: string | null
+          harvest_payment_id?: string | null
+          id?: string
+          person_id?: string | null
+          person_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          file_name?: string
+          file_url?: string
+          harvest_job_id?: string | null
+          harvest_payment_id?: string | null
+          id?: string
+          person_id?: string | null
+          person_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_harvest_job_id_fkey"
+            columns: ["harvest_job_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_harvest_payment_id_fkey"
+            columns: ["harvest_payment_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_receipts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address_city: string | null
