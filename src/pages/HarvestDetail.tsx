@@ -866,7 +866,7 @@ export default function HarvestDetail() {
     : [];
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
-  const handleRegisterPayment = async (totalAmount: number) => {
+  const handleRegisterPayment = async (totalAmount: number, expectedTotal: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
       return;
@@ -879,6 +879,7 @@ export default function HarvestDetail() {
         period_start: filterStartDate,
         period_end: filterEndDate,
         total_amount: totalAmount,
+        total_expected: expectedTotal,
         filter_context: currentFilterContext,
         created_by: user.id,
         notes: paymentNotes,
