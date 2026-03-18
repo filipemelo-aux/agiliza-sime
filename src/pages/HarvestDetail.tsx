@@ -1720,41 +1720,56 @@ export default function HarvestDetail() {
                   })()}
                 </div>
                 );
-              })() : (
+              })() : subPeriodPayments.length > 0 ? (() => {
+                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const saldoSub = totalLiq - totalSubPeriodPaid;
+                const isFullyPaid = saldoSub <= 0.01;
+                return (
                 <div className="flex flex-col gap-1.5 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
-                      <Clock className="h-3 w-3" />
-                      Não Pago
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
+                      <CheckCircle2 className="h-3 w-3" />
+                      {isFullyPaid ? "Período Pago" : "Parcial"}
                     </Badge>
-                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
-                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
-                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Total Pago: {formatCurrency(totalSubPeriodPaid)}
+                      {!isFullyPaid && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
+                    </span>
+                    {!isFullyPaid && (
+                      <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                        <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
+                      </Button>
+                    )}
                   </div>
-                  {subPeriodPayments.length > 0 && (() => {
-                    const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                    const saldoSub = totalLiq - totalSubPeriodPaid;
-                    return (
-                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
-                      <p className="text-xs font-semibold text-foreground">
-                        💰 Pagamentos encontrados em sub-períodos:
-                      </p>
-                      {subPeriodPayments.map((p) => {
-                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
-                        return (
-                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
-                          </div>
-                        );
-                      })}
-                      <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
-                        <span className="text-muted-foreground">Total Líquido: <span className="font-semibold text-foreground">{formatCurrency(totalLiq)}</span></span>
-                        <span className="text-muted-foreground">Pago: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
-                        {saldoSub > 0.01 && <span className="text-destructive font-semibold">Saldo: {formatCurrency(saldoSub)}</span>}
-                      </div>
+                  <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                    <p className="text-xs font-semibold text-foreground">
+                      💰 Pagamentos em sub-períodos:
+                    </p>
+                    {subPeriodPayments.map((p) => {
+                      const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                      return (
+                        <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                        </div>
+                      );
+                    })}
+                    <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
+                      <span className="text-muted-foreground">Total Líquido: <span className="font-semibold text-foreground">{formatCurrency(totalLiq)}</span></span>
+                      <span className="text-muted-foreground">Pago: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
+                      {!isFullyPaid && <span className="text-destructive font-semibold">Saldo: {formatCurrency(saldoSub)}</span>}
                     </div>
-                    );
-                  })()}
+                  </div>
+                </div>
+                );
+              })() : (
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                    <Clock className="h-3 w-3" />
+                    Não Pago
+                  </Badge>
+                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
+                  </Button>
                 </div>
               )
             ) : (
