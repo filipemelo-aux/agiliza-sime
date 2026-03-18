@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Check, Search } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -27,6 +27,7 @@ interface Payable {
   creditor_name: string | null;
   notes: string | null;
   created_at: string;
+  _source?: "manual" | "harvest";
 }
 
 interface Category {
@@ -39,6 +40,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pago: { label: "Pago", variant: "default" },
   vencido: { label: "Vencido", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "secondary" },
+  previsao: { label: "Previsão", variant: "secondary" },
 };
 
 export function FinancialPayables() {
