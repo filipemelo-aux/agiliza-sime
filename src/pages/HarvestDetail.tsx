@@ -1694,9 +1694,11 @@ export default function HarvestDetail() {
             {filterStartDate && filterEndDate ? (
               currentPeriodPayments.length > 0 ? (() => {
                 const totalLiqCalc = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const maxExpected = Math.max(...currentPeriodPayments.map(p => p.total_expected || 0));
-                const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
-                const saldo = totalLiq - totalPaidAmount;
+                const allPaymentsInRange = [...currentPeriodPayments, ...subPeriodPayments];
+                const totalExpectedSum = sumExpectedByPeriod(allPaymentsInRange);
+                const totalLiq = totalExpectedSum > 0 ? Math.min(totalLiqCalc, totalExpectedSum) : totalLiqCalc;
+                const allPaidInRange = totalPaidAmount + totalSubPeriodPaid;
+                const saldo = totalLiq - allPaidInRange;
                 const isPartial = saldo > 0.01;
                 const isOverpaid = saldo < -0.01;
                 const excesso = Math.abs(saldo);
