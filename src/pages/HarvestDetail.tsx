@@ -550,8 +550,11 @@ export default function HarvestDetail() {
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
     const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
+    const pdfOverlapping = (filterStartDate && filterEndDate) ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext) : [];
+    const pdfSubPeriod = pdfOverlapping.filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate));
     const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
     const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
+    const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
     if (pdfPayments.length > 0) {
       const saldo = pdfTotalLiquido - pdfTotalPaid;
@@ -566,8 +569,15 @@ export default function HarvestDetail() {
     } else if (filterStartDate && filterEndDate) {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
+    if (pdfSubPeriod.length > 0) {
+      const subLines = pdfSubPeriod.map(p => {
+        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+        return `${formatDate(p.period_start)}-${formatDate(p.period_end)}: ${formatCurrency(p.total_amount)} (${dateLabel})`;
+      }).join(" | ");
+      paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines} — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`;
+    }
     if (accumulatedPastBalance > 0 && filterStartDate && filterEndDate) {
-      paymentStatusHtml += `<span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
+      paymentStatusHtml += `<br/><span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;margin-top:4px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
     }
     const tableStyle = useMobileLayout
       ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
@@ -864,10 +874,43 @@ export default function HarvestDetail() {
     return payments.filter(p => p.period_start === periodStart && p.period_end === periodEnd && matchesContext(p));
   };
 
+  // Find all payments that overlap with the current filter range (for broad filters spanning multiple periods)
+  const getOverlappingPayments = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
+    const matchesContext = (p: HarvestPayment) => {
+      if ((p.filter_context || "") === filterCtx) return true;
+      if (!filterCtx) return true;
+      const currentIds = new Set(filterCtx.split(","));
+      const pCtx = p.filter_context || "";
+      if (!pCtx) return false;
+      const paymentIds = new Set(pCtx.split(","));
+      for (const cid of currentIds) {
+        if (!paymentIds.has(cid)) return false;
+      }
+      return true;
+    };
+    return payments.filter(p => {
+      // Payment period overlaps with filter range
+      if (p.period_end < periodStart || p.period_start > periodEnd) return false;
+      return matchesContext(p);
+    });
+  };
+
   const currentPeriodPayments = filterStartDate && filterEndDate
     ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext)
     : [];
+  
+  // All payments that overlap with filter range (includes exact + sub-period payments)
+  const overlappingPayments = filterStartDate && filterEndDate
+    ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext)
+    : [];
+  
+  // Payments from sub-periods (registered with different start/end than current filter)
+  const subPeriodPayments = overlappingPayments.filter(p => 
+    !(p.period_start === filterStartDate && p.period_end === filterEndDate)
+  );
+
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
+  const totalSubPeriodPaid = subPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
   // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
   const accumulatedPastBalance = (() => {
@@ -1649,17 +1692,49 @@ export default function HarvestDetail() {
                       );
                     })}
                   </div>
+                  {subPeriodPayments.length > 0 && (
+                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        💰 Outros pagamentos em sub-períodos ({formatCurrency(totalSubPeriodPaid)}):
+                      </p>
+                      {subPeriodPayments.map((p) => {
+                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                        return (
+                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 );
               })() : (
-                <div className="flex items-center gap-2 flex-1">
-                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
-                    <Clock className="h-3 w-3" />
-                    Não Pago
-                  </Badge>
-                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
-                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
-                  </Button>
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                      <Clock className="h-3 w-3" />
+                      Não Pago
+                    </Badge>
+                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
+                    </Button>
+                  </div>
+                  {subPeriodPayments.length > 0 && (
+                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        💰 Pagamentos encontrados em sub-períodos ({formatCurrency(totalSubPeriodPaid)} total):
+                      </p>
+                      {subPeriodPayments.map((p) => {
+                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                        return (
+                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             ) : (
