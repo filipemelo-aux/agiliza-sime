@@ -1685,14 +1685,31 @@ export default function HarvestDetail() {
                 </div>
                 );
               })() : (
-                <div className="flex items-center gap-2 flex-1">
-                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
-                    <Clock className="h-3 w-3" />
-                    Não Pago
-                  </Badge>
-                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
-                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
-                  </Button>
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
+                      <Clock className="h-3 w-3" />
+                      Não Pago
+                    </Badge>
+                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
+                    </Button>
+                  </div>
+                  {subPeriodPayments.length > 0 && (
+                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        💰 Pagamentos encontrados em sub-períodos ({formatCurrency(totalSubPeriodPaid)} total):
+                      </p>
+                      {subPeriodPayments.map((p) => {
+                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                        return (
+                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             ) : (
