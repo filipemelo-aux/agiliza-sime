@@ -570,7 +570,9 @@ export default function HarvestDetail() {
         : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
-        const saldoSub = pdfTotalLiquido - pdfSubPeriodPaid;
+        const subMaxExpected = Math.max(...pdfSubPeriod.map(p => p.total_expected || 0));
+        const subTotalRef = Math.min(pdfTotalLiquidoCalc, subMaxExpected > 0 ? subMaxExpected : pdfTotalLiquidoCalc);
+        const saldoSub = subTotalRef - pdfSubPeriodPaid;
         paymentStatusHtml = saldoSub <= 0.01
           ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`
           : `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — Pago: ${formatCurrency(pdfSubPeriodPaid)} | Saldo: ${formatCurrency(saldoSub)}</span>`;
