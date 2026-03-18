@@ -64,12 +64,113 @@ export function FinancialPayables() {
   const fetchData = async () => {
     setLoading(true);
     const [{ data: payData }, { data: catData }] = await Promise.all([
-      supabase.from("accounts_payable").select("*").order("created_at", { ascending: false }),
+      supabase.from("accounts_payable").select("*").neq("status", "pago" as any).order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name").eq("type", "payable" as any).eq("active", true),
     ]);
-    setItems((payData as any) || []);
+    const manualItems = ((payData as any) || []).map((i: any) => ({ ...i, _source: "manual" as const }));
+
+    // Fetch harvest pending payments (assignments with unpaid periods)
+    const harvestPending = await fetchHarvestPending();
+
+    setItems([...manualItems, ...harvestPending]);
     setCategories((catData as any) || []);
     setLoading(false);
+  };
+
+  const fetchHarvestPending = async (): Promise<Payable[]> => {
+    // Get active harvest jobs with assignments
+    const { data: jobs } = await supabase
+      .from("harvest_jobs")
+      .select("id, farm_name, payment_value, monthly_value, harvest_period_start, harvest_period_end, status");
+    if (!jobs || jobs.length === 0) return [];
+
+    const result: Payable[] = [];
+
+    for (const job of jobs) {
+      const { data: assignments } = await supabase
+        .from("harvest_assignments")
+        .select("id, user_id, start_date, end_date, daily_value, discounts, vehicle_id")
+        .eq("harvest_job_id", job.id);
+      if (!assignments || assignments.length === 0) continue;
+
+      // Get existing payments
+      const { data: payments } = await supabase
+        .from("harvest_payments")
+        .select("filter_context, total_amount, period_start, period_end")
+        .eq("harvest_job_id", job.id);
+
+      // Group assignments by owner
+      const ownerMap = new Map<string, { ownerName: string; totalLiq: number; totalPaid: number; userIds: string[] }>();
+
+      for (const a of assignments) {
+        let ownerId = "unknown";
+        let ownerName = "Proprietário";
+        if (a.vehicle_id) {
+          const { data: veh } = await supabase.from("vehicles").select("owner_id").eq("id", a.vehicle_id).maybeSingle();
+          if (veh?.owner_id) {
+            ownerId = veh.owner_id;
+            const { data: op } = await supabase.from("profiles").select("full_name, nome_fantasia").eq("user_id", veh.owner_id).maybeSingle();
+            if (op) ownerName = op.nome_fantasia || op.full_name;
+          }
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const endDate = a.end_date || today;
+        const start = new Date(a.start_date + "T00:00:00");
+        const end = new Date(endDate + "T00:00:00");
+        const days = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+        const dv = a.daily_value || ((job.payment_value || job.monthly_value) / 30);
+        const bruto = days * dv;
+
+        const discounts = Array.isArray(a.discounts) ? a.discounts : [];
+        const totalDisc = (discounts as any[]).reduce((s: number, d: any) => s + (d.value || 0), 0);
+        const liq = bruto - totalDisc;
+
+        const existing = ownerMap.get(ownerId);
+        if (existing) {
+          existing.totalLiq += liq;
+          existing.userIds.push(a.user_id);
+        } else {
+          ownerMap.set(ownerId, { ownerName, totalLiq: liq, totalPaid: 0, userIds: [a.user_id] });
+        }
+      }
+
+      // Calculate total paid per owner from payments
+      for (const entry of ownerMap.values()) {
+        const uniqueIds = [...new Set(entry.userIds)];
+        for (const payment of (payments || [])) {
+          const ctx = payment.filter_context || "";
+          const paymentUserIds = ctx.split(",").filter(Boolean);
+          // Check if this payment's context is a subset of this owner's users
+          if (paymentUserIds.length > 0 && paymentUserIds.every(id => uniqueIds.includes(id))) {
+            entry.totalPaid += Number(payment.total_amount);
+          }
+        }
+      }
+
+      // Create pending items for owners with remaining balance
+      for (const [ownerId, entry] of ownerMap.entries()) {
+        const remaining = entry.totalLiq - entry.totalPaid;
+        if (remaining > 0.01) {
+          result.push({
+            id: `harvest-pending-${job.id}-${ownerId}`,
+            description: `🌱 ${job.farm_name} — Pgto Agregado`,
+            category_id: null,
+            amount: remaining,
+            due_date: null,
+            status: "previsao",
+            paid_at: null,
+            paid_amount: null,
+            creditor_name: entry.ownerName,
+            notes: `Valor líq. total: R$ ${entry.totalLiq.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | Pago: R$ ${entry.totalPaid.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            created_at: new Date().toISOString(),
+            _source: "harvest",
+          });
+        }
+      }
+    }
+
+    return result;
   };
 
   useEffect(() => { fetchData(); }, []);
