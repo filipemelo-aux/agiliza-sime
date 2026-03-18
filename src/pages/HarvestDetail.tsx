@@ -887,6 +887,17 @@ export default function HarvestDetail() {
 
   const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
+  // Receipt detection: all filtered assignments share the same owner and dates are set
+  const receiptOwnerInfo = (() => {
+    if (!filterStartDate || !filterEndDate) return null;
+    const filtered = getFilteredAssignmentsForPayment();
+    if (filtered.length === 0) return null;
+    const owners = new Set(filtered.map(a => a.owner_name).filter(n => n && n !== "—"));
+    if (owners.size !== 1) return null;
+    const ownerName = [...owners][0];
+    return ownerName;
+  })();
+
   const getPaymentsForPeriod = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
     const matchesContext = (p: HarvestPayment) => {
       if ((p.filter_context || "") === filterCtx) return true;
