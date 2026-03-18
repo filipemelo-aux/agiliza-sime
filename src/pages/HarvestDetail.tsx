@@ -548,16 +548,20 @@ export default function HarvestDetail() {
     }
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
-    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext) : null;
+    const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+    const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
-    if (pdfPayment) {
-      const paidAmount = pdfPayment.total_amount;
-      const saldo = pdfTotalLiquido - paidAmount;
+    if (pdfPayments.length > 0) {
+      const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
+      const detailLines = pdfPayments.map(p => {
+        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+        return `${dateLabel}: ${formatCurrency(p.total_amount)}`;
+      }).join(" | ");
       paymentStatusHtml = isPartial
-        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — Pago: ${formatCurrency(paidAmount)} | Saldo: ${formatCurrency(saldo)}</span>`
-        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(paidAmount)}</span>`;
+        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfTotalPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
+        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
@@ -838,32 +842,28 @@ export default function HarvestDetail() {
 
   const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
-  const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
-    // First try exact match
-    const exact = payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
-    if (exact) return exact;
-    // If current filter is a subset of a registered payment, consider it paid
-    // e.g. filtering one driver who belongs to an owner group that was already paid
-    if (filterCtx) {
-      const currentIds = new Set(filterCtx.split(","));
-      return payments.find(p => {
-        if (p.period_start !== periodStart || p.period_end !== periodEnd) return false;
+  const getPaymentsForPeriod = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
+    const matchesContext = (p: HarvestPayment) => {
+      if ((p.filter_context || "") === filterCtx) return true;
+      if (filterCtx) {
+        const currentIds = new Set(filterCtx.split(","));
         const pCtx = p.filter_context || "";
         if (!pCtx) return false;
         const paymentIds = new Set(pCtx.split(","));
-        // Check if ALL current filtered IDs exist in this payment's context
-        for (const id of currentIds) {
-          if (!paymentIds.has(id)) return false;
+        for (const cid of currentIds) {
+          if (!paymentIds.has(cid)) return false;
         }
         return true;
-      });
-    }
-    return undefined;
+      }
+      return false;
+    };
+    return payments.filter(p => p.period_start === periodStart && p.period_end === periodEnd && matchesContext(p));
   };
 
-  const currentPeriodPayment = filterStartDate && filterEndDate
-    ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext)
-    : null;
+  const currentPeriodPayments = filterStartDate && filterEndDate
+    ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext)
+    : [];
+  const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
   const handleRegisterPayment = async (totalAmount: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
@@ -1587,29 +1587,40 @@ export default function HarvestDetail() {
           {/* Payment status + register button */}
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
-              currentPeriodPayment ? (() => {
-                const paidAmt = currentPeriodPayment.total_amount;
+              currentPeriodPayments.length > 0 ? (() => {
                 const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const saldo = totalLiq - paidAmt;
+                const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
                 return (
-                <div className="flex items-center gap-2 flex-1 flex-wrap">
-                  <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
-                    <CheckCircle2 className="h-3 w-3" />
-                    {isPartial ? "Parcial" : "Período Pago"}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Pago: {formatCurrency(paidAmt)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
-                    {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                  {isPartial && (
-                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
-                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
-                    </Button>
-                  )}
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
+                      <CheckCircle2 className="h-3 w-3" />
+                      {isPartial ? "Parcial" : "Período Pago"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Total Pago: {formatCurrency(totalPaidAmount)}
+                      {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
+                    </span>
+                    {isPartial && (
+                      <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                        <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {currentPeriodPayments.map((p) => {
+                      const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                      return (
+                        <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>• {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDeletePayment(p.id)}>
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 );
               })() : (
@@ -2110,9 +2121,10 @@ export default function HarvestDetail() {
             )}
             {(() => {
               const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+              const remainingBalance = totalLiquido - totalPaidAmount;
               const hasCustomPayment = partialPaymentValue !== "";
-              const paymentAmount = hasCustomPayment ? Number(partialPaymentValue) / 100 : totalLiquido;
-              const isPartial = hasCustomPayment && paymentAmount < totalLiquido;
+              const paymentAmount = hasCustomPayment ? Number(partialPaymentValue) / 100 : remainingBalance;
+              const isPartial = hasCustomPayment && (totalPaidAmount + paymentAmount) < totalLiquido;
               return (
                 <>
                   <div className="text-sm">
@@ -2121,6 +2133,13 @@ export default function HarvestDetail() {
                       {formatCurrency(totalLiquido)}
                     </p>
                   </div>
+                  {totalPaidAmount > 0 && (
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Já pago ({currentPeriodPayments.length} lançamento{currentPeriodPayments.length > 1 ? "s" : ""}):</p>
+                      <p className="font-semibold text-green-600">{formatCurrency(totalPaidAmount)}</p>
+                      <p className="text-xs text-muted-foreground">Saldo restante: <span className="font-semibold text-destructive">{formatCurrency(remainingBalance)}</span></p>
+                    </div>
+                  )}
                   <div className="text-sm space-y-1">
                     <p className="text-muted-foreground">Valor do pagamento:</p>
                     <div className="flex items-center gap-2">
@@ -2128,7 +2147,7 @@ export default function HarvestDetail() {
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                         <Input
                           className="pl-7 h-9"
-                          placeholder={maskCurrency(String(Math.round(totalLiquido * 100)))}
+                          placeholder={maskCurrency(String(Math.round(remainingBalance * 100)))}
                           value={hasCustomPayment ? maskCurrency(partialPaymentValue) : ""}
                           onChange={(e) => setPartialPaymentValue(e.target.value.replace(/\D/g, ""))}
                         />
