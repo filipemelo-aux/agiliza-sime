@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasViewer";
 import { toast } from "sonner";
 import { Plus, FileText, Trash2, Eye, User, Calendar } from "lucide-react";
 import { format } from "date-fns";
@@ -30,6 +31,7 @@ export function FinancialReceipts() {
   const [uploading, setUploading] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerFileName, setViewerFileName] = useState("");
+  const [viewerBlob, setViewerBlob] = useState<Blob | null>(null);
   const isMobile = useIsMobile();
 
   // Form state
@@ -129,9 +131,10 @@ export function FinancialReceipts() {
 
     const pdfFile = /\.pdf$/i.test(receipt.file_name);
     const normalizedBlob = pdfFile && data.type !== "application/pdf" ? data.slice(0, data.size, "application/pdf") : data;
-
     const blobUrl = URL.createObjectURL(normalizedBlob);
+
     setViewerFileName(receipt.file_name);
+    setViewerBlob(normalizedBlob);
     setViewerUrl(blobUrl);
   };
 
@@ -139,6 +142,7 @@ export function FinancialReceipts() {
     if (viewerUrl) URL.revokeObjectURL(viewerUrl);
     setViewerUrl(null);
     setViewerFileName("");
+    setViewerBlob(null);
   };
 
   const isImage = (fileName: string) => /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
@@ -285,21 +289,8 @@ export function FinancialReceipts() {
                 <div className="flex items-center justify-center h-full p-4">
                   <img src={viewerUrl} alt={viewerFileName} className="max-w-full max-h-full object-contain rounded-md" />
                 </div>
-              ) : isPdf(viewerFileName) ? (
-                <div className="h-full w-full">
-                  <object data={viewerUrl} type="application/pdf" className="h-full w-full">
-                    <div className="h-full w-full flex items-center justify-center p-6">
-                      <div className="text-center space-y-3">
-                        <p className="text-sm text-muted-foreground">Não foi possível exibir o PDF internamente.</p>
-                        <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
-                          <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
-                            Abrir PDF
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  </object>
-                </div>
+              ) : isPdf(viewerFileName) && viewerBlob ? (
+                <ReceiptPdfCanvasViewer file={viewerBlob} fallbackUrl={viewerUrl} isMobile={isMobile} />
               ) : (
                 <div className="h-full w-full flex items-center justify-center p-6">
                   <div className="text-center space-y-3">
