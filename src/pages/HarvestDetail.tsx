@@ -1666,7 +1666,9 @@ export default function HarvestDetail() {
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
               currentPeriodPayments.length > 0 ? (() => {
-                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const totalLiqCalc = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const maxExpected = Math.max(...currentPeriodPayments.map(p => p.total_expected || 0));
+                const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
                 const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
                 return (
