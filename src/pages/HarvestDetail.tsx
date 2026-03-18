@@ -947,8 +947,8 @@ export default function HarvestDetail() {
     let accumulated = 0;
     for (const entry of periodMap.values()) {
       if (entry.totalExpected > 0) {
-        const deficit = entry.totalExpected - entry.totalPaid;
-        if (deficit > 0.01) accumulated += deficit;
+        // Net balance: positive = deficit, negative = excess (overpaid)
+        accumulated += (entry.totalExpected - entry.totalPaid);
       }
     }
     return accumulated;
