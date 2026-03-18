@@ -2089,7 +2089,7 @@ export default function HarvestDetail() {
       </Dialog>
 
       {/* Payment Registration Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) setPartialPaymentValue(""); }}>
+      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
