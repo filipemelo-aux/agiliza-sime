@@ -1792,10 +1792,17 @@ export default function HarvestDetail() {
             ) : (
               <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
             )}
-            {accumulatedPastBalance > 0 && filterStartDate && filterEndDate && (
+            {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
               <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-destructive/10 border border-destructive/20">
                 <span className="text-xs font-semibold text-destructive">
                   📌 Saldo acumulado de períodos anteriores: {formatCurrency(accumulatedPastBalance)}
+                </span>
+              </div>
+            )}
+            {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
+              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-blue-500/10 border border-blue-300/30">
+                <span className="text-xs font-semibold text-blue-600">
+                  💰 Crédito acumulado de períodos anteriores: {formatCurrency(Math.abs(accumulatedPastBalance))}
                 </span>
               </div>
             )}
