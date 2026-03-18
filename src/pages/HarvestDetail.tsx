@@ -548,16 +548,20 @@ export default function HarvestDetail() {
     }
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
-    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext) : null;
+    const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+    const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
-    if (pdfPayment) {
-      const paidAmount = pdfPayment.total_amount;
-      const saldo = pdfTotalLiquido - paidAmount;
+    if (pdfPayments.length > 0) {
+      const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
+      const detailLines = pdfPayments.map(p => {
+        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+        return `${dateLabel}: ${formatCurrency(p.total_amount)}`;
+      }).join(" | ");
       paymentStatusHtml = isPartial
-        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — Pago: ${formatCurrency(paidAmount)} | Saldo: ${formatCurrency(saldo)}</span>`
-        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(paidAmount)}</span>`;
+        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfTotalPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
+        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
