@@ -841,14 +841,45 @@ export default function HarvestDetail() {
 
   const handleToggleStatus = async () => {
     if (!job || !id) return;
-    const newStatus = job.status === "active" ? "closed" : "active";
+    if (job.status === "active") {
+      // Open close dialog instead of toggling directly
+      setCloseDialogOpen(true);
+      return;
+    }
+    // Reactivate
     try {
-      const { error } = await supabase.from("harvest_jobs").update({ status: newStatus }).eq("id", id);
+      const { error } = await supabase.from("harvest_jobs").update({ status: "active" } as any).eq("id", id);
       if (error) throw error;
-      toast({ title: newStatus === "active" ? "Serviço reativado" : "Serviço encerrado" });
+      toast({ title: "Serviço reativado" });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleCloseHarvest = async () => {
+    if (!job || !id || !closingDate) return;
+    try {
+      // 1. Update job status and end date
+      const { error: jobErr } = await supabase.from("harvest_jobs").update({
+        status: "closed",
+        harvest_period_end: closingDate,
+      } as any).eq("id", id);
+      if (jobErr) throw jobErr;
+
+      // 2. Set end_date on assignments that don't have one
+      const assignmentsWithoutEnd = assignments.filter(a => !a.end_date);
+      for (const a of assignmentsWithoutEnd) {
+        await supabase.from("harvest_assignments").update({
+          end_date: closingDate,
+        } as any).eq("id", a.id);
+      }
+
+      toast({ title: "Serviço encerrado", description: `${assignmentsWithoutEnd.length} motorista(s) com data fim definida para ${new Date(closingDate + "T00:00:00").toLocaleDateString("pt-BR")}` });
+      setCloseDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro ao encerrar", description: error.message, variant: "destructive" });
     }
   };
 
