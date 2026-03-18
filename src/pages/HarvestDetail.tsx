@@ -1717,11 +1717,6 @@ export default function HarvestDetail() {
                           </div>
                         );
                       })}
-                      <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
-                        <span className="text-muted-foreground">Sub-períodos: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
-                        <span className="text-muted-foreground">Total Geral Pago: <span className="font-semibold text-green-600">{formatCurrency(allPaid)}</span></span>
-                        {totalLiq - allPaid > 0.01 && <span className="text-destructive font-semibold">Saldo: {formatCurrency(totalLiq - allPaid)}</span>}
-                      </div>
                     </div>
                     );
                   })()}
