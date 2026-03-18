@@ -1845,6 +1845,12 @@ export default function HarvestDetail() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {receiptOwnerInfo && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1" onClick={exportReceipt} title={`Gerar recibo para ${receiptOwnerInfo}`}>
+                  <Receipt className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Recibo</span>
+                </Button>
+              )}
               <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
               </Button>
