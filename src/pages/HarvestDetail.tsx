@@ -933,6 +933,19 @@ export default function HarvestDetail() {
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
   const totalSubPeriodPaid = subPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
+  // Helper: sum total_expected per unique period (not max across all payments)
+  const sumExpectedByPeriod = (pmts: HarvestPayment[]): number => {
+    const periodMap = new Map<string, number>();
+    for (const p of pmts) {
+      const key = `${p.period_start}_${p.period_end}`;
+      const current = periodMap.get(key) || 0;
+      if (p.total_expected > current) periodMap.set(key, p.total_expected);
+    }
+    let total = 0;
+    for (const v of periodMap.values()) total += v;
+    return total;
+  };
+
   // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
   const accumulatedPastBalance = (() => {
     if (!filterStartDate || !id) return 0;
