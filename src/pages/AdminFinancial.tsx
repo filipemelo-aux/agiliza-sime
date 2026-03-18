@@ -4,37 +4,41 @@ import { FinancialPayables } from "@/components/financial/FinancialPayables";
 import { FinancialPaid } from "@/components/financial/FinancialPaid";
 import { FinancialCategories } from "@/components/financial/FinancialCategories";
 import { FinancialInvoices } from "@/components/financial/FinancialInvoices";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FinancialReceipts } from "@/components/financial/FinancialReceipts";
 
 export default function AdminFinancial({ section = "receivables" }: { section?: string }) {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
         {section === "receivables" && (
-          <Tabs defaultValue="receivables" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-foreground">Contas a Receber</h1>
-              <TabsList>
-                <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
-                <TabsTrigger value="invoices">Faturamento</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="receivables"><FinancialReceivables /></TabsContent>
-            <TabsContent value="invoices"><FinancialInvoices /></TabsContent>
-          </Tabs>
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Contas a Receber</h1>
+            <FinancialReceivables />
+          </>
+        )}
+        {section === "invoices" && (
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Faturamento</h1>
+            <FinancialInvoices />
+          </>
         )}
         {section === "payables" && (
-          <Tabs defaultValue="payables" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
-              <TabsList>
-                <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
-                <TabsTrigger value="paid">Contas Pagas</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="payables"><FinancialPayables /></TabsContent>
-            <TabsContent value="paid"><FinancialPaid /></TabsContent>
-          </Tabs>
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+            <FinancialPayables />
+          </>
+        )}
+        {section === "paid" && (
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Contas Pagas</h1>
+            <FinancialPaid />
+          </>
+        )}
+        {section === "receipts" && (
+          <>
+            <h1 className="text-2xl font-bold text-foreground">Recibos</h1>
+            <FinancialReceipts />
+          </>
         )}
         {section === "categories" && (
           <>

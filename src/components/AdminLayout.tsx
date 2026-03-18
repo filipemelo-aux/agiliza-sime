@@ -52,11 +52,20 @@ const menuItems = [
     ],
   },
   {
-    title: "Financeiro",
+    title: "Contas a Receber",
     icon: DollarSign,
     children: [
       { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
+      { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
+    ],
+  },
+  {
+    title: "Contas a Pagar",
+    icon: DollarSign,
+    children: [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Contas Pagas", url: "/admin/financial/paid", icon: DollarSign },
+      { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
     ],
   },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
@@ -73,7 +82,8 @@ function SidebarNav() {
 
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
-  const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
+  const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
+  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts"].some(p => location.pathname.startsWith(p));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
@@ -90,7 +100,7 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Financeiro" ? isFinanceiroActive : item.title === "Transporte" ? isTransporteActive : false;
+                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Contas a Receber" ? isContasReceberActive : item.title === "Contas a Pagar" ? isContasPagarActive : item.title === "Transporte" ? isTransporteActive : false;
                   return (
                     <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
                       <SidebarMenuItem>
