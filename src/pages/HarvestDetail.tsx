@@ -2121,9 +2121,10 @@ export default function HarvestDetail() {
             )}
             {(() => {
               const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+              const remainingBalance = totalLiquido - totalPaidAmount;
               const hasCustomPayment = partialPaymentValue !== "";
-              const paymentAmount = hasCustomPayment ? Number(partialPaymentValue) / 100 : totalLiquido;
-              const isPartial = hasCustomPayment && paymentAmount < totalLiquido;
+              const paymentAmount = hasCustomPayment ? Number(partialPaymentValue) / 100 : remainingBalance;
+              const isPartial = hasCustomPayment && (totalPaidAmount + paymentAmount) < totalLiquido;
               return (
                 <>
                   <div className="text-sm">
