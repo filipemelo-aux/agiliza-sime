@@ -1662,6 +1662,13 @@ export default function HarvestDetail() {
             ) : (
               <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
             )}
+            {accumulatedPastBalance > 0 && filterStartDate && filterEndDate && (
+              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-destructive/10 border border-destructive/20">
+                <span className="text-xs font-semibold text-destructive">
+                  📌 Saldo acumulado de períodos anteriores: {formatCurrency(accumulatedPastBalance)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
