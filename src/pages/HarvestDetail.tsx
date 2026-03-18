@@ -580,8 +580,12 @@ export default function HarvestDetail() {
         : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
-        const subMaxExpected = Math.max(...pdfSubPeriod.map(p => p.total_expected || 0));
-        const subTotalRef = Math.min(pdfTotalLiquidoCalc, subMaxExpected > 0 ? subMaxExpected : pdfTotalLiquidoCalc);
+        const subExpSum = (() => {
+          const pm = new Map<string, number>();
+          for (const p of pdfSubPeriod) { const k = `${p.period_start}_${p.period_end}`; const c = pm.get(k) || 0; if (p.total_expected > c) pm.set(k, p.total_expected); }
+          let t = 0; for (const v of pm.values()) t += v; return t;
+        })();
+        const subTotalRef = subExpSum > 0 ? Math.min(pdfTotalLiquidoCalc, subExpSum) : pdfTotalLiquidoCalc;
         const saldoSub = subTotalRef - pdfSubPeriodPaid;
         const isOverpaidSub = saldoSub < -0.01;
         const excessoSub = Math.abs(saldoSub);
