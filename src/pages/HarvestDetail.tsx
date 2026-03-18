@@ -864,10 +864,43 @@ export default function HarvestDetail() {
     return payments.filter(p => p.period_start === periodStart && p.period_end === periodEnd && matchesContext(p));
   };
 
+  // Find all payments that overlap with the current filter range (for broad filters spanning multiple periods)
+  const getOverlappingPayments = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
+    const matchesContext = (p: HarvestPayment) => {
+      if ((p.filter_context || "") === filterCtx) return true;
+      if (!filterCtx) return true;
+      const currentIds = new Set(filterCtx.split(","));
+      const pCtx = p.filter_context || "";
+      if (!pCtx) return false;
+      const paymentIds = new Set(pCtx.split(","));
+      for (const cid of currentIds) {
+        if (!paymentIds.has(cid)) return false;
+      }
+      return true;
+    };
+    return payments.filter(p => {
+      // Payment period overlaps with filter range
+      if (p.period_end < periodStart || p.period_start > periodEnd) return false;
+      return matchesContext(p);
+    });
+  };
+
   const currentPeriodPayments = filterStartDate && filterEndDate
     ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext)
     : [];
+  
+  // All payments that overlap with filter range (includes exact + sub-period payments)
+  const overlappingPayments = filterStartDate && filterEndDate
+    ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext)
+    : [];
+  
+  // Payments from sub-periods (registered with different start/end than current filter)
+  const subPeriodPayments = overlappingPayments.filter(p => 
+    !(p.period_start === filterStartDate && p.period_end === filterEndDate)
+  );
+
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
+  const totalSubPeriodPaid = subPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
   // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
   const accumulatedPastBalance = (() => {
