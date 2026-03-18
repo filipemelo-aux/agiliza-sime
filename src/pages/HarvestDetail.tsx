@@ -790,6 +790,19 @@ export default function HarvestDetail() {
     }
   };
 
+  const filterByDateRange = (list: Assignment[]) => {
+    if (!filterStartDate && !filterEndDate) return list;
+    return list.filter(a => {
+      const assignEnd = a.end_date
+        ? new Date(a.end_date + "T00:00:00")
+        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+      const assignStart = new Date(a.start_date + "T00:00:00");
+      if (filterStartDate && assignEnd < new Date(filterStartDate + "T00:00:00")) return false;
+      if (filterEndDate && assignStart > new Date(filterEndDate + "T00:00:00")) return false;
+      return true;
+    });
+  };
+
   // Payment helpers — use sorted assignment user_ids as context so any search yielding the same drivers matches
   const buildFilterContext = (filteredList: Assignment[]) => {
     const ids = filteredList.map(a => a.user_id).filter(Boolean);
