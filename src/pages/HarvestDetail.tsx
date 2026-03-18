@@ -828,7 +828,26 @@ export default function HarvestDetail() {
   const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
   const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
-    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
+    // First try exact match
+    const exact = payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
+    if (exact) return exact;
+    // If current filter is a subset of a registered payment, consider it paid
+    // e.g. filtering one driver who belongs to an owner group that was already paid
+    if (filterCtx) {
+      const currentIds = new Set(filterCtx.split(","));
+      return payments.find(p => {
+        if (p.period_start !== periodStart || p.period_end !== periodEnd) return false;
+        const pCtx = p.filter_context || "";
+        if (!pCtx) return false;
+        const paymentIds = new Set(pCtx.split(","));
+        // Check if ALL current filtered IDs exist in this payment's context
+        for (const id of currentIds) {
+          if (!paymentIds.has(id)) return false;
+        }
+        return true;
+      });
+    }
+    return undefined;
   };
 
   const currentPeriodPayment = filterStartDate && filterEndDate
