@@ -1692,10 +1692,13 @@ export default function HarvestDetail() {
                       );
                     })}
                   </div>
-                  {subPeriodPayments.length > 0 && (
+                  {subPeriodPayments.length > 0 && (() => {
+                    const allPaid = totalPaidAmount + totalSubPeriodPaid;
+                    const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                    return (
                     <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
                       <p className="text-xs font-semibold text-foreground">
-                        💰 Outros pagamentos em sub-períodos ({formatCurrency(totalSubPeriodPaid)}):
+                        💰 Outros pagamentos em sub-períodos:
                       </p>
                       {subPeriodPayments.map((p) => {
                         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
@@ -1705,8 +1708,14 @@ export default function HarvestDetail() {
                           </div>
                         );
                       })}
+                      <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
+                        <span className="text-muted-foreground">Sub-períodos: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
+                        <span className="text-muted-foreground">Total Geral Pago: <span className="font-semibold text-green-600">{formatCurrency(allPaid)}</span></span>
+                        {totalLiq - allPaid > 0.01 && <span className="text-destructive font-semibold">Saldo: {formatCurrency(totalLiq - allPaid)}</span>}
+                      </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
                 );
               })() : (
