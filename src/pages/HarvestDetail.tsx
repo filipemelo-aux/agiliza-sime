@@ -570,11 +570,13 @@ export default function HarvestDetail() {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
     if (pdfSubPeriod.length > 0) {
+      const allPdfPaid = pdfTotalPaid + pdfSubPeriodPaid;
+      const saldoGeral = pdfTotalLiquido - allPdfPaid;
       const subLines = pdfSubPeriod.map(p => {
         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
         return `${formatDate(p.period_start)}-${formatDate(p.period_end)}: ${formatCurrency(p.total_amount)} (${dateLabel})`;
       }).join(" | ");
-      paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines} — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`;
+      paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines} — Pago: ${formatCurrency(pdfSubPeriodPaid)} | Total Geral Pago: ${formatCurrency(allPdfPaid)}${saldoGeral > 0.01 ? ` | Saldo: ${formatCurrency(saldoGeral)}` : ''}</span>`;
     }
     if (accumulatedPastBalance > 0 && filterStartDate && filterEndDate) {
       paymentStatusHtml += `<br/><span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;margin-top:4px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
@@ -1692,10 +1694,13 @@ export default function HarvestDetail() {
                       );
                     })}
                   </div>
-                  {subPeriodPayments.length > 0 && (
+                  {subPeriodPayments.length > 0 && (() => {
+                    const allPaid = totalPaidAmount + totalSubPeriodPaid;
+                    const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                    return (
                     <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
                       <p className="text-xs font-semibold text-foreground">
-                        💰 Outros pagamentos em sub-períodos ({formatCurrency(totalSubPeriodPaid)}):
+                        💰 Outros pagamentos em sub-períodos:
                       </p>
                       {subPeriodPayments.map((p) => {
                         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
@@ -1705,8 +1710,14 @@ export default function HarvestDetail() {
                           </div>
                         );
                       })}
+                      <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
+                        <span className="text-muted-foreground">Sub-períodos: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
+                        <span className="text-muted-foreground">Total Geral Pago: <span className="font-semibold text-green-600">{formatCurrency(allPaid)}</span></span>
+                        {totalLiq - allPaid > 0.01 && <span className="text-destructive font-semibold">Saldo: {formatCurrency(totalLiq - allPaid)}</span>}
+                      </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
                 );
               })() : (
@@ -1720,10 +1731,13 @@ export default function HarvestDetail() {
                       <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
                     </Button>
                   </div>
-                  {subPeriodPayments.length > 0 && (
+                  {subPeriodPayments.length > 0 && (() => {
+                    const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                    const saldoSub = totalLiq - totalSubPeriodPaid;
+                    return (
                     <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
                       <p className="text-xs font-semibold text-foreground">
-                        💰 Pagamentos encontrados em sub-períodos ({formatCurrency(totalSubPeriodPaid)} total):
+                        💰 Pagamentos encontrados em sub-períodos:
                       </p>
                       {subPeriodPayments.map((p) => {
                         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
@@ -1733,8 +1747,14 @@ export default function HarvestDetail() {
                           </div>
                         );
                       })}
+                      <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
+                        <span className="text-muted-foreground">Total Líquido: <span className="font-semibold text-foreground">{formatCurrency(totalLiq)}</span></span>
+                        <span className="text-muted-foreground">Pago: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
+                        {saldoSub > 0.01 && <span className="text-destructive font-semibold">Saldo: {formatCurrency(saldoSub)}</span>}
+                      </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )
             ) : (
