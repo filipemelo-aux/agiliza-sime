@@ -552,11 +552,13 @@ export default function HarvestDetail() {
     const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfOverlapping = (filterStartDate && filterEndDate) ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfSubPeriod = pdfOverlapping.filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate)).sort((a, b) => a.period_start.localeCompare(b.period_start) || a.created_at.localeCompare(b.created_at));
-    const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+    const pdfTotalLiquidoCalc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
     const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
     const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
     if (pdfPayments.length > 0) {
+      const pdfMaxExpected = Math.max(...pdfPayments.map(p => p.total_expected || 0));
+      const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
       const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
       const detailLines = pdfPayments.map(p => {
@@ -568,7 +570,9 @@ export default function HarvestDetail() {
         : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
-        const saldoSub = pdfTotalLiquido - pdfSubPeriodPaid;
+        const subMaxExpected = Math.max(...pdfSubPeriod.map(p => p.total_expected || 0));
+        const subTotalRef = Math.min(pdfTotalLiquidoCalc, subMaxExpected > 0 ? subMaxExpected : pdfTotalLiquidoCalc);
+        const saldoSub = subTotalRef - pdfSubPeriodPaid;
         paymentStatusHtml = saldoSub <= 0.01
           ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`
           : `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — Pago: ${formatCurrency(pdfSubPeriodPaid)} | Saldo: ${formatCurrency(saldoSub)}</span>`;
@@ -1666,7 +1670,9 @@ export default function HarvestDetail() {
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
               currentPeriodPayments.length > 0 ? (() => {
-                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const totalLiqCalc = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const maxExpected = Math.max(...currentPeriodPayments.map(p => p.total_expected || 0));
+                const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
                 const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
                 return (
@@ -1721,8 +1727,10 @@ export default function HarvestDetail() {
                 </div>
                 );
               })() : subPeriodPayments.length > 0 ? (() => {
-                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const saldoSub = totalLiq - totalSubPeriodPaid;
+                const totalLiqCalcSub = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const subMaxExp = Math.max(...subPeriodPayments.map(p => p.total_expected || 0));
+                const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
+                const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
