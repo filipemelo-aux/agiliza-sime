@@ -1603,6 +1603,33 @@ export default function HarvestDetail() {
           </Card>
         )}
 
+        {/* Close Harvest Dialog */}
+        <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Encerrar Serviço de Colheita</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <p className="text-sm text-muted-foreground">
+                Defina a data de encerramento. Motoristas sem data fim terão essa data definida automaticamente. O serviço será bloqueado para novos lançamentos.
+              </p>
+              <div className="space-y-2">
+                <Label>Data de Encerramento *</Label>
+                <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {assignments.filter(a => !a.end_date).length} motorista(s) sem data fim definida serão atualizados.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setCloseDialogOpen(false)}>Cancelar</Button>
+                <Button className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleCloseHarvest} disabled={!closingDate}>
+                  Encerrar Serviço
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Vincular Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
