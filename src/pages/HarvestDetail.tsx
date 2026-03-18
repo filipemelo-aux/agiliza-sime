@@ -2133,6 +2133,13 @@ export default function HarvestDetail() {
                       {formatCurrency(totalLiquido)}
                     </p>
                   </div>
+                  {totalPaidAmount > 0 && (
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Já pago ({currentPeriodPayments.length} lançamento{currentPeriodPayments.length > 1 ? "s" : ""}):</p>
+                      <p className="font-semibold text-green-600">{formatCurrency(totalPaidAmount)}</p>
+                      <p className="text-xs text-muted-foreground">Saldo restante: <span className="font-semibold text-destructive">{formatCurrency(remainingBalance)}</span></p>
+                    </div>
+                  )}
                   <div className="text-sm space-y-1">
                     <p className="text-muted-foreground">Valor do pagamento:</p>
                     <div className="flex items-center gap-2">
