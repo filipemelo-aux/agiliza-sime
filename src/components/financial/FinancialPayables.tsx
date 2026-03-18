@@ -238,7 +238,7 @@ export function FinancialPayables() {
     return matchSearch && matchStatus;
   });
 
-  const totalPendente = filtered.filter(i => i.status === "pendente").reduce((s, i) => s + Number(i.amount), 0);
+  const totalPendente = filtered.filter(i => i.status === "pendente" || i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
   const totalPago = filtered.filter(i => i.status === "pago").reduce((s, i) => s + Number(i.paid_amount || i.amount), 0);
 
   return (
