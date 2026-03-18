@@ -329,7 +329,7 @@ export function FinancialPayables() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
+                <SelectItem value="previsao">Colheita</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
               </SelectContent>
