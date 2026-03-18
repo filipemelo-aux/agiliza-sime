@@ -1675,16 +1675,19 @@ export default function HarvestDetail() {
                 const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
                 const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
+                const isOverpaid = saldo < -0.01;
+                const excesso = Math.abs(saldo);
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
+                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : isOverpaid ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
                       <CheckCircle2 className="h-3 w-3" />
-                      {isPartial ? "Parcial" : "Período Pago"}
+                      {isPartial ? "Parcial" : isOverpaid ? "Pago com Excesso" : "Período Pago"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       Total Pago: {formatCurrency(totalPaidAmount)}
                       {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
+                      {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
                     </span>
                     {isPartial && (
                       <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
