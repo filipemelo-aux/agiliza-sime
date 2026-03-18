@@ -2177,7 +2177,7 @@ export default function HarvestDetail() {
                   <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount)} disabled={savingPayment || paymentAmount < 0}>
+                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0}>
                       {savingPayment ? "Salvando..." : isPartial ? "Confirmar Parcial" : "Confirmar Pagamento"}
                     </Button>
                   </DialogFooter>
