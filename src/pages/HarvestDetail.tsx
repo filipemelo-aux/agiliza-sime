@@ -905,9 +905,9 @@ export default function HarvestDetail() {
     : [];
   
   // Payments from sub-periods (registered with different start/end than current filter)
-  const subPeriodPayments = overlappingPayments.filter(p => 
-    !(p.period_start === filterStartDate && p.period_end === filterEndDate)
-  );
+  const subPeriodPayments = overlappingPayments
+    .filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate))
+    .sort((a, b) => a.period_start.localeCompare(b.period_start) || a.created_at.localeCompare(b.created_at));
 
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
   const totalSubPeriodPaid = subPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
