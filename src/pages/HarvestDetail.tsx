@@ -551,7 +551,7 @@ export default function HarvestDetail() {
     // Check payment status for this period in the PDF
     const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfOverlapping = (filterStartDate && filterEndDate) ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext) : [];
-    const pdfSubPeriod = pdfOverlapping.filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate));
+    const pdfSubPeriod = pdfOverlapping.filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate)).sort((a, b) => a.period_start.localeCompare(b.period_start) || a.created_at.localeCompare(b.created_at));
     const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
     const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
     const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
