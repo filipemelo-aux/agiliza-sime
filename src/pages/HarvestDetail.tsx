@@ -570,11 +570,13 @@ export default function HarvestDetail() {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
     if (pdfSubPeriod.length > 0) {
+      const allPdfPaid = pdfTotalPaid + pdfSubPeriodPaid;
+      const saldoGeral = pdfTotalLiquido - allPdfPaid;
       const subLines = pdfSubPeriod.map(p => {
         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
         return `${formatDate(p.period_start)}-${formatDate(p.period_end)}: ${formatCurrency(p.total_amount)} (${dateLabel})`;
       }).join(" | ");
-      paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines} — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`;
+      paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines} — Pago: ${formatCurrency(pdfSubPeriodPaid)} | Total Geral Pago: ${formatCurrency(allPdfPaid)}${saldoGeral > 0.01 ? ` | Saldo: ${formatCurrency(saldoGeral)}` : ''}</span>`;
     }
     if (accumulatedPastBalance > 0 && filterStartDate && filterEndDate) {
       paymentStatusHtml += `<br/><span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;margin-top:4px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
