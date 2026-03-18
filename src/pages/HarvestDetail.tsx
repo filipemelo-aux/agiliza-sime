@@ -2053,10 +2053,13 @@ export default function HarvestDetail() {
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
             </div>
-            {currentFilterContext && (
+            {driverSearch.trim() && (
               <div className="text-sm">
                 <p className="text-muted-foreground">Filtro aplicado:</p>
                 <p className="font-semibold text-primary">{driverSearch}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ({getFilteredAssignmentsForPayment().length} motorista(s) no resultado)
+                </p>
               </div>
             )}
             {(() => {
