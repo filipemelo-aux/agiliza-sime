@@ -2032,6 +2032,12 @@ export default function HarvestDetail() {
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
             </div>
+            {currentFilterContext && (
+              <div className="text-sm">
+                <p className="text-muted-foreground">Filtro aplicado:</p>
+                <p className="font-semibold text-primary">{driverSearch}</p>
+              </div>
+            )}
             {(() => {
               const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
               return (
