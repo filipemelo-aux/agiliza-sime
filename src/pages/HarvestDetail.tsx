@@ -2085,8 +2085,9 @@ export default function HarvestDetail() {
             )}
             {(() => {
               const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-              const paymentAmount = partialPaymentValue ? parseFloat(unmaskCurrency(partialPaymentValue)) : totalLiquido;
-              const isPartial = partialPaymentValue && paymentAmount < totalLiquido;
+              const hasCustomPayment = partialPaymentValue !== "";
+              const paymentAmount = hasCustomPayment ? Number(partialPaymentValue) / 100 : totalLiquido;
+              const isPartial = hasCustomPayment && paymentAmount < totalLiquido;
               return (
                 <>
                   <div className="text-sm">
@@ -2103,11 +2104,11 @@ export default function HarvestDetail() {
                         <Input
                           className="pl-7 h-9"
                           placeholder={maskCurrency(String(Math.round(totalLiquido * 100)))}
-                          value={partialPaymentValue !== "" ? maskCurrency(String(Math.round(parseFloat(unmaskCurrency(partialPaymentValue)) * 100))) : ""}
-                          onChange={(e) => setPartialPaymentValue(unmaskCurrency(e.target.value))}
+                          value={hasCustomPayment ? maskCurrency(partialPaymentValue) : ""}
+                          onChange={(e) => setPartialPaymentValue(e.target.value.replace(/\D/g, ""))}
                         />
                       </div>
-                      {partialPaymentValue && (
+                      {hasCustomPayment && (
                         <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setPartialPaymentValue("")}>
                           Total
                         </Button>
@@ -2120,7 +2121,7 @@ export default function HarvestDetail() {
                   <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount)} disabled={savingPayment || paymentAmount <= 0}>
+                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount)} disabled={savingPayment || paymentAmount < 0}>
                       {savingPayment ? "Salvando..." : isPartial ? "Confirmar Parcial" : "Confirmar Pagamento"}
                     </Button>
                   </DialogFooter>
