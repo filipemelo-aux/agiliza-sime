@@ -557,9 +557,15 @@ export default function HarvestDetail() {
     const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
     if (pdfPayments.length > 0) {
-      const pdfMaxExpected = Math.max(...pdfPayments.map(p => p.total_expected || 0));
-      const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
-      const saldo = pdfTotalLiquido - pdfTotalPaid;
+      const allPdfPayments = [...pdfPayments, ...pdfSubPeriod];
+      const pdfExpectedSum = (() => {
+        const pm = new Map<string, number>();
+        for (const p of allPdfPayments) { const k = `${p.period_start}_${p.period_end}`; const c = pm.get(k) || 0; if (p.total_expected > c) pm.set(k, p.total_expected); }
+        let t = 0; for (const v of pm.values()) t += v; return t;
+      })();
+      const pdfAllPaid = pdfTotalPaid + pdfSubPeriodPaid;
+      const pdfTotalLiquido = pdfExpectedSum > 0 ? Math.min(pdfTotalLiquidoCalc, pdfExpectedSum) : pdfTotalLiquidoCalc;
+      const saldo = pdfTotalLiquido - pdfAllPaid;
       const isPartial = saldo > 0.01;
       const isOverpaid = saldo < -0.01;
       const excesso = Math.abs(saldo);
@@ -568,14 +574,18 @@ export default function HarvestDetail() {
         return `${dateLabel}: ${formatCurrency(p.total_amount)}`;
       }).join(" | ");
       paymentStatusHtml = isPartial
-        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfTotalPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
+        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfAllPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
         : isOverpaid
-        ? `<span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO COM EXCESSO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)} | Excesso: ${formatCurrency(excesso)}</span>`
-        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
+        ? `<span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO COM EXCESSO — ${detailLines} — Total: ${formatCurrency(pdfAllPaid)} | Excesso: ${formatCurrency(excesso)}</span>`
+        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfAllPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
-        const subMaxExpected = Math.max(...pdfSubPeriod.map(p => p.total_expected || 0));
-        const subTotalRef = Math.min(pdfTotalLiquidoCalc, subMaxExpected > 0 ? subMaxExpected : pdfTotalLiquidoCalc);
+        const subExpSum = (() => {
+          const pm = new Map<string, number>();
+          for (const p of pdfSubPeriod) { const k = `${p.period_start}_${p.period_end}`; const c = pm.get(k) || 0; if (p.total_expected > c) pm.set(k, p.total_expected); }
+          let t = 0; for (const v of pm.values()) t += v; return t;
+        })();
+        const subTotalRef = subExpSum > 0 ? Math.min(pdfTotalLiquidoCalc, subExpSum) : pdfTotalLiquidoCalc;
         const saldoSub = subTotalRef - pdfSubPeriodPaid;
         const isOverpaidSub = saldoSub < -0.01;
         const excessoSub = Math.abs(saldoSub);
@@ -932,6 +942,19 @@ export default function HarvestDetail() {
 
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
   const totalSubPeriodPaid = subPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
+
+  // Helper: sum total_expected per unique period (not max across all payments)
+  const sumExpectedByPeriod = (pmts: HarvestPayment[]): number => {
+    const periodMap = new Map<string, number>();
+    for (const p of pmts) {
+      const key = `${p.period_start}_${p.period_end}`;
+      const current = periodMap.get(key) || 0;
+      if (p.total_expected > current) periodMap.set(key, p.total_expected);
+    }
+    let total = 0;
+    for (const v of periodMap.values()) total += v;
+    return total;
+  };
 
   // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
   const accumulatedPastBalance = (() => {
@@ -1681,9 +1704,11 @@ export default function HarvestDetail() {
             {filterStartDate && filterEndDate ? (
               currentPeriodPayments.length > 0 ? (() => {
                 const totalLiqCalc = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const maxExpected = Math.max(...currentPeriodPayments.map(p => p.total_expected || 0));
-                const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
-                const saldo = totalLiq - totalPaidAmount;
+                const allPaymentsInRange = [...currentPeriodPayments, ...subPeriodPayments];
+                const totalExpectedSum = sumExpectedByPeriod(allPaymentsInRange);
+                const totalLiq = totalExpectedSum > 0 ? Math.min(totalLiqCalc, totalExpectedSum) : totalLiqCalc;
+                const allPaidInRange = totalPaidAmount + totalSubPeriodPaid;
+                const saldo = totalLiq - allPaidInRange;
                 const isPartial = saldo > 0.01;
                 const isOverpaid = saldo < -0.01;
                 const excesso = Math.abs(saldo);
@@ -1695,7 +1720,7 @@ export default function HarvestDetail() {
                       {isPartial ? "Parcial" : isOverpaid ? "Pago com Excesso" : "Período Pago"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      Total Pago: {formatCurrency(totalPaidAmount)}
+                      Total Pago: {formatCurrency(allPaidInRange)}
                       {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
                       {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
                     </span>
@@ -1741,8 +1766,8 @@ export default function HarvestDetail() {
                 );
               })() : subPeriodPayments.length > 0 ? (() => {
                 const totalLiqCalcSub = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const subMaxExp = Math.max(...subPeriodPayments.map(p => p.total_expected || 0));
-                const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
+                const subExpectedSum = sumExpectedByPeriod(subPeriodPayments);
+                const totalLiqSub = subExpectedSum > 0 ? Math.min(totalLiqCalcSub, subExpectedSum) : totalLiqCalcSub;
                 const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
                 const isOverpaidSub = saldoSub < -0.01;
