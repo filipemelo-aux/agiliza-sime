@@ -70,6 +70,7 @@ interface HarvestPayment {
   period_start: string;
   period_end: string;
   total_amount: number;
+  total_expected: number;
   filter_context: string;
   notes: string | null;
   created_by: string;
