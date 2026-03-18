@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, User, Calendar, X } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, User, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -49,7 +49,15 @@ export function FinancialReceipts() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReceipts(); }, []);
+  useEffect(() => {
+    fetchReceipts();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (viewerUrl) URL.revokeObjectURL(viewerUrl);
+    };
+  }, [viewerUrl]);
 
   const handleUpload = async () => {
     if (!file || !personName || !description) {
@@ -59,28 +67,26 @@ export function FinancialReceipts() {
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
       const ext = file.name.split(".").pop();
       const filePath = `${user.id}/${Date.now()}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("payment-receipts")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("payment-receipts").upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      const { error: insertError } = await supabase
-        .from("payment_receipts")
-        .insert({
-          person_id: personId,
-          person_name: personName,
-          description,
-          file_url: filePath,
-          file_name: file.name,
-          created_by: user.id,
-        });
+      const { error: insertError } = await supabase.from("payment_receipts").insert({
+        person_id: personId,
+        person_name: personName,
+        description,
+        file_url: filePath,
+        file_name: file.name,
+        created_by: user.id,
+      });
 
       if (insertError) throw insertError;
 
@@ -112,33 +118,42 @@ export function FinancialReceipts() {
   };
 
   const handleView = async (receipt: Receipt) => {
-    const { data, error } = await supabase.storage
-      .from("payment-receipts")
-      .download(receipt.file_url);
+    const { data, error } = await supabase.storage.from("payment-receipts").download(receipt.file_url);
 
     if (error || !data) {
       toast.error("Erro ao carregar arquivo para visualização.");
       return;
     }
-    const blobUrl = URL.createObjectURL(data);
+
+    if (viewerUrl) URL.revokeObjectURL(viewerUrl);
+
+    const pdfFile = /\.pdf$/i.test(receipt.file_name);
+    const normalizedBlob = pdfFile && data.type !== "application/pdf" ? data.slice(0, data.size, "application/pdf") : data;
+
+    const blobUrl = URL.createObjectURL(normalizedBlob);
     setViewerFileName(receipt.file_name);
     setViewerUrl(blobUrl);
   };
 
-  const isImage = (fileName: string) => {
-    return /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
+  const closeViewer = () => {
+    if (viewerUrl) URL.revokeObjectURL(viewerUrl);
+    setViewerUrl(null);
+    setViewerFileName("");
   };
+
+  const isImage = (fileName: string) => /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
+  const isPdf = (fileName: string) => /\.pdf$/i.test(fileName);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Recibos de Pagamento</h2>
           <p className="text-sm text-muted-foreground">
             {receipts.length} recibo{receipts.length !== 1 ? "s" : ""} anexado{receipts.length !== 1 ? "s" : ""}
           </p>
         </div>
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -154,8 +169,14 @@ export function FinancialReceipts() {
                 <Label>Credor / Proprietário</Label>
                 <PersonSearchInput
                   selectedName={personName}
-                  onSelect={(person) => { setPersonId(person.id); setPersonName(person.full_name); }}
-                  onClear={() => { setPersonId(null); setPersonName(""); }}
+                  onSelect={(person) => {
+                    setPersonId(person.id);
+                    setPersonName(person.full_name);
+                  }}
+                  onClear={() => {
+                    setPersonId(null);
+                    setPersonName("");
+                  }}
                   placeholder="Buscar pessoa..."
                 />
               </div>
@@ -183,7 +204,6 @@ export function FinancialReceipts() {
         </Dialog>
       </div>
 
-      {/* List */}
       {loading ? (
         <div className="grid gap-3">
           {[1, 2, 3].map((i) => (
@@ -221,9 +241,7 @@ export function FinancialReceipts() {
                       </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {r.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
 
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <FileText className="h-3 w-3 shrink-0" />
@@ -232,13 +250,7 @@ export function FinancialReceipts() {
                   </div>
 
                   <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleView(r)}
-                      title="Visualizar"
-                    >
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleView(r)} title="Visualizar">
                       <Eye className="h-4 w-4" />
                     </Button>
                     <Button
@@ -258,13 +270,7 @@ export function FinancialReceipts() {
         </div>
       )}
 
-      {/* Internal Viewer Dialog */}
-      <Dialog open={!!viewerUrl} onOpenChange={(open) => {
-        if (!open) {
-          if (viewerUrl) URL.revokeObjectURL(viewerUrl);
-          setViewerUrl(null);
-        }
-      }}>
+      <Dialog open={!!viewerUrl} onOpenChange={(open) => !open && closeViewer()}>
         <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
           <DialogHeader className="px-4 py-3 border-b">
             <DialogTitle className="flex items-center gap-2 text-sm font-medium">
@@ -272,24 +278,40 @@ export function FinancialReceipts() {
               <span className="truncate">{viewerFileName}</span>
             </DialogTitle>
           </DialogHeader>
+
           <div className="flex-1 overflow-auto bg-muted/30">
-            {viewerUrl && (
-              isImage(viewerFileName) ? (
+            {viewerUrl &&
+              (isImage(viewerFileName) ? (
                 <div className="flex items-center justify-center h-full p-4">
-                  <img
-                    src={viewerUrl}
-                    alt={viewerFileName}
-                    className="max-w-full max-h-full object-contain rounded-md"
-                  />
+                  <img src={viewerUrl} alt={viewerFileName} className="max-w-full max-h-full object-contain rounded-md" />
+                </div>
+              ) : isPdf(viewerFileName) ? (
+                <div className="h-full w-full">
+                  <object data={viewerUrl} type="application/pdf" className="h-full w-full">
+                    <div className="h-full w-full flex items-center justify-center p-6">
+                      <div className="text-center space-y-3">
+                        <p className="text-sm text-muted-foreground">Não foi possível exibir o PDF internamente.</p>
+                        <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
+                          <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
+                            Abrir PDF
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  </object>
                 </div>
               ) : (
-                <iframe
-                  src={viewerUrl}
-                  className="w-full h-full border-0"
-                  title={viewerFileName}
-                />
-              )
-            )}
+                <div className="h-full w-full flex items-center justify-center p-6">
+                  <div className="text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">Formato não suportado para visualização interna.</p>
+                    <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
+                      <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
+                        Abrir arquivo
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
           </div>
         </DialogContent>
       </Dialog>
