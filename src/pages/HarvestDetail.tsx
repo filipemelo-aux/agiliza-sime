@@ -561,12 +561,16 @@ export default function HarvestDetail() {
       const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
       const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
+      const isOverpaid = saldo < -0.01;
+      const excesso = Math.abs(saldo);
       const detailLines = pdfPayments.map(p => {
         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
         return `${dateLabel}: ${formatCurrency(p.total_amount)}`;
       }).join(" | ");
       paymentStatusHtml = isPartial
         ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfTotalPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
+        : isOverpaid
+        ? `<span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO COM EXCESSO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)} | Excesso: ${formatCurrency(excesso)}</span>`
         : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
