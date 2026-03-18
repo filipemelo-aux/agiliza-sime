@@ -934,11 +934,11 @@ export default function HarvestDetail() {
   // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
   const accumulatedPastBalance = (() => {
     if (!filterStartDate || !id) return 0;
-    // Group payments by period, then sum (expected - paid) for each period with a deficit
-    const pastPayments = payments.filter(p => p.period_end < filterStartDate);
+    // Only consider payments matching the current filter context (same drivers selected)
+    const pastPayments = payments.filter(p => p.period_end < filterStartDate && p.filter_context === currentFilterContext);
     const periodMap = new Map<string, { totalPaid: number; totalExpected: number }>();
     for (const p of pastPayments) {
-      const key = `${p.period_start}_${p.period_end}_${p.filter_context || ""}`;
+      const key = `${p.period_start}_${p.period_end}`;
       const entry = periodMap.get(key) || { totalPaid: 0, totalExpected: 0 };
       entry.totalPaid += p.total_amount;
       if (p.total_expected > entry.totalExpected) entry.totalExpected = p.total_expected;
