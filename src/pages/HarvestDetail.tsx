@@ -1587,29 +1587,40 @@ export default function HarvestDetail() {
           {/* Payment status + register button */}
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
-              currentPeriodPayment ? (() => {
-                const paidAmt = currentPeriodPayment.total_amount;
+              currentPeriodPayments.length > 0 ? (() => {
                 const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const saldo = totalLiq - paidAmt;
+                const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
                 return (
-                <div className="flex items-center gap-2 flex-1 flex-wrap">
-                  <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
-                    <CheckCircle2 className="h-3 w-3" />
-                    {isPartial ? "Parcial" : "Período Pago"}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    Pago: {formatCurrency(paidAmt)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
-                    {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                  {isPartial && (
-                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
-                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
-                    </Button>
-                  )}
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
+                      <CheckCircle2 className="h-3 w-3" />
+                      {isPartial ? "Parcial" : "Período Pago"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Total Pago: {formatCurrency(totalPaidAmount)}
+                      {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
+                    </span>
+                    {isPartial && (
+                      <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                        <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {currentPeriodPayments.map((p) => {
+                      const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                      return (
+                        <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>• {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDeletePayment(p.id)}>
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 );
               })() : (
