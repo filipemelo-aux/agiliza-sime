@@ -790,8 +790,42 @@ export default function HarvestDetail() {
     }
   };
 
-  // Payment helpers
-  const currentFilterContext = driverSearch.trim().toLowerCase();
+  const filterByDateRange = (list: Assignment[]) => {
+    if (!filterStartDate && !filterEndDate) return list;
+    return list.filter(a => {
+      const assignEnd = a.end_date
+        ? new Date(a.end_date + "T00:00:00")
+        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+      const assignStart = new Date(a.start_date + "T00:00:00");
+      if (filterStartDate && assignEnd < new Date(filterStartDate + "T00:00:00")) return false;
+      if (filterEndDate && assignStart > new Date(filterEndDate + "T00:00:00")) return false;
+      return true;
+    });
+  };
+
+  // Payment helpers — use sorted assignment user_ids as context so any search yielding the same drivers matches
+  const buildFilterContext = (filteredList: Assignment[]) => {
+    const ids = filteredList.map(a => a.user_id).filter(Boolean);
+    const unique = [...new Set(ids)].sort();
+    return unique.join(",");
+  };
+
+  // We need sortedAgregados before this, but it depends on filterBySearch which is defined later.
+  // So we compute it inline here too for payment context purposes.
+  const getFilteredAssignmentsForPayment = () => {
+    let list = filterByDateRange(assignments);
+    if (driverSearch.trim()) {
+      const q = driverSearch.toLowerCase();
+      list = list.filter(a =>
+        (a.driver_name || "").toLowerCase().includes(q) ||
+        (a.vehicle_plate || "").toLowerCase().includes(q) ||
+        (a.owner_name || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  };
+
+  const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
   const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
     return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
@@ -1101,21 +1135,8 @@ export default function HarvestDetail() {
     return sorted;
   };
 
-  const filterByDateRange = (list: Assignment[]) => {
-    if (!filterStartDate && !filterEndDate) return list;
-    return list.filter(a => {
-      const assignEnd = a.end_date
-        ? new Date(a.end_date + "T00:00:00")
-        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
-      const assignStart = new Date(a.start_date + "T00:00:00");
 
-      // If filter has a start date, the assignment must not have ended before it
-      if (filterStartDate && assignEnd < new Date(filterStartDate + "T00:00:00")) return false;
-      // If filter has an end date, the assignment must have started on or before it
-      if (filterEndDate && assignStart > new Date(filterEndDate + "T00:00:00")) return false;
-      return true;
-    });
-  };
+
 
   const filterBySearch = (list: Assignment[]) => {
     const dateFiltered = filterByDateRange(list);
@@ -2032,10 +2053,13 @@ export default function HarvestDetail() {
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
             </div>
-            {currentFilterContext && (
+            {driverSearch.trim() && (
               <div className="text-sm">
                 <p className="text-muted-foreground">Filtro aplicado:</p>
                 <p className="font-semibold text-primary">{driverSearch}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ({getFilteredAssignmentsForPayment().length} motorista(s) no resultado)
+                </p>
               </div>
             )}
             {(() => {
