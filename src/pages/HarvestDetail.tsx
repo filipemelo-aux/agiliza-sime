@@ -2103,7 +2103,7 @@ export default function HarvestDetail() {
                         <Input
                           className="pl-7 h-9"
                           placeholder={maskCurrency(String(Math.round(totalLiquido * 100)))}
-                          value={partialPaymentValue ? maskCurrency(String(Math.round(parseFloat(unmaskCurrency(partialPaymentValue)) * 100))) : ""}
+                          value={partialPaymentValue !== "" ? maskCurrency(String(Math.round(parseFloat(unmaskCurrency(partialPaymentValue)) * 100))) : ""}
                           onChange={(e) => setPartialPaymentValue(unmaskCurrency(e.target.value))}
                         />
                       </div>
