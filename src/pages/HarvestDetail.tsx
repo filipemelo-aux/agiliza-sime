@@ -112,6 +112,8 @@ export default function HarvestDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentDate, setPaymentDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
