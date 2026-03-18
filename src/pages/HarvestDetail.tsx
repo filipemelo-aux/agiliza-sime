@@ -1682,6 +1682,21 @@ export default function HarvestDetail() {
                       );
                     })}
                   </div>
+                  {subPeriodPayments.length > 0 && (
+                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        💰 Outros pagamentos em sub-períodos ({formatCurrency(totalSubPeriodPaid)}):
+                      </p>
+                      {subPeriodPayments.map((p) => {
+                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+                        return (
+                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 );
               })() : (
