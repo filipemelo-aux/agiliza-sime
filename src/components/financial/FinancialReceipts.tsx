@@ -114,14 +114,15 @@ export function FinancialReceipts() {
   const handleView = async (receipt: Receipt) => {
     const { data, error } = await supabase.storage
       .from("payment-receipts")
-      .createSignedUrl(receipt.file_url, 300);
+      .download(receipt.file_url);
 
-    if (error || !data?.signedUrl) {
-      toast.error("Erro ao gerar link de visualização.");
+    if (error || !data) {
+      toast.error("Erro ao carregar arquivo para visualização.");
       return;
     }
+    const blobUrl = URL.createObjectURL(data);
     setViewerFileName(receipt.file_name);
-    setViewerUrl(data.signedUrl);
+    setViewerUrl(blobUrl);
   };
 
   const isImage = (fileName: string) => {
