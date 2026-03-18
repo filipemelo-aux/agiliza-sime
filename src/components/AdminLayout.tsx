@@ -82,7 +82,8 @@ function SidebarNav() {
 
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
-  const isFinanceiroActive = location.pathname.startsWith("/admin/financial") && location.pathname !== "/admin/financial/categories";
+  const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
+  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts"].some(p => location.pathname.startsWith(p));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
