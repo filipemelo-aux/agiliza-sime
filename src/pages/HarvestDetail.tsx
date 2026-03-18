@@ -1720,7 +1720,7 @@ export default function HarvestDetail() {
                       {isPartial ? "Parcial" : isOverpaid ? "Pago com Excesso" : "Período Pago"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      Total Pago: {formatCurrency(totalPaidAmount)}
+                      Total Pago: {formatCurrency(allPaidInRange)}
                       {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
                       {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
                     </span>
