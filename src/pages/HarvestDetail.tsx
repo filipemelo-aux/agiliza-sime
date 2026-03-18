@@ -1122,21 +1122,8 @@ export default function HarvestDetail() {
     return sorted;
   };
 
-  const filterByDateRange = (list: Assignment[]) => {
-    if (!filterStartDate && !filterEndDate) return list;
-    return list.filter(a => {
-      const assignEnd = a.end_date
-        ? new Date(a.end_date + "T00:00:00")
-        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
-      const assignStart = new Date(a.start_date + "T00:00:00");
 
-      // If filter has a start date, the assignment must not have ended before it
-      if (filterStartDate && assignEnd < new Date(filterStartDate + "T00:00:00")) return false;
-      // If filter has an end date, the assignment must have started on or before it
-      if (filterEndDate && assignStart > new Date(filterEndDate + "T00:00:00")) return false;
-      return true;
-    });
-  };
+
 
   const filterBySearch = (list: Assignment[]) => {
     const dateFiltered = filterByDateRange(list);
