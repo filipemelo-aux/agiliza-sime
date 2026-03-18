@@ -1911,9 +1911,11 @@ export default function HarvestDetail() {
                   <span className="hidden sm:inline">Recibo</span>
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
-              </Button>
+              {job.status === "active" && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
+                </Button>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
