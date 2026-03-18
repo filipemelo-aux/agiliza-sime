@@ -561,19 +561,27 @@ export default function HarvestDetail() {
       const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
       const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
+      const isOverpaid = saldo < -0.01;
+      const excesso = Math.abs(saldo);
       const detailLines = pdfPayments.map(p => {
         const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
         return `${dateLabel}: ${formatCurrency(p.total_amount)}`;
       }).join(" | ");
       paymentStatusHtml = isPartial
         ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — ${detailLines} — Total Pago: ${formatCurrency(pdfTotalPaid)} | Saldo: ${formatCurrency(saldo)}</span>`
+        : isOverpaid
+        ? `<span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO COM EXCESSO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)} | Excesso: ${formatCurrency(excesso)}</span>`
         : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — ${detailLines} — Total: ${formatCurrency(pdfTotalPaid)}</span>`;
     } else if (filterStartDate && filterEndDate) {
       if (pdfSubPeriod.length > 0) {
         const subMaxExpected = Math.max(...pdfSubPeriod.map(p => p.total_expected || 0));
         const subTotalRef = Math.min(pdfTotalLiquidoCalc, subMaxExpected > 0 ? subMaxExpected : pdfTotalLiquidoCalc);
         const saldoSub = subTotalRef - pdfSubPeriodPaid;
-        paymentStatusHtml = saldoSub <= 0.01
+        const isOverpaidSub = saldoSub < -0.01;
+        const excessoSub = Math.abs(saldoSub);
+        paymentStatusHtml = isOverpaidSub
+          ? `<span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO COM EXCESSO — Total: ${formatCurrency(pdfSubPeriodPaid)} | Excesso: ${formatCurrency(excessoSub)}</span>`
+          : saldoSub <= 0.01
           ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO — Total: ${formatCurrency(pdfSubPeriodPaid)}</span>`
           : `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL — Pago: ${formatCurrency(pdfSubPeriodPaid)} | Saldo: ${formatCurrency(saldoSub)}</span>`;
       } else {
@@ -1675,16 +1683,19 @@ export default function HarvestDetail() {
                 const totalLiq = Math.min(totalLiqCalc, maxExpected > 0 ? maxExpected : totalLiqCalc);
                 const saldo = totalLiq - totalPaidAmount;
                 const isPartial = saldo > 0.01;
+                const isOverpaid = saldo < -0.01;
+                const excesso = Math.abs(saldo);
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
+                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : isOverpaid ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
                       <CheckCircle2 className="h-3 w-3" />
-                      {isPartial ? "Parcial" : "Período Pago"}
+                      {isPartial ? "Parcial" : isOverpaid ? "Pago com Excesso" : "Período Pago"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       Total Pago: {formatCurrency(totalPaidAmount)}
                       {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
+                      {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
                     </span>
                     {isPartial && (
                       <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
@@ -1732,16 +1743,19 @@ export default function HarvestDetail() {
                 const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
                 const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
+                const isOverpaidSub = saldoSub < -0.01;
+                const excessoSub = Math.abs(saldoSub);
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
+                    <Badge className={isOverpaidSub ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
                       <CheckCircle2 className="h-3 w-3" />
-                      {isFullyPaid ? "Período Pago" : "Parcial"}
+                      {isOverpaidSub ? "Pago com Excesso" : isFullyPaid ? "Período Pago" : "Parcial"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       Total Pago: {formatCurrency(totalSubPeriodPaid)}
-                      {!isFullyPaid && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
+                      {!isFullyPaid && !isOverpaidSub && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
+                      {isOverpaidSub && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excessoSub)}</span>}
                     </span>
                     {!isFullyPaid && (
                       <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
