@@ -1735,16 +1735,19 @@ export default function HarvestDetail() {
                 const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
                 const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
+                const isOverpaidSub = saldoSub < -0.01;
+                const excessoSub = Math.abs(saldoSub);
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
+                    <Badge className={isOverpaidSub ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
                       <CheckCircle2 className="h-3 w-3" />
-                      {isFullyPaid ? "Período Pago" : "Parcial"}
+                      {isOverpaidSub ? "Pago com Excesso" : isFullyPaid ? "Período Pago" : "Parcial"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       Total Pago: {formatCurrency(totalSubPeriodPaid)}
-                      {!isFullyPaid && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
+                      {!isFullyPaid && !isOverpaidSub && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
+                      {isOverpaidSub && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excessoSub)}</span>}
                     </span>
                     {!isFullyPaid && (
                       <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
