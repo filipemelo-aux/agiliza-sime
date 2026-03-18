@@ -866,6 +866,29 @@ export default function HarvestDetail() {
     : [];
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
+  // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
+  const accumulatedPastBalance = (() => {
+    if (!filterStartDate || !id) return 0;
+    // Group payments by period, then sum (expected - paid) for each period with a deficit
+    const pastPayments = payments.filter(p => p.period_end < filterStartDate);
+    const periodMap = new Map<string, { totalPaid: number; totalExpected: number }>();
+    for (const p of pastPayments) {
+      const key = `${p.period_start}_${p.period_end}_${p.filter_context || ""}`;
+      const entry = periodMap.get(key) || { totalPaid: 0, totalExpected: 0 };
+      entry.totalPaid += p.total_amount;
+      if (p.total_expected > entry.totalExpected) entry.totalExpected = p.total_expected;
+      periodMap.set(key, entry);
+    }
+    let accumulated = 0;
+    for (const entry of periodMap.values()) {
+      if (entry.totalExpected > 0) {
+        const deficit = entry.totalExpected - entry.totalPaid;
+        if (deficit > 0.01) accumulated += deficit;
+      }
+    }
+    return accumulated;
+  })();
+
   const handleRegisterPayment = async (totalAmount: number, expectedTotal: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
