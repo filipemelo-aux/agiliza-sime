@@ -2143,6 +2143,16 @@ export default function HarvestDetail() {
                       <p className="text-xs text-orange-500 font-medium">⚠ Pagamento parcial ({formatCurrency(paymentAmount)} de {formatCurrency(totalLiquido)})</p>
                     )}
                   </div>
+                  <div className="text-sm space-y-1">
+                    <Label htmlFor="payment-date" className="text-muted-foreground text-xs">Data do lançamento (opcional):</Label>
+                    <Input
+                      id="payment-date"
+                      type="date"
+                      className="h-9"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
