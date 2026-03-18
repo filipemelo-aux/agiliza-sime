@@ -140,8 +140,9 @@ export function FinancialReceipts() {
               <div>
                 <Label>Credor / Proprietário</Label>
                 <PersonSearchInput
-                  value={personId || ""}
-                  onChange={(id, name) => { setPersonId(id); setPersonName(name); }}
+                  selectedName={personName}
+                  onSelect={(person) => { setPersonId(person.id); setPersonName(person.full_name); }}
+                  onClear={() => { setPersonId(null); setPersonName(""); }}
                   placeholder="Buscar pessoa..."
                 />
               </div>
