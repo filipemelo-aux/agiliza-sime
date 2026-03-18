@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Download, Eye } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, User, Calendar, X } from "lucide-react";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Receipt {
   id: string;
@@ -28,6 +28,9 @@ export function FinancialReceipts() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerFileName, setViewerFileName] = useState("");
+  const isMobile = useIsMobile();
 
   // Form state
   const [personId, setPersonId] = useState<string | null>(null);
@@ -67,10 +70,6 @@ export function FinancialReceipts() {
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("payment-receipts")
-        .getPublicUrl(filePath);
 
       const { error: insertError } = await supabase
         .from("payment_receipts")
@@ -112,25 +111,38 @@ export function FinancialReceipts() {
     }
   };
 
-  const handleDownload = async (receipt: Receipt) => {
+  const handleView = async (receipt: Receipt) => {
     const { data, error } = await supabase.storage
       .from("payment-receipts")
-      .createSignedUrl(receipt.file_url, 60);
+      .createSignedUrl(receipt.file_url, 300);
 
     if (error || !data?.signedUrl) {
-      toast.error("Erro ao gerar link de download.");
+      toast.error("Erro ao gerar link de visualização.");
       return;
     }
-    window.open(data.signedUrl, "_blank");
+    setViewerFileName(receipt.file_name);
+    setViewerUrl(data.signedUrl);
+  };
+
+  const isImage = (fileName: string) => {
+    return /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Recibos de Pagamento</CardTitle>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Recibos de Pagamento</h2>
+          <p className="text-sm text-muted-foreground">
+            {receipts.length} recibo{receipts.length !== 1 ? "s" : ""} anexado{receipts.length !== 1 ? "s" : ""}
+          </p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Novo Recibo</Button>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Novo Recibo
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -168,49 +180,113 @@ export function FinancialReceipts() {
             </div>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        ) : receipts.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Nenhum recibo anexado.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Credor</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Arquivo</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receipts.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="whitespace-nowrap">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
-                  <TableCell>{r.person_name}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{r.description}</TableCell>
-                  <TableCell className="flex items-center gap-1">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs truncate max-w-[120px]">{r.file_name}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(r)} title="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(r)} title="Excluir">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4">
+                <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+                <div className="h-3 bg-muted rounded w-2/3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : receipts.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">Nenhum recibo anexado ainda.</p>
+            <p className="text-muted-foreground text-xs mt-1">Clique em "Novo Recibo" para começar.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {receipts.map((r) => (
+            <Card key={r.id} className="group hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">{r.person_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        {format(new Date(r.created_at), "dd/MM/yyyy")}
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {r.description}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <FileText className="h-3 w-3 shrink-0" />
+                      <span className="truncate max-w-[200px]">{r.file_name}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleView(r)}
+                      title="Visualizar"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(r)}
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Internal Viewer Dialog */}
+      <Dialog open={!!viewerUrl} onOpenChange={(open) => { if (!open) setViewerUrl(null); }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium truncate">{viewerFileName}</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto bg-muted/30">
+            {viewerUrl && (
+              isImage(viewerFileName) ? (
+                <div className="flex items-center justify-center h-full p-4">
+                  <img
+                    src={viewerUrl}
+                    alt={viewerFileName}
+                    className="max-w-full max-h-full object-contain rounded-md"
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={viewerUrl}
+                  className="w-full h-full border-0"
+                  title={viewerFileName}
+                />
+              )
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
