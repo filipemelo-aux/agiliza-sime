@@ -548,9 +548,18 @@ export default function HarvestDetail() {
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
     const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext) : null;
-    const paymentStatusHtml = pdfPayment
-      ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(pdfPayment.total_amount)}</span>`
-      : (filterStartDate && filterEndDate ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>` : '');
+    const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+    let paymentStatusHtml = '';
+    if (pdfPayment) {
+      const paidAmount = pdfPayment.total_amount;
+      const saldo = pdfTotalLiquido - paidAmount;
+      const isPartial = saldo > 0.01;
+      paymentStatusHtml = isPartial
+        ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⚠ PARCIAL em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — Pago: ${formatCurrency(paidAmount)} | Saldo: ${formatCurrency(saldo)}</span>`
+        : `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(paidAmount)}</span>`;
+    } else if (filterStartDate && filterEndDate) {
+      paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
+    }
     const tableStyle = useMobileLayout
       ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
       : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
@@ -1574,20 +1583,32 @@ export default function HarvestDetail() {
           {/* Payment status + register button */}
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
-              currentPeriodPayment ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <Badge className="bg-green-500/20 text-green-600 border-0 gap-1">
+              currentPeriodPayment ? (() => {
+                const paidAmt = currentPeriodPayment.total_amount;
+                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const saldo = totalLiq - paidAmt;
+                const isPartial = saldo > 0.01;
+                return (
+                <div className="flex items-center gap-2 flex-1 flex-wrap">
+                  <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
                     <CheckCircle2 className="h-3 w-3" />
-                    Período Pago
+                    {isPartial ? "Parcial" : "Período Pago"}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {formatCurrency(currentPeriodPayment.total_amount)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                    Pago: {formatCurrency(paidAmt)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                    {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
                   </span>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
+                  {isPartial && (
+                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
+                    </Button>
+                  )}
                 </div>
-              ) : (
+                );
+              })() : (
                 <div className="flex items-center gap-2 flex-1">
                   <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
                     <Clock className="h-3 w-3" />
