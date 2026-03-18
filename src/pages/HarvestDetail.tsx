@@ -595,8 +595,10 @@ export default function HarvestDetail() {
       }).join(" | ");
       paymentStatusHtml += `<br/><span style="display:inline-block;background:#d1ecf1;color:#0c5460;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:500;margin-left:8px;margin-top:4px">💰 Sub-períodos: ${subLines}</span>`;
     }
-    if (accumulatedPastBalance > 0 && filterStartDate && filterEndDate) {
+    if (accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate) {
       paymentStatusHtml += `<br/><span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;margin-top:4px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
+    } else if (accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate) {
+      paymentStatusHtml += `<br/><span style="display:inline-block;background:#cce5ff;color:#004085;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px;margin-top:4px">💰 Crédito acumulado anterior: ${formatCurrency(Math.abs(accumulatedPastBalance))}</span>`;
     }
     const tableStyle = useMobileLayout
       ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
@@ -947,8 +949,8 @@ export default function HarvestDetail() {
     let accumulated = 0;
     for (const entry of periodMap.values()) {
       if (entry.totalExpected > 0) {
-        const deficit = entry.totalExpected - entry.totalPaid;
-        if (deficit > 0.01) accumulated += deficit;
+        // Net balance: positive = deficit, negative = excess (overpaid)
+        accumulated += (entry.totalExpected - entry.totalPaid);
       }
     }
     return accumulated;
@@ -1792,10 +1794,17 @@ export default function HarvestDetail() {
             ) : (
               <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
             )}
-            {accumulatedPastBalance > 0 && filterStartDate && filterEndDate && (
+            {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
               <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-destructive/10 border border-destructive/20">
                 <span className="text-xs font-semibold text-destructive">
                   📌 Saldo acumulado de períodos anteriores: {formatCurrency(accumulatedPastBalance)}
+                </span>
+              </div>
+            )}
+            {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
+              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-blue-500/10 border border-blue-300/30">
+                <span className="text-xs font-semibold text-blue-600">
+                  💰 Crédito acumulado de períodos anteriores: {formatCurrency(Math.abs(accumulatedPastBalance))}
                 </span>
               </div>
             )}
