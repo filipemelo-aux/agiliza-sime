@@ -790,8 +790,29 @@ export default function HarvestDetail() {
     }
   };
 
-  // Payment helpers
-  const currentFilterContext = driverSearch.trim().toLowerCase();
+  // Payment helpers — use sorted assignment user_ids as context so any search yielding the same drivers matches
+  const buildFilterContext = (filteredList: Assignment[]) => {
+    const ids = filteredList.map(a => a.user_id).filter(Boolean);
+    const unique = [...new Set(ids)].sort();
+    return unique.join(",");
+  };
+
+  // We need sortedAgregados before this, but it depends on filterBySearch which is defined later.
+  // So we compute it inline here too for payment context purposes.
+  const getFilteredAssignmentsForPayment = () => {
+    let list = filterByDateRange(assignments);
+    if (driverSearch.trim()) {
+      const q = driverSearch.toLowerCase();
+      list = list.filter(a =>
+        (a.driver_name || "").toLowerCase().includes(q) ||
+        (a.vehicle_plate || "").toLowerCase().includes(q) ||
+        (a.owner_name || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  };
+
+  const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
   const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
     return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
