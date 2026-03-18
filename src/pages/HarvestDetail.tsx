@@ -838,32 +838,28 @@ export default function HarvestDetail() {
 
   const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
 
-  const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
-    // First try exact match
-    const exact = payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
-    if (exact) return exact;
-    // If current filter is a subset of a registered payment, consider it paid
-    // e.g. filtering one driver who belongs to an owner group that was already paid
-    if (filterCtx) {
-      const currentIds = new Set(filterCtx.split(","));
-      return payments.find(p => {
-        if (p.period_start !== periodStart || p.period_end !== periodEnd) return false;
+  const getPaymentsForPeriod = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
+    const matchesContext = (p: HarvestPayment) => {
+      if ((p.filter_context || "") === filterCtx) return true;
+      if (filterCtx) {
+        const currentIds = new Set(filterCtx.split(","));
         const pCtx = p.filter_context || "";
         if (!pCtx) return false;
         const paymentIds = new Set(pCtx.split(","));
-        // Check if ALL current filtered IDs exist in this payment's context
-        for (const id of currentIds) {
-          if (!paymentIds.has(id)) return false;
+        for (const cid of currentIds) {
+          if (!paymentIds.has(cid)) return false;
         }
         return true;
-      });
-    }
-    return undefined;
+      }
+      return false;
+    };
+    return payments.filter(p => p.period_start === periodStart && p.period_end === periodEnd && matchesContext(p));
   };
 
-  const currentPeriodPayment = filterStartDate && filterEndDate
-    ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext)
-    : null;
+  const currentPeriodPayments = filterStartDate && filterEndDate
+    ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext)
+    : [];
+  const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
   const handleRegisterPayment = async (totalAmount: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
