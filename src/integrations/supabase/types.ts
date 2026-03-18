@@ -1436,6 +1436,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          filter_context: string
           harvest_job_id: string
           id: string
           notes: string | null
@@ -1446,6 +1447,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          filter_context?: string
           harvest_job_id: string
           id?: string
           notes?: string | null
@@ -1456,6 +1458,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          filter_context?: string
           harvest_job_id?: string
           id?: string
           notes?: string | null

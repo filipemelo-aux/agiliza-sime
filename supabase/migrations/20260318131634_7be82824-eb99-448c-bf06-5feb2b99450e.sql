@@ -1,0 +1,1 @@
+ALTER TABLE public.harvest_payments ADD COLUMN filter_context TEXT NOT NULL DEFAULT '';
