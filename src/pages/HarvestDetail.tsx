@@ -112,6 +112,8 @@ export default function HarvestDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentDate, setPaymentDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
@@ -839,14 +841,45 @@ export default function HarvestDetail() {
 
   const handleToggleStatus = async () => {
     if (!job || !id) return;
-    const newStatus = job.status === "active" ? "closed" : "active";
+    if (job.status === "active") {
+      // Open close dialog instead of toggling directly
+      setCloseDialogOpen(true);
+      return;
+    }
+    // Reactivate
     try {
-      const { error } = await supabase.from("harvest_jobs").update({ status: newStatus }).eq("id", id);
+      const { error } = await supabase.from("harvest_jobs").update({ status: "active" } as any).eq("id", id);
       if (error) throw error;
-      toast({ title: newStatus === "active" ? "Serviço reativado" : "Serviço encerrado" });
+      toast({ title: "Serviço reativado" });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleCloseHarvest = async () => {
+    if (!job || !id || !closingDate) return;
+    try {
+      // 1. Update job status and end date
+      const { error: jobErr } = await supabase.from("harvest_jobs").update({
+        status: "closed",
+        harvest_period_end: closingDate,
+      } as any).eq("id", id);
+      if (jobErr) throw jobErr;
+
+      // 2. Set end_date on assignments that don't have one
+      const assignmentsWithoutEnd = assignments.filter(a => !a.end_date);
+      for (const a of assignmentsWithoutEnd) {
+        await supabase.from("harvest_assignments").update({
+          end_date: closingDate,
+        } as any).eq("id", a.id);
+      }
+
+      toast({ title: "Serviço encerrado", description: `${assignmentsWithoutEnd.length} motorista(s) com data fim definida para ${new Date(closingDate + "T00:00:00").toLocaleDateString("pt-BR")}` });
+      setCloseDialogOpen(false);
+      fetchAll();
+    } catch (error: any) {
+      toast({ title: "Erro ao encerrar", description: error.message, variant: "destructive" });
     }
   };
 
@@ -1570,6 +1603,33 @@ export default function HarvestDetail() {
           </Card>
         )}
 
+        {/* Close Harvest Dialog */}
+        <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Encerrar Serviço de Colheita</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <p className="text-sm text-muted-foreground">
+                Defina a data de encerramento. Motoristas sem data fim terão essa data definida automaticamente. O serviço será bloqueado para novos lançamentos.
+              </p>
+              <div className="space-y-2">
+                <Label>Data de Encerramento *</Label>
+                <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {assignments.filter(a => !a.end_date).length} motorista(s) sem data fim definida serão atualizados.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setCloseDialogOpen(false)}>Cancelar</Button>
+                <Button className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleCloseHarvest} disabled={!closingDate}>
+                  Encerrar Serviço
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Vincular Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
@@ -1851,9 +1911,11 @@ export default function HarvestDetail() {
                   <span className="hidden sm:inline">Recibo</span>
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
-              </Button>
+              {job.status === "active" && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
+                </Button>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
