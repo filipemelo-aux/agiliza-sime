@@ -1583,20 +1583,32 @@ export default function HarvestDetail() {
           {/* Payment status + register button */}
           <div className="flex items-center justify-between gap-2">
             {filterStartDate && filterEndDate ? (
-              currentPeriodPayment ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <Badge className="bg-green-500/20 text-green-600 border-0 gap-1">
+              currentPeriodPayment ? (() => {
+                const paidAmt = currentPeriodPayment.total_amount;
+                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const saldo = totalLiq - paidAmt;
+                const isPartial = saldo > 0.01;
+                return (
+                <div className="flex items-center gap-2 flex-1 flex-wrap">
+                  <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
                     <CheckCircle2 className="h-3 w-3" />
-                    Período Pago
+                    {isPartial ? "Parcial" : "Período Pago"}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {formatCurrency(currentPeriodPayment.total_amount)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                    Pago: {formatCurrency(paidAmt)} em {new Date(currentPeriodPayment.created_at).toLocaleDateString("pt-BR")}
+                    {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
                   </span>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(currentPeriodPayment.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
+                  {isPartial && (
+                    <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
+                    </Button>
+                  )}
                 </div>
-              ) : (
+                );
+              })() : (
                 <div className="flex items-center gap-2 flex-1">
                   <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
                     <Clock className="h-3 w-3" />
