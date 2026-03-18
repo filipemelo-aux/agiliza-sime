@@ -70,6 +70,7 @@ interface HarvestPayment {
   period_start: string;
   period_end: string;
   total_amount: number;
+  filter_context: string;
   notes: string | null;
   created_by: string;
   created_at: string;
@@ -545,7 +546,7 @@ export default function HarvestDetail() {
     }
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
-    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate) : null;
+    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext) : null;
     const paymentStatusHtml = pdfPayment
       ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(pdfPayment.total_amount)}</span>`
       : (filterStartDate && filterEndDate ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>` : '');
@@ -790,12 +791,14 @@ export default function HarvestDetail() {
   };
 
   // Payment helpers
-  const getPaymentForPeriod = (periodStart: string, periodEnd: string) => {
-    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd);
+  const currentFilterContext = driverSearch.trim().toLowerCase();
+
+  const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
+    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
   };
 
   const currentPeriodPayment = filterStartDate && filterEndDate
-    ? getPaymentForPeriod(filterStartDate, filterEndDate)
+    ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext)
     : null;
 
   const handleRegisterPayment = async (totalAmount: number) => {
@@ -810,6 +813,7 @@ export default function HarvestDetail() {
         period_start: filterStartDate,
         period_end: filterEndDate,
         total_amount: totalAmount,
+        filter_context: currentFilterContext,
         created_by: user.id,
       } as any);
       if (error) throw error;
@@ -2028,6 +2032,12 @@ export default function HarvestDetail() {
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
             </div>
+            {currentFilterContext && (
+              <div className="text-sm">
+                <p className="text-muted-foreground">Filtro aplicado:</p>
+                <p className="font-semibold text-primary">{driverSearch}</p>
+              </div>
+            )}
             {(() => {
               const totalLiquido = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
               return (
