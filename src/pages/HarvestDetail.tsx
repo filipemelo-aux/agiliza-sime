@@ -546,7 +546,7 @@ export default function HarvestDetail() {
     }
     const useMobileLayout = isMobile;
     // Check payment status for this period in the PDF
-    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate) : null;
+    const pdfPayment = (filterStartDate && filterEndDate) ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext) : null;
     const paymentStatusHtml = pdfPayment
       ? `<span style="display:inline-block;background:#d4edda;color:#155724;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">✅ PAGO em ${new Date(pdfPayment.created_at).toLocaleDateString("pt-BR")} — ${formatCurrency(pdfPayment.total_amount)}</span>`
       : (filterStartDate && filterEndDate ? `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>` : '');
