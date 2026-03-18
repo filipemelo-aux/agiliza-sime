@@ -813,6 +813,7 @@ export default function HarvestDetail() {
         period_start: filterStartDate,
         period_end: filterEndDate,
         total_amount: totalAmount,
+        filter_context: currentFilterContext,
         created_by: user.id,
       } as any);
       if (error) throw error;
