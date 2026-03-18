@@ -1012,6 +1012,7 @@ export default function HarvestDetail() {
     return result;
   };
 
+  const filterByDateRange = (list: Assignment[]) => {
     if (!filterStartDate && !filterEndDate) return list;
     return list.filter(a => {
       const assignEnd = a.end_date
