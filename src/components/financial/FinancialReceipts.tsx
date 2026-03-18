@@ -114,14 +114,15 @@ export function FinancialReceipts() {
   const handleView = async (receipt: Receipt) => {
     const { data, error } = await supabase.storage
       .from("payment-receipts")
-      .createSignedUrl(receipt.file_url, 300);
+      .download(receipt.file_url);
 
-    if (error || !data?.signedUrl) {
-      toast.error("Erro ao gerar link de visualização.");
+    if (error || !data) {
+      toast.error("Erro ao carregar arquivo para visualização.");
       return;
     }
+    const blobUrl = URL.createObjectURL(data);
     setViewerFileName(receipt.file_name);
-    setViewerUrl(data.signedUrl);
+    setViewerUrl(blobUrl);
   };
 
   const isImage = (fileName: string) => {
@@ -258,14 +259,19 @@ export function FinancialReceipts() {
       )}
 
       {/* Internal Viewer Dialog */}
-      <Dialog open={!!viewerUrl} onOpenChange={(open) => { if (!open) setViewerUrl(null); }}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <div className="flex items-center gap-2 min-w-0">
+      <Dialog open={!!viewerUrl} onOpenChange={(open) => {
+        if (!open) {
+          if (viewerUrl) URL.revokeObjectURL(viewerUrl);
+          setViewerUrl(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+          <DialogHeader className="px-4 py-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-sm font-medium">
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium truncate">{viewerFileName}</span>
-            </div>
-          </div>
+              <span className="truncate">{viewerFileName}</span>
+            </DialogTitle>
+          </DialogHeader>
           <div className="flex-1 overflow-auto bg-muted/30">
             {viewerUrl && (
               isImage(viewerFileName) ? (
