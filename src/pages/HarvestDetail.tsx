@@ -886,6 +886,7 @@ export default function HarvestDetail() {
       toast({ title: "Pagamento registrado com sucesso!" });
       setPaymentDialogOpen(false);
       setPartialPaymentValue("");
+      setPaymentDate("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
