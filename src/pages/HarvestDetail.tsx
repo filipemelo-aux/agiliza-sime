@@ -1756,8 +1756,8 @@ export default function HarvestDetail() {
                 );
               })() : subPeriodPayments.length > 0 ? (() => {
                 const totalLiqCalcSub = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const subMaxExp = Math.max(...subPeriodPayments.map(p => p.total_expected || 0));
-                const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
+                const subExpectedSum = sumExpectedByPeriod(subPeriodPayments);
+                const totalLiqSub = subExpectedSum > 0 ? Math.min(totalLiqCalcSub, subExpectedSum) : totalLiqCalcSub;
                 const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
                 const isOverpaidSub = saldoSub < -0.01;
