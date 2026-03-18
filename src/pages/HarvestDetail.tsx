@@ -111,6 +111,7 @@ export default function HarvestDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [companyDiscountDialogOpen, setCompanyDiscountDialogOpen] = useState(false);
@@ -871,6 +872,7 @@ export default function HarvestDetail() {
     }
     setSavingPayment(true);
     try {
+      const paymentNotes = paymentDate ? `Lançamento em ${paymentDate.split("-").reverse().join("/")}` : null;
       const { error } = await supabase.from("harvest_payments").insert({
         harvest_job_id: id,
         period_start: filterStartDate,
@@ -878,11 +880,13 @@ export default function HarvestDetail() {
         total_amount: totalAmount,
         filter_context: currentFilterContext,
         created_by: user.id,
+        notes: paymentNotes,
       } as any);
       if (error) throw error;
       toast({ title: "Pagamento registrado com sucesso!" });
       setPaymentDialogOpen(false);
       setPartialPaymentValue("");
+      setPaymentDate("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -2085,7 +2089,7 @@ export default function HarvestDetail() {
       </Dialog>
 
       {/* Payment Registration Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) setPartialPaymentValue(""); }}>
+      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
@@ -2138,6 +2142,16 @@ export default function HarvestDetail() {
                     {isPartial && (
                       <p className="text-xs text-orange-500 font-medium">⚠ Pagamento parcial ({formatCurrency(paymentAmount)} de {formatCurrency(totalLiquido)})</p>
                     )}
+                  </div>
+                  <div className="text-sm space-y-1">
+                    <Label htmlFor="payment-date" className="text-muted-foreground text-xs">Data do lançamento (opcional):</Label>
+                    <Input
+                      id="payment-date"
+                      type="date"
+                      className="h-9"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                    />
                   </div>
                   <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
                   <DialogFooter>
