@@ -1727,8 +1727,10 @@ export default function HarvestDetail() {
                 </div>
                 );
               })() : subPeriodPayments.length > 0 ? (() => {
-                const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const saldoSub = totalLiq - totalSubPeriodPaid;
+                const totalLiqCalcSub = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+                const subMaxExp = Math.max(...subPeriodPayments.map(p => p.total_expected || 0));
+                const totalLiqSub = Math.min(totalLiqCalcSub, subMaxExp > 0 ? subMaxExp : totalLiqCalcSub);
+                const saldoSub = totalLiqSub - totalSubPeriodPaid;
                 const isFullyPaid = saldoSub <= 0.01;
                 return (
                 <div className="flex flex-col gap-1.5 flex-1">
