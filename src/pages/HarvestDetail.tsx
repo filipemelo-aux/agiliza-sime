@@ -2147,7 +2147,7 @@ export default function HarvestDetail() {
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                         <Input
                           className="pl-7 h-9"
-                          placeholder={maskCurrency(String(Math.round(totalLiquido * 100)))}
+                          placeholder={maskCurrency(String(Math.round(remainingBalance * 100)))}
                           value={hasCustomPayment ? maskCurrency(partialPaymentValue) : ""}
                           onChange={(e) => setPartialPaymentValue(e.target.value.replace(/\D/g, ""))}
                         />
