@@ -1743,7 +1743,7 @@ export default function HarvestDetail() {
                       </Button>
                     )}
                   </div>
-                  <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                   <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
                     <p className="text-xs font-semibold text-foreground">
                       💰 Pagamentos em sub-períodos:
                     </p>
@@ -1755,12 +1755,7 @@ export default function HarvestDetail() {
                         </div>
                       );
                     })}
-                    <div className="border-t border-border pt-1 mt-1 flex flex-wrap gap-x-3 text-xs">
-                      <span className="text-muted-foreground">Total Líquido: <span className="font-semibold text-foreground">{formatCurrency(totalLiq)}</span></span>
-                      <span className="text-muted-foreground">Pago: <span className="font-semibold text-green-600">{formatCurrency(totalSubPeriodPaid)}</span></span>
-                      {!isFullyPaid && <span className="text-destructive font-semibold">Saldo: {formatCurrency(saldoSub)}</span>}
-                    </div>
-                  </div>
+                   </div>
                 </div>
                 );
               })() : (
