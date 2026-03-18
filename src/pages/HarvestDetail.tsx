@@ -791,12 +791,14 @@ export default function HarvestDetail() {
   };
 
   // Payment helpers
-  const getPaymentForPeriod = (periodStart: string, periodEnd: string) => {
-    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd);
+  const currentFilterContext = driverSearch.trim().toLowerCase();
+
+  const getPaymentForPeriod = (periodStart: string, periodEnd: string, filterCtx: string) => {
+    return payments.find(p => p.period_start === periodStart && p.period_end === periodEnd && (p.filter_context || "") === filterCtx);
   };
 
   const currentPeriodPayment = filterStartDate && filterEndDate
-    ? getPaymentForPeriod(filterStartDate, filterEndDate)
+    ? getPaymentForPeriod(filterStartDate, filterEndDate, currentFilterContext)
     : null;
 
   const handleRegisterPayment = async (totalAmount: number) => {
