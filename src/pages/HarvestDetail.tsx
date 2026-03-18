@@ -872,6 +872,7 @@ export default function HarvestDetail() {
     }
     setSavingPayment(true);
     try {
+      const paymentNotes = paymentDate ? `Lançamento em ${paymentDate.split("-").reverse().join("/")}` : null;
       const { error } = await supabase.from("harvest_payments").insert({
         harvest_job_id: id,
         period_start: filterStartDate,
@@ -879,6 +880,7 @@ export default function HarvestDetail() {
         total_amount: totalAmount,
         filter_context: currentFilterContext,
         created_by: user.id,
+        notes: paymentNotes,
       } as any);
       if (error) throw error;
       toast({ title: "Pagamento registrado com sucesso!" });
