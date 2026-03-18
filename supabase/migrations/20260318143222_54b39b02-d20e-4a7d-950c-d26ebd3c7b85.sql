@@ -1,0 +1,1 @@
+ALTER TABLE public.harvest_payments ADD COLUMN total_expected numeric NOT NULL DEFAULT 0;

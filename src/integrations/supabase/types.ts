@@ -1443,6 +1443,7 @@ export type Database = {
           period_end: string
           period_start: string
           total_amount: number
+          total_expected: number
         }
         Insert: {
           created_at?: string
@@ -1454,6 +1455,7 @@ export type Database = {
           period_end: string
           period_start: string
           total_amount?: number
+          total_expected?: number
         }
         Update: {
           created_at?: string
@@ -1465,6 +1467,7 @@ export type Database = {
           period_end?: string
           period_start?: string
           total_amount?: number
+          total_expected?: number
         }
         Relationships: [
           {

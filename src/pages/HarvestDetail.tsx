@@ -70,6 +70,7 @@ interface HarvestPayment {
   period_start: string;
   period_end: string;
   total_amount: number;
+  total_expected: number;
   filter_context: string;
   notes: string | null;
   created_by: string;
@@ -565,6 +566,9 @@ export default function HarvestDetail() {
     } else if (filterStartDate && filterEndDate) {
       paymentStatusHtml = `<span style="display:inline-block;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">⏳ NÃO PAGO</span>`;
     }
+    if (accumulatedPastBalance > 0 && filterStartDate && filterEndDate) {
+      paymentStatusHtml += `<span style="display:inline-block;background:#f8d7da;color:#721c24;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:8px">📌 Saldo acumulado anterior: ${formatCurrency(accumulatedPastBalance)}</span>`;
+    }
     const tableStyle = useMobileLayout
       ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.text-orange{color:#e67e22}.text-green{color:#27ae60;font-weight:700}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}@media print{@page{size:portrait;margin:6mm}}`
       : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.report-section{page-break-before:always}.report-section:first-child{page-break-before:avoid}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
@@ -865,7 +869,30 @@ export default function HarvestDetail() {
     : [];
   const totalPaidAmount = currentPeriodPayments.reduce((s, p) => s + p.total_amount, 0);
 
-  const handleRegisterPayment = async (totalAmount: number) => {
+  // Calculate accumulated balance from ALL past periods (period_end < current filterStartDate)
+  const accumulatedPastBalance = (() => {
+    if (!filterStartDate || !id) return 0;
+    // Group payments by period, then sum (expected - paid) for each period with a deficit
+    const pastPayments = payments.filter(p => p.period_end < filterStartDate);
+    const periodMap = new Map<string, { totalPaid: number; totalExpected: number }>();
+    for (const p of pastPayments) {
+      const key = `${p.period_start}_${p.period_end}_${p.filter_context || ""}`;
+      const entry = periodMap.get(key) || { totalPaid: 0, totalExpected: 0 };
+      entry.totalPaid += p.total_amount;
+      if (p.total_expected > entry.totalExpected) entry.totalExpected = p.total_expected;
+      periodMap.set(key, entry);
+    }
+    let accumulated = 0;
+    for (const entry of periodMap.values()) {
+      if (entry.totalExpected > 0) {
+        const deficit = entry.totalExpected - entry.totalPaid;
+        if (deficit > 0.01) accumulated += deficit;
+      }
+    }
+    return accumulated;
+  })();
+
+  const handleRegisterPayment = async (totalAmount: number, expectedTotal: number) => {
     if (!filterStartDate || !filterEndDate || !id || !user) {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
       return;
@@ -878,6 +905,7 @@ export default function HarvestDetail() {
         period_start: filterStartDate,
         period_end: filterEndDate,
         total_amount: totalAmount,
+        total_expected: expectedTotal,
         filter_context: currentFilterContext,
         created_by: user.id,
         notes: paymentNotes,
@@ -1637,6 +1665,13 @@ export default function HarvestDetail() {
             ) : (
               <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
             )}
+            {accumulatedPastBalance > 0 && filterStartDate && filterEndDate && (
+              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-destructive/10 border border-destructive/20">
+                <span className="text-xs font-semibold text-destructive">
+                  📌 Saldo acumulado de períodos anteriores: {formatCurrency(accumulatedPastBalance)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -2175,7 +2210,7 @@ export default function HarvestDetail() {
                   <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount)} disabled={savingPayment || paymentAmount < 0}>
+                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0}>
                       {savingPayment ? "Salvando..." : isPartial ? "Confirmar Parcial" : "Confirmar Pagamento"}
                     </Button>
                   </DialogFooter>
