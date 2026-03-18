@@ -552,11 +552,13 @@ export default function HarvestDetail() {
     const pdfPayments = (filterStartDate && filterEndDate) ? getPaymentsForPeriod(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfOverlapping = (filterStartDate && filterEndDate) ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext) : [];
     const pdfSubPeriod = pdfOverlapping.filter(p => !(p.period_start === filterStartDate && p.period_end === filterEndDate)).sort((a, b) => a.period_start.localeCompare(b.period_start) || a.created_at.localeCompare(b.created_at));
-    const pdfTotalLiquido = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
+    const pdfTotalLiquidoCalc = activeAssignments.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
     const pdfTotalPaid = pdfPayments.reduce((s, p) => s + p.total_amount, 0);
     const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
     if (pdfPayments.length > 0) {
+      const pdfMaxExpected = Math.max(...pdfPayments.map(p => p.total_expected || 0));
+      const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
       const saldo = pdfTotalLiquido - pdfTotalPaid;
       const isPartial = saldo > 0.01;
       const detailLines = pdfPayments.map(p => {
