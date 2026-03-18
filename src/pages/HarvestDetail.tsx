@@ -557,9 +557,15 @@ export default function HarvestDetail() {
     const pdfSubPeriodPaid = pdfSubPeriod.reduce((s, p) => s + p.total_amount, 0);
     let paymentStatusHtml = '';
     if (pdfPayments.length > 0) {
-      const pdfMaxExpected = Math.max(...pdfPayments.map(p => p.total_expected || 0));
-      const pdfTotalLiquido = Math.min(pdfTotalLiquidoCalc, pdfMaxExpected > 0 ? pdfMaxExpected : pdfTotalLiquidoCalc);
-      const saldo = pdfTotalLiquido - pdfTotalPaid;
+      const allPdfPayments = [...pdfPayments, ...pdfSubPeriod];
+      const pdfExpectedSum = (() => {
+        const pm = new Map<string, number>();
+        for (const p of allPdfPayments) { const k = `${p.period_start}_${p.period_end}`; const c = pm.get(k) || 0; if (p.total_expected > c) pm.set(k, p.total_expected); }
+        let t = 0; for (const v of pm.values()) t += v; return t;
+      })();
+      const pdfAllPaid = pdfTotalPaid + pdfSubPeriodPaid;
+      const pdfTotalLiquido = pdfExpectedSum > 0 ? Math.min(pdfTotalLiquidoCalc, pdfExpectedSum) : pdfTotalLiquidoCalc;
+      const saldo = pdfTotalLiquido - pdfAllPaid;
       const isPartial = saldo > 0.01;
       const isOverpaid = saldo < -0.01;
       const excesso = Math.abs(saldo);
