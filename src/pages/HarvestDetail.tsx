@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock, Receipt } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AgregadoMobileCard, FaturamentoMobileCard, ClienteMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -850,6 +850,168 @@ export default function HarvestDetail() {
     }
   };
 
+  const exportReceipt = () => {
+    const activeAssignments = filterBySearch(assignments);
+    if (activeAssignments.length === 0 || !receiptOwnerInfo || !job) {
+      toast({ title: "Nenhum dado para gerar recibo", variant: "destructive" });
+      return;
+    }
+    const ownerName = receiptOwnerInfo;
+    const useMobileLayout = isMobile;
+
+    // Reuse PDF discount logic (no custom period for receipt)
+    const pdfFilterDiscounts = (discounts: Discount[]) => {
+      const sd = filterStartDate;
+      const ed = filterEndDate;
+      if (!sd && !ed) return discounts;
+      return discounts.filter(d => {
+        if (!d.date) return true;
+        if (sd && d.date < sd) return false;
+        if (ed && d.date > ed) return false;
+        return true;
+      });
+    };
+    const pdfGetTotalDiscounts = (discounts: Discount[]) =>
+      pdfFilterDiscounts(discounts).reduce((sum, d) => sum + d.value, 0);
+    const pdfGetAgregadoData = (a: Assignment) => {
+      const dv = a.daily_value || dailyValue;
+      const days = getFilteredDays(a);
+      const totalBruto = days * dv;
+      const isPropria = a.fleet_type === "propria";
+      const totalDescontos = isPropria ? 0 : pdfGetTotalDiscounts(a.discounts);
+      const totalLiquido = totalBruto - totalDescontos;
+      return { dv, days, totalBruto, totalDescontos, totalLiquido };
+    };
+
+    // Gather all overlapping payments for the full period
+    const receiptPayments = (filterStartDate && filterEndDate)
+      ? getOverlappingPayments(filterStartDate, filterEndDate, currentFilterContext)
+      : [];
+    const receiptSubPeriods = receiptPayments
+      .sort((a, b) => a.period_start.localeCompare(b.period_start) || a.created_at.localeCompare(b.created_at));
+
+    const totalLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
+    const totalPaid = receiptPayments.reduce((s, p) => s + p.total_amount, 0);
+
+    const filterInicioLabel = filterStartDate ? formatDate(filterStartDate) : "início";
+    const filterFimLabel = filterEndDate ? formatDate(filterEndDate) : "atual";
+
+    const getEffectiveStart = (a: any) => {
+      if (!filterStartDate) return formatDate(a.start_date);
+      const aStart = new Date(a.start_date + "T00:00:00");
+      const fStart = new Date(filterStartDate + "T00:00:00");
+      return formatDate(aStart > fStart ? a.start_date : filterStartDate);
+    };
+    const getEffectiveFim = (a: any) => {
+      const fEnd = filterEndDate ? new Date(filterEndDate + "T00:00:00") : null;
+      if (a.end_date) {
+        const aEnd = new Date(a.end_date + "T00:00:00");
+        if (!fEnd || aEnd < fEnd) return { label: formatDate(a.end_date), early: true };
+        return { label: formatDate(filterEndDate!), early: false };
+      }
+      return { label: fEnd ? formatDate(filterEndDate!) : "em atividade", early: false };
+    };
+    const fimCell = (a: any) => {
+      const fim = getEffectiveFim(a);
+      if (fim.early) return `<td style="color:#c0392b;font-weight:600">${fim.label} ⚠</td>`;
+      return `<td>${fim.label}</td>`;
+    };
+
+    const tableStyle = useMobileLayout
+      ? `body{font-family:Arial,sans-serif;padding:8px;margin:0;background:#fff}h2{font-size:14px;margin:10px 0 4px}h3{font-size:11px;color:#666;margin:0 0 8px}.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{border:1px solid #ddd;border-radius:8px;padding:8px;background:#fff;page-break-inside:avoid}.card-header{margin-bottom:4px}.card-name{font-weight:700;font-size:11px}.card-plate{font-size:9px;color:#666;font-family:monospace}.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 6px;font-size:9px;margin-bottom:4px;padding-top:4px;border-top:1px solid #eee}.card-label{font-size:7px;text-transform:uppercase;letter-spacing:0.3px;color:#888;margin-bottom:0}.card-value{font-size:10px}.card-total{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #ddd;margin-top:2px}.card-total-label{font-size:8px;text-transform:uppercase;letter-spacing:0.3px;color:#888}.card-total-value{font-size:12px;font-weight:700;color:#2B4C7E}.text-red{color:#c0392b;font-weight:600}.summary-card{background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:8px;grid-column:1/-1}.summary-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}.summary-total{display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid #ddd;margin-top:4px}.summary-total-value{font-size:14px;font-weight:700;color:#2B4C7E}.receipt-footer{margin-top:40px;padding-top:20px;border-top:2px solid #333;font-size:10px;line-height:1.6;page-break-inside:avoid}.signature-line{margin-top:60px;border-top:1px solid #333;width:60%;text-align:center;padding-top:4px;font-size:10px}@media print{@page{size:portrait;margin:6mm}}`
+      : `table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.total-row{background:#f0f0f0;font-weight:700}.right{text-align:right}.center{text-align:center}h2{font-size:16px;margin:16px 0 4px}h3{font-size:13px;color:#666;margin:0 0 12px}body{font-family:Arial,sans-serif;padding:20px}.receipt-footer{margin-top:40px;padding-top:20px;border-top:2px solid #333;font-size:11px;line-height:1.8;page-break-inside:avoid}.signature-line{margin-top:60px;border-top:1px solid #333;width:50%;text-align:center;padding-top:6px;font-size:11px}@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}`;
+
+    let html = `<h2>RECIBO DE PAGAMENTO — ${job.farm_name}</h2>`;
+    html += `<h3>Proprietário: ${ownerName} | Período: ${filterInicioLabel} até ${filterFimLabel}</h3>`;
+
+    // Sub-period payments summary at top
+    if (receiptSubPeriods.length > 0) {
+      html += `<div style="background:#d1ecf1;color:#0c5460;border-radius:6px;padding:8px 12px;font-size:11px;margin-bottom:12px">`;
+      html += `<strong>Pagamentos registrados:</strong><br/>`;
+      receiptSubPeriods.forEach(p => {
+        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
+        html += `• ${formatDate(p.period_start)} a ${formatDate(p.period_end)} — ${dateLabel}: ${formatCurrency(p.total_amount)}<br/>`;
+      });
+      html += `<strong>Total Pago: ${formatCurrency(totalPaid)}</strong>`;
+      html += `</div>`;
+    }
+
+    // Table with all assignments
+    html += `<table><thead><tr><th>Motorista</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
+    activeAssignments.forEach(a => {
+      const d = pdfGetAgregadoData(a);
+      html += `<tr><td>${a.driver_name}</td><td>${a.vehicle_plate}</td><td>${getEffectiveStart(a)}</td>${fimCell(a)}<td class="center">${d.days}</td><td class="right">${formatCurrency(d.dv)}</td><td class="right">${formatCurrency(d.totalBruto)}</td><td class="right">${formatCurrency(d.totalDescontos)}</td><td class="right">${formatCurrency(d.totalLiquido)}</td></tr>`;
+    });
+    const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
+    const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
+    html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totDias}</td><td></td><td></td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totalLiq)}</td></tr></tbody></table>`;
+
+    // Receipt footer with signature
+    const today = new Date().toLocaleDateString("pt-BR");
+    html += `<div class="receipt-footer">`;
+    html += `<p>Eu, <strong>${ownerName}</strong>, proprietário(a) dos veículos acima relacionados, declaro ter recebido da <strong>SIME TRANSPORTES</strong> a importância total de <strong>${formatCurrency(totalPaid)}</strong> (${totalPaidToWords(totalPaid)}), referente aos serviços de colheita prestados no período de <strong>${filterInicioLabel}</strong> a <strong>${filterFimLabel}</strong>, na fazenda <strong>${job.farm_name}</strong>, localizada em <strong>${job.location}</strong>.</p>`;
+    html += `<p>Declaro ainda que nada mais tenho a receber referente ao período acima mencionado, dando plena e irrevogável quitação dos valores devidos.</p>`;
+    html += `<p style="margin-top:12px;font-size:10px;color:#666">${job.location}, ${today}</p>`;
+    html += `<div class="signature-line"><strong>${ownerName}</strong><br/>Proprietário(a) dos Veículos</div>`;
+    html += `</div>`;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Recibo - ${ownerName} - ${job.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 300);
+    }
+  };
+
+  // Helper: convert value to words (simplified Brazilian Portuguese)
+  const totalPaidToWords = (value: number): string => {
+    if (value === 0) return "zero reais";
+    const units = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+    const teens = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+    const tens = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+    const hundreds = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+    const convertGroup = (n: number): string => {
+      if (n === 0) return "";
+      if (n === 100) return "cem";
+      let result = "";
+      if (n >= 100) { result += hundreds[Math.floor(n / 100)]; n %= 100; if (n > 0) result += " e "; }
+      if (n >= 20) { result += tens[Math.floor(n / 10)]; n %= 10; if (n > 0) result += " e "; }
+      if (n >= 10) { result += teens[n - 10]; return result; }
+      if (n > 0) result += units[n];
+      return result;
+    };
+
+    const intPart = Math.floor(value);
+    const centPart = Math.round((value - intPart) * 100);
+    let result = "";
+
+    if (intPart >= 1000000) {
+      const millions = Math.floor(intPart / 1000000);
+      result += millions === 1 ? "um milhão" : convertGroup(millions) + " milhões";
+      const remainder = intPart % 1000000;
+      if (remainder > 0) result += (remainder < 100 ? " e " : " ");
+    }
+    const afterMillions = intPart % 1000000;
+    if (afterMillions >= 1000) {
+      const thousands = Math.floor(afterMillions / 1000);
+      result += (thousands === 1 ? "mil" : convertGroup(thousands) + " mil");
+      const remainder = afterMillions % 1000;
+      if (remainder > 0) result += (remainder < 100 ? " e " : " ");
+    }
+    const lastThree = afterMillions % 1000;
+    if (lastThree > 0) result += convertGroup(lastThree);
+
+    if (intPart === 0) result = "zero";
+    result += intPart === 1 ? " real" : " reais";
+
+    if (centPart > 0) {
+      result += " e " + convertGroup(centPart) + (centPart === 1 ? " centavo" : " centavos");
+    }
+    return result;
+  };
+
   const filterByDateRange = (list: Assignment[]) => {
     if (!filterStartDate && !filterEndDate) return list;
     return list.filter(a => {
@@ -886,6 +1048,17 @@ export default function HarvestDetail() {
   };
 
   const currentFilterContext = buildFilterContext(getFilteredAssignmentsForPayment());
+
+  // Receipt detection: all filtered assignments share the same owner and dates are set
+  const receiptOwnerInfo = (() => {
+    if (!filterStartDate || !filterEndDate) return null;
+    const filtered = getFilteredAssignmentsForPayment();
+    if (filtered.length === 0) return null;
+    const owners = new Set(filtered.map(a => a.owner_name).filter(n => n && n !== "—"));
+    if (owners.size !== 1) return null;
+    const ownerName = [...owners][0];
+    return ownerName;
+  })();
 
   const getPaymentsForPeriod = (periodStart: string, periodEnd: string, filterCtx: string): HarvestPayment[] => {
     const matchesContext = (p: HarvestPayment) => {
@@ -1672,6 +1845,12 @@ export default function HarvestDetail() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {receiptOwnerInfo && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2 gap-1" onClick={exportReceipt} title={`Gerar recibo para ${receiptOwnerInfo}`}>
+                  <Receipt className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Recibo</span>
+                </Button>
+              )}
               <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDialogOpen(true)}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Vincular
               </Button>
