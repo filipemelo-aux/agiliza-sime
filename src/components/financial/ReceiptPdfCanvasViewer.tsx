@@ -15,7 +15,7 @@ export function ReceiptPdfCanvasViewer({ file, fallbackUrl, isMobile }: ReceiptP
 
   useEffect(() => {
     let cancelled = false;
-    let loadingTask: { destroy?: () => void } | null = null;
+    let loadingTask: any = null;
 
     const renderPdf = async () => {
       try {
