@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown, Package, ClipboardList, DollarSign } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, ChevronDown, Package, ClipboardList, DollarSign, Fuel } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,7 @@ const menuItems = [
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
       { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
+      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
     ],
   },
   {
@@ -80,7 +81,7 @@ function SidebarNav() {
     return location.pathname.startsWith(url);
   };
 
-  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations");
+  const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
   const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
   const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts"].some(p => location.pathname.startsWith(p));
