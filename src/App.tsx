@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/applications" element={<AdminApplications />} />
+            <Route path="/admin/fuel-orders" element={<AdminFuelOrders />} />
             <Route path="/admin/people" element={<AdminPeople />} />
             <Route path="/admin/vehicles" element={<AdminVehicles />} />
             <Route path="/admin/drivers" element={<Navigate to="/admin/people" replace />} />
