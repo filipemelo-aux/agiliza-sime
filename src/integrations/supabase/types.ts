@@ -1310,6 +1310,88 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_orders: {
+        Row: {
+          created_at: string
+          created_by: string
+          establishment_id: string
+          fill_mode: string
+          fuel_type: string
+          id: string
+          liters: number | null
+          notes: string | null
+          order_number: number
+          requester_name: string
+          requester_user_id: string
+          status: string
+          supplier_id: string | null
+          supplier_name: string
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_plate: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          establishment_id: string
+          fill_mode?: string
+          fuel_type: string
+          id?: string
+          liters?: number | null
+          notes?: string | null
+          order_number?: number
+          requester_name: string
+          requester_user_id: string
+          status?: string
+          supplier_id?: string | null
+          supplier_name: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_plate: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          establishment_id?: string
+          fill_mode?: string
+          fuel_type?: string
+          id?: string
+          liters?: number | null
+          notes?: string | null
+          order_number?: number
+          requester_name?: string
+          requester_user_id?: string
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_plate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_orders_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       harvest_assignments: {
         Row: {
           company_daily_value: number | null
