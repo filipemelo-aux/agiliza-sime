@@ -23,6 +23,7 @@ import FreightFiscalSettings from "./pages/FreightFiscalSettings";
 import AdminCargas from "./pages/AdminCargas";
 import AdminQuotations from "./pages/AdminQuotations";
 import AdminFinancial from "./pages/AdminFinancial";
+import AdminFuelOrders from "./pages/AdminFuelOrders";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 

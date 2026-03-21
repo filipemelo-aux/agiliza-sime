@@ -39,6 +39,7 @@ const menuItems = [
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
       { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
+      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
     ],
   },
   {
