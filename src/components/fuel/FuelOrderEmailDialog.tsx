@@ -64,25 +64,46 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
     try {
       const sessionRequesterName = await resolveSessionRequesterName();
 
-      // Buscar assinatura do solicitante
-      let signatureDataUrl: string | null = null;
+      // Buscar assinatura do solicitante e fazer upload para Storage
+      let signatureUrl: string | null = null;
       if (order.requester_user_id) {
         const { data: sigData } = await supabase
           .from("profiles")
           .select("signature_data")
           .eq("user_id", order.requester_user_id)
           .maybeSingle();
-        signatureDataUrl = (sigData as any)?.signature_data || null;
+        const base64Data = (sigData as any)?.signature_data as string | null;
+
+        if (base64Data?.startsWith("data:image/")) {
+          try {
+            // Converter base64 para blob e fazer upload
+            const res = await fetch(base64Data);
+            const blob = await res.blob();
+            const filePath = `signatures/${order.requester_user_id}.png`;
+
+            await supabase.storage
+              .from("fuel-order-pdfs")
+              .upload(filePath, blob, { upsert: true, contentType: "image/png" });
+
+            const { data: urlData } = await supabase.storage
+              .from("fuel-order-pdfs")
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 ano
+
+            signatureUrl = urlData?.signedUrl || null;
+          } catch {
+            // Falha no upload — continua sem assinatura no e-mail
+          }
+        }
       }
 
-      // Gerar HTML do corpo do e-mail com assinatura
+      // Gerar HTML do corpo do e-mail com assinatura (URL pública)
       const html = exportFuelOrderPDF(
         {
           ...order,
           requester_name: sessionRequesterName || order.requester_name,
         },
         establishments,
-        signatureDataUrl
+        signatureUrl
       );
 
       // Enviar e-mail
