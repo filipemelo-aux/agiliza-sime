@@ -28,6 +28,7 @@ import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { maskName } from "@/lib/masks";
 import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
+import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
 
 interface SystemUser {
   id: string;
