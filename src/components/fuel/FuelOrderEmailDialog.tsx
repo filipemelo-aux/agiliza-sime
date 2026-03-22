@@ -100,6 +100,15 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      // Update status to "enviada" on first send
+      if (order.status === "pendente") {
+        await supabase
+          .from("fuel_orders")
+          .update({ status: "enviada" } as any)
+          .eq("id", order.id);
+        onStatusChanged?.(order.id, "enviada");
+      }
+
       toast({
         title: "E-mail enviado!",
         description: `Ordem #${order.order_number} enviada para ${to}.`,
