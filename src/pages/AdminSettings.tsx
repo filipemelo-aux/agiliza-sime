@@ -566,6 +566,30 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
 
+            {/* Assinatura Digital */}
+            <Card className="max-w-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <PenLine className="w-4 h-4 text-primary" />
+                  Minha Assinatura
+                </CardTitle>
+                <CardDescription>
+                  Desenhe sua assinatura abaixo. Ela será utilizada automaticamente nas ordens de abastecimento.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {signatureData && (
+                  <div className="p-3 border border-border rounded-lg bg-card inline-block">
+                    <img src={signatureData} alt="Assinatura atual" className="max-h-24" />
+                  </div>
+                )}
+                <SignaturePad
+                  initialData={signatureData}
+                  onSave={handleSaveSignature}
+                />
+              </CardContent>
+            </Card>
+
           </TabsContent>
         </Tabs>
       </div>
