@@ -131,7 +131,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- FORNECEDOR -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Fornecedor")}
     ${infoRow("Nome / Razão Social", order.supplier_name, true)}
