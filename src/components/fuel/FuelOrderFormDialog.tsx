@@ -30,29 +30,21 @@ interface Props {
   onCreated: (order: any) => void;
 }
 
-function resolveRequesterName(user: any, preferredName?: string | null) {
-  const explicitName = String(preferredName || "").trim();
-  const metadataName =
-    String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim();
+function resolveRequesterName(user: any) {
+  const metaName = String(
+    user?.user_metadata?.full_name || user?.user_metadata?.name || ""
+  ).trim();
+  if (metaName) return metaName;
 
-  return explicitName || metadataName || "Usuário";
-}
+  const email = String(user?.email || "").trim();
+  if (!email) return "Usuário";
 
-async function fetchRequesterProfileName(userId?: string) {
-  if (!userId) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("user_id", userId)
-    .not("full_name", "is", null)
-    .order("updated_at", { ascending: false })
-    .limit(1);
-
-  if (error) return null;
-
-  const profileName = String(data?.[0]?.full_name || "").trim();
-  return profileName || null;
+  return email
+    .split("@")[0]
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\p{L}/gu, (c) => c.toUpperCase()) || "Usuário";
 }
 
 export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, onCreated }: Props) {

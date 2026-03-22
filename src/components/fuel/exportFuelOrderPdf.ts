@@ -40,10 +40,13 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
     </td></tr>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style type="text/css">
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap" rel="stylesheet">
-<!--[if mso]><style>table{border-collapse:collapse}</style><![endif]-->
+<!--[if mso]><style>table{border-collapse:collapse}*{font-family:'Segoe UI',Arial,sans-serif !important}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${EMAIL_FONT_STACK};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 
