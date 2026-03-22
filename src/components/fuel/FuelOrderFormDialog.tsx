@@ -101,7 +101,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
       .insert({
         establishment_id: establishmentId,
         requester_user_id: user.id,
-        requester_name: user.email || "Usuário",
+        requester_name: userName || user.email || "Usuário",
         supplier_id: supplierId,
         supplier_name: supplierName,
         vehicle_id: vehicleId,
