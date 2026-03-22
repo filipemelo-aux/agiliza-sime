@@ -56,6 +56,11 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   src: url('${EXO_FONT_URL}') format('woff2');
 }
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  @page { margin: 8mm 6mm; size: A4; }
+}
+
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
