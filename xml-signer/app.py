@@ -1117,45 +1117,5 @@ def mdfe_close():
             cert.cleanup()
 
 
-# ── PDF Fuel Order ───────────────────────────────────────────────
-
-@app.route("/pdf/fuel-order", methods=["POST"])
-def pdf_fuel_order():
-    """Gerar e assinar PDF de Ordem de Abastecimento com certificado A1."""
-    auth_err = check_auth()
-    if auth_err:
-        return auth_err
-
-    try:
-        data = request.json
-        for field in ("order_data", "pfx_base64", "password"):
-            if not data.get(field):
-                return jsonify({"error": f"Campo obrigatório ausente: {field}"}), 400
-
-        from pdf_fuel_order import generate_and_sign_fuel_order
-
-        pfx_bytes = base64.b64decode(data["pfx_base64"])
-        password = data["password"]
-        order_data = data["order_data"]
-
-        signed_pdf = generate_and_sign_fuel_order(order_data, pfx_bytes, password)
-
-        # Limpar dados sensíveis
-        password = ""
-
-        pdf_b64 = base64.b64encode(signed_pdf).decode("ascii")
-        logger.info(f"[PDF] Ordem #{order_data.get('order_number', '?')} assinada: {len(signed_pdf)} bytes")
-
-        return jsonify({
-            "success": True,
-            "pdf_base64": pdf_b64,
-            "size_bytes": len(signed_pdf),
-        }), 200
-
-    except Exception as e:
-        logger.error(f"[PDF FUEL ORDER] Error: {str(e)}")
-        return jsonify({"error": str(e), "success": False}), 500
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)

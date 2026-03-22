@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck, Building2, CreditCard, Key } from "lucide-react";
+import { User, Phone, FileText, Calendar, Edit2, Save, X, ShieldCheck, Building2, CreditCard, Key, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskName } from "@/lib/masks";
+import { SignaturePad } from "@/components/SignaturePad";
 
 interface Profile {
   id: string;
@@ -21,6 +22,7 @@ interface Profile {
   bank_account_type: string | null;
   pix_key_type: string | null;
   pix_key: string | null;
+  signature_data: string | null;
 }
 
 interface MaskedDocuments {
@@ -81,7 +83,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, phone, bank_name, bank_agency, bank_account, bank_account_type, pix_key_type, pix_key")
+        .select("id, user_id, full_name, phone, bank_name, bank_agency, bank_account, bank_account_type, pix_key_type, pix_key, signature_data")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -92,7 +94,7 @@ export default function Profile() {
         return;
       }
 
-      setProfile(data);
+      setProfile(data as Profile);
       setEditData({
         full_name: maskName(data.full_name || ""),
         phone: maskPhone(data.phone || ""),
@@ -161,6 +163,30 @@ export default function Profile() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSignature = async (dataUrl: string) => {
+    if (!profile) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ signature_data: dataUrl } as any)
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, signature_data: dataUrl });
+      toast({
+        title: "Assinatura salva",
+        description: "Sua assinatura será usada nas ordens de abastecimento.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -430,6 +456,26 @@ export default function Profile() {
               </div>
 
               {/* CNH Info (Read-only, masked) */}
+              {/* Assinatura Digital */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <PenLine className="w-5 h-5 text-primary" />
+                  Minha Assinatura
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Desenhe sua assinatura abaixo. Ela será utilizada automaticamente nas ordens de abastecimento.
+                </p>
+                {profile.signature_data && !editing && (
+                  <div className="mb-4 p-3 border border-border rounded-lg bg-card inline-block">
+                    <img src={profile.signature_data} alt="Assinatura" className="max-h-24" />
+                  </div>
+                )}
+                <SignaturePad
+                  initialData={profile.signature_data}
+                  onSave={handleSaveSignature}
+                />
+              </div>
+
               {documents && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">

@@ -1792,6 +1792,7 @@ export type Database = {
           pix_key: string | null
           pix_key_type: string | null
           razao_social: string | null
+          signature_data: string | null
           updated_at: string
           user_id: string
         }
@@ -1822,6 +1823,7 @@ export type Database = {
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
+          signature_data?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1852,6 +1854,7 @@ export type Database = {
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
+          signature_data?: string | null
           updated_at?: string
           user_id?: string
         }
