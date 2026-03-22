@@ -47,6 +47,33 @@ function resolveRequesterName(user: any) {
     .replace(/\b\p{L}/gu, (c) => c.toUpperCase()) || "Usuário";
 }
 
+async function resolveRequesterNameFromProfile(user: any) {
+  if (!user?.id) return "";
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name, category, email, updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  if (error || !data?.length) return "";
+
+  const byCategory = data.find((p) => p.category === "motorista" && p.full_name?.trim());
+  if (byCategory) return byCategory.full_name.trim();
+
+  const byEmail = data.find(
+    (p) =>
+      p.full_name?.trim() &&
+      p.email &&
+      user?.email &&
+      String(p.email).toLowerCase() === String(user.email).toLowerCase()
+  );
+  if (byEmail) return byEmail.full_name.trim();
+
+  return data.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
+}
+
 export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, onCreated }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -66,7 +93,14 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   useEffect(() => {
     if (!open) return;
 
-    setUserName(resolveRequesterName(user));
+    const fallbackName = resolveRequesterName(user);
+    setUserName(fallbackName);
+
+    resolveRequesterNameFromProfile(user).then((profileName) => {
+      if (profileName) {
+        setUserName(profileName);
+      }
+    });
 
     supabase
       .from("vehicles")
@@ -109,7 +143,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
     }
 
     setSaving(true);
-    const requesterName = resolveRequesterName(user);
+    const requesterName = userName.trim() || resolveRequesterName(user);
 
     const { data, error } = await supabase
       .from("fuel_orders")
