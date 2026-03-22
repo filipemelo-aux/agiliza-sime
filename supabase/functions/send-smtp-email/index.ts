@@ -19,6 +19,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const htmlToText = (value: string) =>
+  value
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -177,7 +186,7 @@ serve(async (req) => {
       cc: cc || undefined,
       bcc: bcc || undefined,
       subject,
-      content: "auto",
+      content: htmlToText(html) || "Mensagem sem conteúdo em texto.",
       html,
     });
 
