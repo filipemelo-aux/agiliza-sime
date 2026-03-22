@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye,
-  RefreshCw, Building2, User, Users, ChevronRight,
+  RefreshCw, Building2, User, Users, ChevronRight, Mail as MailIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { maskName } from "@/lib/masks";
 import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
+import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
 
 interface SystemUser {
   id: string;
@@ -330,7 +331,7 @@ export default function AdminSettings() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
               <Users className="w-4 h-4" />
               Geral
@@ -338,6 +339,10 @@ export default function AdminSettings() {
             <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
               <Building2 className="w-4 h-4" />
               Fiscal
+            </TabsTrigger>
+            <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
+              <MailIcon className="w-4 h-4" />
+              E-mail
             </TabsTrigger>
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
               <User className="w-4 h-4" />
@@ -468,7 +473,16 @@ export default function AdminSettings() {
 
               <TabsContent value="certificates">
                 <CertificatesList />
-              </TabsContent>
+          </TabsContent>
+
+          {/* ===== TAB EMAIL ===== */}
+          <TabsContent value="email" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Configurações de E-mail</h2>
+              <p className="text-sm text-muted-foreground">Configure o servidor SMTP para envio de e-mails pelo sistema</p>
+            </div>
+            <SmtpSettingsForm />
+          </TabsContent>
             </Tabs>
           </TabsContent>
 

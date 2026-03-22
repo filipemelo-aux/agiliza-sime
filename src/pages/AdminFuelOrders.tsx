@@ -9,7 +9,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
-import { printFuelOrderPDF, emailFuelOrder } from "@/components/fuel/exportFuelOrderPdf";
+import { FuelOrderEmailDialog } from "@/components/fuel/FuelOrderEmailDialog";
+import { printFuelOrderPDF } from "@/components/fuel/exportFuelOrderPdf";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -30,6 +31,7 @@ export default function AdminFuelOrders() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [establishments, setEstablishments] = useState<any[]>([]);
+  const [emailOrder, setEmailOrder] = useState<any | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -139,7 +141,7 @@ export default function AdminFuelOrders() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => emailFuelOrder(o, establishments)}
+                        onClick={() => setEmailOrder(o)}
                       >
                         <Mail className="h-4 w-4 mr-1" /> E-mail
                       </Button>
@@ -158,6 +160,15 @@ export default function AdminFuelOrders() {
           user={user}
           onCreated={handleCreated}
         />
+
+        {emailOrder && (
+          <FuelOrderEmailDialog
+            open={!!emailOrder}
+            onOpenChange={(v) => !v && setEmailOrder(null)}
+            order={emailOrder}
+            establishments={establishments}
+          />
+        )}
       </main>
     </AdminLayout>
   );
