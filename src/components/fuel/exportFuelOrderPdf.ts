@@ -145,6 +145,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Dados do Abastecimento")}
     ${infoRow("Veículo (Placa)", order.vehicle_plate)}
+    ${order.driver_name ? infoRow("Motorista", order.driver_name) : ""}
     ${infoRow("Tipo de Combustível", FUEL_LABELS[order.fuel_type] || order.fuel_type)}
     <tr><td style="padding:6px 0">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF8E1;border-radius:6px"><tr>
