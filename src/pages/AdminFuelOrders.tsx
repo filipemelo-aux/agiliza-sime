@@ -29,6 +29,7 @@ export default function AdminFuelOrders() {
   const { user } = useUserRole();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
+  const [driverMap, setDriverMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [establishments, setEstablishments] = useState<any[]>([]);
