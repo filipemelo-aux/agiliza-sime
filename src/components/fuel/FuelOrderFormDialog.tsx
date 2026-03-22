@@ -115,9 +115,9 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
         if (driverIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, full_name")
-            .in("id", driverIds);
-          const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+            .select("id, user_id, full_name")
+            .in("user_id", driverIds);
+          const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
           vList.forEach((v) => {
             (v as any).driver_name = nameMap.get(v.driver_id) || "";
           });
