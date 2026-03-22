@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye,
-  RefreshCw, Building2, User, Users, ChevronRight,
+  RefreshCw, Building2, User, Users, ChevronRight, Mail as MailIcon,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
