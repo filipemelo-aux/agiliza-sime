@@ -120,15 +120,15 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={containerRef}>
       <div
         className="border-2 border-dashed border-border rounded-lg bg-card overflow-hidden touch-none"
-        style={{ maxWidth: width }}
+        style={{ maxWidth: canvasWidth }}
       >
         <canvas
           ref={canvasRef}
           className="cursor-crosshair w-full"
-          style={{ maxWidth: width, height }}
+          style={{ maxWidth: canvasWidth, height }}
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={endDraw}
