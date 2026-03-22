@@ -48,7 +48,7 @@ async function resolveSessionRequesterName() {
   return data?.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
 }
 
-export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments }: Props) {
+export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments, onStatusChanged }: Props) {
   const { toast } = useToast();
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
