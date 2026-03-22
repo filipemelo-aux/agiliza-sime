@@ -120,7 +120,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- SOLICITANTE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Solicitante")}
     ${infoRow("Empresa", `${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})`)}
