@@ -7,6 +7,7 @@ const FUEL_LABELS: Record<string, string> = {
 };
 
 const EMAIL_FONT_STACK = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
+const EXO_FONT_URL = "https://agiliza-sime.lovable.app/fonts/exo-latin-700-normal.woff2";
 
 function normalizeRequesterName(name?: string | null) {
   const raw = String(name || "").trim();
@@ -41,6 +42,13 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style type="text/css">
+@font-face {
+  font-family: 'Exo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('${EXO_FONT_URL}') format('woff2');
+}
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +70,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
       <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
     </td>
     <td style="vertical-align:middle">
-      <div style="font-family:${EMAIL_FONT_STACK};font-weight:700;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-family:${EMAIL_FONT_STACK};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
       <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${est?.razao_social || ""}</div>
       <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
     </td>
