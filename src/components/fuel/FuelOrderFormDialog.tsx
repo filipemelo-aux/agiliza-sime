@@ -30,24 +30,29 @@ interface Props {
   onCreated: (order: any) => void;
 }
 
-function emailToName(email?: string | null) {
-  const localPart = email?.split("@")[0]?.trim();
-  if (!localPart) return "";
-
-  return localPart
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\p{L}/gu, (char) => char.toUpperCase());
-}
-
 function resolveRequesterName(user: any, preferredName?: string | null) {
   const explicitName = String(preferredName || "").trim();
   const metadataName =
     String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim();
-  const fromEmail = emailToName(user?.email);
 
-  return explicitName || metadataName || fromEmail || "Usuário";
+  return explicitName || metadataName || "Usuário";
+}
+
+async function fetchRequesterProfileName(userId?: string) {
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("user_id", userId)
+    .not("full_name", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  if (error) return null;
+
+  const profileName = String(data?.[0]?.full_name || "").trim();
+  return profileName || null;
 }
 
 export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, onCreated }: Props) {
@@ -67,31 +72,37 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    let active = true;
+
+    const bootstrapDialog = async () => {
       setUserName(resolveRequesterName(user));
 
-      supabase
-        .from("vehicles")
-        .select("id, plate, brand, model")
-        .eq("is_active", true)
-        .order("plate")
-        .then(({ data }) => setVehicles(data || []));
-
-      if (user?.id) {
+      const [vehiclesRes, profileName] = await Promise.all([
         supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("user_id", user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            setUserName(resolveRequesterName(user, data?.full_name));
-          });
-      }
+          .from("vehicles")
+          .select("id, plate, brand, model")
+          .eq("is_active", true)
+          .order("plate"),
+        fetchRequesterProfileName(user?.id),
+      ]);
+
+      if (!active) return;
+
+      setVehicles(vehiclesRes.data || []);
+      setUserName(resolveRequesterName(user, profileName));
 
       if (establishments.length === 1) {
         setEstablishmentId(establishments[0].id);
       }
-    }
+    };
+
+    void bootstrapDialog();
+
+    return () => {
+      active = false;
+    };
   }, [open, establishments, user]);
 
   const reset = () => {
@@ -108,6 +119,11 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) {
+      toast({ title: "Usuário não autenticado", variant: "destructive" });
+      return;
+    }
+
     if (!establishmentId || !supplierName || !vehicleId || !fuelType) {
       toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
       return;
@@ -117,9 +133,10 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
       return;
     }
 
-    const requesterName = resolveRequesterName(user, userName);
-
     setSaving(true);
+    const latestProfileName = await fetchRequesterProfileName(user.id);
+    const requesterName = resolveRequesterName(user, latestProfileName || userName);
+
     const { data, error } = await supabase
       .from("fuel_orders")
       .insert({
