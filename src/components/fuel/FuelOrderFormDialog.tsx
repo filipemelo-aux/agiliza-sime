@@ -153,7 +153,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           {/* Solicitante */}
           <div className="space-y-1.5">
             <Label>Solicitante</Label>
-            <Input value={user?.email || ""} disabled className="bg-muted/30" />
+            <Input value={userName || user?.email || ""} disabled className="bg-muted/30" />
           </div>
 
           {/* Fornecedor */}
