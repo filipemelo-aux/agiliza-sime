@@ -105,10 +105,25 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
 
     supabase
       .from("vehicles")
-      .select("id, plate, brand, model")
+      .select("id, plate, brand, model, driver_id")
       .eq("is_active", true)
       .order("plate")
-      .then(({ data }) => setVehicles(data || []));
+      .then(async ({ data }) => {
+        const vList = data || [];
+        // Fetch driver names for vehicles that have a driver_id
+        const driverIds = [...new Set(vList.map((v) => v.driver_id).filter(Boolean))];
+        if (driverIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", driverIds);
+          const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+          vList.forEach((v) => {
+            (v as any).driver_name = nameMap.get(v.driver_id) || "";
+          });
+        }
+        setVehicles(vList);
+      });
 
     if (establishments.length === 1) {
       setEstablishmentId(establishments[0].id);
@@ -250,6 +265,12 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
                   ))}
                 </SelectContent>
               </Select>
+              {vehicleId && (() => {
+                const veh = vehicles.find((x) => x.id === vehicleId);
+                return veh?.driver_name ? (
+                  <p className="text-xs text-muted-foreground mt-1">Motorista: <span className="font-medium text-foreground">{veh.driver_name}</span></p>
+                ) : null;
+              })()}
             </div>
           </div>
 

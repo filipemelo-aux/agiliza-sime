@@ -29,6 +29,7 @@ export default function AdminFuelOrders() {
   const { user } = useUserRole();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
+  const [driverMap, setDriverMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [establishments, setEstablishments] = useState<any[]>([]);
@@ -47,8 +48,33 @@ export default function AdminFuelOrders() {
         .eq("active", true)
         .order("type"),
     ]);
-    setOrders(ordersRes.data || []);
+    const ordersList = ordersRes.data || [];
+    setOrders(ordersList);
     setEstablishments(estRes.data || []);
+
+    // Fetch driver names for vehicles linked to orders
+    const vehicleIds = [...new Set(ordersList.map((o) => o.vehicle_id).filter(Boolean))];
+    if (vehicleIds.length > 0) {
+      const { data: vehs } = await supabase
+        .from("vehicles")
+        .select("id, driver_id")
+        .in("id", vehicleIds);
+      const driverIds = [...new Set((vehs || []).map((v) => v.driver_id).filter(Boolean))];
+      if (driverIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", driverIds);
+        const vehDriverMap = new Map((vehs || []).map((v) => [v.id, v.driver_id]));
+        const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+        const finalMap = new Map<string, string>();
+        vehDriverMap.forEach((dId, vId) => {
+          if (dId && nameMap.has(dId)) finalMap.set(vId, nameMap.get(dId)!);
+        });
+        setDriverMap(finalMap);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -118,6 +144,12 @@ export default function AdminFuelOrders() {
                         <span className="text-muted-foreground">Veículo</span>
                         <span>{o.vehicle_plate}</span>
                       </div>
+                      {o.vehicle_id && driverMap.get(o.vehicle_id) && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Motorista</span>
+                          <span className="text-right truncate max-w-[55%]">{driverMap.get(o.vehicle_id)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Combustível</span>
                         <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
@@ -133,7 +165,7 @@ export default function AdminFuelOrders() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => printFuelOrderPDF(o, establishments)}
+                        onClick={() => printFuelOrderPDF({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" }, establishments)}
                       >
                         <Printer className="h-4 w-4 mr-1" /> Imprimir
                       </Button>
@@ -141,7 +173,7 @@ export default function AdminFuelOrders() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => setEmailOrder(o)}
+                        onClick={() => setEmailOrder({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" })}
                       >
                         <Mail className="h-4 w-4 mr-1" /> E-mail
                       </Button>
