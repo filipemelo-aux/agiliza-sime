@@ -164,8 +164,8 @@ ${order.notes ? `
 <tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Observações")}
-    <tr><td style="padding-top:12px">
-      <div style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.5">${order.notes}</div>
+    <tr><td style="padding-top:8px">
+      <div style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:8px 12px;white-space:pre-wrap;font-size:11px;color:#444;line-height:1.4">${order.notes}</div>
     </td></tr>
   </table>
 </td></tr>` : ""}
