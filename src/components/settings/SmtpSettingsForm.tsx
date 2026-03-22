@@ -292,29 +292,27 @@ export function SmtpSettingsForm() {
       </Card>
 
       {/* Test Section */}
-      {existingId && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Testar Envio</CardTitle>
-            <CardDescription>Envie um e-mail de teste para verificar se a configuração está correta</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                placeholder="destinatario@email.com"
-                className="flex-1"
-              />
-              <Button onClick={handleTest} disabled={testing} variant="outline" className="gap-2 shrink-0">
-                {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Testar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Testar Envio</CardTitle>
+          <CardDescription>Envie um e-mail de teste para verificar se a configuração está correta</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <Input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="destinatario@email.com"
+              className="flex-1"
+            />
+            <Button onClick={handleTest} disabled={testing || (!existingId && !form.host)} variant="outline" className="gap-2 shrink-0">
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Testar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
