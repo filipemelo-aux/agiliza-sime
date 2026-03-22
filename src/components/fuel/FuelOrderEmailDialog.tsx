@@ -15,6 +15,38 @@ interface Props {
   establishments: any[];
 }
 
+async function resolveSessionRequesterName() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return "";
+
+  const metaName = String(user.user_metadata?.full_name || user.user_metadata?.name || "").trim();
+  if (metaName) return metaName;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, category, email, updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  const byCategory = data?.find((p) => p.category === "motorista" && p.full_name?.trim());
+  if (byCategory) return byCategory.full_name.trim();
+
+  const byEmail = data?.find(
+    (p) =>
+      p.full_name?.trim() &&
+      p.email &&
+      user.email &&
+      String(p.email).toLowerCase() === String(user.email).toLowerCase()
+  );
+  if (byEmail) return byEmail.full_name.trim();
+
+  return data?.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
+}
+
 export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments }: Props) {
   const { toast } = useToast();
   const [to, setTo] = useState("");
@@ -29,7 +61,14 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
 
     setSending(true);
     try {
-      const html = exportFuelOrderPDF(order, establishments);
+      const sessionRequesterName = await resolveSessionRequesterName();
+      const html = exportFuelOrderPDF(
+        {
+          ...order,
+          requester_name: sessionRequesterName || order.requester_name,
+        },
+        establishments
+      );
 
       const { data, error } = await supabase.functions.invoke("send-smtp-email", {
         body: {
