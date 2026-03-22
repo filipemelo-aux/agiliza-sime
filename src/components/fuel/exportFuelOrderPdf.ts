@@ -117,7 +117,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   </tr></table>
 </td></tr>
 
-<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- SOLICITANTE -->
 <tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
