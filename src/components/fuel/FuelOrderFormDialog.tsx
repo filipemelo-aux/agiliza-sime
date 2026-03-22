@@ -66,35 +66,18 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   useEffect(() => {
     if (!open) return;
 
-    let active = true;
+    setUserName(resolveRequesterName(user));
 
-    const bootstrapDialog = async () => {
-      setUserName(resolveRequesterName(user));
+    supabase
+      .from("vehicles")
+      .select("id, plate, brand, model")
+      .eq("is_active", true)
+      .order("plate")
+      .then(({ data }) => setVehicles(data || []));
 
-      const [vehiclesRes, profileName] = await Promise.all([
-        supabase
-          .from("vehicles")
-          .select("id, plate, brand, model")
-          .eq("is_active", true)
-          .order("plate"),
-        fetchRequesterProfileName(user?.id),
-      ]);
-
-      if (!active) return;
-
-      setVehicles(vehiclesRes.data || []);
-      setUserName(resolveRequesterName(user, profileName));
-
-      if (establishments.length === 1) {
-        setEstablishmentId(establishments[0].id);
-      }
-    };
-
-    void bootstrapDialog();
-
-    return () => {
-      active = false;
-    };
+    if (establishments.length === 1) {
+      setEstablishmentId(establishments[0].id);
+    }
   }, [open, establishments, user]);
 
   const reset = () => {
