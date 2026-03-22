@@ -167,6 +167,11 @@ export default function AdminFuelOrders() {
             onOpenChange={(v) => !v && setEmailOrder(null)}
             order={emailOrder}
             establishments={establishments}
+            onStatusChanged={(id, newStatus) => {
+              setOrders((prev) =>
+                prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
+              );
+            }}
           />
         )}
       </main>
