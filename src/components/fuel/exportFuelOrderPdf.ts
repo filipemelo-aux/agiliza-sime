@@ -70,7 +70,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${EMAIL_FONT_STACK};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
-<tr><td align="center" style="padding:16px 12px">
+<tr><td align="center" style="padding:10px 8px">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${EMAIL_FONT_STACK}">
 
