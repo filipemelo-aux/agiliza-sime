@@ -48,8 +48,33 @@ export default function AdminFuelOrders() {
         .eq("active", true)
         .order("type"),
     ]);
-    setOrders(ordersRes.data || []);
+    const ordersList = ordersRes.data || [];
+    setOrders(ordersList);
     setEstablishments(estRes.data || []);
+
+    // Fetch driver names for vehicles linked to orders
+    const vehicleIds = [...new Set(ordersList.map((o) => o.vehicle_id).filter(Boolean))];
+    if (vehicleIds.length > 0) {
+      const { data: vehs } = await supabase
+        .from("vehicles")
+        .select("id, driver_id")
+        .in("id", vehicleIds);
+      const driverIds = [...new Set((vehs || []).map((v) => v.driver_id).filter(Boolean))];
+      if (driverIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", driverIds);
+        const vehDriverMap = new Map((vehs || []).map((v) => [v.id, v.driver_id]));
+        const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+        const finalMap = new Map<string, string>();
+        vehDriverMap.forEach((dId, vId) => {
+          if (dId && nameMap.has(dId)) finalMap.set(vId, nameMap.get(dId)!);
+        });
+        setDriverMap(finalMap);
+      }
+    }
+
     setLoading(false);
   };
 
