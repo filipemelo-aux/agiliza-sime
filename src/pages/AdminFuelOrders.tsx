@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Printer, Loader2, Mail } from "lucide-react";
+import { Plus, Fuel, Printer, Loader2, Mail, FileDown, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ export default function AdminFuelOrders() {
   const [showForm, setShowForm] = useState(false);
   const [establishments, setEstablishments] = useState<any[]>([]);
   const [emailOrder, setEmailOrder] = useState<any | null>(null);
+  const [signingId, setSigningId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -55,11 +56,60 @@ export default function AdminFuelOrders() {
     fetchData();
   }, []);
 
-  const handleCreated = (order: any) => {
+  const handleCreated = async (order: any) => {
     setShowForm(false);
     fetchData();
-    printFuelOrderPDF(order, establishments);
+
+    // Gerar PDF assinado automaticamente
+    generateSignedPdf(order);
+
     toast({ title: "Ordem criada", description: `Ordem #${order.order_number} gerada com sucesso.` });
+  };
+
+  const generateSignedPdf = async (order: any) => {
+    setSigningId(order.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-signed-fuel-pdf", {
+        body: { order_id: order.id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.pdf_base64) {
+        // Converter base64 para blob e abrir download
+        const pdfBytes = Uint8Array.from(atob(data.pdf_base64), (c) => c.charCodeAt(0));
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        // Abrir em nova aba para impressão
+        const win = window.open(url, "_blank");
+        if (win) {
+          win.addEventListener("load", () => {
+            setTimeout(() => win.print(), 500);
+          });
+        }
+
+        toast({
+          title: "PDF assinado gerado!",
+          description: `Ordem #${order.order_number} assinada digitalmente com certificado A1.`,
+        });
+      } else if (data?.pdf_url) {
+        window.open(data.pdf_url, "_blank");
+        toast({ title: "PDF assinado disponível", description: "O download foi iniciado." });
+      }
+    } catch (err: any) {
+      console.error("Erro ao gerar PDF assinado:", err);
+      // Fallback: imprimir versão HTML sem assinatura
+      printFuelOrderPDF(order, establishments);
+      toast({
+        title: "PDF gerado sem assinatura digital",
+        description: err.message || "Não foi possível assinar com certificado A1. Verifique se há um certificado vinculado.",
+        variant: "destructive",
+      });
+    } finally {
+      setSigningId(null);
+    }
   };
 
   return (
@@ -93,6 +143,7 @@ export default function AdminFuelOrders() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {orders.map((o) => {
               const est = establishments.find((e) => e.id === o.establishment_id);
+              const isSigning = signingId === o.id;
               return (
                 <Card key={o.id} className="flex flex-col">
                   <CardContent className="p-4 flex flex-col gap-3 flex-1">
@@ -133,9 +184,15 @@ export default function AdminFuelOrders() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => printFuelOrderPDF(o, establishments)}
+                        disabled={isSigning}
+                        onClick={() => generateSignedPdf(o)}
                       >
-                        <Printer className="h-4 w-4 mr-1" /> Imprimir
+                        {isSigning ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4 mr-1" />
+                        )}
+                        {isSigning ? "Assinando..." : "PDF Assinado"}
                       </Button>
                       <Button
                         variant="outline"
@@ -146,6 +203,16 @@ export default function AdminFuelOrders() {
                         <Mail className="h-4 w-4 mr-1" /> E-mail
                       </Button>
                     </div>
+
+                    {/* Fallback: imprimir sem assinatura */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-muted-foreground"
+                      onClick={() => printFuelOrderPDF(o, establishments)}
+                    >
+                      <Printer className="h-3 w-3 mr-1" /> Imprimir sem assinatura
+                    </Button>
                   </CardContent>
                 </Card>
               );
