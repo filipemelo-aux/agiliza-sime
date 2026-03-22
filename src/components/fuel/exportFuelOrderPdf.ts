@@ -96,7 +96,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- TITLE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:14px 20px;text-align:center">
+<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
   <div style="font-family:${EMAIL_FONT_STACK};font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
 </td></tr>
 
