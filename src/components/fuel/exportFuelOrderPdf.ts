@@ -56,6 +56,11 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   src: url('${EXO_FONT_URL}') format('woff2');
 }
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  @page { margin: 8mm 6mm; size: A4; }
+}
+
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,7 +70,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${EMAIL_FONT_STACK};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
-<tr><td align="center" style="padding:16px 12px">
+<tr><td align="center" style="padding:10px 8px">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${EMAIL_FONT_STACK}">
 
@@ -83,19 +88,19 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   </tr></table>
 </td></tr>
 
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- DIVIDER -->
 <tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
 
-<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- TITLE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:14px 20px;text-align:center">
+<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
   <div style="font-family:${EMAIL_FONT_STACK};font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
 </td></tr>
 
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- META BOXES -->
 <tr><td>
@@ -112,10 +117,10 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   </tr></table>
 </td></tr>
 
-<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- SOLICITANTE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Solicitante")}
     ${infoRow("Empresa", `${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})`)}
@@ -123,27 +128,27 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   </table>
 </td></tr>
 
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- FORNECEDOR -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Fornecedor")}
     ${infoRow("Nome / Razão Social", order.supplier_name, true)}
   </table>
 </td></tr>
 
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- DADOS DO ABASTECIMENTO -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Dados do Abastecimento")}
     ${infoRow("Veículo (Placa)", order.vehicle_plate)}
     ${infoRow("Tipo de Combustível", FUEL_LABELS[order.fuel_type] || order.fuel_type)}
-    <tr><td style="padding:10px 0">
+    <tr><td style="padding:6px 0">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF8E1;border-radius:6px"><tr>
-        <td style="padding:12px 16px">
+        <td style="padding:8px 16px">
           <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td style="font-size:12px;color:#666;font-weight:600;vertical-align:middle;width:40%">Quantidade</td>
             <td style="font-size:14px;font-weight:700;color:#D4930A;text-align:right;vertical-align:middle">${qty}</td>
@@ -155,34 +160,34 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 </td></tr>
 
 ${order.notes ? `
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Observações")}
-    <tr><td style="padding-top:12px">
-      <div style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.5">${order.notes}</div>
+    <tr><td style="padding-top:8px">
+      <div style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:8px 12px;white-space:pre-wrap;font-size:11px;color:#444;line-height:1.4">${order.notes}</div>
     </td></tr>
   </table>
 </td></tr>` : ""}
 
 <!-- ASSINATURAS -->
-<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td>
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
-      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:36px;margin:0 auto 2px;width:auto" />` : `<div style="height:36px"></div>`}
+      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:30px;margin:0 auto 2px;width:auto" />` : `<div style="height:30px"></div>`}
       <div style="border-top:1px solid #999;margin-bottom:4px"></div>
       <span style="font-size:10px;color:#666">Solicitante</span>
     </td>
     <td width="5%">&nbsp;</td>
     <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
-      <div style="height:36px"></div>
+      <div style="height:30px"></div>
       <div style="border-top:1px solid #999;margin-bottom:4px"></div>
       <span style="font-size:10px;color:#666">Fornecedor</span>
     </td>
     <td width="5%">&nbsp;</td>
     <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
-      <div style="height:36px"></div>
+      <div style="height:30px"></div>
       <div style="border-top:1px solid #999;margin-bottom:4px"></div>
       <span style="font-size:10px;color:#666">Motorista</span>
     </td>
@@ -190,8 +195,8 @@ ${order.notes ? `
 </td></tr>
 
 <!-- FOOTER -->
-<tr><td style="height:24px;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td style="background:#2B4C7E;border-radius:10px;padding:14px 20px;text-align:center">
+<tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
