@@ -34,6 +34,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [userName, setUserName] = useState("");
 
   const [establishmentId, setEstablishmentId] = useState("");
   const [supplierId, setSupplierId] = useState<string | null>(null);
