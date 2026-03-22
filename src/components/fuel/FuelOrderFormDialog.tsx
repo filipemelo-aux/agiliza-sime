@@ -87,6 +87,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [fuelType, setFuelType] = useState("diesel");
   const [fillMode, setFillMode] = useState("completar");
+  const [arlaMode, setArlaMode] = useState<"sim" | "nao">("nao");
   const [liters, setLiters] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -122,6 +123,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
     setVehiclePlate("");
     setFuelType("diesel");
     setFillMode("completar");
+    setArlaMode("nao");
     setLiters("");
     setNotes("");
   };
@@ -144,6 +146,8 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
 
     setSaving(true);
     const requesterName = userName.trim() || resolveRequesterName(user);
+    const arlaNote = fillMode === "completar" ? `Completar Arla: ${arlaMode === "sim" ? "Sim" : "Não"}` : "";
+    const notesPayload = [notes.trim(), arlaNote].filter(Boolean).join("\n");
 
     const { data, error } = await supabase
       .from("fuel_orders")
@@ -158,7 +162,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
         fuel_type: fuelType,
         fill_mode: fillMode,
         liters: fillMode === "litros" ? Number(liters) : null,
-        notes: notes || null,
+        notes: notesPayload || null,
         created_by: user.id,
       } as any)
       .select()
@@ -266,9 +270,30 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           <div className="space-y-1.5">
             <Label>Modo de Abastecimento *</Label>
             <RadioGroup value={fillMode} onValueChange={setFillMode} className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="completar" id="fill-completar" />
-                <Label htmlFor="fill-completar" className="font-normal cursor-pointer">Completar tanque</Label>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="completar" id="fill-completar" />
+                  <Label htmlFor="fill-completar" className="font-normal cursor-pointer">Completar tanque</Label>
+                </div>
+                {fillMode === "completar" && (
+                  <div className="ml-6 flex flex-wrap items-center gap-3">
+                    <span className="text-xs text-muted-foreground">Completar Arla:</span>
+                    <RadioGroup
+                      value={arlaMode}
+                      onValueChange={(value) => setArlaMode(value as "sim" | "nao")}
+                      className="flex items-center gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="sim" id="arla-sim" />
+                        <Label htmlFor="arla-sim" className="font-normal cursor-pointer text-sm">( ) Sim</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="nao" id="arla-nao" />
+                        <Label htmlFor="arla-nao" className="font-normal cursor-pointer text-sm">( ) Não</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="litros" id="fill-litros" />
