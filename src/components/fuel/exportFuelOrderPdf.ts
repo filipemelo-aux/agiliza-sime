@@ -195,8 +195,8 @@ ${order.notes ? `
 </td></tr>
 
 <!-- FOOTER -->
-<tr><td style="height:24px;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td style="background:#2B4C7E;border-radius:10px;padding:14px 20px;text-align:center">
+<tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
