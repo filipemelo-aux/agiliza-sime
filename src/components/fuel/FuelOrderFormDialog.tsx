@@ -109,8 +109,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
     }
 
     setSaving(true);
-    const latestProfileName = await fetchRequesterProfileName(user.id);
-    const requesterName = resolveRequesterName(user, latestProfileName || userName);
+    const requesterName = resolveRequesterName(user);
 
     const { data, error } = await supabase
       .from("fuel_orders")
