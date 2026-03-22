@@ -181,7 +181,7 @@ ${order.notes ? `
     </td>
     <td width="5%">&nbsp;</td>
     <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
-      <div style="height:36px"></div>
+      <div style="height:30px"></div>
       <div style="border-top:1px solid #999;margin-bottom:4px"></div>
       <span style="font-size:10px;color:#666">Fornecedor</span>
     </td>
