@@ -158,6 +158,19 @@ export function SmtpSettingsForm() {
       toast({ title: "Informe um e-mail de teste", variant: "destructive" });
       return;
     }
+
+    // If settings not saved yet, use form values directly for the test
+    const smtpConfig = existingId ? undefined : {
+      host: form.host.trim(),
+      port: form.port,
+      username: form.username.trim(),
+      password: form.password,
+      from_email: form.from_email.trim(),
+      from_name: form.from_name.trim(),
+      use_tls: form.use_tls,
+      use_stored_password: Boolean(existingId && !form.password),
+    };
+
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-smtp-email", {
@@ -165,6 +178,7 @@ export function SmtpSettingsForm() {
           to: testEmail,
           subject: "Teste SMTP — SIME Transportes",
           html: `<h2>Teste de Configuração SMTP</h2><p>Se você está lendo este e-mail, a configuração SMTP do SIME Transportes está funcionando corretamente.</p><p><small>Enviado em ${new Date().toLocaleString("pt-BR")}</small></p>`,
+          ...(smtpConfig ? { smtpConfig } : {}),
         },
       });
       if (error) throw error;
