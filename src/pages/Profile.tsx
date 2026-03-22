@@ -456,6 +456,26 @@ export default function Profile() {
               </div>
 
               {/* CNH Info (Read-only, masked) */}
+              {/* Assinatura Digital */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <PenLine className="w-5 h-5 text-primary" />
+                  Minha Assinatura
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Desenhe sua assinatura abaixo. Ela será utilizada automaticamente nas ordens de abastecimento.
+                </p>
+                {profile.signature_data && !editing && (
+                  <div className="mb-4 p-3 border border-border rounded-lg bg-card inline-block">
+                    <img src={profile.signature_data} alt="Assinatura" className="max-h-24" />
+                  </div>
+                )}
+                <SignaturePad
+                  initialData={profile.signature_data}
+                  onSave={handleSaveSignature}
+                />
+              </div>
+
               {documents && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
