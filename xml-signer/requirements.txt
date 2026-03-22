@@ -5,6 +5,3 @@ lxml==5.3.1
 gunicorn==23.0.0
 requests==2.32.3
 urllib3==2.3.0
-reportlab==4.4.0
-pyhanko==0.25.2
-pyhanko-certvalidator==0.26.5
