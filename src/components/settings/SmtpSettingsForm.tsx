@@ -46,6 +46,26 @@ export function SmtpSettingsForm() {
     fetchSettings();
   }, []);
 
+  const extractEdgeErrorMessage = async (err: any, fallback: string) => {
+    try {
+      const context = err?.context;
+      if (context && typeof context.json === "function") {
+        const payload = await context.json();
+        if (payload?.error && typeof payload.error === "string") {
+          return payload.error;
+        }
+      }
+    } catch {
+      // ignore parse errors and fallback below
+    }
+
+    if (typeof err?.message === "string" && err.message.trim()) {
+      return err.message;
+    }
+
+    return fallback;
+  };
+
   const fetchSettings = async () => {
     setLoading(true);
     try {
@@ -151,7 +171,8 @@ export function SmtpSettingsForm() {
       setHasPassword(true);
       toast({ title: "Configurações SMTP salvas!" });
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      const message = await extractEdgeErrorMessage(err, "Falha ao validar/salvar configuração SMTP");
+      toast({ title: "Erro ao salvar", description: message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -179,7 +200,8 @@ export function SmtpSettingsForm() {
         description: `Verifique a caixa de entrada de ${testEmail}`,
       });
     } catch (err: any) {
-      toast({ title: "Falha no envio", description: err.message, variant: "destructive" });
+      const message = await extractEdgeErrorMessage(err, "Falha no envio do e-mail de teste");
+      toast({ title: "Falha no envio", description: message, variant: "destructive" });
     } finally {
       setTesting(false);
     }
