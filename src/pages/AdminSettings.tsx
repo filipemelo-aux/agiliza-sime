@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Settings, UserPlus, Shield, ShieldCheck, Trash2, Search, Pencil, Eye,
-  RefreshCw, Building2, User, Users, ChevronRight, Mail as MailIcon,
+  RefreshCw, Building2, User, Users, ChevronRight, Mail as MailIcon, PenLine,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { maskName } from "@/lib/masks";
 import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
+import { SignaturePad } from "@/components/SignaturePad";
 
 interface SystemUser {
   id: string;
@@ -73,7 +74,7 @@ export default function AdminSettings() {
   const [profile, setProfile] = useState<ProfileData>({ full_name: "", email: "", phone: "" });
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
-
+  const [signatureData, setSignatureData] = useState<string | null>(null);
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
   const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
@@ -126,7 +127,7 @@ export default function AdminSettings() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, email, phone")
+        .select("full_name, email, phone, signature_data")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -136,6 +137,7 @@ export default function AdminSettings() {
           email: data.email || "",
           phone: data.phone || "",
         });
+        setSignatureData((data as any).signature_data || null);
       }
     } catch (err: any) {
       console.error(err);
@@ -265,13 +267,27 @@ export default function AdminSettings() {
   };
 
   const handleForceUpdate = () => {
-    // Same behavior as the toast update: clear cache and reload
     if ("caches" in window) {
       caches.keys().then((names) => {
         names.forEach((name) => caches.delete(name));
       });
     }
     applyUpdate();
+  };
+
+  const handleSaveSignature = async (dataUrl: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ signature_data: dataUrl } as any)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setSignatureData(dataUrl);
+      toast({ title: "Assinatura salva", description: "Sua assinatura será usada nas ordens de abastecimento." });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = users.filter((u) => {
@@ -547,6 +563,30 @@ export default function AdminSettings() {
                     </Button>
                   </>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Assinatura Digital */}
+            <Card className="max-w-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <PenLine className="w-4 h-4 text-primary" />
+                  Minha Assinatura
+                </CardTitle>
+                <CardDescription>
+                  Desenhe sua assinatura abaixo. Ela será utilizada automaticamente nas ordens de abastecimento.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {signatureData && (
+                  <div className="p-3 border border-border rounded-lg bg-card inline-block">
+                    <img src={signatureData} alt="Assinatura atual" className="max-h-24" />
+                  </div>
+                )}
+                <SignaturePad
+                  initialData={signatureData}
+                  onSave={handleSaveSignature}
+                />
               </CardContent>
             </Card>
 
