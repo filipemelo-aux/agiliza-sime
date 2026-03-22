@@ -265,6 +265,12 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
                   ))}
                 </SelectContent>
               </Select>
+              {vehicleId && (() => {
+                const veh = vehicles.find((x) => x.id === vehicleId);
+                return veh?.driver_name ? (
+                  <p className="text-xs text-muted-foreground mt-1">Motorista: <span className="font-medium text-foreground">{veh.driver_name}</span></p>
+                ) : null;
+              })()}
             </div>
           </div>
 

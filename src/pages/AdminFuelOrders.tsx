@@ -144,6 +144,12 @@ export default function AdminFuelOrders() {
                         <span className="text-muted-foreground">Veículo</span>
                         <span>{o.vehicle_plate}</span>
                       </div>
+                      {o.vehicle_id && driverMap.get(o.vehicle_id) && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Motorista</span>
+                          <span className="text-right truncate max-w-[55%]">{driverMap.get(o.vehicle_id)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Combustível</span>
                         <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
