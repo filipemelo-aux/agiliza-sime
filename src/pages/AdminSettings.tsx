@@ -330,7 +330,7 @@ export default function AdminSettings() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
               <Users className="w-4 h-4" />
               Geral
@@ -338,6 +338,10 @@ export default function AdminSettings() {
             <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
               <Building2 className="w-4 h-4" />
               Fiscal
+            </TabsTrigger>
+            <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
+              <MailIcon className="w-4 h-4" />
+              E-mail
             </TabsTrigger>
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
               <User className="w-4 h-4" />

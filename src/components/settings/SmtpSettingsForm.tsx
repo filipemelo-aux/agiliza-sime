@@ -103,7 +103,7 @@ export function SmtpSettingsForm() {
       }
 
       if (existingId) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("smtp_settings")
           .update(payload)
           .eq("id", existingId);
