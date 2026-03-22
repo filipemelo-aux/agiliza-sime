@@ -24,10 +24,16 @@ function normalizeRequesterName(name?: string | null) {
 }
 
 function buildFuelOrderHTML(order: any, establishments: any[]) {
+  return buildFuelOrderHTMLWithSignature(order, establishments, null);
+}
+
+function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], signatureDataUrl: string | null) {
   const est = establishments.find((e) => e.id === order.establishment_id);
   const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
   const requesterName = normalizeRequesterName(order.requester_name);
+
+  const arlaNote = order.notes?.match(/Completar Arla:\s*(Sim|Não)/i)?.[0] || "";
 
   const sectionTitle = (title: string) =>
     `<tr><td style="font-family:${EMAIL_FONT_STACK};font-size:14px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px;padding:0 0 8px;border-bottom:2px solid #e8ecf0">${title}</td></tr>`;
@@ -164,7 +170,8 @@ ${order.notes ? `
 <tr><td>
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td width="30%" style="text-align:center;padding:0 6px">
-      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
+      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:50px;margin:0 auto 6px;width:auto" />` : ""}
+      <div style="border-top:1px solid #999;margin-bottom:6px;${signatureDataUrl ? 'margin-top:4px;' : ''}"></div>
       <span style="font-size:11px;color:#666">Solicitante</span>
     </td>
     <td width="5%">&nbsp;</td>
@@ -195,12 +202,26 @@ ${order.notes ? `
 </body></html>`;
 }
 
-export function exportFuelOrderPDF(order: any, establishments: any[]) {
-  return buildFuelOrderHTML(order, establishments);
+export function exportFuelOrderPDF(order: any, establishments: any[], signatureDataUrl?: string | null) {
+  return buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl || null);
 }
 
-export function printFuelOrderPDF(order: any, establishments: any[]) {
-  const html = buildFuelOrderHTML(order, establishments);
+export async function printFuelOrderPDF(order: any, establishments: any[]) {
+  // Buscar assinatura do solicitante
+  let signatureDataUrl: string | null = null;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase
+      .from("profiles")
+      .select("signature_data")
+      .eq("user_id", order.requester_user_id)
+      .maybeSingle();
+    signatureDataUrl = (data as any)?.signature_data || null;
+  } catch {
+    // Continue without signature
+  }
+
+  const html = buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl);
   const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(html);
