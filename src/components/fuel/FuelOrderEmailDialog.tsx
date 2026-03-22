@@ -13,6 +13,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   order: any;
   establishments: any[];
+  onStatusChanged?: (orderId: string, newStatus: string) => void;
 }
 
 async function resolveSessionRequesterName() {
