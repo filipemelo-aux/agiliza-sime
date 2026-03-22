@@ -117,7 +117,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
             .from("profiles")
             .select("id, user_id, full_name")
             .in("user_id", driverIds);
-          const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+          const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
           vList.forEach((v) => {
             (v as any).driver_name = nameMap.get(v.driver_id) || "";
           });
