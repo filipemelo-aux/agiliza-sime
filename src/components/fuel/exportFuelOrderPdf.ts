@@ -13,9 +13,9 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
   body{font-family:Arial,sans-serif;padding:30px 40px;color:#222;font-size:12px;max-width:800px;margin:0 auto}
-  .header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #2B4C7E;padding-bottom:16px;margin-bottom:24px}
-  .header img{height:50px}
-  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:22px;color:#2B4C7E}
+  .header{display:flex;align-items:center;gap:12px;border-bottom:3px solid #2B4C7E;padding-bottom:14px;margin-bottom:24px}
+  .header img{height:36px;width:36px}
+  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2}
   .brand span{color:#F5C518}
   h1{text-align:center;font-size:18px;color:#2B4C7E;margin:0 0 20px}
   .meta{display:flex;justify-content:space-between;margin-bottom:20px}
