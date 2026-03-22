@@ -6,10 +6,25 @@ const FUEL_LABELS: Record<string, string> = {
   diesel_s10: "Diesel S10",
 };
 
+function normalizeRequesterName(name?: string | null) {
+  const raw = String(name || "").trim();
+  if (!raw) return "Usuário";
+
+  if (!raw.includes("@")) return raw;
+
+  return raw
+    .split("@")[0]
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\p{L}/gu, (char) => char.toUpperCase()) || "Usuário";
+}
+
 function buildFuelOrderHTML(order: any, establishments: any[]) {
   const est = establishments.find((e) => e.id === order.establishment_id);
   const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
+  const requesterName = normalizeRequesterName(order.requester_name);
 
   const sectionTitle = (title: string) =>
     `<tr><td style="font-size:14px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px;padding:0 0 8px;border-bottom:2px solid #e8ecf0">${title}</td></tr>`;
@@ -40,7 +55,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
       <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
     </td>
     <td style="vertical-align:middle">
-      <div style="font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-family:'Exo','Trebuchet MS','Segoe UI',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
       <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${est?.razao_social || ""}</div>
       <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
     </td>
@@ -83,7 +98,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Solicitante")}
     ${infoRow("Empresa", `${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})`)}
-    ${infoRow("Solicitante", order.requester_name, true)}
+    ${infoRow("Solicitante", requesterName, true)}
   </table>
 </td></tr>
 
@@ -188,6 +203,7 @@ export function emailFuelOrder(order: any, establishments: any[]) {
     `Segue a Ordem de Abastecimento Nº ${order.order_number}\n\n` +
     `Empresa: ${est?.razao_social || "—"}\n` +
     `Fornecedor: ${order.supplier_name}\n` +
+    `Solicitante: ${normalizeRequesterName(order.requester_name)}\n` +
     `Veículo: ${order.vehicle_plate}\n` +
     `Combustível: ${FUEL_LABELS[order.fuel_type] || order.fuel_type}\n` +
     `Quantidade: ${order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`}\n` +
