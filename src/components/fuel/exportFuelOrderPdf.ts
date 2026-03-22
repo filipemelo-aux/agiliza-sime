@@ -13,9 +13,9 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
   body{font-family:Arial,sans-serif;padding:30px 40px;color:#222;font-size:12px;max-width:800px;margin:0 auto}
-  .header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #2B4C7E;padding-bottom:16px;margin-bottom:24px}
-  .header img{height:50px}
-  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:22px;color:#2B4C7E}
+  .header{display:flex;align-items:center;gap:12px;border-bottom:3px solid #2B4C7E;padding-bottom:14px;margin-bottom:24px}
+  .header img{height:36px;width:36px}
+  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2}
   .brand span{color:#F5C518}
   h1{text-align:center;font-size:18px;color:#2B4C7E;margin:0 0 20px}
   .meta{display:flex;justify-content:space-between;margin-bottom:20px}
@@ -36,10 +36,10 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
 </style></head><body>
 
 <div class="header">
-  <img src="${logoUrl}" alt="SIME" width="50" height="50" style="height:50px;width:auto;max-height:50px" />
-  <div>
+  <img src="${logoUrl}" alt="SIME" width="36" height="36" style="height:36px;width:36px;max-height:36px" />
+  <div style="display:flex;flex-direction:column;gap:2px">
     <div class="brand">SIME <span>TRANSPORTES</span></div>
-    <div style="font-size:11px;color:#666">${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
+    <div style="font-size:10px;color:#666;margin:0;line-height:1.3">${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
   </div>
 </div>
 
