@@ -267,13 +267,27 @@ export default function AdminSettings() {
   };
 
   const handleForceUpdate = () => {
-    // Same behavior as the toast update: clear cache and reload
     if ("caches" in window) {
       caches.keys().then((names) => {
         names.forEach((name) => caches.delete(name));
       });
     }
     applyUpdate();
+  };
+
+  const handleSaveSignature = async (dataUrl: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ signature_data: dataUrl } as any)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setSignatureData(dataUrl);
+      toast({ title: "Assinatura salva", description: "Sua assinatura será usada nas ordens de abastecimento." });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar assinatura", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = users.filter((u) => {
