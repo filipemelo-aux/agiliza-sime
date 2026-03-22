@@ -10,6 +10,8 @@ interface Props {
 }
 
 export function SignaturePad({ initialData, onSave, width = 400, height = 180 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(width);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
@@ -17,16 +19,28 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
 
   const getCtx = useCallback(() => canvasRef.current?.getContext("2d"), []);
 
+  // Measure container width for responsiveness
+  useEffect(() => {
+    const measure = () => {
+      if (containerRef.current) {
+        const w = Math.min(width, containerRef.current.clientWidth);
+        setCanvasWidth(w);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [width]);
+
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas resolution for sharp rendering
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
+    canvas.width = canvasWidth * dpr;
     canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
+    canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${height}px`;
 
     const ctx = canvas.getContext("2d");
@@ -40,18 +54,18 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
     if (initialData) {
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, canvasWidth, height);
         setHasContent(true);
       };
       img.src = initialData;
     }
-  }, [initialData, width, height]);
+  }, [initialData, canvasWidth, height]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const scaleX = width / rect.width;
+    const scaleX = canvasWidth / rect.width;
     const scaleY = height / rect.height;
     if ("touches" in e) {
       const touch = e.touches[0];
@@ -89,7 +103,7 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
-    ctx.clearRect(0, 0, width * dpr, height * dpr);
+    ctx.clearRect(0, 0, canvasWidth * dpr, height * dpr);
     setHasContent(false);
   };
 
@@ -106,15 +120,15 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={containerRef}>
       <div
         className="border-2 border-dashed border-border rounded-lg bg-card overflow-hidden touch-none"
-        style={{ maxWidth: width }}
+        style={{ maxWidth: canvasWidth }}
       >
         <canvas
           ref={canvasRef}
           className="cursor-crosshair w-full"
-          style={{ maxWidth: width, height }}
+          style={{ maxWidth: canvasWidth, height }}
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={endDraw}
