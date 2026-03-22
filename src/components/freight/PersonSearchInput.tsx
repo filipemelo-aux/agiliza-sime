@@ -118,8 +118,8 @@ export function PersonSearchInput({
 
   if (selected) {
     return (
-      <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30">
-        <span className="text-sm font-medium truncate flex-1">{selected}</span>
+      <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30 min-w-0">
+        <span className="text-sm font-medium flex-1 min-w-0 break-words whitespace-normal">{selected}</span>
         <button
           type="button"
           onClick={handleClear}
