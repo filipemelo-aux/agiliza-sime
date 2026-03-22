@@ -13,6 +13,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   order: any;
   establishments: any[];
+  onStatusChanged?: (orderId: string, newStatus: string) => void;
 }
 
 async function resolveSessionRequesterName() {
@@ -47,7 +48,7 @@ async function resolveSessionRequesterName() {
   return data?.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
 }
 
-export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments }: Props) {
+export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments, onStatusChanged }: Props) {
   const { toast } = useToast();
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
@@ -98,6 +99,15 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      // Update status to "enviada" on first send
+      if (order.status === "pendente") {
+        await supabase
+          .from("fuel_orders")
+          .update({ status: "enviada" } as any)
+          .eq("id", order.id);
+        onStatusChanged?.(order.id, "enviada");
+      }
 
       toast({
         title: "E-mail enviado!",

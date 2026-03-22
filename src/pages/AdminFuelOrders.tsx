@@ -20,6 +20,7 @@ const FUEL_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-amber-500/10 text-amber-500",
+  enviada: "bg-blue-500/10 text-blue-500",
   aprovada: "bg-emerald-500/10 text-emerald-500",
   cancelada: "bg-red-500/10 text-red-500",
 };
@@ -166,6 +167,11 @@ export default function AdminFuelOrders() {
             onOpenChange={(v) => !v && setEmailOrder(null)}
             order={emailOrder}
             establishments={establishments}
+            onStatusChanged={(id, newStatus) => {
+              setOrders((prev) =>
+                prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
+              );
+            }}
           />
         )}
       </main>
