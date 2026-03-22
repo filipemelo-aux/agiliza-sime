@@ -118,8 +118,8 @@ export function PersonSearchInput({
 
   if (selected) {
     return (
-      <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30">
-        <span className="text-sm font-medium truncate flex-1">{selected}</span>
+      <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/30 min-w-0">
+        <span className="text-sm font-medium flex-1 min-w-0 break-words whitespace-normal">{selected}</span>
         <button
           type="button"
           onClick={handleClear}
@@ -149,23 +149,23 @@ export function PersonSearchInput({
       </div>
 
       {showDropdown && results.length > 0 && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto overflow-x-hidden">
           {results.map((person) => (
             <button
               key={person.id}
               type="button"
               onClick={() => handleSelect(person)}
-              className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors border-b border-border last:border-0"
+              className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors border-b border-border last:border-0 min-w-0"
             >
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm truncate">{person.full_name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-medium text-sm break-words whitespace-normal min-w-0 flex-1">{person.full_name}</span>
                 <Badge className={`text-[10px] shrink-0 ${CATEGORY_COLORS[person.category] || ""}`}>
                   {CATEGORY_LABELS[person.category] || person.category}
                 </Badge>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5 min-w-0">
                 {person.cnpj && <span>{maskCNPJ(person.cnpj)}</span>}
-                {person.razao_social && <span>• {person.razao_social}</span>}
+                {person.razao_social && <span className="break-words">• {person.razao_social}</span>}
                 {person.address_city && person.address_state && (
                   <span>• {person.address_city}/{person.address_state}</span>
                 )}
