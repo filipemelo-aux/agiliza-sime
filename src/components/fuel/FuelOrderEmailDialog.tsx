@@ -62,6 +62,22 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
     setSending(true);
     try {
       const sessionRequesterName = await resolveSessionRequesterName();
+
+      // 1. Tentar gerar PDF assinado para anexar
+      let pdfBase64: string | null = null;
+      try {
+        const { data: pdfData, error: pdfErr } = await supabase.functions.invoke(
+          "generate-signed-fuel-pdf",
+          { body: { order_id: order.id } }
+        );
+        if (!pdfErr && pdfData?.success && pdfData.pdf_base64) {
+          pdfBase64 = pdfData.pdf_base64;
+        }
+      } catch {
+        console.warn("PDF assinado indisponível, enviando apenas HTML");
+      }
+
+      // 2. Gerar HTML do corpo do e-mail
       const html = exportFuelOrderPDF(
         {
           ...order,
@@ -70,19 +86,36 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
         establishments
       );
 
+      // 3. Enviar e-mail (com ou sem PDF anexado)
+      const emailBody: Record<string, any> = {
+        to,
+        cc: cc || undefined,
+        subject: `Ordem de Abastecimento Nº ${order.order_number} — SIME Transportes`,
+        html,
+      };
+
+      if (pdfBase64) {
+        emailBody.attachments = [
+          {
+            filename: `ordem-${order.order_number}-assinada.pdf`,
+            content: pdfBase64,
+            encoding: "base64",
+            contentType: "application/pdf",
+          },
+        ];
+      }
+
       const { data, error } = await supabase.functions.invoke("send-smtp-email", {
-        body: {
-          to,
-          cc: cc || undefined,
-          subject: `Ordem de Abastecimento Nº ${order.order_number} — SIME Transportes`,
-          html,
-        },
+        body: emailBody,
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast({ title: "E-mail enviado!", description: `Ordem #${order.order_number} enviada para ${to}` });
+      toast({
+        title: "E-mail enviado!",
+        description: `Ordem #${order.order_number} enviada para ${to}${pdfBase64 ? " com PDF assinado" : ""}.`,
+      });
       onOpenChange(false);
       setTo("");
       setCc("");

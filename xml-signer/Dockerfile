@@ -52,6 +52,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY pdf_fuel_order.py .
 
 # Copiar schemas XSD se existirem
 COPY xsd/ /app/xsd/ 2>/dev/null || true
