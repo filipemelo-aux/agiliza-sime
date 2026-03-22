@@ -111,7 +111,7 @@ export function SmtpSettingsForm() {
       } else {
         payload.created_by = user!.id;
         payload.password_encrypted = form.password;
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("smtp_settings")
           .insert(payload)
           .select("id")
