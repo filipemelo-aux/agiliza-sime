@@ -473,7 +473,16 @@ export default function AdminSettings() {
 
               <TabsContent value="certificates">
                 <CertificatesList />
-              </TabsContent>
+          </TabsContent>
+
+          {/* ===== TAB EMAIL ===== */}
+          <TabsContent value="email" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Configurações de E-mail</h2>
+              <p className="text-sm text-muted-foreground">Configure o servidor SMTP para envio de e-mails pelo sistema</p>
+            </div>
+            <SmtpSettingsForm />
+          </TabsContent>
             </Tabs>
           </TabsContent>
 
