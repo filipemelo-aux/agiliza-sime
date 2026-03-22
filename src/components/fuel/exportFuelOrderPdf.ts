@@ -8,7 +8,7 @@ const FUEL_LABELS: Record<string, string> = {
 
 function buildFuelOrderHTML(order: any, establishments: any[]) {
   const est = establishments.find((e) => e.id === order.establishment_id);
-  const logoUrl = window.location.origin + "/favicon.png";
+  const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
 
   const sectionTitle = (title: string) =>
