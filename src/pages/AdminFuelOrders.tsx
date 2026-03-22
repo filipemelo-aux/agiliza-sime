@@ -63,10 +63,10 @@ export default function AdminFuelOrders() {
       if (driverIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name")
-          .in("id", driverIds);
+          .select("id, user_id, full_name")
+          .in("user_id", driverIds);
         const vehDriverMap = new Map((vehs || []).map((v) => [v.id, v.driver_id]));
-        const nameMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+        const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
         const finalMap = new Map<string, string>();
         vehDriverMap.forEach((dId, vId) => {
           if (dId && nameMap.has(dId)) finalMap.set(vId, nameMap.get(dId)!);
