@@ -10,6 +10,8 @@ interface Props {
 }
 
 export function SignaturePad({ initialData, onSave, width = 400, height = 180 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(width);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
