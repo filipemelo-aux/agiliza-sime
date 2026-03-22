@@ -206,6 +206,12 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[pdf-sign] Microserviço retornou ${response.status}: ${errorText}`);
+      if (response.status === 404) {
+        return secureError(
+          "Erro ao assinar PDF: endpoint /pdf/fuel-order não encontrado no microserviço. Atualize e reinicie o container de assinatura para a versão com suporte a PDF.",
+          500,
+        );
+      }
       return secureError(`Erro ao gerar PDF assinado: ${errorText}`, 500);
     }
 
