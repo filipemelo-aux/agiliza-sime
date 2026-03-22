@@ -65,7 +65,7 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const scaleX = width / rect.width;
+    const scaleX = canvasWidth / rect.width;
     const scaleY = height / rect.height;
     if ("touches" in e) {
       const touch = e.touches[0];
