@@ -160,8 +160,8 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 </td></tr>
 
 ${order.notes ? `
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Observações")}
     <tr><td style="padding-top:12px">
