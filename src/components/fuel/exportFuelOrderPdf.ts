@@ -36,7 +36,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
 </style></head><body>
 
 <div class="header">
-  <img src="${logoUrl}" alt="SIME" />
+  <img src="${logoUrl}" alt="SIME" width="50" height="50" style="height:50px;width:auto;max-height:50px" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
     <div style="font-size:11px;color:#666">${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
