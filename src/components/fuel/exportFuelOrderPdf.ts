@@ -6,11 +6,11 @@ const FUEL_LABELS: Record<string, string> = {
   diesel_s10: "Diesel S10",
 };
 
-export function exportFuelOrderPDF(order: any, establishments: any[]) {
+function buildFuelOrderHTML(order: any, establishments: any[]) {
   const est = establishments.find((e) => e.id === order.establishment_id);
   const logoUrl = window.location.origin + "/favicon.png";
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
   body{font-family:Arial,sans-serif;padding:30px 40px;color:#222;font-size:12px;max-width:800px;margin:0 auto}
   .header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #2B4C7E;padding-bottom:16px;margin-bottom:24px}
@@ -88,11 +88,38 @@ ${order.notes ? `<h2>Observações</h2><div class="obs">${order.notes}</div>` : 
 </div>
 
 </body></html>`;
+}
 
+export function exportFuelOrderPDF(order: any, establishments: any[]) {
+  return buildFuelOrderHTML(order, establishments);
+}
+
+export function printFuelOrderPDF(order: any, establishments: any[]) {
+  const html = buildFuelOrderHTML(order, establishments);
   const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
   }
+}
+
+export function emailFuelOrder(order: any, establishments: any[]) {
+  const est = establishments.find((e: any) => e.id === order.establishment_id);
+  const subject = encodeURIComponent(
+    `Ordem de Abastecimento Nº ${order.order_number} — ${est?.razao_social || "SIME"}`
+  );
+  const body = encodeURIComponent(
+    `Segue a Ordem de Abastecimento Nº ${order.order_number}\n\n` +
+    `Empresa: ${est?.razao_social || "—"}\n` +
+    `Fornecedor: ${order.supplier_name}\n` +
+    `Veículo: ${order.vehicle_plate}\n` +
+    `Combustível: ${FUEL_LABELS[order.fuel_type] || order.fuel_type}\n` +
+    `Quantidade: ${order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`}\n` +
+    `Status: ${(order.status || "pendente").toUpperCase()}\n` +
+    `Data: ${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}\n\n` +
+    `Observações: ${order.notes || "Nenhuma"}\n\n` +
+    `---\nSIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}`
+  );
+  window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
 }

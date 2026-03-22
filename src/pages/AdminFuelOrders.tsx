@@ -3,21 +3,13 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Printer, Loader2 } from "lucide-react";
+import { Plus, Fuel, Printer, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
-import { exportFuelOrderPDF } from "@/components/fuel/exportFuelOrderPdf";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { printFuelOrderPDF, emailFuelOrder } from "@/components/fuel/exportFuelOrderPdf";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -64,7 +56,7 @@ export default function AdminFuelOrders() {
   const handleCreated = (order: any) => {
     setShowForm(false);
     fetchData();
-    exportFuelOrderPDF(order, establishments);
+    printFuelOrderPDF(order, establishments);
     toast({ title: "Ordem criada", description: `Ordem #${order.order_number} gerada com sucesso.` });
   };
 
@@ -96,52 +88,67 @@ export default function AdminFuelOrders() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nº</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Veículo</TableHead>
-                    <TableHead>Combustível</TableHead>
-                    <TableHead>Qtde</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-medium">#{o.order_number}</TableCell>
-                      <TableCell>{format(new Date(o.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell className="max-w-[180px] truncate">{o.supplier_name}</TableCell>
-                      <TableCell>{o.vehicle_plate}</TableCell>
-                      <TableCell>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</TableCell>
-                      <TableCell>
-                        {o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => exportFuelOrderPDF(o, establishments)}
-                          title="Imprimir"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {orders.map((o) => {
+              const est = establishments.find((e) => e.id === o.establishment_id);
+              return (
+                <Card key={o.id} className="flex flex-col">
+                  <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-base">#{o.order_number}</span>
+                      <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>
+                    </div>
+
+                    <div className="space-y-1.5 text-sm flex-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Data</span>
+                        <span>{format(new Date(o.created_at), "dd/MM/yyyy")}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Empresa</span>
+                        <span className="text-right truncate max-w-[55%]">{est?.nome_fantasia || est?.razao_social || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fornecedor</span>
+                        <span className="text-right truncate max-w-[55%]">{o.supplier_name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Veículo</span>
+                        <span>{o.vehicle_plate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Combustível</span>
+                        <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
+                      </div>
+                      <div className="flex justify-between font-medium">
+                        <span className="text-muted-foreground">Quantidade</span>
+                        <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-border">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => printFuelOrderPDF(o, establishments)}
+                      >
+                        <Printer className="h-4 w-4 mr-1" /> Imprimir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => emailFuelOrder(o, establishments)}
+                      >
+                        <Mail className="h-4 w-4 mr-1" /> E-mail
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
 
         <FuelOrderFormDialog
