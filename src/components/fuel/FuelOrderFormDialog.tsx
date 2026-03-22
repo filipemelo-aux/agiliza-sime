@@ -34,6 +34,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [userName, setUserName] = useState("");
 
   const [establishmentId, setEstablishmentId] = useState("");
   const [supplierId, setSupplierId] = useState<string | null>(null);
@@ -54,11 +55,22 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
         .order("plate")
         .then(({ data }) => setVehicles(data || []));
 
+      if (user?.id) {
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
+          .limit(1)
+          .then(({ data }) => {
+            setUserName(data?.[0]?.full_name || user.email || "Usuário");
+          });
+      }
+
       if (establishments.length === 1) {
         setEstablishmentId(establishments[0].id);
       }
     }
-  }, [open, establishments]);
+  }, [open, establishments, user]);
 
   const reset = () => {
     setEstablishmentId(establishments.length === 1 ? establishments[0].id : "");
@@ -89,7 +101,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
       .insert({
         establishment_id: establishmentId,
         requester_user_id: user.id,
-        requester_name: user.email || "Usuário",
+        requester_name: userName || user.email || "Usuário",
         supplier_id: supplierId,
         supplier_name: supplierName,
         vehicle_id: vehicleId,
@@ -141,7 +153,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           {/* Solicitante */}
           <div className="space-y-1.5">
             <Label>Solicitante</Label>
-            <Input value={user?.email || ""} disabled className="bg-muted/30" />
+            <Input value={userName || user?.email || ""} disabled className="bg-muted/30" />
           </div>
 
           {/* Fornecedor */}
