@@ -213,23 +213,21 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           {/* Fornecedor & Veículo */}
           <div className="rounded-lg border border-border p-3 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fornecedor & Veículo</p>
-            <div className="space-y-1.5 min-w-0">
+            <div className="space-y-1.5">
               <Label className="text-xs">Fornecedor (Destinatário) *</Label>
-              <div className="min-w-0 overflow-hidden [&_span]:break-words [&_span]:whitespace-normal [&_span]:block">
-                <PersonSearchInput
-                  categories={["fornecedor"]}
-                  placeholder="Buscar fornecedor..."
-                  selectedName={supplierName || undefined}
-                  onSelect={(p) => {
-                    setSupplierId(p.id);
-                    setSupplierName(p.razao_social || p.full_name);
-                  }}
-                  onClear={() => {
-                    setSupplierId(null);
-                    setSupplierName("");
-                  }}
-                />
-              </div>
+              <PersonSearchInput
+                categories={["fornecedor"]}
+                placeholder="Buscar fornecedor..."
+                selectedName={supplierName || undefined}
+                onSelect={(p) => {
+                  setSupplierId(p.id);
+                  setSupplierName(p.razao_social || p.full_name);
+                }}
+                onClear={() => {
+                  setSupplierId(null);
+                  setSupplierName("");
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Veículo *</Label>
