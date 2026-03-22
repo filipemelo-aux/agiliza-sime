@@ -30,6 +30,26 @@ interface Props {
   onCreated: (order: any) => void;
 }
 
+function emailToName(email?: string | null) {
+  const localPart = email?.split("@")[0]?.trim();
+  if (!localPart) return "";
+
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\p{L}/gu, (char) => char.toUpperCase());
+}
+
+function resolveRequesterName(user: any, preferredName?: string | null) {
+  const explicitName = String(preferredName || "").trim();
+  const metadataName =
+    String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim();
+  const fromEmail = emailToName(user?.email);
+
+  return explicitName || metadataName || fromEmail || "Usuário";
+}
+
 export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, onCreated }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -48,6 +68,8 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
 
   useEffect(() => {
     if (open) {
+      setUserName(resolveRequesterName(user));
+
       supabase
         .from("vehicles")
         .select("id, plate, brand, model")
@@ -60,9 +82,9 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           .from("profiles")
           .select("full_name")
           .eq("user_id", user.id)
-          .limit(1)
+          .maybeSingle()
           .then(({ data }) => {
-            setUserName(data?.[0]?.full_name || user.email || "Usuário");
+            setUserName(resolveRequesterName(user, data?.full_name));
           });
       }
 
@@ -95,13 +117,15 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
       return;
     }
 
+    const requesterName = resolveRequesterName(user, userName);
+
     setSaving(true);
     const { data, error } = await supabase
       .from("fuel_orders")
       .insert({
         establishment_id: establishmentId,
         requester_user_id: user.id,
-        requester_name: userName || user.email || "Usuário",
+        requester_name: requesterName,
         supplier_id: supplierId,
         supplier_name: supplierName,
         vehicle_id: vehicleId,
@@ -153,7 +177,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           {/* Solicitante */}
           <div className="space-y-1.5">
             <Label>Solicitante</Label>
-            <Input value={userName || user?.email || ""} disabled className="bg-muted/30" />
+            <Input value={userName} disabled className="bg-muted/30" />
           </div>
 
           {/* Fornecedor */}
