@@ -111,43 +111,18 @@ export function SmtpSettingsForm() {
 
     setSaving(true);
     try {
-      const smtpConfig = {
+      const payload: Record<string, any> = {
         host: form.host.trim(),
         port: form.port,
         username: form.username.trim(),
-        password: form.password || undefined,
         from_email: form.from_email.trim(),
         from_name: form.from_name.trim(),
-        use_tls: form.use_tls,
-        use_stored_password: Boolean(existingId && !form.password),
-      };
-
-      // Test SMTP connection before persisting settings
-      const { data: testData, error: testError } = await supabase.functions.invoke("send-smtp-email", {
-        body: {
-          to: smtpConfig.from_email,
-          subject: "Teste SMTP (pré-salvamento) — SIME Transportes",
-          html: `<h2>Teste de SMTP</h2><p>Configuração validada com sucesso antes do salvamento.</p><p><small>${new Date().toLocaleString("pt-BR")}</small></p>`,
-          smtpConfig,
-        },
-      });
-
-      if (testError) throw testError;
-      if (testData?.error) throw new Error(testData.error);
-
-      const payload: Record<string, any> = {
-        host: smtpConfig.host,
-        port: form.port,
-        username: smtpConfig.username,
-        from_email: smtpConfig.from_email,
-        from_name: smtpConfig.from_name,
         use_tls: form.use_tls,
         updated_at: new Date().toISOString(),
       };
 
-      // Only send password if user typed a new one
       if (form.password) {
-        payload.password_encrypted = form.password; // Edge function will handle actual encryption
+        payload.password_encrypted = form.password;
       }
 
       if (existingId) {
@@ -171,7 +146,7 @@ export function SmtpSettingsForm() {
       setHasPassword(true);
       toast({ title: "Configurações SMTP salvas!" });
     } catch (err: any) {
-      const message = await extractEdgeErrorMessage(err, "Falha ao validar/salvar configuração SMTP");
+      const message = await extractEdgeErrorMessage(err, "Falha ao salvar configuração SMTP");
       toast({ title: "Erro ao salvar", description: message, variant: "destructive" });
     } finally {
       setSaving(false);
