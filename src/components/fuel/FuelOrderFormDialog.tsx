@@ -55,11 +55,22 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
         .order("plate")
         .then(({ data }) => setVehicles(data || []));
 
+      if (user?.id) {
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
+          .limit(1)
+          .then(({ data }) => {
+            setUserName(data?.[0]?.full_name || user.email || "Usuário");
+          });
+      }
+
       if (establishments.length === 1) {
         setEstablishmentId(establishments[0].id);
       }
     }
-  }, [open, establishments]);
+  }, [open, establishments, user]);
 
   const reset = () => {
     setEstablishmentId(establishments.length === 1 ? establishments[0].id : "");
