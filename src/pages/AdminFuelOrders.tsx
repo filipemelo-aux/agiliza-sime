@@ -165,7 +165,7 @@ export default function AdminFuelOrders() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => printFuelOrderPDF(o, establishments)}
+                        onClick={() => printFuelOrderPDF({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" }, establishments)}
                       >
                         <Printer className="h-4 w-4 mr-1" /> Imprimir
                       </Button>
