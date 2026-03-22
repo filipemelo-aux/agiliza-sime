@@ -6,6 +6,8 @@ const FUEL_LABELS: Record<string, string> = {
   diesel_s10: "Diesel S10",
 };
 
+const EMAIL_FONT_STACK = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
+
 function normalizeRequesterName(name?: string | null) {
   const raw = String(name || "").trim();
   if (!raw) return "Usuário";
@@ -27,26 +29,28 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
   const requesterName = normalizeRequesterName(order.requester_name);
 
   const sectionTitle = (title: string) =>
-    `<tr><td style="font-size:14px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px;padding:0 0 8px;border-bottom:2px solid #e8ecf0">${title}</td></tr>`;
+    `<tr><td style="font-family:${EMAIL_FONT_STACK};font-size:14px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px;padding:0 0 8px;border-bottom:2px solid #e8ecf0">${title}</td></tr>`;
 
   const infoRow = (label: string, value: string, last = false) =>
     `<tr><td style="padding:10px 0;${last ? "" : "border-bottom:1px solid #f0f2f5;"}">
       <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td style="font-size:12px;color:#666;font-weight:500;vertical-align:top;width:40%">${label}</td>
-        <td style="font-size:13px;font-weight:600;color:#333;text-align:right;vertical-align:top;word-break:break-word">${value}</td>
+        <td style="font-family:${EMAIL_FONT_STACK};font-size:12px;color:#666;font-weight:500;vertical-align:top;width:40%">${label}</td>
+        <td style="font-family:${EMAIL_FONT_STACK};font-size:13px;font-weight:600;color:#333;text-align:right;vertical-align:top;word-break:break-word">${value}</td>
       </tr></table>
     </td></tr>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
-<!--[if mso]><style>table{border-collapse:collapse}td{font-family:Arial,sans-serif}</style><![endif]-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<!--[if mso]><style>table{border-collapse:collapse}</style><![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${EMAIL_FONT_STACK};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
 <tr><td align="center" style="padding:16px 12px">
 
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:${EMAIL_FONT_STACK}">
 
 <!-- HEADER -->
 <tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E;margin-bottom:16px">
@@ -55,7 +59,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
       <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
     </td>
     <td style="vertical-align:middle">
-      <div style="font-family:'Exo','Trebuchet MS','Segoe UI',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-family:${EMAIL_FONT_STACK};font-weight:700;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
       <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${est?.razao_social || ""}</div>
       <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
     </td>
@@ -71,7 +75,7 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
 
 <!-- TITLE -->
 <tr><td style="background:#ffffff;border-radius:10px;padding:14px 20px;text-align:center">
-  <div style="font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
+  <div style="font-family:${EMAIL_FONT_STACK};font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
 </td></tr>
 
 <tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
@@ -81,12 +85,12 @@ function buildFuelOrderHTML(order: any, establishments: any[]) {
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
       <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Data de Emissão</div>
-      <div style="font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</div>
+      <div style="font-family:${EMAIL_FONT_STACK};font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</div>
     </td>
     <td width="4%" style="font-size:0">&nbsp;</td>
     <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
       <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Status</div>
-      <div style="font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${(order.status || "pendente").toUpperCase()}</div>
+      <div style="font-family:${EMAIL_FONT_STACK};font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${(order.status || "pendente").toUpperCase()}</div>
     </td>
   </tr></table>
 </td></tr>
