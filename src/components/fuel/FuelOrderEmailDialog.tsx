@@ -63,13 +63,25 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
     try {
       const sessionRequesterName = await resolveSessionRequesterName();
 
-      // Gerar HTML do corpo do e-mail
+      // Buscar assinatura do solicitante
+      let signatureDataUrl: string | null = null;
+      if (order.requester_user_id) {
+        const { data: sigData } = await supabase
+          .from("profiles")
+          .select("signature_data")
+          .eq("user_id", order.requester_user_id)
+          .maybeSingle();
+        signatureDataUrl = (sigData as any)?.signature_data || null;
+      }
+
+      // Gerar HTML do corpo do e-mail com assinatura
       const html = exportFuelOrderPDF(
         {
           ...order,
           requester_name: sessionRequesterName || order.requester_name,
         },
-        establishments
+        establishments,
+        signatureDataUrl
       );
 
       // Enviar e-mail
