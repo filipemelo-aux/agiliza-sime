@@ -88,7 +88,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
   </tr></table>
 </td></tr>
 
-<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 
 <!-- DIVIDER -->
 <tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
