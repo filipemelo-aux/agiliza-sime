@@ -181,157 +181,162 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Abastecimento</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Empresa */}
-          <div className="space-y-1.5">
-            <Label>Empresa Solicitante *</Label>
-            <Select value={establishmentId} onValueChange={setEstablishmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                {establishments.map((est) => (
-                  <SelectItem key={est.id} value={est.id}>
-                    {est.type === "matriz" ? "Matriz" : "Filial"} — {est.razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Solicitante */}
-          <div className="space-y-1.5">
-            <Label>Solicitante</Label>
-            <Input value={userName} disabled className="bg-muted/30" />
-          </div>
-
-          {/* Fornecedor */}
-          <div className="space-y-1.5">
-            <Label>Fornecedor (Destinatário) *</Label>
-            <PersonSearchInput
-              categories={["fornecedor"]}
-              placeholder="Buscar fornecedor cadastrado..."
-              selectedName={supplierName || undefined}
-              onSelect={(p) => {
-                setSupplierId(p.id);
-                setSupplierName(p.razao_social || p.full_name);
-              }}
-              onClear={() => {
-                setSupplierId(null);
-                setSupplierName("");
-              }}
-            />
-          </div>
-
-          {/* Veículo */}
-          <div className="space-y-1.5">
-            <Label>Veículo *</Label>
-            <Select
-              value={vehicleId}
-              onValueChange={(v) => {
-                setVehicleId(v);
-                const veh = vehicles.find((x) => x.id === v);
-                setVehiclePlate(veh?.plate || "");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o veículo" />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicles.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.plate} — {v.brand} {v.model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Tipo de Combustível */}
-          <div className="space-y-1.5">
-            <Label>Tipo de Combustível *</Label>
-            <Select value={fuelType} onValueChange={setFuelType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gasolina">Gasolina</SelectItem>
-                <SelectItem value="diesel">Diesel</SelectItem>
-                <SelectItem value="diesel_s10">Diesel S10</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Modo de Abastecimento */}
-          <div className="space-y-1.5">
-            <Label>Modo de Abastecimento *</Label>
-            <RadioGroup value={fillMode} onValueChange={setFillMode} className="flex gap-4">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="completar" id="fill-completar" />
-                  <Label htmlFor="fill-completar" className="font-normal cursor-pointer">Completar tanque</Label>
-                </div>
-                {fillMode === "completar" && (
-                  <div className="ml-6 flex flex-wrap items-center gap-3">
-                    <span className="text-xs text-muted-foreground">Completar Arla:</span>
-                    <RadioGroup
-                      value={arlaMode}
-                      onValueChange={(value) => setArlaMode(value as "sim" | "nao")}
-                      className="flex items-center gap-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="sim" id="arla-sim" />
-                        <Label htmlFor="arla-sim" className="font-normal cursor-pointer text-sm">( ) Sim</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="nao" id="arla-nao" />
-                        <Label htmlFor="arla-nao" className="font-normal cursor-pointer text-sm">( ) Não</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="litros" id="fill-litros" />
-                <Label htmlFor="fill-litros" className="font-normal cursor-pointer">Litros avulsos</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {fillMode === "litros" && (
+          {/* Empresa & Solicitante */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Identificação</p>
             <div className="space-y-1.5">
-              <Label>Quantidade (litros) *</Label>
-              <Input
-                type="number"
-                min="1"
-                step="0.01"
-                value={liters}
-                onChange={(e) => setLiters(e.target.value)}
-                placeholder="Ex: 150"
+              <Label className="text-xs">Empresa Solicitante *</Label>
+              <Select value={establishmentId} onValueChange={setEstablishmentId}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {establishments.map((est) => (
+                    <SelectItem key={est.id} value={est.id}>
+                      {est.type === "matriz" ? "Matriz" : "Filial"} — {est.razao_social}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Solicitante</Label>
+              <Input value={userName} disabled className="bg-muted/30 text-sm" />
+            </div>
+          </div>
+
+          {/* Fornecedor & Veículo */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fornecedor & Veículo</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Fornecedor (Destinatário) *</Label>
+              <PersonSearchInput
+                categories={["fornecedor"]}
+                placeholder="Buscar fornecedor..."
+                selectedName={supplierName || undefined}
+                onSelect={(p) => {
+                  setSupplierId(p.id);
+                  setSupplierName(p.razao_social || p.full_name);
+                }}
+                onClear={() => {
+                  setSupplierId(null);
+                  setSupplierName("");
+                }}
               />
             </div>
-          )}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Veículo *</Label>
+              <Select
+                value={vehicleId}
+                onValueChange={(v) => {
+                  setVehicleId(v);
+                  const veh = vehicles.find((x) => x.id === v);
+                  setVehiclePlate(veh?.plate || "");
+                }}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Selecione o veículo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.plate} — {v.brand} {v.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Combustível & Modo */}
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Combustível</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de Combustível *</Label>
+              <Select value={fuelType} onValueChange={setFuelType}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gasolina">Gasolina</SelectItem>
+                  <SelectItem value="diesel">Diesel</SelectItem>
+                  <SelectItem value="diesel_s10">Diesel S10</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Modo de Abastecimento *</Label>
+              <RadioGroup value={fillMode} onValueChange={setFillMode} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="completar" id="fill-completar" />
+                  <Label htmlFor="fill-completar" className="font-normal cursor-pointer text-sm">Completar tanque</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="litros" id="fill-litros" />
+                  <Label htmlFor="fill-litros" className="font-normal cursor-pointer text-sm">Litros avulsos</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {fillMode === "completar" && (
+              <div className="space-y-2">
+                <Label className="text-xs">Completar Arla?</Label>
+                <RadioGroup
+                  value={arlaMode}
+                  onValueChange={(value) => setArlaMode(value as "sim" | "nao")}
+                  className="flex items-center gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="sim" id="arla-sim" />
+                    <Label htmlFor="arla-sim" className="font-normal cursor-pointer text-sm">Sim</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="nao" id="arla-nao" />
+                    <Label htmlFor="arla-nao" className="font-normal cursor-pointer text-sm">Não</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {fillMode === "litros" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Quantidade (litros) *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={liters}
+                  onChange={(e) => setLiters(e.target.value)}
+                  placeholder="Ex: 150"
+                  className="text-sm"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Observações */}
           <div className="space-y-1.5">
-            <Label>Observações</Label>
+            <Label className="text-xs">Observações</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Informações adicionais..."
               rows={3}
+              className="text-sm"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
               {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Criar e Gerar PDF
             </Button>
