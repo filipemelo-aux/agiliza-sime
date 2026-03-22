@@ -127,7 +127,7 @@ export default function AdminSettings() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, email, phone")
+        .select("full_name, email, phone, signature_data")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -137,6 +137,7 @@ export default function AdminSettings() {
           email: data.email || "",
           phone: data.phone || "",
         });
+        setSignatureData((data as any).signature_data || null);
       }
     } catch (err: any) {
       console.error(err);
