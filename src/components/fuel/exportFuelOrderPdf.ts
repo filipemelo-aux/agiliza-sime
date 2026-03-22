@@ -171,11 +171,11 @@ ${order.notes ? `
 </td></tr>` : ""}
 
 <!-- ASSINATURAS -->
-<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td>
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
-      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:36px;margin:0 auto 2px;width:auto" />` : `<div style="height:36px"></div>`}
+      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:30px;margin:0 auto 2px;width:auto" />` : `<div style="height:30px"></div>`}
       <div style="border-top:1px solid #999;margin-bottom:4px"></div>
       <span style="font-size:10px;color:#666">Solicitante</span>
     </td>
