@@ -19,16 +19,28 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
 
   const getCtx = useCallback(() => canvasRef.current?.getContext("2d"), []);
 
+  // Measure container width for responsiveness
+  useEffect(() => {
+    const measure = () => {
+      if (containerRef.current) {
+        const w = Math.min(width, containerRef.current.clientWidth);
+        setCanvasWidth(w);
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [width]);
+
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas resolution for sharp rendering
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
+    canvas.width = canvasWidth * dpr;
     canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
+    canvas.style.width = `${canvasWidth}px`;
     canvas.style.height = `${height}px`;
 
     const ctx = canvas.getContext("2d");
@@ -42,12 +54,12 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
     if (initialData) {
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, canvasWidth, height);
         setHasContent(true);
       };
       img.src = initialData;
     }
-  }, [initialData, width, height]);
+  }, [initialData, canvasWidth, height]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
