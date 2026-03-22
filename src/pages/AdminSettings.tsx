@@ -29,6 +29,7 @@ import { maskName } from "@/lib/masks";
 import { EstablishmentsList } from "@/components/fiscal/EstablishmentsList";
 import { CertificatesList } from "@/components/fiscal/CertificatesList";
 import { SmtpSettingsForm } from "@/components/settings/SmtpSettingsForm";
+import { SignaturePad } from "@/components/SignaturePad";
 
 interface SystemUser {
   id: string;
