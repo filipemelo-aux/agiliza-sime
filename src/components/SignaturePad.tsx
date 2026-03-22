@@ -103,7 +103,7 @@ export function SignaturePad({ initialData, onSave, width = 400, height = 180 }:
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
-    ctx.clearRect(0, 0, width * dpr, height * dpr);
+    ctx.clearRect(0, 0, canvasWidth * dpr, height * dpr);
     setHasContent(false);
   };
 
