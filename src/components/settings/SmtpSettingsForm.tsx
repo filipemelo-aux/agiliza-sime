@@ -49,7 +49,7 @@ export function SmtpSettingsForm() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("smtp_settings")
         .select("*")
         .limit(1)
