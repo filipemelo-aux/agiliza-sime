@@ -179,9 +179,9 @@ serve(async (req) => {
       return secureError("Microserviço de assinatura não configurado (XML_SIGNER_URL)", 500);
     }
 
-    // Trocar /sign por /pdf/fuel-order
-    const baseUrl = signerUrl.replace(/\/sign\/?$/, "");
-    const pdfUrl = `${baseUrl}/pdf/fuel-order`;
+    // Extrair base do domínio (remover qualquer path como /cte/emit/sign)
+    const urlObj = new URL(signerUrl);
+    const pdfUrl = `${urlObj.origin}/pdf/fuel-order`;
     const signerApiKey = Deno.env.get("XML_SIGNER_API_KEY") || "";
 
     console.log(`[pdf-sign] Chamando ${pdfUrl} para ordem #${order.order_number}`);
