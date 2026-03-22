@@ -9,129 +9,157 @@ const FUEL_LABELS: Record<string, string> = {
 function buildFuelOrderHTML(order: any, establishments: any[]) {
   const est = establishments.find((e) => e.id === order.establishment_id);
   const logoUrl = window.location.origin + "/favicon.png";
+  const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
+
+  const sectionTitle = (title: string) =>
+    `<tr><td style="font-size:14px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px;padding:0 0 8px;border-bottom:2px solid #e8ecf0">${title}</td></tr>`;
+
+  const infoRow = (label: string, value: string, last = false) =>
+    `<tr><td style="padding:10px 0;${last ? "" : "border-bottom:1px solid #f0f2f5;"}">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="font-size:12px;color:#666;font-weight:500;vertical-align:top;width:40%">${label}</td>
+        <td style="font-size:13px;font-weight:600;color:#333;text-align:right;vertical-align:top;word-break:break-word">${value}</td>
+      </tr></table>
+    </td></tr>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  *{box-sizing:border-box}
-  body{font-family:Arial,sans-serif;padding:16px;color:#222;font-size:13px;max-width:800px;margin:0 auto;background:#f4f6f8}
-  @media(min-width:600px){body{padding:30px 40px}}
+<!--[if mso]><style>table{border-collapse:collapse}td{font-family:Arial,sans-serif}</style><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">
 
-  .header{display:flex;align-items:center;gap:16px;background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:20px;border-left:4px solid #2B4C7E;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-  .header img{height:42px;width:42px;border-radius:6px;flex-shrink:0}
-  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:20px;color:#2B4C7E;line-height:1.2}
-  .brand span{color:#F5C518}
-  .header-info{font-size:11px;color:#666;margin:0;line-height:1.4}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
+<tr><td align="center" style="padding:16px 12px">
 
-  h1{text-align:center;font-size:17px;color:#2B4C7E;margin:0 0 20px;padding:12px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
 
-  .meta{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-  .meta-box{background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:14px 18px;flex:1;min-width:140px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-  .meta-box h4{margin:0 0 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px}
-  .meta-box p{margin:0;font-size:14px;font-weight:700;color:#2B4C7E}
+<!-- HEADER -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E;margin-bottom:16px">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+    <td style="width:48px;vertical-align:middle;padding-right:16px">
+      <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
+    </td>
+    <td style="vertical-align:middle">
+      <div style="font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${est?.razao_social || ""}</div>
+      <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
+    </td>
+  </tr></table>
+</td></tr>
 
-  .section-card{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-  .section-card h2{font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 14px;text-transform:uppercase;letter-spacing:0.3px}
+<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-  .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f2f5}
-  .info-row:last-child{border-bottom:none}
-  .info-label{font-size:12px;color:#666;font-weight:500}
-  .info-value{font-size:13px;font-weight:600;color:#333;text-align:right}
-  .info-highlight{background:#FFF8E1;margin:0 -20px;padding:10px 20px;border-radius:6px}
-  .info-highlight .info-value{color:#D4930A;font-size:14px}
+<!-- DIVIDER -->
+<tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
 
-  .obs-card{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-  .obs-card h2{font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.3px}
-  .obs-text{background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.5}
+<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-  .signature{margin-top:40px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:20px}
-  .sig-line{text-align:center;min-width:160px;flex:1}
-  .sig-line hr{border:none;border-top:1px solid #999;margin-bottom:6px}
-  .sig-line span{font-size:11px;color:#666}
+<!-- TITLE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:14px 20px;text-align:center">
+  <div style="font-size:17px;font-weight:700;color:#2B4C7E;margin:0">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</div>
+</td></tr>
 
-  .footer{margin-top:30px;background:#2B4C7E;border-radius:10px;padding:14px 20px;text-align:center;font-size:10px;color:rgba(255,255,255,0.85)}
-  .footer p{margin:2px 0}
+<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-  @media(max-width:480px){
-    .meta{flex-direction:column}
-    .signature{flex-direction:column;align-items:center}
-    .sig-line{width:80%}
-    h1{font-size:15px}
-  }
-</style></head><body>
+<!-- META BOXES -->
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Data de Emissão</div>
+      <div style="font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</div>
+    </td>
+    <td width="4%" style="font-size:0">&nbsp;</td>
+    <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Status</div>
+      <div style="font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${(order.status || "pendente").toUpperCase()}</div>
+    </td>
+  </tr></table>
+</td></tr>
 
-<div class="header">
-  <img src="${logoUrl}" alt="SIME" width="42" height="42" style="height:42px;width:42px;max-height:42px;border-radius:6px" />
-  <div style="display:flex;flex-direction:column;gap:3px">
-    <div class="brand" style="font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:20px;color:#2B4C7E;line-height:1.2">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-    <div class="header-info" style="font-size:11px;color:#666;margin:0;line-height:1.4">${est?.razao_social || ""}</div>
-    <div class="header-info" style="font-size:11px;color:#666;margin:0;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
-  </div>
-</div>
+<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-<h1 style="text-align:center;font-size:17px;color:#2B4C7E;margin:0 0 20px;padding:12px;background:#fff;border-radius:10px">ORDEM DE ABASTECIMENTO Nº ${order.order_number}</h1>
+<!-- SOLICITANTE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${sectionTitle("Solicitante")}
+    ${infoRow("Empresa", `${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})`)}
+    ${infoRow("Solicitante", order.requester_name, true)}
+  </table>
+</td></tr>
 
-<div class="meta" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-  <div class="meta-box" style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:14px 18px;flex:1;min-width:140px">
-    <h4 style="margin:0 0 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Data de Emissão</h4>
-    <p style="margin:0;font-size:14px;font-weight:700;color:#2B4C7E">${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</p>
-  </div>
-  <div class="meta-box" style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:14px 18px;flex:1;min-width:140px">
-    <h4 style="margin:0 0 6px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Status</h4>
-    <p style="margin:0;font-size:14px;font-weight:700;color:#2B4C7E">${(order.status || "pendente").toUpperCase()}</p>
-  </div>
-</div>
+<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-<div class="section-card" style="background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-  <h2 style="font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 14px;text-transform:uppercase">Solicitante</h2>
-  <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5">
-    <span class="info-label" style="font-size:12px;color:#666">Empresa</span>
-    <span class="info-value" style="font-size:13px;font-weight:600;color:#333">${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})</span>
-  </div>
-  <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0">
-    <span class="info-label" style="font-size:12px;color:#666">Solicitante</span>
-    <span class="info-value" style="font-size:13px;font-weight:600;color:#333">${order.requester_name}</span>
-  </div>
-</div>
+<!-- FORNECEDOR -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${sectionTitle("Fornecedor")}
+    ${infoRow("Nome / Razão Social", order.supplier_name, true)}
+  </table>
+</td></tr>
 
-<div class="section-card" style="background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-  <h2 style="font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 14px;text-transform:uppercase">Fornecedor</h2>
-  <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0">
-    <span class="info-label" style="font-size:12px;color:#666">Nome / Razão Social</span>
-    <span class="info-value" style="font-size:13px;font-weight:600;color:#333">${order.supplier_name}</span>
-  </div>
-</div>
+<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
 
-<div class="section-card" style="background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-  <h2 style="font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 14px;text-transform:uppercase">Dados do Abastecimento</h2>
-  <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5">
-    <span class="info-label" style="font-size:12px;color:#666">Veículo (Placa)</span>
-    <span class="info-value" style="font-size:13px;font-weight:600;color:#333">${order.vehicle_plate}</span>
-  </div>
-  <div class="info-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5">
-    <span class="info-label" style="font-size:12px;color:#666">Tipo de Combustível</span>
-    <span class="info-value" style="font-size:13px;font-weight:600;color:#333">${FUEL_LABELS[order.fuel_type] || order.fuel_type}</span>
-  </div>
-  <div class="info-row info-highlight" style="display:flex;justify-content:space-between;padding:10px 20px;background:#FFF8E1;border-radius:6px;margin:4px -20px 0;padding-left:20px;padding-right:20px">
-    <span class="info-label" style="font-size:12px;color:#666;font-weight:600">Quantidade</span>
-    <span class="info-value" style="font-size:14px;font-weight:700;color:#D4930A">${order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`}</span>
-  </div>
-</div>
+<!-- DADOS DO ABASTECIMENTO -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${sectionTitle("Dados do Abastecimento")}
+    ${infoRow("Veículo (Placa)", order.vehicle_plate)}
+    ${infoRow("Tipo de Combustível", FUEL_LABELS[order.fuel_type] || order.fuel_type)}
+    <tr><td style="padding:10px 0">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF8E1;border-radius:6px"><tr>
+        <td style="padding:12px 16px">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="font-size:12px;color:#666;font-weight:600;vertical-align:middle;width:40%">Quantidade</td>
+            <td style="font-size:14px;font-weight:700;color:#D4930A;text-align:right;vertical-align:middle">${qty}</td>
+          </tr></table>
+        </td>
+      </tr></table>
+    </td></tr>
+  </table>
+</td></tr>
 
-${order.notes ? `<div class="obs-card" style="background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-  <h2 style="font-size:14px;color:#2B4C7E;border-bottom:2px solid #e8ecf0;padding-bottom:8px;margin:0 0 12px;text-transform:uppercase">Observações</h2>
-  <div class="obs-text" style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:12px;color:#444">${order.notes}</div>
-</div>` : ""}
+${order.notes ? `
+<tr><td style="height:12px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#ffffff;border-radius:10px;padding:18px 20px">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${sectionTitle("Observações")}
+    <tr><td style="padding-top:12px">
+      <div style="background:#f8f9fa;border:1px solid #e8ecf0;border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.5">${order.notes}</div>
+    </td></tr>
+  </table>
+</td></tr>` : ""}
 
-<div class="signature" style="margin-top:40px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:20px">
-  <div class="sig-line" style="text-align:center;min-width:160px;flex:1"><hr style="border:none;border-top:1px solid #999;margin-bottom:6px"/><span style="font-size:11px;color:#666">Solicitante</span></div>
-  <div class="sig-line" style="text-align:center;min-width:160px;flex:1"><hr style="border:none;border-top:1px solid #999;margin-bottom:6px"/><span style="font-size:11px;color:#666">Fornecedor</span></div>
-  <div class="sig-line" style="text-align:center;min-width:160px;flex:1"><hr style="border:none;border-top:1px solid #999;margin-bottom:6px"/><span style="font-size:11px;color:#666">Motorista</span></div>
-</div>
+<!-- ASSINATURAS -->
+<tr><td style="height:40px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="30%" style="text-align:center;padding:0 6px">
+      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
+      <span style="font-size:11px;color:#666">Solicitante</span>
+    </td>
+    <td width="5%">&nbsp;</td>
+    <td width="30%" style="text-align:center;padding:0 6px">
+      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
+      <span style="font-size:11px;color:#666">Fornecedor</span>
+    </td>
+    <td width="5%">&nbsp;</td>
+    <td width="30%" style="text-align:center;padding:0 6px">
+      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
+      <span style="font-size:11px;color:#666">Motorista</span>
+    </td>
+  </tr></table>
+</td></tr>
 
-<div class="footer" style="margin-top:30px;background:#2B4C7E;border-radius:10px;padding:14px 20px;text-align:center;font-size:10px;color:rgba(255,255,255,0.85)">
-  <p style="margin:2px 0">SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</p>
-  <p style="margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
-</div>
+<!-- FOOTER -->
+<tr><td style="height:24px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="background:#2B4C7E;border-radius:10px;padding:14px 20px;text-align:center">
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
+</td></tr>
+
+</table>
+
+</td></tr>
+</table>
 
 </body></html>`;
 }
