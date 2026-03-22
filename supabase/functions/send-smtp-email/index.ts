@@ -166,11 +166,13 @@ serve(async (req) => {
       smtp = storedSmtp;
     }
 
+    // Port 465 = implicit TLS (tls: true), Port 587 = STARTTLS (tls: false + starttls)
+    const useImplicitTls = smtp.port === 465;
     const client = new SMTPClient({
       connection: {
         hostname: smtp.host,
         port: smtp.port,
-        tls: smtp.use_tls,
+        tls: useImplicitTls,
         auth: {
           username: smtp.username,
           password: smtp.password_encrypted,
