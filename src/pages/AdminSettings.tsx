@@ -74,7 +74,7 @@ export default function AdminSettings() {
   const [profile, setProfile] = useState<ProfileData>({ full_name: "", email: "", phone: "" });
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
-
+  const [signatureData, setSignatureData] = useState<string | null>(null);
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
   const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
