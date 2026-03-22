@@ -2020,6 +2020,48 @@ export type Database = {
         }
         Relationships: []
       }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          created_by: string
+          from_email: string
+          from_name: string
+          host: string
+          id: string
+          password_encrypted: string
+          port: number
+          updated_at: string
+          use_tls: boolean
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: string
+          password_encrypted?: string
+          port?: number
+          updated_at?: string
+          use_tls?: boolean
+          username?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: string
+          password_encrypted?: string
+          port?: number
+          updated_at?: string
+          use_tls?: boolean
+          username?: string
+        }
+        Relationships: []
+      }
       trailers: {
         Row: {
           capacity_kg: number
