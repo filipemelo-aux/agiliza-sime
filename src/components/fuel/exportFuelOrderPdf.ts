@@ -166,23 +166,25 @@ ${order.notes ? `
 </td></tr>` : ""}
 
 <!-- ASSINATURAS -->
-<tr><td style="height:40px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td>
   <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="30%" style="text-align:center;padding:0 6px">
-      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:50px;margin:0 auto 6px;width:auto" />` : ""}
-      <div style="border-top:1px solid #999;margin-bottom:6px;${signatureDataUrl ? 'margin-top:4px;' : ''}"></div>
-      <span style="font-size:11px;color:#666">Solicitante</span>
+    <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
+      ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Assinatura" style="display:block;max-height:36px;margin:0 auto 2px;width:auto" />` : `<div style="height:36px"></div>`}
+      <div style="border-top:1px solid #999;margin-bottom:4px"></div>
+      <span style="font-size:10px;color:#666">Solicitante</span>
     </td>
     <td width="5%">&nbsp;</td>
-    <td width="30%" style="text-align:center;padding:0 6px">
-      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
-      <span style="font-size:11px;color:#666">Fornecedor</span>
+    <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
+      <div style="height:36px"></div>
+      <div style="border-top:1px solid #999;margin-bottom:4px"></div>
+      <span style="font-size:10px;color:#666">Fornecedor</span>
     </td>
     <td width="5%">&nbsp;</td>
-    <td width="30%" style="text-align:center;padding:0 6px">
-      <div style="border-top:1px solid #999;margin-bottom:6px"></div>
-      <span style="font-size:11px;color:#666">Motorista</span>
+    <td width="30%" style="text-align:center;padding:0 6px;vertical-align:bottom">
+      <div style="height:36px"></div>
+      <div style="border-top:1px solid #999;margin-bottom:4px"></div>
+      <span style="font-size:10px;color:#666">Motorista</span>
     </td>
   </tr></table>
 </td></tr>
