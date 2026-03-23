@@ -244,7 +244,6 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
     window.location.href = url;
   }
 }
-}
 
 export function emailFuelOrder(order: any, establishments: any[]) {
   const est = establishments.find((e: any) => e.id === order.establishment_id);
