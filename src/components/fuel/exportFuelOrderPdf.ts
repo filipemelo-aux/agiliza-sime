@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import html2pdf from "html2pdf.js";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -242,16 +243,33 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
   document.body.appendChild(container);
 
   try {
-    await html2pdf()
-      .set({
-        margin: [4, 2, 4, 2],
-        filename: `Ordem_Abastecimento_${order.order_number}.pdf`,
-        image: { type: "jpeg", quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f4f6f8" },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(container)
-      .save();
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#f4f6f8",
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth - 8; // 4mm margin each side
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 4; // top margin
+
+    pdf.addImage(imgData, "JPEG", 4, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight - 8;
+
+    while (heightLeft > 0) {
+      position = -(pageHeight - 8 - heightLeft) + 4;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 4, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - 8;
+    }
+
+    pdf.save(`Ordem_Abastecimento_${order.order_number}.pdf`);
   } finally {
     document.body.removeChild(container);
   }
