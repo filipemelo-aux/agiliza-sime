@@ -230,11 +230,40 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
   }
 
   const html = buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl);
-  const printWindow = window.open("", "_blank");
-  if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+
+  // Usar iframe oculto — funciona em mobile sem ser bloqueado por popup-blockers
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.style.opacity = "0";
+  document.body.appendChild(iframe);
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (iframeDoc) {
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    // Aguardar fontes e renderização antes de imprimir
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.print();
+      } catch {
+        // Fallback: abrir em nova aba
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+      // Remover iframe após impressão
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch {}
+      }, 2000);
+    }, 600);
   }
 }
 
