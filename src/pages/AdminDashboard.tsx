@@ -208,7 +208,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Menu Shortcuts */}
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-8">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 mb-6">
           {[
             { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
             { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
@@ -219,9 +219,9 @@ export default function AdminDashboard() {
             { title: "Pessoas", icon: Users, url: "/admin/people" },
             { title: "Veículos", icon: Car, url: "/admin/vehicles" },
           ].map((item) => (
-            <Link key={item.title} to={item.url} className="flex flex-col items-center gap-1 rounded-md border border-border bg-card px-1 py-2 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors">
-              <item.icon className="h-4 w-4" />
-              <span className="text-[10px] font-medium leading-none">{item.title}</span>
+            <Link key={item.title} to={item.url} className="flex flex-col items-center gap-0.5 rounded px-1 py-1.5 bg-[#2B4C7E] text-white hover:text-[#F5C518] transition-colors">
+              <item.icon className="h-3.5 w-3.5" />
+              <span className="text-[9px] font-medium leading-none">{item.title}</span>
             </Link>
           ))}
         </div>
