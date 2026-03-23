@@ -11,7 +11,12 @@ import {
   MapPin,
   Sprout,
   Truck,
-  TrendingUp
+  TrendingUp,
+  Car,
+  ClipboardList,
+  Fuel,
+  FileCheck,
+  Settings,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
