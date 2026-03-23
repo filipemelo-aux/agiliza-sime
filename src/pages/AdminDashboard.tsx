@@ -209,7 +209,7 @@ export default function AdminDashboard() {
 
         {/* Menu Shortcuts */}
         <div className="flex justify-center mb-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 w-full lg:w-auto gap-2 lg:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto gap-2 sm:gap-3">
             {[
               { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
               { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
