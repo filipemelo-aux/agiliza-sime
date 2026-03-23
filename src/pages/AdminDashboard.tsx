@@ -220,7 +220,7 @@ export default function AdminDashboard() {
               <Link
                 key={item.title}
                 to={item.url}
-                className="group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 sm:px-6 sm:py-4 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
+                className="group flex flex-col items-center gap-1.5 rounded-xl px-2 py-2 sm:px-6 sm:py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
               >
                 <item.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span className="text-[10px] sm:text-xs font-semibold leading-none">{item.title}</span>
