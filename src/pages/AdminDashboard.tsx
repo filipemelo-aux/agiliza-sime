@@ -207,6 +207,31 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground">Visão geral do sistema SIME TRANSPORTES</p>
         </div>
 
+        {/* Menu Shortcuts */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
+          {[
+            { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
+            { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
+            { title: "Colheita", icon: Sprout, url: "/admin/harvest" },
+            { title: "Cotações", icon: ClipboardList, url: "/admin/quotations" },
+            { title: "Ordens", icon: FileText, url: "/admin/applications" },
+            { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
+            { title: "Pessoas", icon: Users, url: "/admin/people" },
+            { title: "Veículos", icon: Car, url: "/admin/vehicles" },
+          ].map((item) => (
+            <Link key={item.title} to={item.url}>
+              <Card className="border-border bg-card hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                <CardContent className="flex flex-col items-center text-center py-4 px-2 gap-1.5">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <item.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">{item.title}</span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
