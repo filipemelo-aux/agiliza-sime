@@ -1,0 +1,1 @@
+DROP POLICY "Users can view establishments" ON public.fiscal_establishments;
