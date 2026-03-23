@@ -1,6 +1,4 @@
 import { format } from "date-fns";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
