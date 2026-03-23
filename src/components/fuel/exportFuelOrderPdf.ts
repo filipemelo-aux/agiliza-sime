@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -215,7 +216,6 @@ export function exportFuelOrderPDF(order: any, establishments: any[], signatureD
 }
 
 export async function printFuelOrderPDF(order: any, establishments: any[]) {
-  // Buscar assinatura do solicitante
   let signatureDataUrl: string | null = null;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
@@ -230,33 +230,30 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
   }
 
   const html = buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl);
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-  if (isMobile) {
-    // Mobile: abrir HTML em nova aba — o usuário pode salvar como PDF pelo navegador
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener";
-    // Alguns navegadores mobile permitem download direto
-    a.download = `Ordem_Abastecimento_${order.order_number}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 15000);
-  } else {
-    // Desktop: abrir em nova aba e disparar impressão
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.addEventListener("load", () => {
-        setTimeout(() => win.print(), 400);
-      });
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  // Renderizar HTML em container temporário oculto
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "600px";
+  container.style.background = "#f4f6f8";
+  container.innerHTML = html.replace(/^<!DOCTYPE html>.*<body[^>]*>/s, "").replace(/<\/body>.*$/s, "");
+  document.body.appendChild(container);
+
+  try {
+    await html2pdf()
+      .set({
+        margin: [4, 2, 4, 2],
+        filename: `Ordem_Abastecimento_${order.order_number}.pdf`,
+        image: { type: "jpeg", quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f4f6f8" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(container)
+      .save();
+  } finally {
+    document.body.removeChild(container);
   }
 }
 
