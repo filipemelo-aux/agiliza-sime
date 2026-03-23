@@ -208,19 +208,25 @@ export default function AdminDashboard() {
         </div>
 
         {/* Menu Shortcuts */}
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 mb-6">
-          {[
-            { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
-            { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
-            { title: "Cotações", icon: ClipboardList, url: "/admin/quotations" },
-            { title: "Ordens", icon: FileText, url: "/admin/applications" },
-            { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
-          ].map((item) => (
-            <Link key={item.title} to={item.url} className="flex flex-col items-center gap-0.5 rounded px-1 py-1.5 bg-[#2B4C7E] text-white hover:bg-[#F5C518] hover:text-[#2B4C7E] transition-colors">
-              <item.icon className="h-3.5 w-3.5" />
-              <span className="text-[9px] font-medium leading-none">{item.title}</span>
-            </Link>
-          ))}
+        <div className="flex justify-center mb-6">
+          <div className="grid grid-cols-5 w-full sm:w-auto gap-2 sm:gap-3">
+            {[
+              { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
+              { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
+              { title: "Cotações", icon: ClipboardList, url: "/admin/quotations" },
+              { title: "Ordens", icon: FileText, url: "/admin/applications" },
+              { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
+            ].map((item) => (
+              <Link
+                key={item.title}
+                to={item.url}
+                className="group flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 sm:px-6 sm:py-4 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
+              >
+                <item.icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="text-[10px] sm:text-xs font-semibold leading-none">{item.title}</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {loading ? (
