@@ -213,8 +213,7 @@ export default function AdminDashboard() {
             {[
               { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
               { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
-              { title: "Cotações", icon: ClipboardList, url: "/admin/quotations" },
-              { title: "Ordens", icon: FileText, url: "/admin/applications" },
+              { title: "Ordens de Carregamento", icon: FileText, url: "/admin/applications" },
               { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
             ].map((item) => (
               <Link
