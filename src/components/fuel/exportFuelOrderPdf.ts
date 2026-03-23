@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
