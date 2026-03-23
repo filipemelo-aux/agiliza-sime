@@ -1,6 +1,4 @@
 import { format } from "date-fns";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
@@ -232,46 +230,18 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
 
   const html = buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl);
 
-  // Renderizar HTML em container temporário oculto
-  const container = document.createElement("div");
-  container.style.position = "fixed";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  container.style.width = "600px";
-  container.style.background = "#f4f6f8";
-  container.innerHTML = html.replace(/^<!DOCTYPE html>.*<body[^>]*>/s, "").replace(/<\/body>.*$/s, "");
-  document.body.appendChild(container);
-
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#f4f6f8",
-    });
-
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth - 8; // 4mm margin each side
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = 4; // top margin
-
-    pdf.addImage(imgData, "JPEG", 4, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight - 8;
-
-    while (heightLeft > 0) {
-      position = -(pageHeight - 8 - heightLeft) + 4;
-      pdf.addPage();
-      pdf.addImage(imgData, "JPEG", 4, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight - 8;
-    }
-
-    pdf.save(`Ordem_Abastecimento_${order.order_number}.pdf`);
-  } finally {
-    document.body.removeChild(container);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url);
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    // Fallback se popup for bloqueado
+    window.location.href = url;
   }
 }
 
