@@ -212,12 +212,9 @@ export default function AdminDashboard() {
           {[
             { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
             { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
-            { title: "Colheita", icon: Sprout, url: "/admin/harvest" },
             { title: "Cotações", icon: ClipboardList, url: "/admin/quotations" },
             { title: "Ordens", icon: FileText, url: "/admin/applications" },
             { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
-            { title: "Pessoas", icon: Users, url: "/admin/people" },
-            { title: "Veículos", icon: Car, url: "/admin/vehicles" },
           ].map((item) => (
             <Link key={item.title} to={item.url} className="flex flex-col items-center gap-0.5 rounded px-1 py-1.5 bg-[#2B4C7E] text-white hover:bg-[#F5C518] hover:text-[#2B4C7E] transition-colors">
               <item.icon className="h-3.5 w-3.5" />
