@@ -540,28 +540,19 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           )}
 
-          {/* ── Categoria Financeira ── */}
+          {/* ── Conta Contábil (Plano de Contas) ── */}
           <div className="space-y-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <div className="flex items-center justify-between mb-0.5">
-                  <Label className="text-xs">Categoria Financeira *</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px] gap-0.5 text-primary"
-                    onClick={() => setShowQuickCreate(!showQuickCreate)}
-                  >
-                    <Plus className="h-3 w-3" /> Nova
-                  </Button>
-                </div>
-                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <Label className="text-xs flex items-center gap-1">
+                  <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
+                </Label>
+                <Select value={planoContasId} onValueChange={setPlanoContasId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {categories.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {despesaChartAccounts.map(a => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -573,55 +564,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </div>
             </div>
 
-            {/* Conta contábil - read-only hierarchical display */}
-            {selectedCategory?.plano_contas_id && (
+            {/* Hierarchical path display */}
+            {selectedAccount && (
               <div className="flex items-start gap-2 rounded-md bg-muted/60 px-3 py-2">
                 <FolderTree className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground font-medium">Conta Contábil</p>
-                  <p className="text-xs text-foreground truncate" title={getChartPath(selectedCategory.plano_contas_id)}>
-                    {getChartPath(selectedCategory.plano_contas_id) || "—"}
+                  <p className="text-[10px] text-muted-foreground font-medium">Hierarquia</p>
+                  <p className="text-xs text-foreground truncate" title={getChartPath(planoContasId)}>
+                    {getChartPath(planoContasId) || "—"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{getChartCode(selectedCategory.plano_contas_id)}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Quick create category inline */}
-            {showQuickCreate && (
-              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                  <Plus className="h-3.5 w-3.5 text-primary" /> Criar Categoria Rápida
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px]">Nome *</Label>
-                    <Input value={quickCatName} onChange={e => setQuickCatName(e.target.value)} placeholder="Ex: Pedágios" className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <Label className="text-[10px]">Conta Contábil *</Label>
-                    <Select value={quickCatChartId} onValueChange={setQuickCatChartId}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vincular..." /></SelectTrigger>
-                      <SelectContent>
-                        {despesaChartAccounts.map(a => (
-                          <SelectItem key={a.id} value={a.id}>
-                            <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {quickCatChartId && (
-                  <p className="text-[10px] text-muted-foreground">
-                    📊 {getChartPath(quickCatChartId)}
-                  </p>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuickCreate(false)}>Cancelar</Button>
-                  <Button type="button" size="sm" className="h-7 text-xs" onClick={handleQuickCreateCategory} disabled={savingQuickCat}>
-                    {savingQuickCat ? "Salvando..." : "Criar"}
-                  </Button>
+                  <p className="text-[10px] text-muted-foreground font-mono">{getChartCode(planoContasId)}</p>
                 </div>
               </div>
             )}
@@ -644,8 +596,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   setIsManutencao(checked);
                   // If turning on and no maintenance category selected, auto-select it
                   if (checked && !isCategoryMaintenance) {
-                    const maintCat = categories.find(c => c.tipo_operacional === "manutencao");
-                    if (maintCat) setCategoriaId(maintCat.id);
+                    const maintAccount = chartAccounts.find(c => c.tipo_operacional === "manutencao");
+                    if (maintAccount) setPlanoContasId(maintAccount.id);
                   }
                 }}
               />
