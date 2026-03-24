@@ -391,93 +391,95 @@ export function FinancialPayables() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                 <TableHeader>
                   <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Conta Contábil</TableHead>
-                    <TableHead>Conta Contábil</TableHead>
-                    <TableHead>Favorecido</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[100px] text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(item => {
-                    const isOverdue = item.status === "atrasado";
-                    const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-                    const isMaintenance = chart?.tipo_operacional === "manutencao";
-                    return (
-                      <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
-                        <TableCell className="font-medium max-w-[200px]">
-                          <div className="flex items-center gap-1.5">
-                            {item.documento_fiscal_importado && <FileText className="h-3.5 w-3.5 text-primary shrink-0" />}
-                            <span className="truncate">{item.descricao}</span>
-                          </div>
-                          {item.veiculo_placa && (
-                            <span className="text-[10px] text-muted-foreground">{item.veiculo_placa}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {chart ? (
-                            <div className="max-w-[180px]">
-                              <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
-                              <p className="text-[10px] text-muted-foreground truncate" title={getChartPath(item.plano_contas_id)}>
-                                {getChartPath(item.plano_contas_id)}
-                              </p>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-mono text-sm font-medium">
-                            R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                          {item.valor_pago > 0 && item.status !== "pago" && (
-                            <div className="text-[10px] text-muted-foreground font-mono">
-                              Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {item.data_vencimento ? (
-                            <span className={isOverdue ? "text-destructive font-medium" : ""}>
-                              {format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
-                            </span>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
-                            {STATUS_MAP[item.status]?.label || item.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-0.5 justify-end">
-                            {isMaintenance && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
-                                <Wrench className="h-3.5 w-3.5 text-primary" />
-                              </Button>
-                            )}
-                            {item.status !== "pago" && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixa" onClick={() => handlePayment(item)}>
-                                <Check className="h-3.5 w-3.5 text-emerald-600" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
+                     <TableHead>Favorecido</TableHead>
+                     <TableHead>Descrição</TableHead>
+                     <TableHead>Conta Contábil</TableHead>
+                     <TableHead className="text-right">Valor</TableHead>
+                     <TableHead>Vencimento</TableHead>
+                     <TableHead>Status</TableHead>
+                     <TableHead className="w-[140px] text-right">Ações</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {filtered.map(item => {
+                     const isOverdue = item.status === "atrasado";
+                     const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
+                     const isMaintenance = chart?.tipo_operacional === "manutencao";
+                     const descDisplay = item.documento_fiscal_numero
+                       ? `NFSe ${item.documento_fiscal_numero}`
+                       : item.descricao || "Serviço";
+                     return (
+                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
+                         <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
+                         <TableCell className="font-medium max-w-[200px]">
+                           <div className="flex items-center gap-1.5">
+                             {item.documento_fiscal_importado && <FileText className="h-3.5 w-3.5 text-primary shrink-0" />}
+                             <span className="truncate">{descDisplay}</span>
+                           </div>
+                           {item.veiculo_placa && (
+                             <span className="text-[10px] text-muted-foreground">{item.veiculo_placa}</span>
+                           )}
+                         </TableCell>
+                         <TableCell>
+                           {chart ? (
+                             <div className="max-w-[180px]">
+                               <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
+                               <p className="text-[10px] text-muted-foreground truncate" title={getChartPath(item.plano_contas_id)}>
+                                 {getChartPath(item.plano_contas_id)}
+                               </p>
+                             </div>
+                           ) : (
+                             <span className="text-[10px] text-muted-foreground">—</span>
+                           )}
+                         </TableCell>
+                         <TableCell className="text-right">
+                           <span className="font-mono text-sm font-medium">
+                             R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                           </span>
+                           {item.valor_pago > 0 && item.status !== "pago" && (
+                             <div className="text-[10px] text-muted-foreground font-mono">
+                               Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                             </div>
+                           )}
+                         </TableCell>
+                         <TableCell className="text-sm">
+                           {item.data_vencimento ? (
+                             <span className={isOverdue ? "text-destructive font-medium" : ""}>
+                               {format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                             </span>
+                           ) : "—"}
+                         </TableCell>
+                         <TableCell>
+                           <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
+                             {STATUS_MAP[item.status]?.label || item.status}
+                           </Badge>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex gap-0.5 justify-end items-center">
+                             {isMaintenance && (
+                               <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
+                                 <Wrench className="h-3.5 w-3.5 text-primary" />
+                               </Button>
+                             )}
+                             {item.status !== "pago" && (
+                               <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50" onClick={() => handlePayment(item)}>
+                                 <Check className="h-3.5 w-3.5" /> Pagar
+                               </Button>
+                             )}
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                               <Pencil className="h-3.5 w-3.5" />
+                             </Button>
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                             </Button>
+                           </div>
+                         </TableCell>
+                       </TableRow>
+                     );
+                   })}
+                 </TableBody>
               </Table>
             </div>
           )}
