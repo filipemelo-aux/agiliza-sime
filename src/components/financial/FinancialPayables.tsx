@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Check, Search, Trash2, FileText } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isToday, addDays, isBefore, parseISO } from "date-fns";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 
@@ -69,6 +69,8 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
+type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
+
 export function FinancialPayables() {
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -76,12 +78,13 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [filterTipo, setFilterTipo] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
   const [filterPeriodoFim, setFilterPeriodoFim] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -91,8 +94,7 @@ export function FinancialPayables() {
   const fetchData = async () => {
     setLoading(true);
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
-    const eid = estab?.id || "";
-    setEmpresaId(eid);
+    setEmpresaId(estab?.id || "");
 
     const [{ data: expData }, { data: catData }, { data: vehData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
@@ -100,7 +102,6 @@ export function FinancialPayables() {
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
     ]);
 
-    // Auto-update overdue status
     const today = new Date().toISOString().split("T")[0];
     const expenses = ((expData as any) || []) as Expense[];
     const overdueIds: string[] = [];
@@ -112,7 +113,6 @@ export function FinancialPayables() {
       return e;
     });
 
-    // Batch update overdue in background
     if (overdueIds.length > 0) {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
     }
@@ -129,9 +129,7 @@ export function FinancialPayables() {
   const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
 
   const handleDelete = async (item: Expense) => {
-    if (item.status === "pago") {
-      return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
-    }
+    if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
     if (!confirm("Deseja excluir esta despesa?")) return;
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
@@ -141,48 +139,79 @@ export function FinancialPayables() {
 
   const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
 
-  const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || "—";
-  const getVehiclePlate = (id: string | null) => vehicles.find(v => v.id === id)?.plate || null;
+  // Quick filter counts
+  const counts = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+    return {
+      all: items.length,
+      hoje: items.filter(i => i.data_vencimento === today && i.status !== "pago").length,
+      vencendo: items.filter(i => i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago").length,
+      atrasadas: items.filter(i => i.status === "atrasado").length,
+      pagas: items.filter(i => i.status === "pago").length,
+    };
+  }, [items]);
 
   const filtered = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
     return items.filter(i => {
+      // Quick filter
+      if (quickFilter === "hoje") {
+        if (!(i.data_vencimento === today && i.status !== "pago")) return false;
+      } else if (quickFilter === "vencendo") {
+        if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
+      } else if (quickFilter === "atrasadas") {
+        if (i.status !== "atrasado") return false;
+      } else if (quickFilter === "pagas") {
+        if (i.status !== "pago") return false;
+      }
+
       const matchSearch = !search ||
         i.descricao.toLowerCase().includes(search.toLowerCase()) ||
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
-      const matchStatus = filterStatus === "all" || i.status === filterStatus;
       const matchTipo = filterTipo === "all" || i.tipo_despesa === filterTipo;
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchStatus && matchTipo && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchTipo && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, filterStatus, filterTipo, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [items, search, quickFilter, filterTipo, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
   const totalAtrasado = filtered.filter(i => i.status === "atrasado").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
 
+  const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
+    { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
+    { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
+    { key: "vencendo", label: "Vencendo", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.vencendo },
+    { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
+    { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3.5 w-3.5" />, count: counts.pagas },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
+        <Card className="border-l-4 border-l-orange-500">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Pendente</p>
-            <p className="text-xl font-bold text-orange-600">R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-muted-foreground">Pendente</p>
+            <p className="text-xl font-bold text-foreground">R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-emerald-500">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Pago</p>
-            <p className="text-xl font-bold text-emerald-600">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-muted-foreground">Pago</p>
+            <p className="text-xl font-bold text-foreground">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-destructive">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Atrasado</p>
+            <p className="text-xs text-muted-foreground">Atrasado</p>
             <p className="text-xl font-bold text-destructive">R$ {totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
@@ -194,61 +223,97 @@ export function FinancialPayables() {
         </Card>
       </div>
 
-      {/* Main Table */}
+      {/* Quick Filters + Actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
+          {quickFilterButtons.map(f => (
+            <Button
+              key={f.key}
+              variant={quickFilter === f.key ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 text-xs h-8"
+              onClick={() => setQuickFilter(f.key)}
+            >
+              {f.icon}
+              {f.label}
+              {f.count > 0 && (
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                  quickFilter === f.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {f.count}
+                </span>
+              )}
+            </Button>
+          ))}
+        </div>
+        <Button size="sm" onClick={handleNew} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Nova Despesa
+        </Button>
+      </div>
+
+      {/* Main Table Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">Despesas</CardTitle>
-          <Button size="sm" onClick={handleNew}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
-        </CardHeader>
-        <CardContent>
-          {/* Filters Row 1 */}
-          <div className="flex flex-wrap gap-2 mb-2">
-            <div className="relative flex-1 min-w-[180px]">
+        <CardContent className="p-4">
+          {/* Search + filters */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8" />
+              <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="parcial">Parcial</SelectItem>
-                <SelectItem value="atrasado">Atrasado</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={filterTipo} onValueChange={setFilterTipo}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos Tipos</SelectItem>
                 {Object.entries(TIPO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-          {/* Filters Row 2 */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Veículo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Veículos</SelectItem>
-                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Centro Custo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Centros</SelectItem>
-                {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[140px]" placeholder="De" />
-            <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[140px]" placeholder="Até" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 text-xs gap-1"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {showAdvanced ? "Menos filtros" : "Mais filtros"}
+            </Button>
           </div>
 
+          {/* Advanced filters */}
+          {showAdvanced && (
+            <div className="flex flex-wrap gap-2 mb-3 p-3 bg-muted/50 rounded-lg">
+              <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Veículos</SelectItem>
+                  {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
+                <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Centro Custo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Centros</SelectItem>
+                  {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Período:</span>
+                <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
+                <span className="text-xs text-muted-foreground">a</span>
+                <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
+              </div>
+            </div>
+          )}
+
           {loading ? (
-            <p className="text-muted-foreground text-sm">Carregando...</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">Nenhuma despesa encontrada</p>
+            <div className="text-center py-12">
+              <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-muted-foreground text-sm">Nenhuma despesa encontrada</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>Criar primeira despesa</Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -260,53 +325,67 @@ export function FinancialPayables() {
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[120px]">Ações</TableHead>
+                    <TableHead className="w-[100px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        <div className="flex items-center gap-1">
-                          {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                          {item.descricao}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{TIPO_MAP[item.tipo_despesa] || item.tipo_despesa}</Badge>
-                      </TableCell>
-                      <TableCell>{item.favorecido_nome || "—"}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        {item.valor_pago > 0 && item.status !== "pago" && (
-                          <div className="text-xs text-muted-foreground">
-                            Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {filtered.map(item => {
+                    const isOverdue = item.status === "atrasado";
+                    return (
+                      <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
+                        <TableCell className="font-medium max-w-[220px]">
+                          <div className="flex items-center gap-1.5">
+                            {item.documento_fiscal_importado && <FileText className="h-3.5 w-3.5 text-primary shrink-0" />}
+                            <span className="truncate">{item.descricao}</span>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell>{item.data_vencimento ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy") : "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"}>
-                          {STATUS_MAP[item.status]?.label || item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {item.status !== "pago" && (
-                            <Button variant="ghost" size="icon" title="Baixa de pagamento" onClick={() => handlePayment(item)}>
-                              <Check className="h-4 w-4 text-emerald-600" />
-                            </Button>
+                          {item.veiculo_placa && (
+                            <span className="text-[10px] text-muted-foreground">{item.veiculo_placa}</span>
                           )}
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] font-normal">{TIPO_MAP[item.tipo_despesa] || item.tipo_despesa}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-mono text-sm font-medium">
+                            R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                          {item.valor_pago > 0 && item.status !== "pago" && (
+                            <div className="text-[10px] text-muted-foreground font-mono">
+                              Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {item.data_vencimento ? (
+                            <span className={isOverdue ? "text-destructive font-medium" : ""}>
+                              {format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                            </span>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
+                            {STATUS_MAP[item.status]?.label || item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-0.5 justify-end">
+                            {item.status !== "pago" && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixa" onClick={() => handlePayment(item)}>
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
