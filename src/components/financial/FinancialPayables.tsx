@@ -228,6 +228,55 @@ export function FinancialPayables() {
     if (exp) { setDetailExpense(exp); setDetailOpen(true); }
   };
 
+  const openMaintenanceDetail = async (expenseId: string) => {
+    setMaintDetailOpen(true);
+    setMaintDetailLoading(true);
+    setMaintData(null); setMaintVehicle(null); setMaintNfeExpense(null); setMaintNfseExpense(null);
+    setMaintItems([]); setMaintNfeInst([]); setMaintNfseInst([]);
+
+    // Find maintenance by expense_id or nfse_expense_id
+    const { data: maint } = await supabase
+      .from("maintenances" as any)
+      .select("*")
+      .or(`expense_id.eq.${expenseId},nfse_expense_id.eq.${expenseId}`)
+      .maybeSingle();
+
+    if (!maint) { setMaintDetailLoading(false); return; }
+    setMaintData(maint);
+
+    // Fetch vehicle
+    const { data: veh } = await supabase.from("vehicles").select("id, plate, brand, model").eq("id", (maint as any).veiculo_id).maybeSingle();
+    setMaintVehicle(veh);
+
+    const promises: Promise<any>[] = [];
+
+    if ((maint as any).expense_id) {
+      promises.push(
+        Promise.all([
+          supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", (maint as any).expense_id).maybeSingle(),
+          supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", (maint as any).expense_id),
+          supabase.from("expense_installments").select("id, numero_parcela, valor, data_vencimento, status").eq("expense_id", (maint as any).expense_id).order("numero_parcela"),
+        ]).then(([{ data: nfe }, { data: items }, { data: inst }]) => {
+          setMaintNfeExpense(nfe); setMaintItems((items as any) || []); setMaintNfeInst((inst as any) || []);
+        })
+      );
+    }
+
+    if ((maint as any).nfse_expense_id) {
+      promises.push(
+        Promise.all([
+          supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", (maint as any).nfse_expense_id).maybeSingle(),
+          supabase.from("expense_installments").select("id, numero_parcela, valor, data_vencimento, status").eq("expense_id", (maint as any).nfse_expense_id).order("numero_parcela"),
+        ]).then(([{ data: nfse }, { data: inst }]) => {
+          setMaintNfseExpense(nfse); setMaintNfseInst((inst as any) || []);
+        })
+      );
+    }
+
+    await Promise.all(promises);
+    setMaintDetailLoading(false);
+  };
+
   const handlePayInstallment = async (inst: Installment) => {
     if (!confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — R$ ${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`)) return;
     const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
