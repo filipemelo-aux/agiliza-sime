@@ -70,7 +70,7 @@ export function MaintenanceFields({
   const [newValor, setNewValor] = useState("");
 
   useEffect(() => {
-    supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).then(({ data }) => {
+    supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria").then(({ data }) => {
       if (data) setVehicles(data);
     });
   }, []);
