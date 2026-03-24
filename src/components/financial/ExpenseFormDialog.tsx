@@ -425,6 +425,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         fornecedor: fornecedorMecanica.trim() || null,
         status: "realizada",
         proxima_manutencao_km: proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
+        data_proxima_manutencao: dataProximaManutencao || null,
         created_by: user?.id,
       };
 
