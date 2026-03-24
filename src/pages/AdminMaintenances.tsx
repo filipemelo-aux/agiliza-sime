@@ -5,9 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Wrench, ExternalLink, Car, DollarSign } from "lucide-react";
+import { Search, Wrench, Car, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -95,13 +94,13 @@ export default function AdminMaintenances() {
               <p className="text-xl font-bold text-foreground">{filtered.length}</p>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-orange-500">
+          <Card className="border-l-4 border-l-warning">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Custo Total</p>
               <p className="text-xl font-bold text-foreground">R$ {totalCusto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
-          <Card className="hidden md:block border-l-4 border-l-emerald-500">
+          <Card className="hidden md:block border-l-4 border-l-success">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Veículos Atendidos</p>
               <p className="text-xl font-bold text-foreground">{new Set(filtered.map(i => i.veiculo_id)).size}</p>
@@ -110,108 +109,106 @@ export default function AdminMaintenances() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2 mb-3">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por descrição, placa ou fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
-              </div>
-              <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos Veículos</SelectItem>
-                  {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos Tipos</SelectItem>
-                  <SelectItem value="preventiva">Preventiva</SelectItem>
-                  <SelectItem value="corretiva">Corretiva</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por descrição, placa ou fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
+          </div>
+          <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Veículos</SelectItem>
+              {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Tipos</SelectItem>
+              <SelectItem value="preventiva">Preventiva</SelectItem>
+              <SelectItem value="corretiva">Corretiva</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-12">
-                <Wrench className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground text-sm">Nenhuma manutenção encontrada</p>
-                <p className="text-xs text-muted-foreground mt-1">Crie uma despesa de manutenção em Contas a Pagar para registrar automaticamente.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Veículo</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>KM</TableHead>
-                      <TableHead className="text-right">Custo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[60px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map(item => {
-                      const v = vehicleMap[item.veiculo_id];
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="text-sm">{format(new Date(item.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Car className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-sm font-medium">{v?.plate || "—"}</span>
-                            </div>
-                            {v && <span className="text-[10px] text-muted-foreground">{v.brand} {v.model}</span>}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px]">
-                              {item.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[200px]">
-                            <span className="text-sm truncate block">{item.descricao}</span>
-                            {item.fornecedor && <span className="text-[10px] text-muted-foreground">{item.fornecedor}</span>}
-                          </TableCell>
-                          <TableCell className="text-sm font-mono">{Number(item.odometro).toLocaleString("pt-BR")}</TableCell>
-                          <TableCell className="text-right font-mono text-sm font-medium">
-                            R$ {Number(item.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
-                              {STATUS_MAP[item.status]?.label || item.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {item.expense_id && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title="Ver conta a pagar vinculada"
-                                onClick={() => navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } })}
-                              >
-                                <DollarSign className="h-3.5 w-3.5 text-primary" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Cards */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <Wrench className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-muted-foreground text-sm">Nenhuma manutenção encontrada</p>
+            <p className="text-xs text-muted-foreground mt-1">Crie uma despesa de manutenção em Contas a Pagar para registrar automaticamente.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {filtered.map(item => {
+              const v = vehicleMap[item.veiculo_id];
+              return (
+                <Card key={item.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Car className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{v?.plate || "—"}</p>
+                          {v && <p className="text-[11px] text-muted-foreground">{v.brand} {v.model}</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant="outline" className="text-[10px]">
+                          {item.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}
+                        </Badge>
+                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px]">
+                          {STATUS_MAP[item.status]?.label || item.status}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-foreground line-clamp-2">{item.descricao}</p>
+                    {item.fornecedor && <p className="text-xs text-muted-foreground">Fornecedor: {item.fornecedor}</p>}
+
+                    {/* Info grid */}
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Data</span>
+                        <p className="font-medium text-foreground">{format(new Date(item.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">KM</span>
+                        <p className="font-mono font-medium text-foreground">{Number(item.odometro).toLocaleString("pt-BR")}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Custo</span>
+                        <p className="font-mono font-semibold text-foreground">
+                          R$ {Number(item.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {item.expense_id && (
+                      <div className="pt-1 border-t border-border">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs gap-1 text-primary"
+                          onClick={() => navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } })}
+                        >
+                          <DollarSign className="h-3.5 w-3.5" /> Ver conta vinculada
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
