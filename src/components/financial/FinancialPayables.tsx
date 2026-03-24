@@ -310,7 +310,10 @@ export function FinancialPayables() {
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
     return items.filter(i => {
-      if (quickFilter === "hoje") {
+      // No filtro "all", esconder contas pagas
+      if (quickFilter === "all") {
+        if (i.status === "pago") return false;
+      } else if (quickFilter === "hoje") {
         if (!(i.data_vencimento === today && i.status !== "pago")) return false;
       } else if (quickFilter === "vencendo") {
         if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
