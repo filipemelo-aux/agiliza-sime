@@ -567,15 +567,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     // Auto-create/update maintenance record
     if (expenseId && isMaintenanceType && veiculoId) {
+      // Aggregate total: parts (NFe) + services (NFSe)
+      const custoTotal = (Number(valorTotal) || 0) + (hasNfse ? nfseValorTotal : 0);
+      // Use NFSe date as maintenance date when available, otherwise use emission date
+      const dataManutencao = hasNfse && nfseDataEmissao ? nfseDataEmissao : dataEmissao;
+      // Build description combining parts and services
+      const partsDesc = itensManutencao.length > 0
+        ? itensManutencao.map(i => i.descricao).join(", ")
+        : descricao.trim();
+      const servicesDesc = hasNfse && nfseItens.length > 0
+        ? nfseItens.map(i => i.descricao).join(", ")
+        : "";
+      const fullDesc = servicesDesc
+        ? `Peças: ${partsDesc} | Serviço: ${servicesDesc}`
+        : descricaoServico.trim() || partsDesc;
+
       const maintenancePayload: any = {
         veiculo_id: veiculoId,
         expense_id: expenseId,
-        data_manutencao: dataEmissao,
+        data_manutencao: dataManutencao,
         odometro: Number(kmAtual) || 0,
         tipo_manutencao: tipoManutencao,
-        descricao: descricaoServico.trim() || descricao.trim(),
-        custo_total: Number(valorTotal) || 0,
-        fornecedor: fornecedorMecanica.trim() || null,
+        descricao: fullDesc,
+        custo_total: custoTotal,
+        fornecedor: hasNfse ? (nfseFornecedorNome.trim() || null) : null,
         status: "realizada",
         proxima_manutencao_km: proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
         data_proxima_manutencao: dataProximaManutencao || null,
