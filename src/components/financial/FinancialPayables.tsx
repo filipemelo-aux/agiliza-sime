@@ -762,6 +762,94 @@ export function FinancialPayables() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Expense Detail Dialog (from installment card) */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Despesa</DialogTitle>
+          </DialogHeader>
+          {detailExpense && (() => {
+            const dChart = detailExpense.plano_contas_id ? chartIdMap[detailExpense.plano_contas_id] : null;
+            const dInstalls = installmentsMap[detailExpense.id] || [];
+            const totalParcelas = dInstalls.reduce((s, i) => s + Number(i.valor), 0);
+            const pagas = dInstalls.filter(i => i.status === "pago");
+            const totalQuitado = pagas.reduce((s, i) => s + Number(i.valor), 0);
+            return (
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Favorecido</span>
+                    <p className="font-semibold text-foreground truncate">{detailExpense.favorecido_nome || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Emissão</span>
+                    <p className="text-foreground">{format(new Date(detailExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Valor Total</span>
+                    <p className="font-mono font-bold text-foreground">
+                      R$ {Number(detailExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <Badge variant={STATUS_MAP[detailExpense.status]?.variant || "outline"} className="text-[10px]">
+                      {STATUS_MAP[detailExpense.status]?.label || detailExpense.status}
+                    </Badge>
+                  </div>
+                  {dChart && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Conta Contábil</span>
+                      <p className="text-xs text-foreground truncate">
+                        <span className="font-mono mr-1">{dChart.codigo}</span>{dChart.nome}
+                      </p>
+                    </div>
+                  )}
+                  {detailExpense.documento_fiscal_numero && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Documento Fiscal</span>
+                      <p className="text-foreground">{detailExpense.documento_fiscal_numero}</p>
+                    </div>
+                  )}
+                  {detailExpense.veiculo_placa && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Veículo</span>
+                      <p className="text-foreground">{detailExpense.veiculo_placa}</p>
+                    </div>
+                  )}
+                  {detailExpense.observacoes && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Observações</span>
+                      <p className="text-foreground text-xs break-words">{detailExpense.observacoes}</p>
+                    </div>
+                  )}
+                </div>
+
+                {dInstalls.length > 0 && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Parcelas ({pagas.length}/{dInstalls.length} pagas) — Quitado: R$ {totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                    <div className="space-y-1">
+                      {dInstalls.map(inst => (
+                        <div key={inst.id} className={`flex items-center justify-between text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
+                          <span className="font-medium">P{inst.numero_parcela}</span>
+                          <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                          <span className="font-mono">R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px]">
+                            {inst.status === "pago" ? "Pago" : "Pend."}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
