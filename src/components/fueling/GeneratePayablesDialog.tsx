@@ -38,14 +38,17 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
     setSaving(true);
 
     try {
-      // Look up the combustível category by name
+      // Look up the combustível category by tipo_operacional
       const { data: allCats } = await supabase
         .from("financial_categories")
-        .select("id, name")
+        .select("id, name, tipo_operacional, plano_contas_id")
         .eq("type", "payable" as any)
         .eq("active", true);
-      const combCat = (allCats as any[] || []).find((c: any) => c.name === "Combustível");
+      const combCat = (allCats as any[] || []).find((c: any) => c.tipo_operacional === "combustivel");
       const categoriaId = combCat?.id || null;
+      const planoContasId = combCat?.plano_contas_id || null;
+      const derivedTipoDespesa = combCat?.tipo_operacional === "manutencao" ? "manutencao"
+        : combCat?.tipo_operacional === "combustivel" ? "combustivel" : "outros";
 
       if (groupMode === "single") {
         // Create one expense for all fuelings
@@ -56,8 +59,9 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           empresa_id: empresaId,
           created_by: userId,
           descricao,
-          tipo_despesa: "combustivel" as any,
+          tipo_despesa: derivedTipoDespesa as any,
           categoria_financeira_id: categoriaId,
+          plano_contas_id: planoContasId,
           centro_custo: "frota_propria" as any,
           origem: "abastecimento" as any,
           valor_total: total,
@@ -84,8 +88,9 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
             empresa_id: empresaId,
             created_by: userId,
             descricao,
-            tipo_despesa: "combustivel" as any,
+            tipo_despesa: derivedTipoDespesa as any,
             categoria_financeira_id: categoriaId,
+            plano_contas_id: planoContasId,
             centro_custo: "frota_propria" as any,
             origem: "abastecimento" as any,
             valor_total: f.valor_total,
