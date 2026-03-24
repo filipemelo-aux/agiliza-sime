@@ -1959,6 +1959,75 @@ export type Database = {
           },
         ]
       }
+      maintenances: {
+        Row: {
+          created_at: string
+          created_by: string
+          custo_total: number
+          data_manutencao: string
+          data_proxima_manutencao: string | null
+          descricao: string
+          expense_id: string | null
+          fornecedor: string | null
+          id: string
+          odometro: number
+          proxima_manutencao_km: number | null
+          status: string
+          tipo_manutencao: string
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          custo_total?: number
+          data_manutencao?: string
+          data_proxima_manutencao?: string | null
+          descricao?: string
+          expense_id?: string | null
+          fornecedor?: string | null
+          id?: string
+          odometro?: number
+          proxima_manutencao_km?: number | null
+          status?: string
+          tipo_manutencao?: string
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          custo_total?: number
+          data_manutencao?: string
+          data_proxima_manutencao?: string | null
+          descricao?: string
+          expense_id?: string | null
+          fornecedor?: string | null
+          id?: string
+          odometro?: number
+          proxima_manutencao_km?: number | null
+          status?: string
+          tipo_manutencao?: string
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenances_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenances_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mdfe: {
         Row: {
           chave_acesso: string | null
