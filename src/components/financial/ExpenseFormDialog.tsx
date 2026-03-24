@@ -987,6 +987,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
                 itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
                 onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
+                hasNfse={hasNfse}
               />
 
               {/* NFSe / Ordem de Serviço toggle */}
