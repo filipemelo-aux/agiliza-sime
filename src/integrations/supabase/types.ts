@@ -683,6 +683,147 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          afeta_caixa: boolean
+          categoria_financeira_id: string | null
+          centro_custo: Database["public"]["Enums"]["cost_center"]
+          chave_nfe: string | null
+          comprovante_url: string | null
+          conta_financeira_id: string | null
+          created_at: string
+          created_by: string
+          data_emissao: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          deleted_at: string | null
+          descricao: string
+          documento_fiscal_numero: string | null
+          empresa_id: string
+          favorecido_id: string | null
+          favorecido_nome: string | null
+          forma_pagamento: string | null
+          id: string
+          km_odometro: number | null
+          litros: number | null
+          motorista_id: string | null
+          numero_multa: string | null
+          observacoes: string | null
+          origem: Database["public"]["Enums"]["expense_origin"]
+          status: Database["public"]["Enums"]["expense_status"]
+          tipo_despesa: Database["public"]["Enums"]["expense_type"]
+          updated_at: string
+          valor_pago: number
+          valor_total: number
+          veiculo_id: string | null
+          veiculo_placa: string | null
+        }
+        Insert: {
+          afeta_caixa?: boolean
+          categoria_financeira_id?: string | null
+          centro_custo?: Database["public"]["Enums"]["cost_center"]
+          chave_nfe?: string | null
+          comprovante_url?: string | null
+          conta_financeira_id?: string | null
+          created_at?: string
+          created_by: string
+          data_emissao?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          deleted_at?: string | null
+          descricao: string
+          documento_fiscal_numero?: string | null
+          empresa_id: string
+          favorecido_id?: string | null
+          favorecido_nome?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          km_odometro?: number | null
+          litros?: number | null
+          motorista_id?: string | null
+          numero_multa?: string | null
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["expense_origin"]
+          status?: Database["public"]["Enums"]["expense_status"]
+          tipo_despesa?: Database["public"]["Enums"]["expense_type"]
+          updated_at?: string
+          valor_pago?: number
+          valor_total?: number
+          veiculo_id?: string | null
+          veiculo_placa?: string | null
+        }
+        Update: {
+          afeta_caixa?: boolean
+          categoria_financeira_id?: string | null
+          centro_custo?: Database["public"]["Enums"]["cost_center"]
+          chave_nfe?: string | null
+          comprovante_url?: string | null
+          conta_financeira_id?: string | null
+          created_at?: string
+          created_by?: string
+          data_emissao?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          deleted_at?: string | null
+          descricao?: string
+          documento_fiscal_numero?: string | null
+          empresa_id?: string
+          favorecido_id?: string | null
+          favorecido_nome?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          km_odometro?: number | null
+          litros?: number | null
+          motorista_id?: string | null
+          numero_multa?: string | null
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["expense_origin"]
+          status?: Database["public"]["Enums"]["expense_status"]
+          tipo_despesa?: Database["public"]["Enums"]["expense_type"]
+          updated_at?: string
+          valor_pago?: number
+          valor_total?: number
+          veiculo_id?: string | null
+          veiculo_placa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_favorecido_id_fkey"
+            columns: ["favorecido_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_categories: {
         Row: {
           active: boolean
@@ -2277,8 +2418,29 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      cost_center:
+        | "frota_propria"
+        | "frota_terceiros"
+        | "administrativo"
+        | "operacional"
       document_status: "pending" | "approved" | "rejected" | "expired"
       establishment_type: "matriz" | "filial"
+      expense_origin:
+        | "manual"
+        | "xml"
+        | "abastecimento"
+        | "manutencao"
+        | "importacao"
+      expense_status: "pendente" | "pago" | "atrasado" | "parcial"
+      expense_type:
+        | "combustivel"
+        | "manutencao"
+        | "pedagio"
+        | "multa"
+        | "administrativo"
+        | "frete_terceiro"
+        | "imposto"
+        | "outros"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       vehicle_type:
         | "truck"
@@ -2416,8 +2578,32 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      cost_center: [
+        "frota_propria",
+        "frota_terceiros",
+        "administrativo",
+        "operacional",
+      ],
       document_status: ["pending", "approved", "rejected", "expired"],
       establishment_type: ["matriz", "filial"],
+      expense_origin: [
+        "manual",
+        "xml",
+        "abastecimento",
+        "manutencao",
+        "importacao",
+      ],
+      expense_status: ["pendente", "pago", "atrasado", "parcial"],
+      expense_type: [
+        "combustivel",
+        "manutencao",
+        "pedagio",
+        "multa",
+        "administrativo",
+        "frete_terceiro",
+        "imposto",
+        "outros",
+      ],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       vehicle_type: [
         "truck",
