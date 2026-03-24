@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Check, Search, Trash2 } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -35,6 +35,9 @@ interface Expense {
   numero_multa: string | null;
   origem: string;
   created_at: string;
+  documento_fiscal_importado?: boolean;
+  xml_original?: string | null;
+  fornecedor_cnpj?: string | null;
 }
 
 interface Category {
@@ -218,7 +221,12 @@ export function FinancialPayables() {
                 <TableBody>
                   {filtered.map(item => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium max-w-[200px] truncate">{item.descricao}</TableCell>
+                      <TableCell className="font-medium max-w-[200px] truncate">
+                        <div className="flex items-center gap-1">
+                          {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+                          {item.descricao}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{TIPO_MAP[item.tipo_despesa] || item.tipo_despesa}</Badge>
                       </TableCell>
