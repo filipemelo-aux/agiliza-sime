@@ -137,7 +137,7 @@ export function FinancialPayables() {
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name, tipo_operacional, plano_contas_id" as any).eq("type", "payable" as any).eq("active", true),
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
-      supabase.from("chart_of_accounts").select("id, codigo, nome").eq("ativo", true).order("codigo"),
+      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel").eq("ativo", true).order("codigo"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
