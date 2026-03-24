@@ -354,6 +354,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setItensNota([]); setInputMode("manual");
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
+    setHasNfse(false); setNfseNumero(""); setNfseDescricao(""); setNfseValor(""); setNfseDataEmissao("");
+    setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
+    setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
