@@ -16,7 +16,6 @@ import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 interface Expense {
   id: string;
   descricao: string;
-  tipo_despesa: string;
   categoria_financeira_id: string | null;
   plano_contas_id: string | null;
   centro_custo: string;
@@ -44,7 +43,7 @@ interface Expense {
 }
 
 interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
-interface ChartAccount { id: string; codigo: string; nome: string; }
+interface ChartAccount { id: string; codigo: string; nome: string; conta_pai_id: string | null; nivel: number; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
