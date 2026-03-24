@@ -1,0 +1,1 @@
+ALTER TABLE public.maintenances ADD COLUMN nfse_expense_id uuid REFERENCES public.expenses(id) ON DELETE SET NULL DEFAULT NULL;

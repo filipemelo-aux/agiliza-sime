@@ -2089,6 +2089,7 @@ export type Database = {
           expense_id: string | null
           fornecedor: string | null
           id: string
+          nfse_expense_id: string | null
           odometro: number
           proxima_manutencao_km: number | null
           status: string
@@ -2106,6 +2107,7 @@ export type Database = {
           expense_id?: string | null
           fornecedor?: string | null
           id?: string
+          nfse_expense_id?: string | null
           odometro?: number
           proxima_manutencao_km?: number | null
           status?: string
@@ -2123,6 +2125,7 @@ export type Database = {
           expense_id?: string | null
           fornecedor?: string | null
           id?: string
+          nfse_expense_id?: string | null
           odometro?: number
           proxima_manutencao_km?: number | null
           status?: string
@@ -2134,6 +2137,13 @@ export type Database = {
           {
             foreignKeyName: "maintenances_expense_id_fkey"
             columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenances_nfse_expense_id_fkey"
+            columns: ["nfse_expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
             referencedColumns: ["id"]
