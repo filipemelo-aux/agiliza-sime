@@ -460,7 +460,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
       if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
-      if (!descricaoServico.trim()) return toast.error("Informe a descrição do serviço");
+      if (!hasNfse && !descricaoServico.trim()) return toast.error("Informe a descrição do serviço");
 
       // Validate odometer is greater than last recorded KM
       const { data: lastKmData } = await supabase
