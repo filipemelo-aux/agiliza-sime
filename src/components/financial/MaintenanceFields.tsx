@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Wrench } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export interface MaintenanceItem {
@@ -31,12 +32,16 @@ interface Props {
   onKmAtualChange: (v: string) => void;
   tipoManutencao: string;
   onTipoManutencaoChange: (v: string) => void;
+  descricaoServico: string;
+  onDescricaoServicoChange: (v: string) => void;
   fornecedorMecanica: string;
   onFornecedorMecanicaChange: (v: string) => void;
   tempoParado: string;
   onTempoParadoChange: (v: string) => void;
   proximaManutencaoKm: string;
   onProximaManutencaoKmChange: (v: string) => void;
+  dataProximaManutencao: string;
+  onDataProximaManutencaoChange: (v: string) => void;
   itensManutencao: MaintenanceItem[];
   onItensManutencaoChange: (items: MaintenanceItem[]) => void;
   onTotalChange: (total: number) => void;
@@ -46,9 +51,11 @@ export function MaintenanceFields({
   veiculoId, onVeiculoIdChange,
   kmAtual, onKmAtualChange,
   tipoManutencao, onTipoManutencaoChange,
+  descricaoServico, onDescricaoServicoChange,
   fornecedorMecanica, onFornecedorMecanicaChange,
   tempoParado, onTempoParadoChange,
   proximaManutencaoKm, onProximaManutencaoKmChange,
+  dataProximaManutencao, onDataProximaManutencaoChange,
   itensManutencao, onItensManutencaoChange,
   onTotalChange,
 }: Props) {
@@ -125,18 +132,13 @@ export function MaintenanceFields({
   };
 
   return (
-    <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
-      <div className="flex items-center gap-2 mb-1">
-        <Wrench className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold text-foreground">Dados da Manutenção</span>
-      </div>
-
+    <div className="space-y-3">
       {/* Vehicle + Type */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label>Veículo *</Label>
+          <Label className="text-xs">Veículo *</Label>
           <Select value={veiculoId || ""} onValueChange={(v) => onVeiculoIdChange(v || null)}>
-            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
             <SelectContent>
               {vehicles.map(v => (
                 <SelectItem key={v.id} value={v.id}>
@@ -147,9 +149,9 @@ export function MaintenanceFields({
           </Select>
         </div>
         <div>
-          <Label>Tipo Manutenção *</Label>
+          <Label className="text-xs">Tipo Manutenção *</Label>
           <Select value={tipoManutencao} onValueChange={onTipoManutencaoChange}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="preventiva">Preventiva</SelectItem>
               <SelectItem value="corretiva">Corretiva</SelectItem>
@@ -161,53 +163,70 @@ export function MaintenanceFields({
       {/* KM + Fornecedor */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label>KM Atual *</Label>
+          <Label className="text-xs">KM Atual (Odômetro) *</Label>
           <Input
             type="number"
             value={kmAtual}
             onChange={e => onKmAtualChange(e.target.value)}
             placeholder="0"
+            className="h-9"
           />
-          {kmError && <p className="text-xs text-destructive mt-1">{kmError}</p>}
+          {kmError && <p className="text-[10px] text-destructive mt-0.5">{kmError}</p>}
           {lastKm !== null && !kmError && (
-            <p className="text-xs text-muted-foreground mt-1">Último KM: {lastKm.toLocaleString("pt-BR")}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Último KM: {lastKm.toLocaleString("pt-BR")}</p>
           )}
         </div>
         <div>
-          <Label>Fornecedor / Mecânica</Label>
-          <Input value={fornecedorMecanica} onChange={e => onFornecedorMecanicaChange(e.target.value)} placeholder="Nome da oficina" />
+          <Label className="text-xs">Fornecedor / Mecânica</Label>
+          <Input value={fornecedorMecanica} onChange={e => onFornecedorMecanicaChange(e.target.value)} placeholder="Nome da oficina" className="h-9" />
         </div>
       </div>
 
+      {/* Descrição do serviço */}
+      <div>
+        <Label className="text-xs">Descrição do Serviço *</Label>
+        <Textarea
+          value={descricaoServico}
+          onChange={e => onDescricaoServicoChange(e.target.value)}
+          placeholder="Descreva o serviço realizado..."
+          rows={2}
+          className="text-sm"
+        />
+      </div>
+
       {/* Tempo parado + Próxima manutenção */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label>Tempo Parado</Label>
-          <Input value={tempoParado} onChange={e => onTempoParadoChange(e.target.value)} placeholder="Ex: 2 dias" />
+          <Label className="text-xs">Tempo Parado</Label>
+          <Input value={tempoParado} onChange={e => onTempoParadoChange(e.target.value)} placeholder="Ex: 2 dias" className="h-9" />
         </div>
         <div>
-          <Label>Próxima Manutenção (KM)</Label>
-          <Input type="number" value={proximaManutencaoKm} onChange={e => onProximaManutencaoKmChange(e.target.value)} placeholder="0" />
+          <Label className="text-xs">Próx. Manut. (KM)</Label>
+          <Input type="number" value={proximaManutencaoKm} onChange={e => onProximaManutencaoKmChange(e.target.value)} placeholder="0" className="h-9" />
+        </div>
+        <div>
+          <Label className="text-xs">Próx. Manut. (Data)</Label>
+          <Input type="date" value={dataProximaManutencao} onChange={e => onDataProximaManutencaoChange(e.target.value)} className="h-9" />
         </div>
       </div>
 
       {/* Items */}
       <div>
-        <Label className="mb-1 block">Itens da Manutenção ({itensManutencao.length})</Label>
+        <Label className="text-xs mb-1 block">Itens da Manutenção ({itensManutencao.length})</Label>
         
         {/* Add item row */}
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-1.5 mb-2">
           <Select value={newTipo} onValueChange={(v) => setNewTipo(v as "peca" | "servico")}>
-            <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[100px] h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="peca">Peça</SelectItem>
               <SelectItem value="servico">Serviço</SelectItem>
             </SelectContent>
           </Select>
-          <Input className="flex-1" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Descrição" />
-          <Input className="w-[70px]" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
-          <Input className="w-[100px]" type="number" step="0.01" value={newValor} onChange={e => setNewValor(e.target.value)} placeholder="Valor" />
-          <Button type="button" variant="outline" size="icon" onClick={addItem}><Plus className="h-4 w-4" /></Button>
+          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Descrição" />
+          <Input className="w-[60px] h-9" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
+          <Input className="w-[90px] h-9" type="number" step="0.01" value={newValor} onChange={e => setNewValor(e.target.value)} placeholder="Valor" />
+          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem}><Plus className="h-4 w-4" /></Button>
         </div>
 
         {itensManutencao.length > 0 && (
@@ -215,32 +234,32 @@ export function MaintenanceFields({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">Tipo</TableHead>
-                  <TableHead className="text-xs">Descrição</TableHead>
-                  <TableHead className="text-xs text-right">Qtd</TableHead>
-                  <TableHead className="text-xs text-right">Vl. Unit.</TableHead>
-                  <TableHead className="text-xs text-right">Total</TableHead>
-                  <TableHead className="text-xs w-[40px]"></TableHead>
+                  <TableHead className="text-[10px]">Tipo</TableHead>
+                  <TableHead className="text-[10px]">Descrição</TableHead>
+                  <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                  <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                  <TableHead className="text-[10px] text-right">Total</TableHead>
+                  <TableHead className="text-[10px] w-[32px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {itensManutencao.map((item, idx) => (
                   <TableRow key={idx}>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px]">
                         {item.tipo === "peca" ? "Peça" : "Serviço"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs max-w-[150px] truncate">{item.descricao}</TableCell>
-                    <TableCell className="text-xs text-right">{item.quantidade}</TableCell>
-                    <TableCell className="text-xs text-right font-mono">
+                    <TableCell className="text-[11px] max-w-[150px] truncate">{item.descricao}</TableCell>
+                    <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                    <TableCell className="text-[11px] text-right font-mono">
                       {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-xs text-right font-mono">
+                    <TableCell className="text-[11px] text-right font-mono">
                       {item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(idx)}>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </TableCell>
@@ -253,7 +272,7 @@ export function MaintenanceFields({
 
         {itensManutencao.length > 0 && (
           <div className="text-right mt-1">
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-xs font-semibold text-foreground">
               Total Itens: R$ {itensManutencao.reduce((s, i) => s + i.valor_total, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </span>
           </div>

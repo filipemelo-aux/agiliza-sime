@@ -153,9 +153,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
   const [tipoManutencao, setTipoManutencao] = useState("corretiva");
   const [kmAtual, setKmAtual] = useState("");
+  const [descricaoServico, setDescricaoServico] = useState("");
   const [fornecedorMecanica, setFornecedorMecanica] = useState("");
   const [tempoParado, setTempoParado] = useState("");
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
+  const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
   // Auto-activate maintenance when tipo_despesa = manutencao
