@@ -320,6 +320,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
+    setParcelas([]); setUseParcelas(false);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,7 +346,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
         setShowDocFiscal(true);
-        toast.success(`XML importado: ${parsed.itens.length} item(ns)`);
+        // Parse duplicatas/parcelas from XML
+        if (parsed.duplicatas.length > 0) {
+          setUseParcelas(true);
+          setParcelas(parsed.duplicatas.map((d, i) => ({
+            numero: i + 1,
+            valor: String(d.valor),
+            data_vencimento: d.vencimento,
+          })));
+          // Set first due date as main due date
+          if (parsed.duplicatas[0]?.vencimento) {
+            setDataVencimento(parsed.duplicatas[0].vencimento);
+          }
+        }
+        toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""}`);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
