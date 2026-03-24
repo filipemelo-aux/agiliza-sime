@@ -107,6 +107,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
       .from("vehicles")
       .select("id, plate, brand, model, driver_id")
       .eq("is_active", true)
+      .eq("fleet_type", "propria")
       .order("plate")
       .then(async ({ data }) => {
         const vList = data || [];

@@ -126,7 +126,7 @@ export function FinancialPayables() {
 
     const [{ data: expData }, { data: vehData }, { data: chartData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
-      supabase.from("vehicles").select("id, plate").eq("is_active", true),
+      supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo_operacional").eq("ativo", true).order("codigo"),
     ]);
 
