@@ -67,12 +67,14 @@ export function FinancialPayables() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [filterCategoria, setFilterCategoria] = useState("all");
+  const [filterPlanoContas, setFilterPlanoContas] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
@@ -84,12 +86,18 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
 
-  // Build category map for display
+  // Build maps for display
   const categoryMap = useMemo(() => {
     const m: Record<string, Category> = {};
     categories.forEach(c => { m[c.id] = c; });
     return m;
   }, [categories]);
+
+  const chartMap = useMemo(() => {
+    const m: Record<string, ChartAccount> = {};
+    chartAccounts.forEach(a => { m[a.id] = a; });
+    return m;
+  }, [chartAccounts]);
 
   const fetchData = async () => {
     setLoading(true);
