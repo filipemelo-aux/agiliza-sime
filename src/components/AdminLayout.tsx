@@ -65,6 +65,7 @@ const menuItems = [
     icon: DollarSign,
     children: [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: DollarSign },
       { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
     ],

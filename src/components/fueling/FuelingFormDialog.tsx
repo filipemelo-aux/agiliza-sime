@@ -49,13 +49,15 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
 
   useEffect(() => {
     if (!open) return;
-    Promise.all([
-      supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true),
-      supabase.from("profiles").select("id, full_name, role").in("role", ["driver", "admin", "moderator"]),
-    ]).then(([vRes, dRes]) => {
+    const loadData = async () => {
+      const [vRes, dRes] = await Promise.all([
+        supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true),
+        supabase.from("profiles").select("id, full_name, role").in("role", ["driver", "admin", "moderator"]),
+      ]);
       setVehicles(vRes.data || []);
       setDrivers(dRes.data || []);
-    });
+    };
+    loadData();
   }, [open]);
 
   useEffect(() => {
