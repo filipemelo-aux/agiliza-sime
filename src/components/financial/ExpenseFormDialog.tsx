@@ -155,8 +155,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // NFSe / Ordem de Serviço linked to maintenance
   const [hasNfse, setHasNfse] = useState(false);
   const [nfseNumero, setNfseNumero] = useState("");
-  const [nfseDescricao, setNfseDescricao] = useState("");
-  const [nfseValor, setNfseValor] = useState("");
+  interface NfseServiceItem { descricao: string; quantidade: number; valor_unitario: number; valor_total: number; }
+  const [nfseItens, setNfseItens] = useState<NfseServiceItem[]>([]);
+  const [nfseNewDesc, setNfseNewDesc] = useState("");
+  const [nfseNewQtd, setNfseNewQtd] = useState("1");
+  const [nfseNewValor, setNfseNewValor] = useState("");
   const [nfseDataEmissao, setNfseDataEmissao] = useState("");
   const [nfseDataVencimento, setNfseDataVencimento] = useState("");
   const [nfseFormaPagamento, setNfseFormaPagamento] = useState("");
@@ -166,6 +169,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
   interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
   const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+  const nfseValorTotal = useMemo(() => nfseItens.reduce((s, i) => s + i.valor_total, 0), [nfseItens]);
 
   // Use external chart accounts
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
