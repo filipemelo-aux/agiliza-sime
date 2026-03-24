@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { format, isToday, addDays, isBefore, parseISO } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 
@@ -72,6 +73,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -130,11 +132,24 @@ export function FinancialPayables() {
 
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
-    if (!confirm("Deseja excluir esta despesa?" + (item.tipo_despesa === "manutencao" ? "\nO registro de manutenção vinculado também será removido." : ""))) return;
 
-    // If maintenance, also soft-delete the linked maintenance record
+    // Check if maintenance record exists for this expense
     if (item.tipo_despesa === "manutencao") {
-      await supabase.from("maintenances" as any).delete().eq("expense_id", item.id);
+      const { data: linkedMaint } = await supabase
+        .from("maintenances" as any)
+        .select("id")
+        .eq("expense_id", item.id)
+        .maybeSingle();
+
+      if (linkedMaint) {
+        if (!confirm("Esta despesa possui um registro de manutenção vinculado.\nAo excluir, o registro de manutenção também será removido.\n\nDeseja continuar?")) return;
+        await supabase.from("maintenances" as any).delete().eq("id", (linkedMaint as any).id);
+        await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", item.id);
+      } else {
+        if (!confirm("Deseja excluir esta despesa?")) return;
+      }
+    } else {
+      if (!confirm("Deseja excluir esta despesa?")) return;
     }
 
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
@@ -376,6 +391,11 @@ export function FinancialPayables() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-0.5 justify-end">
+                            {item.tipo_despesa === "manutencao" && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
+                                <Wrench className="h-3.5 w-3.5 text-primary" />
+                              </Button>
+                            )}
                             {item.status !== "pago" && (
                               <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixa" onClick={() => handlePayment(item)}>
                                 <Check className="h-3.5 w-3.5 text-emerald-600" />
