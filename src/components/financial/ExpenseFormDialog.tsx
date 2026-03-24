@@ -199,9 +199,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   }, [isCategoryMaintenance]);
 
-  // Filtered chart accounts for expense form (only despesa type, leaf nodes)
-  const despesaChartAccounts = useMemo(() =>
-    chartAccounts.filter(a => a.tipo === "despesa"), [chartAccounts]);
+  // Filtered chart accounts for expense form (only despesa type)
+  const despesaChartAccounts = useMemo(() => {
+    const all = chartAccounts.filter(a => a.tipo === "despesa");
+    // Mark which accounts are parents (have children)
+    const parentIds = new Set(all.filter(a => a.conta_pai_id).map(a => a.conta_pai_id!));
+    // Return only leaf accounts (not parents) for selection
+    return all.filter(a => !parentIds.has(a.id));
+  }, [chartAccounts]);
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
