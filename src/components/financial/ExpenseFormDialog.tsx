@@ -274,7 +274,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
-    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica("");
+    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica(""); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setItensManutencao([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
