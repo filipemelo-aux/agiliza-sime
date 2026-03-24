@@ -41,7 +41,6 @@ const menuItems = [
       { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
-      { title: "Categorias Financeiras", url: "/admin/financial/categories", icon: Settings },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
     ],
   },
@@ -77,7 +76,7 @@ function SidebarNav() {
   };
 
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
-  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories" || location.pathname === "/admin/financial/chart";
+  const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart";
   const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
   const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts", "/admin/fuelings", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 

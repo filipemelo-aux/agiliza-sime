@@ -41,13 +41,12 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
-interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
-interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; tipo_operacional?: string | null; }
 
 interface Expense {
   id: string;
   descricao: string;
-  categoria_financeira_id: string | null;
+  plano_contas_id: string | null;
   centro_custo: string;
   valor_total: number;
   valor_pago: number;
@@ -102,17 +101,17 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   expense?: Expense | null;
   empresaId: string;
-  categories: Category[];
+  chartAccounts: ChartAccount[];
   onSaved: () => void;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, categories, onSaved }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
 
   const [descricao, setDescricao] = useState("");
-  const [categoriaId, setCategoriaId] = useState("");
+  const [planoContasId, setPlanoContasId] = useState("");
   const [centroCusto, setCentroCusto] = useState("operacional");
   const [valorTotal, setValorTotal] = useState("");
   const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split("T")[0]);
@@ -148,19 +147,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
-  // Chart of accounts for hierarchical display
+  // Use external chart accounts
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const [quickCatName, setQuickCatName] = useState("");
-  const [quickCatChartId, setQuickCatChartId] = useState("");
-  const [savingQuickCat, setSavingQuickCat] = useState(false);
 
-  // Load chart accounts on open
   useEffect(() => {
     if (!open) return;
-    supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id").eq("ativo", true).order("codigo")
-      .then(({ data }) => setChartAccounts((data as any) || []));
-  }, [open]);
+    if (externalChartAccounts.length > 0) {
+      setChartAccounts(externalChartAccounts);
+    } else {
+      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo")
+        .then(({ data }) => setChartAccounts((data as any) || []));
+    }
+  }, [open, externalChartAccounts]);
 
   // Build hierarchical path for a chart account
   const chartMap = useMemo(() => {
@@ -185,9 +183,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     return chartMap.get(chartId)?.codigo || "";
   };
 
-  // Derive maintenance from selected category
-  const selectedCategory = categories.find(c => c.id === categoriaId);
-  const isCategoryMaintenance = selectedCategory?.tipo_operacional === "manutencao";
+  // Derive maintenance from selected chart account
+  const selectedAccount = chartAccounts.find(c => c.id === planoContasId);
+  const isCategoryMaintenance = selectedAccount?.tipo_operacional === "manutencao";
 
   // Auto-activate maintenance when category has tipo_operacional = manutencao
   useEffect(() => {
@@ -196,29 +194,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     }
   }, [isCategoryMaintenance]);
 
-  // Filtered chart accounts for quick create (only despesa type)
+  // Filtered chart accounts for expense form (only despesa type, leaf nodes)
   const despesaChartAccounts = useMemo(() =>
     chartAccounts.filter(a => a.tipo === "despesa"), [chartAccounts]);
-
-  const handleQuickCreateCategory = async () => {
-    if (!quickCatName.trim()) return toast.error("Informe o nome da categoria");
-    if (!quickCatChartId) return toast.error("Selecione a conta contábil");
-    setSavingQuickCat(true);
-    const { data, error } = await supabase.from("financial_categories").insert({
-      name: quickCatName.trim(),
-      type: "payable",
-      plano_contas_id: quickCatChartId,
-      active: true,
-    } as any).select("id, name, tipo_operacional, plano_contas_id").single();
-    setSavingQuickCat(false);
-    if (error) return toast.error(error.message);
-    toast.success("Categoria criada!");
-    setCategoriaId((data as any).id);
-    setShowQuickCreate(false);
-    setQuickCatName("");
-    setQuickCatChartId("");
-    onSaved(); // Refresh parent data
-  };
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
@@ -235,7 +213,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     if (!open) return;
     if (expense) {
       setDescricao(expense.descricao);
-      setCategoriaId(expense.categoria_financeira_id || "");
+      setPlanoContasId(expense.plano_contas_id || "");
       setCentroCusto(expense.centro_custo);
       setValorTotal(String(expense.valor_total));
       setDataEmissao(expense.data_emissao);
@@ -254,9 +232,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      // Determine maintenance from category tipo_operacional
-      const expCategory = categories.find(c => c.id === expense.categoria_financeira_id);
-      setIsManutencao(expCategory?.tipo_operacional === "manutencao");
+      // Determine maintenance from chart account tipo_operacional
+      const expAccount = chartAccounts.find(c => c.id === expense.plano_contas_id);
+      setIsManutencao(expAccount?.tipo_operacional === "manutencao");
       setVeiculoId(expense.veiculo_id || null);
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
@@ -267,7 +245,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setShowHistory(false);
       if (expense.id) {
         loadItems(expense.id);
-        if (expCategory?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
+        if (expAccount?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
       }
     } else {
@@ -275,8 +253,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     }
   }, [expense, open]);
 
-  // Show fuel suggestion for combustivel category
-  const isCategoryCombustivel = selectedCategory?.tipo_operacional === "combustivel";
+  // Show fuel suggestion for combustivel account
+  const isCategoryCombustivel = selectedAccount?.tipo_operacional === "combustivel";
   useEffect(() => {
     if (isCategoryCombustivel && !isEditing) {
       loadUnfueledRecords();
@@ -327,7 +305,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   };
 
   const resetForm = () => {
-    setDescricao(""); setCategoriaId(""); setCentroCusto("operacional");
+    setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
     setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
@@ -354,10 +332,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         setChaveNfe(parsed.chave_nfe);
         setDataEmissao(parsed.data_emissao || new Date().toISOString().split("T")[0]);
         setValorTotal(String(parsed.valor_total));
-        // Auto-select category based on XML suggestion
+        // Auto-select chart account based on XML suggestion
         const suggestedType = parsed.tipo_despesa_sugerido;
-        const matchingCat = categories.find(c => c.tipo_operacional === suggestedType);
-        if (matchingCat) setCategoriaId(matchingCat.id);
+        const matchingAccount = chartAccounts.find(c => c.tipo_operacional === suggestedType);
+        if (matchingAccount) setPlanoContasId(matchingAccount.id);
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
@@ -383,7 +361,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   }, [itensNota]);
 
   const handleSave = async () => {
-    if (!categoriaId) return toast.error("Selecione a categoria financeira");
+    if (!planoContasId) return toast.error("Selecione a conta contábil");
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
     if (isMaintenanceType) {
@@ -415,16 +393,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       if (existing && existing.id !== expense?.id) return toast.error("Já existe uma despesa com esta chave de NF-e.");
     }
 
-    // Derive tipo_despesa from category for backward compatibility
-    const derivedTipoDespesa = selectedCategory?.tipo_operacional === "manutencao" ? "manutencao"
-      : selectedCategory?.tipo_operacional === "combustivel" ? "combustivel"
+    // Derive tipo_despesa from account for backward compatibility
+    const derivedTipoDespesa = selectedAccount?.tipo_operacional === "manutencao" ? "manutencao"
+      : selectedAccount?.tipo_operacional === "combustivel" ? "combustivel"
       : "outros";
 
     setSaving(true);
-    const planoContasId = selectedCategory?.plano_contas_id || null;
     const payload: any = {
       empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
-      categoria_financeira_id: categoriaId, plano_contas_id: planoContasId, centro_custo: centroCusto,
+      plano_contas_id: planoContasId, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
@@ -513,7 +490,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     onSaved();
   };
 
-  const isCategoryWithVehicle = selectedCategory?.tipo_operacional === "combustivel";
+  const isCategoryWithVehicle = selectedAccount?.tipo_operacional === "combustivel";
   const showFuelFields = isCategoryCombustivel;
 
   const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
@@ -563,28 +540,19 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           )}
 
-          {/* ── Categoria Financeira ── */}
+          {/* ── Conta Contábil (Plano de Contas) ── */}
           <div className="space-y-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <div className="flex items-center justify-between mb-0.5">
-                  <Label className="text-xs">Categoria Financeira *</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px] gap-0.5 text-primary"
-                    onClick={() => setShowQuickCreate(!showQuickCreate)}
-                  >
-                    <Plus className="h-3 w-3" /> Nova
-                  </Button>
-                </div>
-                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <Label className="text-xs flex items-center gap-1">
+                  <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
+                </Label>
+                <Select value={planoContasId} onValueChange={setPlanoContasId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {categories.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {despesaChartAccounts.map(a => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -596,55 +564,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
               </div>
             </div>
 
-            {/* Conta contábil - read-only hierarchical display */}
-            {selectedCategory?.plano_contas_id && (
+            {/* Hierarchical path display */}
+            {selectedAccount && (
               <div className="flex items-start gap-2 rounded-md bg-muted/60 px-3 py-2">
                 <FolderTree className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground font-medium">Conta Contábil</p>
-                  <p className="text-xs text-foreground truncate" title={getChartPath(selectedCategory.plano_contas_id)}>
-                    {getChartPath(selectedCategory.plano_contas_id) || "—"}
+                  <p className="text-[10px] text-muted-foreground font-medium">Hierarquia</p>
+                  <p className="text-xs text-foreground truncate" title={getChartPath(planoContasId)}>
+                    {getChartPath(planoContasId) || "—"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{getChartCode(selectedCategory.plano_contas_id)}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Quick create category inline */}
-            {showQuickCreate && (
-              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                  <Plus className="h-3.5 w-3.5 text-primary" /> Criar Categoria Rápida
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px]">Nome *</Label>
-                    <Input value={quickCatName} onChange={e => setQuickCatName(e.target.value)} placeholder="Ex: Pedágios" className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <Label className="text-[10px]">Conta Contábil *</Label>
-                    <Select value={quickCatChartId} onValueChange={setQuickCatChartId}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vincular..." /></SelectTrigger>
-                      <SelectContent>
-                        {despesaChartAccounts.map(a => (
-                          <SelectItem key={a.id} value={a.id}>
-                            <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {quickCatChartId && (
-                  <p className="text-[10px] text-muted-foreground">
-                    📊 {getChartPath(quickCatChartId)}
-                  </p>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuickCreate(false)}>Cancelar</Button>
-                  <Button type="button" size="sm" className="h-7 text-xs" onClick={handleQuickCreateCategory} disabled={savingQuickCat}>
-                    {savingQuickCat ? "Salvando..." : "Criar"}
-                  </Button>
+                  <p className="text-[10px] text-muted-foreground font-mono">{getChartCode(planoContasId)}</p>
                 </div>
               </div>
             )}
@@ -667,8 +596,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                   setIsManutencao(checked);
                   // If turning on and no maintenance category selected, auto-select it
                   if (checked && !isCategoryMaintenance) {
-                    const maintCat = categories.find(c => c.tipo_operacional === "manutencao");
-                    if (maintCat) setCategoriaId(maintCat.id);
+                    const maintAccount = chartAccounts.find(c => c.tipo_operacional === "manutencao");
+                    if (maintAccount) setPlanoContasId(maintAccount.id);
                   }
                 }}
               />
