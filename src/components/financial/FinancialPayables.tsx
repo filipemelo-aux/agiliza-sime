@@ -503,10 +503,10 @@ export function FinancialPayables() {
       )}
 
       {/* Batch actions bar */}
-      {selectableItems.length > 0 && (
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border">
+      {selectableCardIds.length > 0 && (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
           <Checkbox
-            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+            checked={selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0}
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-xs text-muted-foreground">
@@ -515,15 +515,27 @@ export function FinancialPayables() {
               : "Selecionar todas"}
           </span>
           {selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              className="ml-auto gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-              onClick={handleBatchPay}
-              disabled={batchPaying}
-            >
-              <Check className="h-3.5 w-3.5" />
-              {batchPaying ? "Processando..." : `Pagar ${selectedIds.size} conta(s)`}
-            </Button>
+            <div className="ml-auto flex gap-1.5">
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
+                onClick={handleBatchPay}
+                disabled={batchPaying}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {batchPaying ? "Processando..." : `Pagar (${selectedIds.size})`}
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5 h-8"
+                onClick={handleBatchDelete}
+                disabled={batchPaying}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir ({selectedIds.size})
+              </Button>
+            </div>
           )}
         </div>
       )}
