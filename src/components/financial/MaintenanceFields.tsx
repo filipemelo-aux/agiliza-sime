@@ -8,13 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { maskName } from "@/lib/masks";
 
 export interface MaintenanceItem {
-  tipo: "peca" | "servico";
   descricao: string;
   quantidade: number;
   valor_unitario: number;
@@ -71,7 +69,6 @@ export function MaintenanceFields({
   const [kmError, setKmError] = useState("");
 
   // New item form
-  const [newTipo, setNewTipo] = useState<"peca" | "servico">("peca");
   const [newDesc, setNewDesc] = useState("");
   const [newQtd, setNewQtd] = useState("1");
   const [newValor, setNewValor] = useState("");
@@ -82,7 +79,6 @@ export function MaintenanceFields({
     });
   }, []);
 
-  // Fetch last km when vehicle changes
   useEffect(() => {
     if (!veiculoId) { setLastKm(null); return; }
     supabase
@@ -99,7 +95,6 @@ export function MaintenanceFields({
       });
   }, [veiculoId]);
 
-  // Validate km
   useEffect(() => {
     if (!kmAtual || lastKm === null) { setKmError(""); return; }
     if (Number(kmAtual) <= lastKm) {
@@ -109,7 +104,6 @@ export function MaintenanceFields({
     }
   }, [kmAtual, lastKm]);
 
-  // Recalculate total when items change
   useEffect(() => {
     const total = itensManutencao.reduce((s, i) => s + i.valor_total, 0);
     onTotalChange(total);
@@ -121,7 +115,6 @@ export function MaintenanceFields({
     const qtd = Number(newQtd) || 1;
     const vu = Number(newValor);
     const item: MaintenanceItem = {
-      tipo: newTipo,
       descricao: newDesc.trim(),
       quantidade: qtd,
       valor_unitario: vu,
@@ -194,7 +187,7 @@ export function MaintenanceFields({
         </div>
       </div>
 
-      {/* NFSe toggle replaces description field */}
+      {/* NFSe toggle */}
       <div className={`rounded-lg border p-3 transition-colors ${hasNfse ? "border-orange-500/50 bg-orange-500/5" : "border-border"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -244,14 +237,7 @@ export function MaintenanceFields({
         
         {/* Add item row */}
         <div className="flex gap-1.5 mb-2">
-          <Select value={newTipo} onValueChange={(v) => setNewTipo(v as "peca" | "servico")}>
-            <SelectTrigger className="w-[100px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="peca">Peça</SelectItem>
-              <SelectItem value="servico">Serviço</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskName(e.target.value))} placeholder="Descrição" />
+          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskName(e.target.value))} placeholder="Descrição do item" />
           <Input className="w-[60px] h-9" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
           <Input className="w-[90px] h-9" type="number" step="0.01" value={newValor} onChange={e => setNewValor(e.target.value)} placeholder="Valor" />
           <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem}><Plus className="h-4 w-4" /></Button>
@@ -262,7 +248,6 @@ export function MaintenanceFields({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[10px]">Tipo</TableHead>
                   <TableHead className="text-[10px]">Descrição</TableHead>
                   <TableHead className="text-[10px] text-right">Qtd</TableHead>
                   <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
@@ -273,12 +258,7 @@ export function MaintenanceFields({
               <TableBody>
                 {itensManutencao.map((item, idx) => (
                   <TableRow key={idx}>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px]">
-                        {item.tipo === "peca" ? "Peça" : "Serviço"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[11px] max-w-[150px] truncate">{item.descricao}</TableCell>
+                    <TableCell className="text-[11px] max-w-[200px] truncate">{item.descricao}</TableCell>
                     <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
                     <TableCell className="text-[11px] text-right font-mono">
                       {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -301,7 +281,7 @@ export function MaintenanceFields({
         {itensManutencao.length > 0 && (
           <div className="text-right mt-1">
             <span className="text-xs font-semibold text-foreground">
-              Total Itens: R$ {itensManutencao.reduce((s, i) => s + i.valor_total, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              Total: R$ {itensManutencao.reduce((s, i) => s + i.valor_total, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </span>
           </div>
         )}
