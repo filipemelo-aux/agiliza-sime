@@ -311,11 +311,15 @@ export function FinancialPayables() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
             </div>
-            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
-              <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
+              <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas Categorias</SelectItem>
-                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                <SelectItem value="all">Todas Contas</SelectItem>
+                {chartAccounts.map(a => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button
@@ -390,7 +394,7 @@ export function FinancialPayables() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
+                    <TableHead>Conta Contábil</TableHead>
                     <TableHead>Conta Contábil</TableHead>
                     <TableHead>Favorecido</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -402,9 +406,8 @@ export function FinancialPayables() {
                 <TableBody>
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
-                    const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
                     const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-                    const isMaintenance = cat?.tipo_operacional === "manutencao";
+                    const isMaintenance = chart?.tipo_operacional === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
                         <TableCell className="font-medium max-w-[200px]">
@@ -417,17 +420,12 @@ export function FinancialPayables() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-normal">
-                            {cat?.name || "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
                           {chart ? (
                             <div className="max-w-[180px]">
+                              <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
                               <p className="text-[10px] text-muted-foreground truncate" title={getChartPath(item.plano_contas_id)}>
                                 {getChartPath(item.plano_contas_id)}
                               </p>
-                              <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
                             </div>
                           ) : (
                             <span className="text-[10px] text-muted-foreground">—</span>
@@ -491,7 +489,7 @@ export function FinancialPayables() {
         onOpenChange={setFormOpen}
         expense={editingExpense}
         empresaId={empresaId}
-        categories={categories}
+        chartAccounts={chartAccounts}
         onSaved={fetchData}
       />
 
