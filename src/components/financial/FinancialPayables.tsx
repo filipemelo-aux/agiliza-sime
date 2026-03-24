@@ -64,6 +64,7 @@ type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 export function FinancialPayables() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Expense[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
@@ -82,6 +83,7 @@ export function FinancialPayables() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
+  const [batchPaying, setBatchPaying] = useState(false);
 
   // Build maps for display
   const chartIdMap = useMemo(() => {
