@@ -52,6 +52,14 @@ interface MaintenanceItemDetail {
   tipo: string;
 }
 
+interface InstallmentDetail {
+  id: string;
+  numero_parcela: number;
+  valor: number;
+  data_vencimento: string;
+  status: string;
+}
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   realizada: { label: "Realizada", variant: "default" },
   pendente: { label: "Pendente", variant: "secondary" },
@@ -72,6 +80,8 @@ export default function AdminMaintenances() {
   const [nfeExpense, setNfeExpense] = useState<ExpenseDetail | null>(null);
   const [nfseExpense, setNfseExpense] = useState<ExpenseDetail | null>(null);
   const [maintItems, setMaintItems] = useState<MaintenanceItemDetail[]>([]);
+  const [nfeInstallments, setNfeInstallments] = useState<InstallmentDetail[]>([]);
+  const [nfseInstallments, setNfseInstallments] = useState<InstallmentDetail[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchData = async () => {
@@ -115,22 +125,40 @@ export default function AdminMaintenances() {
     setNfeExpense(null);
     setNfseExpense(null);
     setMaintItems([]);
+    setNfeInstallments([]);
+    setNfseInstallments([]);
 
-    // Fetch NFe expense (main)
+    const promises: Promise<any>[] = [];
+
+    // Fetch NFe expense + items + installments
     if (maint.expense_id) {
-      const [{ data: nfe }, { data: items }] = await Promise.all([
-        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.expense_id).maybeSingle(),
-        supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", maint.expense_id),
-      ]);
-      setNfeExpense(nfe as any);
-      setMaintItems((items as any) || []);
+      promises.push(
+        Promise.all([
+          supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.expense_id).maybeSingle(),
+          supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", maint.expense_id),
+          supabase.from("expense_installments").select("id, numero_parcela, valor, data_vencimento, status").eq("expense_id", maint.expense_id).order("numero_parcela"),
+        ]).then(([{ data: nfe }, { data: items }, { data: inst }]) => {
+          setNfeExpense(nfe as any);
+          setMaintItems((items as any) || []);
+          setNfeInstallments((inst as any) || []);
+        })
+      );
     }
 
-    // Fetch NFSe expense
+    // Fetch NFSe expense + installments
     if (maint.nfse_expense_id) {
-      const { data: nfse } = await supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.nfse_expense_id).maybeSingle();
-      setNfseExpense(nfse as any);
+      promises.push(
+        Promise.all([
+          supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.nfse_expense_id).maybeSingle(),
+          supabase.from("expense_installments").select("id, numero_parcela, valor, data_vencimento, status").eq("expense_id", maint.nfse_expense_id).order("numero_parcela"),
+        ]).then(([{ data: nfse }, { data: inst }]) => {
+          setNfseExpense(nfse as any);
+          setNfseInstallments((inst as any) || []);
+        })
+      );
     }
+
+    await Promise.all(promises);
     setDetailLoading(false);
   };
 
@@ -269,15 +297,10 @@ export default function AdminMaintenances() {
                     </div>
 
                     {/* Footer */}
-                    <div className="pt-1 border-t border-border flex items-center justify-between">
+                    <div className="pt-1 border-t border-border flex items-center justify-end">
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={(e) => { e.stopPropagation(); openDetail(item); }}>
-                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                        <Eye className="h-3.5 w-3.5" /> Detalhes
                       </Button>
-                      {item.expense_id && (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } }); }}>
-                          <DollarSign className="h-3.5 w-3.5" /> Conta
-                        </Button>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -399,19 +422,49 @@ export default function AdminMaintenances() {
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  {detailMaint.expense_id && (
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setDetailOpen(false); navigate("/admin/financial/payables", { state: { highlightExpenseId: detailMaint.expense_id } }); }}>
-                      <DollarSign className="h-3.5 w-3.5" /> Ver NFe no Financeiro
-                    </Button>
-                  )}
-                  {detailMaint.nfse_expense_id && (
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setDetailOpen(false); navigate("/admin/financial/payables", { state: { highlightExpenseId: detailMaint.nfse_expense_id } }); }}>
-                      <DollarSign className="h-3.5 w-3.5" /> Ver NFSe no Financeiro
-                    </Button>
-                  )}
-                </div>
+                {/* Installments */}
+                {nfeExpense && (
+                  <Card className="border border-border">
+                    <CardContent className="p-3 space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" /> Parcelas NFe</p>
+                      {nfeInstallments.length > 0 ? (
+                        <div className="divide-y max-h-[120px] overflow-y-auto">
+                          {nfeInstallments.map(inst => (
+                            <div key={inst.id} className="flex items-center justify-between py-1.5 text-xs">
+                              <span className="text-foreground">Parcela {inst.numero_parcela}</span>
+                              <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</span>
+                              <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[10px]">{inst.status === "pago" ? "Pago" : "Pendente"}</Badge>
+                              <span className="font-mono text-foreground">R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem parcelas</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+                {nfseExpense && (
+                  <Card className="border border-border">
+                    <CardContent className="p-3 space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><DollarSign className="h-3.5 w-3.5" /> Parcelas NFSe</p>
+                      {nfseInstallments.length > 0 ? (
+                        <div className="divide-y max-h-[120px] overflow-y-auto">
+                          {nfseInstallments.map(inst => (
+                            <div key={inst.id} className="flex items-center justify-between py-1.5 text-xs">
+                              <span className="text-foreground">Parcela {inst.numero_parcela}</span>
+                              <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</span>
+                              <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[10px]">{inst.status === "pago" ? "Pago" : "Pendente"}</Badge>
+                              <span className="font-mono text-foreground">R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem parcelas</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </DialogContent>
