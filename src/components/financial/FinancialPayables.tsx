@@ -272,22 +272,62 @@ export function FinancialPayables() {
     if (!confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
     setBatchPaying(true);
     const today = new Date().toISOString();
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+
     for (const id of selectedIds) {
-      const item = items.find(i => i.id === id);
-      if (!item) continue;
-      await supabase.from("expense_payments" as any).insert({
-        expense_id: id,
-        valor: Number(item.valor_total) - Number(item.valor_pago),
-        forma_pagamento: "pix",
-        created_by: (await supabase.auth.getUser()).data.user?.id,
-      } as any);
-      await supabase.from("expenses").update({
-        valor_pago: item.valor_total,
-        status: "pago",
-        data_pagamento: today,
-      } as any).eq("id", id);
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        // Find the installment
+        let foundInst: Installment | undefined;
+        let expenseId = "";
+        for (const [eid, installs] of Object.entries(installmentsMap)) {
+          foundInst = installs.find(i => i.id === instId);
+          if (foundInst) { expenseId = eid; break; }
+        }
+        if (!foundInst) continue;
+        await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", instId);
+        const expense = items.find(i => i.id === expenseId);
+        if (expense) {
+          const newPago = Number(expense.valor_pago) + Number(foundInst.valor);
+          const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
+          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: today } as any).eq("id", expenseId);
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (!item) continue;
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: id,
+          valor: Number(item.valor_total) - Number(item.valor_pago),
+          forma_pagamento: "pix",
+          created_by: userId,
+        } as any);
+        await supabase.from("expenses").update({
+          valor_pago: item.valor_total,
+          status: "pago",
+          data_pagamento: today,
+        } as any).eq("id", id);
+      }
     }
     toast.success(`${selectedIds.size} conta(s) quitada(s)`);
+    setSelectedIds(new Set());
+    setBatchPaying(false);
+    fetchData();
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Excluir ${selectedIds.size} conta(s) selecionada(s)?`)) return;
+    setBatchPaying(true);
+
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        await supabase.from("expense_installments").delete().eq("id", instId);
+      } else {
+        await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
+      }
+    }
+    toast.success(`${selectedIds.size} registro(s) excluído(s)`);
     setSelectedIds(new Set());
     setBatchPaying(false);
     fetchData();
@@ -337,20 +377,49 @@ export function FinancialPayables() {
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
-  const selectableItems = useMemo(() => filtered.filter(i => i.status !== "pago"), [filtered]);
+  // Build a flat list of selectable card IDs (installment or expense)
+  const selectableCardIds = useMemo(() => {
+    const ids: string[] = [];
+    filtered.forEach(item => {
+      const installs = installmentsMap[item.id];
+      if (installs && installs.length > 0) {
+        installs.filter(i => i.status !== "pago").forEach(i => ids.push(`inst-${i.id}`));
+      } else if (item.status !== "pago") {
+        ids.push(item.id);
+      }
+    });
+    return ids;
+  }, [filtered, installmentsMap]);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === selectableItems.length && selectableItems.length > 0) {
+    if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(selectableItems.map(i => i.id)));
+      setSelectedIds(new Set(selectableCardIds));
     }
   };
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
   const totalAtrasado = filtered.filter(i => i.status === "atrasado").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
-  const selectedTotal = filtered.filter(i => selectedIds.has(i.id)).reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
+
+  // Calculate selected total considering both installments and regular expenses
+  const selectedTotal = useMemo(() => {
+    let total = 0;
+    selectedIds.forEach(id => {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const inst = installs.find(i => i.id === instId);
+          if (inst) { total += Number(inst.valor); break; }
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item) total += Number(item.valor_total) - Number(item.valor_pago);
+      }
+    });
+    return total;
+  }, [selectedIds, items, installmentsMap]);
 
   const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
@@ -474,10 +543,10 @@ export function FinancialPayables() {
       )}
 
       {/* Batch actions bar */}
-      {selectableItems.length > 0 && (
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border">
+      {selectableCardIds.length > 0 && (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
           <Checkbox
-            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+            checked={selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0}
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-xs text-muted-foreground">
@@ -486,15 +555,27 @@ export function FinancialPayables() {
               : "Selecionar todas"}
           </span>
           {selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              className="ml-auto gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-              onClick={handleBatchPay}
-              disabled={batchPaying}
-            >
-              <Check className="h-3.5 w-3.5" />
-              {batchPaying ? "Processando..." : `Pagar ${selectedIds.size} conta(s)`}
-            </Button>
+            <div className="ml-auto flex gap-1.5">
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
+                onClick={handleBatchPay}
+                disabled={batchPaying}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {batchPaying ? "Processando..." : `Pagar (${selectedIds.size})`}
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5 h-8"
+                onClick={handleBatchDelete}
+                disabled={batchPaying}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir ({selectedIds.size})
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -529,15 +610,25 @@ export function FinancialPayables() {
                 const isInstPago = inst.status === "pago";
                 const instStatus = isInstOverdue ? "atrasado" : inst.status;
 
+                const instCardId = `inst-${inst.id}`;
+                const isInstSelected = selectedIds.has(instCardId);
+
                 return (
                   <Card
-                    key={`inst-${inst.id}`}
-                    className={`relative transition-all ${isInstOverdue ? "border-destructive/40" : ""}`}
+                    key={instCardId}
+                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""}`}
                   >
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {!isInstPago && (
+                            <Checkbox
+                              checked={isInstSelected}
+                              onCheckedChange={() => toggleSelect(instCardId)}
+                              className="mt-0.5"
+                            />
+                          )}
                           <p className="text-sm font-semibold text-foreground truncate">
                             {item.favorecido_nome || "Sem favorecido"}
                           </p>
