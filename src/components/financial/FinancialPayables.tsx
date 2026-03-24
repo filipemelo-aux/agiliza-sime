@@ -74,6 +74,7 @@ export function FinancialPayables() {
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterPlanoContas, setFilterPlanoContas] = useState("all");
+  const [filterNivel, setFilterNivel] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
@@ -92,10 +93,39 @@ export function FinancialPayables() {
     return m;
   }, [categories]);
 
-  const chartMap = useMemo(() => {
+  const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
     chartAccounts.forEach(a => { m[a.id] = a; });
     return m;
+  }, [chartAccounts]);
+
+  // Build hierarchical path for a chart account
+  const getChartPath = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    const parts: string[] = [];
+    let current = chartIdMap[chartId];
+    while (current) {
+      parts.unshift(current.nome);
+      current = current.conta_pai_id ? chartIdMap[current.conta_pai_id] : undefined;
+    }
+    return parts.join(" › ");
+  };
+
+  // Get all ancestor IDs for level filtering
+  const getAncestorIds = (chartId: string): string[] => {
+    const ids: string[] = [chartId];
+    let current = chartIdMap[chartId];
+    while (current?.conta_pai_id && chartIdMap[current.conta_pai_id]) {
+      ids.push(current.conta_pai_id);
+      current = chartIdMap[current.conta_pai_id];
+    }
+    return ids;
+  };
+
+  // Unique levels for filter
+  const uniqueLevels = useMemo(() => {
+    const levels = [...new Set(chartAccounts.map(a => a.nivel))].sort();
+    return levels;
   }, [chartAccounts]);
 
   const fetchData = async () => {
