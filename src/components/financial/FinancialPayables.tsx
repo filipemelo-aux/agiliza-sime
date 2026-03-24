@@ -314,6 +314,13 @@ export function FinancialPayables() {
           {/* Advanced filters */}
           {showAdvanced && (
             <div className="flex flex-wrap gap-2 mb-3 p-3 bg-muted/50 rounded-lg">
+              <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Contas</SelectItem>
+                  {chartAccounts.map(a => <SelectItem key={a.id} value={a.id}><span className="font-mono text-xs mr-1">{a.codigo}</span> {a.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
                 <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
                 <SelectContent>
