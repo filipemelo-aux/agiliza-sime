@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
-import { Upload, FileText, Trash2 } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Info, History, DollarSign, FileInput } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
+import { format } from "date-fns";
 
 const TIPO_DESPESA_OPTIONS = [
   { value: "combustivel", label: "Combustível" },
@@ -44,10 +46,13 @@ const FORMA_PAGAMENTO_OPTIONS = [
   { value: "cheque", label: "Cheque" },
 ];
 
-interface Category {
-  id: string;
-  name: string;
-}
+const ORIGEM_MAP: Record<string, string> = {
+  manual: "Manual",
+  xml: "Importação XML",
+  abastecimento: "Abastecimento",
+};
+
+interface Category { id: string; name: string; }
 
 interface Expense {
   id: string;
@@ -73,13 +78,34 @@ interface Expense {
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
-  // Maintenance fields
   veiculo_id?: string | null;
   tipo_manutencao?: string | null;
   km_atual?: number | null;
   fornecedor_mecanica?: string | null;
   tempo_parado?: string | null;
   proxima_manutencao_km?: number | null;
+  origem?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+}
+
+interface PaymentRecord {
+  id: string;
+  valor: number;
+  forma_pagamento: string;
+  data_pagamento: string;
+  observacoes: string | null;
+  created_at: string;
+}
+
+interface FuelingRecord {
+  id: string;
+  data_abastecimento: string;
+  quantidade_litros: number;
+  valor_total: number;
+  posto_combustivel: string | null;
+  status_faturamento: string;
 }
 
 interface Props {
@@ -94,7 +120,9 @@ interface Props {
 export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, categories, onSaved }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEditing = !!expense;
 
+  const [activeTab, setActiveTab] = useState("dados");
   const [descricao, setDescricao] = useState("");
   const [tipoDespesa, setTipoDespesa] = useState("outros");
   const [categoriaId, setCategoriaId] = useState("");
@@ -130,7 +158,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
+  // Histórico
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
+
+  // Fuel linking
+  const [unfueledRecords, setUnfueledRecords] = useState<FuelingRecord[]>([]);
+  const [showFuelSuggestion, setShowFuelSuggestion] = useState(false);
+
   useEffect(() => {
+    if (!open) return;
+    setActiveTab("dados");
     if (expense) {
       setDescricao(expense.descricao);
       setTipoDespesa(expense.tipo_despesa);
@@ -153,57 +190,70 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      // Maintenance
       setVeiculoId(expense.veiculo_id || null);
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
       setFornecedorMecanica(expense.fornecedor_mecanica || "");
       setTempoParado(expense.tempo_parado || "");
       setProximaManutencaoKm(expense.proxima_manutencao_km ? String(expense.proxima_manutencao_km) : "");
-      // Load items
       if (expense.id) {
         loadItems(expense.id);
         if (expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
+        loadPaymentHistory(expense.id);
       }
     } else {
       resetForm();
     }
   }, [expense, open]);
 
-  const loadItems = async (expenseId: string) => {
+  // When fuel type is selected, show suggestion
+  useEffect(() => {
+    if (tipoDespesa === "combustivel" && !isEditing) {
+      loadUnfueledRecords();
+    } else {
+      setShowFuelSuggestion(false);
+      setUnfueledRecords([]);
+    }
+  }, [tipoDespesa, isEditing]);
+
+  const loadUnfueledRecords = async () => {
     const { data } = await supabase
-      .from("expense_items")
-      .select("*")
-      .eq("expense_id", expenseId)
-      .order("created_at");
+      .from("fuelings")
+      .select("id, data_abastecimento, quantidade_litros, valor_total, posto_combustivel, status_faturamento")
+      .eq("status_faturamento", "nao_faturado")
+      .is("deleted_at", null)
+      .order("data_abastecimento", { ascending: false })
+      .limit(5);
+    if (data && data.length > 0) {
+      setUnfueledRecords(data as any);
+      setShowFuelSuggestion(true);
+    }
+  };
+
+  const loadItems = async (expenseId: string) => {
+    const { data } = await supabase.from("expense_items").select("*").eq("expense_id", expenseId).order("created_at");
     if (data) {
       setItensNota(data.map(d => ({
-        descricao: d.descricao,
-        quantidade: Number(d.quantidade),
-        valor_unitario: Number(d.valor_unitario),
-        valor_total: Number(d.valor_total),
-        ncm: d.ncm || "",
-        cfop: d.cfop || "",
-        unidade: d.unidade || "",
+        descricao: d.descricao, quantidade: Number(d.quantidade),
+        valor_unitario: Number(d.valor_unitario), valor_total: Number(d.valor_total),
+        ncm: d.ncm || "", cfop: d.cfop || "", unidade: d.unidade || "",
       })));
     }
   };
 
   const loadMaintenanceItems = async (expenseId: string) => {
-    const { data } = await supabase
-      .from("expense_maintenance_items" as any)
-      .select("*")
-      .eq("expense_id", expenseId)
-      .order("created_at");
+    const { data } = await supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", expenseId).order("created_at");
     if (data) {
       setItensManutencao((data as any[]).map(d => ({
-        tipo: d.tipo || "peca",
-        descricao: d.descricao,
-        quantidade: Number(d.quantidade),
-        valor_unitario: Number(d.valor_unitario),
-        valor_total: Number(d.valor_total),
+        tipo: d.tipo || "peca", descricao: d.descricao,
+        quantidade: Number(d.quantidade), valor_unitario: Number(d.valor_unitario), valor_total: Number(d.valor_total),
       })));
     }
+  };
+
+  const loadPaymentHistory = async (expenseId: string) => {
+    const { data } = await supabase.from("expense_payments" as any).select("*").eq("expense_id", expenseId).order("created_at", { ascending: false });
+    setPaymentHistory((data as any) || []);
   };
 
   const resetForm = () => {
@@ -213,9 +263,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
-    // Maintenance
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica("");
     setTempoParado(""); setProximaManutencaoKm(""); setItensManutencao([]);
+    setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,7 +287,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
-        toast.success(`XML importado: ${parsed.itens.length} item(ns) encontrado(s)`);
+        toast.success(`XML importado: ${parsed.itens.length} item(ns)`);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
@@ -246,13 +296,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeItem = (index: number) => {
-    setItensNota(prev => prev.filter((_, i) => i !== index));
-  };
+  const removeItem = (index: number) => setItensNota(prev => prev.filter((_, i) => i !== index));
 
   const isMaintenanceType = tipoDespesa === "manutencao";
 
-  // Auto-sum items when they change
   useEffect(() => {
     if (itensNota.length > 0 && !isMaintenanceType) {
       const sum = itensNota.reduce((s, i) => s + Number(i.valor_total), 0);
@@ -263,53 +310,31 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const handleSave = async () => {
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
-
-    // Maintenance validations
     if (isMaintenanceType) {
       if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
       if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
     }
 
-    // Duplicate NFe check
     const trimmedChave = chaveNfe.trim();
     if (trimmedChave) {
-      const { data: existing } = await supabase
-        .from("expenses")
-        .select("id")
-        .eq("chave_nfe", trimmedChave)
-        .is("deleted_at", null)
-        .maybeSingle();
-      if (existing && existing.id !== expense?.id) {
-        return toast.error("Já existe uma despesa com esta chave de NF-e.");
-      }
+      const { data: existing } = await supabase.from("expenses").select("id").eq("chave_nfe", trimmedChave).is("deleted_at", null).maybeSingle();
+      if (existing && existing.id !== expense?.id) return toast.error("Já existe uma despesa com esta chave de NF-e.");
     }
 
     setSaving(true);
     const payload: any = {
-      empresa_id: empresaId,
-      descricao: descricao.trim(),
-      tipo_despesa: tipoDespesa,
-      categoria_financeira_id: categoriaId || null,
-      centro_custo: centroCusto,
-      valor_total: Number(valorTotal),
-      data_emissao: dataEmissao,
-      data_vencimento: dataVencimento || null,
-      forma_pagamento: formaPagamento || null,
-      favorecido_nome: favorecidoNome.trim() || null,
-      favorecido_id: favorecidoId || null,
-      documento_fiscal_numero: docFiscal.trim() || null,
-      chave_nfe: trimmedChave || null,
+      empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: tipoDespesa,
+      categoria_financeira_id: categoriaId || null, centro_custo: centroCusto,
+      valor_total: Number(valorTotal), data_emissao: dataEmissao,
+      data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
+      favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
+      documento_fiscal_numero: docFiscal.trim() || null, chave_nfe: trimmedChave || null,
       origem: documentoImportado ? "xml" : "manual",
-      observacoes: observacoes.trim() || null,
-      veiculo_placa: veiculoPlaca.trim() || null,
-      litros: litros ? Number(litros) : null,
-      km_odometro: kmOdometro ? Number(kmOdometro) : null,
-      numero_multa: numeroMulta.trim() || null,
-      documento_fiscal_importado: documentoImportado,
-      xml_original: xmlOriginal,
-      fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      // Maintenance fields
+      observacoes: observacoes.trim() || null, veiculo_placa: veiculoPlaca.trim() || null,
+      litros: litros ? Number(litros) : null, km_odometro: kmOdometro ? Number(kmOdometro) : null,
+      numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
+      xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
       veiculo_id: isMaintenanceType ? veiculoId : null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
@@ -336,34 +361,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       expenseId = data.id;
     }
 
-    // Save NF-e items
     if (expenseId && itensNota.length > 0) {
       await supabase.from("expense_items").delete().eq("expense_id", expenseId);
-      const itemsPayload = itensNota.map(item => ({
-        expense_id: expenseId,
-        descricao: item.descricao,
-        quantidade: item.quantidade,
-        valor_unitario: item.valor_unitario,
-        valor_total: item.valor_total,
-        ncm: item.ncm || null,
-        cfop: item.cfop || null,
-        unidade: item.unidade || null,
-      }));
-      await supabase.from("expense_items").insert(itemsPayload);
+      await supabase.from("expense_items").insert(itensNota.map(item => ({
+        expense_id: expenseId, descricao: item.descricao, quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario, valor_total: item.valor_total,
+        ncm: item.ncm || null, cfop: item.cfop || null, unidade: item.unidade || null,
+      })));
     }
 
-    // Save maintenance items
     if (expenseId && isMaintenanceType && itensManutencao.length > 0) {
       await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", expenseId);
-      const mItems = itensManutencao.map(item => ({
-        expense_id: expenseId,
-        tipo: item.tipo,
-        descricao: item.descricao,
-        quantidade: item.quantidade,
-        valor_unitario: item.valor_unitario,
-        valor_total: item.valor_total,
-      }));
-      await supabase.from("expense_maintenance_items" as any).insert(mItems);
+      await supabase.from("expense_maintenance_items" as any).insert(itensManutencao.map(item => ({
+        expense_id: expenseId, tipo: item.tipo, descricao: item.descricao,
+        quantidade: item.quantidade, valor_unitario: item.valor_unitario, valor_total: item.valor_total,
+      })));
     }
 
     toast.success(expense ? "Despesa atualizada" : "Despesa criada");
@@ -376,229 +388,357 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const showFuelFields = tipoDespesa === "combustivel";
   const showFineFields = tipoDespesa === "multa";
 
+  const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{expense ? "Editar" : "Nova"} Despesa</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="flex items-center gap-2">
+            {isEditing ? "Editar" : "Nova"} Despesa
+            {isEditing && documentoImportado && (
+              <Badge variant="secondary" className="text-[10px]"><FileText className="h-3 w-3 mr-1" />XML</Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Input mode tabs */}
-        {!expense && (
-          <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "manual" | "xml")} className="mb-2">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manual"><FileText className="h-4 w-4 mr-1" /> Manual</TabsTrigger>
-              <TabsTrigger value="xml"><Upload className="h-4 w-4 mr-1" /> Importar XML</TabsTrigger>
-            </TabsList>
-            <TabsContent value="xml" className="mt-3">
-              <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-2">
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
+        {/* Input mode selector for new expense */}
+        {!isEditing && (
+          <div className="px-6 pb-2">
+            <div className="flex gap-2">
+              <Button
+                variant={inputMode === "manual" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 gap-1.5"
+                onClick={() => setInputMode("manual")}
+              >
+                <FileText className="h-3.5 w-3.5" /> Manual
+              </Button>
+              <Button
+                variant={inputMode === "xml" ? "default" : "outline"}
+                size="sm"
+                className="flex-1 gap-1.5"
+                onClick={() => setInputMode("xml")}
+              >
+                <Upload className="h-3.5 w-3.5" /> Importar XML
+              </Button>
+            </div>
+            {inputMode === "xml" && (
+              <div className="mt-3 border-2 border-dashed rounded-lg p-4 text-center space-y-2">
+                <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
                 <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Selecionar XML</Button>
-                {documentoImportado && <Badge variant="default" className="ml-2">XML Importado ✓</Badge>}
+                {documentoImportado && <Badge variant="default" className="ml-2">Importado ✓</Badge>}
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         )}
 
-        {expense && documentoImportado && (
-          <Badge variant="secondary" className="mb-2"><FileText className="h-3 w-3 mr-1" /> Importado via XML</Badge>
-        )}
+        {/* Tabbed content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 pb-6">
+          <TabsList className={`grid w-full ${isEditing ? "grid-cols-4" : "grid-cols-3"}`}>
+            <TabsTrigger value="dados" className="gap-1 text-xs"><Info className="h-3.5 w-3.5" /> Dados</TabsTrigger>
+            <TabsTrigger value="financeiro" className="gap-1 text-xs"><DollarSign className="h-3.5 w-3.5" /> Financeiro</TabsTrigger>
+            <TabsTrigger value="origem" className="gap-1 text-xs"><FileInput className="h-3.5 w-3.5" /> Origem</TabsTrigger>
+            {isEditing && (
+              <TabsTrigger value="historico" className="gap-1 text-xs"><History className="h-3.5 w-3.5" /> Histórico</TabsTrigger>
+            )}
+          </TabsList>
 
-        <div className="space-y-3">
-          {/* Tipo da Despesa */}
-          <div>
-            <Label>Tipo da Despesa *</Label>
-            <Select value={tipoDespesa} onValueChange={setTipoDespesa}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TIPO_DESPESA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Descrição */}
-          <div>
-            <Label>Descrição *</Label>
-            <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Abastecimento ABC..." />
-          </div>
-
-          {/* Maintenance Section */}
-          {isMaintenanceType && (
-            <MaintenanceFields
-              veiculoId={veiculoId}
-              onVeiculoIdChange={setVeiculoId}
-              kmAtual={kmAtual}
-              onKmAtualChange={setKmAtual}
-              tipoManutencao={tipoManutencao}
-              onTipoManutencaoChange={setTipoManutencao}
-              fornecedorMecanica={fornecedorMecanica}
-              onFornecedorMecanicaChange={setFornecedorMecanica}
-              tempoParado={tempoParado}
-              onTempoParadoChange={setTempoParado}
-              proximaManutencaoKm={proximaManutencaoKm}
-              onProximaManutencaoKmChange={setProximaManutencaoKm}
-              itensManutencao={itensManutencao}
-              onItensManutencaoChange={setItensManutencao}
-              onTotalChange={(total) => {
-                if (total > 0) setValorTotal(String(total));
-              }}
-            />
-          )}
-
-          {/* Valor e Datas */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* ═══ TAB: DADOS ═══ */}
+          <TabsContent value="dados" className="space-y-3 mt-4">
+            {/* Tipo */}
             <div>
-              <Label>Valor (R$) *</Label>
-              <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" />
-            </div>
-            <div>
-              <Label>Emissão</Label>
-              <Input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)} />
-            </div>
-            <div>
-              <Label>Vencimento</Label>
-              <Input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} />
-            </div>
-          </div>
-
-          {/* Centro de Custo e Categoria */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Centro de Custo</Label>
-              <Select value={centroCusto} onValueChange={setCentroCusto}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label className="text-xs">Tipo da Despesa *</Label>
+              <Select value={tipoDespesa} onValueChange={setTipoDespesa}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  {TIPO_DESPESA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Categoria</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          {/* Favorecido */}
-          <div className="grid grid-cols-2 gap-3">
+            {/* Fuel suggestion */}
+            {showFuelSuggestion && unfueledRecords.length > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Fuel className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium">Abastecimentos não faturados</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    Existem {unfueledRecords.length} abastecimentos pendentes. Use o módulo de Abastecimentos para gerar contas a pagar em lote.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                    window.location.href = "/admin/fuelings";
+                  }}>
+                    Ir para Abastecimentos
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Descrição */}
             <div>
-              <Label>Favorecido</Label>
-              <PersonSearchInput
-                categories={["fornecedor"]}
-                placeholder="Buscar fornecedor..."
-                selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
-                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+              <Label className="text-xs">Descrição *</Label>
+              <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
+            </div>
+
+            {/* Maintenance Section */}
+            {isMaintenanceType && (
+              <MaintenanceFields
+                veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
+                kmAtual={kmAtual} onKmAtualChange={setKmAtual}
+                tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
+                tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
+                proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
+                onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
               />
-            </div>
-            <div>
-              <Label>CNPJ Fornecedor</Label>
-              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
-            </div>
-          </div>
+            )}
 
-          {/* Forma de Pagamento */}
-          <div>
-            <Label>Forma de Pagamento</Label>
-            <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Documento Fiscal */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Nº Doc. Fiscal</Label>
-              <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" />
-            </div>
-            <div>
-              <Label>Chave NF-e</Label>
-              <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} />
-            </div>
-          </div>
-
-          {/* Vehicle fields for non-maintenance types */}
-          {showVehicleFields && (
+            {/* Favorecido */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Placa Veículo</Label>
-                <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" />
+                <Label className="text-xs">Favorecido</Label>
+                <PersonSearchInput
+                  categories={["fornecedor"]}
+                  placeholder="Buscar fornecedor..."
+                  selectedName={favorecidoNome || undefined}
+                  onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
+                  onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+                />
               </div>
               <div>
-                <Label>Km Odômetro</Label>
-                <Input type="number" value={kmOdometro} onChange={e => setKmOdometro(e.target.value)} placeholder="0" />
+                <Label className="text-xs">CNPJ Fornecedor</Label>
+                <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
               </div>
             </div>
-          )}
 
-          {showFuelFields && (
+            {/* Vehicle fields */}
+            {showVehicleFields && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Placa Veículo</Label>
+                  <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+                </div>
+                <div>
+                  <Label className="text-xs">Km Odômetro</Label>
+                  <Input type="number" value={kmOdometro} onChange={e => setKmOdometro(e.target.value)} placeholder="0" className="h-9" />
+                </div>
+              </div>
+            )}
+            {showFuelFields && (
+              <div>
+                <Label className="text-xs">Litros</Label>
+                <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" className="h-9" />
+              </div>
+            )}
+            {showFineFields && (
+              <div>
+                <Label className="text-xs">Nº da Multa</Label>
+                <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" className="h-9" />
+              </div>
+            )}
+
+            {/* Observações */}
             <div>
-              <Label>Litros</Label>
-              <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" />
+              <Label className="text-xs">Observações</Label>
+              <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} className="text-sm" />
             </div>
-          )}
+          </TabsContent>
 
-          {showFineFields && (
-            <div>
-              <Label>Nº da Multa</Label>
-              <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" />
+          {/* ═══ TAB: FINANCEIRO ═══ */}
+          <TabsContent value="financeiro" className="space-y-3 mt-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Valor (R$) *</Label>
+                <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">Emissão</Label>
+                <Input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)} className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">Vencimento</Label>
+                <Input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="h-9" />
+              </div>
             </div>
-          )}
-
-          {/* Items da Nota */}
-          {itensNota.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Centro de Custo</Label>
+                <Select value={centroCusto} onValueChange={setCentroCusto}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Categoria</Label>
+                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div>
-              <Label className="mb-1 block">Itens da Nota ({itensNota.length})</Label>
-              <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Descrição</TableHead>
-                      <TableHead className="text-xs text-right">Qtd</TableHead>
-                      <TableHead className="text-xs text-right">Vl. Unit.</TableHead>
-                      <TableHead className="text-xs text-right">Total</TableHead>
-                      <TableHead className="text-xs w-[40px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {itensNota.map((item, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="text-xs max-w-[180px] truncate">{item.descricao}</TableCell>
-                        <TableCell className="text-xs text-right">{item.quantidade}</TableCell>
-                        <TableCell className="text-xs text-right font-mono">
-                          {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-mono">
-                          {item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(idx)}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </TableCell>
+              <Label className="text-xs">Forma de Pagamento</Label>
+              <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Summary for editing */}
+            {isEditing && (
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Total</p>
+                    <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Pago</p>
+                    <p className="text-sm font-bold font-mono text-emerald-600">R$ {Number(expense?.valor_pago || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Restante</p>
+                    <p className="text-sm font-bold font-mono text-destructive">
+                      R$ {(Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ═══ TAB: ORIGEM ═══ */}
+          <TabsContent value="origem" className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Nº Doc. Fiscal</Label>
+                <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
+              </div>
+              <div>
+                <Label className="text-xs">Chave NF-e</Label>
+                <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} className="h-9" />
+              </div>
+            </div>
+
+            {isEditing && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Origem</Label>
+                  <p className="text-sm">{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Doc. Importado</Label>
+                  <p className="text-sm">{documentoImportado ? "Sim" : "Não"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Items da Nota */}
+            {itensNota.length > 0 && (
+              <div>
+                <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
+                <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[10px]">Descrição</TableHead>
+                        <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                        <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                        <TableHead className="text-[10px] text-right">Total</TableHead>
+                        <TableHead className="text-[10px] w-[32px]"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {itensNota.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
+                          <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                          <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
+            )}
+
+            {/* SEFAZ status */}
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-[10px] text-muted-foreground">Status SEFAZ</p>
+              <Badge variant="outline" className="text-[10px] mt-1">Não verificado</Badge>
+              <p className="text-[10px] text-muted-foreground mt-1">Validação SEFAZ será implementada em breve.</p>
             </div>
+          </TabsContent>
+
+          {/* ═══ TAB: HISTÓRICO ═══ */}
+          {isEditing && (
+            <TabsContent value="historico" className="space-y-3 mt-4">
+              {/* Audit info */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Criado em</p>
+                  <p className="text-xs">{expense?.created_at ? format(new Date(expense.created_at), "dd/MM/yyyy HH:mm") : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Atualizado em</p>
+                  <p className="text-xs">{expense?.updated_at ? format(new Date(expense.updated_at), "dd/MM/yyyy HH:mm") : "—"}</p>
+                </div>
+              </div>
+
+              {/* Payment history */}
+              <div>
+                <p className="text-xs font-medium mb-2">Histórico de Pagamentos</p>
+                {paymentHistory.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum pagamento registrado</p>
+                ) : (
+                  <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-[10px]">Data</TableHead>
+                          <TableHead className="text-[10px]">Valor</TableHead>
+                          <TableHead className="text-[10px]">Forma</TableHead>
+                          <TableHead className="text-[10px]">Obs</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paymentHistory.map(p => (
+                          <TableRow key={p.id}>
+                            <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                            <TableCell className="text-[11px] font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
+                            <TableCell className="text-[11px] max-w-[80px] truncate">{p.observacoes || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
           )}
+        </Tabs>
 
-          {/* Observações */}
-          <div>
-            <Label>Observações</Label>
-            <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} />
-          </div>
-
+        {/* Save button - fixed at bottom */}
+        <div className="px-6 pb-6 pt-2 border-t">
           <Button onClick={handleSave} className="w-full" disabled={saving}>
             {saving ? "Salvando..." : "Salvar"}
           </Button>
