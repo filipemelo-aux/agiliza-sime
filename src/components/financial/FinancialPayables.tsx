@@ -735,7 +735,7 @@ export function FinancialPayables() {
                       {/* Actions */}
                       <div className="flex items-center gap-1 pt-1 border-t border-border">
                         {isMaintenance && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                             <Wrench className="h-3.5 w-3.5 text-primary" />
                           </Button>
                         )}
@@ -847,7 +847,7 @@ export function FinancialPayables() {
 
                   <div className="flex items-center gap-1 pt-1 border-t border-border">
                     {isMaintenance && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                         <Wrench className="h-3.5 w-3.5 text-primary" />
                       </Button>
                     )}
