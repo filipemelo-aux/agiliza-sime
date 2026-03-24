@@ -331,6 +331,23 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
       if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
       if (!descricaoServico.trim()) return toast.error("Informe a descrição do serviço");
+
+      // Validate odometer is greater than last recorded KM
+      const { data: lastKmData } = await supabase
+        .from("expenses")
+        .select("km_atual")
+        .eq("veiculo_id", veiculoId)
+        .eq("tipo_despesa", "manutencao")
+        .not("km_atual", "is", null)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const lastKm = lastKmData?.km_atual ? Number(lastKmData.km_atual) : null;
+      if (lastKm !== null && Number(kmAtual) <= lastKm) {
+        return toast.error(`KM deve ser maior que o último registrado (${lastKm.toLocaleString("pt-BR")} km)`);
+      }
     }
 
     const trimmedChave = chaveNfe.trim();
@@ -408,6 +425,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         fornecedor: fornecedorMecanica.trim() || null,
         status: "realizada",
         proxima_manutencao_km: proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
+        data_proxima_manutencao: dataProximaManutencao || null,
         created_by: user?.id,
       };
 
