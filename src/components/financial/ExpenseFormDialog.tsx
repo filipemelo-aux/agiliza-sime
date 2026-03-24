@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
@@ -41,12 +41,12 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
 interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
 
 interface Expense {
   id: string;
   descricao: string;
-  tipo_despesa: string;
   categoria_financeira_id: string | null;
   centro_custo: string;
   valor_total: number;
@@ -148,6 +148,43 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
+  // Chart of accounts for hierarchical display
+  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCatName, setQuickCatName] = useState("");
+  const [quickCatChartId, setQuickCatChartId] = useState("");
+  const [savingQuickCat, setSavingQuickCat] = useState(false);
+
+  // Load chart accounts on open
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id").eq("ativo", true).order("codigo")
+      .then(({ data }) => setChartAccounts((data as any) || []));
+  }, [open]);
+
+  // Build hierarchical path for a chart account
+  const chartMap = useMemo(() => {
+    const m = new Map<string, ChartAccount>();
+    chartAccounts.forEach(a => m.set(a.id, a));
+    return m;
+  }, [chartAccounts]);
+
+  const getChartPath = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    const parts: string[] = [];
+    let current = chartMap.get(chartId);
+    while (current) {
+      parts.unshift(current.nome);
+      current = current.conta_pai_id ? chartMap.get(current.conta_pai_id) : undefined;
+    }
+    return parts.join(" › ");
+  };
+
+  const getChartCode = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    return chartMap.get(chartId)?.codigo || "";
+  };
+
   // Derive maintenance from selected category
   const selectedCategory = categories.find(c => c.id === categoriaId);
   const isCategoryMaintenance = selectedCategory?.tipo_operacional === "manutencao";
@@ -158,6 +195,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setIsManutencao(true);
     }
   }, [isCategoryMaintenance]);
+
+  // Filtered chart accounts for quick create (only despesa type)
+  const despesaChartAccounts = useMemo(() =>
+    chartAccounts.filter(a => a.tipo === "despesa"), [chartAccounts]);
+
+  const handleQuickCreateCategory = async () => {
+    if (!quickCatName.trim()) return toast.error("Informe o nome da categoria");
+    if (!quickCatChartId) return toast.error("Selecione a conta contábil");
+    setSavingQuickCat(true);
+    const { data, error } = await supabase.from("financial_categories").insert({
+      name: quickCatName.trim(),
+      type: "payable",
+      plano_contas_id: quickCatChartId,
+      active: true,
+    } as any).select("id, name, tipo_operacional, plano_contas_id").single();
+    setSavingQuickCat(false);
+    if (error) return toast.error(error.message);
+    toast.success("Categoria criada!");
+    setCategoriaId((data as any).id);
+    setShowQuickCreate(false);
+    setQuickCatName("");
+    setQuickCatChartId("");
+    onSaved(); // Refresh parent data
+  };
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
@@ -502,30 +563,91 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           )}
 
-          {/* ── Categoria + Descrição ── */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs">Categoria *</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedCategory?.plano_contas_id && (
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title="Conta contábil vinculada">
-                  📊 Conta: {selectedCategory.plano_contas_id ? "vinculada" : "—"}
+          {/* ── Categoria Financeira ── */}
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-0.5">
+                  <Label className="text-xs">Categoria Financeira *</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px] gap-0.5 text-primary"
+                    onClick={() => setShowQuickCreate(!showQuickCreate)}
+                  >
+                    <Plus className="h-3 w-3" /> Nova
+                  </Button>
+                </div>
+                <Select value={categoriaId} onValueChange={setCategoriaId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Descrição *</Label>
+                <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
+              </div>
+            </div>
+
+            {/* Conta contábil - read-only hierarchical display */}
+            {selectedCategory?.plano_contas_id && (
+              <div className="flex items-start gap-2 rounded-md bg-muted/60 px-3 py-2">
+                <FolderTree className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground font-medium">Conta Contábil</p>
+                  <p className="text-xs text-foreground truncate" title={getChartPath(selectedCategory.plano_contas_id)}>
+                    {getChartPath(selectedCategory.plano_contas_id) || "—"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{getChartCode(selectedCategory.plano_contas_id)}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Quick create category inline */}
+            {showQuickCreate && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                  <Plus className="h-3.5 w-3.5 text-primary" /> Criar Categoria Rápida
                 </p>
-              )}
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Descrição *</Label>
-              <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
-            </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[10px]">Nome *</Label>
+                    <Input value={quickCatName} onChange={e => setQuickCatName(e.target.value)} placeholder="Ex: Pedágios" className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Conta Contábil *</Label>
+                    <Select value={quickCatChartId} onValueChange={setQuickCatChartId}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vincular..." /></SelectTrigger>
+                      <SelectContent>
+                        {despesaChartAccounts.map(a => (
+                          <SelectItem key={a.id} value={a.id}>
+                            <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {quickCatChartId && (
+                  <p className="text-[10px] text-muted-foreground">
+                    📊 {getChartPath(quickCatChartId)}
+                  </p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuickCreate(false)}>Cancelar</Button>
+                  <Button type="button" size="sm" className="h-7 text-xs" onClick={handleQuickCreateCategory} disabled={savingQuickCat}>
+                    {savingQuickCat ? "Salvando..." : "Criar"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── É manutenção? ── */}

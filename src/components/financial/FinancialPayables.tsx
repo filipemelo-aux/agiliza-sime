@@ -16,7 +16,6 @@ import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 interface Expense {
   id: string;
   descricao: string;
-  tipo_despesa: string;
   categoria_financeira_id: string | null;
   plano_contas_id: string | null;
   centro_custo: string;
@@ -44,7 +43,7 @@ interface Expense {
 }
 
 interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
-interface ChartAccount { id: string; codigo: string; nome: string; }
+interface ChartAccount { id: string; codigo: string; nome: string; conta_pai_id: string | null; nivel: number; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -75,6 +74,7 @@ export function FinancialPayables() {
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterPlanoContas, setFilterPlanoContas] = useState("all");
+  const [filterNivel, setFilterNivel] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
@@ -93,10 +93,39 @@ export function FinancialPayables() {
     return m;
   }, [categories]);
 
-  const chartMap = useMemo(() => {
+  const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
     chartAccounts.forEach(a => { m[a.id] = a; });
     return m;
+  }, [chartAccounts]);
+
+  // Build hierarchical path for a chart account
+  const getChartPath = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    const parts: string[] = [];
+    let current = chartIdMap[chartId];
+    while (current) {
+      parts.unshift(current.nome);
+      current = current.conta_pai_id ? chartIdMap[current.conta_pai_id] : undefined;
+    }
+    return parts.join(" › ");
+  };
+
+  // Get all ancestor IDs for level filtering
+  const getAncestorIds = (chartId: string): string[] => {
+    const ids: string[] = [chartId];
+    let current = chartIdMap[chartId];
+    while (current?.conta_pai_id && chartIdMap[current.conta_pai_id]) {
+      ids.push(current.conta_pai_id);
+      current = chartIdMap[current.conta_pai_id];
+    }
+    return ids;
+  };
+
+  // Unique levels for filter
+  const uniqueLevels = useMemo(() => {
+    const levels = [...new Set(chartAccounts.map(a => a.nivel))].sort();
+    return levels;
   }, [chartAccounts]);
 
   const fetchData = async () => {
@@ -108,7 +137,7 @@ export function FinancialPayables() {
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("financial_categories").select("id, name, tipo_operacional, plano_contas_id" as any).eq("type", "payable" as any).eq("active", true),
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
-      supabase.from("chart_of_accounts").select("id, codigo, nome").eq("ativo", true).order("codigo"),
+      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel").eq("ativo", true).order("codigo"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -205,14 +234,15 @@ export function FinancialPayables() {
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
       const matchCategoria = filterCategoria === "all" || i.categoria_financeira_id === filterCategoria;
-      const matchPlanoContas = filterPlanoContas === "all" || i.plano_contas_id === filterPlanoContas;
+      const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
+      const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchCategoria && matchPlanoContas && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchCategoria && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, quickFilter, filterCategoria, filterPlanoContas, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [items, search, quickFilter, filterCategoria, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
@@ -315,10 +345,22 @@ export function FinancialPayables() {
           {showAdvanced && (
             <div className="flex flex-wrap gap-2 mb-3 p-3 bg-muted/50 rounded-lg">
               <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
-                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
+                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas Contas</SelectItem>
-                  {chartAccounts.map(a => <SelectItem key={a.id} value={a.id}><span className="font-mono text-xs mr-1">{a.codigo}</span> {a.nome}</SelectItem>)}
+                  {chartAccounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="font-mono text-[10px] mr-1">{a.codigo}</span>
+                      <span style={{ paddingLeft: `${(a.nivel - 1) * 8}px` }}>{a.nome}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterNivel} onValueChange={setFilterNivel}>
+                <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Nível" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Níveis</SelectItem>
+                  {uniqueLevels.map(n => <SelectItem key={n} value={String(n)}>Nível {n}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
@@ -373,7 +415,7 @@ export function FinancialPayables() {
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
                     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
-                    const chart = item.plano_contas_id ? chartMap[item.plano_contas_id] : null;
+                    const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
                     const isMaintenance = cat?.tipo_operacional === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
@@ -393,10 +435,12 @@ export function FinancialPayables() {
                         </TableCell>
                         <TableCell>
                           {chart ? (
-                            <span className="text-[10px]">
-                              <span className="font-mono text-muted-foreground">{chart.codigo}</span>{" "}
-                              <span className="text-foreground">{chart.nome}</span>
-                            </span>
+                            <div className="max-w-[180px]">
+                              <p className="text-[10px] text-muted-foreground truncate" title={getChartPath(item.plano_contas_id)}>
+                                {getChartPath(item.plano_contas_id)}
+                              </p>
+                              <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
+                            </div>
                           ) : (
                             <span className="text-[10px] text-muted-foreground">—</span>
                           )}
