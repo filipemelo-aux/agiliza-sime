@@ -999,10 +999,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
               {/* NFSe / Ordem de Serviço expanded content */}
               {hasNfse && (
-              <div className={`rounded-lg border p-3 transition-colors mt-3 border-orange-500/50 bg-orange-500/5`}>
-
-                {hasNfse && (
-                  <div className="mt-3 space-y-3 pt-3 border-t border-border">
+                <div className="rounded-lg border p-3 transition-colors mt-3 border-orange-500/50 bg-orange-500/5">
+                  <div className="space-y-3">
                     <div className="flex items-start gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
                       <FileText className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
                       <p className="text-[11px] text-orange-700 dark:text-orange-400 font-medium leading-tight">
@@ -1210,8 +1208,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(maskName(e.target.value))} placeholder="Observações adicionais..." className="h-9" />
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
