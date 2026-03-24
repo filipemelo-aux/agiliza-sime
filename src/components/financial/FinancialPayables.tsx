@@ -445,6 +445,11 @@ export function FinancialPayables() {
                             <span className="text-[10px] text-muted-foreground">—</span>
                           )}
                         </TableCell>
+                        <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-mono text-sm font-medium">
+                            R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
                           {item.valor_pago > 0 && item.status !== "pago" && (
                             <div className="text-[10px] text-muted-foreground font-mono">
                               Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
