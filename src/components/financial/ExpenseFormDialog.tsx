@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
-import { Upload, FileText, Trash2, Fuel, Info, History, DollarSign, FileInput } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Info, History, DollarSign, FileInput, Wrench } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
@@ -376,6 +376,36 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         expense_id: expenseId, tipo: item.tipo, descricao: item.descricao,
         quantidade: item.quantidade, valor_unitario: item.valor_unitario, valor_total: item.valor_total,
       })));
+    }
+
+    // Auto-create/update maintenance record
+    if (expenseId && isMaintenanceType && veiculoId) {
+      const maintenancePayload: any = {
+        veiculo_id: veiculoId,
+        expense_id: expenseId,
+        data_manutencao: dataEmissao,
+        odometro: Number(kmAtual) || 0,
+        tipo_manutencao: tipoManutencao,
+        descricao: descricao.trim(),
+        custo_total: Number(valorTotal) || 0,
+        fornecedor: fornecedorMecanica.trim() || null,
+        status: "realizada",
+        proxima_manutencao_km: proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
+        created_by: user?.id,
+      };
+
+      // Check if maintenance record already exists for this expense
+      const { data: existingMaint } = await supabase
+        .from("maintenances" as any)
+        .select("id")
+        .eq("expense_id", expenseId)
+        .maybeSingle();
+
+      if (existingMaint) {
+        await supabase.from("maintenances" as any).update(maintenancePayload).eq("id", (existingMaint as any).id);
+      } else {
+        await supabase.from("maintenances" as any).insert(maintenancePayload);
+      }
     }
 
     toast.success(expense ? "Despesa atualizada" : "Despesa criada");
