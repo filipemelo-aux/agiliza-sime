@@ -1122,7 +1122,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <Switch id="nfse-parcelas" checked={nfseUseParcelas} onCheckedChange={(checked) => {
                           setNfseUseParcelas(checked);
                           if (checked && nfseParcelas.length === 0) {
-                            const val = Number(nfseValor) || 0;
+                            const val = nfseValorTotal;
                             setNfseParcelas([{ numero: 1, valor: String(val.toFixed(2)), data_vencimento: nfseDataVencimento || "" }]);
                           }
                         }} />
@@ -1136,7 +1136,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             </span>
                             <div className="flex gap-1">
                               <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                                const val = Number(nfseValor) || 0;
+                                const val = nfseValorTotal;
                                 const newCount = nfseParcelas.length + 1;
                                 const parcelaVal = (val / newCount).toFixed(2);
                                 const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
@@ -1203,7 +1203,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             </Table>
                           </div>
 
-                          {Math.abs(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(nfseValor) || 0)) > 0.01 && (
+                          {Math.abs(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - nfseValorTotal) > 0.01 && (
                             <p className="text-[10px] text-destructive font-medium">
                               ⚠ Soma das parcelas difere do valor da NFSe
                             </p>
