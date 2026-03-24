@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +57,7 @@ const menuItems = [
     icon: DollarSign,
     children: [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: DollarSign },
       { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
@@ -77,7 +78,7 @@ function SidebarNav() {
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/categories";
   const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
-  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts", "/admin/fuelings"].some(p => location.pathname.startsWith(p));
+  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/paid", "/admin/financial/receipts", "/admin/fuelings", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
