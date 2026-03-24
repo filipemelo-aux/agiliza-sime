@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
@@ -41,12 +41,12 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
 interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
 
 interface Expense {
   id: string;
   descricao: string;
-  tipo_despesa: string;
   categoria_financeira_id: string | null;
   centro_custo: string;
   valor_total: number;
