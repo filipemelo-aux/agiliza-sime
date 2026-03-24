@@ -590,7 +590,49 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }
     }
 
-    toast.success(expense ? "Despesa atualizada" : "Despesa criada");
+    // Create second expense for NFSe/Ordem de Serviço if enabled
+    if (!isEditing && isMaintenanceType && hasNfse && nfseValor && Number(nfseValor) > 0) {
+      const nfsePayload: any = {
+        empresa_id: empresaId,
+        descricao: nfseDescricao.trim() || `NFSe ${nfseNumero} - Serviço de manutenção`,
+        tipo_despesa: "manutencao",
+        plano_contas_id: planoContasId,
+        centro_custo: centroCusto,
+        valor_total: Number(nfseValor),
+        data_emissao: nfseDataEmissao || dataEmissao,
+        data_vencimento: nfseDataVencimento || null,
+        forma_pagamento: nfseFormaPagamento || null,
+        favorecido_nome: nfseFornecedorNome.trim() || fornecedorMecanica.trim() || null,
+        favorecido_id: nfseFornecedorId || null,
+        documento_fiscal_numero: nfseNumero.trim() || null,
+        origem: "manual",
+        observacoes: nfseObservacoes.trim() || `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}`,
+        veiculo_id: veiculoId,
+        tipo_manutencao: tipoManutencao,
+        km_atual: kmAtual ? Number(kmAtual) : null,
+        fornecedor_mecanica: fornecedorMecanica.trim() || null,
+        created_by: user?.id,
+      };
+
+      const { data: nfseData, error: nfseError } = await supabase.from("expenses").insert(nfsePayload).select("id").single();
+      if (nfseError) {
+        console.error("Erro ao criar despesa NFSe:", nfseError);
+        toast.warning("Despesa principal criada, mas houve erro ao criar a despesa da NFSe.");
+      } else if (nfseData) {
+        // Save NFSe installments if any
+        if (nfseUseParcelas && nfseParcelas.length > 0) {
+          await supabase.from("expense_installments" as any).insert(nfseParcelas.map(p => ({
+            expense_id: nfseData.id,
+            numero_parcela: p.numero,
+            valor: Number(p.valor) || 0,
+            data_vencimento: p.data_vencimento,
+            status: "pendente",
+          })));
+        }
+      }
+    }
+
+    toast.success(expense ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
     setSaving(false);
     onOpenChange(false);
     onSaved();
