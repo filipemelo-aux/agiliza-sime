@@ -323,8 +323,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const loadMaintenanceItems = async (expenseId: string) => {
     const { data } = await supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", expenseId).order("created_at");
     if (data) {
-      setItensManutencao((data as any[]).map(d => ({
-        tipo: d.tipo || "peca", descricao: d.descricao,
+       setItensManutencao((data as any[]).map(d => ({
+        descricao: d.descricao,
         quantidade: Number(d.quantidade), valor_unitario: Number(d.valor_unitario), valor_total: Number(d.valor_total),
       })));
     }
@@ -447,7 +447,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   useEffect(() => {
     if (isMaintenanceType && itensNota.length > 0 && itensManutencao.length === 0) {
       const converted: MaintenanceItem[] = itensNota.map(item => ({
-        tipo: "peca" as const,
         descricao: item.descricao,
         quantidade: item.quantidade,
         valor_unitario: item.valor_unitario,
@@ -560,7 +559,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (expenseId && isMaintenanceType && itensManutencao.length > 0) {
       await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", expenseId);
       await supabase.from("expense_maintenance_items" as any).insert(itensManutencao.map(item => ({
-        expense_id: expenseId, tipo: item.tipo, descricao: item.descricao,
+        expense_id: expenseId, tipo: "peca", descricao: item.descricao,
         quantidade: item.quantidade, valor_unitario: item.valor_unitario, valor_total: item.valor_total,
       })));
     }
