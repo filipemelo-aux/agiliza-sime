@@ -102,33 +102,22 @@ function SidebarNav() {
             <SidebarMenu>
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
-                  const isGroupActive = item.title === "Cadastros" ? isCadastrosActive : item.title === "Contas a Receber" ? isContasReceberActive : item.title === "Contas a Pagar" ? isContasPagarActive : item.title === "Transporte" ? isTransporteActive : false;
                   return (
-                    <Collapsible key={item.title} defaultOpen={isGroupActive} className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton tooltip={item.title} isActive={isGroupActive}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                            <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    <div key={item.title} className="pt-4 first:pt-0">
+                      <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
+                        {item.title}
+                      </div>
+                      {item.children.map((child) => (
+                        <SidebarMenuItem key={child.title}>
+                          <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title}>
+                            <Link to={child.url} onClick={() => setOpenMobile(false)}>
+                              <child.icon className="h-4 w-4" />
+                              <span>{child.title}</span>
+                            </Link>
                           </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {item.children.map((child) => (
-                              <SidebarMenuSubItem key={child.title}>
-                                <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
-                                  <Link to={child.url} onClick={() => setOpenMobile(false)}>
-                                    <child.icon className="h-4 w-4" />
-                                    <span>{child.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
+                        </SidebarMenuItem>
+                      ))}
+                    </div>
                   );
                 }
                 return (
