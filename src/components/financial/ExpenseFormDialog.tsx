@@ -155,8 +155,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // NFSe / Ordem de Serviço linked to maintenance
   const [hasNfse, setHasNfse] = useState(false);
   const [nfseNumero, setNfseNumero] = useState("");
-  const [nfseDescricao, setNfseDescricao] = useState("");
-  const [nfseValor, setNfseValor] = useState("");
+  interface NfseServiceItem { descricao: string; quantidade: number; valor_unitario: number; valor_total: number; }
+  const [nfseItens, setNfseItens] = useState<NfseServiceItem[]>([]);
+  const [nfseNewDesc, setNfseNewDesc] = useState("");
+  const [nfseNewQtd, setNfseNewQtd] = useState("1");
+  const [nfseNewValor, setNfseNewValor] = useState("");
   const [nfseDataEmissao, setNfseDataEmissao] = useState("");
   const [nfseDataVencimento, setNfseDataVencimento] = useState("");
   const [nfseFormaPagamento, setNfseFormaPagamento] = useState("");
@@ -166,6 +169,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
   interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
   const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+  const nfseValorTotal = useMemo(() => nfseItens.reduce((s, i) => s + i.valor_total, 0), [nfseItens]);
 
   // Use external chart accounts
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
@@ -354,7 +358,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setItensNota([]); setInputMode("manual");
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
-    setHasNfse(false); setNfseNumero(""); setNfseDescricao(""); setNfseValor(""); setNfseDataEmissao("");
+    setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
@@ -591,14 +595,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
 
     // Create second expense for NFSe/Ordem de Serviço if enabled
-    if (!isEditing && isMaintenanceType && hasNfse && nfseValor && Number(nfseValor) > 0) {
+    if (!isEditing && isMaintenanceType && hasNfse && nfseValorTotal > 0) {
+      const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
         empresa_id: empresaId,
-        descricao: nfseDescricao.trim() || `NFSe ${nfseNumero} - Serviço de manutenção`,
+        descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço de manutenção`,
         tipo_despesa: "manutencao",
         plano_contas_id: planoContasId,
         centro_custo: centroCusto,
-        valor_total: Number(nfseValor),
+        valor_total: nfseValorTotal,
         data_emissao: nfseDataEmissao || dataEmissao,
         data_vencimento: nfseDataVencimento || null,
         forma_pagamento: nfseFormaPagamento || null,
@@ -1012,20 +1017,66 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Nº NFSe / OS</Label>
-                        <Input value={nfseNumero} onChange={e => setNfseNumero(e.target.value)} placeholder="Número do documento" className="h-9" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Valor do Serviço (R$) *</Label>
-                        <Input type="number" step="0.01" value={nfseValor} onChange={e => setNfseValor(e.target.value)} placeholder="0,00" className="h-9" />
-                      </div>
+                    <div>
+                      <Label className="text-xs">Nº NFSe / OS</Label>
+                      <Input value={nfseNumero} onChange={e => setNfseNumero(e.target.value)} placeholder="Número do documento" className="h-9" />
                     </div>
 
+                    {/* Itens de serviço da NFSe */}
                     <div>
-                      <Label className="text-xs">Descrição do Serviço</Label>
-                      <Input value={nfseDescricao} onChange={e => setNfseDescricao(e.target.value)} placeholder="Ex: Mão de obra troca de óleo..." className="h-9" />
+                      <Label className="text-xs mb-1 block">Serviços ({nfseItens.length})</Label>
+                      <div className="flex gap-1.5 mb-2">
+                        <Input className="flex-1 h-9" value={nfseNewDesc} onChange={e => setNfseNewDesc(e.target.value)} placeholder="Descrição do serviço" />
+                        <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
+                        <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                          if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
+                          if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
+                          const qtd = Number(nfseNewQtd) || 1;
+                          const vu = Number(nfseNewValor);
+                          setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
+                          setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
+                        }}><Plus className="h-4 w-4" /></Button>
+                      </div>
+
+                      {nfseItens.length > 0 && (
+                        <div className="border rounded-md overflow-x-auto max-h-[160px] overflow-y-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-[10px]">Descrição</TableHead>
+                                <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                                <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                                <TableHead className="text-[10px] text-right">Total</TableHead>
+                                <TableHead className="text-[10px] w-[32px]"></TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {nfseItens.map((item, idx) => (
+                                <TableRow key={idx}>
+                                  <TableCell className="text-[11px] max-w-[150px] truncate">{item.descricao}</TableCell>
+                                  <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                                  <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setNfseItens(prev => prev.filter((_, i) => i !== idx))}>
+                                      <Trash2 className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+
+                      {nfseItens.length > 0 && (
+                        <div className="text-right mt-1">
+                          <span className="text-xs font-semibold text-foreground">
+                            Total NFSe: R$ {nfseValorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -1071,7 +1122,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <Switch id="nfse-parcelas" checked={nfseUseParcelas} onCheckedChange={(checked) => {
                           setNfseUseParcelas(checked);
                           if (checked && nfseParcelas.length === 0) {
-                            const val = Number(nfseValor) || 0;
+                            const val = nfseValorTotal;
                             setNfseParcelas([{ numero: 1, valor: String(val.toFixed(2)), data_vencimento: nfseDataVencimento || "" }]);
                           }
                         }} />
@@ -1085,7 +1136,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             </span>
                             <div className="flex gap-1">
                               <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                                const val = Number(nfseValor) || 0;
+                                const val = nfseValorTotal;
                                 const newCount = nfseParcelas.length + 1;
                                 const parcelaVal = (val / newCount).toFixed(2);
                                 const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
@@ -1152,7 +1203,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             </Table>
                           </div>
 
-                          {Math.abs(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(nfseValor) || 0)) > 0.01 && (
+                          {Math.abs(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - nfseValorTotal) > 0.01 && (
                             <p className="text-[10px] text-destructive font-medium">
                               ⚠ Soma das parcelas difere do valor da NFSe
                             </p>
