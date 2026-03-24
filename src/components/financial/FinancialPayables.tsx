@@ -1004,6 +1004,164 @@ export function FinancialPayables() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Maintenance Detail Modal */}
+      <Dialog open={maintDetailOpen} onOpenChange={setMaintDetailOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 shrink-0" /> Detalhes da Manutenção
+            </DialogTitle>
+          </DialogHeader>
+
+          {maintDetailLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : !maintData ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum registro de manutenção encontrado para esta despesa.</p>
+          ) : (
+            <div className="space-y-4 min-w-0">
+              {/* Vehicle + General Info */}
+              <Card>
+                <CardContent className="p-3 space-y-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Car className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-semibold text-foreground truncate">
+                      {maintVehicle?.plate || "—"} — {maintVehicle?.brand} {maintVehicle?.model}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                    <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium text-foreground">{maintData.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}</span></div>
+                    <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(maintData.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                    <div><span className="text-muted-foreground">KM:</span> <span className="font-mono font-medium text-foreground">{Number(maintData.odometro).toLocaleString("pt-BR")}</span></div>
+                    <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(maintData.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                    {maintData.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintData.fornecedor}</span></div>}
+                    {maintData.proxima_manutencao_km && <div><span className="text-muted-foreground">Próx. KM:</span> <span className="font-mono text-foreground">{Number(maintData.proxima_manutencao_km).toLocaleString("pt-BR")}</span></div>}
+                  </div>
+                  <p className="text-xs text-foreground mt-1 break-words">{maintData.descricao}</p>
+                </CardContent>
+              </Card>
+
+              {/* NFe (Peças) */}
+              {maintNfeExpense && (
+                <Card className="border-l-4 border-l-primary">
+                  <CardContent className="p-3 space-y-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-semibold text-xs text-foreground truncate">NFe — Peças / Materiais</span>
+                      <Badge variant={maintNfeExpense.status === "pago" ? "default" : "outline"} className="text-[10px] ml-auto shrink-0">
+                        {maintNfeExpense.status === "pago" ? "Pago" : maintNfeExpense.status === "pendente" ? "Pendente" : maintNfeExpense.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                      <div className="truncate"><span className="text-muted-foreground">Nº Doc:</span> <span className="text-foreground">{maintNfeExpense.documento_fiscal_numero || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfeExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfeExpense.favorecido_nome || "—"}</span></div>
+                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(maintNfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                    </div>
+                    {maintItems.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Itens ({maintItems.length})</p>
+                        <div className="border rounded-md divide-y max-h-[150px] overflow-y-auto">
+                          {maintItems.map((mi: any) => (
+                            <div key={mi.id} className="flex items-center gap-1 p-2 text-xs min-w-0">
+                              <span className="text-foreground truncate flex-1 min-w-0">{mi.descricao}</span>
+                              <span className="text-muted-foreground shrink-0">{mi.quantidade}x</span>
+                              <span className="font-mono text-foreground shrink-0">R${Number(mi.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* NFSe (Serviço) */}
+              {maintNfseExpense && (
+                <Card className="border-l-4 border-l-accent">
+                  <CardContent className="p-3 space-y-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-accent-foreground shrink-0" />
+                      <span className="font-semibold text-xs text-foreground truncate">NFSe — Serviço / OS</span>
+                      <Badge variant={maintNfseExpense.status === "pago" ? "default" : "outline"} className="text-[10px] ml-auto shrink-0">
+                        {maintNfseExpense.status === "pago" ? "Pago" : maintNfseExpense.status === "pendente" ? "Pendente" : maintNfseExpense.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                      <div className="truncate"><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{maintNfseExpense.documento_fiscal_numero || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfseExpense.favorecido_nome || "—"}</span></div>
+                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(maintNfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground break-words">{maintNfseExpense.descricao}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Resumo consolidado */}
+              {maintNfeExpense && maintNfseExpense && (
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-foreground">NFe (Peças):</span>
+                    <span className="font-mono text-foreground">R$ {Number(maintNfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-foreground">NFSe (Serviço):</span>
+                    <span className="font-mono text-foreground">R$ {Number(maintNfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-semibold border-t border-border pt-1">
+                    <span className="text-foreground">Total:</span>
+                    <span className="font-mono text-foreground">R$ {Number(maintData.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Parcelas NFe */}
+              {maintNfeExpense && (
+                <Card className="border border-border">
+                  <CardContent className="p-3 space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 shrink-0" /> Parcelas NFe</p>
+                    {maintNfeInst.length > 0 ? (
+                      <div className="divide-y max-h-[120px] overflow-y-auto">
+                        {maintNfeInst.map((inst: any) => (
+                          <div key={inst.id} className="grid grid-cols-[auto_1fr_auto_auto] gap-x-2 items-center py-1.5 text-xs">
+                            <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
+                            <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                            <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
+                            <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-xs text-muted-foreground">Sem parcelas</p>}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Parcelas NFSe */}
+              {maintNfseExpense && (
+                <Card className="border border-border">
+                  <CardContent className="p-3 space-y-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 shrink-0" /> Parcelas NFSe</p>
+                    {maintNfseInst.length > 0 ? (
+                      <div className="divide-y max-h-[120px] overflow-y-auto">
+                        {maintNfseInst.map((inst: any) => (
+                          <div key={inst.id} className="grid grid-cols-[auto_1fr_auto_auto] gap-x-2 items-center py-1.5 text-xs">
+                            <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
+                            <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                            <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
+                            <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-xs text-muted-foreground">Sem parcelas</p>}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
