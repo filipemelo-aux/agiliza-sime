@@ -517,27 +517,37 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
           </div>
 
           {/* ── É manutenção? ── */}
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <Label className="text-xs font-medium cursor-pointer" htmlFor="is-manutencao">É manutenção do veículo?</Label>
-                <p className="text-[10px] text-muted-foreground">Registra no histórico de manutenção da frota</p>
+          <div className={`rounded-lg border p-3 transition-colors ${isManutencao ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench className={`h-4 w-4 ${isManutencao ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <Label className="text-xs font-medium cursor-pointer" htmlFor="is-manutencao">É manutenção do veículo?</Label>
+                  <p className="text-[10px] text-muted-foreground">Registra no histórico de manutenção da frota</p>
+                </div>
               </div>
+              <Switch
+                id="is-manutencao"
+                checked={isManutencao}
+                onCheckedChange={(checked) => {
+                  setIsManutencao(checked);
+                  if (checked && tipoDespesa !== "manutencao") {
+                    setTipoDespesa("manutencao");
+                  }
+                  if (!checked && tipoDespesa === "manutencao") {
+                    setTipoDespesa("outros");
+                  }
+                }}
+              />
             </div>
-            <Switch
-              id="is-manutencao"
-              checked={isManutencao}
-              onCheckedChange={(checked) => {
-                setIsManutencao(checked);
-                if (checked && tipoDespesa !== "manutencao") {
-                  setTipoDespesa("manutencao");
-                }
-                if (!checked && tipoDespesa === "manutencao") {
-                  setTipoDespesa("outros");
-                }
-              }}
-            />
+            {isManutencao && (
+              <div className="mt-2 flex items-start gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5">
+                <Wrench className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                <p className="text-[11px] text-primary font-medium leading-tight">
+                  Essa despesa será registrada também no histórico de manutenção do veículo selecionado.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Fuel suggestion */}
