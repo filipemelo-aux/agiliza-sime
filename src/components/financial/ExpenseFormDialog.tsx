@@ -640,6 +640,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         console.error("Erro ao criar despesa NFSe:", nfseError);
         toast.warning("Despesa principal criada, mas houve erro ao criar a despesa da NFSe.");
       } else if (nfseData) {
+        // Link NFSe expense to maintenance record
+        if (expenseId) {
+          await supabase.from("maintenances" as any).update({ nfse_expense_id: nfseData.id }).eq("expense_id", expenseId);
+        }
         // Save NFSe installments if any
         if (nfseUseParcelas && nfseParcelas.length > 0) {
           await supabase.from("expense_installments" as any).insert(nfseParcelas.map(p => ({

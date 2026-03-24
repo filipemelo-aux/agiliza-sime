@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Wrench, Car, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +15,7 @@ interface Maintenance {
   id: string;
   veiculo_id: string;
   expense_id: string | null;
+  nfse_expense_id: string | null;
   data_manutencao: string;
   odometro: number;
   tipo_manutencao: string;
@@ -28,6 +30,28 @@ interface Maintenance {
 
 interface Vehicle { id: string; plate: string; brand: string; model: string; }
 
+interface ExpenseDetail {
+  id: string;
+  descricao: string;
+  valor_total: number;
+  data_emissao: string;
+  documento_fiscal_numero: string | null;
+  chave_nfe: string | null;
+  favorecido_nome: string | null;
+  status: string;
+  forma_pagamento: string | null;
+  fornecedor_cnpj: string | null;
+}
+
+interface MaintenanceItemDetail {
+  id: string;
+  descricao: string;
+  quantidade: number;
+  valor_unitario: number;
+  valor_total: number;
+  tipo: string;
+}
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   realizada: { label: "Realizada", variant: "default" },
   pendente: { label: "Pendente", variant: "secondary" },
@@ -41,6 +65,14 @@ export default function AdminMaintenances() {
   const [search, setSearch] = useState("");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailMaint, setDetailMaint] = useState<Maintenance | null>(null);
+  const [nfeExpense, setNfeExpense] = useState<ExpenseDetail | null>(null);
+  const [nfseExpense, setNfseExpense] = useState<ExpenseDetail | null>(null);
+  const [maintItems, setMaintItems] = useState<MaintenanceItemDetail[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -75,6 +107,49 @@ export default function AdminMaintenances() {
   }, [items, search, filterVeiculo, filterTipo, vehicleMap]);
 
   const totalCusto = filtered.reduce((s, i) => s + Number(i.custo_total), 0);
+
+  const openDetail = async (maint: Maintenance) => {
+    setDetailMaint(maint);
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setNfeExpense(null);
+    setNfseExpense(null);
+    setMaintItems([]);
+
+    const promises: Promise<any>[] = [];
+
+    // Fetch NFe expense (main)
+    if (maint.expense_id) {
+      promises.push(
+        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.expense_id).maybeSingle().then(({ data }) => {
+          setNfeExpense(data as any);
+        })
+      );
+      // Fetch maintenance items (peças)
+      promises.push(
+        supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", maint.expense_id).then(({ data }) => {
+          setMaintItems((data as any) || []);
+        })
+      );
+    }
+
+    // Fetch NFSe expense
+    if (maint.nfse_expense_id) {
+      promises.push(
+        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.nfse_expense_id).maybeSingle().then(({ data }) => {
+          setNfseExpense(data as any);
+        })
+      );
+    }
+
+    await Promise.all(promises);
+    setDetailLoading(false);
+  };
+
+  // Find NFSe date for display on card
+  const getNfseInfo = (maint: Maintenance) => {
+    return maint.nfse_expense_id ? true : false;
+  };
 
   return (
     <AdminLayout>
@@ -134,7 +209,7 @@ export default function AdminMaintenances() {
         {/* Cards */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
@@ -146,8 +221,9 @@ export default function AdminMaintenances() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map(item => {
               const v = vehicleMap[item.veiculo_id];
+              const hasNfse = getNfseInfo(item);
               return (
-                <Card key={item.id} className="hover:shadow-md transition-shadow">
+                <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(item)}>
                   <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
@@ -172,6 +248,20 @@ export default function AdminMaintenances() {
                     <p className="text-sm text-foreground line-clamp-2">{item.descricao}</p>
                     {item.fornecedor && <p className="text-xs text-muted-foreground">Fornecedor: {item.fornecedor}</p>}
 
+                    {/* Docs badges */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {item.expense_id && (
+                        <Badge variant="outline" className="text-[10px] gap-1">
+                          <FileText className="h-3 w-3" /> NFe
+                        </Badge>
+                      )}
+                      {hasNfse && (
+                        <Badge variant="secondary" className="text-[10px] gap-1">
+                          <FileText className="h-3 w-3" /> NFSe
+                        </Badge>
+                      )}
+                    </div>
+
                     {/* Info grid */}
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
@@ -183,32 +273,161 @@ export default function AdminMaintenances() {
                         <p className="font-mono font-medium text-foreground">{Number(item.odometro).toLocaleString("pt-BR")}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Custo</span>
+                        <span className="text-muted-foreground">Custo Total</span>
                         <p className="font-mono font-semibold text-foreground">
                           R$ {Number(item.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    {item.expense_id && (
-                      <div className="pt-1 border-t border-border">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1 text-primary"
-                          onClick={() => navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } })}
-                        >
-                          <DollarSign className="h-3.5 w-3.5" /> Ver conta vinculada
+                    {/* Footer */}
+                    <div className="pt-1 border-t border-border flex items-center justify-between">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={(e) => { e.stopPropagation(); openDetail(item); }}>
+                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                      </Button>
+                      {item.expense_id && (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } }); }}>
+                          <DollarSign className="h-3.5 w-3.5" /> Conta
                         </Button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
         )}
+
+        {/* Detail Dialog */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5" /> Detalhes da Manutenção
+              </DialogTitle>
+            </DialogHeader>
+
+            {detailLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : detailMaint && (
+              <div className="space-y-4">
+                {/* Vehicle + General Info */}
+                <Card>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-foreground">
+                        {vehicleMap[detailMaint.veiculo_id]?.plate || "—"} — {vehicleMap[detailMaint.veiculo_id]?.brand} {vehicleMap[detailMaint.veiculo_id]?.model}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium text-foreground">{detailMaint.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}</span></div>
+                      <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(detailMaint.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div><span className="text-muted-foreground">Odômetro:</span> <span className="font-mono font-medium text-foreground">{Number(detailMaint.odometro).toLocaleString("pt-BR")} km</span></div>
+                      <div><span className="text-muted-foreground">Custo Total:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(detailMaint.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      {detailMaint.fornecedor && <div className="col-span-2"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{detailMaint.fornecedor}</span></div>}
+                      {detailMaint.proxima_manutencao_km && <div><span className="text-muted-foreground">Próx. KM:</span> <span className="font-mono text-foreground">{Number(detailMaint.proxima_manutencao_km).toLocaleString("pt-BR")}</span></div>}
+                      {detailMaint.data_proxima_manutencao && <div><span className="text-muted-foreground">Próx. Data:</span> <span className="text-foreground">{format(new Date(detailMaint.data_proxima_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>}
+                    </div>
+                    <p className="text-sm text-foreground mt-1">{detailMaint.descricao}</p>
+                  </CardContent>
+                </Card>
+
+                {/* NFe (Peças) */}
+                {nfeExpense && (
+                  <Card className="border-l-4 border-l-primary">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="font-semibold text-sm text-foreground">NFe — Peças / Materiais</span>
+                        <Badge variant={nfeExpense.status === "pago" ? "default" : "outline"} className="text-[10px] ml-auto">
+                          {nfeExpense.status === "pago" ? "Pago" : nfeExpense.status === "pendente" ? "Pendente" : nfeExpense.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-muted-foreground">Nº Documento:</span> <span className="text-foreground">{nfeExpense.documento_fiscal_numero || "—"}</span></div>
+                        <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(nfeExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                        <div><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{nfeExpense.favorecido_nome || "—"}</span></div>
+                        <div><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(nfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      </div>
+
+                      {/* Itens de peças */}
+                      {maintItems.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Itens ({maintItems.length})</p>
+                          <div className="border rounded-md divide-y max-h-[150px] overflow-y-auto">
+                            {maintItems.map((mi) => (
+                              <div key={mi.id} className="flex items-center justify-between p-2 text-xs">
+                                <span className="text-foreground truncate flex-1">{mi.descricao}</span>
+                                <span className="text-muted-foreground mx-2">{mi.quantidade}x</span>
+                                <span className="font-mono text-foreground shrink-0">R$ {Number(mi.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* NFSe (Serviço) */}
+                {nfseExpense && (
+                  <Card className="border-l-4 border-l-accent">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-accent-foreground" />
+                        <span className="font-semibold text-sm text-foreground">NFSe — Serviço / Ordem de Serviço</span>
+                        <Badge variant={nfseExpense.status === "pago" ? "default" : "outline"} className="text-[10px] ml-auto">
+                          {nfseExpense.status === "pago" ? "Pago" : nfseExpense.status === "pendente" ? "Pendente" : nfseExpense.status}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{nfseExpense.documento_fiscal_numero || "—"}</span></div>
+                        <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(nfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                        <div><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{nfseExpense.favorecido_nome || "—"}</span></div>
+                        <div><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(nfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{nfseExpense.descricao}</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Custo consolidado */}
+                {nfeExpense && nfseExpense && (
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground">NFe (Peças):</span>
+                      <span className="font-mono text-foreground">R$ {Number(nfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground">NFSe (Serviço):</span>
+                      <span className="font-mono text-foreground">R$ {Number(nfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold border-t border-border pt-1">
+                      <span className="text-foreground">Total:</span>
+                      <span className="font-mono text-foreground">R$ {Number(detailMaint.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  {detailMaint.expense_id && (
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setDetailOpen(false); navigate("/admin/financial/payables", { state: { highlightExpenseId: detailMaint.expense_id } }); }}>
+                      <DollarSign className="h-3.5 w-3.5" /> Ver NFe no Financeiro
+                    </Button>
+                  )}
+                  {detailMaint.nfse_expense_id && (
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { setDetailOpen(false); navigate("/admin/financial/payables", { state: { highlightExpenseId: detailMaint.nfse_expense_id } }); }}>
+                      <DollarSign className="h-3.5 w-3.5" /> Ver NFSe no Financeiro
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
