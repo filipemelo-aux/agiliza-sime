@@ -152,6 +152,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
+  // NFSe / Ordem de Serviço linked to maintenance
+  const [hasNfse, setHasNfse] = useState(false);
+  const [nfseNumero, setNfseNumero] = useState("");
+  const [nfseDescricao, setNfseDescricao] = useState("");
+  const [nfseValor, setNfseValor] = useState("");
+  const [nfseDataEmissao, setNfseDataEmissao] = useState("");
+  const [nfseDataVencimento, setNfseDataVencimento] = useState("");
+  const [nfseFormaPagamento, setNfseFormaPagamento] = useState("");
+  const [nfseFornecedorNome, setNfseFornecedorNome] = useState("");
+  const [nfseFornecedorId, setNfseFornecedorId] = useState<string | null>(null);
+  const [nfseObservacoes, setNfseObservacoes] = useState("");
+  const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
+  interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
+  const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+
   // Use external chart accounts
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
 
