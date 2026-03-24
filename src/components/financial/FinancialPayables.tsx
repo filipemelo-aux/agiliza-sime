@@ -41,7 +41,7 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface ChartAccount { id: string; codigo: string; nome: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
