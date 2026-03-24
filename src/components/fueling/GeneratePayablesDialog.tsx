@@ -39,15 +39,14 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
 
     try {
       // Look up the combustível category
-      const { data: combCat } = await supabase
+      const { data: combCat } = await (supabase
         .from("financial_categories")
         .select("id")
-        .eq("tipo_operacional" as any, "combustivel")
         .eq("type", "payable" as any)
         .eq("active", true)
         .limit(1)
-        .maybeSingle();
-      const categoriaId = (combCat as any)?.id || null;
+        .maybeSingle() as any);
+      const categoriaId = combCat?.id || null;
 
       if (groupMode === "single") {
         // Create one expense for all fuelings
