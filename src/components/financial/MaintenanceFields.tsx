@@ -46,6 +46,7 @@ interface Props {
   itensManutencao: MaintenanceItem[];
   onItensManutencaoChange: (items: MaintenanceItem[]) => void;
   onTotalChange: (total: number) => void;
+  hasNfse?: boolean;
 }
 
 export function MaintenanceFields({
@@ -59,6 +60,7 @@ export function MaintenanceFields({
   dataProximaManutencao, onDataProximaManutencaoChange,
   itensManutencao, onItensManutencaoChange,
   onTotalChange,
+  hasNfse = false,
 }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [lastKm, setLastKm] = useState<number | null>(null);
@@ -188,17 +190,19 @@ export function MaintenanceFields({
         </div>
       </div>
 
-      {/* Descrição do serviço */}
-      <div>
-        <Label className="text-xs">Descrição do Serviço *</Label>
-        <Textarea
-          value={descricaoServico}
-          onChange={e => onDescricaoServicoChange(e.target.value)}
-          placeholder="Descreva o serviço realizado..."
-          rows={2}
-          className="text-sm"
-        />
-      </div>
+      {/* Descrição do serviço - hidden when NFSe is active */}
+      {!hasNfse && (
+        <div>
+          <Label className="text-xs">Descrição do Serviço *</Label>
+          <Textarea
+            value={descricaoServico}
+            onChange={e => onDescricaoServicoChange(e.target.value)}
+            placeholder="Descreva o serviço realizado..."
+            rows={2}
+            className="text-sm"
+          />
+        </div>
+      )}
 
       {/* Tempo parado + Próxima manutenção */}
       <div className="grid grid-cols-3 gap-3">
