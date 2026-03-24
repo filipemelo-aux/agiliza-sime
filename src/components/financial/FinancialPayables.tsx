@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, FolderTree } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ interface Expense {
   descricao: string;
   tipo_despesa: string;
   categoria_financeira_id: string | null;
+  plano_contas_id: string | null;
   centro_custo: string;
   valor_total: number;
   valor_pago: number;
@@ -42,7 +43,8 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface Category { id: string; name: string; tipo_operacional?: string | null; }
+interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
