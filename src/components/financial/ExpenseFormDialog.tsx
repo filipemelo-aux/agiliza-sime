@@ -7,14 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
-import { Upload, FileText, Trash2, Fuel, Info, History, DollarSign, FileInput, Wrench } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
@@ -122,7 +121,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
 
-  const [activeTab, setActiveTab] = useState("dados");
   const [descricao, setDescricao] = useState("");
   const [tipoDespesa, setTipoDespesa] = useState("outros");
   const [categoriaId, setCategoriaId] = useState("");
@@ -160,14 +158,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Fuel linking
   const [unfueledRecords, setUnfueledRecords] = useState<FuelingRecord[]>([]);
   const [showFuelSuggestion, setShowFuelSuggestion] = useState(false);
 
+  // Collapsible sections
+  const [showDocFiscal, setShowDocFiscal] = useState(false);
+
   useEffect(() => {
     if (!open) return;
-    setActiveTab("dados");
     if (expense) {
       setDescricao(expense.descricao);
       setTipoDespesa(expense.tipo_despesa);
@@ -196,6 +197,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setFornecedorMecanica(expense.fornecedor_mecanica || "");
       setTempoParado(expense.tempo_parado || "");
       setProximaManutencaoKm(expense.proxima_manutencao_km ? String(expense.proxima_manutencao_km) : "");
+      setShowDocFiscal(!!(expense.documento_fiscal_numero || expense.chave_nfe));
+      setShowHistory(false);
       if (expense.id) {
         loadItems(expense.id);
         if (expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
@@ -206,7 +209,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     }
   }, [expense, open]);
 
-  // When fuel type is selected, show suggestion
   useEffect(() => {
     if (tipoDespesa === "combustivel" && !isEditing) {
       loadUnfueledRecords();
@@ -266,6 +268,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica("");
     setTempoParado(""); setProximaManutencaoKm(""); setItensManutencao([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
+    setShowDocFiscal(false); setShowHistory(false);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,6 +290,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
+        setShowDocFiscal(true);
         toast.success(`XML importado: ${parsed.itens.length} item(ns)`);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
@@ -394,7 +398,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         created_by: user?.id,
       };
 
-      // Check if maintenance record already exists for this expense
       const { data: existingMaint } = await supabase
         .from("maintenances" as any)
         .select("id")
@@ -422,8 +425,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? "Editar" : "Nova"} Despesa
             {isEditing && documentoImportado && (
@@ -432,9 +435,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
           </DialogTitle>
         </DialogHeader>
 
-        {/* Input mode selector for new expense */}
-        {!isEditing && (
-          <div className="px-6 pb-2">
+        <div className="space-y-4">
+          {/* Input mode selector for new expense */}
+          {!isEditing && (
             <div className="flex gap-2">
               <Button
                 variant={inputMode === "manual" ? "default" : "outline"}
@@ -453,34 +456,22 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 <Upload className="h-3.5 w-3.5" /> Importar XML
               </Button>
             </div>
-            {inputMode === "xml" && (
-              <div className="mt-3 border-2 border-dashed rounded-lg p-4 text-center space-y-2">
-                <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
-                <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Selecionar XML</Button>
-                {documentoImportado && <Badge variant="default" className="ml-2">Importado ✓</Badge>}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Tabbed content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 pb-6">
-          <TabsList className={`grid w-full ${isEditing ? "grid-cols-4" : "grid-cols-3"}`}>
-            <TabsTrigger value="dados" className="gap-1 text-xs"><Info className="h-3.5 w-3.5" /> Dados</TabsTrigger>
-            <TabsTrigger value="financeiro" className="gap-1 text-xs"><DollarSign className="h-3.5 w-3.5" /> Financeiro</TabsTrigger>
-            <TabsTrigger value="origem" className="gap-1 text-xs"><FileInput className="h-3.5 w-3.5" /> Origem</TabsTrigger>
-            {isEditing && (
-              <TabsTrigger value="historico" className="gap-1 text-xs"><History className="h-3.5 w-3.5" /> Histórico</TabsTrigger>
-            )}
-          </TabsList>
+          {inputMode === "xml" && !isEditing && (
+            <div className="border-2 border-dashed rounded-lg p-4 text-center space-y-2">
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
+              <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Selecionar XML</Button>
+              {documentoImportado && <Badge variant="default" className="ml-2">Importado ✓</Badge>}
+            </div>
+          )}
 
-          {/* ═══ TAB: DADOS ═══ */}
-          <TabsContent value="dados" className="space-y-3 mt-4">
-            {/* Tipo */}
+          {/* ── Tipo + Descrição ── */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs">Tipo da Despesa *</Label>
+              <Label className="text-xs">Tipo *</Label>
               <Select value={tipoDespesa} onValueChange={setTipoDespesa}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -488,141 +479,85 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Fuel suggestion */}
-            {showFuelSuggestion && unfueledRecords.length > 0 && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Fuel className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium">Abastecimentos não faturados</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mb-2">
-                    Existem {unfueledRecords.length} abastecimentos pendentes. Use o módulo de Abastecimentos para gerar contas a pagar em lote.
-                  </p>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
-                    window.location.href = "/admin/fuelings";
-                  }}>
-                    Ir para Abastecimentos
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Descrição */}
-            <div>
+            <div className="col-span-2">
               <Label className="text-xs">Descrição *</Label>
               <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
             </div>
+          </div>
 
-            {/* Maintenance Section */}
-            {isMaintenanceType && (
-              <>
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                  <Wrench className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-xs text-muted-foreground">
-                    Essa despesa será registrada também no <strong className="text-foreground">histórico de manutenção</strong> do veículo selecionado.
-                  </p>
+          {/* Fuel suggestion */}
+          {showFuelSuggestion && unfueledRecords.length > 0 && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Fuel className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">Abastecimentos não faturados</span>
                 </div>
-                <MaintenanceFields
-                  veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
-                  kmAtual={kmAtual} onKmAtualChange={setKmAtual}
-                  tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
-                  fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
-                  tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
-                  proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
-                  itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
-                  onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
-                />
-              </>
-            )}
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  Existem {unfueledRecords.length} abastecimentos pendentes. Use o módulo de Abastecimentos para gerar contas a pagar em lote.
+                </p>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                  window.location.href = "/admin/fuelings";
+                }}>
+                  Ir para Abastecimentos
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Favorecido */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Favorecido</Label>
-                <PersonSearchInput
-                  categories={["fornecedor"]}
-                  placeholder="Buscar fornecedor..."
-                  selectedName={favorecidoNome || undefined}
-                  onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
-                  onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">CNPJ Fornecedor</Label>
-                <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
-              </div>
-            </div>
-
-            {/* Vehicle fields */}
-            {showVehicleFields && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Placa Veículo</Label>
-                  <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs">Km Odômetro</Label>
-                  <Input type="number" value={kmOdometro} onChange={e => setKmOdometro(e.target.value)} placeholder="0" className="h-9" />
-                </div>
-              </div>
-            )}
-            {showFuelFields && (
-              <div>
-                <Label className="text-xs">Litros</Label>
-                <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" className="h-9" />
-              </div>
-            )}
-            {showFineFields && (
-              <div>
-                <Label className="text-xs">Nº da Multa</Label>
-                <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" className="h-9" />
-              </div>
-            )}
-
-            {/* Observações */}
+          {/* ── Favorecido + CNPJ ── */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Observações</Label>
-              <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} className="text-sm" />
+              <Label className="text-xs">Favorecido</Label>
+              <PersonSearchInput
+                categories={["fornecedor"]}
+                placeholder="Buscar fornecedor..."
+                selectedName={favorecidoNome || undefined}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
+                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+              />
             </div>
-          </TabsContent>
+            <div>
+              <Label className="text-xs">CNPJ Fornecedor</Label>
+              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="h-9" />
+            </div>
+          </div>
 
-          {/* ═══ TAB: FINANCEIRO ═══ */}
-          <TabsContent value="financeiro" className="space-y-3 mt-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Valor (R$) *</Label>
-                <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
-              </div>
-              <div>
-                <Label className="text-xs">Emissão</Label>
-                <Input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)} className="h-9" />
-              </div>
-              <div>
-                <Label className="text-xs">Vencimento</Label>
-                <Input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="h-9" />
-              </div>
+          {/* ── Valor, Emissão, Vencimento ── */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Valor (R$) *</Label>
+              <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Centro de Custo</Label>
-                <Select value={centroCusto} onValueChange={setCentroCusto}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Categoria</Label>
-                <Select value={categoriaId} onValueChange={setCategoriaId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label className="text-xs">Emissão</Label>
+              <Input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)} className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Vencimento</Label>
+              <Input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="h-9" />
+            </div>
+          </div>
+
+          {/* ── Centro Custo, Categoria, Forma Pgto ── */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Centro de Custo</Label>
+              <Select value={centroCusto} onValueChange={setCentroCusto}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Categoria</Label>
+              <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs">Forma de Pagamento</Label>
@@ -633,153 +568,224 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            {/* Summary for editing */}
-            {isEditing && (
-              <Card className="bg-muted/50">
-                <CardContent className="p-3 grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Total</p>
-                    <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Pago</p>
-                    <p className="text-sm font-bold font-mono text-emerald-600">R$ {Number(expense?.valor_pago || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Restante</p>
-                    <p className="text-sm font-bold font-mono text-destructive">
-                      R$ {(Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* ═══ TAB: ORIGEM ═══ */}
-          <TabsContent value="origem" className="space-y-3 mt-4">
+          {/* ── Vehicle-specific fields ── */}
+          {showVehicleFields && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Nº Doc. Fiscal</Label>
-                <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
+                <Label className="text-xs">Placa Veículo</Label>
+                <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
               </div>
               <div>
-                <Label className="text-xs">Chave NF-e</Label>
-                <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} className="h-9" />
+                <Label className="text-xs">Km Odômetro</Label>
+                <Input type="number" value={kmOdometro} onChange={e => setKmOdometro(e.target.value)} placeholder="0" className="h-9" />
               </div>
             </div>
+          )}
+          {showFuelFields && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Litros</Label>
+                <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" className="h-9" />
+              </div>
+            </div>
+          )}
+          {showFineFields && (
+            <div>
+              <Label className="text-xs">Nº da Multa</Label>
+              <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" className="h-9" />
+            </div>
+          )}
 
-            {isEditing && (
+          {/* ── Manutenção ── */}
+          {isMaintenanceType && (
+            <div className="space-y-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold text-foreground">Dados da Manutenção</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground -mt-1">
+                Essa despesa será registrada também no histórico de manutenção do veículo.
+              </p>
+              <MaintenanceFields
+                veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
+                kmAtual={kmAtual} onKmAtualChange={setKmAtual}
+                tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
+                tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
+                proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
+                onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
+              />
+            </div>
+          )}
+
+          {/* ── Observações ── */}
+          <div>
+            <Label className="text-xs">Observações</Label>
+            <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} className="text-sm" />
+          </div>
+
+          {/* ── Doc Fiscal (collapsible) ── */}
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            onClick={() => setShowDocFiscal(!showDocFiscal)}
+          >
+            {showDocFiscal ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            Documento Fiscal
+            {(docFiscal || chaveNfe) && <Badge variant="secondary" className="text-[9px] ml-1">Preenchido</Badge>}
+          </button>
+          {showDocFiscal && (
+            <div className="space-y-3 pl-5 border-l-2 border-muted">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Origem</Label>
-                  <p className="text-sm">{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</p>
+                  <Label className="text-xs">Nº Doc. Fiscal</Label>
+                  <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Doc. Importado</Label>
-                  <p className="text-sm">{documentoImportado ? "Sim" : "Não"}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Items da Nota */}
-            {itensNota.length > 0 && (
-              <div>
-                <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
-                <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-[10px]">Descrição</TableHead>
-                        <TableHead className="text-[10px] text-right">Qtd</TableHead>
-                        <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
-                        <TableHead className="text-[10px] text-right">Total</TableHead>
-                        <TableHead className="text-[10px] w-[32px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {itensNota.map((item, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
-                          <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
-                          <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
-            {/* SEFAZ status */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-[10px] text-muted-foreground">Status SEFAZ</p>
-              <Badge variant="outline" className="text-[10px] mt-1">Não verificado</Badge>
-              <p className="text-[10px] text-muted-foreground mt-1">Validação SEFAZ será implementada em breve.</p>
-            </div>
-          </TabsContent>
-
-          {/* ═══ TAB: HISTÓRICO ═══ */}
-          {isEditing && (
-            <TabsContent value="historico" className="space-y-3 mt-4">
-              {/* Audit info */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Criado em</p>
-                  <p className="text-xs">{expense?.created_at ? format(new Date(expense.created_at), "dd/MM/yyyy HH:mm") : "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Atualizado em</p>
-                  <p className="text-xs">{expense?.updated_at ? format(new Date(expense.updated_at), "dd/MM/yyyy HH:mm") : "—"}</p>
+                  <Label className="text-xs">Chave NF-e</Label>
+                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} className="h-9" />
                 </div>
               </div>
 
-              {/* Payment history */}
-              <div>
-                <p className="text-xs font-medium mb-2">Histórico de Pagamentos</p>
-                {paymentHistory.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum pagamento registrado</p>
-                ) : (
+              {isEditing && (
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Origem:</span>{" "}
+                    <span>{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Importado:</span>{" "}
+                    <span>{documentoImportado ? "Sim" : "Não"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Items da Nota */}
+              {itensNota.length > 0 && (
+                <div>
+                  <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
                   <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-[10px]">Data</TableHead>
-                          <TableHead className="text-[10px]">Valor</TableHead>
-                          <TableHead className="text-[10px]">Forma</TableHead>
-                          <TableHead className="text-[10px]">Obs</TableHead>
+                          <TableHead className="text-[10px]">Descrição</TableHead>
+                          <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                          <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                          <TableHead className="text-[10px] text-right">Total</TableHead>
+                          <TableHead className="text-[10px] w-[32px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paymentHistory.map(p => (
-                          <TableRow key={p.id}>
-                            <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
-                            <TableCell className="text-[11px] font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
-                            <TableCell className="text-[11px] max-w-[80px] truncate">{p.observacoes || "—"}</TableCell>
+                        {itensNota.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
+                            <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                            <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
-                )}
-              </div>
-            </TabsContent>
+                </div>
+              )}
+            </div>
           )}
-        </Tabs>
 
-        {/* Save button - fixed at bottom */}
-        <div className="px-6 pb-6 pt-2 border-t">
-          <Button onClick={handleSave} className="w-full" disabled={saving}>
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
+          {/* ── Histórico (editing only, collapsible) ── */}
+          {isEditing && (
+            <>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                {showHistory ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                Histórico
+                {paymentHistory.length > 0 && (
+                  <Badge variant="secondary" className="text-[9px] ml-1">{paymentHistory.length} pgto(s)</Badge>
+                )}
+              </button>
+              {showHistory && (
+                <div className="space-y-3 pl-5 border-l-2 border-muted">
+                  {/* Payment summary */}
+                  <Card className="bg-muted/50">
+                    <CardContent className="p-3 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Total</p>
+                        <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Pago</p>
+                        <p className="text-sm font-bold font-mono text-emerald-600">R$ {Number(expense?.valor_pago || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Restante</p>
+                        <p className="text-sm font-bold font-mono text-destructive">
+                          R$ {(Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Audit */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Criado em:</span>{" "}
+                      {expense?.created_at ? format(new Date(expense.created_at), "dd/MM/yyyy HH:mm") : "—"}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Atualizado em:</span>{" "}
+                      {expense?.updated_at ? format(new Date(expense.updated_at), "dd/MM/yyyy HH:mm") : "—"}
+                    </div>
+                  </div>
+
+                  {/* Payment history */}
+                  {paymentHistory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">Nenhum pagamento registrado</p>
+                  ) : (
+                    <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-[10px]">Data</TableHead>
+                            <TableHead className="text-[10px]">Valor</TableHead>
+                            <TableHead className="text-[10px]">Forma</TableHead>
+                            <TableHead className="text-[10px]">Obs</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paymentHistory.map(p => (
+                            <TableRow key={p.id}>
+                              <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                              <TableCell className="text-[11px] font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
+                              <TableCell className="text-[11px] max-w-[80px] truncate">{p.observacoes || "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Save ── */}
+          <div className="pt-2 border-t">
+            <Button onClick={handleSave} className="w-full" disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
