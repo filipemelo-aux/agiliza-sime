@@ -403,7 +403,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         data_manutencao: dataEmissao,
         odometro: Number(kmAtual) || 0,
         tipo_manutencao: tipoManutencao,
-        descricao: descricao.trim(),
+        descricao: descricaoServico.trim() || descricao.trim(),
         custo_total: Number(valorTotal) || 0,
         fornecedor: fornecedorMecanica.trim() || null,
         status: "realizada",
