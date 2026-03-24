@@ -592,6 +592,56 @@ export function FinancialPayables() {
                     )}
                   </div>
 
+                  {/* Installments toggle */}
+                  {(installmentsMap[item.id]?.length || 0) > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-7 text-xs gap-1 text-muted-foreground"
+                      onClick={() => toggleExpand(item.id)}
+                    >
+                      {expandedCards.has(item.id) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {installmentsMap[item.id].length} parcela(s)
+                    </Button>
+                  )}
+
+                  {/* Installments list */}
+                  {expandedCards.has(item.id) && installmentsMap[item.id] && (
+                    <div className="space-y-1.5 border-t border-border pt-2">
+                      {installmentsMap[item.id].map(inst => {
+                        const today = new Date().toISOString().split("T")[0];
+                        const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                        return (
+                          <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${isInstOverdue ? "bg-destructive/10" : "bg-muted/50"}`}>
+                            <span className="font-medium text-foreground shrink-0">P{inst.numero_parcela}</span>
+                            <span className={`shrink-0 ${isInstOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                              {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}
+                            </span>
+                            <span className="font-mono text-foreground shrink-0">
+                              R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
+                              {inst.status === "pago" ? "Pago" : "Pend."}
+                            </Badge>
+                            {inst.status !== "pago" && (
+                              <div className="ml-auto flex gap-0.5 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Quitar parcela" onClick={() => handlePayInstallment(inst)}>
+                                  <Check className="h-3 w-3 text-success" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Editar parcela" onClick={() => openEditInstallment(inst)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir parcela" onClick={() => handleDeleteInstallment(inst)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex items-center gap-1 pt-1 border-t border-border">
                     {isMaintenance && (
