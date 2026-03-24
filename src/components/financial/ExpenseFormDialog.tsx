@@ -252,6 +252,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   const isMaintenanceType = tipoDespesa === "manutencao";
 
+  // Auto-sum items when they change
+  useEffect(() => {
+    if (itensNota.length > 0 && !isMaintenanceType) {
+      const sum = itensNota.reduce((s, i) => s + Number(i.valor_total), 0);
+      if (sum > 0) setValorTotal(String(sum.toFixed(2)));
+    }
+  }, [itensNota]);
+
   const handleSave = async () => {
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
@@ -261,6 +269,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
       if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
+    }
+
+    // Duplicate NFe check
+    const trimmedChave = chaveNfe.trim();
+    if (trimmedChave) {
+      const { data: existing } = await supabase
+        .from("expenses")
+        .select("id")
+        .eq("chave_nfe", trimmedChave)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (existing && existing.id !== expense?.id) {
+        return toast.error("Já existe uma despesa com esta chave de NF-e.");
+      }
     }
 
     setSaving(true);
@@ -277,7 +299,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       favorecido_nome: favorecidoNome.trim() || null,
       favorecido_id: favorecidoId || null,
       documento_fiscal_numero: docFiscal.trim() || null,
-      chave_nfe: chaveNfe.trim() || null,
+      chave_nfe: trimmedChave || null,
       origem: documentoImportado ? "xml" : "manual",
       observacoes: observacoes.trim() || null,
       veiculo_placa: veiculoPlaca.trim() || null,
@@ -300,11 +322,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
     if (expense) {
       const { error } = await supabase.from("expenses").update(payload).eq("id", expense.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) {
+        toast.error(error.message.includes("idx_expenses_chave_nfe_unique") ? "Chave NF-e duplicada" : error.message);
+        setSaving(false); return;
+      }
     } else {
       payload.created_by = user?.id;
       const { data, error } = await supabase.from("expenses").insert(payload).select("id").single();
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) {
+        toast.error(error.message.includes("idx_expenses_chave_nfe_unique") ? "Chave NF-e duplicada" : error.message);
+        setSaving(false); return;
+      }
       expenseId = data.id;
     }
 
