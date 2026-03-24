@@ -96,11 +96,12 @@ export function FinancialPayables() {
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editInstValor, setEditInstValor] = useState("");
   const [editInstVenc, setEditInstVenc] = useState("");
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
