@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { toast } from "sonner";
+import { Upload, FileText, Trash2 } from "lucide-react";
+import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 
 const TIPO_DESPESA_OPTIONS = [
   { value: "combustivel", label: "Combustível" },
@@ -64,6 +69,9 @@ interface Expense {
   litros: number | null;
   km_odometro: number | null;
   numero_multa: string | null;
+  documento_fiscal_importado?: boolean;
+  xml_original?: string | null;
+  fornecedor_cnpj?: string | null;
 }
 
 interface Props {
@@ -77,6 +85,7 @@ interface Props {
 
 export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, categories, onSaved }: Props) {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [descricao, setDescricao] = useState("");
   const [tipoDespesa, setTipoDespesa] = useState("outros");
@@ -97,6 +106,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // New NF-e fields
+  const [fornecedorCnpj, setFornecedorCnpj] = useState("");
+  const [xmlOriginal, setXmlOriginal] = useState<string | null>(null);
+  const [documentoImportado, setDocumentoImportado] = useState(false);
+  const [itensNota, setItensNota] = useState<NfeItem[]>([]);
+  const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
+
   useEffect(() => {
     if (expense) {
       setDescricao(expense.descricao);
@@ -116,10 +132,35 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setLitros(expense.litros ? String(expense.litros) : "");
       setKmOdometro(expense.km_odometro ? String(expense.km_odometro) : "");
       setNumeroMulta(expense.numero_multa || "");
+      setFornecedorCnpj(expense.fornecedor_cnpj || "");
+      setDocumentoImportado(expense.documento_fiscal_importado || false);
+      setXmlOriginal(expense.xml_original || null);
+      setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
+      // Load items if editing
+      if (expense.id) loadItems(expense.id);
     } else {
       resetForm();
     }
   }, [expense, open]);
+
+  const loadItems = async (expenseId: string) => {
+    const { data } = await supabase
+      .from("expense_items" as any)
+      .select("*")
+      .eq("expense_id", expenseId)
+      .order("created_at");
+    if (data) {
+      setItensNota((data as any[]).map(d => ({
+        descricao: d.descricao,
+        quantidade: Number(d.quantidade),
+        valor_unitario: Number(d.valor_unitario),
+        valor_total: Number(d.valor_total),
+        ncm: d.ncm || "",
+        cfop: d.cfop || "",
+        unidade: d.unidade || "",
+      })));
+    }
+  };
 
   const resetForm = () => {
     setDescricao("");
@@ -139,6 +180,47 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setLitros("");
     setKmOdometro("");
     setNumeroMulta("");
+    setFornecedorCnpj("");
+    setXmlOriginal(null);
+    setDocumentoImportado(false);
+    setItensNota([]);
+    setInputMode("manual");
+  };
+
+  const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const xmlStr = ev.target?.result as string;
+        const parsed = parseNfeXml(xmlStr);
+
+        setDescricao(parsed.itens.length > 0 ? `NF ${parsed.numero_nota} - ${parsed.fornecedor_nome}` : `NF ${parsed.numero_nota}`);
+        setFavorecidoNome(parsed.fornecedor_nome);
+        setFornecedorCnpj(parsed.fornecedor_cnpj);
+        setDocFiscal(parsed.numero_nota);
+        setChaveNfe(parsed.chave_nfe);
+        setDataEmissao(parsed.data_emissao || new Date().toISOString().split("T")[0]);
+        setValorTotal(String(parsed.valor_total));
+        setTipoDespesa(parsed.tipo_despesa_sugerido);
+        setXmlOriginal(parsed.xml_original);
+        setDocumentoImportado(true);
+        setItensNota(parsed.itens);
+
+        toast.success(`XML importado: ${parsed.itens.length} item(ns) encontrado(s)`);
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao processar XML");
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeItem = (index: number) => {
+    setItensNota(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -160,24 +242,49 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       favorecido_id: favorecidoId || null,
       documento_fiscal_numero: docFiscal.trim() || null,
       chave_nfe: chaveNfe.trim() || null,
-      origem: "manual",
+      origem: documentoImportado ? "xml" : "manual",
       observacoes: observacoes.trim() || null,
       veiculo_placa: veiculoPlaca.trim() || null,
       litros: litros ? Number(litros) : null,
       km_odometro: kmOdometro ? Number(kmOdometro) : null,
       numero_multa: numeroMulta.trim() || null,
+      documento_fiscal_importado: documentoImportado,
+      xml_original: xmlOriginal,
+      fornecedor_cnpj: fornecedorCnpj.trim() || null,
     };
+
+    let expenseId = expense?.id;
 
     if (expense) {
       const { error } = await supabase.from("expenses").update(payload).eq("id", expense.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Despesa atualizada");
     } else {
       payload.created_by = user?.id;
-      const { error } = await supabase.from("expenses").insert(payload);
+      const { data, error } = await supabase.from("expenses").insert(payload).select("id").single();
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Despesa criada");
+      expenseId = data.id;
     }
+
+    // Save items
+    if (expenseId && itensNota.length > 0) {
+      // Delete existing items first
+      await supabase.from("expense_items" as any).delete().eq("expense_id", expenseId);
+      // Insert new
+      const itemsPayload = itensNota.map(item => ({
+        expense_id: expenseId,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        valor_total: item.valor_total,
+        ncm: item.ncm || null,
+        cfop: item.cfop || null,
+        unidade: item.unidade || null,
+      }));
+      const { error: itemsErr } = await supabase.from("expense_items" as any).insert(itemsPayload);
+      if (itemsErr) console.error("Erro ao salvar itens:", itemsErr.message);
+    }
+
+    toast.success(expense ? "Despesa atualizada" : "Despesa criada");
     setSaving(false);
     onOpenChange(false);
     onSaved();
@@ -189,10 +296,46 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{expense ? "Editar" : "Nova"} Despesa</DialogTitle>
         </DialogHeader>
+
+        {/* Input mode tabs - only for new expenses */}
+        {!expense && (
+          <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "manual" | "xml")} className="mb-2">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manual"><FileText className="h-4 w-4 mr-1" /> Manual</TabsTrigger>
+              <TabsTrigger value="xml"><Upload className="h-4 w-4 mr-1" /> Importar XML</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="xml" className="mt-3">
+              <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-2">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xml"
+                  onChange={handleXmlImport}
+                  className="hidden"
+                />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  Selecionar XML
+                </Button>
+                {documentoImportado && (
+                  <Badge variant="default" className="ml-2">XML Importado ✓</Badge>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Imported badge for editing */}
+        {expense && documentoImportado && (
+          <Badge variant="secondary" className="mb-2"><FileText className="h-3 w-3 mr-1" /> Importado via XML</Badge>
+        )}
+
         <div className="space-y-3">
           {/* Tipo da Despesa */}
           <div>
@@ -250,15 +393,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
           </div>
 
           {/* Favorecido */}
-          <div>
-            <Label>Favorecido</Label>
-            <PersonSearchInput
-              categories={["fornecedor"]}
-              placeholder="Buscar fornecedor..."
-              selectedName={favorecidoNome || undefined}
-              onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
-              onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Favorecido</Label>
+              <PersonSearchInput
+                categories={["fornecedor"]}
+                placeholder="Buscar fornecedor..."
+                selectedName={favorecidoNome || undefined}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
+                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+              />
+            </div>
+            <div>
+              <Label>CNPJ Fornecedor</Label>
+              <Input value={fornecedorCnpj} onChange={e => setFornecedorCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+            </div>
           </div>
 
           {/* Forma de Pagamento */}
@@ -311,6 +460,45 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             <div>
               <Label>Nº da Multa</Label>
               <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" />
+            </div>
+          )}
+
+          {/* Items da Nota */}
+          {itensNota.length > 0 && (
+            <div>
+              <Label className="mb-1 block">Itens da Nota ({itensNota.length})</Label>
+              <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Descrição</TableHead>
+                      <TableHead className="text-xs text-right">Qtd</TableHead>
+                      <TableHead className="text-xs text-right">Vl. Unit.</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      <TableHead className="text-xs w-[40px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itensNota.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="text-xs max-w-[180px] truncate">{item.descricao}</TableCell>
+                        <TableCell className="text-xs text-right">{item.quantidade}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">
+                          {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-mono">
+                          {item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(idx)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
 
