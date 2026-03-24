@@ -252,6 +252,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         loadItems(expense.id);
         if (expAccount?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
+        loadInstallments(expense.id);
       }
     } else {
       resetForm();
