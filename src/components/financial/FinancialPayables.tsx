@@ -610,15 +610,25 @@ export function FinancialPayables() {
                 const isInstPago = inst.status === "pago";
                 const instStatus = isInstOverdue ? "atrasado" : inst.status;
 
+                const instCardId = `inst-${inst.id}`;
+                const isInstSelected = selectedIds.has(instCardId);
+
                 return (
                   <Card
-                    key={`inst-${inst.id}`}
-                    className={`relative transition-all ${isInstOverdue ? "border-destructive/40" : ""}`}
+                    key={instCardId}
+                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""}`}
                   >
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {!isInstPago && (
+                            <Checkbox
+                              checked={isInstSelected}
+                              onCheckedChange={() => toggleSelect(instCardId)}
+                              className="mt-0.5"
+                            />
+                          )}
                           <p className="text-sm font-semibold text-foreground truncate">
                             {item.favorecido_nome || "Sem favorecido"}
                           </p>
