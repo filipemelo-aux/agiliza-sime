@@ -13,6 +13,12 @@ export interface NfeItem {
   unidade: string;
 }
 
+export interface NfeDuplicata {
+  numero: string;
+  vencimento: string;
+  valor: number;
+}
+
 export interface NfeData {
   fornecedor_nome: string;
   fornecedor_cnpj: string;
@@ -21,6 +27,7 @@ export interface NfeData {
   data_emissao: string;
   valor_total: number;
   itens: NfeItem[];
+  duplicatas: NfeDuplicata[];
   tipo_despesa_sugerido: string;
   xml_original: string;
 }
@@ -122,6 +129,18 @@ export function parseNfeXml(xmlString: string): NfeData {
     }
   }
 
+  // Parse duplicatas (cobr/dup)
+  const duplicatas: NfeDuplicata[] = [];
+  const dupElements = doc.getElementsByTagName("dup");
+  for (let i = 0; i < dupElements.length; i++) {
+    const dup = dupElements[i];
+    duplicatas.push({
+      numero: getTextContent(dup, "nDup"),
+      vencimento: getTextContent(dup, "dVenc"),
+      valor: parseFloat(getTextContent(dup, "vDup")) || 0,
+    });
+  }
+
   return {
     fornecedor_nome,
     fornecedor_cnpj,
@@ -130,6 +149,7 @@ export function parseNfeXml(xmlString: string): NfeData {
     data_emissao,
     valor_total,
     itens,
+    duplicatas,
     tipo_despesa_sugerido: suggestExpenseType(itens, fornecedor_nome),
     xml_original: xmlString,
   };
