@@ -345,10 +345,22 @@ export function FinancialPayables() {
           {showAdvanced && (
             <div className="flex flex-wrap gap-2 mb-3 p-3 bg-muted/50 rounded-lg">
               <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
-                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
+                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas Contas</SelectItem>
-                  {chartAccounts.map(a => <SelectItem key={a.id} value={a.id}><span className="font-mono text-xs mr-1">{a.codigo}</span> {a.nome}</SelectItem>)}
+                  {chartAccounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="font-mono text-[10px] mr-1">{a.codigo}</span>
+                      <span style={{ paddingLeft: `${(a.nivel - 1) * 8}px` }}>{a.nome}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterNivel} onValueChange={setFilterNivel}>
+                <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Nível" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Níveis</SelectItem>
+                  {uniqueLevels.map(n => <SelectItem key={n} value={String(n)}>Nível {n}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
@@ -423,19 +435,16 @@ export function FinancialPayables() {
                         </TableCell>
                         <TableCell>
                           {chart ? (
-                            <span className="text-[10px]">
-                              <span className="font-mono text-muted-foreground">{chart.codigo}</span>{" "}
-                              <span className="text-foreground">{chart.nome}</span>
-                            </span>
+                            <div className="max-w-[180px]">
+                              <p className="text-[10px] text-muted-foreground truncate" title={getChartPath(item.plano_contas_id)}>
+                                {getChartPath(item.plano_contas_id)}
+                              </p>
+                              <p className="text-[10px] font-mono text-foreground">{chart.codigo}</p>
+                            </div>
                           ) : (
                             <span className="text-[10px] text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-mono text-sm font-medium">
-                            R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
                           {item.valor_pago > 0 && item.status !== "pago" && (
                             <div className="text-[10px] text-muted-foreground font-mono">
                               Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
