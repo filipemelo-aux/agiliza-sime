@@ -135,6 +135,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [itensNota, setItensNota] = useState<NfeItem[]>([]);
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
+  // Installments (parcelas)
+  interface Parcela { numero: number; valor: string; data_vencimento: string; }
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [useParcelas, setUseParcelas] = useState(false);
+
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
