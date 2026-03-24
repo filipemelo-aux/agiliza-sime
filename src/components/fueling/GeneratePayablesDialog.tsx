@@ -38,17 +38,16 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
     setSaving(true);
 
     try {
-      // Look up the combustível category by tipo_operacional
-      const { data: allCats } = await supabase
-        .from("financial_categories")
-        .select("id, name, tipo_operacional, plano_contas_id")
-        .eq("type", "payable" as any)
-        .eq("active", true);
-      const combCat = (allCats as any[] || []).find((c: any) => c.tipo_operacional === "combustivel");
-      const categoriaId = combCat?.id || null;
-      const planoContasId = combCat?.plano_contas_id || null;
-      const derivedTipoDespesa = combCat?.tipo_operacional === "manutencao" ? "manutencao"
-        : combCat?.tipo_operacional === "combustivel" ? "combustivel" : "outros";
+      // Look up the combustível account by tipo_operacional
+      const { data: allAccounts } = await supabase
+        .from("chart_of_accounts")
+        .select("id, nome, tipo_operacional")
+        .eq("tipo", "despesa")
+        .eq("ativo", true);
+      const combAccount = (allAccounts as any[] || []).find((c: any) => c.tipo_operacional === "combustivel");
+      const planoContasId = combAccount?.id || null;
+      const derivedTipoDespesa = combAccount?.tipo_operacional === "manutencao" ? "manutencao"
+        : combAccount?.tipo_operacional === "combustivel" ? "combustivel" : "outros";
 
       if (groupMode === "single") {
         // Create one expense for all fuelings
@@ -60,7 +59,6 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           created_by: userId,
           descricao,
           tipo_despesa: derivedTipoDespesa as any,
-          categoria_financeira_id: categoriaId,
           plano_contas_id: planoContasId,
           centro_custo: "frota_propria" as any,
           origem: "abastecimento" as any,
@@ -89,7 +87,6 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
             created_by: userId,
             descricao,
             tipo_despesa: derivedTipoDespesa as any,
-            categoria_financeira_id: categoriaId,
             plano_contas_id: planoContasId,
             centro_custo: "frota_propria" as any,
             origem: "abastecimento" as any,

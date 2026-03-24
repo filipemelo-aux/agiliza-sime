@@ -34,7 +34,7 @@ interface Receivable {
 
 interface Category {
   id: string;
-  name: string;
+  nome: string;
 }
 
 interface HarvestReceivable {
@@ -213,7 +213,7 @@ export function FinancialReceivables() {
     setLoading(true);
     const [{ data: recData }, { data: catData }, harvestData, cteData, invSummary] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
-      supabase.from("financial_categories").select("id, name").eq("type", "receivable" as any).eq("active", true),
+      supabase.from("chart_of_accounts").select("id, nome").eq("tipo", "receita").eq("ativo", true).order("codigo"),
       fetchHarvestReceivables(),
       fetchCteReceivables(),
       fetchInvoiceSummary(),
@@ -283,7 +283,7 @@ export function FinancialReceivables() {
     fetchData();
   };
 
-  const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || "—";
+  const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.nome || "—";
 
   // Harvest virtual items — only show remaining (not yet invoiced) amount
   const harvestAsReceivables: Receivable[] = harvestItems
@@ -389,11 +389,11 @@ export function FinancialReceivables() {
                   </div>
                 </div>
                 <div>
-                  <Label>Categoria</Label>
+                  <Label>Conta Contábil</Label>
                   <Select value={categoryId} onValueChange={setCategoryId}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
