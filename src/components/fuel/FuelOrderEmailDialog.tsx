@@ -164,7 +164,7 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
             <Input
               type="email"
               value={to}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={(e) => setTo(e.target.value.toLowerCase())}
               placeholder="fornecedor@email.com"
             />
           </div>
@@ -173,7 +173,7 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
             <Input
               type="email"
               value={cc}
-              onChange={(e) => setCc(e.target.value)}
+              onChange={(e) => setCc(e.target.value.toLowerCase())}
               placeholder="copia@email.com"
             />
           </div>

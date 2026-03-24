@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
+import { maskName } from "@/lib/masks";
 import { format } from "date-fns";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -713,7 +714,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </div>
               <div className="col-span-2">
                 <Label className="text-xs">Descrição *</Label>
-                <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
+                <Input value={descricao} onChange={e => setDescricao(maskName(e.target.value))} placeholder="Ex: Troca de óleo..." className="h-9" />
               </div>
             </div>
 
@@ -1026,7 +1027,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     <div>
                       <Label className="text-xs mb-1 block">Serviços ({nfseItens.length})</Label>
                       <div className="flex gap-1.5 mb-2">
-                        <Input className="flex-1 h-9" value={nfseNewDesc} onChange={e => setNfseNewDesc(e.target.value)} placeholder="Descrição do serviço" />
+                        <Input className="flex-1 h-9" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
                         <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
                         <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
                         <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
@@ -1214,7 +1215,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
                     <div>
                       <Label className="text-xs">Observações NFSe</Label>
-                      <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(e.target.value)} placeholder="Observações adicionais..." className="h-9" />
+                      <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(maskName(e.target.value))} placeholder="Observações adicionais..." className="h-9" />
                     </div>
                   </div>
                 )}
@@ -1225,7 +1226,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           {/* ── Observações ── */}
           <div>
             <Label className="text-xs">Observações</Label>
-            <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={2} className="text-sm" />
+            <Textarea value={observacoes} onChange={e => setObservacoes(maskName(e.target.value))} rows={2} className="text-sm" />
           </div>
 
           {/* ── Doc Fiscal (collapsible) ── */}

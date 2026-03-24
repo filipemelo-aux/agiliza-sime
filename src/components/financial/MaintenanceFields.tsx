@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { maskName } from "@/lib/masks";
 
 export interface MaintenanceItem {
   tipo: "peca" | "servico";
@@ -196,7 +197,7 @@ export function MaintenanceFields({
           <Label className="text-xs">Descrição do Serviço *</Label>
           <Textarea
             value={descricaoServico}
-            onChange={e => onDescricaoServicoChange(e.target.value)}
+            onChange={e => onDescricaoServicoChange(maskName(e.target.value))}
             placeholder="Descreva o serviço realizado..."
             rows={2}
             className="text-sm"
@@ -233,7 +234,7 @@ export function MaintenanceFields({
               <SelectItem value="servico">Serviço</SelectItem>
             </SelectContent>
           </Select>
-          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Descrição" />
+          <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskName(e.target.value))} placeholder="Descrição" />
           <Input className="w-[60px] h-9" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
           <Input className="w-[90px] h-9" type="number" step="0.01" value={newValor} onChange={e => setNewValor(e.target.value)} placeholder="Valor" />
           <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem}><Plus className="h-4 w-4" /></Button>

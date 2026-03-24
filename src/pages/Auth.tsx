@@ -76,7 +76,8 @@ export default function Auth() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const finalValue = name === "email" ? value.toLowerCase() : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
