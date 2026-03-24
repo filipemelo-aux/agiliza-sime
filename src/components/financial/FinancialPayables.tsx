@@ -103,6 +103,17 @@ export function FinancialPayables() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Maintenance detail modal state
+  const [maintDetailOpen, setMaintDetailOpen] = useState(false);
+  const [maintDetailLoading, setMaintDetailLoading] = useState(false);
+  const [maintData, setMaintData] = useState<any>(null);
+  const [maintVehicle, setMaintVehicle] = useState<any>(null);
+  const [maintNfeExpense, setMaintNfeExpense] = useState<any>(null);
+  const [maintNfseExpense, setMaintNfseExpense] = useState<any>(null);
+  const [maintItems, setMaintItems] = useState<any[]>([]);
+  const [maintNfeInst, setMaintNfeInst] = useState<any[]>([]);
+  const [maintNfseInst, setMaintNfseInst] = useState<any[]>([]);
+
   const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
     chartAccounts.forEach(a => { m[a.id] = a; });
