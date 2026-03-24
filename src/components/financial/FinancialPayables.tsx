@@ -223,7 +223,7 @@ export function FinancialPayables() {
                     <TableRow key={item.id}>
                       <TableCell className="font-medium max-w-[200px] truncate">
                         <div className="flex items-center gap-1">
-                          {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" title="NF-e importada" />}
+                          {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                           {item.descricao}
                         </div>
                       </TableCell>
