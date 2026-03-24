@@ -116,33 +116,21 @@ export default function AdminMaintenances() {
     setNfseExpense(null);
     setMaintItems([]);
 
-    const promises: Promise<any>[] = [];
-
     // Fetch NFe expense (main)
     if (maint.expense_id) {
-      promises.push(
-        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.expense_id).maybeSingle().then(({ data }) => {
-          setNfeExpense(data as any);
-        })
-      );
-      // Fetch maintenance items (peças)
-      promises.push(
-        supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", maint.expense_id).then(({ data }) => {
-          setMaintItems((data as any) || []);
-        })
-      );
+      const [{ data: nfe }, { data: items }] = await Promise.all([
+        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.expense_id).maybeSingle(),
+        supabase.from("expense_maintenance_items" as any).select("*").eq("expense_id", maint.expense_id),
+      ]);
+      setNfeExpense(nfe as any);
+      setMaintItems((items as any) || []);
     }
 
     // Fetch NFSe expense
     if (maint.nfse_expense_id) {
-      promises.push(
-        supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.nfse_expense_id).maybeSingle().then(({ data }) => {
-          setNfseExpense(data as any);
-        })
-      );
+      const { data: nfse } = await supabase.from("expenses").select("id, descricao, valor_total, data_emissao, documento_fiscal_numero, chave_nfe, favorecido_nome, status, forma_pagamento, fornecedor_cnpj").eq("id", maint.nfse_expense_id).maybeSingle();
+      setNfseExpense(nfse as any);
     }
-
-    await Promise.all(promises);
     setDetailLoading(false);
   };
 
