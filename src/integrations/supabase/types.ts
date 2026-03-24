@@ -683,6 +683,53 @@ export type Database = {
           },
         ]
       }
+      expense_items: {
+        Row: {
+          cfop: string | null
+          created_at: string
+          descricao: string
+          expense_id: string
+          id: string
+          ncm: string | null
+          quantidade: number
+          unidade: string | null
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          cfop?: string | null
+          created_at?: string
+          descricao: string
+          expense_id: string
+          id?: string
+          ncm?: string | null
+          quantidade?: number
+          unidade?: string | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          cfop?: string | null
+          created_at?: string
+          descricao?: string
+          expense_id?: string
+          id?: string
+          ncm?: string | null
+          quantidade?: number
+          unidade?: string | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_items_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           afeta_caixa: boolean
@@ -691,6 +738,7 @@ export type Database = {
           chave_nfe: string | null
           comprovante_url: string | null
           conta_financeira_id: string | null
+          contrato_id: string | null
           created_at: string
           created_by: string
           data_emissao: string
@@ -698,11 +746,13 @@ export type Database = {
           data_vencimento: string | null
           deleted_at: string | null
           descricao: string
+          documento_fiscal_importado: boolean
           documento_fiscal_numero: string | null
           empresa_id: string
           favorecido_id: string | null
           favorecido_nome: string | null
           forma_pagamento: string | null
+          fornecedor_cnpj: string | null
           id: string
           km_odometro: number | null
           litros: number | null
@@ -710,6 +760,7 @@ export type Database = {
           numero_multa: string | null
           observacoes: string | null
           origem: Database["public"]["Enums"]["expense_origin"]
+          sefaz_status: string | null
           status: Database["public"]["Enums"]["expense_status"]
           tipo_despesa: Database["public"]["Enums"]["expense_type"]
           updated_at: string
@@ -717,6 +768,8 @@ export type Database = {
           valor_total: number
           veiculo_id: string | null
           veiculo_placa: string | null
+          viagem_id: string | null
+          xml_original: string | null
         }
         Insert: {
           afeta_caixa?: boolean
@@ -725,6 +778,7 @@ export type Database = {
           chave_nfe?: string | null
           comprovante_url?: string | null
           conta_financeira_id?: string | null
+          contrato_id?: string | null
           created_at?: string
           created_by: string
           data_emissao?: string
@@ -732,11 +786,13 @@ export type Database = {
           data_vencimento?: string | null
           deleted_at?: string | null
           descricao: string
+          documento_fiscal_importado?: boolean
           documento_fiscal_numero?: string | null
           empresa_id: string
           favorecido_id?: string | null
           favorecido_nome?: string | null
           forma_pagamento?: string | null
+          fornecedor_cnpj?: string | null
           id?: string
           km_odometro?: number | null
           litros?: number | null
@@ -744,6 +800,7 @@ export type Database = {
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
           updated_at?: string
@@ -751,6 +808,8 @@ export type Database = {
           valor_total?: number
           veiculo_id?: string | null
           veiculo_placa?: string | null
+          viagem_id?: string | null
+          xml_original?: string | null
         }
         Update: {
           afeta_caixa?: boolean
@@ -759,6 +818,7 @@ export type Database = {
           chave_nfe?: string | null
           comprovante_url?: string | null
           conta_financeira_id?: string | null
+          contrato_id?: string | null
           created_at?: string
           created_by?: string
           data_emissao?: string
@@ -766,11 +826,13 @@ export type Database = {
           data_vencimento?: string | null
           deleted_at?: string | null
           descricao?: string
+          documento_fiscal_importado?: boolean
           documento_fiscal_numero?: string | null
           empresa_id?: string
           favorecido_id?: string | null
           favorecido_nome?: string | null
           forma_pagamento?: string | null
+          fornecedor_cnpj?: string | null
           id?: string
           km_odometro?: number | null
           litros?: number | null
@@ -778,6 +840,7 @@ export type Database = {
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
           updated_at?: string
@@ -785,6 +848,8 @@ export type Database = {
           valor_total?: number
           veiculo_id?: string | null
           veiculo_placa?: string | null
+          viagem_id?: string | null
+          xml_original?: string | null
         }
         Relationships: [
           {
