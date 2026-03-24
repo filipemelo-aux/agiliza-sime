@@ -16,7 +16,6 @@ import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 interface Expense {
   id: string;
   descricao: string;
-  categoria_financeira_id: string | null;
   plano_contas_id: string | null;
   centro_custo: string;
   valor_total: number;
@@ -42,8 +41,7 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
-interface ChartAccount { id: string; codigo: string; nome: string; conta_pai_id: string | null; nivel: number; }
+interface ChartAccount { id: string; codigo: string; nome: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -65,14 +63,13 @@ type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 export function FinancialPayables() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-  const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterPlanoContas, setFilterPlanoContas] = useState("all");
   const [filterNivel, setFilterNivel] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
@@ -87,17 +84,12 @@ export function FinancialPayables() {
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
 
   // Build maps for display
-  const categoryMap = useMemo(() => {
-    const m: Record<string, Category> = {};
-    categories.forEach(c => { m[c.id] = c; });
-    return m;
-  }, [categories]);
-
   const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
     chartAccounts.forEach(a => { m[a.id] = a; });
     return m;
   }, [chartAccounts]);
+
 
   // Build hierarchical path for a chart account
   const getChartPath = (chartId: string | null | undefined): string => {
@@ -133,11 +125,10 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: catData }, { data: vehData }, { data: chartData }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
-      supabase.from("financial_categories").select("id, name, tipo_operacional, plano_contas_id" as any).eq("type", "payable" as any).eq("active", true),
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
-      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel").eq("ativo", true).order("codigo"),
+      supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo_operacional").eq("ativo", true).order("codigo"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -156,7 +147,6 @@ export function FinancialPayables() {
     }
 
     setItems(processed);
-    setCategories((catData as any) || []);
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
     setLoading(false);
@@ -170,9 +160,9 @@ export function FinancialPayables() {
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
 
-    // Check if maintenance record exists for this expense (via category tipo_operacional)
-    const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
-    const isMaintenance = cat?.tipo_operacional === "manutencao";
+    // Check if maintenance record exists for this expense (via chart account tipo_operacional)
+    const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
+    const isMaintenance = chart?.tipo_operacional === "manutencao";
 
     if (isMaintenance) {
       const { data: linkedMaint } = await supabase
@@ -233,16 +223,15 @@ export function FinancialPayables() {
         i.descricao.toLowerCase().includes(search.toLowerCase()) ||
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
-      const matchCategoria = filterCategoria === "all" || i.categoria_financeira_id === filterCategoria;
       const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchCategoria && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, quickFilter, filterCategoria, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
