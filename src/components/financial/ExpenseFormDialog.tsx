@@ -18,17 +18,6 @@ import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp } from "
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
-const TIPO_DESPESA_OPTIONS = [
-  { value: "combustivel", label: "Combustível" },
-  { value: "manutencao", label: "Manutenção" },
-  { value: "pedagio", label: "Pedágio" },
-  { value: "multa", label: "Multa" },
-  { value: "administrativo", label: "Administrativo" },
-  { value: "frete_terceiro", label: "Frete Terceiro" },
-  { value: "imposto", label: "Imposto" },
-  { value: "outros", label: "Outros" },
-];
-
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
   { value: "frota_terceiros", label: "Frota Terceiros" },
@@ -52,7 +41,7 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; tipo_operacional?: string | null; }
 
 interface Expense {
   id: string;
@@ -123,7 +112,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const isEditing = !!expense;
 
   const [descricao, setDescricao] = useState("");
-  const [tipoDespesa, setTipoDespesa] = useState("outros");
   const [categoriaId, setCategoriaId] = useState("");
   const [centroCusto, setCentroCusto] = useState("operacional");
   const [valorTotal, setValorTotal] = useState("");
@@ -160,12 +148,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
-  // Auto-activate maintenance when tipo_despesa = manutencao
+  // Derive maintenance from selected category
+  const selectedCategory = categories.find(c => c.id === categoriaId);
+  const isCategoryMaintenance = selectedCategory?.tipo_operacional === "manutencao";
+
+  // Auto-activate maintenance when category has tipo_operacional = manutencao
   useEffect(() => {
-    if (tipoDespesa === "manutencao") {
+    if (isCategoryMaintenance) {
       setIsManutencao(true);
     }
-  }, [tipoDespesa]);
+  }, [isCategoryMaintenance]);
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
@@ -182,7 +174,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     if (!open) return;
     if (expense) {
       setDescricao(expense.descricao);
-      setTipoDespesa(expense.tipo_despesa);
       setCategoriaId(expense.categoria_financeira_id || "");
       setCentroCusto(expense.centro_custo);
       setValorTotal(String(expense.valor_total));
@@ -202,7 +193,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      setIsManutencao(expense.tipo_despesa === "manutencao");
+      // Determine maintenance from category or legacy tipo_despesa
+      const expCategory = categories.find(c => c.id === expense.categoria_financeira_id);
+      setIsManutencao(expCategory?.tipo_operacional === "manutencao" || expense.tipo_despesa === "manutencao");
       setVeiculoId(expense.veiculo_id || null);
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
@@ -213,7 +206,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setShowHistory(false);
       if (expense.id) {
         loadItems(expense.id);
-        if (expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
+        if (expCategory?.tipo_operacional === "manutencao" || expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
       }
     } else {
@@ -221,14 +214,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     }
   }, [expense, open]);
 
+  // Show fuel suggestion for combustivel category
+  const isCategoryCombustivel = selectedCategory?.tipo_operacional === "combustivel";
   useEffect(() => {
-    if (tipoDespesa === "combustivel" && !isEditing) {
+    if (isCategoryCombustivel && !isEditing) {
       loadUnfueledRecords();
     } else {
       setShowFuelSuggestion(false);
       setUnfueledRecords([]);
     }
-  }, [tipoDespesa, isEditing]);
+  }, [isCategoryCombustivel, isEditing]);
 
   const loadUnfueledRecords = async () => {
     const { data } = await supabase
@@ -271,7 +266,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   };
 
   const resetForm = () => {
-    setDescricao(""); setTipoDespesa("outros"); setCategoriaId(""); setCentroCusto("operacional");
+    setDescricao(""); setCategoriaId(""); setCentroCusto("operacional");
     setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
@@ -298,7 +293,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         setChaveNfe(parsed.chave_nfe);
         setDataEmissao(parsed.data_emissao || new Date().toISOString().split("T")[0]);
         setValorTotal(String(parsed.valor_total));
-        setTipoDespesa(parsed.tipo_despesa_sugerido);
+        // Auto-select category based on XML suggestion
+        const suggestedType = parsed.tipo_despesa_sugerido;
+        const matchingCat = categories.find(c => c.tipo_operacional === suggestedType);
+        if (matchingCat) setCategoriaId(matchingCat.id);
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
@@ -324,6 +322,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   }, [itensNota]);
 
   const handleSave = async () => {
+    if (!categoriaId) return toast.error("Selecione a categoria financeira");
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
     if (isMaintenanceType) {
@@ -337,7 +336,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         .from("expenses")
         .select("km_atual")
         .eq("veiculo_id", veiculoId)
-        .eq("tipo_despesa", "manutencao")
         .not("km_atual", "is", null)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
@@ -356,10 +354,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       if (existing && existing.id !== expense?.id) return toast.error("Já existe uma despesa com esta chave de NF-e.");
     }
 
+    // Derive tipo_despesa from category for backward compatibility
+    const derivedTipoDespesa = selectedCategory?.tipo_operacional === "manutencao" ? "manutencao"
+      : selectedCategory?.tipo_operacional === "combustivel" ? "combustivel"
+      : "outros";
+
     setSaving(true);
     const payload: any = {
-      empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: tipoDespesa,
-      categoria_financeira_id: categoriaId || null, centro_custo: centroCusto,
+      empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
+      categoria_financeira_id: categoriaId, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
@@ -448,9 +451,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     onSaved();
   };
 
-  const showVehicleFields = ["combustivel", "pedagio", "multa"].includes(tipoDespesa);
-  const showFuelFields = tipoDespesa === "combustivel";
-  const showFineFields = tipoDespesa === "multa";
+  const isCategoryWithVehicle = selectedCategory?.tipo_operacional === "combustivel";
+  const showFuelFields = isCategoryCombustivel;
 
   const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
 
@@ -499,14 +501,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           )}
 
-          {/* ── Tipo + Descrição ── */}
+          {/* ── Categoria + Descrição ── */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs">Tipo *</Label>
-              <Select value={tipoDespesa} onValueChange={setTipoDespesa}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <Label className="text-xs">Categoria *</Label>
+              <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  {TIPO_DESPESA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -531,11 +537,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 checked={isManutencao}
                 onCheckedChange={(checked) => {
                   setIsManutencao(checked);
-                  if (checked && tipoDespesa !== "manutencao") {
-                    setTipoDespesa("manutencao");
-                  }
-                  if (!checked && tipoDespesa === "manutencao") {
-                    setTipoDespesa("outros");
+                  // If turning on and no maintenance category selected, auto-select it
+                  if (checked && !isCategoryMaintenance) {
+                    const maintCat = categories.find(c => c.tipo_operacional === "manutencao");
+                    if (maintCat) setCategoriaId(maintCat.id);
                   }
                 }}
               />
@@ -604,23 +609,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           </div>
 
-          {/* ── Centro Custo, Categoria, Forma Pgto ── */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* ── Centro Custo, Forma Pgto ── */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Centro de Custo</Label>
               <Select value={centroCusto} onValueChange={setCentroCusto}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Categoria</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -635,8 +631,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           </div>
 
-          {/* ── Vehicle-specific fields ── */}
-          {showVehicleFields && (
+          {/* ── Vehicle-specific fields (for combustivel category) ── */}
+          {isCategoryWithVehicle && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Placa Veículo</Label>
@@ -654,12 +650,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 <Label className="text-xs">Litros</Label>
                 <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" className="h-9" />
               </div>
-            </div>
-          )}
-          {showFineFields && (
-            <div>
-              <Label className="text-xs">Nº da Multa</Label>
-              <Input value={numeroMulta} onChange={e => setNumeroMulta(e.target.value)} placeholder="Número do auto" className="h-9" />
             </div>
           )}
 

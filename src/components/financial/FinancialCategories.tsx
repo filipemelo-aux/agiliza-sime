@@ -11,11 +11,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+const TIPO_OPERACIONAL_OPTIONS = [
+  { value: "", label: "Nenhum (genérica)" },
+  { value: "manutencao", label: "Manutenção" },
+  { value: "combustivel", label: "Combustível" },
+];
+
 interface Category {
   id: string;
   name: string;
   type: "receivable" | "payable";
   active: boolean;
+  tipo_operacional: string | null;
 }
 
 export function FinancialCategories() {
@@ -25,6 +32,7 @@ export function FinancialCategories() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState<"receivable" | "payable">("receivable");
+  const [tipoOperacional, setTipoOperacional] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
   const fetchCategories = async () => {
@@ -44,23 +52,26 @@ export function FinancialCategories() {
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Informe o nome da categoria");
     
+    const payload: any = { name: name.trim(), type, tipo_operacional: tipoOperacional || null };
+
     if (editingId) {
       const { error } = await supabase
         .from("financial_categories")
-        .update({ name: name.trim(), type } as any)
+        .update(payload)
         .eq("id", editingId);
       if (error) return toast.error(error.message);
       toast.success("Categoria atualizada");
     } else {
       const { error } = await supabase
         .from("financial_categories")
-        .insert({ name: name.trim(), type } as any);
+        .insert(payload);
       if (error) return toast.error(error.message);
       toast.success("Categoria criada");
     }
     setDialogOpen(false);
     setEditingId(null);
     setName("");
+    setTipoOperacional("");
     fetchCategories();
   };
 
@@ -68,6 +79,7 @@ export function FinancialCategories() {
     setEditingId(cat.id);
     setName(cat.name);
     setType(cat.type);
+    setTipoOperacional(cat.tipo_operacional || "");
     setDialogOpen(true);
   };
 
@@ -96,7 +108,7 @@ export function FinancialCategories() {
               <SelectItem value="payable">A Pagar</SelectItem>
             </SelectContent>
           </Select>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setName(""); } }}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setName(""); setTipoOperacional(""); } }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nova</Button>
             </DialogTrigger>
@@ -119,6 +131,22 @@ export function FinancialCategories() {
                     </SelectContent>
                   </Select>
                 </div>
+                {type === "payable" && (
+                  <div>
+                    <Label>Comportamento Operacional</Label>
+                    <Select value={tipoOperacional} onValueChange={setTipoOperacional}>
+                      <SelectTrigger><SelectValue placeholder="Nenhum (genérica)" /></SelectTrigger>
+                      <SelectContent>
+                        {TIPO_OPERACIONAL_OPTIONS.map(o => (
+                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Define se essa categoria ativa campos especiais no formulário de despesas (ex: dados de manutenção ou combustível).
+                    </p>
+                  </div>
+                )}
                 <Button onClick={handleSave} className="w-full">Salvar</Button>
               </div>
             </DialogContent>
@@ -136,6 +164,7 @@ export function FinancialCategories() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Comportamento</TableHead>
                 <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -147,6 +176,15 @@ export function FinancialCategories() {
                     <Badge variant={cat.type === "receivable" ? "default" : "secondary"}>
                       {cat.type === "receivable" ? "A Receber" : "A Pagar"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {cat.tipo_operacional ? (
+                      <Badge variant="outline" className="text-[10px]">
+                        {cat.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

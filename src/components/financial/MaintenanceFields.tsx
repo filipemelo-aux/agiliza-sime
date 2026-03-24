@@ -82,7 +82,6 @@ export function MaintenanceFields({
       .from("expenses")
       .select("km_atual")
       .eq("veiculo_id", veiculoId)
-      .eq("tipo_despesa", "manutencao")
       .not("km_atual", "is", null)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
