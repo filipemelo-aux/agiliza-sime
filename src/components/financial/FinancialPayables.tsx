@@ -92,6 +92,7 @@ export function FinancialPayables() {
     return m;
   }, [chartAccounts]);
 
+  const selectableItems = useMemo(() => filtered.filter(i => i.status !== "pago"), [filtered]);
 
   // Build hierarchical path for a chart account
   const getChartPath = (chartId: string | null | undefined): string => {
@@ -200,7 +201,7 @@ export function FinancialPayables() {
     });
   };
 
-  const selectableItems = useMemo(() => filtered.filter(i => i.status !== "pago"), [filtered]);
+  // selectableItems moved below filtered
 
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableItems.length) {
