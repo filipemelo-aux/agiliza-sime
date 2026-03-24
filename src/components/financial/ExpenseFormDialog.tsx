@@ -193,9 +193,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      // Determine maintenance from category or legacy tipo_despesa
+      // Determine maintenance from category tipo_operacional
       const expCategory = categories.find(c => c.id === expense.categoria_financeira_id);
-      setIsManutencao(expCategory?.tipo_operacional === "manutencao" || expense.tipo_despesa === "manutencao");
+      setIsManutencao(expCategory?.tipo_operacional === "manutencao");
       setVeiculoId(expense.veiculo_id || null);
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
@@ -206,7 +206,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setShowHistory(false);
       if (expense.id) {
         loadItems(expense.id);
-        if (expCategory?.tipo_operacional === "manutencao" || expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
+        if (expCategory?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
       }
     } else {

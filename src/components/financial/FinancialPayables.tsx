@@ -141,9 +141,9 @@ export function FinancialPayables() {
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
 
-    // Check if maintenance record exists for this expense (via category or legacy tipo_despesa)
+    // Check if maintenance record exists for this expense (via category tipo_operacional)
     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
-    const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
+    const isMaintenance = cat?.tipo_operacional === "manutencao";
 
     if (isMaintenance) {
       const { data: linkedMaint } = await supabase
@@ -374,7 +374,7 @@ export function FinancialPayables() {
                     const isOverdue = item.status === "atrasado";
                     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
                     const chart = item.plano_contas_id ? chartMap[item.plano_contas_id] : null;
-                    const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
+                    const isMaintenance = cat?.tipo_operacional === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
                         <TableCell className="font-medium max-w-[200px]">
