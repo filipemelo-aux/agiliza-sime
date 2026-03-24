@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Upload, FileText, Trash2 } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
@@ -72,6 +73,13 @@ interface Expense {
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
+  // Maintenance fields
+  veiculo_id?: string | null;
+  tipo_manutencao?: string | null;
+  km_atual?: number | null;
+  fornecedor_mecanica?: string | null;
+  tempo_parado?: string | null;
+  proxima_manutencao_km?: number | null;
 }
 
 interface Props {
@@ -106,12 +114,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // New NF-e fields
+  // NF-e fields
   const [fornecedorCnpj, setFornecedorCnpj] = useState("");
   const [xmlOriginal, setXmlOriginal] = useState<string | null>(null);
   const [documentoImportado, setDocumentoImportado] = useState(false);
   const [itensNota, setItensNota] = useState<NfeItem[]>([]);
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
+
+  // Maintenance fields
+  const [veiculoId, setVeiculoId] = useState<string | null>(null);
+  const [tipoManutencao, setTipoManutencao] = useState("corretiva");
+  const [kmAtual, setKmAtual] = useState("");
+  const [fornecedorMecanica, setFornecedorMecanica] = useState("");
+  const [tempoParado, setTempoParado] = useState("");
+  const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
+  const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
   useEffect(() => {
     if (expense) {
@@ -136,8 +153,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      // Load items if editing
-      if (expense.id) loadItems(expense.id);
+      // Maintenance
+      setVeiculoId(expense.veiculo_id || null);
+      setTipoManutencao(expense.tipo_manutencao || "corretiva");
+      setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
+      setFornecedorMecanica(expense.fornecedor_mecanica || "");
+      setTempoParado(expense.tempo_parado || "");
+      setProximaManutencaoKm(expense.proxima_manutencao_km ? String(expense.proxima_manutencao_km) : "");
+      // Load items
+      if (expense.id) {
+        loadItems(expense.id);
+        if (expense.tipo_despesa === "manutencao") loadMaintenanceItems(expense.id);
+      }
     } else {
       resetForm();
     }
@@ -145,12 +172,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   const loadItems = async (expenseId: string) => {
     const { data } = await supabase
-      .from("expense_items" as any)
+      .from("expense_items")
       .select("*")
       .eq("expense_id", expenseId)
       .order("created_at");
     if (data) {
-      setItensNota((data as any[]).map(d => ({
+      setItensNota(data.map(d => ({
         descricao: d.descricao,
         quantidade: Number(d.quantidade),
         valor_unitario: Number(d.valor_unitario),
@@ -162,41 +189,43 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     }
   };
 
+  const loadMaintenanceItems = async (expenseId: string) => {
+    const { data } = await supabase
+      .from("expense_maintenance_items" as any)
+      .select("*")
+      .eq("expense_id", expenseId)
+      .order("created_at");
+    if (data) {
+      setItensManutencao((data as any[]).map(d => ({
+        tipo: d.tipo || "peca",
+        descricao: d.descricao,
+        quantidade: Number(d.quantidade),
+        valor_unitario: Number(d.valor_unitario),
+        valor_total: Number(d.valor_total),
+      })));
+    }
+  };
+
   const resetForm = () => {
-    setDescricao("");
-    setTipoDespesa("outros");
-    setCategoriaId("");
-    setCentroCusto("operacional");
-    setValorTotal("");
-    setDataEmissao(new Date().toISOString().split("T")[0]);
-    setDataVencimento("");
-    setFormaPagamento("");
-    setFavorecidoNome("");
-    setFavorecidoId(null);
-    setDocFiscal("");
-    setChaveNfe("");
-    setObservacoes("");
-    setVeiculoPlaca("");
-    setLitros("");
-    setKmOdometro("");
-    setNumeroMulta("");
-    setFornecedorCnpj("");
-    setXmlOriginal(null);
-    setDocumentoImportado(false);
-    setItensNota([]);
-    setInputMode("manual");
+    setDescricao(""); setTipoDespesa("outros"); setCategoriaId(""); setCentroCusto("operacional");
+    setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
+    setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
+    setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
+    setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
+    setItensNota([]); setInputMode("manual");
+    // Maintenance
+    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica("");
+    setTempoParado(""); setProximaManutencaoKm(""); setItensManutencao([]);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const xmlStr = ev.target?.result as string;
         const parsed = parseNfeXml(xmlStr);
-
         setDescricao(parsed.itens.length > 0 ? `NF ${parsed.numero_nota} - ${parsed.fornecedor_nome}` : `NF ${parsed.numero_nota}`);
         setFavorecidoNome(parsed.fornecedor_nome);
         setFornecedorCnpj(parsed.fornecedor_cnpj);
@@ -208,14 +237,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
-
         toast.success(`XML importado: ${parsed.itens.length} item(ns) encontrado(s)`);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-imported
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -223,9 +250,18 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setItensNota(prev => prev.filter((_, i) => i !== index));
   };
 
+  const isMaintenanceType = tipoDespesa === "manutencao";
+
   const handleSave = async () => {
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
+
+    // Maintenance validations
+    if (isMaintenanceType) {
+      if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
+      if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
+      if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
+    }
 
     setSaving(true);
     const payload: any = {
@@ -251,6 +287,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       documento_fiscal_importado: documentoImportado,
       xml_original: xmlOriginal,
       fornecedor_cnpj: fornecedorCnpj.trim() || null,
+      // Maintenance fields
+      veiculo_id: isMaintenanceType ? veiculoId : null,
+      tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
+      km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
+      fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
+      tempo_parado: isMaintenanceType ? (tempoParado.trim() || null) : null,
+      proxima_manutencao_km: isMaintenanceType && proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
     };
 
     let expenseId = expense?.id;
@@ -265,11 +308,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       expenseId = data.id;
     }
 
-    // Save items
+    // Save NF-e items
     if (expenseId && itensNota.length > 0) {
-      // Delete existing items first
-      await supabase.from("expense_items" as any).delete().eq("expense_id", expenseId);
-      // Insert new
+      await supabase.from("expense_items").delete().eq("expense_id", expenseId);
       const itemsPayload = itensNota.map(item => ({
         expense_id: expenseId,
         descricao: item.descricao,
@@ -280,8 +321,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         cfop: item.cfop || null,
         unidade: item.unidade || null,
       }));
-      const { error: itemsErr } = await supabase.from("expense_items" as any).insert(itemsPayload);
-      if (itemsErr) console.error("Erro ao salvar itens:", itemsErr.message);
+      await supabase.from("expense_items").insert(itemsPayload);
+    }
+
+    // Save maintenance items
+    if (expenseId && isMaintenanceType && itensManutencao.length > 0) {
+      await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", expenseId);
+      const mItems = itensManutencao.map(item => ({
+        expense_id: expenseId,
+        tipo: item.tipo,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        valor_total: item.valor_total,
+      }));
+      await supabase.from("expense_maintenance_items" as any).insert(mItems);
     }
 
     toast.success(expense ? "Despesa atualizada" : "Despesa criada");
@@ -290,7 +344,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     onSaved();
   };
 
-  const showVehicleFields = ["combustivel", "manutencao", "pedagio", "multa"].includes(tipoDespesa);
+  const showVehicleFields = ["combustivel", "pedagio", "multa"].includes(tipoDespesa);
   const showFuelFields = tipoDespesa === "combustivel";
   const showFineFields = tipoDespesa === "multa";
 
@@ -301,37 +355,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
           <DialogTitle>{expense ? "Editar" : "Nova"} Despesa</DialogTitle>
         </DialogHeader>
 
-        {/* Input mode tabs - only for new expenses */}
+        {/* Input mode tabs */}
         {!expense && (
           <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "manual" | "xml")} className="mb-2">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="manual"><FileText className="h-4 w-4 mr-1" /> Manual</TabsTrigger>
               <TabsTrigger value="xml"><Upload className="h-4 w-4 mr-1" /> Importar XML</TabsTrigger>
             </TabsList>
-
             <TabsContent value="xml" className="mt-3">
               <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-2">
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xml"
-                  onChange={handleXmlImport}
-                  className="hidden"
-                />
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  Selecionar XML
-                </Button>
-                {documentoImportado && (
-                  <Badge variant="default" className="ml-2">XML Importado ✓</Badge>
-                )}
+                <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Selecionar XML</Button>
+                {documentoImportado && <Badge variant="default" className="ml-2">XML Importado ✓</Badge>}
               </div>
             </TabsContent>
           </Tabs>
         )}
 
-        {/* Imported badge for editing */}
         {expense && documentoImportado && (
           <Badge variant="secondary" className="mb-2"><FileText className="h-3 w-3 mr-1" /> Importado via XML</Badge>
         )}
@@ -353,6 +395,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             <Label>Descrição *</Label>
             <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Abastecimento ABC..." />
           </div>
+
+          {/* Maintenance Section */}
+          {isMaintenanceType && (
+            <MaintenanceFields
+              veiculoId={veiculoId}
+              onVeiculoIdChange={setVeiculoId}
+              kmAtual={kmAtual}
+              onKmAtualChange={setKmAtual}
+              tipoManutencao={tipoManutencao}
+              onTipoManutencaoChange={setTipoManutencao}
+              fornecedorMecanica={fornecedorMecanica}
+              onFornecedorMecanicaChange={setFornecedorMecanica}
+              tempoParado={tempoParado}
+              onTempoParadoChange={setTempoParado}
+              proximaManutencaoKm={proximaManutencaoKm}
+              onProximaManutencaoKmChange={setProximaManutencaoKm}
+              itensManutencao={itensManutencao}
+              onItensManutencaoChange={setItensManutencao}
+              onTotalChange={(total) => {
+                if (total > 0) setValorTotal(String(total));
+              }}
+            />
+          )}
 
           {/* Valor e Datas */}
           <div className="grid grid-cols-3 gap-3">
@@ -433,7 +498,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           </div>
 
-          {/* Vehicle fields - conditional */}
+          {/* Vehicle fields for non-maintenance types */}
           {showVehicleFields && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -447,7 +512,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           )}
 
-          {/* Fuel fields */}
           {showFuelFields && (
             <div>
               <Label>Litros</Label>
@@ -455,7 +519,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
             </div>
           )}
 
-          {/* Fine fields */}
           {showFineFields && (
             <div>
               <Label>Nº da Multa</Label>
