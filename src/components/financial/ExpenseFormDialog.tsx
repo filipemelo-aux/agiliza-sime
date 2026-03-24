@@ -517,16 +517,24 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
             {/* Maintenance Section */}
             {isMaintenanceType && (
-              <MaintenanceFields
-                veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
-                kmAtual={kmAtual} onKmAtualChange={setKmAtual}
-                tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
-                fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
-                tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
-                proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
-                itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
-                onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
-              />
+              <>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <Wrench className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    Essa despesa será registrada também no <strong className="text-foreground">histórico de manutenção</strong> do veículo selecionado.
+                  </p>
+                </div>
+                <MaintenanceFields
+                  veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
+                  kmAtual={kmAtual} onKmAtualChange={setKmAtual}
+                  tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                  fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
+                  tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
+                  proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                  itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
+                  onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
+                />
+              </>
             )}
 
             {/* Favorecido */}
