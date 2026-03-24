@@ -153,9 +153,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
   const [tipoManutencao, setTipoManutencao] = useState("corretiva");
   const [kmAtual, setKmAtual] = useState("");
+  const [descricaoServico, setDescricaoServico] = useState("");
   const [fornecedorMecanica, setFornecedorMecanica] = useState("");
   const [tempoParado, setTempoParado] = useState("");
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
+  const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
   // Auto-activate maintenance when tipo_despesa = manutencao
@@ -275,8 +277,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
-    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setFornecedorMecanica(""); setIsManutencao(false);
-    setTempoParado(""); setProximaManutencaoKm(""); setItensManutencao([]);
+    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setIsManutencao(false);
+    setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
   };
@@ -328,6 +330,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
       if (!tipoManutencao) return toast.error("Selecione o tipo de manutenção");
+      if (!descricaoServico.trim()) return toast.error("Informe a descrição do serviço");
     }
 
     const trimmedChave = chaveNfe.trim();
@@ -400,7 +403,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         data_manutencao: dataEmissao,
         odometro: Number(kmAtual) || 0,
         tipo_manutencao: tipoManutencao,
-        descricao: descricao.trim(),
+        descricao: descricaoServico.trim() || descricao.trim(),
         custo_total: Number(valorTotal) || 0,
         fornecedor: fornecedorMecanica.trim() || null,
         status: "realizada",
@@ -646,9 +649,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
                 kmAtual={kmAtual} onKmAtualChange={setKmAtual}
                 tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                descricaoServico={descricaoServico} onDescricaoServicoChange={setDescricaoServico}
                 fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
                 tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
                 proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
                 itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
                 onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
               />
