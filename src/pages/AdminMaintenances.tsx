@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 
 interface Maintenance {
@@ -66,7 +67,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 export default function AdminMaintenances() {
-  
+  const navigate = useNavigate();
   const [items, setItems] = useState<Maintenance[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
