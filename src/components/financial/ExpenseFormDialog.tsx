@@ -148,6 +148,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [kmAtual, setKmAtual] = useState("");
   const [descricaoServico, setDescricaoServico] = useState("");
   const [fornecedorMecanica, setFornecedorMecanica] = useState("");
+  const [tipoServico, setTipoServico] = useState("interno");
   const [tempoParado, setTempoParado] = useState("");
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
@@ -357,7 +358,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
-    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setIsManutencao(false);
+    setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
@@ -986,7 +987,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 kmAtual={kmAtual} onKmAtualChange={setKmAtual}
                 tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
                 descricaoServico={descricaoServico} onDescricaoServicoChange={setDescricaoServico}
-                fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
+                tipoServico={tipoServico} onTipoServicoChange={setTipoServico}
                 tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
                 proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
                 dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
