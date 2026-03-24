@@ -740,6 +740,44 @@ export type Database = {
           },
         ]
       }
+      expense_installments: {
+        Row: {
+          created_at: string
+          data_vencimento: string
+          expense_id: string
+          id: string
+          numero_parcela: number
+          status: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_vencimento: string
+          expense_id: string
+          id?: string
+          numero_parcela?: number
+          status?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data_vencimento?: string
+          expense_id?: string
+          id?: string
+          numero_parcela?: number
+          status?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_installments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_items: {
         Row: {
           cfop: string | null

@@ -14,8 +14,8 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree } from "lucide-react";
-import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
+import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -135,6 +135,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [itensNota, setItensNota] = useState<NfeItem[]>([]);
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
+  // Installments (parcelas)
+  interface Parcela { numero: number; valor: string; data_vencimento: string; }
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [useParcelas, setUseParcelas] = useState(false);
+
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
@@ -247,6 +252,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         loadItems(expense.id);
         if (expAccount?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
+        loadInstallments(expense.id);
       }
     } else {
       resetForm();
@@ -304,6 +310,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setPaymentHistory((data as any) || []);
   };
 
+  const loadInstallments = async (expenseId: string) => {
+    const { data } = await supabase.from("expense_installments" as any).select("*").eq("expense_id", expenseId).order("numero_parcela");
+    if (data && (data as any[]).length > 0) {
+      setUseParcelas(true);
+      setParcelas((data as any[]).map((d: any) => ({
+        numero: d.numero_parcela,
+        valor: String(d.valor),
+        data_vencimento: d.data_vencimento,
+      })));
+    } else {
+      setUseParcelas(false);
+      setParcelas([]);
+    }
+  };
+
   const resetForm = () => {
     setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
     setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
@@ -315,6 +336,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
+    setParcelas([]); setUseParcelas(false);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,7 +362,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
         setShowDocFiscal(true);
-        toast.success(`XML importado: ${parsed.itens.length} item(ns)`);
+        // Parse duplicatas/parcelas from XML
+        if (parsed.duplicatas.length > 0) {
+          setUseParcelas(true);
+          setParcelas(parsed.duplicatas.map((d, i) => ({
+            numero: i + 1,
+            valor: String(d.valor),
+            data_vencimento: d.vencimento,
+          })));
+          // Set first due date as main due date
+          if (parsed.duplicatas[0]?.vencimento) {
+            setDataVencimento(parsed.duplicatas[0].vencimento);
+          }
+        }
+        toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""}`);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
@@ -444,6 +479,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor_unitario: item.valor_unitario, valor_total: item.valor_total,
         ncm: item.ncm || null, cfop: item.cfop || null, unidade: item.unidade || null,
       })));
+    }
+
+    // Save installments
+    if (expenseId) {
+      await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+      if (useParcelas && parcelas.length > 0) {
+        await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
+          expense_id: expenseId,
+          numero_parcela: p.numero,
+          valor: Number(p.valor) || 0,
+          data_vencimento: p.data_vencimento,
+          status: "pendente",
+        })));
+      }
     }
 
     if (expenseId && isMaintenanceType && itensManutencao.length > 0) {
@@ -666,7 +715,115 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           </div>
 
-          {/* ── Centro Custo, Forma Pgto ── */}
+          {/* ── Parcelas / Duplicatas ── */}
+          <div className={`rounded-lg border p-3 transition-colors ${useParcelas ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDays className={`h-4 w-4 ${useParcelas ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <Label className="text-xs font-medium cursor-pointer" htmlFor="use-parcelas">Parcelamento</Label>
+                  <p className="text-[10px] text-muted-foreground">Definir parcelas com vencimentos individuais</p>
+                </div>
+              </div>
+              <Switch id="use-parcelas" checked={useParcelas} onCheckedChange={(checked) => {
+                setUseParcelas(checked);
+                if (checked && parcelas.length === 0) {
+                  const val = Number(valorTotal) || 0;
+                  setParcelas([{ numero: 1, valor: String(val.toFixed(2)), data_vencimento: dataVencimento || "" }]);
+                }
+              }} />
+            </div>
+
+            {useParcelas && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {parcelas.length} parcela(s) — Total: R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                      const numParcelas = parcelas.length;
+                      const val = Number(valorTotal) || 0;
+                      const newCount = numParcelas + 1;
+                      const parcelaVal = (val / newCount).toFixed(2);
+                      const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                      const newParcelas: Parcela[] = [];
+                      for (let i = 0; i < newCount; i++) {
+                        const d = new Date(base);
+                        d.setMonth(d.getMonth() + i);
+                        newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: d.toISOString().slice(0, 10) });
+                      }
+                      // Ajustar diferença de arredondamento na última
+                      const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
+                      if (Math.abs(diff) > 0.001) {
+                        newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
+                      }
+                      setParcelas(newParcelas);
+                    }}>
+                      Dividir em {parcelas.length + 1}x
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                      setParcelas(prev => [...prev, { numero: prev.length + 1, valor: "0", data_vencimento: "" }]);
+                    }}>
+                      <Plus className="h-3 w-3 mr-0.5" /> Parcela
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[10px] w-[50px]">Nº</TableHead>
+                        <TableHead className="text-[10px]">Vencimento</TableHead>
+                        <TableHead className="text-[10px] text-right">Valor (R$)</TableHead>
+                        <TableHead className="text-[10px] w-[32px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {parcelas.map((p, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="text-[11px] font-mono">{p.numero}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={p.data_vencimento}
+                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
+                              className="h-7 text-[11px]"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number" step="0.01"
+                              value={p.valor}
+                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: e.target.value } : pp))}
+                              className="h-7 text-[11px] text-right font-mono"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {parcelas.length > 1 && (
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() =>
+                                setParcelas(prev => prev.filter((_, i) => i !== idx).map((pp, i) => ({ ...pp, numero: i + 1 })))
+                              }>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {Math.abs(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(valorTotal) || 0)) > 0.01 && (
+                  <p className="text-[10px] text-destructive font-medium">
+                    ⚠ Soma das parcelas (R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) difere do valor total (R$ {Number(valorTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Centro de Custo</Label>
