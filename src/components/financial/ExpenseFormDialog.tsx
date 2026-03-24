@@ -465,6 +465,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       })));
     }
 
+    // Save installments
+    if (expenseId) {
+      await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+      if (useParcelas && parcelas.length > 0) {
+        await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
+          expense_id: expenseId,
+          numero_parcela: p.numero,
+          valor: Number(p.valor) || 0,
+          data_vencimento: p.data_vencimento,
+          status: "pendente",
+        })));
+      }
+    }
+
     if (expenseId && isMaintenanceType && itensManutencao.length > 0) {
       await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", expenseId);
       await supabase.from("expense_maintenance_items" as any).insert(itensManutencao.map(item => ({
