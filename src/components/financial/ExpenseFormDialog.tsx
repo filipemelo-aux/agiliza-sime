@@ -152,6 +152,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
+  // NFSe / Ordem de Serviço linked to maintenance
+  const [hasNfse, setHasNfse] = useState(false);
+  const [nfseNumero, setNfseNumero] = useState("");
+  const [nfseDescricao, setNfseDescricao] = useState("");
+  const [nfseValor, setNfseValor] = useState("");
+  const [nfseDataEmissao, setNfseDataEmissao] = useState("");
+  const [nfseDataVencimento, setNfseDataVencimento] = useState("");
+  const [nfseFormaPagamento, setNfseFormaPagamento] = useState("");
+  const [nfseFornecedorNome, setNfseFornecedorNome] = useState("");
+  const [nfseFornecedorId, setNfseFornecedorId] = useState<string | null>(null);
+  const [nfseObservacoes, setNfseObservacoes] = useState("");
+  const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
+  interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
+  const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+
   // Use external chart accounts
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
 
@@ -339,6 +354,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setItensNota([]); setInputMode("manual");
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
+    setHasNfse(false); setNfseNumero(""); setNfseDescricao(""); setNfseValor(""); setNfseDataEmissao("");
+    setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
+    setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
@@ -572,7 +590,49 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       }
     }
 
-    toast.success(expense ? "Despesa atualizada" : "Despesa criada");
+    // Create second expense for NFSe/Ordem de Serviço if enabled
+    if (!isEditing && isMaintenanceType && hasNfse && nfseValor && Number(nfseValor) > 0) {
+      const nfsePayload: any = {
+        empresa_id: empresaId,
+        descricao: nfseDescricao.trim() || `NFSe ${nfseNumero} - Serviço de manutenção`,
+        tipo_despesa: "manutencao",
+        plano_contas_id: planoContasId,
+        centro_custo: centroCusto,
+        valor_total: Number(nfseValor),
+        data_emissao: nfseDataEmissao || dataEmissao,
+        data_vencimento: nfseDataVencimento || null,
+        forma_pagamento: nfseFormaPagamento || null,
+        favorecido_nome: nfseFornecedorNome.trim() || fornecedorMecanica.trim() || null,
+        favorecido_id: nfseFornecedorId || null,
+        documento_fiscal_numero: nfseNumero.trim() || null,
+        origem: "manual",
+        observacoes: nfseObservacoes.trim() || `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}`,
+        veiculo_id: veiculoId,
+        tipo_manutencao: tipoManutencao,
+        km_atual: kmAtual ? Number(kmAtual) : null,
+        fornecedor_mecanica: fornecedorMecanica.trim() || null,
+        created_by: user?.id,
+      };
+
+      const { data: nfseData, error: nfseError } = await supabase.from("expenses").insert(nfsePayload).select("id").single();
+      if (nfseError) {
+        console.error("Erro ao criar despesa NFSe:", nfseError);
+        toast.warning("Despesa principal criada, mas houve erro ao criar a despesa da NFSe.");
+      } else if (nfseData) {
+        // Save NFSe installments if any
+        if (nfseUseParcelas && nfseParcelas.length > 0) {
+          await supabase.from("expense_installments" as any).insert(nfseParcelas.map(p => ({
+            expense_id: nfseData.id,
+            numero_parcela: p.numero,
+            valor: Number(p.valor) || 0,
+            data_vencimento: p.data_vencimento,
+            status: "pendente",
+          })));
+        }
+      }
+    }
+
+    toast.success(expense ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
     setSaving(false);
     onOpenChange(false);
     onSaved();
@@ -928,6 +988,185 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
                 onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
               />
+
+              {/* NFSe / Ordem de Serviço toggle */}
+              <div className={`rounded-lg border p-3 transition-colors mt-3 ${hasNfse ? "border-orange-500/50 bg-orange-500/5" : "border-border"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className={`h-4 w-4 ${hasNfse ? "text-orange-600" : "text-muted-foreground"}`} />
+                    <div>
+                      <Label className="text-xs font-medium cursor-pointer" htmlFor="has-nfse">Possui NFSe / Ordem de Serviço?</Label>
+                      <p className="text-[10px] text-muted-foreground">Gera uma segunda despesa para o serviço prestado</p>
+                    </div>
+                  </div>
+                  <Switch id="has-nfse" checked={hasNfse} onCheckedChange={setHasNfse} />
+                </div>
+
+                {hasNfse && (
+                  <div className="mt-3 space-y-3 pt-3 border-t border-border">
+                    <div className="flex items-start gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
+                      <FileText className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
+                      <p className="text-[11px] text-orange-700 dark:text-orange-400 font-medium leading-tight">
+                        Uma segunda despesa será criada no Contas a Pagar referente à NFSe/OS deste serviço.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Nº NFSe / OS</Label>
+                        <Input value={nfseNumero} onChange={e => setNfseNumero(e.target.value)} placeholder="Número do documento" className="h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Valor do Serviço (R$) *</Label>
+                        <Input type="number" step="0.01" value={nfseValor} onChange={e => setNfseValor(e.target.value)} placeholder="0,00" className="h-9" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Descrição do Serviço</Label>
+                      <Input value={nfseDescricao} onChange={e => setNfseDescricao(e.target.value)} placeholder="Ex: Mão de obra troca de óleo..." className="h-9" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Prestador / Oficina</Label>
+                        <PersonSearchInput
+                          categories={["fornecedor"]}
+                          placeholder="Buscar prestador..."
+                          selectedName={nfseFornecedorNome || undefined}
+                          onSelect={p => { setNfseFornecedorNome(p.razao_social || p.nome_fantasia || p.full_name); setNfseFornecedorId(p.id); }}
+                          onClear={() => { setNfseFornecedorNome(""); setNfseFornecedorId(null); }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Forma de Pagamento</Label>
+                        <Select value={nfseFormaPagamento} onValueChange={setNfseFormaPagamento}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Emissão NFSe</Label>
+                        <Input type="date" value={nfseDataEmissao} onChange={e => setNfseDataEmissao(e.target.value)} className="h-9" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Vencimento NFSe</Label>
+                        <Input type="date" value={nfseDataVencimento} onChange={e => setNfseDataVencimento(e.target.value)} className="h-9" />
+                      </div>
+                    </div>
+
+                    {/* NFSe Parcelas */}
+                    <div className={`rounded-lg border p-2.5 transition-colors ${nfseUseParcelas ? "border-orange-500/40 bg-orange-500/5" : "border-border"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className={`h-3.5 w-3.5 ${nfseUseParcelas ? "text-orange-600" : "text-muted-foreground"}`} />
+                          <Label className="text-[11px] font-medium cursor-pointer" htmlFor="nfse-parcelas">Parcelamento NFSe</Label>
+                        </div>
+                        <Switch id="nfse-parcelas" checked={nfseUseParcelas} onCheckedChange={(checked) => {
+                          setNfseUseParcelas(checked);
+                          if (checked && nfseParcelas.length === 0) {
+                            const val = Number(nfseValor) || 0;
+                            setNfseParcelas([{ numero: 1, valor: String(val.toFixed(2)), data_vencimento: nfseDataVencimento || "" }]);
+                          }
+                        }} />
+                      </div>
+
+                      {nfseUseParcelas && (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              {nfseParcelas.length} parcela(s) — Total: R$ {nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <div className="flex gap-1">
+                              <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                                const val = Number(nfseValor) || 0;
+                                const newCount = nfseParcelas.length + 1;
+                                const parcelaVal = (val / newCount).toFixed(2);
+                                const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
+                                const newP: NfseParcela[] = [];
+                                for (let i = 0; i < newCount; i++) {
+                                  const d = new Date(base);
+                                  d.setMonth(d.getMonth() + i);
+                                  newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: d.toISOString().slice(0, 10) });
+                                }
+                                const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
+                                if (Math.abs(diff) > 0.001) {
+                                  newP[newP.length - 1].valor = (Number(newP[newP.length - 1].valor) + diff).toFixed(2);
+                                }
+                                setNfseParcelas(newP);
+                              }}>
+                                Dividir em {nfseParcelas.length + 1}x
+                              </Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                                setNfseParcelas(prev => [...prev, { numero: prev.length + 1, valor: "0", data_vencimento: "" }]);
+                              }}>
+                                <Plus className="h-3 w-3 mr-0.5" /> Parcela
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="border rounded-md overflow-hidden">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-[10px] w-[50px]">Nº</TableHead>
+                                  <TableHead className="text-[10px]">Vencimento</TableHead>
+                                  <TableHead className="text-[10px] text-right">Valor (R$)</TableHead>
+                                  <TableHead className="text-[10px] w-[32px]"></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {nfseParcelas.map((p, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="text-[11px] font-mono">{p.numero}</TableCell>
+                                    <TableCell>
+                                      <Input type="date" value={p.data_vencimento}
+                                        onChange={e => setNfseParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
+                                        className="h-7 text-[11px]"
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Input type="number" step="0.01" value={p.valor}
+                                        onChange={e => setNfseParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: e.target.value } : pp))}
+                                        className="h-7 text-[11px] text-right font-mono"
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      {nfseParcelas.length > 1 && (
+                                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() =>
+                                          setNfseParcelas(prev => prev.filter((_, i) => i !== idx).map((pp, i) => ({ ...pp, numero: i + 1 })))
+                                        }>
+                                          <Trash2 className="h-3 w-3 text-destructive" />
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {Math.abs(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(nfseValor) || 0)) > 0.01 && (
+                            <p className="text-[10px] text-destructive font-medium">
+                              ⚠ Soma das parcelas difere do valor da NFSe
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Observações NFSe</Label>
+                      <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(e.target.value)} placeholder="Observações adicionais..." className="h-9" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
