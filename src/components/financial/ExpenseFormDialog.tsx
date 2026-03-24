@@ -199,9 +199,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   }, [isCategoryMaintenance]);
 
-  // Filtered chart accounts for expense form (only despesa type, leaf nodes)
-  const despesaChartAccounts = useMemo(() =>
-    chartAccounts.filter(a => a.tipo === "despesa"), [chartAccounts]);
+  // Filtered chart accounts for expense form (only despesa type)
+  const despesaChartAccounts = useMemo(() => {
+    const all = chartAccounts.filter(a => a.tipo === "despesa");
+    // Mark which accounts are parents (have children)
+    const parentIds = new Set(all.filter(a => a.conta_pai_id).map(a => a.conta_pai_id!));
+    // Return only leaf accounts (not parents) for selection
+    return all.filter(a => !parentIds.has(a.id));
+  }, [chartAccounts]);
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
@@ -635,7 +640,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   <SelectContent>
                     {despesaChartAccounts.map(a => (
                       <SelectItem key={a.id} value={a.id}>
-                        <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
+                        <span className="font-mono text-[10px] mr-1 text-muted-foreground">{a.codigo}</span> {a.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
