@@ -25,6 +25,7 @@ import AdminQuotations from "./pages/AdminQuotations";
 import AdminFinancial from "./pages/AdminFinancial";
 import AdminFuelOrders from "./pages/AdminFuelOrders";
 import AdminFuelings from "./pages/AdminFuelings";
+import AdminMaintenances from "./pages/AdminMaintenances";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/fuel-orders" element={<AdminFuelOrders />} />
             <Route path="/admin/fuelings" element={<AdminFuelings />} />
+            <Route path="/admin/maintenances" element={<AdminMaintenances />} />
             <Route path="/admin/people" element={<AdminPeople />} />
             <Route path="/admin/vehicles" element={<AdminVehicles />} />
             <Route path="/admin/drivers" element={<Navigate to="/admin/people" replace />} />
