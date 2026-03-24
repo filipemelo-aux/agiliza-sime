@@ -325,6 +325,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   };
 
+  const resetForm = () => {
     setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
     setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
