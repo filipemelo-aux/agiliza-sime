@@ -148,6 +148,43 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
 
+  // Chart of accounts for hierarchical display
+  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCatName, setQuickCatName] = useState("");
+  const [quickCatChartId, setQuickCatChartId] = useState("");
+  const [savingQuickCat, setSavingQuickCat] = useState(false);
+
+  // Load chart accounts on open
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id").eq("ativo", true).order("codigo")
+      .then(({ data }) => setChartAccounts((data as any) || []));
+  }, [open]);
+
+  // Build hierarchical path for a chart account
+  const chartMap = useMemo(() => {
+    const m = new Map<string, ChartAccount>();
+    chartAccounts.forEach(a => m.set(a.id, a));
+    return m;
+  }, [chartAccounts]);
+
+  const getChartPath = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    const parts: string[] = [];
+    let current = chartMap.get(chartId);
+    while (current) {
+      parts.unshift(current.nome);
+      current = current.conta_pai_id ? chartMap.get(current.conta_pai_id) : undefined;
+    }
+    return parts.join(" › ");
+  };
+
+  const getChartCode = (chartId: string | null | undefined): string => {
+    if (!chartId) return "";
+    return chartMap.get(chartId)?.codigo || "";
+  };
+
   // Derive maintenance from selected category
   const selectedCategory = categories.find(c => c.id === categoriaId);
   const isCategoryMaintenance = selectedCategory?.tipo_operacional === "manutencao";
@@ -158,6 +195,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       setIsManutencao(true);
     }
   }, [isCategoryMaintenance]);
+
+  // Filtered chart accounts for quick create (only despesa type)
+  const despesaChartAccounts = useMemo(() =>
+    chartAccounts.filter(a => a.tipo === "despesa"), [chartAccounts]);
+
+  const handleQuickCreateCategory = async () => {
+    if (!quickCatName.trim()) return toast.error("Informe o nome da categoria");
+    if (!quickCatChartId) return toast.error("Selecione a conta contábil");
+    setSavingQuickCat(true);
+    const { data, error } = await supabase.from("financial_categories").insert({
+      name: quickCatName.trim(),
+      type: "payable",
+      plano_contas_id: quickCatChartId,
+      active: true,
+    } as any).select("id, name, tipo_operacional, plano_contas_id").single();
+    setSavingQuickCat(false);
+    if (error) return toast.error(error.message);
+    toast.success("Categoria criada!");
+    setCategoriaId((data as any).id);
+    setShowQuickCreate(false);
+    setQuickCatName("");
+    setQuickCatChartId("");
+    onSaved(); // Refresh parent data
+  };
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
