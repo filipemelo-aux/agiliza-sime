@@ -402,7 +402,7 @@ export function FinancialPayables() {
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
                     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
-                    const chart = item.plano_contas_id ? chartMap[item.plano_contas_id] : null;
+                    const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
                     const isMaintenance = cat?.tipo_operacional === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
