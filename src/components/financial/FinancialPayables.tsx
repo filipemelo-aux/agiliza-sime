@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -96,11 +96,12 @@ export function FinancialPayables() {
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editInstValor, setEditInstValor] = useState("");
   const [editInstVenc, setEditInstVenc] = useState("");
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
@@ -211,12 +212,9 @@ export function FinancialPayables() {
 
   const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
 
-  const toggleExpand = (id: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const showExpenseDetail = (expenseId: string) => {
+    const exp = items.find(i => i.id === expenseId);
+    if (exp) { setDetailExpense(exp); setDetailOpen(true); }
   };
 
   const handlePayInstallment = async (inst: Installment) => {
@@ -511,17 +509,120 @@ export function FinancialPayables() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.map(item => {
-            const isOverdue = item.status === "atrasado";
-            const isPago = item.status === "pago";
+          {filtered.flatMap(item => {
+            const installs = installmentsMap[item.id];
+            const hasInstallments = installs && installs.length > 0;
             const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
             const isMaintenance = chart?.tipo_operacional === "manutencao";
             const descDisplay = item.documento_fiscal_numero
               ? `NFSe ${item.documento_fiscal_numero}`
               : item.descricao || "Serviço";
+
+            // If expense has installments, render each installment as its own card
+            if (hasInstallments) {
+              return installs.map(inst => {
+                const today = new Date().toISOString().split("T")[0];
+                const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                const isInstPago = inst.status === "pago";
+                const instStatus = isInstOverdue ? "atrasado" : inst.status;
+
+                return (
+                  <Card
+                    key={`inst-${inst.id}`}
+                    className={`relative transition-all ${isInstOverdue ? "border-destructive/40" : ""}`}
+                  >
+                    <CardContent className="p-4 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {item.favorecido_nome || "Sem favorecido"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+                            <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge variant="secondary" className="text-[10px]">
+                            P{inst.numero_parcela}/{installs.length}
+                          </Badge>
+                          <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
+                            {STATUS_MAP[instStatus]?.label || inst.status}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Valor Parcela</span>
+                          <p className="font-mono font-semibold text-foreground">
+                            R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Vencimento</span>
+                          <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
+                            {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                          </p>
+                        </div>
+                        {chart && (
+                          <div className="col-span-2 mt-1">
+                            <span className="text-muted-foreground">Conta Contábil</span>
+                            <p className="text-[11px] text-foreground truncate">
+                              <span className="font-mono mr-1">{chart.codigo}</span>
+                              {chart.nome}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 pt-1 border-t border-border">
+                        {isMaintenance && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
+                            <Wrench className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                        )}
+                        {!isInstPago && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                            onClick={() => handlePayInstallment(inst)}
+                          >
+                            <Check className="h-3.5 w-3.5" /> Pagar
+                          </Button>
+                        )}
+                        <div className="ml-auto flex gap-0.5">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
+                            <FileText className="h-3.5 w-3.5" /> Detalhes
+                          </Button>
+                          {!isInstPago && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInstallment(inst)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInstallment(inst)}>
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              });
+            }
+
+            // No installments — render as regular expense card
+            const isOverdue = item.status === "atrasado";
+            const isPago = item.status === "pago";
             const isSelected = selectedIds.has(item.id);
 
-            return (
+            return [(
               <Card
                 key={item.id}
                 className={`relative transition-all ${
@@ -529,7 +630,6 @@ export function FinancialPayables() {
                 } ${isOverdue ? "border-destructive/40" : ""}`}
               >
                 <CardContent className="p-4 space-y-3">
-                  {/* Header row: checkbox + favorecido + status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       {!isPago && (
@@ -554,7 +654,6 @@ export function FinancialPayables() {
                     </Badge>
                   </div>
 
-                  {/* Info grid */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                     <div>
                       <span className="text-muted-foreground">Valor</span>
@@ -592,57 +691,6 @@ export function FinancialPayables() {
                     )}
                   </div>
 
-                  {/* Installments toggle */}
-                  {(installmentsMap[item.id]?.length || 0) > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-7 text-xs gap-1 text-muted-foreground"
-                      onClick={() => toggleExpand(item.id)}
-                    >
-                      {expandedCards.has(item.id) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      {installmentsMap[item.id].length} parcela(s)
-                    </Button>
-                  )}
-
-                  {/* Installments list */}
-                  {expandedCards.has(item.id) && installmentsMap[item.id] && (
-                    <div className="space-y-1.5 border-t border-border pt-2">
-                      {installmentsMap[item.id].map(inst => {
-                        const today = new Date().toISOString().split("T")[0];
-                        const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
-                        return (
-                          <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${isInstOverdue ? "bg-destructive/10" : "bg-muted/50"}`}>
-                            <span className="font-medium text-foreground shrink-0">P{inst.numero_parcela}</span>
-                            <span className={`shrink-0 ${isInstOverdue ? "text-destructive" : "text-muted-foreground"}`}>
-                              {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}
-                            </span>
-                            <span className="font-mono text-foreground shrink-0">
-                              R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                            <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
-                              {inst.status === "pago" ? "Pago" : "Pend."}
-                            </Badge>
-                            {inst.status !== "pago" && (
-                              <div className="ml-auto flex gap-0.5 shrink-0">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Quitar parcela" onClick={() => handlePayInstallment(inst)}>
-                                  <Check className="h-3 w-3 text-success" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Editar parcela" onClick={() => openEditInstallment(inst)}>
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir parcela" onClick={() => handleDeleteInstallment(inst)}>
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Actions */}
                   <div className="flex items-center gap-1 pt-1 border-t border-border">
                     {isMaintenance && (
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
@@ -670,7 +718,7 @@ export function FinancialPayables() {
                   </div>
                 </CardContent>
               </Card>
-            );
+            )];
           })}
         </div>
       )}
@@ -712,6 +760,94 @@ export function FinancialPayables() {
             </div>
             <Button onClick={handleSaveInstallment} className="w-full">Salvar</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expense Detail Dialog (from installment card) */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Despesa</DialogTitle>
+          </DialogHeader>
+          {detailExpense && (() => {
+            const dChart = detailExpense.plano_contas_id ? chartIdMap[detailExpense.plano_contas_id] : null;
+            const dInstalls = installmentsMap[detailExpense.id] || [];
+            const totalParcelas = dInstalls.reduce((s, i) => s + Number(i.valor), 0);
+            const pagas = dInstalls.filter(i => i.status === "pago");
+            const totalQuitado = pagas.reduce((s, i) => s + Number(i.valor), 0);
+            return (
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Favorecido</span>
+                    <p className="font-semibold text-foreground truncate">{detailExpense.favorecido_nome || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Emissão</span>
+                    <p className="text-foreground">{format(new Date(detailExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Valor Total</span>
+                    <p className="font-mono font-bold text-foreground">
+                      R$ {Number(detailExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <Badge variant={STATUS_MAP[detailExpense.status]?.variant || "outline"} className="text-[10px]">
+                      {STATUS_MAP[detailExpense.status]?.label || detailExpense.status}
+                    </Badge>
+                  </div>
+                  {dChart && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Conta Contábil</span>
+                      <p className="text-xs text-foreground truncate">
+                        <span className="font-mono mr-1">{dChart.codigo}</span>{dChart.nome}
+                      </p>
+                    </div>
+                  )}
+                  {detailExpense.documento_fiscal_numero && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Documento Fiscal</span>
+                      <p className="text-foreground">{detailExpense.documento_fiscal_numero}</p>
+                    </div>
+                  )}
+                  {detailExpense.veiculo_placa && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Veículo</span>
+                      <p className="text-foreground">{detailExpense.veiculo_placa}</p>
+                    </div>
+                  )}
+                  {detailExpense.observacoes && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground">Observações</span>
+                      <p className="text-foreground text-xs break-words">{detailExpense.observacoes}</p>
+                    </div>
+                  )}
+                </div>
+
+                {dInstalls.length > 0 && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Parcelas ({pagas.length}/{dInstalls.length} pagas) — Quitado: R$ {totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                    <div className="space-y-1">
+                      {dInstalls.map(inst => (
+                        <div key={inst.id} className={`flex items-center justify-between text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
+                          <span className="font-medium">P{inst.numero_parcela}</span>
+                          <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                          <span className="font-mono">R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px]">
+                            {inst.status === "pago" ? "Pago" : "Pend."}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
