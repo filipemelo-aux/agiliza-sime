@@ -640,7 +640,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   <SelectContent>
                     {despesaChartAccounts.map(a => (
                       <SelectItem key={a.id} value={a.id}>
-                        <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
+                        <span className="font-mono text-[10px] mr-1 text-muted-foreground">{a.codigo}</span> {a.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
