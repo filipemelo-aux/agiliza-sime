@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -17,6 +20,15 @@ const FORMA_PAGAMENTO_OPTIONS = [
   { value: "cheque", label: "Cheque" },
 ];
 
+interface PaymentRecord {
+  id: string;
+  valor: number;
+  forma_pagamento: string;
+  data_pagamento: string;
+  observacoes: string | null;
+  created_at: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,10 +39,30 @@ interface Props {
 }
 
 export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, onSaved }: Props) {
+  const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
   const [formaPagamento, setFormaPagamento] = useState("pix");
+  const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<PaymentRecord[]>([]);
+
+  useEffect(() => {
+    if (open && expenseId) {
+      setValor(String(valorTotal - valorPago));
+      setObservacoes("");
+      loadHistory();
+    }
+  }, [open, expenseId]);
+
+  const loadHistory = async () => {
+    const { data } = await supabase
+      .from("expense_payments" as any)
+      .select("*")
+      .eq("expense_id", expenseId)
+      .order("created_at", { ascending: false });
+    setHistory((data as any) || []);
+  };
 
   const handleConfirm = async () => {
     const valorNum = Number(valor);
@@ -38,6 +70,17 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     if (valorNum > saldoRestante + 0.01) return toast.error("Valor excede o saldo restante");
 
     setSaving(true);
+
+    // Insert payment record
+    const { error: payErr } = await supabase.from("expense_payments" as any).insert({
+      expense_id: expenseId,
+      valor: valorNum,
+      forma_pagamento: formaPagamento,
+      observacoes: observacoes.trim() || null,
+      created_by: user?.id,
+    } as any);
+    if (payErr) { toast.error(payErr.message); setSaving(false); return; }
+
     const novoValorPago = valorPago + valorNum;
     const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
 
@@ -55,34 +98,71 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     onSaved();
   };
 
+  const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Baixa de Pagamento</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
             Total: R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | 
             Pago: R$ {valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | 
             Restante: <strong className="text-foreground">R$ {saldoRestante.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
           </div>
-          <div>
-            <Label>Valor do Pagamento (R$)</Label>
-            <Input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Valor do Pagamento (R$)</Label>
+              <Input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} />
+            </div>
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
-            <Label>Forma de Pagamento</Label>
-            <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>Observações</Label>
+            <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
           <Button onClick={handleConfirm} className="w-full" disabled={saving}>
             {saving ? "Salvando..." : "Confirmar Pagamento"}
           </Button>
+
+          {/* Payment history */}
+          {history.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Histórico de Pagamentos</p>
+              <div className="overflow-x-auto max-h-[200px] overflow-y-auto border rounded">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Forma</TableHead>
+                      <TableHead>Obs</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {history.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                        <TableCell className="text-xs font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-xs">{formaLabel(p.forma_pagamento)}</TableCell>
+                        <TableCell className="text-xs max-w-[100px] truncate">{p.observacoes || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

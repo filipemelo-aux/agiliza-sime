@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ interface Expense {
   chave_nfe: string | null;
   observacoes: string | null;
   veiculo_placa: string | null;
+  veiculo_id: string | null;
   litros: number | null;
   km_odometro: number | null;
   numero_multa: string | null;
@@ -40,10 +41,8 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface Category {
-  id: string;
-  name: string;
-}
+interface Category { id: string; name: string; }
+interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "outline" },
@@ -63,16 +62,27 @@ const TIPO_MAP: Record<string, string> = {
   outros: "Outros",
 };
 
+const CENTRO_CUSTO_MAP: Record<string, string> = {
+  frota_propria: "Frota Própria",
+  frota_terceiros: "Frota Terceiros",
+  administrativo: "Administrativo",
+  operacional: "Operacional",
+};
+
 export function FinancialPayables() {
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+  const [filterVeiculo, setFilterVeiculo] = useState("all");
+  const [filterCentroCusto, setFilterCentroCusto] = useState("all");
+  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
+  const [filterPeriodoFim, setFilterPeriodoFim] = useState("");
 
-  // Dialog states
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -80,43 +90,48 @@ export function FinancialPayables() {
 
   const fetchData = async () => {
     setLoading(true);
-
-    // Get empresa_id (first establishment)
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     const eid = estab?.id || "";
     setEmpresaId(eid);
 
-    const [{ data: expData }, { data: catData }] = await Promise.all([
-      supabase
-        .from("expenses")
-        .select("*")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("financial_categories")
-        .select("id, name")
-        .eq("type", "payable" as any)
-        .eq("active", true),
+    const [{ data: expData }, { data: catData }, { data: vehData }] = await Promise.all([
+      supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+      supabase.from("financial_categories").select("id, name").eq("type", "payable" as any).eq("active", true),
+      supabase.from("vehicles").select("id, plate").eq("is_active", true),
     ]);
 
-    setItems((expData as any) || []);
+    // Auto-update overdue status
+    const today = new Date().toISOString().split("T")[0];
+    const expenses = ((expData as any) || []) as Expense[];
+    const overdueIds: string[] = [];
+    const processed = expenses.map(e => {
+      if (e.data_vencimento && e.data_vencimento < today && e.status === "pendente") {
+        overdueIds.push(e.id);
+        return { ...e, status: "atrasado" };
+      }
+      return e;
+    });
+
+    // Batch update overdue in background
+    if (overdueIds.length > 0) {
+      supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
+    }
+
+    setItems(processed);
     setCategories((catData as any) || []);
+    setVehicles((vehData as any) || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleEdit = (item: Expense) => {
-    setEditingExpense(item);
-    setFormOpen(true);
-  };
-
-  const handleNew = () => {
-    setEditingExpense(null);
-    setFormOpen(true);
-  };
+  const handleEdit = (item: Expense) => { setEditingExpense(item); setFormOpen(true); };
+  const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
 
   const handleDelete = async (item: Expense) => {
+    if (item.status === "pago") {
+      return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
+    }
     if (!confirm("Deseja excluir esta despesa?")) return;
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
@@ -124,30 +139,35 @@ export function FinancialPayables() {
     fetchData();
   };
 
-  const handlePayment = (item: Expense) => {
-    setPaymentExpense(item);
-    setPaymentOpen(true);
-  };
+  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
 
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || "—";
+  const getVehiclePlate = (id: string | null) => vehicles.find(v => v.id === id)?.plate || null;
 
-  const filtered = items.filter(i => {
-    const matchSearch = !search ||
-      i.descricao.toLowerCase().includes(search.toLowerCase()) ||
-      (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
-      (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || i.status === filterStatus;
-    const matchTipo = filterTipo === "all" || i.tipo_despesa === filterTipo;
-    return matchSearch && matchStatus && matchTipo;
-  });
+  const filtered = useMemo(() => {
+    return items.filter(i => {
+      const matchSearch = !search ||
+        i.descricao.toLowerCase().includes(search.toLowerCase()) ||
+        (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
+        (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
+      const matchStatus = filterStatus === "all" || i.status === filterStatus;
+      const matchTipo = filterTipo === "all" || i.tipo_despesa === filterTipo;
+      const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
+      const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
+      const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
+      return matchSearch && matchStatus && matchTipo && matchVeiculo && matchCentro && matchPeriodo;
+    });
+  }, [items, search, filterStatus, filterTipo, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
+  const totalAtrasado = filtered.filter(i => i.status === "atrasado").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pendente</p>
@@ -158,6 +178,12 @@ export function FinancialPayables() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pago</p>
             <p className="text-xl font-bold text-emerald-600">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Total Atrasado</p>
+            <p className="text-xl font-bold text-destructive">R$ {totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
         <Card className="hidden md:block">
@@ -175,8 +201,8 @@ export function FinancialPayables() {
           <Button size="sm" onClick={handleNew}><Plus className="h-4 w-4 mr-1" /> Nova Despesa</Button>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          {/* Filters Row 1 */}
+          <div className="flex flex-wrap gap-2 mb-2">
             <div className="relative flex-1 min-w-[180px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8" />
@@ -198,6 +224,25 @@ export function FinancialPayables() {
                 {Object.entries(TIPO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          {/* Filters Row 2 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Veículo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Veículos</SelectItem>
+                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Centro Custo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Centros</SelectItem>
+                {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[140px]" placeholder="De" />
+            <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[140px]" placeholder="Até" />
           </div>
 
           {loading ? (
@@ -269,7 +314,6 @@ export function FinancialPayables() {
         </CardContent>
       </Card>
 
-      {/* Form Dialog */}
       <ExpenseFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -279,7 +323,6 @@ export function FinancialPayables() {
         onSaved={fetchData}
       />
 
-      {/* Payment Discharge Dialog */}
       {paymentExpense && (
         <PaymentDischargeDialog
           open={paymentOpen}
