@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,10 +36,7 @@ export default function AdminFuelings() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  // Dialogs
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -52,11 +48,7 @@ export default function AdminFuelings() {
     setEmpresaId(eid);
 
     const [{ data: fData }, { data: vData }] = await Promise.all([
-      supabase
-        .from("fuelings")
-        .select("*")
-        .is("deleted_at", null)
-        .order("data_abastecimento", { ascending: false }),
+      supabase.from("fuelings").select("*").is("deleted_at", null).order("data_abastecimento", { ascending: false }),
       supabase.from("vehicles").select("id, plate"),
     ]);
 
@@ -105,6 +97,7 @@ export default function AdminFuelings() {
 
   const totalValue = filtered.reduce((s, i) => s + Number(i.valor_total), 0);
   const totalLiters = filtered.reduce((s, i) => s + Number(i.quantidade_litros), 0);
+  const selectableItems = filtered.filter(i => i.status_faturamento === "nao_faturado");
 
   const selectedFuelings = items.filter(i => selected.has(i.id)).map(i => ({
     ...i,
@@ -120,44 +113,24 @@ export default function AdminFuelings() {
             <p className="text-sm text-muted-foreground">Registre abastecimentos e gere contas a pagar</p>
           </div>
           <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Abastecimento
+            <Plus className="h-4 w-4 mr-1" /> Novo
           </Button>
         </div>
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Registros</p>
-              <p className="text-xl font-bold text-foreground">{filtered.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total Litros</p>
-              <p className="text-xl font-bold text-foreground">{totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Valor Total</p>
-              <p className="text-xl font-bold text-primary">R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Selecionados</p>
-              <p className="text-xl font-bold text-foreground">{selected.size}</p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Registros</p><p className="text-xl font-bold text-foreground">{filtered.length}</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Litros</p><p className="text-xl font-bold text-foreground">{totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-xl font-bold text-primary">R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Selecionados</p><p className="text-xl font-bold text-foreground">{selected.size}</p></CardContent></Card>
         </div>
 
-        {/* Actions bar */}
+        {/* Batch actions */}
         {selected.size > 0 && (
           <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
             <DollarSign className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">
-              {selected.size} abastecimento(s) selecionado(s) — R$ {selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {selected.size} abastecimento(s) — R$ {selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </span>
             <Button size="sm" onClick={() => setGenerateOpen(true)} className="ml-auto">
               <DollarSign className="h-4 w-4 mr-1" /> Gerar Conta(s) a Pagar
@@ -165,119 +138,112 @@ export default function AdminFuelings() {
           </div>
         )}
 
-        {/* Table */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap gap-2">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8" />
-              </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="nao_faturado">Não Faturado</SelectItem>
-                  <SelectItem value="faturado">Faturado</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Filters + select all */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {selectableItems.length > 0 && (
+            <div className="flex items-center gap-2 mr-2">
+              <Checkbox
+                checked={selected.size === selectableItems.length && selectableItems.length > 0}
+                onCheckedChange={toggleAll}
+              />
+              <span className="text-xs text-muted-foreground">Selecionar todos</span>
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center py-12 gap-3">
-                <Fuel className="h-10 w-10 text-muted-foreground" />
-                <p className="text-muted-foreground">Nenhum abastecimento encontrado</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={filtered.filter(i => i.status_faturamento === "nao_faturado").length > 0 && selected.size === filtered.filter(i => i.status_faturamento === "nao_faturado").length}
-                          onCheckedChange={toggleAll}
-                        />
-                      </TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Veículo</TableHead>
-                      <TableHead>Combustível</TableHead>
-                      <TableHead className="text-right">Litros</TableHead>
-                      <TableHead className="text-right">R$/L</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Posto</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[80px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map(item => {
-                      const isFaturado = item.status_faturamento === "faturado";
-                      return (
-                        <TableRow key={item.id} className={selected.has(item.id) ? "bg-primary/5" : ""}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selected.has(item.id)}
-                              onCheckedChange={() => toggleSelect(item.id)}
-                              disabled={isFaturado}
-                            />
-                          </TableCell>
-                          <TableCell>{format(new Date(item.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
-                          <TableCell className="font-medium">{vehicles.get(item.veiculo_id) || "—"}</TableCell>
-                          <TableCell>{FUEL_LABELS[item.tipo_combustivel] || item.tipo_combustivel}</TableCell>
-                          <TableCell className="text-right font-mono">{Number(item.quantidade_litros).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</TableCell>
-                          <TableCell className="text-right font-mono">{Number(item.valor_por_litro).toLocaleString("pt-BR", { minimumFractionDigits: 3 })}</TableCell>
-                          <TableCell className="text-right font-mono font-medium">R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="max-w-[120px] truncate">{item.posto_combustivel || "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant={STATUS_FAT[item.status_faturamento]?.variant || "outline"}>
-                              {STATUS_FAT[item.status_faturamento]?.label || item.status_faturamento}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => { setEditing(item); setFormOpen(true); }}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              {!isFaturado && (
-                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar placa, posto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="nao_faturado">Não Faturado</SelectItem>
+              <SelectItem value="faturado">Faturado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Dialogs */}
-        <FuelingFormDialog
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          empresaId={empresaId}
-          userId={user?.id || ""}
-          fueling={editing}
-          onSaved={fetchData}
-        />
+        {/* Cards */}
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-12 gap-3">
+            <Fuel className="h-10 w-10 text-muted-foreground" />
+            <p className="text-muted-foreground">Nenhum abastecimento encontrado</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {filtered.map(item => {
+              const isFaturado = item.status_faturamento === "faturado";
+              const isSelected = selected.has(item.id);
+              return (
+                <Card
+                  key={item.id}
+                  className={`transition-all ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {!isFaturado && (
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} className="mt-0.5" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{vehicles.get(item.veiculo_id) || "—"}</p>
+                          <p className="text-xs text-muted-foreground">{format(new Date(item.data_abastecimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                        </div>
+                      </div>
+                      <Badge variant={STATUS_FAT[item.status_faturamento]?.variant || "outline"} className="text-[10px] shrink-0">
+                        {STATUS_FAT[item.status_faturamento]?.label || item.status_faturamento}
+                      </Badge>
+                    </div>
 
+                    {/* Info grid */}
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Combustível</span>
+                        <p className="font-medium text-foreground">{FUEL_LABELS[item.tipo_combustivel] || item.tipo_combustivel}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Litros</span>
+                        <p className="font-mono font-medium text-foreground">{Number(item.quantidade_litros).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">R$/L</span>
+                        <p className="font-mono font-medium text-foreground">{Number(item.valor_por_litro).toLocaleString("pt-BR", { minimumFractionDigits: 3 })}</p>
+                      </div>
+                    </div>
+
+                    {item.posto_combustivel && (
+                      <p className="text-xs text-muted-foreground truncate">Posto: {item.posto_combustivel}</p>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="font-mono text-sm font-semibold text-foreground">
+                        R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                      <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(item); setFormOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        {!isFaturado && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        <FuelingFormDialog open={formOpen} onOpenChange={setFormOpen} empresaId={empresaId} userId={user?.id || ""} fueling={editing} onSaved={fetchData} />
         {generateOpen && (
-          <GeneratePayablesDialog
-            open={generateOpen}
-            onOpenChange={setGenerateOpen}
-            selectedFuelings={selectedFuelings}
-            empresaId={empresaId}
-            userId={user?.id || ""}
-            onGenerated={fetchData}
-          />
+          <GeneratePayablesDialog open={generateOpen} onOpenChange={setGenerateOpen} selectedFuelings={selectedFuelings} empresaId={empresaId} userId={user?.id || ""} onGenerated={fetchData} />
         )}
       </div>
     </AdminLayout>

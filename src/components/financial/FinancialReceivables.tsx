@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucide-react";
@@ -32,10 +31,7 @@ interface Receivable {
   _source?: "manual" | "harvest" | "cte";
 }
 
-interface Category {
-  id: string;
-  nome: string;
-}
+interface Category { id: string; nome: string; }
 
 interface HarvestReceivable {
   id: string;
@@ -74,7 +70,6 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
     .from("harvest_jobs")
     .select("id, farm_name, monthly_value, harvest_period_start, harvest_period_end, client_id, status")
     .eq("status", "active" as any);
-
   if (!jobs || jobs.length === 0) return [];
 
   const { data: harvestInvoices } = await supabase
@@ -85,29 +80,17 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
 
   const invoicedByJob = new Map<string, number>();
   for (const inv of (harvestInvoices as any[] || [])) {
-    if (inv.harvest_job_id) {
-      invoicedByJob.set(inv.harvest_job_id, (invoicedByJob.get(inv.harvest_job_id) || 0) + Number(inv.total_amount));
-    }
+    if (inv.harvest_job_id) invoicedByJob.set(inv.harvest_job_id, (invoicedByJob.get(inv.harvest_job_id) || 0) + Number(inv.total_amount));
   }
 
   const results: HarvestReceivable[] = [];
-
   for (const job of jobs) {
     let clientName: string | null = null;
     if (job.client_id) {
-      const { data: client } = await supabase
-        .from("profiles")
-        .select("full_name, nome_fantasia")
-        .eq("id", job.client_id)
-        .maybeSingle();
+      const { data: client } = await supabase.from("profiles").select("full_name, nome_fantasia").eq("id", job.client_id).maybeSingle();
       clientName = client?.nome_fantasia || client?.full_name || null;
     }
-
-    const { data: assignments } = await supabase
-      .from("harvest_assignments")
-      .select("id, start_date, end_date, discounts, company_discounts")
-      .eq("harvest_job_id", job.id);
-
+    const { data: assignments } = await supabase.from("harvest_assignments").select("id, start_date, end_date, discounts, company_discounts").eq("harvest_job_id", job.id);
     if (!assignments || assignments.length === 0) continue;
 
     const today = new Date().toISOString().split("T")[0];
@@ -120,70 +103,34 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
       const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : new Date(today + "T00:00:00");
       const days = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const bruto = days * dvCliente;
-
       const discounts = Array.isArray(a.discounts) ? a.discounts : [];
       const companyDiscounts = Array.isArray(a.company_discounts) ? a.company_discounts : [];
-
-      const dieselDisc = (discounts as any[])
-        .filter((d: any) => d.type === "diesel")
-        .reduce((s: number, d: any) => s + (d.value || 0), 0);
-      const companyDisc = (companyDiscounts as any[])
-        .reduce((s: number, d: any) => s + (d.value || 0), 0);
-
+      const dieselDisc = (discounts as any[]).filter((d: any) => d.type === "diesel").reduce((s: number, d: any) => s + (d.value || 0), 0);
+      const companyDisc = (companyDiscounts as any[]).reduce((s: number, d: any) => s + (d.value || 0), 0);
       totalLiquido += bruto - dieselDisc - companyDisc;
       totalDays += days;
     }
 
-    const invoiced = invoicedByJob.get(job.id) || 0;
-
-    results.push({
-      id: job.id,
-      farm_name: job.farm_name,
-      client_name: clientName,
-      monthly_value: job.monthly_value,
-      totalLiquido,
-      totalDays,
-      invoicedAmount: invoiced,
-      status: job.status,
-    });
+    results.push({ id: job.id, farm_name: job.farm_name, client_name: clientName, monthly_value: job.monthly_value, totalLiquido, totalDays, invoicedAmount: invoicedByJob.get(job.id) || 0, status: job.status });
   }
-
   return results;
 }
 
 async function fetchCteReceivables(): Promise<CteReceivable[]> {
-  const { data: invoicedItems } = await supabase
-    .from("financial_invoice_items")
-    .select("cte_id");
+  const { data: invoicedItems } = await supabase.from("financial_invoice_items").select("cte_id");
   const invoicedCteIds = new Set((invoicedItems as any[] || []).map((i: any) => i.cte_id));
-
-  const { data: ctes } = await supabase
-    .from("ctes")
-    .select("id, numero, tomador_nome, valor_frete, data_emissao, status")
-    .eq("status", "autorizado")
-    .order("data_emissao", { ascending: false });
-
+  const { data: ctes } = await supabase.from("ctes").select("id, numero, tomador_nome, valor_frete, data_emissao, status").eq("status", "autorizado").order("data_emissao", { ascending: false });
   return ((ctes as any[]) || []).filter((c: any) => !invoicedCteIds.has(c.id));
 }
 
 async function fetchInvoiceSummary(): Promise<InvoiceSummary> {
-  const { data: invoices } = await supabase
-    .from("financial_invoices")
-    .select("total_amount, status")
-    .neq("status", "cancelada" as any);
-
-  let totalFaturado = 0;
-  let totalQuitado = 0;
-
+  const { data: invoices } = await supabase.from("financial_invoices").select("total_amount, status").neq("status", "cancelada" as any);
+  let totalFaturado = 0, totalQuitado = 0;
   for (const inv of (invoices as any[] || [])) {
     const amount = Number(inv.total_amount);
-    if (inv.status === "paga") {
-      totalQuitado += amount;
-    } else if (inv.status === "aberta") {
-      totalFaturado += amount;
-    }
+    if (inv.status === "paga") totalQuitado += amount;
+    else if (inv.status === "aberta") totalFaturado += amount;
   }
-
   return { totalFaturado, totalQuitado };
 }
 
@@ -200,7 +147,6 @@ export function FinancialReceivables() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Form state
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
@@ -228,24 +174,12 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const resetForm = () => {
-    setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null);
-  };
+  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); };
 
   const handleSave = async () => {
     if (!description.trim()) return toast.error("Informe a descrição");
     if (!amount || Number(amount) <= 0) return toast.error("Informe o valor");
-
-    const payload: any = {
-      description: description.trim(),
-      category_id: categoryId || null,
-      amount: Number(amount),
-      due_date: dueDate || null,
-      debtor_name: debtorName.trim() || null,
-      debtor_id: debtorId || null,
-      notes: notes.trim() || null,
-    };
-
+    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null };
     if (editingId) {
       const { error } = await supabase.from("accounts_receivable").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
@@ -262,22 +196,12 @@ export function FinancialReceivables() {
   };
 
   const handleEdit = (item: Receivable) => {
-    setEditingId(item.id);
-    setDescription(item.description);
-    setCategoryId(item.category_id || "");
-    setAmount(String(item.amount));
-    setDueDate(item.due_date || "");
-    setDebtorName(item.debtor_name || "");
-    setNotes(item.notes || "");
-    setDialogOpen(true);
+    setEditingId(item.id); setDescription(item.description); setCategoryId(item.category_id || "");
+    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
   };
 
   const handleMarkPaid = async (item: Receivable) => {
-    const { error } = await supabase.from("accounts_receivable").update({
-      status: "pago",
-      paid_at: new Date().toISOString(),
-      paid_amount: item.amount,
-    } as any).eq("id", item.id);
+    const { error } = await supabase.from("accounts_receivable").update({ status: "pago", paid_at: new Date().toISOString(), paid_amount: item.amount } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Marcado como pago");
     fetchData();
@@ -285,50 +209,23 @@ export function FinancialReceivables() {
 
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.nome || "—";
 
-  // Harvest virtual items — only show remaining (not yet invoiced) amount
-  const harvestAsReceivables: Receivable[] = harvestItems
-    .filter(h => (h.totalLiquido - h.invoicedAmount) > 0)
-    .map(h => ({
-      id: `harvest-${h.id}`,
-      description: `Colheita — ${h.farm_name}`,
-      category_id: null,
-      amount: h.totalLiquido - h.invoicedAmount,
-      due_date: null,
-      status: "previsao",
-      paid_at: null,
-      paid_amount: null,
-      debtor_name: h.client_name,
-      cte_id: null,
-      invoice_id: null,
-      notes: `${h.totalDays} dias | Mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${h.invoicedAmount > 0 ? ` | Faturado: R$ ${h.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
-      created_at: new Date().toISOString(),
-      _source: "harvest" as const,
-    }));
-
-  // CT-e forecasts — authorized but not yet invoiced
-  const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
-    id: `cte-${c.id}`,
-    description: `CT-e #${c.numero || "—"}`,
-    category_id: null,
-    amount: Number(c.valor_frete),
-    due_date: null,
-    status: "previsao",
-    paid_at: null,
-    paid_amount: null,
-    debtor_name: c.tomador_nome,
-    cte_id: c.id,
-    invoice_id: null,
-    notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
-    created_at: c.data_emissao || new Date().toISOString(),
-    _source: "cte" as const,
+  const harvestAsReceivables: Receivable[] = harvestItems.filter(h => (h.totalLiquido - h.invoicedAmount) > 0).map(h => ({
+    id: `harvest-${h.id}`, description: `Colheita — ${h.farm_name}`, category_id: null,
+    amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
+    debtor_name: h.client_name, cte_id: null, invoice_id: null,
+    notes: `${h.totalDays} dias | Mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${h.invoicedAmount > 0 ? ` | Faturado: R$ ${h.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
+    created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
-  const allItems = [
-    ...items.map(i => ({ ...i, _source: "manual" as const })),
-    ...harvestAsReceivables,
-    ...cteAsReceivables,
-  ];
+  const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
+    id: `cte-${c.id}`, description: `CT-e #${c.numero || "—"}`, category_id: null,
+    amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
+    debtor_name: c.tomador_nome, cte_id: c.id, invoice_id: null,
+    notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
+    created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
+  }));
 
+  const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables, ...cteAsReceivables];
   const filtered = allItems.filter(i => {
     const matchSearch = !search || i.description.toLowerCase().includes(search.toLowerCase()) || (i.debtor_name || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || i.status === filterStatus;
@@ -340,173 +237,131 @@ export function FinancialReceivables() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card>
+        <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pendente (Faturado)</p>
-            <p className="text-xl font-bold text-orange-600">R$ {invoiceSummary.totalFaturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-foreground">R$ {invoiceSummary.totalFaturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-success">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Recebido (Quitado)</p>
-            <p className="text-xl font-bold text-emerald-600">R$ {invoiceSummary.totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-success">R$ {invoiceSummary.totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
         {totalPrevisao > 0 && (
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Previsão de Recebimento</p>
-              <p className="text-xl font-bold text-blue-600">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Previsão</p>
+              <p className="text-xl font-bold text-primary">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
         )}
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">Contas a Receber</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nova Entrada</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar" : "Nova"} Conta a Receber</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>Descrição *</Label>
-                  <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Venda de gado, Frete avulso..." />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Valor (R$) *</Label>
-                    <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
-                  </div>
-                  <div>
-                    <Label>Vencimento</Label>
-                    <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <Label>Conta Contábil</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Devedor (Cliente)</Label>
-                  <PersonSearchInput
-                    categories={["cliente"]}
-                    placeholder="Buscar cliente cadastrado..."
-                    selectedName={debtorName || undefined}
-                    onSelect={(person) => {
-                      setDebtorName(person.full_name);
-                      setDebtorId(person.id);
-                    }}
-                    onClear={() => {
-                      setDebtorName("");
-                      setDebtorId(null);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label>Observações</Label>
-                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-                </div>
-                <Button onClick={handleSave} className="w-full">Salvar</Button>
+      {/* Filters + New button */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9" />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="vencido">Vencido</SelectItem>
+            <SelectItem value="previsao">Previsão</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nova Entrada</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>{editingId ? "Editar" : "Nova"} Conta a Receber</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Descrição *</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Venda de gado, Frete avulso..." /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" /></div>
+                <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+              <div><Label>Conta Contábil</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Devedor (Cliente)</Label><PersonSearchInput categories={["cliente"]} placeholder="Buscar cliente cadastrado..." selectedName={debtorName || undefined} onSelect={(person) => { setDebtorName(person.full_name); setDebtorId(person.id); }} onClear={() => { setDebtorName(""); setDebtorId(null); }} /></div>
+              <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
+              <Button onClick={handleSave} className="w-full">Salvar</Button>
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
-                <SelectItem value="previsao">Previsão</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-          {loading ? (
-            <p className="text-muted-foreground text-sm">Carregando...</p>
-          ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">Nenhuma conta a receber</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Devedor</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((item) => (
-                    <TableRow key={item.id} className={item._source === "harvest" ? "bg-blue-500/5" : item._source === "cte" ? "bg-violet-500/5" : ""}>
-                      <TableCell className="font-medium max-w-[200px]">
-                        <div className="flex items-center gap-1.5">
-                          {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
-                          {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-violet-500 shrink-0" />}
-                          <span className="truncate">{item.description}</span>
-                        </div>
-                        {(item._source === "harvest" || item._source === "cte") && item.notes && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{item.notes}</p>
-                        )}
-                      </TableCell>
-                      <TableCell>{item.debtor_name || "—"}</TableCell>
-                      <TableCell>
-                        {item._source === "harvest" ? "Colheita" : item._source === "cte" ? "Frete" : getCategoryName(item.category_id)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>{item.due_date ? format(new Date(item.due_date + "T12:00:00"), "dd/MM/yyyy") : "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"}>
-                          {STATUS_MAP[item.status]?.label || item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {item._source === "manual" && (
-                          <div className="flex gap-1">
-                            {item.status === "pendente" && (
-                              <Button variant="ghost" size="icon" title="Marcar pago" onClick={() => handleMarkPaid(item)}>
-                                <Check className="h-4 w-4 text-emerald-600" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Cards */}
+      {loading ? (
+        <p className="text-muted-foreground text-sm text-center py-8">Carregando...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-muted-foreground text-sm text-center py-8">Nenhuma conta a receber</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {filtered.map((item) => (
+            <Card key={item.id} className={`hover:shadow-md transition-shadow ${item._source === "harvest" ? "border-l-4 border-l-primary/30" : item._source === "cte" ? "border-l-4 border-l-accent" : ""}`}>
+              <CardContent className="p-4 space-y-2">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
+                      <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                    </div>
+                    {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
+                  </div>
+                  <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
+                    {STATUS_MAP[item.status]?.label || item.status}
+                  </Badge>
+                </div>
+
+                {/* Info */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Valor</span>
+                    <p className="font-mono font-semibold text-foreground">R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Vencimento</span>
+                    <p className="font-medium text-foreground">{item.due_date ? format(new Date(item.due_date + "T12:00:00"), "dd/MM/yyyy") : "—"}</p>
+                  </div>
+                  {item._source === "manual" && item.category_id && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Categoria</span>
+                      <p className="text-foreground">{getCategoryName(item.category_id)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {(item._source === "harvest" || item._source === "cte") && item.notes && (
+                  <p className="text-[11px] text-muted-foreground">{item.notes}</p>
+                )}
+
+                {/* Actions */}
+                {item._source === "manual" && (
+                  <div className="flex gap-1 pt-1 border-t border-border">
+                    {item.status === "pendente" && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10" onClick={() => handleMarkPaid(item)}>
+                        <Check className="h-3.5 w-3.5" /> Receber
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => handleEdit(item)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
