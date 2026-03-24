@@ -205,13 +205,14 @@ export function FinancialPayables() {
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
       const matchCategoria = filterCategoria === "all" || i.categoria_financeira_id === filterCategoria;
+      const matchPlanoContas = filterPlanoContas === "all" || i.plano_contas_id === filterPlanoContas;
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchCategoria && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchCategoria && matchPlanoContas && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, quickFilter, filterCategoria, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [items, search, quickFilter, filterCategoria, filterPlanoContas, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
