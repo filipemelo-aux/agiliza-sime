@@ -337,20 +337,49 @@ export function FinancialPayables() {
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
-  const selectableItems = useMemo(() => filtered.filter(i => i.status !== "pago"), [filtered]);
+  // Build a flat list of selectable card IDs (installment or expense)
+  const selectableCardIds = useMemo(() => {
+    const ids: string[] = [];
+    filtered.forEach(item => {
+      const installs = installmentsMap[item.id];
+      if (installs && installs.length > 0) {
+        installs.filter(i => i.status !== "pago").forEach(i => ids.push(`inst-${i.id}`));
+      } else if (item.status !== "pago") {
+        ids.push(item.id);
+      }
+    });
+    return ids;
+  }, [filtered, installmentsMap]);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === selectableItems.length && selectableItems.length > 0) {
+    if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(selectableItems.map(i => i.id)));
+      setSelectedIds(new Set(selectableCardIds));
     }
   };
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
   const totalAtrasado = filtered.filter(i => i.status === "atrasado").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
-  const selectedTotal = filtered.filter(i => selectedIds.has(i.id)).reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
+
+  // Calculate selected total considering both installments and regular expenses
+  const selectedTotal = useMemo(() => {
+    let total = 0;
+    selectedIds.forEach(id => {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const inst = installs.find(i => i.id === instId);
+          if (inst) { total += Number(inst.valor); break; }
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item) total += Number(item.valor_total) - Number(item.valor_pago);
+      }
+    });
+    return total;
+  }, [selectedIds, items, installmentsMap]);
 
   const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
