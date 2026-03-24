@@ -264,6 +264,7 @@ export type Database = {
           nivel: number
           nome: string
           tipo: string
+          tipo_operacional: string | null
           updated_at: string
         }
         Insert: {
@@ -276,6 +277,7 @@ export type Database = {
           nivel?: number
           nome: string
           tipo: string
+          tipo_operacional?: string | null
           updated_at?: string
         }
         Update: {
@@ -288,6 +290,7 @@ export type Database = {
           nivel?: number
           nome?: string
           tipo?: string
+          tipo_operacional?: string | null
           updated_at?: string
         }
         Relationships: [

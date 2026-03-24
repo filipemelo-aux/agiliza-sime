@@ -1,0 +1,1 @@
+ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS tipo_operacional text DEFAULT NULL;
