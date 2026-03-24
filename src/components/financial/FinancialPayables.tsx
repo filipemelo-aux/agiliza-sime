@@ -361,6 +361,7 @@ export function FinancialPayables() {
                   <TableRow>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Conta Contábil</TableHead>
                     <TableHead>Favorecido</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
@@ -372,10 +373,11 @@ export function FinancialPayables() {
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
                     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
+                    const chart = item.plano_contas_id ? chartMap[item.plano_contas_id] : null;
                     const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
-                        <TableCell className="font-medium max-w-[220px]">
+                        <TableCell className="font-medium max-w-[200px]">
                           <div className="flex items-center gap-1.5">
                             {item.documento_fiscal_importado && <FileText className="h-3.5 w-3.5 text-primary shrink-0" />}
                             <span className="truncate">{item.descricao}</span>
@@ -388,6 +390,16 @@ export function FinancialPayables() {
                           <Badge variant="outline" className="text-[10px] font-normal">
                             {cat?.name || "—"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {chart ? (
+                            <span className="text-[10px]">
+                              <span className="font-mono text-muted-foreground">{chart.codigo}</span>{" "}
+                              <span className="text-foreground">{chart.nome}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
                         <TableCell className="text-right">
