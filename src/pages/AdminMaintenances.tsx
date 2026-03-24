@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Wrench, ExternalLink, Car } from "lucide-react";
+import { Search, Wrench, ExternalLink, Car, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -196,10 +196,10 @@ export default function AdminMaintenances() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7"
-                                title="Ver conta a pagar"
-                                onClick={() => navigate("/admin/financial/payables")}
+                                title="Ver conta a pagar vinculada"
+                                onClick={() => navigate("/admin/financial/payables", { state: { highlightExpenseId: item.expense_id } })}
                               >
-                                <ExternalLink className="h-3.5 w-3.5" />
+                                <DollarSign className="h-3.5 w-3.5 text-primary" />
                               </Button>
                             )}
                           </TableCell>
