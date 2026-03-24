@@ -648,9 +648,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                 veiculoId={veiculoId} onVeiculoIdChange={setVeiculoId}
                 kmAtual={kmAtual} onKmAtualChange={setKmAtual}
                 tipoManutencao={tipoManutencao} onTipoManutencaoChange={setTipoManutencao}
+                descricaoServico={descricaoServico} onDescricaoServicoChange={setDescricaoServico}
                 fornecedorMecanica={fornecedorMecanica} onFornecedorMecanicaChange={setFornecedorMecanica}
                 tempoParado={tempoParado} onTempoParadoChange={setTempoParado}
                 proximaManutencaoKm={proximaManutencaoKm} onProximaManutencaoKmChange={setProximaManutencaoKm}
+                dataProximaManutencao={dataProximaManutencao} onDataProximaManutencaoChange={setDataProximaManutencao}
                 itensManutencao={itensManutencao} onItensManutencaoChange={setItensManutencao}
                 onTotalChange={(total) => { if (total > 0) setValorTotal(String(total)); }}
               />
