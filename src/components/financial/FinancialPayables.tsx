@@ -272,22 +272,62 @@ export function FinancialPayables() {
     if (!confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
     setBatchPaying(true);
     const today = new Date().toISOString();
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+
     for (const id of selectedIds) {
-      const item = items.find(i => i.id === id);
-      if (!item) continue;
-      await supabase.from("expense_payments" as any).insert({
-        expense_id: id,
-        valor: Number(item.valor_total) - Number(item.valor_pago),
-        forma_pagamento: "pix",
-        created_by: (await supabase.auth.getUser()).data.user?.id,
-      } as any);
-      await supabase.from("expenses").update({
-        valor_pago: item.valor_total,
-        status: "pago",
-        data_pagamento: today,
-      } as any).eq("id", id);
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        // Find the installment
+        let foundInst: Installment | undefined;
+        let expenseId = "";
+        for (const [eid, installs] of Object.entries(installmentsMap)) {
+          foundInst = installs.find(i => i.id === instId);
+          if (foundInst) { expenseId = eid; break; }
+        }
+        if (!foundInst) continue;
+        await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", instId);
+        const expense = items.find(i => i.id === expenseId);
+        if (expense) {
+          const newPago = Number(expense.valor_pago) + Number(foundInst.valor);
+          const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
+          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: today } as any).eq("id", expenseId);
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (!item) continue;
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: id,
+          valor: Number(item.valor_total) - Number(item.valor_pago),
+          forma_pagamento: "pix",
+          created_by: userId,
+        } as any);
+        await supabase.from("expenses").update({
+          valor_pago: item.valor_total,
+          status: "pago",
+          data_pagamento: today,
+        } as any).eq("id", id);
+      }
     }
     toast.success(`${selectedIds.size} conta(s) quitada(s)`);
+    setSelectedIds(new Set());
+    setBatchPaying(false);
+    fetchData();
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Excluir ${selectedIds.size} conta(s) selecionada(s)?`)) return;
+    setBatchPaying(true);
+
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        await supabase.from("expense_installments").delete().eq("id", instId);
+      } else {
+        await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
+      }
+    }
+    toast.success(`${selectedIds.size} registro(s) excluído(s)`);
     setSelectedIds(new Set());
     setBatchPaying(false);
     fetchData();
