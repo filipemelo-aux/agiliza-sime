@@ -6,12 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
+
+interface Installment {
+  id: string;
+  expense_id: string;
+  numero_parcela: number;
+  valor: number;
+  data_vencimento: string;
+  status: string;
+  created_at: string;
+}
 
 interface Expense {
   id: string;
