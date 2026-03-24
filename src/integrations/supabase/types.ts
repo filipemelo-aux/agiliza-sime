@@ -253,6 +253,60 @@ export type Database = {
         }
         Relationships: []
       }
+      chart_of_accounts: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          conta_pai_id: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nivel: number
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          conta_pai_id?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nivel?: number
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          conta_pai_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nivel?: number
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_conta_pai_id_fkey"
+            columns: ["conta_pai_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contingency_events: {
         Row: {
           created_at: string
@@ -992,6 +1046,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          plano_contas_id: string | null
           tipo_operacional: string | null
           type: string
           updated_at: string
@@ -1001,6 +1056,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          plano_contas_id?: string | null
           tipo_operacional?: string | null
           type: string
           updated_at?: string
@@ -1010,11 +1066,20 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          plano_contas_id?: string | null
           tipo_operacional?: string | null
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "financial_categories_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_invoice_items: {
         Row: {
