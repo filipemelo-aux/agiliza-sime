@@ -212,12 +212,9 @@ export function FinancialPayables() {
 
   const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
 
-  const toggleExpand = (id: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const showExpenseDetail = (expenseId: string) => {
+    const exp = items.find(i => i.id === expenseId);
+    if (exp) { setDetailExpense(exp); setDetailOpen(true); }
   };
 
   const handlePayInstallment = async (inst: Installment) => {
