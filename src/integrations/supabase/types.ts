@@ -1654,6 +1654,101 @@ export type Database = {
           },
         ]
       }
+      fuelings: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_abastecimento: string
+          deleted_at: string | null
+          empresa_id: string
+          expense_id: string | null
+          forma_pagamento: string
+          id: string
+          km_atual: number | null
+          motorista_id: string | null
+          observacoes: string | null
+          posto_combustivel: string | null
+          quantidade_litros: number
+          status_faturamento: string
+          tipo_combustivel: string
+          updated_at: string
+          valor_por_litro: number
+          valor_total: number
+          veiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_abastecimento?: string
+          deleted_at?: string | null
+          empresa_id: string
+          expense_id?: string | null
+          forma_pagamento?: string
+          id?: string
+          km_atual?: number | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          posto_combustivel?: string | null
+          quantidade_litros?: number
+          status_faturamento?: string
+          tipo_combustivel?: string
+          updated_at?: string
+          valor_por_litro?: number
+          valor_total?: number
+          veiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_abastecimento?: string
+          deleted_at?: string | null
+          empresa_id?: string
+          expense_id?: string | null
+          forma_pagamento?: string
+          id?: string
+          km_atual?: number | null
+          motorista_id?: string | null
+          observacoes?: string | null
+          posto_combustivel?: string | null
+          quantidade_litros?: number
+          status_faturamento?: string
+          tipo_combustivel?: string
+          updated_at?: string
+          valor_por_litro?: number
+          valor_total?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuelings_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuelings_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuelings_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuelings_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       harvest_assignments: {
         Row: {
           company_daily_value: number | null
