@@ -6,12 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
+
+interface Installment {
+  id: string;
+  expense_id: string;
+  numero_parcela: number;
+  valor: number;
+  data_vencimento: string;
+  status: string;
+  created_at: string;
+}
 
 interface Expense {
   id: string;
@@ -83,6 +95,12 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
+  const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
+  const [editInstOpen, setEditInstOpen] = useState(false);
+  const [editInstValor, setEditInstValor] = useState("");
+  const [editInstVenc, setEditInstVenc] = useState("");
 
   const chartIdMap = useMemo(() => {
     const m: Record<string, ChartAccount> = {};
@@ -121,10 +139,11 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: vehData }, { data: chartData }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
+      supabase.from("expense_installments").select("*").order("numero_parcela"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -141,6 +160,14 @@ export function FinancialPayables() {
     if (overdueIds.length > 0) {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
     }
+
+    // Build installments map
+    const iMap: Record<string, Installment[]> = {};
+    ((instData as any) || []).forEach((inst: Installment) => {
+      if (!iMap[inst.expense_id]) iMap[inst.expense_id] = [];
+      iMap[inst.expense_id].push(inst);
+    });
+    setInstallmentsMap(iMap);
 
     setItems(processed);
     setChartAccounts((chartData as any) || []);
@@ -183,6 +210,56 @@ export function FinancialPayables() {
   };
 
   const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
+
+  const toggleExpand = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handlePayInstallment = async (inst: Installment) => {
+    if (!confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — R$ ${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`)) return;
+    const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
+    if (error) return toast.error(error.message);
+    // Update expense valor_pago
+    const expense = items.find(i => i.id === inst.expense_id);
+    if (expense) {
+      const newPago = Number(expense.valor_pago) + Number(inst.valor);
+      const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
+      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: new Date().toISOString() } as any).eq("id", inst.expense_id);
+    }
+    toast.success("Parcela quitada");
+    fetchData();
+  };
+
+  const handleDeleteInstallment = async (inst: Installment) => {
+    if (!confirm(`Excluir parcela ${inst.numero_parcela}?`)) return;
+    const { error } = await supabase.from("expense_installments").delete().eq("id", inst.id);
+    if (error) return toast.error(error.message);
+    toast.success("Parcela excluída");
+    fetchData();
+  };
+
+  const openEditInstallment = (inst: Installment) => {
+    setEditInstallment(inst);
+    setEditInstValor(String(inst.valor));
+    setEditInstVenc(inst.data_vencimento);
+    setEditInstOpen(true);
+  };
+
+  const handleSaveInstallment = async () => {
+    if (!editInstallment) return;
+    const { error } = await supabase.from("expense_installments").update({
+      valor: Number(editInstValor),
+      data_vencimento: editInstVenc,
+    } as any).eq("id", editInstallment.id);
+    if (error) return toast.error(error.message);
+    toast.success("Parcela atualizada");
+    setEditInstOpen(false);
+    fetchData();
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -515,6 +592,56 @@ export function FinancialPayables() {
                     )}
                   </div>
 
+                  {/* Installments toggle */}
+                  {(installmentsMap[item.id]?.length || 0) > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-7 text-xs gap-1 text-muted-foreground"
+                      onClick={() => toggleExpand(item.id)}
+                    >
+                      {expandedCards.has(item.id) ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {installmentsMap[item.id].length} parcela(s)
+                    </Button>
+                  )}
+
+                  {/* Installments list */}
+                  {expandedCards.has(item.id) && installmentsMap[item.id] && (
+                    <div className="space-y-1.5 border-t border-border pt-2">
+                      {installmentsMap[item.id].map(inst => {
+                        const today = new Date().toISOString().split("T")[0];
+                        const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                        return (
+                          <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${isInstOverdue ? "bg-destructive/10" : "bg-muted/50"}`}>
+                            <span className="font-medium text-foreground shrink-0">P{inst.numero_parcela}</span>
+                            <span className={`shrink-0 ${isInstOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                              {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}
+                            </span>
+                            <span className="font-mono text-foreground shrink-0">
+                              R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                            <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
+                              {inst.status === "pago" ? "Pago" : "Pend."}
+                            </Badge>
+                            {inst.status !== "pago" && (
+                              <div className="ml-auto flex gap-0.5 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Quitar parcela" onClick={() => handlePayInstallment(inst)}>
+                                  <Check className="h-3 w-3 text-success" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Editar parcela" onClick={() => openEditInstallment(inst)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir parcela" onClick={() => handleDeleteInstallment(inst)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex items-center gap-1 pt-1 border-t border-border">
                     {isMaintenance && (
@@ -567,6 +694,26 @@ export function FinancialPayables() {
           onSaved={fetchData}
         />
       )}
+
+      {/* Edit Installment Dialog */}
+      <Dialog open={editInstOpen} onOpenChange={setEditInstOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar Parcela {editInstallment?.numero_parcela}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" value={editInstValor} onChange={e => setEditInstValor(e.target.value)} />
+            </div>
+            <div>
+              <Label>Vencimento</Label>
+              <Input type="date" value={editInstVenc} onChange={e => setEditInstVenc(e.target.value)} />
+            </div>
+            <Button onClick={handleSaveInstallment} className="w-full">Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
