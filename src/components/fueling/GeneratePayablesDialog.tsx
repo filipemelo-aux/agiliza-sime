@@ -38,6 +38,15 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
     setSaving(true);
 
     try {
+      // Look up the combustível category by name
+      const { data: allCats } = await supabase
+        .from("financial_categories")
+        .select("id, name")
+        .eq("type", "payable" as any)
+        .eq("active", true);
+      const combCat = (allCats as any[] || []).find((c: any) => c.name === "Combustível");
+      const categoriaId = combCat?.id || null;
+
       if (groupMode === "single") {
         // Create one expense for all fuelings
         const postos = [...new Set(selectedFuelings.map(f => f.posto_combustivel).filter(Boolean))];
@@ -48,6 +57,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           created_by: userId,
           descricao,
           tipo_despesa: "combustivel" as any,
+          categoria_financeira_id: categoriaId,
           centro_custo: "frota_propria" as any,
           origem: "abastecimento" as any,
           valor_total: total,
@@ -75,6 +85,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
             created_by: userId,
             descricao,
             tipo_despesa: "combustivel" as any,
+            categoria_financeira_id: categoriaId,
             centro_custo: "frota_propria" as any,
             origem: "abastecimento" as any,
             valor_total: f.valor_total,

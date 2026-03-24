@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { format, isToday, addDays, isBefore, parseISO } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
@@ -42,7 +42,7 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; tipo_operacional?: string | null; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -50,17 +50,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pago: { label: "Pago", variant: "default" },
   atrasado: { label: "Atrasado", variant: "destructive" },
   parcial: { label: "Parcial", variant: "secondary" },
-};
-
-const TIPO_MAP: Record<string, string> = {
-  combustivel: "Combustível",
-  manutencao: "Manutenção",
-  pedagio: "Pedágio",
-  multa: "Multa",
-  administrativo: "Administrativo",
-  frete_terceiro: "Frete Terceiro",
-  imposto: "Imposto",
-  outros: "Outros",
 };
 
 const CENTRO_CUSTO_MAP: Record<string, string> = {
@@ -81,7 +70,7 @@ export function FinancialPayables() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-  const [filterTipo, setFilterTipo] = useState("all");
+  const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
@@ -93,6 +82,13 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
 
+  // Build category map for display
+  const categoryMap = useMemo(() => {
+    const m: Record<string, Category> = {};
+    categories.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [categories]);
+
   const fetchData = async () => {
     setLoading(true);
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
@@ -100,7 +96,7 @@ export function FinancialPayables() {
 
     const [{ data: expData }, { data: catData }, { data: vehData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
-      supabase.from("financial_categories").select("id, name").eq("type", "payable" as any).eq("active", true),
+      supabase.from("financial_categories").select("id, name, tipo_operacional" as any).eq("type", "payable" as any).eq("active", true),
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
     ]);
 
@@ -133,8 +129,11 @@ export function FinancialPayables() {
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
 
-    // Check if maintenance record exists for this expense
-    if (item.tipo_despesa === "manutencao") {
+    // Check if maintenance record exists for this expense (via category or legacy tipo_despesa)
+    const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
+    const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
+
+    if (isMaintenance) {
       const { data: linkedMaint } = await supabase
         .from("maintenances" as any)
         .select("id")
@@ -193,14 +192,14 @@ export function FinancialPayables() {
         i.descricao.toLowerCase().includes(search.toLowerCase()) ||
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
-      const matchTipo = filterTipo === "all" || i.tipo_despesa === filterTipo;
+      const matchCategoria = filterCategoria === "all" || i.categoria_financeira_id === filterCategoria;
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchTipo && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchCategoria && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, quickFilter, filterTipo, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [items, search, quickFilter, filterCategoria, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
@@ -281,11 +280,11 @@ export function FinancialPayables() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
             </div>
-            <Select value={filterTipo} onValueChange={setFilterTipo}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
+            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos Tipos</SelectItem>
-                {Object.entries(TIPO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Button
@@ -341,7 +340,7 @@ export function FinancialPayables() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Tipo</TableHead>
+                    <TableHead>Categoria</TableHead>
                     <TableHead>Favorecido</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
@@ -352,6 +351,8 @@ export function FinancialPayables() {
                 <TableBody>
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
+                    const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
+                    const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
                         <TableCell className="font-medium max-w-[220px]">
@@ -364,7 +365,9 @@ export function FinancialPayables() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-normal">{TIPO_MAP[item.tipo_despesa] || item.tipo_despesa}</Badge>
+                          <Badge variant="outline" className="text-[10px] font-normal">
+                            {cat?.name || "—"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
                         <TableCell className="text-right">
@@ -391,7 +394,7 @@ export function FinancialPayables() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-0.5 justify-end">
-                            {item.tipo_despesa === "manutencao" && (
+                            {isMaintenance && (
                               <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => navigate("/admin/maintenances")}>
                                 <Wrench className="h-3.5 w-3.5 text-primary" />
                               </Button>

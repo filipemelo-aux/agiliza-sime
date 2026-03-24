@@ -992,6 +992,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          tipo_operacional: string | null
           type: string
           updated_at: string
         }
@@ -1000,6 +1001,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          tipo_operacional?: string | null
           type: string
           updated_at?: string
         }
@@ -1008,6 +1010,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          tipo_operacional?: string | null
           type?: string
           updated_at?: string
         }
