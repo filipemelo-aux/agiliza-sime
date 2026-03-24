@@ -771,6 +771,47 @@ export type Database = {
           },
         ]
       }
+      expense_payments: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_pagamento: string
+          expense_id: string
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_pagamento?: string
+          expense_id: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_pagamento?: string
+          expense_id?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_payments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           afeta_caixa: boolean
