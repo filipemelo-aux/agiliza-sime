@@ -310,7 +310,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setPaymentHistory((data as any) || []);
   };
 
-  const resetForm = () => {
+  const loadInstallments = async (expenseId: string) => {
+    const { data } = await supabase.from("expense_installments" as any).select("*").eq("expense_id", expenseId).order("numero_parcela");
+    if (data && (data as any[]).length > 0) {
+      setUseParcelas(true);
+      setParcelas((data as any[]).map((d: any) => ({
+        numero: d.numero_parcela,
+        valor: String(d.valor),
+        data_vencimento: d.data_vencimento,
+      })));
+    } else {
+      setUseParcelas(false);
+      setParcelas([]);
+    }
+  };
+
     setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
     setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
