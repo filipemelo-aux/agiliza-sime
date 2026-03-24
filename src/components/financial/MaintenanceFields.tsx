@@ -35,8 +35,8 @@ interface Props {
   onTipoManutencaoChange: (v: string) => void;
   descricaoServico: string;
   onDescricaoServicoChange: (v: string) => void;
-  fornecedorMecanica: string;
-  onFornecedorMecanicaChange: (v: string) => void;
+  tipoServico: string;
+  onTipoServicoChange: (v: string) => void;
   tempoParado: string;
   onTempoParadoChange: (v: string) => void;
   proximaManutencaoKm: string;
@@ -55,7 +55,7 @@ export function MaintenanceFields({
   kmAtual, onKmAtualChange,
   tipoManutencao, onTipoManutencaoChange,
   descricaoServico, onDescricaoServicoChange,
-  fornecedorMecanica, onFornecedorMecanicaChange,
+  tipoServico, onTipoServicoChange,
   tempoParado, onTempoParadoChange,
   proximaManutencaoKm, onProximaManutencaoKmChange,
   dataProximaManutencao, onDataProximaManutencaoChange,
@@ -176,14 +176,19 @@ export function MaintenanceFields({
           )}
         </div>
         <div>
-          <Label className="text-xs">Fornecedor / Mecânica</Label>
-          <PersonSearchInput
-            categories={["fornecedor"]}
-            placeholder="Buscar fornecedor cadastrado..."
-            selectedName={fornecedorMecanica || undefined}
-            onSelect={(person) => onFornecedorMecanicaChange(person.razao_social || person.nome_fantasia || person.full_name)}
-            onClear={() => onFornecedorMecanicaChange("")}
-          />
+          <Label className="text-xs">Tipo do Serviço *</Label>
+          <Select value={tipoServico} onValueChange={(v) => {
+            onTipoServicoChange(v);
+            if (v === "terceiro" && onHasNfseChange) {
+              onHasNfseChange(true);
+            }
+          }}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="interno">Serviço Interno</SelectItem>
+              <SelectItem value="terceiro">Serviço Terceiro</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
