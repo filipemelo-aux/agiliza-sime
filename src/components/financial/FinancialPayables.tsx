@@ -139,10 +139,11 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: vehData }, { data: chartData }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
+      supabase.from("expense_installments").select("*").order("numero_parcela"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -159,6 +160,14 @@ export function FinancialPayables() {
     if (overdueIds.length > 0) {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
     }
+
+    // Build installments map
+    const iMap: Record<string, Installment[]> = {};
+    ((instData as any) || []).forEach((inst: Installment) => {
+      if (!iMap[inst.expense_id]) iMap[inst.expense_id] = [];
+      iMap[inst.expense_id].push(inst);
+    });
+    setInstallmentsMap(iMap);
 
     setItems(processed);
     setChartAccounts((chartData as any) || []);
