@@ -192,6 +192,50 @@ export function FinancialPayables() {
 
   const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectableItems = useMemo(() => filtered.filter(i => i.status !== "pago"), [filtered]);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === selectableItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableItems.map(i => i.id)));
+    }
+  };
+
+  const handleBatchPay = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
+    setBatchPaying(true);
+    const today = new Date().toISOString();
+    for (const id of selectedIds) {
+      const item = items.find(i => i.id === id);
+      if (!item) continue;
+      await supabase.from("expense_payments" as any).insert({
+        expense_id: id,
+        valor: Number(item.valor_total) - Number(item.valor_pago),
+        forma_pagamento: "pix",
+        created_by: (await supabase.auth.getUser()).data.user?.id,
+      } as any);
+      await supabase.from("expenses").update({
+        valor_pago: item.valor_total,
+        status: "pago",
+        data_pagamento: today,
+      } as any).eq("id", id);
+    }
+    toast.success(`${selectedIds.size} conta(s) quitada(s)`);
+    setSelectedIds(new Set());
+    setBatchPaying(false);
+    fetchData();
+  };
+
   // Quick filter counts
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
