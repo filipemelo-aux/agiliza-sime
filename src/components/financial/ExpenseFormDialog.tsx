@@ -345,7 +345,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
         .maybeSingle();
 
       const lastKm = lastKmData?.km_atual ? Number(lastKmData.km_atual) : null;
-      if (lastKm !== null && Number(kmAtual) <= lastKm && (!expense || expense.id !== lastKmData?.id)) {
+      if (lastKm !== null && Number(kmAtual) <= lastKm) {
         return toast.error(`KM deve ser maior que o último registrado (${lastKm.toLocaleString("pt-BR")} km)`);
       }
     }
