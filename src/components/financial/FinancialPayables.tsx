@@ -694,6 +694,26 @@ export function FinancialPayables() {
           onSaved={fetchData}
         />
       )}
+
+      {/* Edit Installment Dialog */}
+      <Dialog open={editInstOpen} onOpenChange={setEditInstOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar Parcela {editInstallment?.numero_parcela}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" value={editInstValor} onChange={e => setEditInstValor(e.target.value)} />
+            </div>
+            <div>
+              <Label>Vencimento</Label>
+              <Input type="date" value={editInstVenc} onChange={e => setEditInstVenc(e.target.value)} />
+            </div>
+            <Button onClick={handleSaveInstallment} className="w-full">Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
