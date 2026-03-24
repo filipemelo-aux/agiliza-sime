@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp } from "lucide-react";
 import { parseNfeXml, type NfeItem } from "@/lib/nfeXmlParser";
 import { format } from "date-fns";
@@ -148,6 +149,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
   // Maintenance fields
+  const [isManutencao, setIsManutencao] = useState(false);
   const [veiculoId, setVeiculoId] = useState<string | null>(null);
   const [tipoManutencao, setTipoManutencao] = useState("corretiva");
   const [kmAtual, setKmAtual] = useState("");
@@ -155,6 +157,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
   const [tempoParado, setTempoParado] = useState("");
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
+
+  // Auto-activate maintenance when tipo_despesa = manutencao
+  useEffect(() => {
+    if (tipoDespesa === "manutencao") {
+      setIsManutencao(true);
+    }
+  }, [tipoDespesa]);
 
   // Histórico
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
@@ -302,7 +311,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
 
   const removeItem = (index: number) => setItensNota(prev => prev.filter((_, i) => i !== index));
 
-  const isMaintenanceType = tipoDespesa === "manutencao";
+  const isMaintenanceType = isManutencao;
 
   useEffect(() => {
     if (itensNota.length > 0 && !isMaintenanceType) {
@@ -483,6 +492,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
               <Label className="text-xs">Descrição *</Label>
               <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Troca de óleo..." className="h-9" />
             </div>
+          </div>
+
+          {/* ── É manutenção? ── */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label className="text-xs font-medium cursor-pointer" htmlFor="is-manutencao">É manutenção do veículo?</Label>
+                <p className="text-[10px] text-muted-foreground">Registra no histórico de manutenção da frota</p>
+              </div>
+            </div>
+            <Switch
+              id="is-manutencao"
+              checked={isManutencao}
+              onCheckedChange={(checked) => {
+                setIsManutencao(checked);
+                if (checked && tipoDespesa !== "manutencao") {
+                  setTipoDespesa("manutencao");
+                }
+                if (!checked && tipoDespesa === "manutencao") {
+                  setTipoDespesa("outros");
+                }
+              }}
+            />
           </div>
 
           {/* Fuel suggestion */}
