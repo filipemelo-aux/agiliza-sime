@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { maskName } from "@/lib/masks";
 
@@ -48,6 +49,7 @@ interface Props {
   onItensManutencaoChange: (items: MaintenanceItem[]) => void;
   onTotalChange: (total: number) => void;
   hasNfse?: boolean;
+  onHasNfseChange?: (v: boolean) => void;
 }
 
 export function MaintenanceFields({
@@ -62,6 +64,7 @@ export function MaintenanceFields({
   itensManutencao, onItensManutencaoChange,
   onTotalChange,
   hasNfse = false,
+  onHasNfseChange,
 }: Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [lastKm, setLastKm] = useState<number | null>(null);
@@ -191,7 +194,21 @@ export function MaintenanceFields({
         </div>
       </div>
 
-      {/* Descrição do serviço - hidden when NFSe is active */}
+      {/* NFSe toggle replaces description field */}
+      <div className={`rounded-lg border p-3 transition-colors ${hasNfse ? "border-orange-500/50 bg-orange-500/5" : "border-border"}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className={`h-4 w-4 ${hasNfse ? "text-orange-600" : "text-muted-foreground"}`} />
+            <div>
+              <Label className="text-xs font-medium cursor-pointer" htmlFor="has-nfse">Possui NFSe / Ordem de Serviço?</Label>
+              <p className="text-[10px] text-muted-foreground">Gera uma segunda despesa para o serviço prestado</p>
+            </div>
+          </div>
+          <Switch id="has-nfse" checked={hasNfse} onCheckedChange={onHasNfseChange} />
+        </div>
+      </div>
+
+      {/* Descrição do serviço - shown only when NFSe is NOT active */}
       {!hasNfse && (
         <div>
           <Label className="text-xs">Descrição do Serviço *</Label>
