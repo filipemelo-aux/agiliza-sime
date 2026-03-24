@@ -68,7 +68,7 @@ export type Database = {
             foreignKeyName: "accounts_payable_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "financial_categories"
+            referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -140,7 +140,7 @@ export type Database = {
             foreignKeyName: "accounts_receivable_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "financial_categories"
+            referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
           },
           {
