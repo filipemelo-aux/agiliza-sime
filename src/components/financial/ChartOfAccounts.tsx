@@ -11,6 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, ChevronRight, ChevronDown, FolderTree } from "lucide-react";
 import { toast } from "sonner";
 
+const TIPO_OPERACIONAL_OPTIONS = [
+  { value: "", label: "Nenhum (conta genérica)" },
+  { value: "manutencao", label: "🔧 Manutenção" },
+  { value: "combustivel", label: "⛽ Combustível" },
+];
+
 interface Account {
   id: string;
   codigo: string;
@@ -20,6 +26,7 @@ interface Account {
   nivel: number;
   ativo: boolean;
   empresa_id: string;
+  tipo_operacional: string | null;
 }
 
 interface TreeNode extends Account {
@@ -84,6 +91,11 @@ function AccountRow({
         <Badge variant={node.tipo === "despesa" ? "secondary" : "default"} className="text-[10px]">
           {node.tipo === "despesa" ? "Despesa" : "Receita"}
         </Badge>
+        {node.tipo_operacional && (
+          <Badge variant="outline" className="text-[10px]">
+            {node.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
+          </Badge>
+        )}
         {!node.ativo && (
           <Badge variant="outline" className="text-[10px] text-muted-foreground">Inativo</Badge>
         )}
@@ -113,6 +125,7 @@ export function ChartOfAccounts() {
   const [tipo, setTipo] = useState<"receita" | "despesa">("despesa");
   const [contaPaiId, setContaPaiId] = useState<string | null>(null);
   const [ativo, setAtivo] = useState(true);
+  const [tipoOperacional, setTipoOperacional] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
 
@@ -169,6 +182,7 @@ export function ChartOfAccounts() {
     setTipo("despesa");
     setContaPaiId(null);
     setAtivo(true);
+    setTipoOperacional("");
     if (establishments.length === 1) setEmpresaId(establishments[0].id);
     else if (filterEmpresa !== "all") setEmpresaId(filterEmpresa);
     else setEmpresaId("");
@@ -181,6 +195,7 @@ export function ChartOfAccounts() {
     setTipo(acc.tipo as any);
     setContaPaiId(acc.conta_pai_id);
     setAtivo(acc.ativo);
+    setTipoOperacional(acc.tipo_operacional || "");
     setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
   };
@@ -205,6 +220,7 @@ export function ChartOfAccounts() {
       nivel,
       ativo,
       empresa_id: empresaId,
+      tipo_operacional: (tipoOperacional && tipoOperacional !== "none") ? tipoOperacional : null,
     };
 
     if (editingId) {
@@ -304,6 +320,22 @@ export function ChartOfAccounts() {
                     </Select>
                   </div>
                 </div>
+                {tipo === "despesa" && (
+                  <div>
+                    <Label>Comportamento Operacional</Label>
+                    <Select value={tipoOperacional || "none"} onValueChange={v => setTipoOperacional(v === "none" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      <SelectContent>
+                        {TIPO_OPERACIONAL_OPTIONS.map(o => (
+                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Define se essa conta ativa campos especiais (ex: dados de manutenção ou combustível).
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Switch checked={ativo} onCheckedChange={setAtivo} />
                   <Label>Conta ativa</Label>
