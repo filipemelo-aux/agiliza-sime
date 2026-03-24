@@ -41,7 +41,7 @@ const ORIGEM_MAP: Record<string, string> = {
   abastecimento: "Abastecimento",
 };
 
-interface Category { id: string; name: string; tipo_operacional?: string | null; }
+interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
 
 interface Expense {
   id: string;
@@ -360,9 +360,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
       : "outros";
 
     setSaving(true);
+    const planoContasId = selectedCategory?.plano_contas_id || null;
     const payload: any = {
       empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
-      categoria_financeira_id: categoriaId, centro_custo: centroCusto,
+      categoria_financeira_id: categoriaId, plano_contas_id: planoContasId, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
@@ -515,6 +516,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, cate
                   ))}
                 </SelectContent>
               </Select>
+              {selectedCategory?.plano_contas_id && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title="Conta contábil vinculada">
+                  📊 Conta: {selectedCategory.plano_contas_id ? "vinculada" : "—"}
+                </p>
+              )}
             </div>
             <div className="col-span-2">
               <Label className="text-xs">Descrição *</Label>

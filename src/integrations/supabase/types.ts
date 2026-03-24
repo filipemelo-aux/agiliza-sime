@@ -898,6 +898,7 @@ export type Database = {
           numero_multa: string | null
           observacoes: string | null
           origem: Database["public"]["Enums"]["expense_origin"]
+          plano_contas_id: string | null
           proxima_manutencao_km: number | null
           sefaz_status: string | null
           status: Database["public"]["Enums"]["expense_status"]
@@ -943,6 +944,7 @@ export type Database = {
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          plano_contas_id?: string | null
           proxima_manutencao_km?: number | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
@@ -988,6 +990,7 @@ export type Database = {
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          plano_contas_id?: string | null
           proxima_manutencao_km?: number | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
@@ -1029,6 +1032,13 @@ export type Database = {
             columns: ["motorista_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
           },
           {

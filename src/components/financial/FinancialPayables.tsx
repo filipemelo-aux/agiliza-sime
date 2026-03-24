@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, FolderTree } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ interface Expense {
   descricao: string;
   tipo_despesa: string;
   categoria_financeira_id: string | null;
+  plano_contas_id: string | null;
   centro_custo: string;
   valor_total: number;
   valor_pago: number;
@@ -42,7 +43,8 @@ interface Expense {
   fornecedor_cnpj?: string | null;
 }
 
-interface Category { id: string; name: string; tipo_operacional?: string | null; }
+interface Category { id: string; name: string; tipo_operacional?: string | null; plano_contas_id?: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; }
 interface Vehicle { id: string; plate: string; }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -65,12 +67,14 @@ export function FinancialPayables() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [filterCategoria, setFilterCategoria] = useState("all");
+  const [filterPlanoContas, setFilterPlanoContas] = useState("all");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterCentroCusto, setFilterCentroCusto] = useState("all");
   const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
@@ -82,22 +86,29 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
 
-  // Build category map for display
+  // Build maps for display
   const categoryMap = useMemo(() => {
     const m: Record<string, Category> = {};
     categories.forEach(c => { m[c.id] = c; });
     return m;
   }, [categories]);
 
+  const chartMap = useMemo(() => {
+    const m: Record<string, ChartAccount> = {};
+    chartAccounts.forEach(a => { m[a.id] = a; });
+    return m;
+  }, [chartAccounts]);
+
   const fetchData = async () => {
     setLoading(true);
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: catData }, { data: vehData }] = await Promise.all([
+    const [{ data: expData }, { data: catData }, { data: vehData }, { data: chartData }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
-      supabase.from("financial_categories").select("id, name, tipo_operacional" as any).eq("type", "payable" as any).eq("active", true),
+      supabase.from("financial_categories").select("id, name, tipo_operacional, plano_contas_id" as any).eq("type", "payable" as any).eq("active", true),
       supabase.from("vehicles").select("id, plate").eq("is_active", true),
+      supabase.from("chart_of_accounts").select("id, codigo, nome").eq("ativo", true).order("codigo"),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -117,6 +128,7 @@ export function FinancialPayables() {
 
     setItems(processed);
     setCategories((catData as any) || []);
+    setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
     setLoading(false);
   };
@@ -193,13 +205,14 @@ export function FinancialPayables() {
         (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
       const matchCategoria = filterCategoria === "all" || i.categoria_financeira_id === filterCategoria;
+      const matchPlanoContas = filterPlanoContas === "all" || i.plano_contas_id === filterPlanoContas;
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       const matchPeriodo = (!filterPeriodoInicio || i.data_emissao >= filterPeriodoInicio) &&
         (!filterPeriodoFim || i.data_emissao <= filterPeriodoFim);
-      return matchSearch && matchCategoria && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchCategoria && matchPlanoContas && matchVeiculo && matchCentro && matchPeriodo;
     });
-  }, [items, search, quickFilter, filterCategoria, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+  }, [items, search, quickFilter, filterCategoria, filterPlanoContas, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalPendente = filtered.filter(i => i.status !== "pago").reduce((s, i) => s + (Number(i.valor_total) - Number(i.valor_pago)), 0);
   const totalPago = filtered.reduce((s, i) => s + Number(i.valor_pago), 0);
@@ -301,6 +314,13 @@ export function FinancialPayables() {
           {/* Advanced filters */}
           {showAdvanced && (
             <div className="flex flex-wrap gap-2 mb-3 p-3 bg-muted/50 rounded-lg">
+              <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Conta Contábil" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Contas</SelectItem>
+                  {chartAccounts.map(a => <SelectItem key={a.id} value={a.id}><span className="font-mono text-xs mr-1">{a.codigo}</span> {a.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
                 <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
                 <SelectContent>
@@ -341,6 +361,7 @@ export function FinancialPayables() {
                   <TableRow>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Conta Contábil</TableHead>
                     <TableHead>Favorecido</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
@@ -352,10 +373,11 @@ export function FinancialPayables() {
                   {filtered.map(item => {
                     const isOverdue = item.status === "atrasado";
                     const cat = item.categoria_financeira_id ? categoryMap[item.categoria_financeira_id] : null;
+                    const chart = item.plano_contas_id ? chartMap[item.plano_contas_id] : null;
                     const isMaintenance = cat?.tipo_operacional === "manutencao" || item.tipo_despesa === "manutencao";
                     return (
                       <TableRow key={item.id} className={isOverdue ? "bg-destructive/5" : undefined}>
-                        <TableCell className="font-medium max-w-[220px]">
+                        <TableCell className="font-medium max-w-[200px]">
                           <div className="flex items-center gap-1.5">
                             {item.documento_fiscal_importado && <FileText className="h-3.5 w-3.5 text-primary shrink-0" />}
                             <span className="truncate">{item.descricao}</span>
@@ -368,6 +390,16 @@ export function FinancialPayables() {
                           <Badge variant="outline" className="text-[10px] font-normal">
                             {cat?.name || "—"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {chart ? (
+                            <span className="text-[10px]">
+                              <span className="font-mono text-muted-foreground">{chart.codigo}</span>{" "}
+                              <span className="text-foreground">{chart.nome}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">{item.favorecido_nome || "—"}</TableCell>
                         <TableCell className="text-right">
