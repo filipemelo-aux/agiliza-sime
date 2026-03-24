@@ -38,14 +38,13 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
     setSaving(true);
 
     try {
-      // Look up the combustível category
-      const { data: combCat } = await (supabase
+      // Look up the combustível category by name
+      const { data: allCats } = await supabase
         .from("financial_categories")
-        .select("id")
+        .select("id, name")
         .eq("type", "payable" as any)
-        .eq("active", true)
-        .limit(1)
-        .maybeSingle() as any);
+        .eq("active", true);
+      const combCat = (allCats as any[] || []).find((c: any) => c.name === "Combustível");
       const categoriaId = combCat?.id || null;
 
       if (groupMode === "single") {
