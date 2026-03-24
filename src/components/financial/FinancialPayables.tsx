@@ -130,7 +130,13 @@ export function FinancialPayables() {
 
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
-    if (!confirm("Deseja excluir esta despesa?")) return;
+    if (!confirm("Deseja excluir esta despesa?" + (item.tipo_despesa === "manutencao" ? "\nO registro de manutenção vinculado também será removido." : ""))) return;
+
+    // If maintenance, also soft-delete the linked maintenance record
+    if (item.tipo_despesa === "manutencao") {
+      await supabase.from("maintenances" as any).delete().eq("expense_id", item.id);
+    }
+
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Despesa excluída");
