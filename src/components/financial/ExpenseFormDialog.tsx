@@ -343,12 +343,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const xmlStr = ev.target?.result as string;
         const parsed = parseNfeXml(xmlStr);
         setDescricao(parsed.itens.length > 0 ? `NF ${parsed.numero_nota} - ${parsed.fornecedor_nome}` : `NF ${parsed.numero_nota}`);
-        setFavorecidoNome(parsed.fornecedor_nome);
         setFornecedorCnpj(parsed.fornecedor_cnpj);
         setDocFiscal(parsed.numero_nota);
         setChaveNfe(parsed.chave_nfe);
@@ -370,12 +369,33 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             valor: String(d.valor),
             data_vencimento: d.vencimento,
           })));
-          // Set first due date as main due date
           if (parsed.duplicatas[0]?.vencimento) {
             setDataVencimento(parsed.duplicatas[0].vencimento);
           }
         }
-        toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""}`);
+
+        // Lookup supplier in profiles by CNPJ/CPF
+        if (parsed.fornecedor_cnpj) {
+          const cnpjClean = parsed.fornecedor_cnpj.replace(/\D/g, "");
+          const { data: supplier } = await supabase
+            .from("profiles")
+            .select("id, full_name, cnpj, razao_social, nome_fantasia")
+            .eq("cnpj", cnpjClean)
+            .maybeSingle();
+
+          if (supplier) {
+            setFavorecidoId(supplier.id);
+            setFavorecidoNome(supplier.nome_fantasia || supplier.razao_social || supplier.full_name);
+            toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""} — Fornecedor identificado: ${supplier.nome_fantasia || supplier.full_name}`);
+          } else {
+            setFavorecidoNome(parsed.fornecedor_nome);
+            setFavorecidoId(null);
+            toast.warning(`XML importado com ${parsed.itens.length} item(ns). Fornecedor "${parsed.fornecedor_nome}" (${cnpjClean}) não encontrado no cadastro. Cadastre-o em Pessoas para vincular.`, { duration: 6000 });
+          }
+        } else {
+          setFavorecidoNome(parsed.fornecedor_nome);
+          toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""}`);
+        }
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar XML");
       }
