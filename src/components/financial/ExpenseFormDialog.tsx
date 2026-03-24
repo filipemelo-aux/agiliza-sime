@@ -715,7 +715,115 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           </div>
 
-          {/* ── Centro Custo, Forma Pgto ── */}
+          {/* ── Parcelas / Duplicatas ── */}
+          <div className={`rounded-lg border p-3 transition-colors ${useParcelas ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDays className={`h-4 w-4 ${useParcelas ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <Label className="text-xs font-medium cursor-pointer" htmlFor="use-parcelas">Parcelamento</Label>
+                  <p className="text-[10px] text-muted-foreground">Definir parcelas com vencimentos individuais</p>
+                </div>
+              </div>
+              <Switch id="use-parcelas" checked={useParcelas} onCheckedChange={(checked) => {
+                setUseParcelas(checked);
+                if (checked && parcelas.length === 0) {
+                  const val = Number(valorTotal) || 0;
+                  setParcelas([{ numero: 1, valor: String(val.toFixed(2)), data_vencimento: dataVencimento || "" }]);
+                }
+              }} />
+            </div>
+
+            {useParcelas && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {parcelas.length} parcela(s) — Total: R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                      const numParcelas = parcelas.length;
+                      const val = Number(valorTotal) || 0;
+                      const newCount = numParcelas + 1;
+                      const parcelaVal = (val / newCount).toFixed(2);
+                      const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                      const newParcelas: Parcela[] = [];
+                      for (let i = 0; i < newCount; i++) {
+                        const d = new Date(base);
+                        d.setMonth(d.getMonth() + i);
+                        newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: d.toISOString().slice(0, 10) });
+                      }
+                      // Ajustar diferença de arredondamento na última
+                      const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
+                      if (Math.abs(diff) > 0.001) {
+                        newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
+                      }
+                      setParcelas(newParcelas);
+                    }}>
+                      Dividir em {parcelas.length + 1}x
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
+                      setParcelas(prev => [...prev, { numero: prev.length + 1, valor: "0", data_vencimento: "" }]);
+                    }}>
+                      <Plus className="h-3 w-3 mr-0.5" /> Parcela
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[10px] w-[50px]">Nº</TableHead>
+                        <TableHead className="text-[10px]">Vencimento</TableHead>
+                        <TableHead className="text-[10px] text-right">Valor (R$)</TableHead>
+                        <TableHead className="text-[10px] w-[32px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {parcelas.map((p, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="text-[11px] font-mono">{p.numero}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={p.data_vencimento}
+                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
+                              className="h-7 text-[11px]"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number" step="0.01"
+                              value={p.valor}
+                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: e.target.value } : pp))}
+                              className="h-7 text-[11px] text-right font-mono"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {parcelas.length > 1 && (
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() =>
+                                setParcelas(prev => prev.filter((_, i) => i !== idx).map((pp, i) => ({ ...pp, numero: i + 1 })))
+                              }>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {Math.abs(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(valorTotal) || 0)) > 0.01 && (
+                  <p className="text-[10px] text-destructive font-medium">
+                    ⚠ Soma das parcelas (R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) difere do valor total (R$ {Number(valorTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Centro de Custo</Label>
