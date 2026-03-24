@@ -52,7 +52,7 @@ export function FinancialCategories() {
   const handleSave = async () => {
     if (!name.trim()) return toast.error("Informe o nome da categoria");
     
-    const payload: any = { name: name.trim(), type, tipo_operacional: tipoOperacional || null };
+    const payload: any = { name: name.trim(), type, tipo_operacional: (tipoOperacional && tipoOperacional !== "none") ? tipoOperacional : null };
 
     if (editingId) {
       const { error } = await supabase
