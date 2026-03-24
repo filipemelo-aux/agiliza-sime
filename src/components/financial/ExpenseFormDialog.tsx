@@ -395,6 +395,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   }, [itensNota]);
 
+  // Auto-fill maintenance items from NF-e items when maintenance mode is activated
+  useEffect(() => {
+    if (isMaintenanceType && itensNota.length > 0 && itensManutencao.length === 0) {
+      const converted: MaintenanceItem[] = itensNota.map(item => ({
+        tipo: "peca" as const,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        valor_total: item.valor_total,
+      }));
+      setItensManutencao(converted);
+    }
+  }, [isMaintenanceType, itensNota]);
+
   const handleSave = async () => {
     if (!planoContasId) return toast.error("Selecione a conta contábil");
     if (!descricao.trim()) return toast.error("Informe a descrição");
