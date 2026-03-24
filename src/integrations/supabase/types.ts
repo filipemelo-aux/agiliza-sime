@@ -730,6 +730,47 @@ export type Database = {
           },
         ]
       }
+      expense_maintenance_items: {
+        Row: {
+          created_at: string
+          descricao: string
+          expense_id: string
+          id: string
+          quantidade: number
+          tipo: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          expense_id: string
+          id?: string
+          quantidade?: number
+          tipo?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          expense_id?: string
+          id?: string
+          quantidade?: number
+          tipo?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_maintenance_items_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           afeta_caixa: boolean
@@ -753,16 +794,21 @@ export type Database = {
           favorecido_nome: string | null
           forma_pagamento: string | null
           fornecedor_cnpj: string | null
+          fornecedor_mecanica: string | null
           id: string
+          km_atual: number | null
           km_odometro: number | null
           litros: number | null
           motorista_id: string | null
           numero_multa: string | null
           observacoes: string | null
           origem: Database["public"]["Enums"]["expense_origin"]
+          proxima_manutencao_km: number | null
           sefaz_status: string | null
           status: Database["public"]["Enums"]["expense_status"]
+          tempo_parado: string | null
           tipo_despesa: Database["public"]["Enums"]["expense_type"]
+          tipo_manutencao: string | null
           updated_at: string
           valor_pago: number
           valor_total: number
@@ -793,16 +839,21 @@ export type Database = {
           favorecido_nome?: string | null
           forma_pagamento?: string | null
           fornecedor_cnpj?: string | null
+          fornecedor_mecanica?: string | null
           id?: string
+          km_atual?: number | null
           km_odometro?: number | null
           litros?: number | null
           motorista_id?: string | null
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          proxima_manutencao_km?: number | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
+          tempo_parado?: string | null
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
+          tipo_manutencao?: string | null
           updated_at?: string
           valor_pago?: number
           valor_total?: number
@@ -833,16 +884,21 @@ export type Database = {
           favorecido_nome?: string | null
           forma_pagamento?: string | null
           fornecedor_cnpj?: string | null
+          fornecedor_mecanica?: string | null
           id?: string
+          km_atual?: number | null
           km_odometro?: number | null
           litros?: number | null
           motorista_id?: string | null
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
+          proxima_manutencao_km?: number | null
           sefaz_status?: string | null
           status?: Database["public"]["Enums"]["expense_status"]
+          tempo_parado?: string | null
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
+          tipo_manutencao?: string | null
           updated_at?: string
           valor_pago?: number
           valor_total?: number
