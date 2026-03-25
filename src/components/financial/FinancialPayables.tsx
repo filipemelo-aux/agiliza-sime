@@ -842,7 +842,7 @@ export function FinancialPayables() {
                 variant={isActive ? "default" : "outline"}
                 size="sm"
                 className={`text-xs h-8 ${showLabel ? "gap-1.5" : "px-2"}`}
-                onClick={() => setQuickFilter(f.key)}
+                onClick={() => { setQuickFilter(f.key); setSelectedIds(new Set()); }}
                 title={f.label}
               >
                 {f.icon}
