@@ -10,7 +10,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useUserRole();
+  const { user, isAdmin, hasAdminAccess, loading } = useUserRole();
 
   const handleLogout = async () => {
     try {
@@ -34,7 +34,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border glass-effect">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to={isAdmin ? "/admin" : "/driver"} className="flex items-center gap-2 shrink-0">
+        <Link to={hasAdminAccess ? "/admin" : "/driver"} className="flex items-center gap-2 shrink-0">
           <img src={logo} alt="SIME Transportes" className="h-10 w-auto" />
           <span className="text-xl font-bold font-display text-foreground hidden sm:block">
             SIME <span className="text-accent">TRANSPORTES</span>
@@ -44,7 +44,7 @@ export function Header() {
         {/* Navigation - Always Visible */}
         <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 overflow-x-auto">
           {/* Admin Navigation */}
-          {user && !loading && isAdmin && (
+          {user && !loading && hasAdminAccess && (
             <>
               <Link
                 to="/admin"
@@ -100,7 +100,7 @@ export function Header() {
           )}
           
           {/* User Navigation */}
-          {user && !loading && !isAdmin && (
+          {user && !loading && !hasAdminAccess && (
             <>
               <Link
                 to="/driver"
