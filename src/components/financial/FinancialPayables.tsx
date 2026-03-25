@@ -567,25 +567,31 @@ export function FinancialPayables() {
       {/* Quick Filters + Actions */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1.5 flex-wrap">
-          {quickFilterButtons.map(f => (
-            <Button
-              key={f.key}
-              variant={quickFilter === f.key ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5 text-xs h-8"
-              onClick={() => setQuickFilter(f.key)}
-            >
-              {f.icon}
-              {f.label}
-              {f.count > 0 && (
-                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                  quickFilter === f.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}>
-                  {f.count}
-                </span>
-              )}
-            </Button>
-          ))}
+          {quickFilterButtons.map(f => {
+            const isActive = quickFilter === f.key;
+            const isAll = f.key === "all";
+            const showLabel = isAll || isActive;
+            return (
+              <Button
+                key={f.key}
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+                className={`text-xs h-8 ${showLabel ? "gap-1.5" : "px-2"}`}
+                onClick={() => setQuickFilter(f.key)}
+                title={f.label}
+              >
+                {f.icon}
+                {showLabel && f.label}
+                {f.count > 0 && (
+                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                    isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {f.count}
+                  </span>
+                )}
+              </Button>
+            );
+          })}
         </div>
         <Button size="sm" onClick={handleNew} className="gap-1.5">
           <Plus className="h-4 w-4" /> Nova Despesa
