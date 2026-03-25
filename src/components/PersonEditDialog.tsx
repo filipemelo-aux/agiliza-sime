@@ -16,6 +16,7 @@ import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
+  { value: "colaborador", label: "Colaborador" },
   { value: "cliente", label: "Cliente" },
   { value: "proprietario", label: "Proprietário" },
   { value: "fornecedor", label: "Fornecedor" },
@@ -53,6 +54,11 @@ export interface PersonProfile {
   bank_account_type: string | null;
   pix_key_type: string | null;
   pix_key: string | null;
+  cargo?: string | null;
+  departamento?: string | null;
+  data_admissao?: string | null;
+  salario?: number | null;
+  is_employee?: boolean;
   services: string[];
 }
 
@@ -84,6 +90,10 @@ interface FormState {
   bank_account_type: string;
   pix_key_type: string;
   pix_key: string;
+  cargo: string;
+  departamento: string;
+  data_admissao: string;
+  salario: string;
 }
 
 const emptyForm: FormState = {
@@ -114,6 +124,10 @@ const emptyForm: FormState = {
   bank_account_type: "",
   pix_key_type: "",
   pix_key: "",
+  cargo: "",
+  departamento: "",
+  data_admissao: "",
+  salario: "",
 };
 
 function AddressFields({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
@@ -304,20 +318,25 @@ function personToForm(person: PersonProfile): FormState {
     bank_account_type: person.bank_account_type || "",
     pix_key_type: person.pix_key_type || "",
     pix_key: person.pix_key || "",
+    cargo: (person as any).cargo || "",
+    departamento: (person as any).departamento || "",
+    data_admissao: (person as any).data_admissao || "",
+    salario: (person as any).salario ? String((person as any).salario) : "",
   };
 }
 
 function formToPayload(form: FormState) {
   const isMotorista = form.category === "motorista";
+  const isColaborador = form.category === "colaborador";
   return {
     full_name: form.full_name.trim(),
     phone: unmaskPhone(form.phone) || null,
     email: form.email.trim() || null,
-    person_type: isMotorista ? "cpf" : form.person_type,
-    cnpj: !isMotorista && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
-    inscricao_estadual: !isMotorista && form.person_type === "cnpj" ? form.inscricao_estadual.trim() || null : null,
-    razao_social: !isMotorista && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
-    nome_fantasia: !isMotorista && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
+    person_type: (isMotorista || isColaborador) ? "cpf" : form.person_type,
+    cnpj: !isMotorista && !isColaborador && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
+    inscricao_estadual: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.inscricao_estadual.trim() || null : null,
+    razao_social: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
+    nome_fantasia: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
     category: form.category,
     address_street: form.address_street.trim() || null,
     address_number: form.address_number.trim() || null,
@@ -333,6 +352,11 @@ function formToPayload(form: FormState) {
     bank_account_type: form.bank_account_type || null,
     pix_key_type: form.pix_key_type || null,
     pix_key: form.pix_key.trim() || null,
+    cargo: isColaborador ? form.cargo.trim() || null : null,
+    departamento: isColaborador ? form.departamento.trim() || null : null,
+    data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
+    salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
+    is_employee: isColaborador,
   };
 }
 
@@ -479,15 +503,47 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return null;
     }
+    if (form.category === "colaborador" && !form.email.trim()) {
+      toast({ title: "E-mail é obrigatório para Colaboradores (usado como login)", variant: "destructive" });
+      return null;
+    }
+    if (form.category === "colaborador" && !form.cargo.trim()) {
+      toast({ title: "Cargo é obrigatório para Colaboradores", variant: "destructive" });
+      return null;
+    }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const profileUserId = crypto.randomUUID();
+      let profileUserId = crypto.randomUUID();
+
+      // For colaborador, create auth account first
+      if (form.category === "colaborador") {
+        const { data: authData, error: authError } = await supabase.functions.invoke("create-employee-account", {
+          body: { email: form.email.trim(), full_name: form.full_name.trim() },
+        });
+        if (authError) throw authError;
+        if (authData?.error) throw new Error(authData.error);
+
+        profileUserId = authData.auth_user_id;
+
+        // Show generated password
+        toast({
+          title: "Conta de acesso criada!",
+          description: `Senha temporária: ${authData.generated_password}`,
+          duration: 20000,
+        });
+      }
+
       const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
       if (error) throw error;
+
+      // For colaborador, update profile_id link
+      if (form.category === "colaborador") {
+        // Profile already created with auth user_id, no extra step needed
+      }
 
       if (form.category === "motorista") {
         const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
@@ -500,6 +556,14 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
             cnh_expiry: form.cnh_expiry || null,
           });
         }
+      }
+
+      // Save CPF in driver_documents for colaborador too (for payroll)
+      if (form.category === "colaborador" && form.cpf) {
+        await supabase.from("driver_documents").insert({
+          user_id: profileUserId,
+          cpf: unmaskCPF(form.cpf) || null,
+        });
       }
 
       setCreatedUserId(profileUserId);
@@ -564,10 +628,11 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 // ---- SHARED FORM FIELDS ----
 function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean; onAddVehicle?: () => void }) {
   const isMotorista = form.category === "motorista";
+  const isColaborador = form.category === "colaborador";
   const isProprietario = form.category === "proprietario";
-  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario";
-  const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario";
-  const showCNPJ = !isMotorista && form.person_type === "cnpj";
+  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
+  const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
+  const showCNPJ = !isMotorista && !isColaborador && form.person_type === "cnpj";
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
 
@@ -613,7 +678,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* Category */}
       <div className="space-y-1">
         <Label className="text-xs">Categoria *</Label>
-        <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v, person_type: v === "motorista" ? "cpf" : p.person_type }))}>
+        <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v, person_type: (v === "motorista" || v === "colaborador") ? "cpf" : p.person_type }))}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
@@ -621,8 +686,8 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </Select>
       </div>
 
-      {/* Person Type toggle buttons - only for non-motorista */}
-      {!isMotorista && (
+      {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}
+      {!isMotorista && !isColaborador && (
         <div className="space-y-1">
           <Label className="text-xs">Tipo de Pessoa</Label>
           <div className="flex gap-2">
@@ -648,10 +713,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
       )}
 
-      {/* CPF - moved before name */}
-      {(isMotorista || form.person_type === "cpf") && (
+      {/* CPF - for motorista, colaborador, or CPF person type */}
+      {(isMotorista || isColaborador || form.person_type === "cpf") && (
         <div className="space-y-1">
-          <Label className="text-xs">CPF</Label>
+          <Label className="text-xs">CPF{isColaborador ? " *" : ""}</Label>
           <Input value={form.cpf} maxLength={14} onChange={(e) => setForm((p) => ({ ...p, cpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" />
         </div>
       )}
@@ -715,6 +780,46 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
           <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value.toLowerCase() }))} placeholder="email@exemplo.com" />
         </div>
       </div>
+
+      {/* Employee fields - colaborador only */}
+      {isColaborador && (
+        <>
+          <Separator />
+          <p className="text-sm font-medium text-muted-foreground">Dados Funcionais</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Cargo *</Label>
+              <Input value={form.cargo} onChange={(e) => setForm((p) => ({ ...p, cargo: maskName(e.target.value) }))} placeholder="Ex: Auxiliar Administrativo" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={form.departamento || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, departamento: v === "__none__" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">-</SelectItem>
+                  <SelectItem value="administrativo">Administrativo</SelectItem>
+                  <SelectItem value="operacional">Operacional</SelectItem>
+                  <SelectItem value="financeiro">Financeiro</SelectItem>
+                  <SelectItem value="comercial">Comercial</SelectItem>
+                  <SelectItem value="logistica">Logística</SelectItem>
+                  <SelectItem value="manutencao">Manutenção</SelectItem>
+                  <SelectItem value="rh">Recursos Humanos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Data de Admissão</Label>
+              <Input type="date" value={form.data_admissao} onChange={(e) => setForm((p) => ({ ...p, data_admissao: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Salário (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={form.salario} onChange={(e) => setForm((p) => ({ ...p, salario: e.target.value }))} placeholder="0,00" />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}

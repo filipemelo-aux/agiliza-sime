@@ -23,6 +23,7 @@ import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/comp
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
   motorista: "Motoristas",
+  colaborador: "Colaboradores",
   cliente: "Clientes",
   proprietario: "Proprietários",
   fornecedor: "Fornecedores",
@@ -30,6 +31,7 @@ const TAB_LABELS: Record<string, string> = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   motorista: "bg-blue-500/20 text-blue-400",
+  colaborador: "bg-teal-500/20 text-teal-400",
   cliente: "bg-amber-500/20 text-amber-400",
   proprietario: "bg-emerald-500/20 text-emerald-400",
   fornecedor: "bg-purple-500/20 text-purple-400",
@@ -93,10 +95,15 @@ export default function AdminPeople() {
         supabase.from("profiles").select("*").order("full_name"),
         supabase.from("driver_services" as any).select("*"),
         supabase.from("vehicles").select("*").order("brand"),
-        supabase.from("user_roles").select("user_id"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
 
-      const systemUserIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+      // Only exclude admin/moderator system users, not regular 'user' role (colaboradores)
+      const systemUserIds = new Set(
+        (rolesRes.data || [])
+          .filter((r: any) => r.role === "admin" || r.role === "moderator")
+          .map((r: any) => r.user_id)
+      );
       const profiles = (profilesRes.data || []).filter((p: any) => !systemUserIds.has(p.user_id));
       const services = (servicesRes.data as any[]) || [];
 
@@ -110,6 +117,8 @@ export default function AdminPeople() {
         notes: p.notes, bank_name: p.bank_name, bank_agency: p.bank_agency,
         bank_account: p.bank_account, bank_account_type: p.bank_account_type,
         pix_key_type: p.pix_key_type, pix_key: p.pix_key,
+        cargo: p.cargo, departamento: p.departamento, data_admissao: p.data_admissao,
+        salario: p.salario, is_employee: p.is_employee,
         services: services.filter((s: any) => s.user_id === p.user_id).map((s: any) => s.service_type),
       }));
       setDrivers(driversWithServices);
@@ -279,7 +288,7 @@ export default function AdminPeople() {
                         setViewPerson(driver);
                         setViewPersonDocs(null);
                         setViewPersonHarvests([]);
-                        if (driver.category === "motorista") {
+                        if (driver.category === "motorista" || driver.category === "colaborador") {
                           const [docsRes, assignmentsRes] = await Promise.all([
                             supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
                             supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
@@ -384,6 +393,21 @@ export default function AdminPeople() {
               )}
               {viewPerson.address_street && (
                 <p><span className="text-muted-foreground">Endereço:</span> {viewPerson.address_street}{viewPerson.address_number ? `, ${viewPerson.address_number}` : ""}{viewPerson.address_complement ? ` - ${viewPerson.address_complement}` : ""}</p>
+              )}
+              {/* Employee details */}
+              {viewPerson.category === "colaborador" && (
+                <div className="pt-1 border-t border-border">
+                  <p className="text-muted-foreground font-medium mb-1">👤 Dados Funcionais</p>
+                  {(viewPerson as any).cargo && <p className="ml-4"><span className="text-muted-foreground">Cargo:</span> {(viewPerson as any).cargo}</p>}
+                  {(viewPerson as any).departamento && <p className="ml-4"><span className="text-muted-foreground">Departamento:</span> {(viewPerson as any).departamento}</p>}
+                  {(viewPerson as any).data_admissao && <p className="ml-4"><span className="text-muted-foreground">Admissão:</span> {new Date((viewPerson as any).data_admissao).toLocaleDateString("pt-BR")}</p>}
+                  {(viewPerson as any).salario && <p className="ml-4"><span className="text-muted-foreground">Salário:</span> R$ {Number((viewPerson as any).salario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>}
+                </div>
+              )}
+              {(viewPerson as any).is_employee && viewPerson.category === "motorista" && (
+                <div className="pt-1">
+                  <Badge variant="outline" className="text-xs border-teal-500/50 text-teal-500">Funcionário (Frota Própria)</Badge>
+                </div>
               )}
               {viewPersonDocs && (viewPersonDocs.cnh_number || viewPersonDocs.cnh_category) && (
                 <div className="pt-1 border-t border-border">
