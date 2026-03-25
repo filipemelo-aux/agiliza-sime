@@ -82,10 +82,12 @@ export function FinancialPayables() {
   const STORAGE_KEY = "payables_filters";
   const location = useLocation();
   const navigate = useNavigate();
-  const fromNav = !!(location.state as any)?.fromNav;
+  const locState = (location.state as any) || {};
+  const fromNav = !!locState.fromNav;
+  const initialQuickFilter: QuickFilter | undefined = locState.quickFilter;
 
   const getStoredFilters = () => {
-    if (fromNav) return null; // Reset filters on sidebar navigation
+    if (fromNav || initialQuickFilter) return null; // Reset filters on sidebar navigation or dashboard link
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
@@ -96,15 +98,15 @@ export function FinancialPayables() {
   const defaultStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
   const defaultEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
-  // Clear the fromNav flag so refreshes / CRUD don't reset filters
+  // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
   useEffect(() => {
-    if (fromNav && !clearedNav.current) {
+    if ((fromNav || initialQuickFilter) && !clearedNav.current) {
       clearedNav.current = true;
       sessionStorage.removeItem(STORAGE_KEY);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [fromNav]);
+  }, [fromNav, initialQuickFilter]);
 
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -113,7 +115,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>(stored?.quickFilter ?? "all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(initialQuickFilter ?? stored?.quickFilter ?? "all");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
   const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
