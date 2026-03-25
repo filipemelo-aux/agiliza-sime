@@ -964,11 +964,44 @@ export function FinancialPayables() {
         </Card>
       </div>
 
-      {/* Filters row: all inline */}
-      <div className="space-y-2">
-        {/* Row 1: Status pills + Date pickers */}
+      {/* Filter Card */}
+      <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+        {/* Row 1: Period label + date pickers */}
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <CalendarIcon className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium text-foreground whitespace-nowrap">Período:</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <Input
+              type="date"
+              value={filterPeriodoInicio}
+              onChange={(e) => { setFilterPeriodoInicio(e.target.value); setQuickFilter("all"); }}
+              className="h-8 text-xs flex-1 min-w-0"
+            />
+            <span className="text-xs text-muted-foreground shrink-0">até</span>
+            <Input
+              type="date"
+              value={filterPeriodoFim}
+              onChange={(e) => { setFilterPeriodoFim(e.target.value); setQuickFilter("all"); }}
+              className="h-8 text-xs flex-1 min-w-0"
+            />
+            {(filterPeriodoInicio || filterPeriodoFim) && (
+              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); setQuickFilter("all"); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Limpar período">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
 
+        {/* Row 2: Search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+        </div>
+
+        {/* Row 3: Quick filters + Plano de Contas (visible on small screens inside card) */}
+        <div className="flex items-center gap-2 flex-wrap">
           {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
             return (
@@ -1009,41 +1042,6 @@ export function FinancialPayables() {
             );
           })}
 
-          {/* Date period pickers */}
-          <div className="flex items-center gap-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("h-7 px-2 text-[11px] rounded-full font-normal gap-1", !filterPeriodoInicio && "text-muted-foreground")}>
-                  <CalendarIcon className="h-3 w-3" />
-                  {filterPeriodoInicio ? format(parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "De"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" locale={ptBR} selected={filterPeriodoInicio ? parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => { setFilterPeriodoInicio(d ? format(d, "yyyy-MM-dd") : ""); setQuickFilter("all"); }} initialFocus className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-            <span className="text-xs text-muted-foreground">—</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("h-7 px-2 text-[11px] rounded-full font-normal gap-1", !filterPeriodoFim && "text-muted-foreground")}>
-                  <CalendarIcon className="h-3 w-3" />
-                  {filterPeriodoFim ? format(parse(filterPeriodoFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Até"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar mode="single" locale={ptBR} selected={filterPeriodoFim ? parse(filterPeriodoFim, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => { setFilterPeriodoFim(d ? format(d, "yyyy-MM-dd") : ""); setQuickFilter("all"); }} initialFocus className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-            {(filterPeriodoInicio || filterPeriodoFim) && (
-              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); setQuickFilter("all"); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Limpar período">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Row 2: Plano de Contas + Clear */}
-        <div className="flex items-center gap-2 flex-wrap">
           <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
             <SelectTrigger className="h-7 text-[11px] w-auto min-w-[140px] max-w-[200px] rounded-full">
               <SelectValue placeholder="Plano de Contas" />
@@ -1078,12 +1076,6 @@ export function FinancialPayables() {
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
       </div>
       {selectableCardIds.length > 0 && (
         <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
