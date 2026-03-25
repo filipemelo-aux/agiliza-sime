@@ -931,7 +931,7 @@ export function FinancialPayables() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Pendente</p>
+            <p className="text-xs text-muted-foreground">A Pagar</p>
             <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
           </CardContent>
         </Card>
