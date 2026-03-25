@@ -1209,7 +1209,7 @@ export function FinancialPayables() {
                           {STATUS_MAP[instStatus]?.label || inst.status}
                         </Badge>
                         {isInstToday && (
-                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse">
+                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none">
                             <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
                           </Badge>
                         )}
@@ -1331,7 +1331,7 @@ export function FinancialPayables() {
                       {STATUS_MAP[item.status]?.label || item.status}
                     </Badge>
                     {isDueToday && (
-                      <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse shrink-0">
+                      <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
                         <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
                       </Badge>
                     )}
