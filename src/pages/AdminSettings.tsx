@@ -469,8 +469,8 @@ export default function AdminSettings() {
                   const isTargetAdmin = u.roles.includes("admin");
                   const isTargetModerator = u.roles.includes("moderator");
                   const isSelf = u.id === user?.id;
-                  const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
-                  const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
+                  const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin);
+                  const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin));
 
                   return (
                     <Card key={u.id} className="border border-border hover:border-primary/30 transition-colors">
