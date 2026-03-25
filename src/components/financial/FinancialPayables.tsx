@@ -920,11 +920,12 @@ export function FinancialPayables() {
   }, [selectedIds]);
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "all", label: "Todas", icon: <List className="h-3.5 w-3.5" />, count: counts.all },
-    { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
-    { key: "semana", label: "Semana", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.semana },
-    { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
-    { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3.5 w-3.5" />, count: counts.pagas },
+    { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
+    { key: "hoje", label: "Hoje", icon: <Clock className="h-3 w-3" />, count: counts.hoje },
+    { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
+    { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
+    { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3 w-3" />, count: counts.pagas },
+    { key: "personalizado", label: "Personalizado", icon: <CalendarIcon className="h-3 w-3" />, count: 0 },
   ];
 
   return (
