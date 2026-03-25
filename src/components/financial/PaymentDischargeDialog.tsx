@@ -7,8 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 const FORMA_PAGAMENTO_OPTIONS = [
@@ -47,11 +52,13 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
+  const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
 
   useEffect(() => {
     if (open && expenseId) {
       setValor(String(valorTotal - valorPago));
       setObservacoes("");
+      setDataPagamento(new Date());
       loadHistory();
     }
   }, [open, expenseId]);
@@ -77,6 +84,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       expense_id: expenseId,
       valor: valorNum,
       forma_pagamento: formaPagamento,
+      data_pagamento: format(dataPagamento, "yyyy-MM-dd"),
       observacoes: observacoes.trim() || null,
       created_by: user?.id,
     } as any);
@@ -89,7 +97,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       valor_pago: novoValorPago,
       status: novoStatus,
       forma_pagamento: formaPagamento,
-      data_pagamento: new Date().toISOString(),
+      data_pagamento: dataPagamento.toISOString(),
     } as any).eq("id", expenseId);
 
     if (error) { toast.error(error.message); setSaving(false); return; }
@@ -113,10 +121,34 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
             Pago: {formatCurrency(valorPago)} | 
             Restante: <strong className="text-foreground">{formatCurrency(saldoRestante)}</strong>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <Label>Valor do Pagamento (R$)</Label>
+              <Label>Valor (R$)</Label>
               <Input value={valor ? maskCurrency(String(Math.round(parseFloat(valor) * 100))) : ""} onChange={e => setValor(unmaskCurrency(e.target.value))} />
+            </div>
+            <div>
+              <Label>Data do Pagamento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !dataPagamento && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataPagamento ? format(dataPagamento, "dd/MM/yyyy") : "Selecionar"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataPagamento}
+                    onSelect={(d) => d && setDataPagamento(d)}
+                    locale={ptBR}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Forma de Pagamento</Label>
