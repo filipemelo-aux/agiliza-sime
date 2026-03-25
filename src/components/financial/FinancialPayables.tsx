@@ -1208,6 +1208,11 @@ export function FinancialPayables() {
                         <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
                           {STATUS_MAP[instStatus]?.label || inst.status}
                         </Badge>
+                        {isInstToday && (
+                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse">
+                            <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Info */}
