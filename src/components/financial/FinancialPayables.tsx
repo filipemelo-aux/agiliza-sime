@@ -936,6 +936,16 @@ export function FinancialPayables() {
                             <Check className="h-3.5 w-3.5" /> Pagar
                           </Button>
                         )}
+                        {isInstPago && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            onClick={() => handleReverseInstallment(inst)}
+                          >
+                            <Undo2 className="h-3.5 w-3.5" /> Estornar
+                          </Button>
+                        )}
                         <div className="ml-auto flex gap-0.5">
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
                             <FileText className="h-3.5 w-3.5" /> Detalhes
