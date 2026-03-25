@@ -1019,8 +1019,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   ) : boletoPdfExistingUrl ? (
                     <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-xs truncate flex-1">Boleto anexado</span>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfExistingUrl(null)}>
+                      <span className="text-xs truncate flex-1">
+                        Boletos anexados ({parcelas.filter(p => p.boleto_url).length} parcela{parcelas.filter(p => p.boleto_url).length !== 1 ? "s" : ""})
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => {
+                        setBoletoPdfExistingUrl(null);
+                        setParcelas(prev => prev.map(p => ({ ...p, boleto_url: null })));
+                      }}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </div>
