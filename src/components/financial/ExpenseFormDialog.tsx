@@ -887,7 +887,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 endAction={
                   <button
                     type="button"
-                    onClick={() => window.open("/admin/people", "_blank")}
+                    onClick={() => setShowCreateFornecedor(true)}
                     className="text-muted-foreground hover:text-primary transition-colors"
                     title="Cadastrar fornecedor"
                   >
@@ -1585,5 +1585,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         </div>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={showCreateFornecedor}
+      onOpenChange={setShowCreateFornecedor}
+      onCreated={() => {}}
+      defaultCategory="fornecedor"
+    />
+  </>
   );
 }
