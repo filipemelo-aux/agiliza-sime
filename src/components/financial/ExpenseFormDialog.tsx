@@ -11,11 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
@@ -130,6 +130,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [kmOdometro, setKmOdometro] = useState("");
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showCreateFornecedor, setShowCreateFornecedor] = useState(false);
 
   // NF-e fields
   const [fornecedorCnpj, setFornecedorCnpj] = useState("");
@@ -737,6 +738,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
@@ -886,7 +888,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 endAction={
                   <button
                     type="button"
-                    onClick={() => window.open("/admin/people", "_blank")}
+                    onClick={() => setShowCreateFornecedor(true)}
                     className="text-muted-foreground hover:text-primary transition-colors"
                     title="Cadastrar fornecedor"
                   >
@@ -1584,5 +1586,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         </div>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={showCreateFornecedor}
+      onOpenChange={setShowCreateFornecedor}
+      onCreated={() => {}}
+      defaultCategory="fornecedor"
+    />
+  </>
   );
 }
