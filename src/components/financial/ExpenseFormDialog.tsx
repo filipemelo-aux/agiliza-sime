@@ -130,6 +130,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [kmOdometro, setKmOdometro] = useState("");
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showCreateFornecedor, setShowCreateFornecedor] = useState(false);
 
   // NF-e fields
   const [fornecedorCnpj, setFornecedorCnpj] = useState("");
