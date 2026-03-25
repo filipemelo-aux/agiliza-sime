@@ -408,20 +408,26 @@ export default function AdminSettings() {
         <Separator />
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
-            <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
-              <Users className="w-4 h-4" />
-              Geral
-            </TabsTrigger>
-            <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
-              <Building2 className="w-4 h-4" />
-              Fiscal
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
-              <MailIcon className="w-4 h-4" />
-              E-mail
-            </TabsTrigger>
+        <Tabs value={isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-4"}`}>
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
+                <Users className="w-4 h-4" />
+                Geral
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
+                <Building2 className="w-4 h-4" />
+                Fiscal
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
+                <MailIcon className="w-4 h-4" />
+                E-mail
+              </TabsTrigger>
+            )}
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
               <User className="w-4 h-4" />
               Meu Perfil
