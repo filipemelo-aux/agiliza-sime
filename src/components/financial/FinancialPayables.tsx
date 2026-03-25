@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List } from "lucide-react";
 import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -115,7 +115,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "semana");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "all");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
   const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
@@ -700,9 +700,12 @@ export function FinancialPayables() {
 
       if (quickFilter === "all") {
         if (hasInst) {
-          if (installs.every(inst => inst.status === "pago")) return false;
+          // Excluir totalmente pagas e também atrasadas (vencidas) — ficam no filtro "Atrasadas"
+          const hasPendingFuture = installs.some(inst => inst.status !== "pago" && inst.data_vencimento >= today);
+          if (!hasPendingFuture) return false;
         } else {
           if (i.status === "pago") return false;
+          if (i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today)) return false;
         }
       } else if (quickFilter === "hoje") {
         if (hasInst) {
@@ -917,6 +920,7 @@ export function FinancialPayables() {
   }, [selectedIds]);
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
+    { key: "all", label: "Todas", icon: <List className="h-3.5 w-3.5" />, count: counts.all },
     { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
@@ -980,7 +984,11 @@ export function FinancialPayables() {
                 size="sm"
                 className={`text-xs h-8 ${showLabel ? "gap-1.5" : "px-2"}`}
                 onClick={() => {
-                  if (f.key === "semana") {
+                  if (f.key === "all") {
+                    const todayStr = format(new Date(), "yyyy-MM-dd");
+                    setFilterPeriodoInicio(todayStr);
+                    setFilterPeriodoFim("");
+                  } else if (f.key === "semana") {
                     const todayDate = new Date();
                     setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
                     setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
