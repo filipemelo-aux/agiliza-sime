@@ -177,7 +177,7 @@ export default function AdminDashboard() {
             </PopoverTrigger>
             <PopoverContent className="w-44 p-1" align="center">
               <button onClick={() => setExpenseFormOpen(true)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors w-full text-left">
-                <DollarSign className="h-4 w-4" /> Conta a Pagar
+                <DollarSign className="h-4 w-4" /> Nova Conta
               </button>
               <Link to="/admin/financial/payables" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
                 <ClipboardList className="h-4 w-4" /> Ver Contas
