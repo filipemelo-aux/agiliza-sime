@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, endOfMonth, format, addDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays } from "date-fns";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
@@ -73,21 +73,33 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
-  
+  const STORAGE_KEY = "payables_filters";
+
+  const getStoredFilters = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+
+  const stored = getStoredFilters();
+  const defaultStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
+
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-  const [filterPlanoContas, setFilterPlanoContas] = useState("all");
-  const [filterNivel, setFilterNivel] = useState("all");
-  const [filterVeiculo, setFilterVeiculo] = useState("all");
-  const [filterCentroCusto, setFilterCentroCusto] = useState("all");
-  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
-  const [filterPeriodoFim, setFilterPeriodoFim] = useState("");
+  const [search, setSearch] = useState(stored?.search ?? "");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(stored?.quickFilter ?? "all");
+  const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
+  const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
+  const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
+  const [filterCentroCusto, setFilterCentroCusto] = useState(stored?.filterCentroCusto ?? "all");
+  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState(stored?.filterPeriodoInicio ?? defaultStart);
+  const [filterPeriodoFim, setFilterPeriodoFim] = useState(stored?.filterPeriodoFim ?? defaultEnd);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -102,6 +114,14 @@ export function FinancialPayables() {
   const [editInstVenc, setEditInstVenc] = useState("");
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Persist filters to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      search, quickFilter, filterPlanoContas, filterNivel,
+      filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim,
+    }));
+  }, [search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
 
   // Maintenance detail modal state
   const [maintDetailOpen, setMaintDetailOpen] = useState(false);
