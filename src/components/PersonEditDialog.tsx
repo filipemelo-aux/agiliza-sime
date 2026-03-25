@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName } from "@/lib/masks";
+import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName, maskSentence } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
@@ -179,7 +179,7 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Complemento</Label>
-          <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: maskName(e.target.value) }))} placeholder="Apto, Sala..." />
+          <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: maskSentence(e.target.value) }))} placeholder="Apto, Sala..." />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Bairro</Label>
@@ -642,7 +642,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         email: data.email && data.email !== "null" ? data.email.toLowerCase() : p.email,
         address_street: data.logradouro ? maskName(data.logradouro) : p.address_street,
         address_number: data.numero || p.address_number,
-        address_complement: data.complemento ? maskName(data.complemento) : p.address_complement,
+        address_complement: data.complemento ? maskSentence(data.complemento) : p.address_complement,
         address_neighborhood: data.bairro ? maskName(data.bairro) : p.address_neighborhood,
         address_city: data.municipio ? maskName(data.municipio) : p.address_city,
         address_state: data.uf || p.address_state,

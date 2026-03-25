@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Package, Settings2 } from "lucide-react";
-import { maskName } from "@/lib/masks";
+import { maskSentence } from "@/lib/masks";
 import { Switch } from "@/components/ui/switch";
 import type { Carga } from "@/pages/AdminCargas";
 
@@ -142,7 +142,7 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Descrição *</Label>
-                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: GESSO" />
+                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskSentence(e.target.value))} placeholder="Ex: GESSO" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo</Label>
