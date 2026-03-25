@@ -38,15 +38,20 @@ serve(async (req) => {
       throw new Error("Apenas administradores podem resetar senhas");
     }
 
-    const { target_user_id, full_name } = await req.json();
+    const { target_user_id, full_name, custom_password } = await req.json();
     if (!target_user_id || !full_name) {
       throw new Error("target_user_id e full_name são obrigatórios");
     }
 
-    // Generate password: first letter uppercase + 5 random digits
-    const firstLetter = full_name.trim().charAt(0).toUpperCase();
-    const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
-    const newPassword = firstLetter + randomDigits;
+    // Use custom password if provided, otherwise generate: first letter uppercase + 5 random digits
+    let newPassword: string;
+    if (custom_password && custom_password.length >= 6) {
+      newPassword = custom_password;
+    } else {
+      const firstLetter = full_name.trim().charAt(0).toUpperCase();
+      const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
+      newPassword = firstLetter + randomDigits;
+    }
 
     // Update user password and set metadata flag
     const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
