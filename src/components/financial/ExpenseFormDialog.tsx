@@ -172,9 +172,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [nfseFornecedorNome, setNfseFornecedorNome] = useState("");
   const [nfseFornecedorId, setNfseFornecedorId] = useState<string | null>(null);
   const [nfseObservacoes, setNfseObservacoes] = useState("");
-  const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
-  interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
-  const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+   const [nfseUseParcelas, setNfseUseParcelas] = useState(false);
+   interface NfseParcela { numero: number; valor: string; data_vencimento: string; }
+   const [nfseParcelas, setNfseParcelas] = useState<NfseParcela[]>([]);
+   const [nfseBoletoPdfFile, setNfseBoletoPdfFile] = useState<File | null>(null);
+   const nfseBoletoInputRef = useRef<HTMLInputElement>(null);
   const nfseValorTotal = useMemo(() => nfseItens.reduce((s, i) => s + i.valor_total, 0), [nfseItens]);
 
   // Use external chart accounts
@@ -372,7 +374,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
-    setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]);
+    setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
@@ -688,12 +690,35 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         }
         // Save NFSe installments if any
         if (nfseUseParcelas && nfseParcelas.length > 0) {
-          await supabase.from("expense_installments" as any).insert(nfseParcelas.map(p => ({
+          let nfseBoletoPaths: (string | null)[] = nfseParcelas.map(() => null);
+          if (nfseBoletoPdfFile) {
+            try {
+              const pageBlobs = await splitPdfPages(nfseBoletoPdfFile);
+              const ts = Date.now();
+              for (let i = 0; i < nfseParcelas.length; i++) {
+                if (i < pageBlobs.length) {
+                  const path = `boletos/${nfseData.id}/${ts}_parcela_${i + 1}.pdf`;
+                  const { error: upErr } = await supabase.storage
+                    .from("payment-receipts")
+                    .upload(path, pageBlobs[i], { upsert: true, contentType: "application/pdf" });
+                  if (!upErr) nfseBoletoPaths[i] = path;
+                }
+              }
+              if (pageBlobs.length < nfseParcelas.length) {
+                toast.info(`PDF tem ${pageBlobs.length} página(s) para ${nfseParcelas.length} parcelas NFSe. Parcelas excedentes ficaram sem boleto.`);
+              }
+            } catch (err: any) {
+              console.error("Erro ao dividir PDF NFSe:", err);
+              toast.warning("Não foi possível dividir o PDF por parcela NFSe.");
+            }
+          }
+          await supabase.from("expense_installments" as any).insert(nfseParcelas.map((p, i) => ({
             expense_id: nfseData.id,
             numero_parcela: p.numero,
             valor: Number(p.valor) || 0,
             data_vencimento: p.data_vencimento,
             status: "pendente",
+            boleto_url: nfseBoletoPaths[i],
           })));
         }
       }
@@ -1326,6 +1351,46 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                               ⚠ Soma das parcelas difere do valor da NFSe
                             </p>
                           )}
+
+                          {/* NFSe Boleto attachment */}
+                          <div className="mt-2 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-[10px] text-muted-foreground font-medium">
+                                Anexar boletos (PDF único, 1 boleto por página)
+                              </span>
+                            </div>
+                            <input
+                              ref={nfseBoletoInputRef}
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setNfseBoletoPdfFile(file);
+                                if (nfseBoletoInputRef.current) nfseBoletoInputRef.current.value = "";
+                              }}
+                            />
+                            {nfseBoletoPdfFile ? (
+                              <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                                <FileText className="h-4 w-4 text-primary shrink-0" />
+                                <span className="text-xs truncate flex-1">{nfseBoletoPdfFile.name}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setNfseBoletoPdfFile(null)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[10px] gap-1"
+                                onClick={() => nfseBoletoInputRef.current?.click()}
+                              >
+                                <Paperclip className="h-3 w-3" /> Selecionar PDF dos boletos
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
