@@ -58,6 +58,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     if (open && expenseId) {
       setValor(String(valorTotal - valorPago));
       setObservacoes("");
+      setDataPagamento(new Date());
       loadHistory();
     }
   }, [open, expenseId]);
@@ -83,6 +84,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       expense_id: expenseId,
       valor: valorNum,
       forma_pagamento: formaPagamento,
+      data_pagamento: format(dataPagamento, "yyyy-MM-dd"),
       observacoes: observacoes.trim() || null,
       created_by: user?.id,
     } as any);
@@ -95,7 +97,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       valor_pago: novoValorPago,
       status: novoStatus,
       forma_pagamento: formaPagamento,
-      data_pagamento: new Date().toISOString(),
+      data_pagamento: dataPagamento.toISOString(),
     } as any).eq("id", expenseId);
 
     if (error) { toast.error(error.message); setSaving(false); return; }
