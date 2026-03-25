@@ -83,8 +83,8 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = fnsFormat(startOfMonth(new Date()), "yyyy-MM-dd");
-  const defaultEnd = fnsFormat(endOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
