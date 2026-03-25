@@ -666,7 +666,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap]);
 
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
