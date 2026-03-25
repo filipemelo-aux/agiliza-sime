@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, Search, Eye, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
 
 interface Cte { id: string; numero: number | null; tomador_nome: string | null; tomador_cnpj: string | null; valor_frete: number; data_emissao: string | null; status: string; }
 interface HarvestJob { id: string; farm_name: string; client_name: string | null; client_id: string | null; monthly_value: number; totalLiquido: number; invoicedAmount: number; remaining: number; }
@@ -127,7 +128,7 @@ export function FinancialInvoices() {
     if (!harvest) return toast.error("Serviço não encontrado");
     const invoiceAmount = Number(harvestInvoiceAmount);
     if (!invoiceAmount || invoiceAmount <= 0) return toast.error("Informe o valor da fatura");
-    if (invoiceAmount > harvest.remaining + 0.01) return toast.error(`Valor excede o saldo restante de R$ ${harvest.remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+    if (invoiceAmount > harvest.remaining + 0.01) return toast.error(`Valor excede o saldo restante de ${formatCurrency(harvest.remaining)}`);
     const debtorName = harvest.client_name || harvest.farm_name;
     const { data: inv, error: invErr } = await supabase.from("financial_invoices").insert({ debtor_name: debtorName, total_amount: invoiceAmount, due_date: dueDate || null, notes: notes.trim() || `Colheita — ${harvest.farm_name}`, created_by: user?.id, source_type: "harvest", harvest_job_id: harvest.id } as any).select().single();
     if (invErr || !inv) return toast.error(invErr?.message || "Erro ao criar fatura");
@@ -186,7 +187,7 @@ export function FinancialInvoices() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Valor Total</span>
-                    <p className="font-mono font-semibold text-foreground">R$ {Number(inv.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="font-mono font-semibold text-foreground">{formatCurrency(Number(inv.total_amount))}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Vencimento</span>
@@ -224,19 +225,19 @@ export function FinancialInvoices() {
                   <label key={cte.id} className="flex items-center gap-3 p-3 border-b last:border-0 hover:bg-muted/50 cursor-pointer">
                     <Checkbox checked={selectedCteIds.has(cte.id)} onCheckedChange={() => toggleCte(cte.id)} />
                     <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground shrink-0" /><span className="font-medium text-sm">CT-e #{cte.numero}</span></div><p className="text-xs text-muted-foreground truncate">{cte.tomador_nome || cte.tomador_cnpj || "—"}</p></div>
-                    <span className="font-mono text-sm shrink-0">R$ {Number(cte.valor_frete).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono text-sm shrink-0">{formatCurrency(Number(cte.valor_frete))}</span>
                   </label>
                 ))}
               </div>
-              {selectedCteIds.size > 0 && <div className="bg-muted/50 rounded-md p-3 flex justify-between items-center"><span className="text-sm">{selectedCteIds.size} CT-e(s) selecionado(s)</span><span className="font-bold">R$ {totalSelected.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>}
+              {selectedCteIds.size > 0 && <div className="bg-muted/50 rounded-md p-3 flex justify-between items-center"><span className="text-sm">{selectedCteIds.size} CT-e(s) selecionado(s)</span><span className="font-bold">{formatCurrency(totalSelected)}</span></div>}
               <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
               <Button onClick={handleCreateCteInvoice} className="w-full" disabled={selectedCteIds.size === 0}>Gerar Fatura de CT-es</Button>
             </TabsContent>
             <TabsContent value="harvest" className="space-y-4 mt-4">
-              <div><Label>Serviço de Colheita</Label><Select value={selectedHarvestId || ""} onValueChange={setSelectedHarvestId}><SelectTrigger><SelectValue placeholder="Selecione a colheita..." /></SelectTrigger><SelectContent>{availableHarvests.length === 0 ? <SelectItem value="_none" disabled>Nenhuma colheita com saldo</SelectItem> : availableHarvests.map(h => <SelectItem key={h.id} value={h.id}>{h.farm_name} — {h.client_name || "Sem cliente"} (Saldo: R$ {h.remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})</SelectItem>)}</SelectContent></Select></div>
-              {selectedHarvest && <div className="bg-muted/50 rounded-md p-3 space-y-1 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Valor líquido total:</span><span className="font-mono">R$ {selectedHarvest.totalLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Já faturado:</span><span className="font-mono">R$ {selectedHarvest.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div><div className="flex justify-between font-semibold border-t pt-1"><span>Saldo disponível:</span><span className="font-mono">R$ {selectedHarvest.remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div></div>}
-              <div><Label>Valor da Fatura (R$)</Label><Input type="number" step="0.01" value={harvestInvoiceAmount} onChange={(e) => setHarvestInvoiceAmount(e.target.value)} placeholder={selectedHarvest ? `Máx: ${selectedHarvest.remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "0,00"} />{selectedHarvest && <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => setHarvestInvoiceAmount(selectedHarvest.remaining.toFixed(2))}>Usar saldo total</Button>}</div>
+              <div><Label>Serviço de Colheita</Label><Select value={selectedHarvestId || ""} onValueChange={setSelectedHarvestId}><SelectTrigger><SelectValue placeholder="Selecione a colheita..." /></SelectTrigger><SelectContent>{availableHarvests.length === 0 ? <SelectItem value="_none" disabled>Nenhuma colheita com saldo</SelectItem> : availableHarvests.map(h => <SelectItem key={h.id} value={h.id}>{h.farm_name} — {h.client_name || "Sem cliente"} (Saldo: {formatCurrency(h.remaining)})</SelectItem>)}</SelectContent></Select></div>
+              {selectedHarvest && <div className="bg-muted/50 rounded-md p-3 space-y-1 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Valor líquido total:</span><span className="font-mono">{formatCurrency(selectedHarvest.totalLiquido)}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Já faturado:</span><span className="font-mono">{formatCurrency(selectedHarvest.invoicedAmount)}</span></div><div className="flex justify-between font-semibold border-t pt-1"><span>Saldo disponível:</span><span className="font-mono">{formatCurrency(selectedHarvest.remaining)}</span></div></div>}
+              <div><Label>Valor da Fatura (R$)</Label><Input type="number" step="0.01" value={harvestInvoiceAmount} onChange={(e) => setHarvestInvoiceAmount(e.target.value)} placeholder={selectedHarvest ? `Máx: ${formatCurrency(selectedHarvest.remaining)}` : "0,00"} />{selectedHarvest && <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => setHarvestInvoiceAmount(selectedHarvest.remaining.toFixed(2))}>Usar saldo total</Button>}</div>
               <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
               <Button onClick={handleCreateHarvestInvoice} className="w-full" disabled={!selectedHarvestId || !harvestInvoiceAmount}>Gerar Fatura de Colheita</Button>
@@ -254,7 +255,7 @@ export function FinancialInvoices() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div><span className="text-muted-foreground">Cliente:</span> {selectedInvoice.debtor_name}</div>
                 <div><span className="text-muted-foreground">Status:</span> {STATUS_MAP[selectedInvoice.status]?.label || selectedInvoice.status}</div>
-                <div><span className="text-muted-foreground">Valor:</span> R$ {Number(selectedInvoice.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                <div><span className="text-muted-foreground">Valor:</span> {formatCurrency(Number(selectedInvoice.total_amount))}</div>
                 <div><span className="text-muted-foreground">Vencimento:</span> {selectedInvoice.due_date ? format(new Date(selectedInvoice.due_date + "T12:00:00"), "dd/MM/yyyy") : "—"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">Origem:</span> <Badge variant="outline" className="text-xs ml-1">{SOURCE_LABELS[selectedInvoice.source_type] || "CT-e"}</Badge></div>
               </div>
@@ -263,7 +264,7 @@ export function FinancialInvoices() {
                 <div>
                   <h4 className="text-sm font-medium mb-2">CT-es na Fatura ({invoiceItems.length})</h4>
                   <div className="border rounded-md divide-y">
-                    {invoiceItems.map((item) => (<div key={item.id} className="p-2 flex justify-between text-sm"><span>CT-e vinculado</span><span className="font-mono">R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>))}
+                    {invoiceItems.map((item) => (<div key={item.id} className="p-2 flex justify-between text-sm"><span>CT-e vinculado</span><span className="font-mono">{formatCurrency(Number(item.amount))}</span></div>))}
                   </div>
                 </div>
               )}

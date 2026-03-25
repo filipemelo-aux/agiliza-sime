@@ -13,6 +13,7 @@ import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucid
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { formatCurrency } from "@/lib/masks";
 
 interface Receivable {
   id: string;
@@ -213,7 +214,7 @@ export function FinancialReceivables() {
     id: `harvest-${h.id}`, description: `Colheita — ${h.farm_name}`, category_id: null,
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, cte_id: null, invoice_id: null,
-    notes: `${h.totalDays} dias | Mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${h.invoicedAmount > 0 ? ` | Faturado: R$ ${h.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
+    notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: {formatCurrency(h.invoicedAmount)}` : ""}`,
     created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
@@ -240,20 +241,20 @@ export function FinancialReceivables() {
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pendente (Faturado)</p>
-            <p className="text-xl font-bold text-foreground">R$ {invoiceSummary.totalFaturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(invoiceSummary.totalFaturado)}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-success">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Recebido (Quitado)</p>
-            <p className="text-xl font-bold text-success">R$ {invoiceSummary.totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-success">{formatCurrency(invoiceSummary.totalQuitado)}</p>
           </CardContent>
         </Card>
         {totalPrevisao > 0 && (
           <Card className="border-l-4 border-l-primary">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Previsão</p>
-              <p className="text-xl font-bold text-primary">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xl font-bold text-primary">{formatCurrency(totalPrevisao)}</p>
             </CardContent>
           </Card>
         )}
@@ -326,7 +327,7 @@ export function FinancialReceivables() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Valor</span>
-                    <p className="font-mono font-semibold text-foreground">R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="font-mono font-semibold text-foreground">{formatCurrency(Number(item.amount))}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Vencimento</span>

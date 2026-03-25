@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
+import { formatCurrency } from "@/lib/masks";
 
 interface Installment {
   id: string;
@@ -377,7 +378,7 @@ export function FinancialPayables() {
   };
 
   const handlePayInstallment = async (inst: Installment) => {
-    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — R$ ${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`)) return;
+    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — ${formatCurrency(Number(inst.valor))}?`)) return;
     const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
     if (error) return toast.error(error.message);
     // Update expense valor_pago
@@ -798,26 +799,26 @@ export function FinancialPayables() {
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pendente</p>
-            <p className="text-xl font-bold text-foreground">R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-success">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pago</p>
-            <p className="text-xl font-bold text-foreground">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPago)}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-destructive">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Atrasado</p>
-            <p className="text-xl font-bold text-destructive">R$ {totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-destructive">{formatCurrency(totalAtrasado)}</p>
           </CardContent>
         </Card>
         <Card className={`border-l-4 ${selectedIds.size > 0 ? "border-l-primary" : "border-l-muted"}`}>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Selecionado</p>
             <p className={`text-xl font-bold ${selectedIds.size > 0 ? "text-primary" : "text-muted-foreground"}`}>
-              R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {formatCurrency(selectedTotal)}
             </p>
           </CardContent>
         </Card>
@@ -903,7 +904,7 @@ export function FinancialPayables() {
           />
           <span className="text-xs text-muted-foreground">
             {selectedIds.size > 0
-              ? `${selectedIds.size} selecionada(s) — R$ ${selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+              ? `${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`
               : "Selecionar todas"}
           </span>
           {selectedIds.size > 0 && (
@@ -1014,7 +1015,7 @@ export function FinancialPayables() {
                         <div>
                           <span className="text-muted-foreground">Valor Parcela</span>
                           <p className="font-mono font-semibold text-foreground">
-                            R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {formatCurrency(Number(inst.valor))}
                           </p>
                         </div>
                         <div>
@@ -1122,11 +1123,11 @@ export function FinancialPayables() {
                     <div>
                       <span className="text-muted-foreground">Valor</span>
                       <p className="font-mono font-semibold text-foreground">
-                        R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatCurrency(Number(item.valor_total))}
                       </p>
                       {item.valor_pago > 0 && !isPago && (
                         <p className="text-[10px] text-muted-foreground font-mono">
-                          Pago: R$ {Number(item.valor_pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          Pago: {formatCurrency(Number(item.valor_pago))}
                         </p>
                       )}
                     </div>
@@ -1271,7 +1272,7 @@ export function FinancialPayables() {
                   <div>
                     <span className="text-xs text-muted-foreground">Valor Total</span>
                     <p className="font-mono font-bold text-foreground">
-                      R$ {Number(detailExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(Number(detailExpense.valor_total))}
                     </p>
                   </div>
                   <div>
@@ -1311,14 +1312,14 @@ export function FinancialPayables() {
                 {dInstalls.length > 0 && (
                   <div className="border-t border-border pt-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2">
-                      Parcelas ({pagas.length}/{dInstalls.length} pagas) — Quitado: R$ {totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      Parcelas ({pagas.length}/{dInstalls.length} pagas) — Quitado: {formatCurrency(totalQuitado)}
                     </p>
                     <div className="space-y-1">
                       {dInstalls.map(inst => (
                         <div key={inst.id} className={`flex items-center justify-between text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
                           <span className="font-medium">P{inst.numero_parcela}</span>
                           <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
-                          <span className="font-mono">R$ {Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          <span className="font-mono">{formatCurrency(Number(inst.valor))}</span>
                           <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px]">
                             {inst.status === "pago" ? "Pago" : "Pend."}
                           </Badge>
@@ -1361,7 +1362,7 @@ export function FinancialPayables() {
                     <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium text-foreground">{maintData.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}</span></div>
                     <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(maintData.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                     <div><span className="text-muted-foreground">KM:</span> <span className="font-mono font-medium text-foreground">{Number(maintData.odometro).toLocaleString("pt-BR")}</span></div>
-                    <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(maintData.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                    <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">{formatCurrency(Number(maintData.custo_total))}</span></div>
                     {maintData.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintData.fornecedor}</span></div>}
                     {maintData.proxima_manutencao_km && <div><span className="text-muted-foreground">Próx. KM:</span> <span className="font-mono text-foreground">{Number(maintData.proxima_manutencao_km).toLocaleString("pt-BR")}</span></div>}
                   </div>
@@ -1384,7 +1385,7 @@ export function FinancialPayables() {
                       <div className="truncate"><span className="text-muted-foreground">Nº Doc:</span> <span className="text-foreground">{maintNfeExpense.documento_fiscal_numero || "—"}</span></div>
                       <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfeExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                       <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfeExpense.favorecido_nome || "—"}</span></div>
-                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(maintNfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(maintNfeExpense.valor_total))}</span></div>
                     </div>
                     {maintItems.length > 0 && (
                       <div className="mt-2">
@@ -1394,7 +1395,7 @@ export function FinancialPayables() {
                             <div key={mi.id} className="flex items-center gap-1 p-2 text-xs min-w-0">
                               <span className="text-foreground truncate flex-1 min-w-0">{mi.descricao}</span>
                               <span className="text-muted-foreground shrink-0">{mi.quantidade}x</span>
-                              <span className="font-mono text-foreground shrink-0">R${Number(mi.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                              <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(mi.valor_total))}</span>
                             </div>
                           ))}
                         </div>
@@ -1419,7 +1420,7 @@ export function FinancialPayables() {
                       <div className="truncate"><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{maintNfseExpense.documento_fiscal_numero || "—"}</span></div>
                       <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                       <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfseExpense.favorecido_nome || "—"}</span></div>
-                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(maintNfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(maintNfseExpense.valor_total))}</span></div>
                     </div>
                     <p className="text-xs text-muted-foreground break-words">{maintNfseExpense.descricao}</p>
                   </CardContent>
@@ -1432,15 +1433,15 @@ export function FinancialPayables() {
                   <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
                   <div className="flex justify-between text-xs">
                     <span className="text-foreground">NFe (Peças):</span>
-                    <span className="font-mono text-foreground">R$ {Number(maintNfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono text-foreground">{formatCurrency(Number(maintNfeExpense.valor_total))}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-foreground">NFSe (Serviço):</span>
-                    <span className="font-mono text-foreground">R$ {Number(maintNfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono text-foreground">{formatCurrency(Number(maintNfseExpense.valor_total))}</span>
                   </div>
                   <div className="flex justify-between text-xs font-semibold border-t border-border pt-1">
                     <span className="text-foreground">Total:</span>
-                    <span className="font-mono text-foreground">R$ {Number(maintData.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono text-foreground">{formatCurrency(Number(maintData.custo_total))}</span>
                   </div>
                 </div>
               )}
@@ -1457,7 +1458,7 @@ export function FinancialPayables() {
                             <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
                             <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
                             <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
-                            <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                           </div>
                         ))}
                       </div>
@@ -1478,7 +1479,7 @@ export function FinancialPayables() {
                             <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
                             <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
                             <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
-                            <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                           </div>
                         ))}
                       </div>

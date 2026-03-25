@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
 
 interface PaidItem {
   id: string;
@@ -117,7 +118,7 @@ export function FinancialPaid() {
         <Card className="border-l-4 border-l-success">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pago</p>
-            <p className="text-xl font-bold text-success">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-success">{formatCurrency(total)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -155,7 +156,7 @@ export function FinancialPaid() {
                   <div>
                     <span className="text-muted-foreground">Valor Pago</span>
                     <p className="font-mono font-semibold text-foreground">
-                      R$ {item.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.amount)}
                     </p>
                   </div>
                   <div>

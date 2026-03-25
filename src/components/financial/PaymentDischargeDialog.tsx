@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -108,9 +109,9 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
         </DialogHeader>
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            Total: R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | 
-            Pago: R$ {valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | 
-            Restante: <strong className="text-foreground">R$ {saldoRestante.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            Total: {formatCurrency(valorTotal)} | 
+            Pago: {formatCurrency(valorPago)} | 
+            Restante: <strong className="text-foreground">{formatCurrency(saldoRestante)}</strong>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -153,7 +154,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
                     {history.map(p => (
                       <TableRow key={p.id}>
                         <TableCell className="text-xs">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
-                        <TableCell className="text-xs font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-xs font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                         <TableCell className="text-xs">{formaLabel(p.forma_pagamento)}</TableCell>
                         <TableCell className="text-xs max-w-[100px] truncate">{p.observacoes || "—"}</TableCell>
                       </TableRow>

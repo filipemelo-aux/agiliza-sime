@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { maskName } from "@/lib/masks";
+import { maskName, formatCurrency } from "@/lib/masks";
 
 export interface MaintenanceItem {
   descricao: string;
@@ -265,10 +265,10 @@ export function MaintenanceFields({
                     <TableCell className="text-[11px] max-w-[200px] truncate">{item.descricao}</TableCell>
                     <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
                     <TableCell className="text-[11px] text-right font-mono">
-                      {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.valor_unitario)}
                     </TableCell>
                     <TableCell className="text-[11px] text-right font-mono">
-                      {item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.valor_total)}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
@@ -285,7 +285,7 @@ export function MaintenanceFields({
         {itensManutencao.length > 0 && (
           <div className="text-right mt-1">
             <span className="text-xs font-semibold text-foreground">
-              Total: R$ {itensManutencao.reduce((s, i) => s + i.valor_total, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              Total: {formatCurrency(itensManutencao.reduce((s, i) => s + i.valor_total, 0))}
             </span>
           </div>
         )}
