@@ -797,7 +797,7 @@ export default function AdminSettings() {
                 onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
               />
             </div>
-            {isCurrentUserAdmin && editUser && !editUser.roles.includes("admin") && (
+            {(isCurrentUserAdmin || isCurrentUserModerator) && editUser && !editUser.roles.includes("admin") && (
               <div className="space-y-2">
                 <Label>Perfil de acesso</Label>
                 <Select value={editForm.role} onValueChange={(v) => setEditForm((p) => ({ ...p, role: v }))}>
@@ -806,6 +806,7 @@ export default function AdminSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="operador">Operador</SelectItem>
                     <SelectItem value="moderator">Moderador</SelectItem>
                   </SelectContent>
                 </Select>
