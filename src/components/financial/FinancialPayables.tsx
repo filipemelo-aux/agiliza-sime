@@ -871,6 +871,7 @@ export function FinancialPayables() {
                 );
               });
             }
+            const isHarvest = item.id.startsWith("harvest-");
 
             // No installments — render as regular expense card
             const isOverdue = item.status === "atrasado";
