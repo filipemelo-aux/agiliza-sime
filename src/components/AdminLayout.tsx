@@ -63,6 +63,7 @@ const menuItems = [
       { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
     ],
   },
+  { title: "_spacer", url: "", icon: Settings },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
