@@ -1132,7 +1132,17 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     {/* Itens de serviço da NFSe */}
                     <div>
                       <Label className="text-xs mb-1 block">Serviços ({nfseItens.length})</Label>
-                      <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
+                      <div className="flex flex-col sm:flex-row gap-1.5 mb-2" onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
+                          if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
+                          const qtd = Number(nfseNewQtd) || 1;
+                          const vu = Number(nfseNewValor);
+                          setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
+                          setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
+                        }
+                      }}>
                         <Input className="flex-1 h-9 min-w-0" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
                         <div className="flex gap-1.5">
                           <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
