@@ -1001,7 +1001,13 @@ export function FinancialPayables() {
         <td style="padding:10px 12px;text-align:right;font-family:${FONT};font-size:13px;font-weight:700;color:#2B4C7E;white-space:nowrap">${formatCurrency(r.valor)}</td>
       </tr>`;
 
+    const periodoFile = filterPeriodoInicio || filterPeriodoFim
+      ? `${filterPeriodoInicio || "inicio"}_a_${filterPeriodoFim || format(new Date(), "yyyy-MM-dd")}`
+      : format(new Date(), "yyyy-MM-dd");
+    const docTitle = `Relatorio-contas-a-pagar-${periodoFile}`;
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${docTitle}</title>
 <style type="text/css">
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
 @media print {
