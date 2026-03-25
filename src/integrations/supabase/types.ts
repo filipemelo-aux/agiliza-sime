@@ -2890,7 +2890,7 @@ export type Database = {
       user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "operador"
       cost_center:
         | "frota_propria"
         | "frota_terceiros"
@@ -3052,7 +3052,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "operador"],
       cost_center: [
         "frota_propria",
         "frota_terceiros",
