@@ -265,14 +265,33 @@ export default function AdminDashboard() {
             <span className="text-xs font-semibold leading-none">Conta a Pagar</span>
           </button>
 
-          {/* Abastecimento - abre modal */}
-          <button
-            onClick={() => setFuelingFormOpen(true)}
-            className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            <Fuel className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="text-xs font-semibold leading-none">Abastecimento</span>
-          </button>
+          {/* Abastecimento - Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full"
+              >
+                <Fuel className="h-4 w-4 lg:h-5 lg:w-5" />
+                <span className="text-xs font-semibold leading-none">Abastecimento</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-1" align="center">
+              <Link
+                to="/admin/fuel-orders"
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Ordem de Abastecimento
+              </Link>
+              <button
+                onClick={() => setFuelingFormOpen(true)}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors w-full text-left"
+              >
+                <Fuel className="h-4 w-4" />
+                Abastecimento
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <ExpenseFormDialog
