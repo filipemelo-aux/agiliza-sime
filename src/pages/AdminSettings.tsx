@@ -55,7 +55,7 @@ export default function AdminSettings() {
 
   // Create
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "user", profileId: "" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "moderator", profileId: "" });
   const [creating, setCreating] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: string; full_name: string; email: string | null; user_id: string }[]>([]);
 
@@ -78,7 +78,8 @@ export default function AdminSettings() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
-  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
+  const isCurrentUserOperador = roles.includes("operador");
+  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator || isCurrentUserOperador;
 
   const fetchColaboradores = async () => {
     try {
@@ -245,7 +246,7 @@ export default function AdminSettings() {
 
   // --- Edit User ---
   const openEdit = (u: SystemUser) => {
-    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : "user";
+    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : u.roles.includes("operador") ? "operador" : "user";
     setEditForm({ name: u.profile_name || "", email: u.email || "", role: mainRole });
     setEditUser(u);
   };
@@ -260,11 +261,11 @@ export default function AdminSettings() {
         .eq("user_id", editUser.id);
       if (profError) throw profError;
 
-      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : "user";
-      if (isCurrentUserAdmin && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
-        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "user"]);
-        if (editForm.role === "moderator") {
-          await supabase.from("user_roles").insert({ user_id: editUser.id, role: "moderator" });
+      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : editUser.roles.includes("operador") ? "operador" : "user";
+      if ((isCurrentUserAdmin || isCurrentUserModerator) && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
+        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "operador", "user"]);
+        if (editForm.role === "moderator" || editForm.role === "operador") {
+          await supabase.from("user_roles").insert({ user_id: editUser.id, role: editForm.role });
         }
       }
 
@@ -372,6 +373,8 @@ export default function AdminSettings() {
         return <Badge className="bg-red-500/20 text-red-400 text-xs"><ShieldCheck className="w-3 h-3 mr-1" />Admin</Badge>;
       case "moderator":
         return <Badge className="bg-purple-500/20 text-purple-400 text-xs"><Shield className="w-3 h-3 mr-1" />Moderador</Badge>;
+      case "operador":
+        return <Badge className="bg-blue-500/20 text-blue-400 text-xs"><Shield className="w-3 h-3 mr-1" />Operador</Badge>;
       default:
         return <Badge className="bg-muted text-muted-foreground text-xs">{role}</Badge>;
     }
