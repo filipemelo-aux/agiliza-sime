@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -489,6 +489,55 @@ export function FinancialPayables() {
     fetchData();
   };
 
+  const handleReversePayment = async (item: Expense) => {
+    if (!confirm(`Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.`)) return;
+    try {
+      // Delete all payment records for this expense
+      await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
+      // Reset installments if any
+      const installs = installmentsMap[item.id];
+      if (installs && installs.length > 0) {
+        for (const inst of installs) {
+          if (inst.status === "pago") {
+            await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+          }
+        }
+      }
+      // Reset the expense
+      await supabase.from("expenses").update({
+        valor_pago: 0,
+        status: "pendente",
+        data_pagamento: null,
+      } as any).eq("id", item.id);
+      toast.success("Pagamento estornado com sucesso");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar pagamento");
+    }
+  };
+
+  const handleReverseInstallment = async (inst: Installment) => {
+    if (!confirm(`Deseja estornar o pagamento da parcela ${inst.numero_parcela}?`)) return;
+    try {
+      await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+      // Recalculate expense totals
+      const expense = items.find(i => i.id === inst.expense_id);
+      if (expense) {
+        const newPago = Math.max(0, Number(expense.valor_pago) - Number(inst.valor));
+        const newStatus = newPago <= 0 ? "pendente" : "parcial";
+        await supabase.from("expenses").update({
+          valor_pago: newPago,
+          status: newStatus,
+          ...(newPago <= 0 ? { data_pagamento: null } : {}),
+        } as any).eq("id", expense.id);
+      }
+      toast.success("Parcela estornada com sucesso");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar parcela");
+    }
+  };
+
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
@@ -887,6 +936,16 @@ export function FinancialPayables() {
                             <Check className="h-3.5 w-3.5" /> Pagar
                           </Button>
                         )}
+                        {isInstPago && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            onClick={() => handleReverseInstallment(inst)}
+                          >
+                            <Undo2 className="h-3.5 w-3.5" /> Estornar
+                          </Button>
+                        )}
                         <div className="ml-auto flex gap-0.5">
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
                             <FileText className="h-3.5 w-3.5" /> Detalhes
@@ -999,6 +1058,16 @@ export function FinancialPayables() {
                         onClick={() => handlePayment(item)}
                       >
                         <Check className="h-3.5 w-3.5" /> Pagar
+                      </Button>
+                    )}
+                    {isPago && !isHarvest && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                        onClick={() => handleReversePayment(item)}
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Estornar
                       </Button>
                     )}
                     {!isHarvest && (
