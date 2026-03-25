@@ -88,6 +88,41 @@ export default function AdminMaintenances() {
   const [nfseInstallments, setNfseInstallments] = useState<InstallmentDetail[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<Maintenance | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (withExpenses: boolean) => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      if (withExpenses) {
+        const expenseIds = [deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean) as string[];
+        for (const eid of expenseIds) {
+          // Delete related records first
+          await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_installments" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_payments" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_items").delete().eq("expense_id", eid);
+          // Soft-delete the expense
+          await supabase.from("expenses").update({ deleted_at: new Date().toISOString() }).eq("id", eid);
+        }
+      }
+      // Delete the maintenance record
+      const { error } = await supabase.from("maintenances" as any).delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+
+      toast.success("Manutenção excluída com sucesso.");
+      setDeleteTarget(null);
+      setDetailOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error("Erro ao excluir: " + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     const [{ data: mData }, { data: vData }] = await Promise.all([
