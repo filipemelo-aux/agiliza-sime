@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
+import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -28,6 +29,8 @@ export default function Auth() {
   const [isSignup, setIsSignup] = useState(mode === "signup");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForceChange, setShowForceChange] = useState(false);
+  const [pendingRedirectUserId, setPendingRedirectUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -56,8 +59,9 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Only redirect on explicit sign-in, not on token refreshes
         if (event === 'SIGNED_IN' && session?.user) {
+          // Don't redirect if user must change password
+          if (session.user.user_metadata?.must_change_password) return;
           setTimeout(() => {
             handleRedirectAfterAuth(session.user.id);
           }, 0);
@@ -67,6 +71,11 @@ export default function Auth() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        if (session.user.user_metadata?.must_change_password) {
+          setPendingRedirectUserId(session.user.id);
+          setShowForceChange(true);
+          return;
+        }
         handleRedirectAfterAuth(session.user.id);
       }
     });
@@ -132,7 +141,7 @@ export default function Auth() {
         });
         navigate("/register");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
@@ -150,7 +159,13 @@ export default function Auth() {
           return;
         }
 
-        // The onAuthStateChange will handle the redirect
+        // Check if user must change password
+        if (signInData?.user?.user_metadata?.must_change_password) {
+          setPendingRedirectUserId(signInData.user.id);
+          setShowForceChange(true);
+          return;
+        }
+
         toast({
           title: "Bem-vindo de volta!",
           description: "Login realizado com sucesso.",
@@ -291,6 +306,16 @@ export default function Auth() {
         <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary-foreground/10 rounded-full blur-3xl" />
       </div>
+
+      <ForcePasswordChangeDialog
+        open={showForceChange}
+        onChanged={() => {
+          setShowForceChange(false);
+          if (pendingRedirectUserId) {
+            handleRedirectAfterAuth(pendingRedirectUserId);
+          }
+        }}
+      />
     </div>
   );
 }

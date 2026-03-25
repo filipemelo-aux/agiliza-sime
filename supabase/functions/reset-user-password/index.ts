@@ -48,9 +48,10 @@ serve(async (req) => {
     const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
     const newPassword = firstLetter + randomDigits;
 
-    // Update user password using admin API
+    // Update user password and set metadata flag
     const { error } = await adminClient.auth.admin.updateUserById(target_user_id, {
       password: newPassword,
+      user_metadata: { must_change_password: true },
     });
 
     if (error) throw error;
