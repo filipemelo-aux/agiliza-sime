@@ -322,15 +322,16 @@ function personToForm(person: PersonProfile): FormState {
 
 function formToPayload(form: FormState) {
   const isMotorista = form.category === "motorista";
+  const isColaborador = form.category === "colaborador";
   return {
     full_name: form.full_name.trim(),
     phone: unmaskPhone(form.phone) || null,
     email: form.email.trim() || null,
-    person_type: isMotorista ? "cpf" : form.person_type,
-    cnpj: !isMotorista && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
-    inscricao_estadual: !isMotorista && form.person_type === "cnpj" ? form.inscricao_estadual.trim() || null : null,
-    razao_social: !isMotorista && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
-    nome_fantasia: !isMotorista && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
+    person_type: (isMotorista || isColaborador) ? "cpf" : form.person_type,
+    cnpj: !isMotorista && !isColaborador && form.person_type === "cnpj" ? unmaskCNPJ(form.cnpj) : null,
+    inscricao_estadual: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.inscricao_estadual.trim() || null : null,
+    razao_social: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
+    nome_fantasia: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
     category: form.category,
     address_street: form.address_street.trim() || null,
     address_number: form.address_number.trim() || null,
@@ -346,6 +347,11 @@ function formToPayload(form: FormState) {
     bank_account_type: form.bank_account_type || null,
     pix_key_type: form.pix_key_type || null,
     pix_key: form.pix_key.trim() || null,
+    cargo: isColaborador ? form.cargo.trim() || null : null,
+    departamento: isColaborador ? form.departamento.trim() || null : null,
+    data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
+    salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
+    is_employee: isColaborador,
   };
 }
 
