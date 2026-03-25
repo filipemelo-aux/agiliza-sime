@@ -776,8 +776,10 @@ export function FinancialPayables() {
     }).sort((a, b) => {
       const da = a.data_vencimento || a.data_emissao || "";
       const db = b.data_vencimento || b.data_emissao || "";
-      // Atrasadas: mais antiga primeiro (ascendente). Demais: mais recente primeiro (descendente).
-      return quickFilter === "atrasadas" ? da.localeCompare(db) : db.localeCompare(da);
+      // Todas/Semana: vencimento mais próximo (hoje) primeiro (ascendente)
+      // Atrasadas: mais antiga primeiro (ascendente)
+      // Pagas: mais recente primeiro (descendente)
+      return quickFilter === "pagas" ? db.localeCompare(da) : da.localeCompare(db);
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
