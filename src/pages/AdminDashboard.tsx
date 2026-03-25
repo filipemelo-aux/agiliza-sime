@@ -78,7 +78,14 @@ export default function AdminDashboard() {
   const [activeJobs, setActiveJobs] = useState<ActiveHarvestJob[]>([]);
   const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false);
+  const [fuelingFormOpen, setFuelingFormOpen] = useState(false);
+  const [empresaId, setEmpresaId] = useState("");
 
+  useEffect(() => {
+    supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle()
+      .then(({ data }) => { if (data) setEmpresaId(data.id); });
+  }, []);
   useEffect(() => {
     if (user) {
       supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle()
