@@ -40,6 +40,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
   rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
+  utilitario: "Utilitário", passeio: "Passeio",
 };
 
 const TRAILER_LABELS: Record<string, string[]> = {

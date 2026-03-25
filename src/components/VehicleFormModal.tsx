@@ -23,17 +23,23 @@ const trailerRequirements: Record<string, { count: number; labels: string[] }> =
   rodotrem: { count: 3, labels: ["Placa da 1ª Carreta", "Placa do Dolly", "Placa da 2ª Carreta"] },
   bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
   treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
+  utilitario: { count: 0, labels: [] },
+  passeio: { count: 0, labels: [] },
 };
 
 const vehicleTypes = [
-  { value: "truck", label: "Truck" },
-  { value: "bitruck", label: "Bitruck" },
-  { value: "carreta", label: "Carreta" },
-  { value: "carreta_ls", label: "Carreta LS" },
-  { value: "rodotrem", label: "Rodotrem" },
-  { value: "bitrem", label: "Bitrem" },
-  { value: "treminhao", label: "Treminhão" },
+  { value: "truck", label: "Truck", group: "caminhao" },
+  { value: "bitruck", label: "Bitruck", group: "caminhao" },
+  { value: "carreta", label: "Carreta", group: "caminhao" },
+  { value: "carreta_ls", label: "Carreta LS", group: "caminhao" },
+  { value: "rodotrem", label: "Rodotrem", group: "caminhao" },
+  { value: "bitrem", label: "Bitrem", group: "caminhao" },
+  { value: "treminhao", label: "Treminhão", group: "caminhao" },
+  { value: "utilitario", label: "Utilitário", group: "leve" },
+  { value: "passeio", label: "Passeio", group: "leve" },
 ];
+
+const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
 
 const cargoTypes = [
   { value: "cacamba", label: "Caçamba" },
@@ -43,6 +49,7 @@ const cargoTypes = [
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "Carreta LS",
   rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
+  utilitario: "Utilitário", passeio: "Passeio",
 };
 
 interface ProfileOption {
@@ -212,7 +219,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     if (!form.model.trim() || form.model.trim().length < 2) e.model = "Modelo obrigatório";
     const year = parseInt(form.year);
     if (!year || year < 1990 || year > new Date().getFullYear() + 1) e.year = "Ano inválido";
-    if (!form.cargoType) e.cargoType = "Selecione a carroceria";
+    if (TRUCK_TYPES.has(form.vehicleType) && !form.cargoType) e.cargoType = "Selecione a carroceria";
 
     const tc = trailerRequirements[form.vehicleType] || { count: 0 };
     if (tc.count >= 1) {
@@ -434,7 +441,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     {/* Dados do veículo */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs">Placa do Cavalo *</Label>
+                        <Label className="text-xs">{TRUCK_TYPES.has(form.vehicleType) ? "Placa do Cavalo *" : "Placa *"}</Label>
                         <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
                         {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
                       </div>
@@ -447,7 +454,12 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         <Label className="text-xs">Tipo de Veículo *</Label>
                         <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
                           <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>{vehicleTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                          <SelectContent>
+                            <SelectItem value="__separator_caminhoes__" disabled className="text-xs font-semibold text-muted-foreground">Caminhões</SelectItem>
+                            {vehicleTypes.filter(t => t.group === "caminhao").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                            <SelectItem value="__separator_leves__" disabled className="text-xs font-semibold text-muted-foreground mt-1">Veículos Leves</SelectItem>
+                            {vehicleTypes.filter(t => t.group === "leve").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                          </SelectContent>
                         </Select>
                         {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
                       </div>
@@ -466,25 +478,28 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
                         {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
                       </div>
-                      <div className="col-span-2 space-y-1">
-                        <Label className="text-xs">ANTT (opcional)</Label>
-                        <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
-                      </div>
+                      {TRUCK_TYPES.has(form.vehicleType) && (
+                        <div className="col-span-2 space-y-1">
+                          <Label className="text-xs">ANTT (opcional)</Label>
+                          <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
+                        </div>
+                      )}
                     </div>
 
-                    {/* Carroceria */}
-                    <div className="space-y-2">
-                      <Label className="text-xs">Tipo de Carroceria *</Label>
-                      <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
-                        {cargoTypes.map((t) => (
-                          <div key={t.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
-                            <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                      {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
-                    </div>
+                    {TRUCK_TYPES.has(form.vehicleType) && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Tipo de Carroceria *</Label>
+                        <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
+                          {cargoTypes.map((t) => (
+                            <div key={t.value} className="flex items-center space-x-2">
+                              <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
+                              <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                        {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
+                      </div>
+                    )}
 
                     {/* Implementos */}
                     {trailerConfig.count > 0 && (
