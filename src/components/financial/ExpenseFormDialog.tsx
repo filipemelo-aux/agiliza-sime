@@ -369,6 +369,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
+    setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
