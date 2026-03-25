@@ -1191,6 +1191,10 @@ export default function HarvestDetail() {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
       return;
     }
+    if (!paymentDueDate) {
+      toast({ title: "Informe a data de vencimento", variant: "destructive" });
+      return;
+    }
     setSavingPayment(true);
     try {
       const paymentNotes = paymentDate ? `Lançamento em ${paymentDate.split("-").reverse().join("/")}` : null;
@@ -1205,10 +1209,39 @@ export default function HarvestDetail() {
         notes: paymentNotes,
       } as any);
       if (error) throw error;
-      toast({ title: "Pagamento registrado com sucesso!" });
+
+      // Create expense in contas a pagar (pendente)
+      const { data: estab } = await supabase
+        .from("fiscal_establishments")
+        .select("id")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (estab) {
+        const periodoLabel = `${filterStartDate.split("-").reverse().join("/")} a ${filterEndDate.split("-").reverse().join("/")}`;
+        const descricao = `Colheita - ${job?.farm_name || "Serviço"} - ${periodoLabel}`;
+        await supabase.from("expenses").insert({
+          empresa_id: estab.id,
+          created_by: user.id,
+          descricao,
+          tipo_despesa: "outros" as any,
+          centro_custo: "frota_terceiros" as any,
+          origem: "manual" as any,
+          valor_total: totalAmount,
+          data_emissao: paymentDate || new Date().toISOString().slice(0, 10),
+          data_vencimento: paymentDueDate,
+          favorecido_nome: job?.client_name || null,
+          status: "pendente" as any,
+          observacoes: `Pagamento colheita ${job?.farm_name || ""} - Período: ${periodoLabel}`,
+        } as any);
+      }
+
+      toast({ title: "Pagamento registrado e conta a pagar gerada!" });
       setPaymentDialogOpen(false);
       setPartialPaymentValue("");
       setPaymentDate("");
+      setPaymentDueDate("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
