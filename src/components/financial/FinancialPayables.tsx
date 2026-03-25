@@ -608,33 +608,65 @@ export function FinancialPayables() {
     } catch { toast.error("Erro ao baixar boleto"); }
   };
 
+  // Helper: for each expense, check if ANY installment matches a condition (or fall back to expense-level)
+  const hasMatchingInstallmentOrSelf = useCallback((item: Expense, predicate: (venc: string, status: string) => boolean): boolean => {
+    const installs = installmentsMap[item.id];
+    if (installs && installs.length > 0) {
+      return installs.some(inst => predicate(inst.data_vencimento, inst.status));
+    }
+    return predicate(item.data_vencimento || item.data_emissao, item.status);
+  }, [installmentsMap]);
+
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
       all: items.length,
-      hoje: items.filter(i => i.data_vencimento === today && i.status !== "pago").length,
-      semana: items.filter(i => i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago").length,
-      atrasadas: items.filter(i => i.status === "atrasado").length,
-      pagas: items.filter(i => i.status === "pago").length,
+      hoje: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v === today && s !== "pago")).length,
+      semana: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v >= today && v <= in7days && s !== "pago")).length,
+      atrasadas: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => s === "atrasado" || (v < today && s !== "pago"))).length,
+      pagas: items.filter(i => {
+        const installs = installmentsMap[i.id];
+        if (installs && installs.length > 0) return installs.every(inst => inst.status === "pago");
+        return i.status === "pago";
+      }).length,
     };
-  }, [items]);
+  }, [items, installmentsMap, hasMatchingInstallmentOrSelf]);
 
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
     return items.filter(i => {
+      const installs = installmentsMap[i.id];
+      const hasInst = installs && installs.length > 0;
+
       if (quickFilter === "all") {
         // Mostrar todas
       } else if (quickFilter === "hoje") {
-        if (!(i.data_vencimento === today && i.status !== "pago")) return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento === today && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento === today && i.status !== "pago")) return false;
+        }
       } else if (quickFilter === "semana") {
-        if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
+        }
       } else if (quickFilter === "atrasadas") {
-        if (i.status !== "atrasado") return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago"))) return false;
+        } else {
+          if (i.status !== "atrasado") return false;
+        }
       } else if (quickFilter === "pagas") {
-        if (i.status !== "pago") return false;
+        if (hasInst) {
+          if (!installs.every(inst => inst.status === "pago")) return false;
+        } else {
+          if (i.status !== "pago") return false;
+        }
       }
 
       const q = search.toLowerCase();
