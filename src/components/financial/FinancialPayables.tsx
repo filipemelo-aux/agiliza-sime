@@ -1336,13 +1336,18 @@ export function FinancialPayables() {
                     </p>
                     <div className="space-y-1">
                       {dInstalls.map(inst => (
-                        <div key={inst.id} className={`flex items-center justify-between text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
-                          <span className="font-medium">P{inst.numero_parcela}</span>
-                          <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
-                          <span className="font-mono">{formatCurrency(Number(inst.valor))}</span>
-                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px]">
+                        <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
+                          <span className="font-medium shrink-0">P{inst.numero_parcela}</span>
+                          <span className="text-muted-foreground shrink-0">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                          <span className="font-mono shrink-0">{formatCurrency(Number(inst.valor))}</span>
+                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
                             {inst.status === "pago" ? "Pago" : "Pend."}
                           </Badge>
+                          {inst.boleto_url && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                              <Download className="h-3 w-3 text-primary" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
