@@ -963,8 +963,6 @@ export function FinancialPayables() {
                             onCheckedChange={() => toggleSelect(instCardId)}
                             className="mt-0.5"
                           />
-                          />
-                        )}
                         <p className="text-sm font-semibold text-foreground truncate">
                           {item.favorecido_nome || "Sem favorecido"}
                         </p>
