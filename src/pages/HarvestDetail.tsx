@@ -713,10 +713,14 @@ export default function HarvestDetail() {
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += mobileSummary("Agregados", [
+        const pdfSaldoAnterior = Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0;
+        const summaryItems = [
           { label: "Total Dias", value: String(totDias) },
           { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
-        ], "Total Líquido", formatCurrency(totLiq));
+        ];
+        if (pdfSaldoAnterior > 0.01) summaryItems.push({ label: "📌 Saldo anterior (faltou)", value: `+${formatCurrency(pdfSaldoAnterior)}`, className: "text-red" });
+        if (pdfSaldoAnterior < -0.01) summaryItems.push({ label: "💰 Crédito anterior (pago a mais)", value: `-${formatCurrency(Math.abs(pdfSaldoAnterior))}`, className: "text-green" });
+        html += mobileSummary("Agregados", summaryItems, "Total Líquido", formatCurrency(totLiq + pdfSaldoAnterior));
         html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
@@ -727,7 +731,13 @@ export default function HarvestDetail() {
         const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table></div>`;
+        const pdfSaldoAnt = Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0;
+        if (pdfSaldoAnt > 0.01) {
+          html += `<tr style="background:#f8d7da"><td colspan="9" class="right" style="font-size:10px;color:#721c24">📌 Saldo acumulado anterior (faltou)</td><td class="right" style="color:#721c24;font-weight:600">+${formatCurrency(pdfSaldoAnt)}</td></tr>`;
+        } else if (pdfSaldoAnt < -0.01) {
+          html += `<tr style="background:#cce5ff"><td colspan="9" class="right" style="font-size:10px;color:#004085">💰 Crédito acumulado anterior (pago a mais)</td><td class="right" style="color:#004085;font-weight:600">-${formatCurrency(Math.abs(pdfSaldoAnt))}</td></tr>`;
+        }
+        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq + pdfSaldoAnt)}</td></tr></tbody></table></div>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
@@ -1607,8 +1617,8 @@ export default function HarvestDetail() {
           <Card className="border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-muted-foreground">Total Líquido a Pagar</p>
-              <p className="font-semibold text-sm">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (accumulatedPastBalance > 0.01 ? accumulatedPastBalance : 0))}</p>
-              <p className="text-xs text-muted-foreground">terceiros{(driverSearch || filterEndDate) ? " (filtrado)" : ""}{accumulatedPastBalance > 0.01 ? " (c/ saldo anterior)" : ""}</p>
+              <p className="font-semibold text-sm">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0))}</p>
+              <p className="text-xs text-muted-foreground">terceiros{(driverSearch || filterEndDate) ? " (filtrado)" : ""}{accumulatedPastBalance > 0.01 ? " (c/ saldo anterior)" : accumulatedPastBalance < -0.01 ? " (c/ crédito anterior)" : ""}</p>
             </CardContent>
           </Card>
           <Card className="border-border">
@@ -2182,13 +2192,19 @@ export default function HarvestDetail() {
                     </div>
                     {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-destructive">📌 Saldo anterior</span>
-                        <span className="text-destructive font-semibold">{formatCurrency(accumulatedPastBalance)}</span>
+                        <span className="text-destructive">📌 Saldo anterior (faltou)</span>
+                        <span className="text-destructive font-semibold">+{formatCurrency(accumulatedPastBalance)}</span>
+                      </div>
+                    )}
+                    {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-blue-600">💰 Crédito anterior (pago a mais)</span>
+                        <span className="text-blue-600 font-semibold">-{formatCurrency(Math.abs(accumulatedPastBalance))}</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-1 border-t border-border">
                       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Líquido</span>
-                      <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (accumulatedPastBalance > 0.01 ? accumulatedPastBalance : 0))}</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0))}</span>
                     </div>
                   </div>
                 )}
@@ -2282,8 +2298,15 @@ export default function HarvestDetail() {
                     })}
                     {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
                       <TableRow className="bg-destructive/5 [&>td]:py-1 [&>td]:px-2">
-                        <TableCell colSpan={8} className="text-right text-xs text-destructive">📌 Saldo acumulado anterior</TableCell>
+                        <TableCell colSpan={8} className="text-right text-xs text-destructive">📌 Saldo acumulado anterior (faltou)</TableCell>
                         <TableCell className="text-destructive whitespace-nowrap font-semibold">{formatCurrency(accumulatedPastBalance)}</TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
+                    {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
+                      <TableRow className="bg-blue-500/5 [&>td]:py-1 [&>td]:px-2">
+                        <TableCell colSpan={8} className="text-right text-xs text-blue-600">💰 Crédito acumulado anterior (pago a mais)</TableCell>
+                        <TableCell className="text-blue-600 whitespace-nowrap font-semibold">- {formatCurrency(Math.abs(accumulatedPastBalance))}</TableCell>
                         <TableCell></TableCell>
                       </TableRow>
                     )}
@@ -2292,7 +2315,7 @@ export default function HarvestDetail() {
                       <TableCell className="text-center">{sortedAgregados.reduce((s, a) => s + getAgregadoData(a).days, 0)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).dv, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0))}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (accumulatedPastBalance > 0.01 ? accumulatedPastBalance : 0))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0))}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
@@ -2597,7 +2620,7 @@ export default function HarvestDetail() {
             )}
             {(() => {
               const totalLiquidoBase = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-              const saldoAnterior = accumulatedPastBalance > 0.01 ? accumulatedPastBalance : 0;
+              const saldoAnterior = Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0;
               const totalLiquido = totalLiquidoBase + saldoAnterior;
               const remainingBalance = totalLiquido - totalPaidAmount;
               const hasCustomPayment = partialPaymentValue !== "";
@@ -2610,8 +2633,11 @@ export default function HarvestDetail() {
                     <p className="font-bold text-lg text-primary">
                       {formatCurrency(totalLiquido)}
                     </p>
-                    {saldoAnterior > 0 && (
-                      <p className="text-xs text-destructive">inclui saldo anterior: {formatCurrency(saldoAnterior)}</p>
+                    {saldoAnterior > 0.01 && (
+                      <p className="text-xs text-destructive">inclui saldo anterior (faltou): +{formatCurrency(saldoAnterior)}</p>
+                    )}
+                    {saldoAnterior < -0.01 && (
+                      <p className="text-xs text-blue-600">inclui crédito anterior (pago a mais): -{formatCurrency(Math.abs(saldoAnterior))}</p>
                     )}
                   </div>
                   {totalPaidAmount > 0 && (
