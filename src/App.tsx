@@ -74,7 +74,7 @@ const App = () => (
             <Route path="/admin/financial/receivables" element={<AdminFinancial section="receivables" />} />
             <Route path="/admin/financial/invoices" element={<AdminFinancial section="invoices" />} />
             <Route path="/admin/financial/payables" element={<AdminFinancial section="payables" />} />
-            <Route path="/admin/financial/paid" element={<AdminFinancial section="paid" />} />
+            <Route path="/admin/financial/paid" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
             <Route path="/admin/financial/chart" element={<AdminFinancial section="chart" />} />
             <Route path="/freights" element={<Index />} />
