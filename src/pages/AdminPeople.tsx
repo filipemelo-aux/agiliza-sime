@@ -172,8 +172,14 @@ export default function AdminPeople() {
     }
   };
 
+  const filterByTab = (d: PersonProfile, tab: string) => {
+    if (tab === "__all__") return true;
+    if (tab === "colaborador") return d.category === "colaborador" || (d.category === "motorista" && d.is_employee);
+    return d.category === tab;
+  };
+
   const filteredDrivers = drivers.filter((d) => {
-    const matchCategory = activeTab === "__all__" || d.category === activeTab;
+    const matchCategory = filterByTab(d, activeTab);
     const matchSearch =
       d.full_name.toLowerCase().includes(search.toLowerCase()) ||
       (d.cnpj && d.cnpj.includes(search)) ||
@@ -183,8 +189,7 @@ export default function AdminPeople() {
   });
 
   const countByTab = (tab: string) => {
-    if (tab === "__all__") return drivers.length;
-    return drivers.filter((d) => d.category === tab).length;
+    return drivers.filter((d) => filterByTab(d, tab)).length;
   };
 
   if (roleLoading) {
@@ -316,7 +321,7 @@ export default function AdminPeople() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      {isAdmin && (
+                      {isAdmin && (driver.category === "colaborador" || (driver.category === "motorista" && driver.is_employee)) && driver.user_id && (
                         <Button variant="outline" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
                           <KeyRound className="h-4 w-4" />
                         </Button>
