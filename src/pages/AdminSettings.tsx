@@ -168,11 +168,11 @@ export default function AdminSettings() {
   };
 
   useEffect(() => {
-    if (hasAccess) {
+    if (hasAccess && (isCurrentUserAdmin || isCurrentUserModerator)) {
       fetchUsers();
       fetchColaboradores();
     }
-  }, [hasAccess]);
+  }, [hasAccess, isCurrentUserAdmin, isCurrentUserModerator]);
 
   useEffect(() => {
     if (user) fetchProfile();
