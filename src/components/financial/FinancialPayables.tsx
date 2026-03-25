@@ -116,6 +116,14 @@ export function FinancialPayables() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Persist filters to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      search, quickFilter, filterPlanoContas, filterNivel,
+      filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim,
+    }));
+  }, [search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim]);
+
   // Maintenance detail modal state
   const [maintDetailOpen, setMaintDetailOpen] = useState(false);
   const [maintDetailLoading, setMaintDetailLoading] = useState(false);
