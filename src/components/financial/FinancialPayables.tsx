@@ -79,7 +79,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "hoje" | "semana" | "atrasadas" | "pagas";
+type QuickFilter = "semana" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -711,12 +711,6 @@ export function FinancialPayables() {
           if (i.status === "pago") return false;
           if (i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today)) return false;
         }
-      } else if (quickFilter === "hoje") {
-        if (hasInst) {
-          if (!installs.some(inst => inst.data_vencimento === today && inst.status !== "pago")) return false;
-        } else {
-          if (!(i.data_vencimento === today && i.status !== "pago")) return false;
-        }
       } else if (quickFilter === "semana") {
         if (hasInst) {
           if (!installs.some(inst => inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago")) return false;
@@ -793,9 +787,9 @@ export function FinancialPayables() {
         installs.forEach(inst => {
           let visible = true;
           if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
-          else if (quickFilter === "hoje") visible = inst.data_vencimento === today2 && inst.status !== "pago";
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+          else if (quickFilter === "pagas") visible = inst.status === "pago";
           else if (quickFilter === "pagas") visible = inst.status === "pago";
           if (visible) ids.push(`inst-${inst.id}`);
         });
@@ -921,7 +915,6 @@ export function FinancialPayables() {
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
-    { key: "hoje", label: "Hoje", icon: <Clock className="h-3 w-3" />, count: counts.hoje },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
     { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3 w-3" />, count: counts.pagas },
@@ -996,10 +989,6 @@ export function FinancialPayables() {
                     const todayDate = new Date();
                     setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
                     setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
-                  } else if (f.key === "hoje") {
-                    const todayStr = format(new Date(), "yyyy-MM-dd");
-                    setFilterPeriodoInicio(todayStr);
-                    setFilterPeriodoFim(todayStr);
                   } else if (f.key === "atrasadas") {
                     setFilterPeriodoInicio("");
                     setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
@@ -1177,15 +1166,16 @@ export function FinancialPayables() {
               const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
               const visibleInstalls = installs.filter(inst => {
                 if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
-                if (quickFilter === "hoje") return inst.data_vencimento === today2 && inst.status !== "pago";
                 if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                 if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+                if (quickFilter === "pagas") return inst.status === "pago";
                 if (quickFilter === "pagas") return inst.status === "pago";
                 return true;
               });
               return visibleInstalls.map(inst => {
                 const today = new Date().toISOString().split("T")[0];
                 const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
                 const isInstPago = inst.status === "pago";
                 const instStatus = isInstOverdue ? "atrasado" : inst.status;
 
@@ -1195,7 +1185,7 @@ export function FinancialPayables() {
                 return (
                   <Card
                     key={instCardId}
-                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""}`}
+                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
@@ -1218,6 +1208,11 @@ export function FinancialPayables() {
                         <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
                           {STATUS_MAP[instStatus]?.label || inst.status}
                         </Badge>
+                        {isInstToday && (
+                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse">
+                            <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Info */}
@@ -1305,12 +1300,15 @@ export function FinancialPayables() {
             const isPago = item.status === "pago";
             const isSelected = selectedIds.has(item.id);
 
+            const todayStr2 = new Date().toISOString().split("T")[0];
+            const isDueToday = item.data_vencimento === todayStr2 && !isPago;
+
             return [(
               <Card
                 key={item.id}
                 className={`relative transition-all ${
                   isSelected ? "ring-2 ring-primary bg-primary/5" : ""
-                } ${isOverdue ? "border-destructive/40" : ""}`}
+                } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -1332,6 +1330,11 @@ export function FinancialPayables() {
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
                     </Badge>
+                    {isDueToday && (
+                      <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse shrink-0">
+                        <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
