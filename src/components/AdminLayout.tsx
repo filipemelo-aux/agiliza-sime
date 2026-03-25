@@ -116,6 +116,9 @@ function SidebarNav() {
                     </div>
                   );
                 }
+                if (item.title === "_spacer") {
+                  return <div key="_spacer" className="pt-6" />;
+                }
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
