@@ -157,9 +157,12 @@ export default function AdminMaintenances() {
         (i.fornecedor || "").toLowerCase().includes(search.toLowerCase());
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchTipo = filterTipo === "all" || i.tipo_manutencao === filterTipo;
-      return matchSearch && matchVeiculo && matchTipo;
+      const dateRef = i.data_manutencao;
+      const matchPeriodoInicio = !filterPeriodoInicio || dateRef >= format(filterPeriodoInicio, "yyyy-MM-dd");
+      const matchPeriodoFim = !filterPeriodoFim || dateRef <= format(filterPeriodoFim, "yyyy-MM-dd");
+      return matchSearch && matchVeiculo && matchTipo && matchPeriodoInicio && matchPeriodoFim;
     });
-  }, [items, search, filterVeiculo, filterTipo, vehicleMap]);
+  }, [items, search, filterVeiculo, filterTipo, vehicleMap, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalCusto = filtered.reduce((s, i) => s + Number(i.custo_total), 0);
 
