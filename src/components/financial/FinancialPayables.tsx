@@ -492,7 +492,7 @@ export function FinancialPayables() {
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pendente</p>
