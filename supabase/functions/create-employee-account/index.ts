@@ -6,6 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function findAuthUserByEmail(adminClient: ReturnType<typeof createClient>, email: string) {
+  const normalized = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 200;
+
+  while (page <= 10) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    const found = data.users.find((u) => (u.email || "").toLowerCase() === normalized);
+    if (found) return found;
+
+    if (!data.nextPage) break;
+    page = data.nextPage;
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,7 +41,9 @@ serve(async (req) => {
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+    const {
+      data: { user: caller },
+    } = await callerClient.auth.getUser();
     if (!caller) throw new Error("Não autorizado");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -43,7 +64,8 @@ serve(async (req) => {
       throw new Error("email e full_name são obrigatórios");
     }
 
-    // Determine password
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const finalPassword = password || (() => {
       const firstLetter = full_name.trim().charAt(0).toUpperCase();
       const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
@@ -54,36 +76,61 @@ serve(async (req) => {
       throw new Error("Senha deve ter pelo menos 6 caracteres");
     }
 
-    // Determine role
     let assignRole = role || "moderator";
     const validRoles = ["user", "moderator", "operador"];
     if (!validRoles.includes(assignRole)) assignRole = "moderator";
 
-    // Create auth user
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: finalPassword,
-      email_confirm: true,
-      user_metadata: password ? { must_change_password: true } : {},
-    });
+    const existingAuthUser = await findAuthUserByEmail(adminClient, normalizedEmail);
 
-    if (createError) {
-      if (createError.message?.includes("already been registered")) {
-        throw new Error("Este e-mail já possui uma conta no sistema. Verifique se o colaborador já tem acesso.");
-      }
-      throw createError;
+    let authUserId: string;
+    let reusedExistingUser = false;
+
+    if (existingAuthUser) {
+      authUserId = existingAuthUser.id;
+      reusedExistingUser = true;
+
+      const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(authUserId, {
+        password: finalPassword,
+        user_metadata: {
+          ...(existingAuthUser.user_metadata || {}),
+          must_change_password: true,
+        },
+      });
+      if (updateAuthError) throw updateAuthError;
+    } else {
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email: normalizedEmail,
+        password: finalPassword,
+        email_confirm: true,
+        user_metadata: { must_change_password: true },
+      });
+      if (createError) throw createError;
+      authUserId = newUser.user.id;
     }
 
-    const authUserId = newUser.user.id;
+    const { data: existingRoles, error: existingRolesError } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUserId)
+      .in("role", ["user", "moderator", "operador"]);
+    if (existingRolesError) throw existingRolesError;
 
-    // Assign role
-    const { error: roleError } = await adminClient.from("user_roles").insert({
-      user_id: authUserId,
-      role: assignRole,
-    });
-    if (roleError) throw new Error("Erro ao atribuir papel: " + roleError.message);
+    const hasTargetRole = (existingRoles || []).some((r: any) => r.role === assignRole);
+    if (!hasTargetRole) {
+      const { error: clearRolesError } = await adminClient
+        .from("user_roles")
+        .delete()
+        .eq("user_id", authUserId)
+        .in("role", ["user", "moderator", "operador"]);
+      if (clearRolesError) throw clearRolesError;
 
-    // Link profile if profile_id provided
+      const { error: roleError } = await adminClient.from("user_roles").insert({
+        user_id: authUserId,
+        role: assignRole,
+      });
+      if (roleError) throw new Error("Erro ao atribuir papel: " + roleError.message);
+    }
+
     if (profile_id) {
       const { error: profileError } = await adminClient
         .from("profiles")
@@ -93,13 +140,18 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, auth_user_id: authUserId, generated_password: finalPassword }),
+      JSON.stringify({
+        success: true,
+        auth_user_id: authUserId,
+        generated_password: finalPassword,
+        reused_existing_user: reusedExistingUser,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
