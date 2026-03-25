@@ -199,8 +199,19 @@ export function FinancialPayables() {
     const harvestItems: Expense[] = [];
     if (harvestPayments && harvestPayments.length > 0) {
       const jobIds = [...new Set(harvestPayments.map(p => p.harvest_job_id))];
-      const { data: jobs } = await supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds);
+      const allUserIds = [...new Set(harvestPayments.flatMap(p => (p.filter_context || "").split(",").filter(Boolean)))];
+
+      const [{ data: jobs }, { data: hvVehicles }] = await Promise.all([
+        supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds),
+        allUserIds.length > 0 ? supabase.from("vehicles").select("driver_id, owner_id").in("driver_id", allUserIds) : Promise.resolve({ data: [] }),
+      ]);
       const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
+      const ownerIds = [...new Set((hvVehicles || []).map((v: any) => v.owner_id).filter(Boolean))];
+      const { data: ownerProfiles } = ownerIds.length > 0
+        ? await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds)
+        : { data: [] };
+      const ownerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
+      const driverOwnerMap = new Map((hvVehicles || []).map((v: any) => [v.driver_id, v.owner_id]));
 
       for (const payment of harvestPayments) {
         const farmName = jobMap.get(payment.harvest_job_id) || "Colheita";
@@ -209,12 +220,9 @@ export function FinancialPayables() {
         let ownerName = "Proprietário";
         if (payment.filter_context) {
           const userIds = payment.filter_context.split(",").filter(Boolean);
-          if (userIds.length > 0) {
-            const { data: vehiclesData } = await supabase.from("vehicles").select("owner_id").in("driver_id", userIds).limit(1);
-            if (vehiclesData && vehiclesData.length > 0 && vehiclesData[0].owner_id) {
-              const { data: ownerProfile } = await supabase.from("profiles").select("full_name, nome_fantasia").eq("user_id", vehiclesData[0].owner_id).maybeSingle();
-              if (ownerProfile) ownerName = ownerProfile.nome_fantasia || ownerProfile.full_name;
-            }
+          for (const uid of userIds) {
+            const oid = driverOwnerMap.get(uid);
+            if (oid && ownerMap.has(oid)) { ownerName = ownerMap.get(oid)!; break; }
           }
         }
 
