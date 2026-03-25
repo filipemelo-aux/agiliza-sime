@@ -624,7 +624,7 @@ export function FinancialPayables() {
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
 
-    // Pre-filter items by non-quickFilter, non-period criteria for counting
+    // REGRA: período é SEMPRE aplicado primeiro em tudo
     const baseForCounts = items.filter(i => {
       const q = search.toLowerCase();
       const matchSearch = !search ||
@@ -643,7 +643,12 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
+      const dateRef = i.status === "pago"
+        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+        : (i.data_vencimento || i.data_emissao);
+      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
 
     baseForCounts.forEach(i => {
@@ -666,7 +671,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -725,17 +730,12 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // Para contas pagas, filtrar pela data de pagamento; demais pela data de vencimento
-      // Quick filters "hoje", "semana", "atrasadas" bypass the period filter
-      // because their date logic is self-contained
-      const skipPeriodo = quickFilter === "hoje" || quickFilter === "semana" || quickFilter === "atrasadas";
+      // REGRA: O filtro de período SEMPRE é aplicado, independente do filtro rápido
       const dateRef = i.status === "pago"
         ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
         : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = skipPeriodo || (
-        (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim)
-      );
+      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
@@ -810,70 +810,31 @@ export function FinancialPayables() {
     let atrasado = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    // Apply period filter to all totals so cards reflect selected period
-    const periodFiltered = items.filter(item => {
-      const q = search.toLowerCase();
-      const matchSearch = !search ||
-        item.descricao.toLowerCase().includes(q) ||
-        (item.favorecido_nome || "").toLowerCase().includes(q) ||
-        (item.veiculo_placa || "").toLowerCase().includes(q) ||
-        (item.documento_fiscal_numero || "").toLowerCase().includes(q) ||
-        (item.chave_nfe || "").toLowerCase().includes(q) ||
-        (item.numero_multa || "").toLowerCase().includes(q) ||
-        (item.observacoes || "").toLowerCase().includes(q) ||
-        (item.fornecedor_cnpj || "").toLowerCase().includes(q) ||
-        (item.forma_pagamento || "").toLowerCase().includes(q) ||
-        String(item.valor_total).includes(q) ||
-        item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
-      const matchPlanoContas = filterPlanoContas === "all" || (item.plano_contas_id && getAncestorIds(item.plano_contas_id).includes(filterPlanoContas));
-      const matchNivel = filterNivel === "all" || (item.plano_contas_id && chartIdMap[item.plano_contas_id]?.nivel === Number(filterNivel));
-      const matchVeiculo = filterVeiculo === "all" || item.veiculo_id === filterVeiculo;
-      const matchCentro = filterCentroCusto === "all" || item.centro_custo === filterCentroCusto;
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
-    });
-
-    periodFiltered.forEach(item => {
+    // REGRA: período é SEMPRE aplicado — usa a mesma base filtrada (filtered) que já respeita período
+    filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
-          // Check if this installment falls within the period
-          const instDate = inst.status === "pago" ? inst.data_vencimento : inst.data_vencimento;
-          const inPeriod = (!filterPeriodoInicio || instDate >= filterPeriodoInicio) &&
-            (!filterPeriodoFim || instDate <= filterPeriodoFim);
-          
           if (inst.status === "pago") {
-            if (inPeriod) pago += Number(inst.valor);
+            pago += Number(inst.valor);
           } else {
-            // For pending/overdue, always show if in period OR if overdue (regardless of period)
-            const isOverdue = inst.data_vencimento < today;
-            if (inPeriod || isOverdue) {
-              pendente += Number(inst.valor);
-              if (isOverdue) atrasado += Number(inst.valor);
-            }
+            pendente += Number(inst.valor);
+            if (inst.data_vencimento < today) atrasado += Number(inst.valor);
           }
         });
       } else {
-        const dateRef = item.status === "pago"
-          ? (item.data_pagamento ? (item.data_pagamento.includes("T") ? item.data_pagamento.split("T")[0] : item.data_pagamento) : item.data_vencimento || item.data_emissao)
-          : (item.data_vencimento || item.data_emissao);
-        const inPeriod = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-          (!filterPeriodoFim || dateRef <= filterPeriodoFim);
-
         if (item.status === "pago") {
-          if (inPeriod) pago += Number(item.valor_pago);
+          pago += Number(item.valor_pago);
         } else {
-          const isOverdue = item.status === "atrasado";
-          if (inPeriod || isOverdue) {
-            const remaining = Number(item.valor_total) - Number(item.valor_pago);
-            pendente += remaining;
-            if (isOverdue) atrasado += remaining;
-          }
+          const remaining = Number(item.valor_total) - Number(item.valor_pago);
+          pendente += remaining;
+          if (item.status === "atrasado") atrasado += remaining;
         }
       }
     });
 
     return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [filtered, installmentsMap]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
