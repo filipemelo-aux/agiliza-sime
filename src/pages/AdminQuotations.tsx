@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 export default function AdminQuotations() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -97,7 +99,7 @@ export default function AdminQuotations() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir esta cotação?")) return;
+    if (!await confirm({ title: "Excluir cotação", description: "Excluir esta cotação?", variant: "destructive", confirmLabel: "Excluir" })) return;
     await supabase.from("quotations").delete().eq("id", id);
     toast({ title: "Cotação excluída" });
     fetchQuotations();
@@ -364,6 +366,7 @@ export default function AdminQuotations() {
           establishments={establishments}
         />
       )}
+      {ConfirmDialog}
     </AdminLayout>
   );
 }

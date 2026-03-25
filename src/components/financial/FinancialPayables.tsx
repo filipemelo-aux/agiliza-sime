@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format, addDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,6 +76,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const STORAGE_KEY = "payables_filters";
   const location = useLocation();
   const navigate = useNavigate();
@@ -301,14 +303,15 @@ export function FinancialPayables() {
         .maybeSingle();
 
       if (linkedMaint) {
-        if (!confirm("Esta despesa possui um registro de manutenção vinculado.\nAo excluir, o registro de manutenção também será removido.\n\nDeseja continuar?")) return;
+        const ok = await confirm({ title: "Excluir despesa com manutenção", description: "Esta despesa possui um registro de manutenção vinculado.\nAo excluir, o registro de manutenção também será removido.\n\nDeseja continuar?", variant: "destructive", confirmLabel: "Excluir" });
+        if (!ok) return;
         await supabase.from("maintenances" as any).delete().eq("id", (linkedMaint as any).id);
         await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", item.id);
       } else {
-        if (!confirm("Deseja excluir esta despesa?")) return;
+        if (!await confirm({ title: "Excluir despesa", description: "Deseja excluir esta despesa?", variant: "destructive", confirmLabel: "Excluir" })) return;
       }
     } else {
-      if (!confirm("Deseja excluir esta despesa?")) return;
+      if (!await confirm({ title: "Excluir despesa", description: "Deseja excluir esta despesa?", variant: "destructive", confirmLabel: "Excluir" })) return;
     }
 
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
@@ -374,7 +377,7 @@ export function FinancialPayables() {
   };
 
   const handlePayInstallment = async (inst: Installment) => {
-    if (!confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — R$ ${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`)) return;
+    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — R$ ${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`)) return;
     const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
     if (error) return toast.error(error.message);
     // Update expense valor_pago
@@ -389,7 +392,7 @@ export function FinancialPayables() {
   };
 
   const handleDeleteInstallment = async (inst: Installment) => {
-    if (!confirm(`Excluir parcela ${inst.numero_parcela}?`)) return;
+    if (!await confirm({ title: "Excluir parcela", description: `Excluir parcela ${inst.numero_parcela}?`, variant: "destructive", confirmLabel: "Excluir" })) return;
     const { error } = await supabase.from("expense_installments").delete().eq("id", inst.id);
     if (error) return toast.error(error.message);
     toast.success("Parcela excluída");
@@ -425,7 +428,7 @@ export function FinancialPayables() {
 
   const handleBatchPay = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
+    if (!await confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
     setBatchPaying(true);
     const today = new Date().toISOString();
     const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -472,7 +475,7 @@ export function FinancialPayables() {
 
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Excluir ${selectedIds.size} conta(s) selecionada(s)?`)) return;
+    if (!await confirm({ title: "Excluir selecionados", description: `Excluir ${selectedIds.size} conta(s) selecionada(s)?`, variant: "destructive", confirmLabel: "Excluir" })) return;
     setBatchPaying(true);
 
     for (const id of selectedIds) {
@@ -490,7 +493,7 @@ export function FinancialPayables() {
   };
 
   const handleReversePayment = async (item: Expense) => {
-    if (!confirm(`Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.`)) return;
+    if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.` })) return;
     try {
       // Delete all payment records for this expense
       await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
@@ -517,7 +520,7 @@ export function FinancialPayables() {
   };
 
   const handleReverseInstallment = async (inst: Installment) => {
-    if (!confirm(`Deseja estornar o pagamento da parcela ${inst.numero_parcela}?`)) return;
+    if (!await confirm({ title: "Estornar parcela", description: `Deseja estornar o pagamento da parcela ${inst.numero_parcela}?` })) return;
     try {
       await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
       // Recalculate expense totals
@@ -1373,6 +1376,7 @@ export function FinancialPayables() {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 }

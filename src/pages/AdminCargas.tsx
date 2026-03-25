@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export interface Carga {
 export default function AdminCargas() {
   const [cargas, setCargas] = useState<Carga[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingCarga, setEditingCarga] = useState<Carga | null>(null);
@@ -67,7 +69,7 @@ export default function AdminCargas() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir esta natureza de carga?")) return;
+    if (!await confirm({ title: "Excluir natureza de carga", description: "Excluir esta natureza de carga?", variant: "destructive", confirmLabel: "Excluir" })) return;
     const { error } = await supabase.from("cargas").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -167,6 +169,7 @@ export default function AdminCargas() {
         carga={editingCarga}
         onSaved={fetchCargas}
       />
+      {ConfirmDialog}
     </AdminLayout>
   );
 }

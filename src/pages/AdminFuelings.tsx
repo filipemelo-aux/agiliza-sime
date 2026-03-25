@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +29,7 @@ const STATUS_FAT: Record<string, { label: string; variant: "default" | "outline"
 };
 
 export default function AdminFuelings() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const { user } = useUserRole();
   const [items, setItems] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<Map<string, string>>(new Map());
@@ -63,7 +65,7 @@ export default function AdminFuelings() {
   useEffect(() => { fetchData(); }, []);
 
   const handleDelete = async (item: any) => {
-    if (!confirm("Excluir este abastecimento?")) return;
+    if (!await confirm({ title: "Excluir abastecimento", description: "Excluir este abastecimento?", variant: "destructive", confirmLabel: "Excluir" })) return;
     const { error } = await supabase.from("fuelings").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
     toast.success("Excluído");
@@ -246,6 +248,7 @@ export default function AdminFuelings() {
           <GeneratePayablesDialog open={generateOpen} onOpenChange={setGenerateOpen} selectedFuelings={selectedFuelings} empresaId={empresaId} userId={user?.id || ""} onGenerated={fetchData} />
         )}
       </div>
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
