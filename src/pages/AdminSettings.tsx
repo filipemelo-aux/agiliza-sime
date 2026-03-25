@@ -191,7 +191,6 @@ export default function AdminSettings() {
     setCreating(true);
     try {
       if (createForm.profileId) {
-        // Create auth account for existing colaborador
         const selected = colaboradores.find(c => c.id === createForm.profileId);
         if (!selected) throw new Error("Colaborador não encontrado");
         const email = selected.email || createForm.email;
@@ -201,18 +200,16 @@ export default function AdminSettings() {
           return;
         }
         const { data, error } = await supabase.functions.invoke("create-employee-account", {
-          body: { email, full_name: selected.full_name, profile_id: selected.id },
+          body: {
+            email,
+            full_name: selected.full_name,
+            profile_id: selected.id,
+            password: createForm.password,
+            role: createForm.role,
+          },
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-
-        // Update password to the one defined by admin
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        // Use the edge function to set the password (reuse reset-user-password with custom password not available)
-        // Actually we created with a random password, let's reset it via edge function
-        const { data: resetData, error: resetError } = await supabase.functions.invoke("reset-user-password", {
-          body: { target_user_id: data.auth_user_id, full_name: selected.full_name, custom_password: createForm.password },
-        });
 
         toast({
           title: "Usuário criado com sucesso!",

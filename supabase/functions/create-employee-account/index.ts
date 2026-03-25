@@ -19,7 +19,6 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is admin
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -39,41 +38,62 @@ serve(async (req) => {
       throw new Error("Sem permissão");
     }
 
-    const { email, full_name, profile_id } = await req.json();
+    const { email, full_name, profile_id, password, role } = await req.json();
     if (!email || !full_name) {
       throw new Error("email e full_name são obrigatórios");
     }
 
-    // Generate password: first letter uppercase + 5 random digits
-    const firstLetter = full_name.trim().charAt(0).toUpperCase();
-    const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
-    const newPassword = firstLetter + randomDigits;
+    // Determine password
+    const finalPassword = password || (() => {
+      const firstLetter = full_name.trim().charAt(0).toUpperCase();
+      const randomDigits = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
+      return firstLetter + randomDigits;
+    })();
+
+    if (finalPassword.length < 6) {
+      throw new Error("Senha deve ter pelo menos 6 caracteres");
+    }
+
+    // Determine role
+    let assignRole = role || "moderator";
+    const validRoles = ["user", "moderator", "operador"];
+    if (!validRoles.includes(assignRole)) assignRole = "moderator";
 
     // Create auth user
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password: newPassword,
+      password: finalPassword,
       email_confirm: true,
-      user_metadata: { must_change_password: true },
+      user_metadata: password ? { must_change_password: true } : {},
     });
 
-    if (createError) throw createError;
+    if (createError) {
+      if (createError.message?.includes("already been registered")) {
+        throw new Error("Este e-mail já possui uma conta no sistema. Verifique se o colaborador já tem acesso.");
+      }
+      throw createError;
+    }
 
     const authUserId = newUser.user.id;
 
-    // Assign 'user' role
-    await adminClient.from("user_roles").insert({
+    // Assign role
+    const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: authUserId,
-      role: "user",
+      role: assignRole,
     });
+    if (roleError) throw new Error("Erro ao atribuir papel: " + roleError.message);
 
-    // Update profile to link auth user_id if profile_id provided
+    // Link profile if profile_id provided
     if (profile_id) {
-      await adminClient.from("profiles").update({ user_id: authUserId }).eq("id", profile_id);
+      const { error: profileError } = await adminClient
+        .from("profiles")
+        .update({ user_id: authUserId })
+        .eq("id", profile_id);
+      if (profileError) throw new Error("Erro ao vincular perfil: " + profileError.message);
     }
 
     return new Response(
-      JSON.stringify({ success: true, auth_user_id: authUserId, generated_password: newPassword }),
+      JSON.stringify({ success: true, auth_user_id: authUserId, generated_password: finalPassword }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
