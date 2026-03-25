@@ -827,7 +827,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Valor (R$) *</Label>
-              <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
+              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
             </div>
             <div>
               <Label className="text-xs">Emissão</Label>
