@@ -138,7 +138,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
   // Installments (parcelas)
-  interface Parcela { numero: number; valor: string; data_vencimento: string; }
+  interface Parcela { numero: number; valor: string; data_vencimento: string; boleto_url?: string | null; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
   const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
