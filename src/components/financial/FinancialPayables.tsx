@@ -1028,7 +1028,17 @@ export function FinancialPayables() {
 
             // If expense has installments, render each installment as its own card
             if (hasInstallments) {
-              return installs.map(inst => {
+              const today2 = new Date().toISOString().split("T")[0];
+              const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
+              const visibleInstalls = installs.filter(inst => {
+                if (quickFilter === "all") return inst.status !== "pago";
+                if (quickFilter === "hoje") return inst.data_vencimento === today2 && inst.status !== "pago";
+                if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+                if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+                if (quickFilter === "pagas") return inst.status === "pago";
+                return true;
+              });
+              return visibleInstalls.map(inst => {
                 const today = new Date().toISOString().split("T")[0];
                 const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
                 const isInstPago = inst.status === "pago";
