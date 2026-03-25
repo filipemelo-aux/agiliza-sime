@@ -913,9 +913,9 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds]);
 
-  const handlePrintSelected = () => {
+  const handlePrintSelected = async () => {
     if (selectedIds.size === 0) return;
-    const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; status: string }[] = [];
+    const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; status: string; planoContas: string }[] = [];
     selectedIds.forEach(id => {
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
@@ -925,12 +925,14 @@ export function FinancialPayables() {
             const item = items.find(i => i.id === expId);
             const today = new Date().toISOString().split("T")[0];
             const isOverdue = inst.data_vencimento < today && inst.status !== "pago";
+            const chart = item?.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
             rows.push({
               favorecido: item?.favorecido_nome || "Sem favorecido",
               descricao: `${item?.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ` : ""}${item?.descricao || "Serviço"} (P${inst.numero_parcela}/${installs.length})`,
               vencimento: inst.data_vencimento,
               valor: Number(inst.valor),
               status: isOverdue ? "atrasado" : inst.status,
+              planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
             });
             break;
           }
@@ -938,44 +940,156 @@ export function FinancialPayables() {
       } else {
         const item = items.find(i => i.id === id);
         if (item) {
+          const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
           rows.push({
             favorecido: item.favorecido_nome || "Sem favorecido",
             descricao: item.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ${item.descricao}` : item.descricao,
             vencimento: item.data_vencimento || item.data_emissao,
             valor: item.status === "pago" ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total) - Number(item.valor_pago),
             status: item.status,
+            planoContas: chart ? `${chart.codigo} ${chart.nome}` : "",
           });
         }
       }
     });
     rows.sort((a, b) => a.vencimento.localeCompare(b.vencimento));
     const total = rows.reduce((s, r) => s + r.valor, 0);
+    const totalPendente = rows.filter(r => r.status !== "pago").reduce((s, r) => s + r.valor, 0);
+    const totalPago = rows.filter(r => r.status === "pago").reduce((s, r) => s + r.valor, 0);
     const fmtDate = (d: string) => { try { return format(new Date(d + "T12:00:00"), "dd/MM/yyyy"); } catch { return d; } };
     const statusLabel = (s: string) => STATUS_MAP[s]?.label || s;
-    const statusColor = (s: string) => s === "pago" ? "#27ae60" : s === "atrasado" ? "#c0392b" : "#856404";
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contas a Pagar</title>
-<style>
-body{font-family:Arial,sans-serif;padding:20px;margin:0}
-h2{font-size:16px;margin:0 0 4px}
-h3{font-size:12px;color:#666;margin:0 0 16px;font-weight:400}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}
-th{background:#f5f5f5;font-weight:600}
-.right{text-align:right}
-.total-row{background:#f0f0f0;font-weight:700}
-.status{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
-@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}
-</style></head><body>
-<h2>Relação de Contas a Pagar</h2>
-<h3>Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")} — ${rows.length} registro(s)</h3>
-<table><thead><tr><th>#</th><th>Favorecido</th><th>Descrição</th><th>Vencimento</th><th>Status</th><th class="right">Valor</th></tr></thead><tbody>
-${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.favorecido}</td><td>${r.descricao}</td><td>${fmtDate(r.vencimento)}</td><td><span class="status" style="background:${statusColor(r.status)}20;color:${statusColor(r.status)}">${statusLabel(r.status)}</span></td><td class="right">${formatCurrency(r.valor)}</td></tr>`).join("")}
-<tr class="total-row"><td colspan="5" class="right">TOTAL</td><td class="right">${formatCurrency(total)}</td></tr>
-</tbody></table></body></html>`;
-    const blob = new Blob([html], { type: "text/html" });
+    const statusBadge = (s: string) => {
+      const colors: Record<string, { bg: string; fg: string }> = {
+        pago: { bg: "#d4edda", fg: "#155724" },
+        atrasado: { bg: "#f8d7da", fg: "#721c24" },
+        pendente: { bg: "#fff3cd", fg: "#856404" },
+        parcial: { bg: "#cce5ff", fg: "#004085" },
+      };
+      const c = colors[s] || colors.pendente;
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${statusLabel(s)}</span>`;
+    };
+
+    // Fetch establishment info
+    let estName = ""; let estCnpj = "";
+    try {
+      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj").eq("active", true).limit(1).maybeSingle();
+      if (data) { estName = data.razao_social; estCnpj = data.cnpj; }
+    } catch {}
+
+    const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
+    const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
+    const periodoLabel = filterPeriodoInicio || filterPeriodoFim
+      ? `${filterPeriodoInicio ? fmtDate(filterPeriodoInicio) : "início"} a ${filterPeriodoFim ? fmtDate(filterPeriodoFim) : "atual"}`
+      : "Todos os períodos";
+
+    const infoBox = (label: string, value: string, color = "#2B4C7E") =>
+      `<td width="30%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:12px 14px;vertical-align:top">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;font-weight:600">${label}</div>
+        <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${color};margin:0">${value}</div>
+      </td>`;
+
+    const tableRow = (r: typeof rows[0], i: number) =>
+      `<tr style="border-bottom:1px solid #f0f2f5">
+        <td style="padding:10px 12px;font-size:12px;color:#888;width:28px;text-align:center">${i + 1}</td>
+        <td style="padding:10px 8px">
+          <div style="font-family:${FONT};font-size:12px;font-weight:600;color:#333">${r.favorecido}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">${r.descricao}</div>
+          ${r.planoContas ? `<div style="font-size:9px;color:#aaa;margin-top:1px;font-family:monospace">${r.planoContas}</div>` : ""}
+        </td>
+        <td style="padding:10px 8px;text-align:center;font-size:11px;color:#555;white-space:nowrap">${fmtDate(r.vencimento)}</td>
+        <td style="padding:10px 8px;text-align:center">${statusBadge(r.status)}</td>
+        <td style="padding:10px 12px;text-align:right;font-family:${FONT};font-size:13px;font-weight:700;color:#2B4C7E;white-space:nowrap">${formatCurrency(r.valor)}</td>
+      </tr>`;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style type="text/css">
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  @page { margin: 8mm 6mm; size: A4; }
+}
+</style></head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${FONT};-webkit-text-size-adjust:100%">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
+<tr><td align="center" style="padding:10px 8px">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:700px;font-family:${FONT}">
+
+<!-- HEADER -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+    <td style="width:48px;vertical-align:middle;padding-right:16px">
+      <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px" />
+    </td>
+    <td style="vertical-align:middle">
+      <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${estName}</div>
+      ${estCnpj ? `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${estCnpj}</div>` : ""}
+    </td>
+  </tr></table>
+</td></tr>
+
+<tr><td style="height:6px;font-size:0">&nbsp;</td></tr>
+<tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;height:1px">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
+
+<!-- TITLE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
+  <div style="font-family:${FONT};font-size:17px;font-weight:700;color:#2B4C7E">RELAÇÃO DE CONTAS A PAGAR</div>
+  <div style="font-size:11px;color:#888;margin-top:4px">Período: ${periodoLabel}</div>
+</td></tr>
+
+<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
+
+<!-- SUMMARY BOXES -->
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    ${infoBox("Registros", String(rows.length))}
+    <td width="5%" style="font-size:0">&nbsp;</td>
+    ${infoBox("A Pagar", formatCurrency(totalPendente), "#856404")}
+    <td width="5%" style="font-size:0">&nbsp;</td>
+    ${infoBox("Total Geral", formatCurrency(total), "#2B4C7E")}
+  </tr></table>
+</td></tr>
+
+<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
+
+<!-- TABLE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:4px 0;overflow:hidden">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr style="background:#f5f7fa">
+      <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center;width:28px">#</td>
+      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px">Favorecido / Descrição</td>
+      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Vencimento</td>
+      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Status</td>
+      <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:right">Valor</td>
+    </tr>
+    ${rows.map((r, i) => tableRow(r, i)).join("")}
+    <tr style="background:#f0f4f8">
+      <td colspan="4" style="padding:12px;font-family:${FONT};font-size:12px;font-weight:700;color:#2B4C7E;text-align:right;text-transform:uppercase;letter-spacing:0.3px">Total</td>
+      <td style="padding:12px;font-family:${FONT};font-size:15px;font-weight:800;color:#2B4C7E;text-align:right;white-space:nowrap">${formatCurrency(total)}</td>
+    </tr>
+  </table>
+</td></tr>
+
+<tr><td style="height:10px;font-size:0">&nbsp;</td></tr>
+
+<!-- FOOTER -->
+<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}${estCnpj ? ` — CNPJ: ${estCnpj}` : ""}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+</td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
-    if (win) { win.onload = () => { win.print(); URL.revokeObjectURL(url); }; }
+    if (win) {
+      win.onload = () => { win.focus(); win.print(); };
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
   };
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
