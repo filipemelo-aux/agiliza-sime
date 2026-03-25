@@ -226,35 +226,33 @@ export default function AdminDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Vencendo Hoje */}
-            <Card className="border-destructive/30 bg-destructive/5">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-base font-display flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  Vencendo Hoje
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold">{fmt(totalToday)}</span>
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencendo Hoje</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-foreground/80">{fmt(totalToday)}</span>
                   <Link to="/admin/financial/payables">
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground px-1">
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
                   </Link>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-4 pt-1">
                 {dueToday.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta vencendo hoje 🎉</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {dueToday.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/10">
+                      <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{item.favorecido_nome || item.descricao}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
+                          <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                          <p className="text-[10px] text-muted-foreground/70 truncate">
                             {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
                           </p>
                         </div>
-                        <span className="text-sm font-semibold text-destructive whitespace-nowrap ml-3">{fmt(item.valor)}</span>
+                        <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
                       </div>
                     ))}
                   </div>
@@ -263,42 +261,40 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Próximos 7 dias */}
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-base font-display flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-primary" />
-                  Próximos 7 dias
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold">{fmt(totalWeek)}</span>
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
+                <div className="flex items-center gap-1.5">
+                  <CalendarClock className="h-3.5 w-3.5 text-primary/70" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Próximos 7 dias</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-foreground/80">{fmt(totalWeek)}</span>
                   <Link to="/admin/financial/payables">
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground px-1">
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
                   </Link>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-4 pt-1">
                 {dueWeek.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta nos próximos 7 dias</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta nos próximos 7 dias</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {dueWeek.slice(0, 10).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{item.favorecido_nome || item.descricao}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
+                          <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                          <p className="text-[10px] text-muted-foreground/70 truncate">
                             {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
                           </p>
                         </div>
                         <div className="text-right ml-3 shrink-0">
-                          <p className="text-sm font-semibold whitespace-nowrap">{fmt(item.valor)}</p>
-                          <p className="text-[10px] text-muted-foreground">{fmtDate(item.data_vencimento)}</p>
+                          <p className="text-[13px] font-medium text-foreground/80 whitespace-nowrap">{fmt(item.valor)}</p>
+                          <p className="text-[10px] text-muted-foreground/60">{fmtDate(item.data_vencimento)}</p>
                         </div>
                       </div>
                     ))}
                     {dueWeek.length > 10 && (
-                      <p className="text-xs text-muted-foreground text-center pt-1">
+                      <p className="text-[10px] text-muted-foreground/60 text-center pt-1">
                         + {dueWeek.length - 10} parcelas
                       </p>
                     )}
