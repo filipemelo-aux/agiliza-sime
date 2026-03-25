@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText, KeyRound } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,8 @@ export default function AdminPeople() {
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletePerson, setDeletePerson] = useState<PersonProfile | null>(null);
+  const [resetPerson, setResetPerson] = useState<PersonProfile | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
   const [viewPersonDocs, setViewPersonDocs] = useState<{ cpf: string | null; cnh_number: string | null; cnh_category: string | null; cnh_expiry: string | null } | null>(null);
@@ -136,6 +138,28 @@ export default function AdminPeople() {
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPerson) return;
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: { target_user_id: resetPerson.user_id, full_name: resetPerson.full_name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Senha resetada com sucesso!",
+        description: `Nova senha: ${data.new_password}`,
+        duration: 15000,
+      });
+      setResetPerson(null);
+    } catch (error: any) {
+      toast({ title: "Erro ao resetar senha", description: error.message, variant: "destructive" });
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -283,6 +307,11 @@ export default function AdminPeople() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      {isAdmin && (
+                        <Button variant="outline" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePerson(driver)} title="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -313,7 +342,23 @@ export default function AdminPeople() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* View person modal */}
+      <AlertDialog open={!!resetPerson} onOpenChange={(open) => !open && setResetPerson(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resetar senha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A senha de <strong>{resetPerson?.full_name}</strong> será redefinida para uma senha temporária (primeira letra do nome + 5 números aleatórios). A nova senha será exibida após a confirmação.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetPassword} disabled={resetting}>
+              {resetting ? "Resetando..." : "Resetar Senha"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!viewPerson} onOpenChange={(open) => { if (!open) { setViewPerson(null); setViewPersonDocs(null); setViewPersonHarvests([]); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
