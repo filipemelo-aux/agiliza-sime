@@ -633,7 +633,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* Category */}
       <div className="space-y-1">
         <Label className="text-xs">Categoria *</Label>
-        <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v, person_type: v === "motorista" ? "cpf" : p.person_type }))}>
+        <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v, person_type: (v === "motorista" || v === "colaborador") ? "cpf" : p.person_type }))}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
