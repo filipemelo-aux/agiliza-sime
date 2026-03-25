@@ -1,0 +1,1 @@
+ALTER TABLE public.expense_installments ADD COLUMN boleto_url TEXT DEFAULT NULL;

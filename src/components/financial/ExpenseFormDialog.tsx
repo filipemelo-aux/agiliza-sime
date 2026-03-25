@@ -14,7 +14,7 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
@@ -140,6 +140,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   interface Parcela { numero: number; valor: string; data_vencimento: string; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
+  const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
+  const [boletoPdfExistingUrl, setBoletoPdfExistingUrl] = useState<string | null>(null);
+  const boletoInputRef = useRef<HTMLInputElement>(null);
 
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
@@ -345,6 +348,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
       })));
+      // Load existing boleto reference
+      const firstBoleto = (data as any[]).find((d: any) => d.boleto_url);
+      if (firstBoleto) {
+        setBoletoPdfExistingUrl(firstBoleto.boleto_url);
+      }
     } else {
       setUseParcelas(false);
       setParcelas([]);
@@ -366,6 +374,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
+    setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,16 +552,33 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       })));
     }
 
-    // Save installments
+    // Save installments + boleto PDF
     if (expenseId) {
       await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
       if (useParcelas && parcelas.length > 0) {
+        // Upload boleto PDF if provided
+        let boletoStoragePath: string | null = null;
+        if (boletoPdfFile) {
+          const ext = boletoPdfFile.name.split(".").pop() || "pdf";
+          const path = `boletos/${expenseId}/${Date.now()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage.from("payment-receipts").upload(path, boletoPdfFile, { upsert: true });
+          if (uploadErr) {
+            console.error("Erro ao enviar boleto:", uploadErr);
+            toast.warning("Despesa salva, mas houve erro ao enviar o PDF dos boletos.");
+          } else {
+            boletoStoragePath = path;
+          }
+        } else if (boletoPdfExistingUrl) {
+          boletoStoragePath = boletoPdfExistingUrl;
+        }
+
         await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
           expense_id: expenseId,
           numero_parcela: p.numero,
           valor: Number(p.valor) || 0,
           data_vencimento: p.data_vencimento,
           status: "pendente",
+          boleto_url: boletoStoragePath,
         })));
       }
     }
@@ -943,6 +969,57 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     ⚠ Soma das parcelas ({formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}) difere do valor total ({formatCurrency(Number(valorTotal || 0))})
                   </p>
                 )}
+
+                {/* Boleto PDF upload */}
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      Anexar boletos (PDF único, 1 boleto por página na ordem das parcelas)
+                    </span>
+                  </div>
+                  <input
+                    ref={boletoInputRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setBoletoPdfFile(file);
+                        setBoletoPdfExistingUrl(null);
+                      }
+                      if (boletoInputRef.current) boletoInputRef.current.value = "";
+                    }}
+                  />
+                  {boletoPdfFile ? (
+                    <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-xs truncate flex-1">{boletoPdfFile.name}</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfFile(null)}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : boletoPdfExistingUrl ? (
+                    <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-xs truncate flex-1">Boleto anexado</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfExistingUrl(null)}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] gap-1"
+                      onClick={() => boletoInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-3 w-3" /> Selecionar PDF dos boletos
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
