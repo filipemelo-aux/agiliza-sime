@@ -893,25 +893,41 @@ export function FinancialPayables() {
           </span>
           {selectedIds.size > 0 && (
             <div className="ml-auto flex gap-1.5">
-              <Button
-                size="sm"
-                className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-                onClick={handleBatchPay}
-                disabled={batchPaying}
-              >
-                <Check className="h-3.5 w-3.5" />
-                {batchPaying ? "Processando..." : `Pagar (${selectedIds.size})`}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="gap-1.5 h-8"
-                onClick={handleBatchDelete}
-                disabled={batchPaying}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Excluir ({selectedIds.size})
-              </Button>
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  onClick={handleBatchPay}
+                  disabled={batchPaying}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  {batchPaying ? "Processando..." : "Pagar"}
+                </Button>
+              )}
+              {hasSelectedPaid && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 h-8 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                  onClick={handleBatchReverse}
+                  disabled={batchPaying}
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                  {batchPaying ? "Processando..." : "Estornar"}
+                </Button>
+              )}
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-1.5 h-8"
+                  onClick={handleBatchDelete}
+                  disabled={batchPaying}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Excluir
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -1067,13 +1083,11 @@ export function FinancialPayables() {
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    {!isPago && (
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelect(item.id)}
                         className="mt-0.5"
                       />
-                    )}
                     <p className="text-sm font-semibold text-foreground truncate">
                       {item.favorecido_nome || "Sem favorecido"}
                     </p>
@@ -1156,12 +1170,16 @@ export function FinancialPayables() {
                     )}
                     {!isHarvest && (
                       <div className="ml-auto flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {!isPago && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
