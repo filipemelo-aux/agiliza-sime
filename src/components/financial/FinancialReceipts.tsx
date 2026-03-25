@@ -26,6 +26,7 @@ interface Receipt {
 }
 
 export function FinancialReceipts() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -108,7 +109,7 @@ export function FinancialReceipts() {
   };
 
   const handleDelete = async (receipt: Receipt) => {
-    if (!confirm("Excluir este recibo?")) return;
+    if (!await confirm({ title: "Excluir recibo", description: "Excluir este recibo?", variant: "destructive", confirmLabel: "Excluir" })) return;
 
     await supabase.storage.from("payment-receipts").remove([receipt.file_url]);
     const { error } = await supabase.from("payment_receipts").delete().eq("id", receipt.id);
@@ -308,5 +309,7 @@ export function FinancialReceipts() {
         </DialogContent>
       </Dialog>
     </div>
+      {ConfirmDialog}
+    </>
   );
 }
