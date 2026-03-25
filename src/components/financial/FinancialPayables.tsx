@@ -1175,6 +1175,7 @@ export function FinancialPayables() {
               return visibleInstalls.map(inst => {
                 const today = new Date().toISOString().split("T")[0];
                 const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
                 const isInstPago = inst.status === "pago";
                 const instStatus = isInstOverdue ? "atrasado" : inst.status;
 
@@ -1184,7 +1185,7 @@ export function FinancialPayables() {
                 return (
                   <Card
                     key={instCardId}
-                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""}`}
+                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
