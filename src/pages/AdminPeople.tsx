@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { maskPhone, maskCNPJ } from "@/lib/masks";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, Car, Eye, FileText, KeyRound } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
