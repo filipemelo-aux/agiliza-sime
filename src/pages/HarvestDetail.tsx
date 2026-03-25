@@ -115,6 +115,7 @@ export default function HarvestDetail() {
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentDate, setPaymentDate] = useState("");
+  const [paymentDueDate, setPaymentDueDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [companyDiscountDialogOpen, setCompanyDiscountDialogOpen] = useState(false);
@@ -1190,6 +1191,10 @@ export default function HarvestDetail() {
       toast({ title: "Defina o período (início e fim) no filtro para registrar o pagamento", variant: "destructive" });
       return;
     }
+    if (!paymentDueDate) {
+      toast({ title: "Informe a data de vencimento", variant: "destructive" });
+      return;
+    }
     setSavingPayment(true);
     try {
       const paymentNotes = paymentDate ? `Lançamento em ${paymentDate.split("-").reverse().join("/")}` : null;
@@ -1204,10 +1209,39 @@ export default function HarvestDetail() {
         notes: paymentNotes,
       } as any);
       if (error) throw error;
-      toast({ title: "Pagamento registrado com sucesso!" });
+
+      // Create expense in contas a pagar (pendente)
+      const { data: estab } = await supabase
+        .from("fiscal_establishments")
+        .select("id")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (estab) {
+        const periodoLabel = `${filterStartDate.split("-").reverse().join("/")} a ${filterEndDate.split("-").reverse().join("/")}`;
+        const descricao = `Colheita - ${job?.farm_name || "Serviço"} - ${periodoLabel}`;
+        await supabase.from("expenses").insert({
+          empresa_id: estab.id,
+          created_by: user.id,
+          descricao,
+          tipo_despesa: "outros" as any,
+          centro_custo: "frota_terceiros" as any,
+          origem: "manual" as any,
+          valor_total: totalAmount,
+          data_emissao: paymentDate || new Date().toISOString().slice(0, 10),
+          data_vencimento: paymentDueDate,
+          favorecido_nome: job?.client_name || null,
+          status: "pendente" as any,
+          observacoes: `Pagamento colheita ${job?.farm_name || ""} - Período: ${periodoLabel}`,
+        } as any);
+      }
+
+      toast({ title: "Pagamento registrado e conta a pagar gerada!" });
       setPaymentDialogOpen(false);
       setPartialPaymentValue("");
       setPaymentDate("");
+      setPaymentDueDate("");
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -2537,7 +2571,7 @@ export default function HarvestDetail() {
       </Dialog>
 
       {/* Payment Registration Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); } }}>
+      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); setPaymentDueDate(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
@@ -2600,6 +2634,16 @@ export default function HarvestDetail() {
                     )}
                   </div>
                   <div className="text-sm space-y-1">
+                    <Label htmlFor="payment-due-date" className="text-muted-foreground text-xs">Data de vencimento *</Label>
+                    <Input
+                      id="payment-due-date"
+                      type="date"
+                      className="h-9"
+                      value={paymentDueDate}
+                      onChange={(e) => setPaymentDueDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="text-sm space-y-1">
                     <Label htmlFor="payment-date" className="text-muted-foreground text-xs">Data do lançamento (opcional):</Label>
                     <Input
                       id="payment-date"
@@ -2609,10 +2653,10 @@ export default function HarvestDetail() {
                       onChange={(e) => setPaymentDate(e.target.value)}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
+                  <p className="text-xs text-muted-foreground">Ao confirmar, será gerada uma conta a pagar com o vencimento informado.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0}>
+                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0 || !paymentDueDate}>
                       {savingPayment ? "Salvando..." : isPartial ? "Confirmar Parcial" : "Confirmar Pagamento"}
                     </Button>
                   </DialogFooter>
