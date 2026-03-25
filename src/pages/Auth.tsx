@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { checkPendingLoadingOrder } from "@/hooks/usePendingLoadingOrder";
+import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 import { z } from "zod";
 
 const loginSchema = z.object({
