@@ -1067,8 +1067,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 <TableRow key={idx}>
                                   <TableCell className="text-[11px] max-w-[150px] truncate">{item.descricao}</TableCell>
                                   <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
-                                  <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
+                                  <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
                                   <TableCell>
                                     <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setNfseItens(prev => prev.filter((_, i) => i !== idx))}>
                                       <Trash2 className="h-3 w-3 text-destructive" />
@@ -1295,8 +1295,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           <TableRow key={idx}>
                             <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
                             <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
-                            <TableCell className="text-[11px] text-right font-mono">{item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-[11px] text-right font-mono">{item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
+                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
                             <TableCell>
                               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
                                 <Trash2 className="h-3 w-3 text-destructive" />

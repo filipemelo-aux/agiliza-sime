@@ -265,10 +265,10 @@ export function MaintenanceFields({
                     <TableCell className="text-[11px] max-w-[200px] truncate">{item.descricao}</TableCell>
                     <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
                     <TableCell className="text-[11px] text-right font-mono">
-                      {item.valor_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.valor_unitario)}
                     </TableCell>
                     <TableCell className="text-[11px] text-right font-mono">
-                      {item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.valor_total)}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
