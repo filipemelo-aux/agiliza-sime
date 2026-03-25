@@ -241,6 +241,7 @@ export function FinancialPayables() {
           numero_multa: null,
           origem: "colheita",
           created_at: payment.created_at,
+          data_pagamento: payment.created_at,
         });
       }
     }
