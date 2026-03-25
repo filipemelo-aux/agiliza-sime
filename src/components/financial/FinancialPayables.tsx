@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2 } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -25,6 +25,7 @@ interface Installment {
   valor: number;
   data_vencimento: string;
   status: string;
+  boleto_url: string | null;
   created_at: string;
 }
 
@@ -593,6 +594,20 @@ export function FinancialPayables() {
     }
   };
 
+  const handleDownloadBoleto = async (inst: Installment) => {
+    if (!inst.boleto_url) return;
+    try {
+      const { data, error } = await supabase.storage.from("payment-receipts").download(inst.boleto_url);
+      if (error || !data) { toast.error("Erro ao baixar boleto"); return; }
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `boleto_parcela_${inst.numero_parcela}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast.error("Erro ao baixar boleto"); }
+  };
+
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
@@ -1063,6 +1078,11 @@ export function FinancialPayables() {
                           </Button>
                         )}
                         <div className="ml-auto flex gap-0.5">
+                          {inst.boleto_url && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                              <Download className="h-3.5 w-3.5 text-primary" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
                             <FileText className="h-3.5 w-3.5" /> Detalhes
                           </Button>
@@ -1316,13 +1336,18 @@ export function FinancialPayables() {
                     </p>
                     <div className="space-y-1">
                       {dInstalls.map(inst => (
-                        <div key={inst.id} className={`flex items-center justify-between text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
-                          <span className="font-medium">P{inst.numero_parcela}</span>
-                          <span className="text-muted-foreground">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
-                          <span className="font-mono">{formatCurrency(Number(inst.valor))}</span>
-                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px]">
+                        <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
+                          <span className="font-medium shrink-0">P{inst.numero_parcela}</span>
+                          <span className="text-muted-foreground shrink-0">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                          <span className="font-mono shrink-0">{formatCurrency(Number(inst.valor))}</span>
+                          <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
                             {inst.status === "pago" ? "Pago" : "Pend."}
                           </Badge>
+                          {inst.boleto_url && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                              <Download className="h-3 w-3 text-primary" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
