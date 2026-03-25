@@ -725,17 +725,12 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // Para contas pagas, filtrar pela data de pagamento; demais pela data de vencimento
-      // Quick filters "hoje", "semana", "atrasadas" bypass the period filter
-      // because their date logic is self-contained
-      const skipPeriodo = quickFilter === "hoje" || quickFilter === "semana" || quickFilter === "atrasadas";
+      // REGRA: O filtro de período SEMPRE é aplicado, independente do filtro rápido
       const dateRef = i.status === "pago"
         ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
         : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = skipPeriodo || (
-        (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim)
-      );
+      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
