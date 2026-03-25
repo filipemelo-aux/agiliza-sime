@@ -99,7 +99,7 @@ const DISCOUNT_TYPES = [
 
 export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { user, isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -154,7 +154,7 @@ export default function HarvestDetail() {
   const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && !isModerator) navigate("/");
+    if (!roleLoading && !hasAdminAccess) navigate("/");
   }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {

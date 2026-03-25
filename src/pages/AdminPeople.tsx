@@ -58,7 +58,7 @@ interface VehicleRow {
 }
 
 export default function AdminPeople() {
-  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drivers, setDrivers] = useState<PersonProfile[]>([]);
@@ -79,14 +79,14 @@ export default function AdminPeople() {
   const [viewPersonHarvests, setViewPersonHarvests] = useState<{ farm_name: string; client_name: string | null }[]>([]);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && !isModerator) {
+    if (!roleLoading && !hasAdminAccess) {
       const timer = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(timer);
     }
   }, [roleLoading]);
 
   useEffect(() => {
-    if (isAdmin || isModerator) fetchAll();
+    if (hasAdminAccess) fetchAll();
   }, [isAdmin, isModerator]);
 
   const fetchAll = async () => {
@@ -200,7 +200,7 @@ export default function AdminPeople() {
       </div>
     );
   }
-  if (!isAdmin && !isModerator) return null;
+  if (!hasAdminAccess) return null;
 
   return (
     <AdminLayout>
