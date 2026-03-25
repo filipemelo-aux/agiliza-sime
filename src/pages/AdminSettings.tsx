@@ -181,17 +181,38 @@ export default function AdminSettings() {
   const getInvokeErrorMessage = async (error: any) => {
     if (!error) return "Erro desconhecido";
 
-    if (error?.context && typeof error.context.text === "function") {
+    const context = error?.context;
+    if (context) {
       try {
-        const raw = await error.context.text();
-        const parsed = JSON.parse(raw);
+        const parsed = await (typeof context.clone === "function" ? context.clone() : context).json();
         if (parsed?.error) return parsed.error;
+        if (parsed?.message) return parsed.message;
       } catch {
-        // fallback para mensagem padrão
+        // tenta como texto abaixo
+      }
+
+      try {
+        const raw = await (typeof context.clone === "function" ? context.clone() : context).text();
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed?.error) return parsed.error;
+            if (parsed?.message) return parsed.message;
+          } catch {
+            return raw;
+          }
+        }
+      } catch {
+        // fallback final abaixo
       }
     }
 
-    return error.message || "Erro desconhecido";
+    const fallbackMessage = error?.message || "Erro desconhecido";
+    if (fallbackMessage.includes("non-2xx") || fallbackMessage.includes("Edge Function")) {
+      return "Falha na operação. Verifique os dados informados e tente novamente.";
+    }
+
+    return fallbackMessage;
   };
 
   // --- Create User ---
@@ -256,7 +277,8 @@ export default function AdminSettings() {
       fetchUsers();
       fetchColaboradores();
     } catch (err: any) {
-      toast({ title: "Erro ao criar usuário", description: err.message, variant: "destructive" });
+      const message = err?.context ? await getInvokeErrorMessage(err) : (err?.message || "Erro desconhecido");
+      toast({ title: "Erro ao criar usuário", description: message, variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -305,14 +327,15 @@ export default function AdminSettings() {
       const { data, error } = await supabase.functions.invoke("delete-system-user", {
         body: { userId: confirmDelete.id },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getInvokeErrorMessage(error));
       if (data?.error) throw new Error(data.error);
 
       toast({ title: "Usuário excluído!" });
       setConfirmDelete(null);
       fetchUsers();
     } catch (err: any) {
-      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+      const message = err?.context ? await getInvokeErrorMessage(err) : (err?.message || "Erro desconhecido");
+      toast({ title: "Erro ao excluir", description: message, variant: "destructive" });
     } finally {
       setDeleting(false);
     }
