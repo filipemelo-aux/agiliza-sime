@@ -141,6 +141,28 @@ export default function AdminPeople() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetPerson) return;
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: { target_user_id: resetPerson.user_id, full_name: resetPerson.full_name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Senha resetada com sucesso!",
+        description: `Nova senha: ${data.new_password}`,
+        duration: 15000,
+      });
+      setResetPerson(null);
+    } catch (error: any) {
+      toast({ title: "Erro ao resetar senha", description: error.message, variant: "destructive" });
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const filteredDrivers = drivers.filter((d) => {
     const matchCategory = activeTab === "__all__" || d.category === activeTab;
     const matchSearch =
