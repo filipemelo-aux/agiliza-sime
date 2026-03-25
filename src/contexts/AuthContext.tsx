@@ -2,13 +2,14 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "moderator" | "user";
+type AppRole = "admin" | "moderator" | "operador" | "user";
 
 interface AuthContextType {
   user: User | null;
   roles: AppRole[];
   isAdmin: boolean;
   isModerator: boolean;
+  isOperador: boolean;
   loading: boolean;
 }
 
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   roles: [],
   isAdmin: false,
   isModerator: false,
+  isOperador: false,
   loading: true,
 });
 
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
+  const [isOperador, setIsOperador] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(true);
 
@@ -42,11 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(userRoles);
       setIsAdmin(userRoles.includes("admin"));
       setIsModerator(userRoles.includes("moderator"));
+      setIsOperador(userRoles.includes("operador"));
     } catch (error) {
       console.error("Error fetching roles:", error);
       setRoles([]);
       setIsAdmin(false);
       setIsModerator(false);
+      setIsOperador(false);
     } finally {
       setRolesLoading(false);
     }
@@ -80,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setRoles([]);
             setIsAdmin(false);
             setIsModerator(false);
+            setIsOperador(false);
             setRolesLoading(false);
           }
         }
@@ -111,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoading = loading || (user !== null && rolesLoading);
 
   return (
-    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, loading: isLoading }}>
+    <AuthContext.Provider value={{ user, roles, isAdmin, isModerator, isOperador, loading: isLoading }}>
       {children}
     </AuthContext.Provider>
   );
