@@ -253,7 +253,7 @@ export function FinancialPayables() {
 
         harvestItems.push({
           id: `harvest-${payment.id}`,
-          descricao: `🌱 ${farmName} — ${periodLabel}`,
+          descricao: `🌱 Colheita — ${farmName} — ${periodLabel}`,
           plano_contas_id: null,
           centro_custo: "operacional",
           valor_total: Number(payment.total_amount),
