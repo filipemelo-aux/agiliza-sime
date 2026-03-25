@@ -1353,11 +1353,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           )}
 
                           {/* NFSe Boleto attachment */}
-                          <div className="mt-2 space-y-1.5">
+                          <div className="mt-3 space-y-2">
                             <div className="flex items-center gap-2">
                               <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                               <span className="text-[10px] text-muted-foreground font-medium">
-                                Anexar boletos (PDF único, 1 boleto por página)
+                                Anexar boletos (PDF único, 1 boleto por página na ordem das parcelas)
                               </span>
                             </div>
                             <input
