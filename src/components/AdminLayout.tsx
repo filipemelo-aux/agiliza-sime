@@ -103,7 +103,7 @@ function SidebarNav() {
                       {item.children.map((child) => (
                         <SidebarMenuItem key={child.title}>
                           <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title}>
-                            <Link to={child.url} onClick={() => setOpenMobile(false)}>
+                            <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
                               <child.icon className="h-4 w-4" />
                               <span>{child.title}</span>
                             </Link>
@@ -120,7 +120,7 @@ function SidebarNav() {
                       isActive={isActive(item.url!, (item as any).exact)}
                       tooltip={item.title}
                     >
-                      <Link to={item.url!} onClick={() => setOpenMobile(false)}>
+                      <Link to={item.url!} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>

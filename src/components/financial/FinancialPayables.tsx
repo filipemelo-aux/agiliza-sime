@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format, addDays } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,8 +76,12 @@ type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
   const STORAGE_KEY = "payables_filters";
+  const location = useLocation();
+  const navigate = useNavigate();
+  const fromNav = !!(location.state as any)?.fromNav;
 
   const getStoredFilters = () => {
+    if (fromNav) return null; // Reset filters on sidebar navigation
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
@@ -86,6 +91,16 @@ export function FinancialPayables() {
   const stored = getStoredFilters();
   const defaultStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
   const defaultEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
+
+  // Clear the fromNav flag so refreshes / CRUD don't reset filters
+  const clearedNav = useRef(false);
+  useEffect(() => {
+    if (fromNav && !clearedNav.current) {
+      clearedNav.current = true;
+      sessionStorage.removeItem(STORAGE_KEY);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [fromNav]);
 
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
