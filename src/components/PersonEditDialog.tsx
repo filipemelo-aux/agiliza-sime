@@ -54,6 +54,11 @@ export interface PersonProfile {
   bank_account_type: string | null;
   pix_key_type: string | null;
   pix_key: string | null;
+  cargo?: string | null;
+  departamento?: string | null;
+  data_admissao?: string | null;
+  salario?: number | null;
+  is_employee?: boolean;
   services: string[];
 }
 
