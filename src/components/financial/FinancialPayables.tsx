@@ -834,8 +834,8 @@ export function FinancialPayables() {
         <div className="flex gap-1.5 flex-wrap">
           {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
-            const isAll = f.key === "all";
-            const showLabel = isActive;
+            const isPagas = f.key === "pagas";
+            const showLabel = isActive || isPagas;
             return (
               <Button
                 key={f.key}
