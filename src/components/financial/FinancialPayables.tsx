@@ -1039,9 +1039,43 @@ export function FinancialPayables() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1 shrink-0">
-          <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[130px] h-9 px-2 text-xs justify-start font-normal", !filterPeriodoInicio && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {filterPeriodoInicio ? format(parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Início"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={filterPeriodoInicio ? parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()) : undefined}
+                onSelect={(d) => setFilterPeriodoInicio(d ? format(d, "yyyy-MM-dd") : "")}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
           <span className="text-xs text-muted-foreground">a</span>
-          <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[130px] h-9 px-2 text-xs justify-start font-normal", !filterPeriodoFim && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {filterPeriodoFim ? format(parse(filterPeriodoFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Fim"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={filterPeriodoFim ? parse(filterPeriodoFim, "yyyy-MM-dd", new Date()) : undefined}
+                onSelect={(d) => setFilterPeriodoFim(d ? format(d, "yyyy-MM-dd") : "")}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
           {(filterPeriodoInicio || filterPeriodoFim) && (
             <button
               type="button"
