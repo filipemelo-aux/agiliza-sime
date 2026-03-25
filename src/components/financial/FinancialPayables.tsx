@@ -72,7 +72,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
-export function FinancialPayables() {
+export function FinancialPayables({ onNew }: { onNew?: () => void } = {}) {
   
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -593,9 +593,6 @@ export function FinancialPayables() {
             );
           })}
         </div>
-        <Button size="sm" onClick={handleNew} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Nova Despesa
-        </Button>
       </div>
 
       {/* Search + filters */}
