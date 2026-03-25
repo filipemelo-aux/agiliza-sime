@@ -742,6 +742,7 @@ export type Database = {
       }
       expense_installments: {
         Row: {
+          boleto_url: string | null
           created_at: string
           data_vencimento: string
           expense_id: string
@@ -751,6 +752,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          boleto_url?: string | null
           created_at?: string
           data_vencimento: string
           expense_id: string
@@ -760,6 +762,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          boleto_url?: string | null
           created_at?: string
           data_vencimento?: string
           expense_id?: string
