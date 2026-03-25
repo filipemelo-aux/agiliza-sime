@@ -643,18 +643,35 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      const dateRef = i.status === "pago"
-        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
-        : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      // Para despesas COM parcelas, checar se alguma parcela cai no período
+      const installs = installmentsMap[i.id];
+      const hasInst = installs && installs.length > 0;
+      let matchPeriodo = true;
+      if (filterPeriodoInicio || filterPeriodoFim) {
+        if (hasInst) {
+          matchPeriodo = installs.some(inst => {
+            return (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+              (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          });
+        } else {
+          const dateRef = i.status === "pago"
+            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            : (i.data_vencimento || i.data_emissao);
+          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+        }
+      }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
 
     baseForCounts.forEach(i => {
       const installs = installmentsMap[i.id];
       if (installs && installs.length > 0) {
+        // Contar apenas parcelas que caem no período
         installs.forEach(inst => {
+          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          if (!inPeriod) return;
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
