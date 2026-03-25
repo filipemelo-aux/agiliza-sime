@@ -787,7 +787,7 @@ export function FinancialPayables() {
         installs.forEach(inst => {
           let visible = true;
           if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
-          else if (quickFilter === "hoje") visible = inst.data_vencimento === today2 && inst.status !== "pago";
+          else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
           else if (quickFilter === "pagas") visible = inst.status === "pago";
@@ -915,7 +915,6 @@ export function FinancialPayables() {
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
-    { key: "hoje", label: "Hoje", icon: <Clock className="h-3 w-3" />, count: counts.hoje },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
     { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3 w-3" />, count: counts.pagas },
@@ -1171,7 +1170,7 @@ export function FinancialPayables() {
               const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
               const visibleInstalls = installs.filter(inst => {
                 if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
-                if (quickFilter === "hoje") return inst.data_vencimento === today2 && inst.status !== "pago";
+                if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                 if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                 if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
                 if (quickFilter === "pagas") return inst.status === "pago";
