@@ -547,16 +547,33 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       })));
     }
 
-    // Save installments
+    // Save installments + boleto PDF
     if (expenseId) {
       await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
       if (useParcelas && parcelas.length > 0) {
+        // Upload boleto PDF if provided
+        let boletoStoragePath: string | null = null;
+        if (boletoPdfFile) {
+          const ext = boletoPdfFile.name.split(".").pop() || "pdf";
+          const path = `boletos/${expenseId}/${Date.now()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage.from("payment-receipts").upload(path, boletoPdfFile, { upsert: true });
+          if (uploadErr) {
+            console.error("Erro ao enviar boleto:", uploadErr);
+            toast.warning("Despesa salva, mas houve erro ao enviar o PDF dos boletos.");
+          } else {
+            boletoStoragePath = path;
+          }
+        } else if (boletoPdfExistingUrl) {
+          boletoStoragePath = boletoPdfExistingUrl;
+        }
+
         await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
           expense_id: expenseId,
           numero_parcela: p.numero,
           valor: Number(p.valor) || 0,
           data_vencimento: p.data_vencimento,
           status: "pendente",
+          boleto_url: boletoStoragePath,
         })));
       }
     }
