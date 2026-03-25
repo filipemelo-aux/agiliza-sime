@@ -883,7 +883,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 categories={["fornecedor"]}
                 placeholder="Buscar fornecedor..."
                 selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); if (p.cnpj) setFornecedorCnpj(p.cnpj); }}
                 onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
                 endAction={
                   <button
