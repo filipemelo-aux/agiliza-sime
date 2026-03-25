@@ -857,9 +857,10 @@ export function FinancialPayables() {
           registros++;
           if (inst.status === "pago") {
             pago += Number(inst.valor);
+          } else if (inst.data_vencimento < today) {
+            atrasado += Number(inst.valor);
           } else {
             pendente += Number(inst.valor);
-            if (inst.data_vencimento < today) atrasado += Number(inst.valor);
           }
         });
       } else {
@@ -868,8 +869,12 @@ export function FinancialPayables() {
           pago += Number(item.valor_pago);
         } else {
           const remaining = Number(item.valor_total) - Number(item.valor_pago);
-          pendente += remaining;
-          if (item.status === "atrasado") atrasado += remaining;
+          const dueDate = item.data_vencimento || item.data_emissao;
+          if (dueDate < today) {
+            atrasado += remaining;
+          } else {
+            pendente += remaining;
+          }
         }
       }
     });
@@ -930,7 +935,7 @@ export function FinancialPayables() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Pendente</p>
+            <p className="text-xs text-muted-foreground">A Pagar</p>
             <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
           </CardContent>
         </Card>
