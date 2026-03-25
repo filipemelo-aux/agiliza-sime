@@ -583,29 +583,28 @@ export function FinancialPayables() {
       </div>
 
       {/* Search + filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
           <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas Contas</SelectItem>
-            {chartAccounts.map(a => (
+            {chartAccounts.filter(a => a.tipo === "despesa").map(a => (
               <SelectItem key={a.id} value={a.id}>
                 <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-muted-foreground">Período:</span>
-        <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
-        <span className="text-xs text-muted-foreground">a</span>
-        <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Período:</span>
+          <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
+          <span className="text-xs text-muted-foreground">a</span>
+          <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
+        </div>
       </div>
 
       {/* Batch actions bar */}
