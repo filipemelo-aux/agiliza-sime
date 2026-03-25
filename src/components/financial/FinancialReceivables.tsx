@@ -13,7 +13,7 @@ import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucid
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 interface Receivable {
   id: string;
@@ -286,7 +286,7 @@ export function FinancialReceivables() {
             <div className="space-y-3">
               <div><Label>Descrição *</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Venda de gado, Frete avulso..." /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" /></div>
+                <div><Label>Valor (R$) *</Label><Input value={amount ? maskCurrency(String(Math.round(parseFloat(amount) * 100))) : ""} onChange={(e) => setAmount(unmaskCurrency(e.target.value))} placeholder="0,00" /></div>
                 <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               </div>
               <div><Label>Conta Contábil</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>

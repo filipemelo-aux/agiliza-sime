@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 interface Installment {
   id: string;
@@ -1235,7 +1235,7 @@ export function FinancialPayables() {
           <div className="space-y-3">
             <div>
               <Label>Valor (R$)</Label>
-              <Input type="number" step="0.01" value={editInstValor} onChange={e => setEditInstValor(e.target.value)} />
+              <Input value={editInstValor ? maskCurrency(String(Math.round(parseFloat(editInstValor) * 100))) : ""} onChange={e => setEditInstValor(unmaskCurrency(e.target.value))} />
             </div>
             <div>
               <Label>Vencimento</Label>

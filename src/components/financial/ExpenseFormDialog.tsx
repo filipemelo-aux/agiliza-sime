@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { maskName, formatCurrency } from "@/lib/masks";
+import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -827,7 +827,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Valor (R$) *</Label>
-              <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
+              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
             </div>
             <div>
               <Label className="text-xs">Emissão</Label>
@@ -918,9 +918,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           </TableCell>
                           <TableCell>
                             <Input
-                              type="number" step="0.01"
-                              value={p.valor}
-                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: e.target.value } : pp))}
+                              value={p.valor ? maskCurrency(String(Math.round(parseFloat(p.valor) * 100))) : ""}
+                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: unmaskCurrency(e.target.value) } : pp))}
                               className="h-7 text-[11px] text-right font-mono"
                             />
                           </TableCell>
@@ -986,7 +985,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Litros</Label>
-                <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} placeholder="0,00" className="h-9" />
+                <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
               </div>
             </div>
           )}
@@ -1039,7 +1038,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <Input className="flex-1 h-9 min-w-0" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
                         <div className="flex gap-1.5">
                           <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
-                          <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
+                          <Input className="w-[90px] h-9" value={nfseNewValor ? maskCurrency(String(Math.round(parseFloat(nfseNewValor) * 100))) : ""} onChange={e => setNfseNewValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
                           <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
                             if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
                             if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
@@ -1194,8 +1193,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                       />
                                     </TableCell>
                                     <TableCell>
-                                      <Input type="number" step="0.01" value={p.valor}
-                                        onChange={e => setNfseParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: e.target.value } : pp))}
+                                      <Input value={p.valor ? maskCurrency(String(Math.round(parseFloat(p.valor) * 100))) : ""}
+                                        onChange={e => setNfseParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: unmaskCurrency(e.target.value) } : pp))}
                                         className="h-7 text-[11px] text-right font-mono"
                                       />
                                     </TableCell>

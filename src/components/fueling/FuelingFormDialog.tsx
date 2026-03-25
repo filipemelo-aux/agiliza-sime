@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 const FUEL_TYPES = [
   { value: "diesel", label: "Diesel" },
@@ -183,7 +184,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>Litros *</Label>
-              <Input type="number" step="0.01" value={litros} onChange={e => setLitros(e.target.value)} />
+              <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} />
             </div>
             <div>
               <Label>R$/Litro</Label>
@@ -191,7 +192,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
             </div>
             <div>
               <Label>Valor Total</Label>
-              <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} />
+              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} />
             </div>
           </div>
 

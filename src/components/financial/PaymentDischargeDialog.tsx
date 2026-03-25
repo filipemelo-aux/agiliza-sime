@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -116,7 +116,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Valor do Pagamento (R$)</Label>
-              <Input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} />
+              <Input value={valor ? maskCurrency(String(Math.round(parseFloat(valor) * 100))) : ""} onChange={e => setValor(unmaskCurrency(e.target.value))} />
             </div>
             <div>
               <Label>Forma de Pagamento</Label>
