@@ -1057,7 +1057,7 @@ export function FinancialPayables() {
           </div>
         </div>
 
-        {/* Row 2: Plano de Contas + Centro de Custo + Veículo + Clear */}
+        {/* Row 2: Plano de Contas + Clear */}
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
             <SelectTrigger className="h-7 text-[11px] w-auto min-w-[140px] max-w-[200px] rounded-full">
@@ -1073,33 +1073,7 @@ export function FinancialPayables() {
             </SelectContent>
           </Select>
 
-          <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
-            <SelectTrigger className="h-7 text-[11px] w-auto min-w-[120px] max-w-[160px] rounded-full">
-              <SelectValue placeholder="Centro de Custo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os centros</SelectItem>
-              {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {vehicles.length > 0 && (
-            <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-              <SelectTrigger className="h-7 text-[11px] w-auto min-w-[100px] max-w-[140px] rounded-full">
-                <SelectValue placeholder="Veículo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {vehicles.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {(quickFilter !== "all" || filterPlanoContas !== "all" || filterCentroCusto !== "all" || filterVeiculo !== "all") && (
+          {(quickFilter !== "all" || filterPlanoContas !== "all") && (
             <Button
               variant="ghost"
               size="sm"
