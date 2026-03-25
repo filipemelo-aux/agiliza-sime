@@ -135,7 +135,7 @@ export default function Auth() {
         });
         navigate("/register");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
@@ -153,7 +153,13 @@ export default function Auth() {
           return;
         }
 
-        // The onAuthStateChange will handle the redirect
+        // Check if user must change password
+        if (signInData?.user?.user_metadata?.must_change_password) {
+          setPendingRedirectUserId(signInData.user.id);
+          setShowForceChange(true);
+          return;
+        }
+
         toast({
           title: "Bem-vindo de volta!",
           description: "Login realizado com sucesso.",
