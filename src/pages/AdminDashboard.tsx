@@ -171,6 +171,23 @@ export default function AdminDashboard() {
           <Popover>
             <PopoverTrigger asChild>
               <button className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full">
+                <DollarSign className="h-4 w-4 lg:h-5 lg:w-5" />
+                <span className="text-xs font-semibold leading-none">Contas a Pagar</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-1" align="center">
+              <button onClick={() => setExpenseFormOpen(true)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors w-full text-left">
+                <DollarSign className="h-4 w-4" /> Conta a Pagar
+              </button>
+              <Link to="/admin/financial/payables" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <ClipboardList className="h-4 w-4" /> Ver Contas
+              </Link>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full">
                 <ClipboardList className="h-4 w-4 lg:h-5 lg:w-5" />
                 <span className="text-xs font-semibold leading-none">Ordens</span>
               </button>
@@ -184,14 +201,6 @@ export default function AdminDashboard() {
               </Link>
             </PopoverContent>
           </Popover>
-
-          <button
-            onClick={() => setExpenseFormOpen(true)}
-            className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            <DollarSign className="h-4 w-4 lg:h-5 lg:w-5" />
-            <span className="text-xs font-semibold leading-none">Conta a Pagar</span>
-          </button>
 
           <button
             onClick={() => setFuelingFormOpen(true)}
