@@ -313,6 +313,10 @@ function personToForm(person: PersonProfile): FormState {
     bank_account_type: person.bank_account_type || "",
     pix_key_type: person.pix_key_type || "",
     pix_key: person.pix_key || "",
+    cargo: (person as any).cargo || "",
+    departamento: (person as any).departamento || "",
+    data_admissao: (person as any).data_admissao || "",
+    salario: (person as any).salario ? String((person as any).salario) : "",
   };
 }
 
