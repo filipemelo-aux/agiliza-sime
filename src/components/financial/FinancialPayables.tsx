@@ -622,22 +622,29 @@ export function FinancialPayables() {
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-    return {
-      all: items.filter(i => {
-        const inst = installmentsMap[i.id];
-        if (inst && inst.length > 0) return !inst.every(x => x.status === "pago");
-        return i.status !== "pago";
-      }).length,
-      hoje: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v === today && s !== "pago")).length,
-      semana: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v >= today && v <= in7days && s !== "pago")).length,
-      atrasadas: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => s === "atrasado" || (v < today && s !== "pago"))).length,
-      pagas: items.filter(i => {
-        const installs = installmentsMap[i.id];
-        if (installs && installs.length > 0) return installs.every(inst => inst.status === "pago");
-        return i.status === "pago";
-      }).length,
-    };
-  }, [items, installmentsMap, hasMatchingInstallmentOrSelf]);
+    let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
+
+    items.forEach(i => {
+      const installs = installmentsMap[i.id];
+      if (installs && installs.length > 0) {
+        installs.forEach(inst => {
+          if (inst.status !== "pago") all++;
+          if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
+          if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
+          if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
+          if (inst.status === "pago") pagas++;
+        });
+      } else {
+        if (i.status !== "pago") all++;
+        if (i.data_vencimento === today && i.status !== "pago") hoje++;
+        if (i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago") semana++;
+        if (i.status === "atrasado") atrasadas++;
+        if (i.status === "pago") pagas++;
+      }
+    });
+
+    return { all, hoje, semana, atrasadas, pagas };
+  }, [items, installmentsMap]);
 
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
