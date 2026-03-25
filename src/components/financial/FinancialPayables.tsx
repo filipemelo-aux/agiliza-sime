@@ -913,6 +913,71 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds]);
 
+  const handlePrintSelected = () => {
+    if (selectedIds.size === 0) return;
+    const rows: { favorecido: string; descricao: string; vencimento: string; valor: number; status: string }[] = [];
+    selectedIds.forEach(id => {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const [expId, installs] of Object.entries(installmentsMap)) {
+          const inst = installs.find(i => i.id === instId);
+          if (inst) {
+            const item = items.find(i => i.id === expId);
+            const today = new Date().toISOString().split("T")[0];
+            const isOverdue = inst.data_vencimento < today && inst.status !== "pago";
+            rows.push({
+              favorecido: item?.favorecido_nome || "Sem favorecido",
+              descricao: `${item?.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ` : ""}${item?.descricao || "Serviço"} (P${inst.numero_parcela}/${installs.length})`,
+              vencimento: inst.data_vencimento,
+              valor: Number(inst.valor),
+              status: isOverdue ? "atrasado" : inst.status,
+            });
+            break;
+          }
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item) {
+          rows.push({
+            favorecido: item.favorecido_nome || "Sem favorecido",
+            descricao: item.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ${item.descricao}` : item.descricao,
+            vencimento: item.data_vencimento || item.data_emissao,
+            valor: item.status === "pago" ? (Number(item.valor_pago) || Number(item.valor_total)) : Number(item.valor_total) - Number(item.valor_pago),
+            status: item.status,
+          });
+        }
+      }
+    });
+    rows.sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+    const total = rows.reduce((s, r) => s + r.valor, 0);
+    const fmtDate = (d: string) => { try { return format(new Date(d + "T12:00:00"), "dd/MM/yyyy"); } catch { return d; } };
+    const statusLabel = (s: string) => STATUS_MAP[s]?.label || s;
+    const statusColor = (s: string) => s === "pago" ? "#27ae60" : s === "atrasado" ? "#c0392b" : "#856404";
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contas a Pagar</title>
+<style>
+body{font-family:Arial,sans-serif;padding:20px;margin:0}
+h2{font-size:16px;margin:0 0 4px}
+h3{font-size:12px;color:#666;margin:0 0 16px;font-weight:400}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}
+th{background:#f5f5f5;font-weight:600}
+.right{text-align:right}
+.total-row{background:#f0f0f0;font-weight:700}
+.status{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+@media print{@page{size:landscape;margin:8mm}body{font-size:9px}table{font-size:9px}th,td{padding:3px 5px}}
+</style></head><body>
+<h2>Relação de Contas a Pagar</h2>
+<h3>Emitido em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")} — ${rows.length} registro(s)</h3>
+<table><thead><tr><th>#</th><th>Favorecido</th><th>Descrição</th><th>Vencimento</th><th>Status</th><th class="right">Valor</th></tr></thead><tbody>
+${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.favorecido}</td><td>${r.descricao}</td><td>${fmtDate(r.vencimento)}</td><td><span class="status" style="background:${statusColor(r.status)}20;color:${statusColor(r.status)}">${statusLabel(r.status)}</span></td><td class="right">${formatCurrency(r.valor)}</td></tr>`).join("")}
+<tr class="total-row"><td colspan="5" class="right">TOTAL</td><td class="right">${formatCurrency(total)}</td></tr>
+</tbody></table></body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (win) { win.onload = () => { win.print(); URL.revokeObjectURL(url); }; }
+  };
+
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
