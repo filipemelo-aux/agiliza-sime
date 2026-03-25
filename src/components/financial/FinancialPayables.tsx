@@ -599,43 +599,14 @@ export function FinancialPayables() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="sm" className="h-9 text-xs gap-1" onClick={() => setShowAdvanced(!showAdvanced)}>
-          <Filter className="h-3.5 w-3.5" />
-          {showAdvanced ? "Menos filtros" : "Mais filtros"}
-        </Button>
       </div>
 
-      {showAdvanced && (
-        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
-          <Select value={filterNivel} onValueChange={setFilterNivel}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Nível" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Níveis</SelectItem>
-              {uniqueLevels.map(n => <SelectItem key={n} value={String(n)}>Nível {n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Veículos</SelectItem>
-              {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
-            <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Centro Custo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Centros</SelectItem>
-              {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Período:</span>
-            <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
-            <span className="text-xs text-muted-foreground">a</span>
-            <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
-          </div>
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Período:</span>
+        <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
+        <span className="text-xs text-muted-foreground">a</span>
+        <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
+      </div>
 
       {/* Batch actions bar */}
       {selectableCardIds.length > 0 && (
