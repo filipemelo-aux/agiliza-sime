@@ -789,7 +789,7 @@ export function FinancialPayables() {
           if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-          else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+          else if (quickFilter === "pagas") visible = inst.status === "pago";
           else if (quickFilter === "pagas") visible = inst.status === "pago";
           if (visible) ids.push(`inst-${inst.id}`);
         });
@@ -989,10 +989,6 @@ export function FinancialPayables() {
                     const todayDate = new Date();
                     setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
                     setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
-                  } else if (f.key === "hoje") {
-                    const todayStr = format(new Date(), "yyyy-MM-dd");
-                    setFilterPeriodoInicio(todayStr);
-                    setFilterPeriodoFim(todayStr);
                   } else if (f.key === "atrasadas") {
                     setFilterPeriodoInicio("");
                     setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
@@ -1171,7 +1167,7 @@ export function FinancialPayables() {
               const visibleInstalls = installs.filter(inst => {
                 if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
                 if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
-                if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+                if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
                 if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
                 if (quickFilter === "pagas") return inst.status === "pago";
                 return true;
