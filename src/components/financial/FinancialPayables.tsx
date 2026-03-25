@@ -74,21 +74,33 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
-  
+  const STORAGE_KEY = "payables_filters";
+
+  const getStoredFilters = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
+
+  const stored = getStoredFilters();
+  const defaultStart = fnsFormat(startOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultEnd = fnsFormat(endOfMonth(new Date()), "yyyy-MM-dd");
+
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-  const [filterPlanoContas, setFilterPlanoContas] = useState("all");
-  const [filterNivel, setFilterNivel] = useState("all");
-  const [filterVeiculo, setFilterVeiculo] = useState("all");
-  const [filterCentroCusto, setFilterCentroCusto] = useState("all");
-  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState("");
-  const [filterPeriodoFim, setFilterPeriodoFim] = useState("");
+  const [search, setSearch] = useState(stored?.search ?? "");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(stored?.quickFilter ?? "all");
+  const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
+  const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
+  const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
+  const [filterCentroCusto, setFilterCentroCusto] = useState(stored?.filterCentroCusto ?? "all");
+  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState(stored?.filterPeriodoInicio ?? defaultStart);
+  const [filterPeriodoFim, setFilterPeriodoFim] = useState(stored?.filterPeriodoFim ?? defaultEnd);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
