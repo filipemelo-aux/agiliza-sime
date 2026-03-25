@@ -115,7 +115,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "semana");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
   const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
@@ -967,8 +967,7 @@ export function FinancialPayables() {
         <div className="flex gap-1.5 flex-wrap">
           {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
-            const isPagas = f.key === "pagas";
-            const showLabel = isActive || isPagas;
+            const showLabel = true;
             return (
               <Button
                 key={f.key}
