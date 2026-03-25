@@ -119,6 +119,10 @@ const emptyForm: FormState = {
   bank_account_type: "",
   pix_key_type: "",
   pix_key: "",
+  cargo: "",
+  departamento: "",
+  data_admissao: "",
+  salario: "",
 };
 
 function AddressFields({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
