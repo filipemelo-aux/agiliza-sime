@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { maskName, formatCurrency } from "@/lib/masks";
+import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 
 export interface MaintenanceItem {
   descricao: string;
@@ -243,7 +243,7 @@ export function MaintenanceFields({
         <div className="flex gap-1.5 mb-2">
           <Input className="flex-1 h-9" value={newDesc} onChange={e => setNewDesc(maskName(e.target.value))} placeholder="Descrição do item" />
           <Input className="w-[60px] h-9" type="number" value={newQtd} onChange={e => setNewQtd(e.target.value)} placeholder="Qtd" />
-          <Input className="w-[90px] h-9" type="number" step="0.01" value={newValor} onChange={e => setNewValor(e.target.value)} placeholder="Valor" />
+          <Input className="w-[90px] h-9" value={newValor ? maskCurrency(String(Math.round(parseFloat(newValor) * 100))) : ""} onChange={e => setNewValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
           <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={addItem}><Plus className="h-4 w-4" /></Button>
         </div>
 
