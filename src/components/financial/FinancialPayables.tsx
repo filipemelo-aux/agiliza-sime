@@ -604,13 +604,45 @@ export function FinancialPayables() {
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
-        installs.filter(i => i.status !== "pago").forEach(i => ids.push(`inst-${i.id}`));
-      } else if (item.status !== "pago") {
+        installs.forEach(i => ids.push(`inst-${i.id}`));
+      } else {
         ids.push(item.id);
       }
     });
     return ids;
   }, [filtered, installmentsMap]);
+
+  const hasSelectedPaid = useMemo(() => {
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const found = installs.find(i => i.id === instId);
+          if (found?.status === "pago") return true;
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item?.status === "pago") return true;
+      }
+    }
+    return false;
+  }, [selectedIds, items, installmentsMap]);
+
+  const hasSelectedUnpaid = useMemo(() => {
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const found = installs.find(i => i.id === instId);
+          if (found && found.status !== "pago") return true;
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item && item.status !== "pago") return true;
+      }
+    }
+    return false;
+  }, [selectedIds, items, installmentsMap]);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
