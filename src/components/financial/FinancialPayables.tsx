@@ -840,11 +840,15 @@ export function FinancialPayables() {
     let atrasado = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    // REGRA: período é SEMPRE aplicado — usa a mesma base filtrada (filtered) que já respeita período
+    // REGRA: período é SEMPRE aplicado — usa filtered (já respeita período no nível da despesa)
+    // Para parcelas, filtrar individualmente pelo período também
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
+          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          if (!inPeriod) return;
           if (inst.status === "pago") {
             pago += Number(inst.valor);
           } else {
@@ -864,7 +868,7 @@ export function FinancialPayables() {
     });
 
     return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [filtered, installmentsMap]);
+  }, [filtered, installmentsMap, filterPeriodoInicio, filterPeriodoFim]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
