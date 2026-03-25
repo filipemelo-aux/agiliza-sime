@@ -75,7 +75,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
+type QuickFilter = "all" | "hoje" | "semana" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -612,9 +612,9 @@ export function FinancialPayables() {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
-      all: items.filter(i => i.status !== "pago").length,
+      all: items.length,
       hoje: items.filter(i => i.data_vencimento === today && i.status !== "pago").length,
-      vencendo: items.filter(i => i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago").length,
+      semana: items.filter(i => i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago").length,
       atrasadas: items.filter(i => i.status === "atrasado").length,
       pagas: items.filter(i => i.status === "pago").length,
     };
@@ -625,12 +625,11 @@ export function FinancialPayables() {
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
     return items.filter(i => {
-      // No filtro "all", esconder contas pagas
       if (quickFilter === "all") {
-        if (i.status === "pago") return false;
+        // Mostrar todas
       } else if (quickFilter === "hoje") {
         if (!(i.data_vencimento === today && i.status !== "pago")) return false;
-      } else if (quickFilter === "vencendo") {
+      } else if (quickFilter === "semana") {
         if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
       } else if (quickFilter === "atrasadas") {
         if (i.status !== "atrasado") return false;
@@ -794,9 +793,9 @@ export function FinancialPayables() {
   }, [selectedIds]);
 
   const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "all", label: "Não Pagas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
+    { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
     { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
-    { key: "vencendo", label: "Vencendo", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.vencendo },
+    { key: "semana", label: "Semana", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
     { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3.5 w-3.5" />, count: counts.pagas },
   ];
