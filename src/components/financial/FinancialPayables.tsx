@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2 } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -643,6 +643,16 @@ export function FinancialPayables() {
           <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
           <span className="text-xs text-muted-foreground">a</span>
           <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
+          {(filterPeriodoInicio || filterPeriodoFim) && (
+            <button
+              type="button"
+              onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); }}
+              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Limpar período"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
