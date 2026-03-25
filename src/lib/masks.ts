@@ -165,6 +165,12 @@ export const unmaskCEP = (value: string): string => {
 
 const LOWERCASE_PREFIXES = new Set(["da", "das", "de", "do", "dos", "e"]);
 
+// Capitalize only the first letter, rest stays as typed by the user
+export const maskSentence = (value: string): string => {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
 export const maskName = (value: string): string => {
   return value
     .split(" ")

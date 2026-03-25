@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
+import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 
 export interface MaintenanceItem {
   descricao: string;
