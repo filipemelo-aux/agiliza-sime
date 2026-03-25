@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -972,108 +972,191 @@ export function FinancialPayables() {
         </Card>
       </div>
 
-      {/* Quick Filters + Period — unified compact row */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {quickFilterButtons.map(f => {
-          const isActive = quickFilter === f.key;
-          return (
-            <Button
-              key={f.key}
-              variant={isActive ? "default" : "ghost"}
-              size="sm"
-              className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
-              onClick={() => {
-                if (f.key === "all") {
-                  setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
-                  setFilterPeriodoFim("");
-                } else if (f.key === "semana") {
-                  const todayDate = new Date();
-                  setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
-                  setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
-                } else if (f.key === "hoje") {
-                  const todayStr = format(new Date(), "yyyy-MM-dd");
-                  setFilterPeriodoInicio(todayStr);
-                  setFilterPeriodoFim(todayStr);
-                } else if (f.key === "atrasadas") {
-                  setFilterPeriodoInicio("");
-                  setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
-                } else if (f.key === "pagas") {
-                  setFilterPeriodoInicio("");
-                  setFilterPeriodoFim("");
-                } else if (f.key === "personalizado") {
-                  setFilterPeriodoInicio("");
-                  setFilterPeriodoFim("");
-                }
-                setQuickFilter(f.key);
-                setSelectedIds(new Set());
-              }}
-              title={f.label}
-            >
-              {f.icon}
-              {f.label}
-              {f.count > 0 && (
-                <span className={cn("ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold",
-                  isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {f.count}
-                </span>
-              )}
-            </Button>
-          );
-        })}
-
-        {/* Date pickers — visible only on "personalizado" */}
-        {quickFilter === "personalizado" && (
-          <div className="flex items-center gap-1 ml-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("h-7 px-2 text-[11px] rounded-full font-normal gap-1", !filterPeriodoInicio && "text-muted-foreground")}>
-                  <CalendarIcon className="h-3 w-3" />
-                  {filterPeriodoInicio ? format(parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "De"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" locale={ptBR} selected={filterPeriodoInicio ? parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => setFilterPeriodoInicio(d ? format(d, "yyyy-MM-dd") : "")} initialFocus className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-            <span className="text-[11px] text-muted-foreground">—</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("h-7 px-2 text-[11px] rounded-full font-normal gap-1", !filterPeriodoFim && "text-muted-foreground")}>
-                  <CalendarIcon className="h-3 w-3" />
-                  {filterPeriodoFim ? format(parse(filterPeriodoFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Até"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar mode="single" locale={ptBR} selected={filterPeriodoFim ? parse(filterPeriodoFim, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => setFilterPeriodoFim(d ? format(d, "yyyy-MM-dd") : "")} initialFocus className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-            {(filterPeriodoInicio || filterPeriodoFim) && (
-              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); }} className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Limpar período">
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Search + filters */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      {/* Filters row: Filter popover + Date pickers */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-7 text-xs" />
+          <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
         </div>
-        <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
-          <SelectTrigger className="min-w-0 max-w-[180px] h-7 text-xs truncate"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas Contas</SelectItem>
-            {chartAccounts.filter(a => a.tipo === "despesa").map(a => (
-              <SelectItem key={a.id} value={a.id}>
-                <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {/* Single filter popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("h-8 px-3 text-xs gap-1.5 rounded-lg font-medium",
+              (quickFilter !== "all" || filterPlanoContas !== "all" || filterCentroCusto !== "all" || filterVeiculo !== "all" || filterNivel !== "all") && "border-primary text-primary bg-primary/5"
+            )}>
+              <Filter className="h-3.5 w-3.5" />
+              Filtros
+              {(() => {
+                let count = 0;
+                if (quickFilter !== "all") count++;
+                if (filterPlanoContas !== "all") count++;
+                if (filterCentroCusto !== "all") count++;
+                if (filterVeiculo !== "all") count++;
+                if (filterNivel !== "all") count++;
+                return count > 0 ? (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-primary text-primary-foreground">{count}</span>
+                ) : null;
+              })()}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="start">
+            <div className="p-3 space-y-3">
+              {/* Status / Quick filter */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Status</p>
+                <div className="flex flex-wrap gap-1">
+                  {quickFilterButtons.map(f => {
+                    const isActive = quickFilter === f.key;
+                    return (
+                      <Button
+                        key={f.key}
+                        variant={isActive ? "default" : "outline"}
+                        size="sm"
+                        className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
+                        onClick={() => {
+                          if (f.key === "all") {
+                            setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
+                            setFilterPeriodoFim("");
+                          } else if (f.key === "semana") {
+                            const todayDate = new Date();
+                            setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
+                            setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
+                          } else if (f.key === "hoje") {
+                            const todayStr = format(new Date(), "yyyy-MM-dd");
+                            setFilterPeriodoInicio(todayStr);
+                            setFilterPeriodoFim(todayStr);
+                          } else if (f.key === "atrasadas") {
+                            setFilterPeriodoInicio("");
+                            setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
+                          } else if (f.key === "pagas") {
+                            setFilterPeriodoInicio("");
+                            setFilterPeriodoFim("");
+                          } else if (f.key === "personalizado") {
+                            setFilterPeriodoInicio("");
+                            setFilterPeriodoFim("");
+                          }
+                          setQuickFilter(f.key);
+                          setSelectedIds(new Set());
+                        }}
+                      >
+                        {f.icon}
+                        {f.label}
+                        {f.count > 0 && (
+                          <span className={cn("ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold",
+                            isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            {f.count}
+                          </span>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Plano de Contas */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Plano de Contas</p>
+                <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as contas</SelectItem>
+                    {chartAccounts.filter(a => a.tipo === "despesa").map(a => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Centro de Custo */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Centro de Custo</p>
+                <Select value={filterCentroCusto} onValueChange={setFilterCentroCusto}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(CENTRO_CUSTO_MAP).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Veículo */}
+              {vehicles.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Veículo</p>
+                  <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {vehicles.map(v => (
+                        <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Limpar filtros */}
+              {(quickFilter !== "all" || filterPlanoContas !== "all" || filterCentroCusto !== "all" || filterVeiculo !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full h-7 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => {
+                    setQuickFilter("all");
+                    setFilterPlanoContas("all");
+                    setFilterNivel("all");
+                    setFilterCentroCusto("all");
+                    setFilterVeiculo("all");
+                    setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
+                    setFilterPeriodoFim("");
+                    setSelectedIds(new Set());
+                  }}
+                >
+                  <X className="h-3 w-3 mr-1" /> Limpar todos os filtros
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Date period pickers — always visible */}
+        <div className="flex items-center gap-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-8 px-2.5 text-xs rounded-lg font-normal gap-1", !filterPeriodoInicio && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterPeriodoInicio ? format(parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "De"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" locale={ptBR} selected={filterPeriodoInicio ? parse(filterPeriodoInicio, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => { setFilterPeriodoInicio(d ? format(d, "yyyy-MM-dd") : ""); setQuickFilter("personalizado"); }} initialFocus className={cn("p-3 pointer-events-auto")} />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">—</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-8 px-2.5 text-xs rounded-lg font-normal gap-1", !filterPeriodoFim && "text-muted-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterPeriodoFim ? format(parse(filterPeriodoFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Até"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar mode="single" locale={ptBR} selected={filterPeriodoFim ? parse(filterPeriodoFim, "yyyy-MM-dd", new Date()) : undefined} onSelect={(d) => { setFilterPeriodoFim(d ? format(d, "yyyy-MM-dd") : ""); setQuickFilter("personalizado"); }} initialFocus className={cn("p-3 pointer-events-auto")} />
+            </PopoverContent>
+          </Popover>
+          {(filterPeriodoInicio || filterPeriodoFim) && (
+            <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); setQuickFilter("personalizado"); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Limpar período">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Batch actions bar */}
