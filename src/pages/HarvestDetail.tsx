@@ -2182,8 +2182,14 @@ export default function HarvestDetail() {
                     </div>
                     {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-destructive">📌 Saldo anterior</span>
-                        <span className="text-destructive font-semibold">{formatCurrency(accumulatedPastBalance)}</span>
+                        <span className="text-destructive">📌 Saldo anterior (faltou)</span>
+                        <span className="text-destructive font-semibold">+{formatCurrency(accumulatedPastBalance)}</span>
+                      </div>
+                    )}
+                    {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-blue-600">💰 Crédito anterior (pago a mais)</span>
+                        <span className="text-blue-600 font-semibold">-{formatCurrency(Math.abs(accumulatedPastBalance))}</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-1 border-t border-border">
