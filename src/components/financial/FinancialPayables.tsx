@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Check, Search, Trash2, FileText, Filter, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
-import { useNavigate } from "react-router-dom";
+
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 
@@ -73,7 +73,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
-  const navigate = useNavigate();
+  
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
