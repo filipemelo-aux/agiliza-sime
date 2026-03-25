@@ -406,10 +406,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
     try {
       const newUserId = person.user_id;
 
-      const payload = {
-        ...formToPayload(form) as any,
-        ...(newUserId !== person.user_id ? { user_id: newUserId } : {}),
-      };
+      const payload = formToPayload(form) as any;
       const { error } = await supabase
         .from("profiles")
         .update(payload)
