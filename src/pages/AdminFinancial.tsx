@@ -24,7 +24,6 @@ export default function AdminFinancial({ section = "receivables" }: { section?: 
         )}
         {section === "payables" && (
           <>
-            <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
             <FinancialPayables />
           </>
         )}
