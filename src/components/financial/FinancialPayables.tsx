@@ -528,6 +528,12 @@ export function FinancialPayables({ onNew }: { onNew?: () => void } = {}) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+        <Button size="sm" onClick={handleNew} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Nova Despesa
+        </Button>
+      </div>
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="border-l-4 border-l-warning">
