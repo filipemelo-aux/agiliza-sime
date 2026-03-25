@@ -52,6 +52,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
+  const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
 
   useEffect(() => {
     if (open && expenseId) {
