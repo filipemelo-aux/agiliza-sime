@@ -947,6 +947,57 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     ⚠ Soma das parcelas ({formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}) difere do valor total ({formatCurrency(Number(valorTotal || 0))})
                   </p>
                 )}
+
+                {/* Boleto PDF upload */}
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      Anexar boletos (PDF único, 1 boleto por página na ordem das parcelas)
+                    </span>
+                  </div>
+                  <input
+                    ref={boletoInputRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setBoletoPdfFile(file);
+                        setBoletoPdfExistingUrl(null);
+                      }
+                      if (boletoInputRef.current) boletoInputRef.current.value = "";
+                    }}
+                  />
+                  {boletoPdfFile ? (
+                    <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-xs truncate flex-1">{boletoPdfFile.name}</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfFile(null)}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : boletoPdfExistingUrl ? (
+                    <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-xs truncate flex-1">Boleto anexado</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfExistingUrl(null)}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] gap-1"
+                      onClick={() => boletoInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-3 w-3" /> Selecionar PDF dos boletos
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
