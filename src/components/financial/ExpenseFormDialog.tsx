@@ -670,7 +670,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? "Editar" : "Nova"} Despesa
@@ -715,7 +715,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Conta Contábil (Plano de Contas) ── */}
           <div className="space-y-2">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs flex items-center gap-1">
                   <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
@@ -731,7 +731,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Label className="text-xs">Descrição *</Label>
                 <Input value={descricao} onChange={e => setDescricao(maskName(e.target.value))} placeholder="Ex: Troca de óleo..." className="h-9" />
               </div>
@@ -824,7 +824,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           </div>
 
           {/* ── Valor, Emissão, Vencimento ── */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Valor (R$) *</Label>
               <Input type="number" step="0.01" value={valorTotal} onChange={e => setValorTotal(e.target.value)} placeholder="0,00" className="h-9" />
@@ -1035,20 +1035,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     {/* Itens de serviço da NFSe */}
                     <div>
                       <Label className="text-xs mb-1 block">Serviços ({nfseItens.length})</Label>
-                      <div className="flex gap-1.5 mb-2">
-                        <Input className="flex-1 h-9" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
-                        <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
-                        <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
-                        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                          if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
-                          if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
-                          const qtd = Number(nfseNewQtd) || 1;
-                          const vu = Number(nfseNewValor);
-                          setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
-                          setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
-                        }}><Plus className="h-4 w-4" /></Button>
+                      <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
+                        <Input className="flex-1 h-9 min-w-0" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
+                        <div className="flex gap-1.5">
+                          <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
+                          <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                            if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
+                            if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
+                            const qtd = Number(nfseNewQtd) || 1;
+                            const vu = Number(nfseNewValor);
+                            setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
+                            setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
+                          }}><Plus className="h-4 w-4" /></Button>
+                        </div>
                       </div>
-
                       {nfseItens.length > 0 && (
                         <div className="border rounded-md overflow-x-auto max-h-[160px] overflow-y-auto">
                           <Table>
@@ -1329,7 +1330,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 <div className="space-y-3 pl-5 border-l-2 border-muted">
                   {/* Payment summary */}
                   <Card className="bg-muted/50">
-                    <CardContent className="p-3 grid grid-cols-3 gap-2 text-center">
+                    <CardContent className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                       <div>
                         <p className="text-[10px] text-muted-foreground">Total</p>
                         <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
