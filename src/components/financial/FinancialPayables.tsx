@@ -988,6 +988,9 @@ export function FinancialPayables() {
                     const todayStr = format(new Date(), "yyyy-MM-dd");
                     setFilterPeriodoInicio(todayStr);
                     setFilterPeriodoFim(todayStr);
+                  } else if (f.key === "atrasadas") {
+                    setFilterPeriodoInicio("");
+                    setFilterPeriodoFim("");
                   }
                   setQuickFilter(f.key);
                   setSelectedIds(new Set());
