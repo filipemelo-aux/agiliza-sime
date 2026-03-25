@@ -538,7 +538,7 @@ export function FinancialPayables() {
     }
   };
 
-
+  const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
