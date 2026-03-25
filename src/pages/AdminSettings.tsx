@@ -80,6 +80,25 @@ export default function AdminSettings() {
   const isCurrentUserModerator = roles.includes("moderator");
   const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
 
+  const fetchColaboradores = async () => {
+    try {
+      // Get all user_ids that already have auth accounts (user_roles)
+      const { data: roles } = await supabase.from("user_roles").select("user_id");
+      const linkedIds = new Set((roles || []).map((r: any) => r.user_id));
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, user_id")
+        .eq("category", "colaborador")
+        .order("full_name");
+
+      // Only show colaboradores without an auth account
+      setColaboradores((profiles || []).filter((p: any) => !linkedIds.has(p.user_id)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
