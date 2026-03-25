@@ -349,10 +349,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
       })));
-      // Load existing boleto reference
-      const firstBoleto = (data as any[]).find((d: any) => d.boleto_url);
-      if (firstBoleto) {
-        setBoletoPdfExistingUrl(firstBoleto.boleto_url);
+      // Check if any installment has boleto attached
+      const hasBoleto = (data as any[]).some((d: any) => d.boleto_url);
+      if (hasBoleto) {
+        setBoletoPdfExistingUrl("__per_installment__");
       }
     } else {
       setUseParcelas(false);
