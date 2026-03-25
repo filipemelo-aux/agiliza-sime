@@ -643,18 +643,35 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      const dateRef = i.status === "pago"
-        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
-        : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      // Para despesas COM parcelas, checar se alguma parcela cai no período
+      const installs = installmentsMap[i.id];
+      const hasInst = installs && installs.length > 0;
+      let matchPeriodo = true;
+      if (filterPeriodoInicio || filterPeriodoFim) {
+        if (hasInst) {
+          matchPeriodo = installs.some(inst => {
+            return (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+              (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          });
+        } else {
+          const dateRef = i.status === "pago"
+            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            : (i.data_vencimento || i.data_emissao);
+          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+        }
+      }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
 
     baseForCounts.forEach(i => {
       const installs = installmentsMap[i.id];
       if (installs && installs.length > 0) {
+        // Contar apenas parcelas que caem no período
         installs.forEach(inst => {
+          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          if (!inPeriod) return;
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
@@ -730,12 +747,25 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // REGRA: O filtro de período SEMPRE é aplicado, independente do filtro rápido
-      const dateRef = i.status === "pago"
-        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
-        : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      // REGRA: O filtro de período SEMPRE é aplicado
+      // Para despesas COM parcelas, verificar se ALGUMA parcela cai no período
+      // Para despesas SEM parcelas, usar data de vencimento/emissão/pagamento
+      let matchPeriodo = true;
+      if (filterPeriodoInicio || filterPeriodoFim) {
+        if (hasInst) {
+          matchPeriodo = installs.some(inst => {
+            const instDate = inst.data_vencimento;
+            return (!filterPeriodoInicio || instDate >= filterPeriodoInicio) &&
+              (!filterPeriodoFim || instDate <= filterPeriodoFim);
+          });
+        } else {
+          const dateRef = i.status === "pago"
+            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            : (i.data_vencimento || i.data_emissao);
+          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+        }
+      }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
@@ -810,11 +840,15 @@ export function FinancialPayables() {
     let atrasado = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    // REGRA: período é SEMPRE aplicado — usa a mesma base filtrada (filtered) que já respeita período
+    // REGRA: período é SEMPRE aplicado — usa filtered (já respeita período no nível da despesa)
+    // Para parcelas, filtrar individualmente pelo período também
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
+          const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+          if (!inPeriod) return;
           if (inst.status === "pago") {
             pago += Number(inst.valor);
           } else {
@@ -834,7 +868,7 @@ export function FinancialPayables() {
     });
 
     return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [filtered, installmentsMap]);
+  }, [filtered, installmentsMap, filterPeriodoInicio, filterPeriodoFim]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
