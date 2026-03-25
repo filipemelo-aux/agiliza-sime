@@ -117,6 +117,8 @@ export default function AdminPeople() {
         notes: p.notes, bank_name: p.bank_name, bank_agency: p.bank_agency,
         bank_account: p.bank_account, bank_account_type: p.bank_account_type,
         pix_key_type: p.pix_key_type, pix_key: p.pix_key,
+        cargo: p.cargo, departamento: p.departamento, data_admissao: p.data_admissao,
+        salario: p.salario, is_employee: p.is_employee,
         services: services.filter((s: any) => s.user_id === p.user_id).map((s: any) => s.service_type),
       }));
       setDrivers(driversWithServices);
