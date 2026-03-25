@@ -788,7 +788,7 @@ export function FinancialPayables() {
           let visible = true;
           if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
-          else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+          else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
           else if (quickFilter === "pagas") visible = inst.status === "pago";
           if (visible) ids.push(`inst-${inst.id}`);
