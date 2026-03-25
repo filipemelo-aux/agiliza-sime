@@ -81,6 +81,8 @@ export default function AdminMaintenances() {
   const [search, setSearch] = useState("");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState<Date | undefined>();
+  const [filterPeriodoFim, setFilterPeriodoFim] = useState<Date | undefined>();
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
