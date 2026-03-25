@@ -224,48 +224,22 @@ export default function AdminDashboard() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="border-destructive/30 bg-destructive/5">
-                <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Vencendo Hoje</p>
-                    <p className="text-lg font-bold truncate">{fmt(totalToday)}</p>
-                    <p className="text-[10px] text-muted-foreground">{dueToday.length} parcela{dueToday.length !== 1 ? "s" : ""}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <CalendarClock className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Próximos 7 dias</p>
-                    <p className="text-lg font-bold truncate">{fmt(totalWeek)}</p>
-                    <p className="text-[10px] text-muted-foreground">{dueWeek.length} parcela{dueWeek.length !== 1 ? "s" : ""}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Due today list */}
-            <Card className="border-border bg-card">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Vencendo Hoje */}
+            <Card className="border-destructive/30 bg-destructive/5">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base font-display flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   Vencendo Hoje
                 </CardTitle>
-                <Link to="/admin/financial/payables">
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
-                    Ver todas <ArrowRight className="h-3 w-3 ml-1" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold">{fmt(totalToday)}</span>
+                  <Link to="/admin/financial/payables">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground px-1">
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
                 {dueToday.length === 0 ? (
@@ -273,7 +247,7 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="space-y-2">
                     {dueToday.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/10">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{item.favorecido_nome || item.descricao}</p>
                           <p className="text-[11px] text-muted-foreground truncate">
@@ -288,18 +262,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Week forecast */}
-            <Card className="border-border bg-card">
+            {/* Próximos 7 dias */}
+            <Card className="border-primary/20 bg-primary/5">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base font-display flex items-center gap-2">
                   <CalendarClock className="h-4 w-4 text-primary" />
-                  Previsão da Semana
+                  Próximos 7 dias
                 </CardTitle>
-                <Link to="/admin/financial/payables">
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
-                    Ver todas <ArrowRight className="h-3 w-3 ml-1" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold">{fmt(totalWeek)}</span>
+                  <Link to="/admin/financial/payables">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground px-1">
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
                 {dueWeek.length === 0 ? (
