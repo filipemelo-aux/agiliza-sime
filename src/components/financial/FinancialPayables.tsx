@@ -718,7 +718,12 @@ export function FinancialPayables() {
         }
       } else if (quickFilter === "atrasadas") {
         if (hasInst) {
-          if (!installs.some(inst => inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago"))) return false;
+          if (!installs.some(inst => {
+            const isOverdue = inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago");
+            const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
+              (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
+            return isOverdue && inPeriod;
+          })) return false;
         } else {
           if (i.status !== "atrasado") return false;
         }
