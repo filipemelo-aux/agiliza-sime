@@ -402,50 +402,11 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
     }
-    // Validate required fields when changing to colaborador
-    const changingToColaborador = form.category === "colaborador" && person.category !== "colaborador";
-    if (form.category === "colaborador" && !form.email.trim()) {
-      toast({ title: "E-mail é obrigatório para Colaboradores (usado como login)", variant: "destructive" });
-      return;
-    }
-    if (form.category === "colaborador" && !form.cargo.trim()) {
-      toast({ title: "Cargo é obrigatório para Colaboradores", variant: "destructive" });
-      return;
-    }
     setLoading(true);
     try {
-      let newUserId = person.user_id;
+      const newUserId = person.user_id;
 
-      // When changing to colaborador, check if auth account exists and create if not
-      if (changingToColaborador || (form.category === "colaborador" && !person.services)) {
-        // Check if there's already an auth-linked user_role for this person
-        const { data: existingRole } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("user_id", person.user_id)
-          .maybeSingle();
-
-        if (!existingRole) {
-          // No auth account — create one via edge function
-          const { data: authData, error: authError } = await supabase.functions.invoke("create-employee-account", {
-            body: { email: form.email.trim(), full_name: form.full_name.trim(), profile_id: person.id },
-          });
-          if (authError) throw authError;
-          if (authData?.error) throw new Error(authData.error);
-
-          newUserId = authData.auth_user_id;
-          toast({
-            title: "Conta de acesso criada!",
-            description: `Senha temporária: ${authData.generated_password}`,
-            duration: 20000,
-          });
-        }
-      }
-
-      const payload = {
-        ...formToPayload(form) as any,
-        ...(newUserId !== person.user_id ? { user_id: newUserId } : {}),
-      };
+      const payload = formToPayload(form) as any;
       const { error } = await supabase
         .from("profiles")
         .update(payload)
@@ -559,35 +520,12 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return null;
     }
-    if (form.category === "colaborador" && !form.email.trim()) {
-      toast({ title: "E-mail é obrigatório para Colaboradores (usado como login)", variant: "destructive" });
-      return null;
-    }
-    if (form.category === "colaborador" && !form.cargo.trim()) {
-      toast({ title: "Cargo é obrigatório para Colaboradores", variant: "destructive" });
-      return null;
-    }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      let profileUserId = crypto.randomUUID();
-      let generatedPassword: string | null = null;
-
-      // For colaborador, create auth account first
-      if (form.category === "colaborador") {
-        const { data: authData, error: authError } = await supabase.functions.invoke("create-employee-account", {
-          body: { email: form.email.trim(), full_name: form.full_name.trim() },
-        });
-        if (authError) throw authError;
-        if (authData?.error) throw new Error(authData.error);
-
-        profileUserId = authData.auth_user_id;
-
-        // Store generated password to show after profile is created
-        generatedPassword = authData.generated_password;
-      }
+      const profileUserId = crypto.randomUUID();
 
       const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
