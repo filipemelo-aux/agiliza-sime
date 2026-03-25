@@ -979,7 +979,19 @@ export function FinancialPayables() {
                 variant={isActive ? "default" : "outline"}
                 size="sm"
                 className={`text-xs h-8 ${showLabel ? "gap-1.5" : "px-2"}`}
-                onClick={() => { setQuickFilter(f.key); setSelectedIds(new Set()); }}
+                onClick={() => {
+                  if (f.key === "semana") {
+                    const todayDate = new Date();
+                    setFilterPeriodoInicio(format(todayDate, "yyyy-MM-dd"));
+                    setFilterPeriodoFim(format(addDays(todayDate, 7), "yyyy-MM-dd"));
+                  } else if (f.key === "hoje") {
+                    const todayStr = format(new Date(), "yyyy-MM-dd");
+                    setFilterPeriodoInicio(todayStr);
+                    setFilterPeriodoFim(todayStr);
+                  }
+                  setQuickFilter(f.key);
+                  setSelectedIds(new Set());
+                }}
 
                 title={f.label}
               >
