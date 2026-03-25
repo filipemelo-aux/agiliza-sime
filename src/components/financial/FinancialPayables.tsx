@@ -774,12 +774,17 @@ export function FinancialPayables() {
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     }).sort((a, b) => {
-      const da = a.data_vencimento || a.data_emissao || "";
-      const db = b.data_vencimento || b.data_emissao || "";
-      // Todas/Semana: vencimento mais próximo (hoje) primeiro (ascendente)
-      // Atrasadas: mais antiga primeiro (ascendente)
-      // Pagas: mais recente primeiro (descendente)
-      return quickFilter === "pagas" ? db.localeCompare(da) : da.localeCompare(db);
+      // Para itens com parcelas, usar a menor data de vencimento pendente
+      const getDate = (item: typeof a) => {
+        const inst = installmentsMap[item.id];
+        if (inst && inst.length > 0) {
+          const pending = inst.filter(i => i.status !== "pago").map(i => i.data_vencimento).sort();
+          if (pending.length > 0) return pending[0];
+          return inst.map(i => i.data_vencimento).sort()[0];
+        }
+        return item.data_vencimento || item.data_emissao || "";
+      };
+      return getDate(a).localeCompare(getDate(b));
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
