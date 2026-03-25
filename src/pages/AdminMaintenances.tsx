@@ -375,11 +375,12 @@ export default function AdminMaintenances() {
                       <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(detailMaint.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                       <div><span className="text-muted-foreground">KM:</span> <span className="font-mono font-medium text-foreground">{Number(detailMaint.odometro).toLocaleString("pt-BR")}</span></div>
                       <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">{formatCurrency(Number(detailMaint.custo_total))}</span></div>
-                      {detailMaint.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{detailMaint.fornecedor}</span></div>}
+                      {nfseExpense?.favorecido_nome && <div className="col-span-2 truncate"><span className="text-muted-foreground">Oficina:</span> <span className="text-foreground">{nfseExpense.favorecido_nome}</span></div>}
+                      {nfeExpense?.favorecido_nome && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor Peças:</span> <span className="text-foreground">{nfeExpense.favorecido_nome}</span></div>}
+                      {!nfseExpense && !nfeExpense && detailMaint.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{detailMaint.fornecedor}</span></div>}
                       {detailMaint.proxima_manutencao_km && <div><span className="text-muted-foreground">Próx. KM:</span> <span className="font-mono text-foreground">{Number(detailMaint.proxima_manutencao_km).toLocaleString("pt-BR")}</span></div>}
                       {detailMaint.data_proxima_manutencao && <div><span className="text-muted-foreground">Próx. Data:</span> <span className="text-foreground">{format(new Date(detailMaint.data_proxima_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>}
                     </div>
-                    <p className="text-xs text-foreground mt-1 break-words">{detailMaint.descricao}</p>
                   </CardContent>
                 </Card>
 
