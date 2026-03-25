@@ -641,8 +641,8 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </Select>
       </div>
 
-      {/* Person Type toggle buttons - only for non-motorista */}
-      {!isMotorista && (
+      {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}
+      {!isMotorista && !isColaborador && (
         <div className="space-y-1">
           <Label className="text-xs">Tipo de Pessoa</Label>
           <div className="flex gap-2">
@@ -668,10 +668,10 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
       )}
 
-      {/* CPF - moved before name */}
-      {(isMotorista || form.person_type === "cpf") && (
+      {/* CPF - for motorista, colaborador, or CPF person type */}
+      {(isMotorista || isColaborador || form.person_type === "cpf") && (
         <div className="space-y-1">
-          <Label className="text-xs">CPF</Label>
+          <Label className="text-xs">CPF{isColaborador ? " *" : ""}</Label>
           <Input value={form.cpf} maxLength={14} onChange={(e) => setForm((p) => ({ ...p, cpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" />
         </div>
       )}
