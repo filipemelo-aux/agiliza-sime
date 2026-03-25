@@ -1040,16 +1040,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <div className="flex gap-1.5">
                           <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
                           <Input className="w-[90px] h-9" type="number" step="0.01" value={nfseNewValor} onChange={e => setNfseNewValor(e.target.value)} placeholder="Valor" />
-                        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                          if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
-                          if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
-                          const qtd = Number(nfseNewQtd) || 1;
-                          const vu = Number(nfseNewValor);
-                          setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
-                          setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
-                        }}><Plus className="h-4 w-4" /></Button>
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                            if (!nfseNewDesc.trim()) return toast.error("Informe a descrição do serviço");
+                            if (!nfseNewValor || Number(nfseNewValor) <= 0) return toast.error("Informe o valor");
+                            const qtd = Number(nfseNewQtd) || 1;
+                            const vu = Number(nfseNewValor);
+                            setNfseItens(prev => [...prev, { descricao: nfseNewDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu }]);
+                            setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
+                          }}><Plus className="h-4 w-4" /></Button>
                         </div>
-
+                      </div>
                       {nfseItens.length > 0 && (
                         <div className="border rounded-md overflow-x-auto max-h-[160px] overflow-y-auto">
                           <Table>
