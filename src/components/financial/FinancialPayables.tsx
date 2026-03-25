@@ -901,6 +901,9 @@ export function FinancialPayables() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                     {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
+                    {isHarvest && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
+                    )}
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
                     </Badge>
