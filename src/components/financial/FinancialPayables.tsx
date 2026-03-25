@@ -594,6 +594,20 @@ export function FinancialPayables() {
     }
   };
 
+  const handleDownloadBoleto = async (inst: Installment) => {
+    if (!inst.boleto_url) return;
+    try {
+      const { data, error } = await supabase.storage.from("payment-receipts").download(inst.boleto_url);
+      if (error || !data) { toast.error("Erro ao baixar boleto"); return; }
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `boleto_parcela_${inst.numero_parcela}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast.error("Erro ao baixar boleto"); }
+  };
+
   const counts = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
