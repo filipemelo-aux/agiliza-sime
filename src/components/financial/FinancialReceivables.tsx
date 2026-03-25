@@ -13,6 +13,7 @@ import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucid
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { formatCurrency } from "@/lib/masks";
 
 interface Receivable {
   id: string;
@@ -213,7 +214,7 @@ export function FinancialReceivables() {
     id: `harvest-${h.id}`, description: `Colheita — ${h.farm_name}`, category_id: null,
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, cte_id: null, invoice_id: null,
-    notes: `${h.totalDays} dias | Mensal: R$ ${h.monthly_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${h.invoicedAmount > 0 ? ` | Faturado: R$ ${h.invoicedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
+    notes: `${h.totalDays} dias | Mensal: {formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: {formatCurrency(h.invoicedAmount)}` : ""}`,
     created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 

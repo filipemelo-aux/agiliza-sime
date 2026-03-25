@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, Search, Eye, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
 
 interface Cte { id: string; numero: number | null; tomador_nome: string | null; tomador_cnpj: string | null; valor_frete: number; data_emissao: string | null; status: string; }
 interface HarvestJob { id: string; farm_name: string; client_name: string | null; client_id: string | null; monthly_value: number; totalLiquido: number; invoicedAmount: number; remaining: number; }
@@ -127,7 +128,7 @@ export function FinancialInvoices() {
     if (!harvest) return toast.error("Serviço não encontrado");
     const invoiceAmount = Number(harvestInvoiceAmount);
     if (!invoiceAmount || invoiceAmount <= 0) return toast.error("Informe o valor da fatura");
-    if (invoiceAmount > harvest.remaining + 0.01) return toast.error(`Valor excede o saldo restante de R$ ${harvest.remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+    if (invoiceAmount > harvest.remaining + 0.01) return toast.error(`Valor excede o saldo restante de {formatCurrency(harvest.remaining)}`);
     const debtorName = harvest.client_name || harvest.farm_name;
     const { data: inv, error: invErr } = await supabase.from("financial_invoices").insert({ debtor_name: debtorName, total_amount: invoiceAmount, due_date: dueDate || null, notes: notes.trim() || `Colheita — ${harvest.farm_name}`, created_by: user?.id, source_type: "harvest", harvest_job_id: harvest.id } as any).select().single();
     if (invErr || !inv) return toast.error(invErr?.message || "Erro ao criar fatura");
