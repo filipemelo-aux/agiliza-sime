@@ -14,7 +14,8 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
@@ -882,6 +883,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 selectedName={favorecidoNome || undefined}
                 onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); }}
                 onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+                endAction={
+                  <button
+                    type="button"
+                    onClick={() => window.open("/admin/people", "_blank")}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Cadastrar fornecedor"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </button>
+                }
               />
             </div>
             <div>

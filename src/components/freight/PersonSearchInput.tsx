@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, X } from "lucide-react";
@@ -30,6 +30,8 @@ interface PersonSearchInputProps {
   onClear?: () => void;
   /** Currently selected person name (controlled) */
   selectedName?: string;
+  /** Optional action element rendered inside the input (e.g. a "new" button) */
+  endAction?: ReactNode;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -52,6 +54,7 @@ export function PersonSearchInput({
   onSelect,
   onClear,
   selectedName,
+  endAction,
 }: PersonSearchInputProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PersonResult[]>([]);
@@ -143,9 +146,12 @@ export function PersonSearchInput({
           }}
           onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
           placeholder={placeholder}
-          className="pl-8"
+          className={`pl-8 ${endAction ? "pr-16" : ""}`}
         />
-        {loading && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {!loading && endAction}
+        </div>
       </div>
 
       {showDropdown && results.length > 0 && (
