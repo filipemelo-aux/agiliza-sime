@@ -788,7 +788,7 @@ export function FinancialPayables() {
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           let visible = true;
-          if (quickFilter === "all") visible = inst.status !== "pago";
+          if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
           else if (quickFilter === "hoje") visible = inst.data_vencimento === today2 && inst.status !== "pago";
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
@@ -1136,7 +1136,7 @@ export function FinancialPayables() {
               const today2 = new Date().toISOString().split("T")[0];
               const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
               const visibleInstalls = installs.filter(inst => {
-                if (quickFilter === "all") return inst.status !== "pago";
+                if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
                 if (quickFilter === "hoje") return inst.data_vencimento === today2 && inst.status !== "pago";
                 if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                 if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
