@@ -489,7 +489,56 @@ export function FinancialPayables() {
     fetchData();
   };
 
-  const counts = useMemo(() => {
+  const handleReversePayment = async (item: Expense) => {
+    if (!confirm(`Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.`)) return;
+    try {
+      // Delete all payment records for this expense
+      await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
+      // Reset installments if any
+      const installs = installmentsMap[item.id];
+      if (installs && installs.length > 0) {
+        for (const inst of installs) {
+          if (inst.status === "pago") {
+            await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+          }
+        }
+      }
+      // Reset the expense
+      await supabase.from("expenses").update({
+        valor_pago: 0,
+        status: "pendente",
+        data_pagamento: null,
+      } as any).eq("id", item.id);
+      toast.success("Pagamento estornado com sucesso");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar pagamento");
+    }
+  };
+
+  const handleReverseInstallment = async (inst: Installment) => {
+    if (!confirm(`Deseja estornar o pagamento da parcela ${inst.numero_parcela}?`)) return;
+    try {
+      await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+      // Recalculate expense totals
+      const expense = items.find(i => i.id === inst.expense_id);
+      if (expense) {
+        const newPago = Math.max(0, Number(expense.valor_pago) - Number(inst.valor));
+        const newStatus = newPago <= 0 ? "pendente" : "parcial";
+        await supabase.from("expenses").update({
+          valor_pago: newPago,
+          status: newStatus,
+          ...(newPago <= 0 ? { data_pagamento: null } : {}),
+        } as any).eq("id", expense.id);
+      }
+      toast.success("Parcela estornada com sucesso");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar parcela");
+    }
+  };
+
+
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
