@@ -167,7 +167,10 @@ export default function AdminSettings() {
   };
 
   useEffect(() => {
-    if (hasAccess) fetchUsers();
+    if (hasAccess) {
+      fetchUsers();
+      fetchColaboradores();
+    }
   }, [hasAccess]);
 
   useEffect(() => {
@@ -176,27 +179,63 @@ export default function AdminSettings() {
 
   // --- Create User ---
   const handleCreateUser = async () => {
-    if (!createForm.email || !createForm.password || !createForm.name) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+    if (!createForm.profileId && (!createForm.email || !createForm.password || !createForm.name)) {
+      toast({ title: "Preencha todos os campos ou selecione um colaborador", variant: "destructive" });
+      return;
+    }
+    if (createForm.profileId && !createForm.password) {
+      toast({ title: "Defina uma senha para o usuário", variant: "destructive" });
       return;
     }
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-moderator", {
-        body: {
-          email: createForm.email,
-          password: createForm.password,
-          name: createForm.name,
-          role: createForm.role,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (createForm.profileId) {
+        // Create auth account for existing colaborador
+        const selected = colaboradores.find(c => c.id === createForm.profileId);
+        if (!selected) throw new Error("Colaborador não encontrado");
+        const email = selected.email || createForm.email;
+        if (!email) {
+          toast({ title: "O colaborador precisa ter um e-mail cadastrado", variant: "destructive" });
+          setCreating(false);
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke("create-employee-account", {
+          body: { email, full_name: selected.full_name, profile_id: selected.id },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
-      toast({ title: "Usuário criado com sucesso!" });
+        // Update password to the one defined by admin
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        // Use the edge function to set the password (reuse reset-user-password with custom password not available)
+        // Actually we created with a random password, let's reset it via edge function
+        const { data: resetData, error: resetError } = await supabase.functions.invoke("reset-user-password", {
+          body: { target_user_id: data.auth_user_id, full_name: selected.full_name, custom_password: createForm.password },
+        });
+
+        toast({
+          title: "Usuário criado com sucesso!",
+          description: `Senha: ${createForm.password}`,
+          duration: 15000,
+        });
+      } else {
+        const { data, error } = await supabase.functions.invoke("create-moderator", {
+          body: {
+            email: createForm.email,
+            password: createForm.password,
+            name: createForm.name,
+            role: createForm.role,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        toast({ title: "Usuário criado com sucesso!" });
+      }
+
       setShowCreateDialog(false);
-      setCreateForm({ email: "", password: "", name: "", role: "user" });
+      setCreateForm({ email: "", password: "", name: "", role: "user", profileId: "" });
       fetchUsers();
+      fetchColaboradores();
     } catch (err: any) {
       toast({ title: "Erro ao criar usuário", description: err.message, variant: "destructive" });
     } finally {
