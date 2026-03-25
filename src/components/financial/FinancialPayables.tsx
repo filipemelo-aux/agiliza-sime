@@ -48,6 +48,7 @@ interface Expense {
   numero_multa: string | null;
   origem: string;
   created_at: string;
+  data_pagamento: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
@@ -494,10 +495,19 @@ export function FinancialPayables() {
         if (i.status !== "pago") return false;
       }
 
+      const q = search.toLowerCase();
       const matchSearch = !search ||
-        i.descricao.toLowerCase().includes(search.toLowerCase()) ||
-        (i.favorecido_nome || "").toLowerCase().includes(search.toLowerCase()) ||
-        (i.veiculo_placa || "").toLowerCase().includes(search.toLowerCase());
+        i.descricao.toLowerCase().includes(q) ||
+        (i.favorecido_nome || "").toLowerCase().includes(q) ||
+        (i.veiculo_placa || "").toLowerCase().includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
+        (i.chave_nfe || "").toLowerCase().includes(q) ||
+        (i.numero_multa || "").toLowerCase().includes(q) ||
+        (i.observacoes || "").toLowerCase().includes(q) ||
+        (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
+        (i.forma_pagamento || "").toLowerCase().includes(q) ||
+        String(i.valor_total).includes(q) ||
+        i.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
       const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
@@ -922,11 +932,13 @@ export function FinancialPayables() {
                       )}
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Vencimento</span>
+                      <span className="text-muted-foreground">{isPago ? "Pago em" : "Vencimento"}</span>
                       <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
-                        {item.data_vencimento
-                          ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")
-                          : "—"}
+                        {isPago && item.data_pagamento
+                          ? format(new Date(item.data_pagamento.includes("T") ? item.data_pagamento : item.data_pagamento + "T12:00:00"), "dd/MM/yyyy")
+                          : item.data_vencimento
+                            ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")
+                            : "—"}
                       </p>
                     </div>
                     {chart && (
