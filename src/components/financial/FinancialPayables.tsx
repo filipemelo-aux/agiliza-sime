@@ -570,7 +570,7 @@ export function FinancialPayables() {
           {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
             const isAll = f.key === "all";
-            const showLabel = isAll || isActive;
+            const showLabel = isActive;
             return (
               <Button
                 key={f.key}
