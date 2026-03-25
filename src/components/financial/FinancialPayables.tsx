@@ -1001,9 +1001,11 @@ export function FinancialPayables() {
         <td style="padding:10px 12px;text-align:right;font-family:${FONT};font-size:13px;font-weight:700;color:#2B4C7E;white-space:nowrap">${formatCurrency(r.valor)}</td>
       </tr>`;
 
+    const mesesAbrev = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const fmtShort = (d: string) => { const dt = new Date(d + "T12:00:00"); return `${dt.getDate()}-${mesesAbrev[dt.getMonth()]}`; };
     const periodoFile = filterPeriodoInicio || filterPeriodoFim
-      ? `${filterPeriodoInicio || "inicio"}_a_${filterPeriodoFim || format(new Date(), "yyyy-MM-dd")}`
-      : format(new Date(), "yyyy-MM-dd");
+      ? `${filterPeriodoInicio ? fmtShort(filterPeriodoInicio) : "inicio"}_a_${filterPeriodoFim ? fmtShort(filterPeriodoFim) : fmtShort(format(new Date(), "yyyy-MM-dd"))}`
+      : fmtShort(format(new Date(), "yyyy-MM-dd"));
     const docTitle = `Relatorio-contas-a-pagar-${periodoFile}`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
