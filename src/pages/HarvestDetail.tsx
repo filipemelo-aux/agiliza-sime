@@ -155,11 +155,11 @@ export default function HarvestDetail() {
 
   useEffect(() => {
     if (!roleLoading && !hasAdminAccess) navigate("/");
-  }, [isAdmin, isModerator, roleLoading, navigate]);
+  }, [hasAdminAccess, roleLoading, navigate]);
 
   useEffect(() => {
-    if ((isAdmin || isModerator) && id) fetchAll();
-  }, [isAdmin, isModerator, id]);
+    if (hasAdminAccess && id) fetchAll();
+  }, [hasAdminAccess, id]);
 
   // Keep selectedAssignment in sync with assignments after fetchAll
   useEffect(() => {
