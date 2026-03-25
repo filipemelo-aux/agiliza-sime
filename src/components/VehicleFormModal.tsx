@@ -312,7 +312,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     }
   };
 
-  const motoristas = profiles.filter((p) => p.category === "motorista");
+  const isLightVehicle = !TRUCK_TYPES.has(form.vehicleType);
+  const driverOptions = isLightVehicle
+    ? profiles.filter((p) => p.category === "colaborador")
+    : profiles.filter((p) => p.category === "motorista");
   const proprietarios = profiles.filter((p) => p.category === "proprietario");
 
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
