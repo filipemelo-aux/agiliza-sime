@@ -394,6 +394,21 @@ export default function AdminPeople() {
               {viewPerson.address_street && (
                 <p><span className="text-muted-foreground">Endereço:</span> {viewPerson.address_street}{viewPerson.address_number ? `, ${viewPerson.address_number}` : ""}{viewPerson.address_complement ? ` - ${viewPerson.address_complement}` : ""}</p>
               )}
+              {/* Employee details */}
+              {viewPerson.category === "colaborador" && (
+                <div className="pt-1 border-t border-border">
+                  <p className="text-muted-foreground font-medium mb-1">👤 Dados Funcionais</p>
+                  {(viewPerson as any).cargo && <p className="ml-4"><span className="text-muted-foreground">Cargo:</span> {(viewPerson as any).cargo}</p>}
+                  {(viewPerson as any).departamento && <p className="ml-4"><span className="text-muted-foreground">Departamento:</span> {(viewPerson as any).departamento}</p>}
+                  {(viewPerson as any).data_admissao && <p className="ml-4"><span className="text-muted-foreground">Admissão:</span> {new Date((viewPerson as any).data_admissao).toLocaleDateString("pt-BR")}</p>}
+                  {(viewPerson as any).salario && <p className="ml-4"><span className="text-muted-foreground">Salário:</span> R$ {Number((viewPerson as any).salario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>}
+                </div>
+              )}
+              {(viewPerson as any).is_employee && viewPerson.category === "motorista" && (
+                <div className="pt-1">
+                  <Badge variant="outline" className="text-xs border-teal-500/50 text-teal-500">Funcionário (Frota Própria)</Badge>
+                </div>
+              )}
               {viewPersonDocs && (viewPersonDocs.cnh_number || viewPersonDocs.cnh_category) && (
                 <div className="pt-1 border-t border-border">
                   <p className="text-muted-foreground flex items-center gap-1 mb-1"><FileText className="h-3.5 w-3.5" /> Habilitação (CNH)</p>
