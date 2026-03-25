@@ -234,7 +234,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-foreground/80">{fmt(totalToday)}</span>
-                  <Link to="/admin/financial/payables">
+                  <Link to="/admin/financial/payables" state={{ quickFilter: "hoje" }}>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
                   </Link>
                 </div>
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-foreground/80">{fmt(totalWeek)}</span>
-                  <Link to="/admin/financial/payables">
+                  <Link to="/admin/financial/payables" state={{ quickFilter: "semana" }}>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
                   </Link>
                 </div>
