@@ -707,16 +707,26 @@ export function FinancialPayables() {
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
     const ids: string[] = [];
+    const today2 = new Date().toISOString().split("T")[0];
+    const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
-        installs.forEach(i => ids.push(`inst-${i.id}`));
+        installs.forEach(inst => {
+          let visible = true;
+          if (quickFilter === "all") visible = inst.status !== "pago";
+          else if (quickFilter === "hoje") visible = inst.data_vencimento === today2 && inst.status !== "pago";
+          else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+          else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+          else if (quickFilter === "pagas") visible = inst.status === "pago";
+          if (visible) ids.push(`inst-${inst.id}`);
+        });
       } else {
         ids.push(item.id);
       }
     });
     return ids;
-  }, [filtered, installmentsMap]);
+  }, [filtered, installmentsMap, quickFilter]);
 
   const hasSelectedPaid = useMemo(() => {
     for (const id of selectedIds) {
@@ -1028,7 +1038,17 @@ export function FinancialPayables() {
 
             // If expense has installments, render each installment as its own card
             if (hasInstallments) {
-              return installs.map(inst => {
+              const today2 = new Date().toISOString().split("T")[0];
+              const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
+              const visibleInstalls = installs.filter(inst => {
+                if (quickFilter === "all") return inst.status !== "pago";
+                if (quickFilter === "hoje") return inst.data_vencimento === today2 && inst.status !== "pago";
+                if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+                if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+                if (quickFilter === "pagas") return inst.status === "pago";
+                return true;
+              });
+              return visibleInstalls.map(inst => {
                 const today = new Date().toISOString().split("T")[0];
                 const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
                 const isInstPago = inst.status === "pago";
