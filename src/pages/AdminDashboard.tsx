@@ -118,7 +118,8 @@ export default function AdminDashboard() {
           };
         });
 
-      const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
+      // "Vencendo Hoje" includes today + overdue (past due)
+      const todayItems = enriched.filter((i) => i.data_vencimento <= todayStr);
       const weekItems = enriched.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
 
       setDueToday(todayItems);
