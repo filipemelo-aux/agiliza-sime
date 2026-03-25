@@ -522,29 +522,31 @@ export default function AdminMaintenances() {
 
         {/* Delete confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-[95vw] sm:max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Excluir manutenção</AlertDialogTitle>
-              <AlertDialogDescription className="space-y-2">
-                <p>Deseja excluir este registro de manutenção?</p>
-                {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
-                  <p className="text-sm text-muted-foreground">
-                    Esta manutenção possui {[deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean).length} despesa(s) vinculada(s).
-                    Você pode removê-las junto ou manter as despesas no financeiro.
-                  </p>
-                )}
+              <AlertDialogTitle className="text-base">Excluir manutenção</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  <p>Deseja excluir este registro de manutenção?</p>
+                  {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
+                    <p className="text-muted-foreground">
+                      Esta manutenção possui {[deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean).length} despesa(s) vinculada(s).
+                      Você pode removê-las junto ou manter as despesas no financeiro.
+                    </p>
+                  )}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-2">
               {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
                 <Button
                   variant="destructive"
                   size="sm"
                   disabled={deleting}
                   onClick={() => handleDelete(true)}
+                  className="w-full sm:w-auto text-xs"
                 >
-                  {deleting ? "Excluindo..." : "Excluir tudo (manutenção + despesas)"}
+                  {deleting ? "Excluindo..." : "Excluir tudo"}
                 </Button>
               )}
               <Button
@@ -552,10 +554,11 @@ export default function AdminMaintenances() {
                 size="sm"
                 disabled={deleting}
                 onClick={() => handleDelete(false)}
-                className="border-destructive text-destructive hover:bg-destructive/10"
+                className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive/10 text-xs"
               >
-                {deleting ? "Excluindo..." : "Excluir só a manutenção"}
+                {deleting ? "Excluindo..." : "Só a manutenção"}
               </Button>
+              <AlertDialogCancel disabled={deleting} className="w-full sm:w-auto mt-0">Cancelar</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
