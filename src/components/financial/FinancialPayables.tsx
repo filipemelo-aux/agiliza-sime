@@ -1376,6 +1376,7 @@ export function FinancialPayables() {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 }
