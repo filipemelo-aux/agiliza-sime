@@ -2377,13 +2377,17 @@ export type Database = {
           bank_account_type: string | null
           bank_agency: string | null
           bank_name: string | null
+          cargo: string | null
           category: string
           cnpj: string | null
           created_at: string
+          data_admissao: string | null
+          departamento: string | null
           email: string | null
           full_name: string
           id: string
           inscricao_estadual: string | null
+          is_employee: boolean
           nome_fantasia: string | null
           notes: string | null
           person_type: string | null
@@ -2391,6 +2395,7 @@ export type Database = {
           pix_key: string | null
           pix_key_type: string | null
           razao_social: string | null
+          salario: number | null
           signature_data: string | null
           updated_at: string
           user_id: string
@@ -2408,13 +2413,17 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cargo?: string | null
           category?: string
           cnpj?: string | null
           created_at?: string
+          data_admissao?: string | null
+          departamento?: string | null
           email?: string | null
           full_name: string
           id?: string
           inscricao_estadual?: string | null
+          is_employee?: boolean
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
@@ -2422,6 +2431,7 @@ export type Database = {
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
+          salario?: number | null
           signature_data?: string | null
           updated_at?: string
           user_id: string
@@ -2439,13 +2449,17 @@ export type Database = {
           bank_account_type?: string | null
           bank_agency?: string | null
           bank_name?: string | null
+          cargo?: string | null
           category?: string
           cnpj?: string | null
           created_at?: string
+          data_admissao?: string | null
+          departamento?: string | null
           email?: string | null
           full_name?: string
           id?: string
           inscricao_estadual?: string | null
+          is_employee?: boolean
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
@@ -2453,6 +2467,7 @@ export type Database = {
           pix_key?: string | null
           pix_key_type?: string | null
           razao_social?: string | null
+          salario?: number | null
           signature_data?: string | null
           updated_at?: string
           user_id?: string
