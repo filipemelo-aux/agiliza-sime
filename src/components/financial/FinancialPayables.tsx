@@ -711,12 +711,6 @@ export function FinancialPayables() {
           if (i.status === "pago") return false;
           if (i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today)) return false;
         }
-      } else if (quickFilter === "hoje") {
-        if (hasInst) {
-          if (!installs.some(inst => inst.data_vencimento === today && inst.status !== "pago")) return false;
-        } else {
-          if (!(i.data_vencimento === today && i.status !== "pago")) return false;
-        }
       } else if (quickFilter === "semana") {
         if (hasInst) {
           if (!installs.some(inst => inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago")) return false;
