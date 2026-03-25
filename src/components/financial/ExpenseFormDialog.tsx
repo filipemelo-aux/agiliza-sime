@@ -803,7 +803,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </div>
               <div className="sm:col-span-2">
                 <Label className="text-xs">Descrição *</Label>
-                <Input value={descricao} onChange={e => setDescricao(maskName(e.target.value))} placeholder="Ex: Troca de óleo..." className="h-9" />
+                <Input value={descricao} onChange={e => setDescricao(maskSentence(e.target.value))} placeholder="Ex: Troca de óleo..." className="h-9" />
               </div>
             </div>
 
@@ -1181,7 +1181,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor("");
                         }
                       }}>
-                        <Input className="flex-1 h-9 min-w-0" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskName(e.target.value))} placeholder="Descrição do serviço" />
+                        <Input className="flex-1 h-9 min-w-0" value={nfseNewDesc} onChange={e => setNfseNewDesc(maskSentence(e.target.value))} placeholder="Descrição do serviço" />
                         <div className="flex gap-1.5">
                           <Input className="w-[60px] h-9" type="number" value={nfseNewQtd} onChange={e => setNfseNewQtd(e.target.value)} placeholder="Qtd" />
                           <Input className="w-[90px] h-9" value={nfseNewValor ? maskCurrency(String(Math.round(parseFloat(nfseNewValor) * 100))) : ""} onChange={e => setNfseNewValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
@@ -1410,7 +1410,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
                     <div>
                       <Label className="text-xs">Observações NFSe</Label>
-                      <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(maskName(e.target.value))} placeholder="Observações adicionais..." className="h-9" />
+                      <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(maskSentence(e.target.value))} placeholder="Observações adicionais..." className="h-9" />
                     </div>
                   </div>
                 </div>
@@ -1421,7 +1421,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           {/* ── Observações ── */}
           <div>
             <Label className="text-xs">Observações</Label>
-            <Textarea value={observacoes} onChange={e => setObservacoes(maskName(e.target.value))} rows={2} className="text-sm" />
+            <Textarea value={observacoes} onChange={e => setObservacoes(maskSentence(e.target.value))} rows={2} className="text-sm" />
           </div>
 
           {/* ── Doc Fiscal (collapsible) ── */}
