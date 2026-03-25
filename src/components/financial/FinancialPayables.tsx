@@ -730,12 +730,25 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // REGRA: O filtro de período SEMPRE é aplicado, independente do filtro rápido
-      const dateRef = i.status === "pago"
-        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
-        : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      // REGRA: O filtro de período SEMPRE é aplicado
+      // Para despesas COM parcelas, verificar se ALGUMA parcela cai no período
+      // Para despesas SEM parcelas, usar data de vencimento/emissão/pagamento
+      let matchPeriodo = true;
+      if (filterPeriodoInicio || filterPeriodoFim) {
+        if (hasInst) {
+          matchPeriodo = installs.some(inst => {
+            const instDate = inst.data_vencimento;
+            return (!filterPeriodoInicio || instDate >= filterPeriodoInicio) &&
+              (!filterPeriodoFim || instDate <= filterPeriodoFim);
+          });
+        } else {
+          const dateRef = i.status === "pago"
+            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            : (i.data_vencimento || i.data_emissao);
+          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+        }
+      }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
