@@ -43,7 +43,7 @@ interface VehicleRow {
 }
 
 export default function AdminVehicles() {
-  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
@@ -57,14 +57,14 @@ export default function AdminVehicles() {
   const [viewVehicle, setViewVehicle] = useState<VehicleRow | null>(null);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && !isModerator) {
+    if (!roleLoading && !hasAdminAccess) {
       const timer = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(timer);
     }
   }, [roleLoading]);
 
   useEffect(() => {
-    if (isAdmin || isModerator) fetchVehicles();
+    if (hasAdminAccess) fetchVehicles();
   }, [isAdmin, isModerator]);
 
   const fetchVehicles = async () => {
@@ -127,7 +127,7 @@ export default function AdminVehicles() {
       </div>
     );
   }
-  if (!isAdmin && !isModerator) return null;
+  if (!hasAdminAccess) return null;
 
   return (
     <AdminLayout>

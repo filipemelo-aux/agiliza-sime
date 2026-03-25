@@ -55,7 +55,7 @@ export default function AdminSettings() {
 
   // Create
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "user", profileId: "" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "moderator", profileId: "" });
   const [creating, setCreating] = useState(false);
   const [colaboradores, setColaboradores] = useState<{ id: string; full_name: string; email: string | null; user_id: string }[]>([]);
 
@@ -78,7 +78,8 @@ export default function AdminSettings() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const isCurrentUserAdmin = isAdmin;
   const isCurrentUserModerator = roles.includes("moderator");
-  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator;
+  const isCurrentUserOperador = roles.includes("operador");
+  const hasAccess = isCurrentUserAdmin || isCurrentUserModerator || isCurrentUserOperador;
 
   const fetchColaboradores = async () => {
     try {
@@ -167,11 +168,11 @@ export default function AdminSettings() {
   };
 
   useEffect(() => {
-    if (hasAccess) {
+    if (hasAccess && (isCurrentUserAdmin || isCurrentUserModerator)) {
       fetchUsers();
       fetchColaboradores();
     }
-  }, [hasAccess]);
+  }, [hasAccess, isCurrentUserAdmin, isCurrentUserModerator]);
 
   useEffect(() => {
     if (user) fetchProfile();
@@ -245,7 +246,7 @@ export default function AdminSettings() {
 
   // --- Edit User ---
   const openEdit = (u: SystemUser) => {
-    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : "user";
+    const mainRole = u.roles.includes("admin") ? "admin" : u.roles.includes("moderator") ? "moderator" : u.roles.includes("operador") ? "operador" : "user";
     setEditForm({ name: u.profile_name || "", email: u.email || "", role: mainRole });
     setEditUser(u);
   };
@@ -260,11 +261,11 @@ export default function AdminSettings() {
         .eq("user_id", editUser.id);
       if (profError) throw profError;
 
-      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : "user";
-      if (isCurrentUserAdmin && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
-        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "user"]);
-        if (editForm.role === "moderator") {
-          await supabase.from("user_roles").insert({ user_id: editUser.id, role: "moderator" });
+      const currentRole = editUser.roles.includes("admin") ? "admin" : editUser.roles.includes("moderator") ? "moderator" : editUser.roles.includes("operador") ? "operador" : "user";
+      if ((isCurrentUserAdmin || isCurrentUserModerator) && editForm.role !== currentRole && !editUser.roles.includes("admin")) {
+        await supabase.from("user_roles").delete().eq("user_id", editUser.id).in("role", ["moderator", "operador", "user"]);
+        if (editForm.role === "moderator" || editForm.role === "operador") {
+          await supabase.from("user_roles").insert({ user_id: editUser.id, role: editForm.role });
         }
       }
 
@@ -372,6 +373,8 @@ export default function AdminSettings() {
         return <Badge className="bg-red-500/20 text-red-400 text-xs"><ShieldCheck className="w-3 h-3 mr-1" />Admin</Badge>;
       case "moderator":
         return <Badge className="bg-purple-500/20 text-purple-400 text-xs"><Shield className="w-3 h-3 mr-1" />Moderador</Badge>;
+      case "operador":
+        return <Badge className="bg-blue-500/20 text-blue-400 text-xs"><Shield className="w-3 h-3 mr-1" />Operador</Badge>;
       default:
         return <Badge className="bg-muted text-muted-foreground text-xs">{role}</Badge>;
     }
@@ -405,20 +408,26 @@ export default function AdminSettings() {
         <Separator />
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
-            <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
-              <Users className="w-4 h-4" />
-              Geral
-            </TabsTrigger>
-            <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
-              <Building2 className="w-4 h-4" />
-              Fiscal
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
-              <MailIcon className="w-4 h-4" />
-              E-mail
-            </TabsTrigger>
+        <Tabs value={isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-4"}`}>
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
+                <Users className="w-4 h-4" />
+                Geral
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="fiscal" className="gap-2 text-xs sm:text-sm">
+                <Building2 className="w-4 h-4" />
+                Fiscal
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
+                <MailIcon className="w-4 h-4" />
+                E-mail
+              </TabsTrigger>
+            )}
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
               <User className="w-4 h-4" />
               Meu Perfil
@@ -460,8 +469,8 @@ export default function AdminSettings() {
                   const isTargetAdmin = u.roles.includes("admin");
                   const isTargetModerator = u.roles.includes("moderator");
                   const isSelf = u.id === user?.id;
-                  const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator);
-                  const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin && !isTargetModerator));
+                  const canEdit = isSelf || (isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin);
+                  const canDelete = !isSelf && ((isCurrentUserAdmin && !isTargetAdmin) || (isCurrentUserModerator && !isTargetAdmin));
 
                   return (
                     <Card key={u.id} className="border border-border hover:border-primary/30 transition-colors">
@@ -656,7 +665,7 @@ export default function AdminSettings() {
       {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={(open) => {
         setShowCreateDialog(open);
-        if (!open) setCreateForm({ email: "", password: "", name: "", role: "user", profileId: "" });
+        if (!open) setCreateForm({ email: "", password: "", name: "", role: "moderator", profileId: "" });
       }}>
         <DialogContent>
           <DialogHeader>
@@ -744,20 +753,19 @@ export default function AdminSettings() {
               />
             </div>
 
-            {!createForm.profileId && (
-              <div className="space-y-2">
-                <Label>Perfil de acesso</Label>
-                <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Usuário</SelectItem>
-                    {isCurrentUserAdmin && <SelectItem value="moderator">Moderador</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Perfil de acesso</Label>
+              <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="operador">Operador</SelectItem>
+                  {(isCurrentUserAdmin || isCurrentUserModerator) && <SelectItem value="moderator">Moderador</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
 
             <Button onClick={handleCreateUser} disabled={creating} className="w-full">
               {creating ? "Criando..." : "Criar Usuário"}
@@ -789,7 +797,7 @@ export default function AdminSettings() {
                 onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
               />
             </div>
-            {isCurrentUserAdmin && editUser && !editUser.roles.includes("admin") && (
+            {(isCurrentUserAdmin || isCurrentUserModerator) && editUser && !editUser.roles.includes("admin") && (
               <div className="space-y-2">
                 <Label>Perfil de acesso</Label>
                 <Select value={editForm.role} onValueChange={(v) => setEditForm((p) => ({ ...p, role: v }))}>
@@ -798,6 +806,7 @@ export default function AdminSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="operador">Operador</SelectItem>
                     <SelectItem value="moderator">Moderador</SelectItem>
                   </SelectContent>
                 </Select>

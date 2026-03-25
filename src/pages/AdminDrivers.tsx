@@ -74,7 +74,7 @@ const TRAILER_LABELS: Record<string, string[]> = {
 };
 
 export default function AdminDrivers() {
-  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [drivers, setDrivers] = useState<PersonProfile[]>([]);
@@ -102,14 +102,14 @@ export default function AdminDrivers() {
 
   useEffect(() => {
     // Only redirect after initial load, not on subsequent re-renders
-    if (!roleLoading && !isAdmin && !isModerator) {
+    if (!roleLoading && !hasAdminAccess) {
       const timer = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(timer);
     }
   }, [roleLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (isAdmin || isModerator) fetchAll();
+    if (hasAdminAccess) fetchAll();
   }, [isAdmin, isModerator]);
 
   const fetchAll = async () => {
@@ -233,7 +233,7 @@ export default function AdminDrivers() {
       </div>
     );
   }
-  if (!isAdmin && !isModerator) return null;
+  if (!hasAdminAccess) return null;
 
   return (
     <AdminLayout>

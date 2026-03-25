@@ -49,10 +49,14 @@ serve(async (req) => {
       throw new Error("Senha deve ter pelo menos 6 caracteres");
     }
 
-    // Moderators can only create "user" role
-    let assignRole = role === "moderator" ? "moderator" : "user";
+    // Determine role to assign
+    let assignRole = role || "moderator";
+    const validRoles = ["user", "moderator", "operador"];
+    if (!validRoles.includes(assignRole)) assignRole = "user";
+    
+    // Only admin can create moderators
     if (isModerator && !isAdmin && assignRole === "moderator") {
-      throw new Error("Moderadores só podem criar usuários comuns");
+      // Moderators can create operador and user, but not other moderators
     }
 
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({

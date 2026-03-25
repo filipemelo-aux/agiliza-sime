@@ -80,6 +80,8 @@ function SidebarNav() {
   const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
   const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/receipts", "/admin/fuelings", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 
+  // These variables are used for styling purposes only
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}

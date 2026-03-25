@@ -55,7 +55,7 @@ const emptyForm = {
 };
 
 export default function AdminHarvest() {
-  const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { user, isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<HarvestJob[]>([]);
@@ -67,11 +67,11 @@ export default function AdminHarvest() {
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && !isModerator) navigate("/");
+    if (!roleLoading && !hasAdminAccess) navigate("/");
   }, [isAdmin, isModerator, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin || isModerator) {
+    if (hasAdminAccess) {
       fetchJobs();
       fetchClients();
     }

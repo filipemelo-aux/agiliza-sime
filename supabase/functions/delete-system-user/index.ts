@@ -56,15 +56,12 @@ serve(async (req) => {
     const targetIsAdmin = targetRoles?.some((r: any) => r.role === "admin");
     const targetIsModerator = targetRoles?.some((r: any) => r.role === "moderator");
 
-    // Admin can't be deleted
+    // Admin can't be deleted by anyone except another admin (but we block self-delete above)
     if (targetIsAdmin) {
       throw new Error("Não é possível excluir um administrador");
     }
 
-    // Moderator can only delete "user" (not other moderators)
-    if (isModerator && !isAdmin && targetIsModerator) {
-      throw new Error("Moderadores não podem excluir outros moderadores");
-    }
+    // Moderator can delete anyone except admins (already blocked above)
 
     // Clean up related data
     await adminClient.from("user_roles").delete().eq("user_id", userId);

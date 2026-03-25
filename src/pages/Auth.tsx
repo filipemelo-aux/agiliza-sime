@@ -48,8 +48,9 @@ export default function Auth() {
 
     const isAdmin = roles?.some((r) => r.role === "admin");
     const isModerator = roles?.some((r) => r.role === "moderator");
+    const isOperador = roles?.some((r) => r.role === "operador");
     
-    if (isAdmin || isModerator) {
+    if (isAdmin || isModerator || isOperador) {
       navigate("/admin");
     } else {
       navigate("/my-applications");

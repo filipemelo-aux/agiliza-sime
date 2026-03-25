@@ -99,7 +99,7 @@ const DISCOUNT_TYPES = [
 
 export default function HarvestDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { user, isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -154,12 +154,12 @@ export default function HarvestDetail() {
   const [pdfDiscountEndDate, setPdfDiscountEndDate] = useState("");
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin && !isModerator) navigate("/");
-  }, [isAdmin, isModerator, roleLoading, navigate]);
+    if (!roleLoading && !hasAdminAccess) navigate("/");
+  }, [hasAdminAccess, roleLoading, navigate]);
 
   useEffect(() => {
-    if ((isAdmin || isModerator) && id) fetchAll();
-  }, [isAdmin, isModerator, id]);
+    if (hasAdminAccess && id) fetchAll();
+  }, [hasAdminAccess, id]);
 
   // Keep selectedAssignment in sync with assignments after fetchAll
   useEffect(() => {
