@@ -756,11 +756,26 @@ export function FinancialPayables() {
         }
       } else {
         const item = items.find(i => i.id === id);
-        if (item) total += Number(item.valor_total) - Number(item.valor_pago);
+        if (item) {
+          // For paid items, show the full amount (valor_pago or valor_total)
+          if (item.status === "pago") {
+            total += Number(item.valor_pago) || Number(item.valor_total);
+          } else {
+            total += Number(item.valor_total) - Number(item.valor_pago);
+          }
+        }
       }
     });
     return total;
   }, [selectedIds, items, installmentsMap]);
+
+  // Check if any selected item is a harvest payment
+  const hasSelectedHarvest = useMemo(() => {
+    for (const id of selectedIds) {
+      if (id.startsWith("harvest-")) return true;
+    }
+    return false;
+  }, [selectedIds]);
 
   const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
