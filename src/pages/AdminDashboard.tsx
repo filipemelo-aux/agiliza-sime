@@ -210,10 +210,39 @@ export default function AdminDashboard() {
         {/* Atalhos - Transporte */}
         <div className="mb-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Transporte</p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2">
+          <div className="grid grid-cols-3 w-full gap-2">
             {[
-              { title: "CT-e", icon: FileText, url: "/admin/freight/cte" },
-              { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe" },
+              { title: "CT-e", icon: FileText, url: "/admin/freight/cte", disabled: false },
+              { title: "MDF-e", icon: FileCheck, url: "/admin/freight/mdfe", disabled: false },
+              { title: "Fretes", icon: Truck, url: "#", disabled: true },
+            ].map((item) => (
+              item.disabled ? (
+                <span
+                  key={item.title}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 bg-muted text-muted-foreground shadow-sm cursor-not-allowed opacity-60"
+                >
+                  <item.icon className="h-4 w-4 lg:h-5 lg:w-5" />
+                  <span className="text-xs font-semibold leading-none">{item.title}</span>
+                </span>
+              ) : (
+                <Link
+                  key={item.title}
+                  to={item.url}
+                  className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
+                >
+                  <item.icon className="h-4 w-4 lg:h-5 lg:w-5" />
+                  <span className="text-xs font-semibold leading-none">{item.title}</span>
+                </Link>
+              )
+            ))}
+          </div>
+        </div>
+
+        {/* Atalhos - Ordens */}
+        <div className="mb-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Ordens</p>
+          <div className="grid grid-cols-2 w-full gap-2">
+            {[
               { title: "Carregamento", icon: ClipboardList, url: "/admin/applications" },
               { title: "Abastecimento", icon: Fuel, url: "/admin/fuel-orders" },
             ].map((item) => (
@@ -232,12 +261,11 @@ export default function AdminDashboard() {
         {/* Atalhos - Financeiro */}
         <div className="mb-6">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Financeiro</p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2">
+          <div className="grid grid-cols-3 w-full gap-2">
             {[
               { title: "Contas a Pagar", icon: DollarSign, url: "/admin/financial/payables" },
-              { title: "Contas a Receber", icon: TrendingUp, url: "/admin/financial/receivables" },
-              { title: "Faturas", icon: FileText, url: "/admin/financial/invoices" },
               { title: "Manutenções", icon: Settings, url: "/admin/maintenances" },
+              { title: "Abastecimentos", icon: Fuel, url: "/admin/fuelings" },
             ].map((item) => (
               <Link
                 key={item.title}
