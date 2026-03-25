@@ -75,7 +75,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "all" | "hoje" | "semana" | "atrasadas" | "pagas";
+type QuickFilter = "hoje" | "semana" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -115,7 +115,7 @@ export function FinancialPayables() {
   const [empresaId, setEmpresaId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(stored?.search ?? "");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>(initialQuickFilter ?? stored?.quickFilter ?? "all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter | "all">(initialQuickFilter ?? stored?.quickFilter ?? "all");
   const [filterPlanoContas, setFilterPlanoContas] = useState(stored?.filterPlanoContas ?? "all");
   const [filterNivel, setFilterNivel] = useState(stored?.filterNivel ?? "all");
   const [filterVeiculo, setFilterVeiculo] = useState(stored?.filterVeiculo ?? "all");
@@ -911,8 +911,7 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds]);
 
-  const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
+  const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
