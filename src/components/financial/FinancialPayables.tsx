@@ -834,21 +834,22 @@ export function FinancialPayables() {
     }
   };
 
-  const { totalPendente, totalPago, totalAtrasado } = useMemo(() => {
+  const { totalPendente, totalPago, totalAtrasado, totalRegistros } = useMemo(() => {
     let pendente = 0;
     let pago = 0;
     let atrasado = 0;
+    let registros = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    // REGRA: período é SEMPRE aplicado — usa filtered (já respeita período no nível da despesa)
-    // Para parcelas, filtrar individualmente pelo período também
-    filtered.forEach(item => {
+    // Cards seguem APENAS o período — ignoram busca, plano de contas, veículo, centro de custo, filtro rápido
+    items.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
             (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
           if (!inPeriod) return;
+          registros++;
           if (inst.status === "pago") {
             pago += Number(inst.valor);
           } else {
@@ -857,6 +858,13 @@ export function FinancialPayables() {
           }
         });
       } else {
+        const dateRef = item.status === "pago"
+          ? (item.data_pagamento ? (item.data_pagamento.includes("T") ? item.data_pagamento.split("T")[0] : item.data_pagamento) : item.data_vencimento || item.data_emissao)
+          : (item.data_vencimento || item.data_emissao);
+        const inPeriod = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+          (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+        if (!inPeriod) return;
+        registros++;
         if (item.status === "pago") {
           pago += Number(item.valor_pago);
         } else {
@@ -867,8 +875,8 @@ export function FinancialPayables() {
       }
     });
 
-    return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [filtered, installmentsMap, filterPeriodoInicio, filterPeriodoFim]);
+    return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado, totalRegistros: registros };
+  }, [items, installmentsMap, filterPeriodoInicio, filterPeriodoFim]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
