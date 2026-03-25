@@ -95,8 +95,8 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
-  const defaultEnd = format(endOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultStart = format(new Date(), "yyyy-MM-dd");
+  const defaultEnd = "";
 
   // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
