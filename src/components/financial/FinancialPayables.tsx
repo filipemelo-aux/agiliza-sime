@@ -962,14 +962,16 @@ export function FinancialPayables() {
                         <Check className="h-3.5 w-3.5" /> Pagar
                       </Button>
                     )}
-                    <div className="ml-auto flex gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
+                    {!isHarvest && (
+                      <div className="ml-auto flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
