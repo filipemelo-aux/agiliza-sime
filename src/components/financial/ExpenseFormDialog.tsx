@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { maskName } from "@/lib/masks";
+import { maskName, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -862,7 +862,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <div className="mt-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground font-medium">
-                    {parcelas.length} parcela(s) — Total: R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    {parcelas.length} parcela(s) — Total: {formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
                   </span>
                   <div className="flex gap-1">
                     <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
@@ -941,7 +941,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
                 {Math.abs(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0) - (Number(valorTotal) || 0)) > 0.01 && (
                   <p className="text-[10px] text-destructive font-medium">
-                    ⚠ Soma das parcelas (R$ {parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) difere do valor total (R$ {Number(valorTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+                    ⚠ Soma das parcelas ({formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}) difere do valor total ({formatCurrency(Number(valorTotal || 0))})
                   </p>
                 )}
               </div>
@@ -1084,7 +1084,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       {nfseItens.length > 0 && (
                         <div className="text-right mt-1">
                           <span className="text-xs font-semibold text-foreground">
-                            Total NFSe: R$ {nfseValorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            Total NFSe: {formatCurrency(nfseValorTotal)}
                           </span>
                         </div>
                       )}
@@ -1143,7 +1143,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <div className="mt-2 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-muted-foreground font-medium">
-                              {nfseParcelas.length} parcela(s) — Total: R$ {nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              {nfseParcelas.length} parcela(s) — Total: {formatCurrency(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
                             </span>
                             <div className="flex gap-1">
                               <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
@@ -1333,16 +1333,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     <CardContent className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                       <div>
                         <p className="text-[10px] text-muted-foreground">Total</p>
-                        <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm font-bold font-mono">{formatCurrency(Number(expense?.valor_total || 0))}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Pago</p>
-                        <p className="text-sm font-bold font-mono text-emerald-600">R$ {Number(expense?.valor_pago || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm font-bold font-mono text-emerald-600">{formatCurrency(Number(expense?.valor_pago || 0))}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Restante</p>
                         <p className="text-sm font-bold font-mono text-destructive">
-                          R$ {(Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          {formatCurrency((Number(expense?.valor_total || 0) - Number(expense?.valor_pago || 0)))}
                         </p>
                       </div>
                     </CardContent>
@@ -1378,7 +1378,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           {paymentHistory.map(p => (
                             <TableRow key={p.id}>
                               <TableCell className="text-[11px]">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
-                              <TableCell className="text-[11px] font-mono">R$ {Number(p.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-[11px] font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                               <TableCell className="text-[11px]">{formaLabel(p.forma_pagamento)}</TableCell>
                               <TableCell className="text-[11px] max-w-[80px] truncate">{p.observacoes || "—"}</TableCell>
                             </TableRow>

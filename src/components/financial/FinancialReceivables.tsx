@@ -241,20 +241,20 @@ export function FinancialReceivables() {
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Pendente (Faturado)</p>
-            <p className="text-xl font-bold text-foreground">R$ {invoiceSummary.totalFaturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(invoiceSummary.totalFaturado)}</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-success">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Recebido (Quitado)</p>
-            <p className="text-xl font-bold text-success">R$ {invoiceSummary.totalQuitado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xl font-bold text-success">{formatCurrency(invoiceSummary.totalQuitado)}</p>
           </CardContent>
         </Card>
         {totalPrevisao > 0 && (
           <Card className="border-l-4 border-l-primary">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Previsão</p>
-              <p className="text-xl font-bold text-primary">R$ {totalPrevisao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xl font-bold text-primary">{formatCurrency(totalPrevisao)}</p>
             </CardContent>
           </Card>
         )}
@@ -327,7 +327,7 @@ export function FinancialReceivables() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Valor</span>
-                    <p className="font-mono font-semibold text-foreground">R$ {Number(item.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="font-mono font-semibold text-foreground">{formatCurrency(Number(item.amount))}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Vencimento</span>

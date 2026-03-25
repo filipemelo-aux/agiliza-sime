@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { maskName } from "@/lib/masks";
+import { maskName, formatCurrency } from "@/lib/masks";
 
 export interface MaintenanceItem {
   descricao: string;
@@ -285,7 +285,7 @@ export function MaintenanceFields({
         {itensManutencao.length > 0 && (
           <div className="text-right mt-1">
             <span className="text-xs font-semibold text-foreground">
-              Total: R$ {itensManutencao.reduce((s, i) => s + i.valor_total, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              Total: {formatCurrency(itensManutencao.reduce((s, i) => s + i.valor_total, 0))}
             </span>
           </div>
         )}

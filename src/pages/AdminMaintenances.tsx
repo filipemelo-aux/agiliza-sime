@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { formatCurrency } from "@/lib/masks";
 
 
 interface Maintenance {
@@ -189,7 +190,7 @@ export default function AdminMaintenances() {
           <Card className="border-l-4 border-l-warning">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Custo Total</p>
-              <p className="text-xl font-bold text-foreground">R$ {totalCusto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(totalCusto)}</p>
             </CardContent>
           </Card>
           <Card className="hidden md:block border-l-4 border-l-success">
@@ -292,7 +293,7 @@ export default function AdminMaintenances() {
                       <div>
                         <span className="text-muted-foreground">Custo Total</span>
                         <p className="font-mono font-semibold text-foreground">
-                          R$ {Number(item.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          {formatCurrency(Number(item.custo_total))}
                         </p>
                       </div>
                     </div>
@@ -336,7 +337,7 @@ export default function AdminMaintenances() {
                       <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium text-foreground">{detailMaint.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}</span></div>
                       <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(detailMaint.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                       <div><span className="text-muted-foreground">KM:</span> <span className="font-mono font-medium text-foreground">{Number(detailMaint.odometro).toLocaleString("pt-BR")}</span></div>
-                      <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">R$ {Number(detailMaint.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                      <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">{formatCurrency(Number(detailMaint.custo_total))}</span></div>
                       {detailMaint.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{detailMaint.fornecedor}</span></div>}
                       {detailMaint.proxima_manutencao_km && <div><span className="text-muted-foreground">Próx. KM:</span> <span className="font-mono text-foreground">{Number(detailMaint.proxima_manutencao_km).toLocaleString("pt-BR")}</span></div>}
                       {detailMaint.data_proxima_manutencao && <div><span className="text-muted-foreground">Próx. Data:</span> <span className="text-foreground">{format(new Date(detailMaint.data_proxima_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>}
@@ -360,7 +361,7 @@ export default function AdminMaintenances() {
                         <div className="truncate"><span className="text-muted-foreground">Nº Doc:</span> <span className="text-foreground">{nfeExpense.documento_fiscal_numero || "—"}</span></div>
                         <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(nfeExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                         <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{nfeExpense.favorecido_nome || "—"}</span></div>
-                        <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(nfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                        <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(nfeExpense.valor_total))}</span></div>
                       </div>
 
                       {/* Itens de peças */}
@@ -372,7 +373,7 @@ export default function AdminMaintenances() {
                               <div key={mi.id} className="flex items-center gap-1 p-2 text-xs min-w-0">
                                 <span className="text-foreground truncate flex-1 min-w-0">{mi.descricao}</span>
                                 <span className="text-muted-foreground shrink-0">{mi.quantidade}x</span>
-                                <span className="font-mono text-foreground shrink-0">R${Number(mi.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(mi.valor_total))}</span>
                               </div>
                             ))}
                           </div>
@@ -397,7 +398,7 @@ export default function AdminMaintenances() {
                         <div className="truncate"><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{nfseExpense.documento_fiscal_numero || "—"}</span></div>
                         <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(nfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
                         <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{nfseExpense.favorecido_nome || "—"}</span></div>
-                        <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> R$ {Number(nfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
+                        <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(nfseExpense.valor_total))}</span></div>
                       </div>
                       <p className="text-xs text-muted-foreground break-words">{nfseExpense.descricao}</p>
                     </CardContent>
@@ -410,15 +411,15 @@ export default function AdminMaintenances() {
                     <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
                     <div className="flex justify-between text-xs">
                       <span className="text-foreground">NFe (Peças):</span>
-                      <span className="font-mono text-foreground">R$ {Number(nfeExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span className="font-mono text-foreground">{formatCurrency(Number(nfeExpense.valor_total))}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-foreground">NFSe (Serviço):</span>
-                      <span className="font-mono text-foreground">R$ {Number(nfseExpense.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span className="font-mono text-foreground">{formatCurrency(Number(nfseExpense.valor_total))}</span>
                     </div>
                     <div className="flex justify-between text-xs font-semibold border-t border-border pt-1">
                       <span className="text-foreground">Total:</span>
-                      <span className="font-mono text-foreground">R$ {Number(detailMaint.custo_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span className="font-mono text-foreground">{formatCurrency(Number(detailMaint.custo_total))}</span>
                     </div>
                   </div>
                 )}
@@ -435,7 +436,7 @@ export default function AdminMaintenances() {
                               <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
                               <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
                               <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
-                              <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                              <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                             </div>
                           ))}
                         </div>
@@ -456,7 +457,7 @@ export default function AdminMaintenances() {
                               <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
                               <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
                               <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
-                              <span className="font-mono text-foreground shrink-0">R${Number(inst.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                              <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                             </div>
                           ))}
                         </div>

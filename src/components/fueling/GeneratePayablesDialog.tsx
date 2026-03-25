@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
 
 interface Fueling {
   id: string;
@@ -127,7 +128,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
         <div className="space-y-4">
           <div className="rounded-lg border border-border p-3 space-y-1">
             <p className="text-sm text-muted-foreground">Abastecimentos selecionados: <span className="font-semibold text-foreground">{selectedFuelings.length}</span></p>
-            <p className="text-sm text-muted-foreground">Valor total: <span className="font-semibold text-foreground">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></p>
+            <p className="text-sm text-muted-foreground">Valor total: <span className="font-semibold text-foreground">{formatCurrency(total)}</span></p>
           </div>
 
           <div>

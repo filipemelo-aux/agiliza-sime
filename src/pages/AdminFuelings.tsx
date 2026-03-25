@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 import { GeneratePayablesDialog } from "@/components/fueling/GeneratePayablesDialog";
+import { formatCurrency } from "@/lib/masks";
 
 const FUEL_LABELS: Record<string, string> = {
   diesel: "Diesel",
@@ -123,7 +124,7 @@ export default function AdminFuelings() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Registros</p><p className="text-xl font-bold text-foreground">{filtered.length}</p></CardContent></Card>
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Litros</p><p className="text-xl font-bold text-foreground">{totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-xl font-bold text-primary">R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-xl font-bold text-primary">{formatCurrency(totalValue)}</p></CardContent></Card>
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Selecionados</p><p className="text-xl font-bold text-foreground">{selected.size}</p></CardContent></Card>
         </div>
 
@@ -132,7 +133,7 @@ export default function AdminFuelings() {
           <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
             <DollarSign className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">
-              {selected.size} abastecimento(s) — R$ {selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {selected.size} abastecimento(s) — {formatCurrency(selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0))}
             </span>
             <Button size="sm" onClick={() => setGenerateOpen(true)} className="ml-auto">
               <DollarSign className="h-4 w-4 mr-1" /> Gerar Conta(s) a Pagar
@@ -223,7 +224,7 @@ export default function AdminFuelings() {
                     {/* Footer */}
                     <div className="flex items-center justify-between pt-1 border-t border-border">
                       <span className="font-mono text-sm font-semibold text-foreground">
-                        R$ {Number(item.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatCurrency(Number(item.valor_total))}
                       </span>
                       <div className="flex gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(item); setFormOpen(true); }}>
