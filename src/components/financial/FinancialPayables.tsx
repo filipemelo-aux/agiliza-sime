@@ -72,7 +72,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
 
 type QuickFilter = "all" | "hoje" | "vencendo" | "atrasadas" | "pagas";
 
-export function FinancialPayables({ onNew }: { onNew?: () => void } = {}) {
+export function FinancialPayables() {
   
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
