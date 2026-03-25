@@ -151,7 +151,7 @@ export function FinancialReceipts() {
   const isPdf = (fileName: string) => /\.pdf$/i.test(fileName);
 
   return (
-    <>
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Recibos de Pagamento</h2>
@@ -308,8 +308,7 @@ export function FinancialReceipts() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
       {ConfirmDialog}
-    </>
+    </div>
   );
 }
