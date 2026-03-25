@@ -999,7 +999,28 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           <TableCell>
                             <Input
                               value={p.valor ? maskCurrency(String(Math.round(parseFloat(p.valor) * 100))) : ""}
-                              onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: unmaskCurrency(e.target.value) } : pp))}
+                              onChange={e => {
+                                const newVal = unmaskCurrency(e.target.value);
+                                setParcelas(prev => {
+                                  const updated = [...prev];
+                                  updated[idx] = { ...updated[idx], valor: newVal };
+                                  const total = Number(valorTotal) || 0;
+                                  const editedSum = updated.slice(0, idx + 1).reduce((s, pp2) => s + (Number(pp2.valor) || 0), 0);
+                                  const remaining = total - editedSum;
+                                  const afterCount = updated.length - idx - 1;
+                                  if (afterCount > 0 && remaining >= 0) {
+                                    const each = Math.floor(remaining / afterCount * 100) / 100;
+                                    for (let j = idx + 1; j < updated.length; j++) {
+                                      updated[j] = { ...updated[j], valor: each.toFixed(2) };
+                                    }
+                                    const diff2 = remaining - each * afterCount;
+                                    if (Math.abs(diff2) > 0.001) {
+                                      updated[updated.length - 1] = { ...updated[updated.length - 1], valor: (each + diff2).toFixed(2) };
+                                    }
+                                  }
+                                  return updated;
+                                });
+                              }}
                               className="h-7 text-[11px] text-right font-mono"
                             />
                           </TableCell>
@@ -1340,7 +1361,28 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                     </TableCell>
                                     <TableCell>
                                       <Input value={p.valor ? maskCurrency(String(Math.round(parseFloat(p.valor) * 100))) : ""}
-                                        onChange={e => setNfseParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, valor: unmaskCurrency(e.target.value) } : pp))}
+                                        onChange={e => {
+                                          const newVal = unmaskCurrency(e.target.value);
+                                          setNfseParcelas(prev => {
+                                            const updated = [...prev];
+                                            updated[idx] = { ...updated[idx], valor: newVal };
+                                            const total = nfseValorTotal;
+                                            const editedSum = updated.slice(0, idx + 1).reduce((s, pp2) => s + (Number(pp2.valor) || 0), 0);
+                                            const remaining = total - editedSum;
+                                            const afterCount = updated.length - idx - 1;
+                                            if (afterCount > 0 && remaining >= 0) {
+                                              const each = Math.floor(remaining / afterCount * 100) / 100;
+                                              for (let j = idx + 1; j < updated.length; j++) {
+                                                updated[j] = { ...updated[j], valor: each.toFixed(2) };
+                                              }
+                                              const diff2 = remaining - each * afterCount;
+                                              if (Math.abs(diff2) > 0.001) {
+                                                updated[updated.length - 1] = { ...updated[updated.length - 1], valor: (each + diff2).toFixed(2) };
+                                              }
+                                            }
+                                            return updated;
+                                          });
+                                        }}
                                         className="h-7 text-[11px] text-right font-mono"
                                       />
                                     </TableCell>
