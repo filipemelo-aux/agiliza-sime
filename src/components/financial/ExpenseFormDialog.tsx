@@ -348,6 +348,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
       })));
+      // Load existing boleto reference
+      const firstBoleto = (data as any[]).find((d: any) => d.boleto_url);
+      if (firstBoleto) {
+        setBoletoPdfExistingUrl(firstBoleto.boleto_url);
+      }
     } else {
       setUseParcelas(false);
       setParcelas([]);
