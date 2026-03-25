@@ -342,7 +342,23 @@ export default function AdminPeople() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* View person modal */}
+      <AlertDialog open={!!resetPerson} onOpenChange={(open) => !open && setResetPerson(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resetar senha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A senha de <strong>{resetPerson?.full_name}</strong> será redefinida para uma senha temporária (primeira letra do nome + 5 números aleatórios). A nova senha será exibida após a confirmação.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetPassword} disabled={resetting}>
+              {resetting ? "Resetando..." : "Resetar Senha"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!viewPerson} onOpenChange={(open) => { if (!open) { setViewPerson(null); setViewPersonDocs(null); setViewPersonHarvests([]); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
