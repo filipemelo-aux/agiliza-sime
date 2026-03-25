@@ -172,6 +172,12 @@ export default function AdminPeople() {
     }
   };
 
+  const filterByTab = (d: PersonProfile, tab: string) => {
+    if (tab === "__all__") return true;
+    if (tab === "colaborador") return d.category === "colaborador" || (d.category === "motorista" && d.is_employee);
+    return d.category === tab;
+  };
+
   const filteredDrivers = drivers.filter((d) => {
     const matchCategory = filterByTab(d, activeTab);
     const matchSearch =
@@ -181,12 +187,6 @@ export default function AdminPeople() {
       (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
     return matchCategory && matchSearch;
   });
-
-  const filterByTab = (d: PersonProfile, tab: string) => {
-    if (tab === "__all__") return true;
-    if (tab === "colaborador") return d.category === "colaborador" || (d.category === "motorista" && d.is_employee);
-    return d.category === tab;
-  };
 
   const countByTab = (tab: string) => {
     return drivers.filter((d) => filterByTab(d, tab)).length;
