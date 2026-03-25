@@ -213,16 +213,7 @@ export default function HarvestDetail() {
               .select("full_name, nome_fantasia")
               .eq("user_id", vehicleRes.data.owner_id)
               .maybeSingle();
-            const raw = ownerData?.nome_fantasia || ownerData?.full_name || "";
-            if (raw) {
-              const skip = new Set(["e", "do", "da", "das", "dos", "de", "&"]);
-              const parts = raw.split(" ").filter(Boolean);
-              const first = parts[0] || "";
-              const second = parts.slice(1).find((p: string) => !skip.has(p.toLowerCase())) || "";
-              ownerName = second ? `${first} ${second}` : first;
-            } else {
-              ownerName = "—";
-            }
+            ownerName = ownerData?.nome_fantasia || ownerData?.full_name || "—";
           }
 
           const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
