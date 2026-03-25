@@ -583,10 +583,11 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 // ---- SHARED FORM FIELDS ----
 function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; isEdit?: boolean; onAddVehicle?: () => void }) {
   const isMotorista = form.category === "motorista";
+  const isColaborador = form.category === "colaborador";
   const isProprietario = form.category === "proprietario";
-  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario";
-  const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario";
-  const showCNPJ = !isMotorista && form.person_type === "cnpj";
+  const showAddress = form.category === "cliente" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
+  const showBank = form.category === "motorista" || form.category === "fornecedor" || form.category === "proprietario" || isColaborador;
+  const showCNPJ = !isMotorista && !isColaborador && form.person_type === "cnpj";
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjError, setCnpjError] = useState("");
 
