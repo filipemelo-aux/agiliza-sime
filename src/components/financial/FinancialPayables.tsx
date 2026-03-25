@@ -773,7 +773,7 @@ export function FinancialPayables() {
         }
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
-    });
+    }).sort((a, b) => (a.data_vencimento || a.data_emissao || "").localeCompare(b.data_vencimento || b.data_emissao || ""));
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   // Build a flat list of selectable card IDs (installment or expense)
