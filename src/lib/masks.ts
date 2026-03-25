@@ -179,7 +179,7 @@ export const maskName = (value: string): string => {
     .join(" ");
 };
 
-// Currency mask: formats number as R$ 1.234,56
+// Currency mask: formats number as R$ 1.234,56 (for inputs — receives cents string)
 export const maskCurrency = (value: string): string => {
   const numbers = value.replace(/\D/g, "");
   if (!numbers) return "";
@@ -191,4 +191,10 @@ export const unmaskCurrency = (value: string): string => {
   const numbers = value.replace(/\D/g, "");
   if (!numbers) return "";
   return (parseInt(numbers) / 100).toString();
+};
+
+// Display formatter: converts a number to "R$ 1.234,56" string
+export const formatCurrency = (value: number | string | null | undefined): string => {
+  const num = Number(value) || 0;
+  return `R$ ${num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
