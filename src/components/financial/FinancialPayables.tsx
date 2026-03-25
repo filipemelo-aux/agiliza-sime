@@ -519,6 +519,57 @@ export function FinancialPayables() {
     }
   };
 
+  const handleBatchReverse = async () => {
+    if (selectedIds.size === 0) return;
+    if (!await confirm({ title: "Estornar selecionados", description: `Deseja estornar ${selectedIds.size} conta(s) selecionada(s)? Elas voltarão para pendente.` })) return;
+    setBatchPaying(true);
+
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        let foundInst: Installment | undefined;
+        let expenseId = "";
+        for (const [eid, installs] of Object.entries(installmentsMap)) {
+          foundInst = installs.find(i => i.id === instId);
+          if (foundInst) { expenseId = eid; break; }
+        }
+        if (!foundInst || foundInst.status !== "pago") continue;
+        await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", instId);
+        const expense = items.find(i => i.id === expenseId);
+        if (expense) {
+          const newPago = Math.max(0, Number(expense.valor_pago) - Number(foundInst.valor));
+          const newStatus = newPago <= 0 ? "pendente" : "parcial";
+          await supabase.from("expenses").update({
+            valor_pago: newPago,
+            status: newStatus,
+            ...(newPago <= 0 ? { data_pagamento: null } : {}),
+          } as any).eq("id", expenseId);
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (!item || item.status !== "pago") continue;
+        await supabase.from("expense_payments" as any).delete().eq("expense_id", id);
+        const installs = installmentsMap[id];
+        if (installs && installs.length > 0) {
+          for (const inst of installs) {
+            if (inst.status === "pago") {
+              await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+            }
+          }
+        }
+        await supabase.from("expenses").update({
+          valor_pago: 0,
+          status: "pendente",
+          data_pagamento: null,
+        } as any).eq("id", id);
+      }
+    }
+    toast.success(`${selectedIds.size} conta(s) estornada(s)`);
+    setSelectedIds(new Set());
+    setBatchPaying(false);
+    fetchData();
+  };
+
   const handleReverseInstallment = async (inst: Installment) => {
     if (!await confirm({ title: "Estornar parcela", description: `Deseja estornar o pagamento da parcela ${inst.numero_parcela}?` })) return;
     try {
@@ -604,13 +655,45 @@ export function FinancialPayables() {
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
-        installs.filter(i => i.status !== "pago").forEach(i => ids.push(`inst-${i.id}`));
-      } else if (item.status !== "pago") {
+        installs.forEach(i => ids.push(`inst-${i.id}`));
+      } else {
         ids.push(item.id);
       }
     });
     return ids;
   }, [filtered, installmentsMap]);
+
+  const hasSelectedPaid = useMemo(() => {
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const found = installs.find(i => i.id === instId);
+          if (found?.status === "pago") return true;
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item?.status === "pago") return true;
+      }
+    }
+    return false;
+  }, [selectedIds, items, installmentsMap]);
+
+  const hasSelectedUnpaid = useMemo(() => {
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const found = installs.find(i => i.id === instId);
+          if (found && found.status !== "pago") return true;
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item && item.status !== "pago") return true;
+      }
+    }
+    return false;
+  }, [selectedIds, items, installmentsMap]);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
@@ -810,25 +893,41 @@ export function FinancialPayables() {
           </span>
           {selectedIds.size > 0 && (
             <div className="ml-auto flex gap-1.5">
-              <Button
-                size="sm"
-                className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-                onClick={handleBatchPay}
-                disabled={batchPaying}
-              >
-                <Check className="h-3.5 w-3.5" />
-                {batchPaying ? "Processando..." : `Pagar (${selectedIds.size})`}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="gap-1.5 h-8"
-                onClick={handleBatchDelete}
-                disabled={batchPaying}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Excluir ({selectedIds.size})
-              </Button>
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  onClick={handleBatchPay}
+                  disabled={batchPaying}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  {batchPaying ? "Processando..." : "Pagar"}
+                </Button>
+              )}
+              {hasSelectedPaid && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 h-8 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                  onClick={handleBatchReverse}
+                  disabled={batchPaying}
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                  {batchPaying ? "Processando..." : "Estornar"}
+                </Button>
+              )}
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-1.5 h-8"
+                  onClick={handleBatchDelete}
+                  disabled={batchPaying}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Excluir
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -875,13 +974,11 @@ export function FinancialPayables() {
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {!isInstPago && (
                           <Checkbox
                             checked={isInstSelected}
                             onCheckedChange={() => toggleSelect(instCardId)}
                             className="mt-0.5"
                           />
-                        )}
                         <p className="text-sm font-semibold text-foreground truncate">
                           {item.favorecido_nome || "Sem favorecido"}
                         </p>
@@ -986,13 +1083,11 @@ export function FinancialPayables() {
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    {!isPago && (
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelect(item.id)}
                         className="mt-0.5"
                       />
-                    )}
                     <p className="text-sm font-semibold text-foreground truncate">
                       {item.favorecido_nome || "Sem favorecido"}
                     </p>
@@ -1075,12 +1170,16 @@ export function FinancialPayables() {
                     )}
                     {!isHarvest && (
                       <div className="ml-auto flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {!isPago && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
