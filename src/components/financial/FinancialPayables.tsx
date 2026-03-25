@@ -513,9 +513,12 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      const venc = i.data_vencimento || i.data_emissao;
-      const matchPeriodo = (!filterPeriodoInicio || venc >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || venc <= filterPeriodoFim);
+      // Para contas pagas, filtrar pela data de pagamento; demais pela data de vencimento
+      const dateRef = i.status === "pago"
+        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+        : (i.data_vencimento || i.data_emissao);
+      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
