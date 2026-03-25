@@ -966,12 +966,8 @@ export function FinancialPayables() {
 
       {/* Filters row: all inline */}
       <div className="space-y-2">
-        {/* Row 1: Search + Status pills + Date pickers */}
+        {/* Row 1: Status pills + Date pickers */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
-          </div>
 
           {quickFilterButtons.map(f => {
             const isActive = quickFilter === f.key;
@@ -1084,7 +1080,11 @@ export function FinancialPayables() {
         </div>
       </div>
 
-      {/* Batch actions bar */}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+      </div>
       {selectableCardIds.length > 0 && (
         <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
           <Checkbox
