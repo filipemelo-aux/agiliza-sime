@@ -23,17 +23,23 @@ const trailerRequirements: Record<string, { count: number; labels: string[] }> =
   rodotrem: { count: 3, labels: ["Placa da 1ª Carreta", "Placa do Dolly", "Placa da 2ª Carreta"] },
   bitrem: { count: 2, labels: ["Placa da 1ª Carreta", "Placa da 2ª Carreta"] },
   treminhao: { count: 2, labels: ["Placa do 1º Reboque", "Placa do 2º Reboque"] },
+  utilitario: { count: 0, labels: [] },
+  passeio: { count: 0, labels: [] },
 };
 
 const vehicleTypes = [
-  { value: "truck", label: "Truck" },
-  { value: "bitruck", label: "Bitruck" },
-  { value: "carreta", label: "Carreta" },
-  { value: "carreta_ls", label: "Carreta LS" },
-  { value: "rodotrem", label: "Rodotrem" },
-  { value: "bitrem", label: "Bitrem" },
-  { value: "treminhao", label: "Treminhão" },
+  { value: "truck", label: "Truck", group: "caminhao" },
+  { value: "bitruck", label: "Bitruck", group: "caminhao" },
+  { value: "carreta", label: "Carreta", group: "caminhao" },
+  { value: "carreta_ls", label: "Carreta LS", group: "caminhao" },
+  { value: "rodotrem", label: "Rodotrem", group: "caminhao" },
+  { value: "bitrem", label: "Bitrem", group: "caminhao" },
+  { value: "treminhao", label: "Treminhão", group: "caminhao" },
+  { value: "utilitario", label: "Utilitário", group: "leve" },
+  { value: "passeio", label: "Passeio", group: "leve" },
 ];
+
+const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
 
 const cargoTypes = [
   { value: "cacamba", label: "Caçamba" },
@@ -43,6 +49,7 @@ const cargoTypes = [
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "Carreta LS",
   rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
+  utilitario: "Utilitário", passeio: "Passeio",
 };
 
 interface ProfileOption {
