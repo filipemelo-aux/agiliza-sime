@@ -2571,7 +2571,7 @@ export default function HarvestDetail() {
       </Dialog>
 
       {/* Payment Registration Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); } }}>
+      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { setPaymentDialogOpen(open); if (!open) { setPartialPaymentValue(""); setPaymentDate(""); setPaymentDueDate(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
@@ -2634,6 +2634,16 @@ export default function HarvestDetail() {
                     )}
                   </div>
                   <div className="text-sm space-y-1">
+                    <Label htmlFor="payment-due-date" className="text-muted-foreground text-xs">Data de vencimento *</Label>
+                    <Input
+                      id="payment-due-date"
+                      type="date"
+                      className="h-9"
+                      value={paymentDueDate}
+                      onChange={(e) => setPaymentDueDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="text-sm space-y-1">
                     <Label htmlFor="payment-date" className="text-muted-foreground text-xs">Data do lançamento (opcional):</Label>
                     <Input
                       id="payment-date"
@@ -2643,10 +2653,10 @@ export default function HarvestDetail() {
                       onChange={(e) => setPaymentDate(e.target.value)}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Ao confirmar, este período será marcado como pago no relatório.</p>
+                  <p className="text-xs text-muted-foreground">Ao confirmar, será gerada uma conta a pagar com o vencimento informado.</p>
                   <DialogFooter>
                     <Button variant="outline" size="sm" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0}>
+                    <Button size="sm" onClick={() => handleRegisterPayment(paymentAmount, totalLiquido)} disabled={savingPayment || paymentAmount < 0 || !paymentDueDate}>
                       {savingPayment ? "Salvando..." : isPartial ? "Confirmar Parcial" : "Confirmar Pagamento"}
                     </Button>
                   </DialogFooter>
