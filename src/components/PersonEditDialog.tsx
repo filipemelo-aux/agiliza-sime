@@ -498,15 +498,47 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return null;
     }
+    if (form.category === "colaborador" && !form.email.trim()) {
+      toast({ title: "E-mail é obrigatório para Colaboradores (usado como login)", variant: "destructive" });
+      return null;
+    }
+    if (form.category === "colaborador" && !form.cargo.trim()) {
+      toast({ title: "Cargo é obrigatório para Colaboradores", variant: "destructive" });
+      return null;
+    }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const profileUserId = crypto.randomUUID();
+      let profileUserId = crypto.randomUUID();
+
+      // For colaborador, create auth account first
+      if (form.category === "colaborador") {
+        const { data: authData, error: authError } = await supabase.functions.invoke("create-employee-account", {
+          body: { email: form.email.trim(), full_name: form.full_name.trim() },
+        });
+        if (authError) throw authError;
+        if (authData?.error) throw new Error(authData.error);
+
+        profileUserId = authData.auth_user_id;
+
+        // Show generated password
+        toast({
+          title: "Conta de acesso criada!",
+          description: `Senha temporária: ${authData.generated_password}`,
+          duration: 20000,
+        });
+      }
+
       const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
       if (error) throw error;
+
+      // For colaborador, update profile_id link
+      if (form.category === "colaborador") {
+        // Profile already created with auth user_id, no extra step needed
+      }
 
       if (form.category === "motorista") {
         const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
@@ -519,6 +551,14 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
             cnh_expiry: form.cnh_expiry || null,
           });
         }
+      }
+
+      // Save CPF in driver_documents for colaborador too (for payroll)
+      if (form.category === "colaborador" && form.cpf) {
+        await supabase.from("driver_documents").insert({
+          user_id: profileUserId,
+          cpf: unmaskCPF(form.cpf) || null,
+        });
       }
 
       setCreatedUserId(profileUserId);
