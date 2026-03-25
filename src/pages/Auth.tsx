@@ -29,6 +29,8 @@ export default function Auth() {
   const [isSignup, setIsSignup] = useState(mode === "signup");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForceChange, setShowForceChange] = useState(false);
+  const [pendingRedirectUserId, setPendingRedirectUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
