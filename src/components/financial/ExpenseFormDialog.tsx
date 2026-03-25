@@ -140,6 +140,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   interface Parcela { numero: number; valor: string; data_vencimento: string; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
+  const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
+  const [boletoPdfExistingUrl, setBoletoPdfExistingUrl] = useState<string | null>(null);
+  const boletoInputRef = useRef<HTMLInputElement>(null);
 
   // Maintenance fields
   const [isManutencao, setIsManutencao] = useState(false);
