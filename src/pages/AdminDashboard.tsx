@@ -22,9 +22,12 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
+import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 
 interface DashboardStats {
   totalDrivers: number;
