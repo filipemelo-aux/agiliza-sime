@@ -63,6 +63,7 @@ const menuItems = [
       { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
     ],
   },
+  { title: "_spacer", url: "", icon: Settings },
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
@@ -114,6 +115,9 @@ function SidebarNav() {
                       ))}
                     </div>
                   );
+                }
+                if (item.title === "_spacer") {
+                  return <div key="_spacer" className="pt-6" />;
                 }
                 return (
                   <SidebarMenuItem key={item.title}>
