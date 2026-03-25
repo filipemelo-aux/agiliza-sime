@@ -402,11 +402,53 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
     }
+    // Validate required fields when changing to colaborador
+    const changingToColaborador = form.category === "colaborador" && person.category !== "colaborador";
+    if (form.category === "colaborador" && !form.email.trim()) {
+      toast({ title: "E-mail é obrigatório para Colaboradores (usado como login)", variant: "destructive" });
+      return;
+    }
+    if (form.category === "colaborador" && !form.cargo.trim()) {
+      toast({ title: "Cargo é obrigatório para Colaboradores", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
+      let newUserId = person.user_id;
+
+      // When changing to colaborador, check if auth account exists and create if not
+      if (changingToColaborador || (form.category === "colaborador" && !person.services)) {
+        // Check if there's already an auth-linked user_role for this person
+        const { data: existingRole } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("user_id", person.user_id)
+          .maybeSingle();
+
+        if (!existingRole) {
+          // No auth account — create one via edge function
+          const { data: authData, error: authError } = await supabase.functions.invoke("create-employee-account", {
+            body: { email: form.email.trim(), full_name: form.full_name.trim(), profile_id: person.id },
+          });
+          if (authError) throw authError;
+          if (authData?.error) throw new Error(authData.error);
+
+          newUserId = authData.auth_user_id;
+          toast({
+            title: "Conta de acesso criada!",
+            description: `Senha temporária: ${authData.generated_password}`,
+            duration: 20000,
+          });
+        }
+      }
+
+      const payload = {
+        ...formToPayload(form) as any,
+        ...(newUserId !== person.user_id ? { user_id: newUserId } : {}),
+      };
       const { error } = await supabase
         .from("profiles")
-        .update(formToPayload(form) as any)
+        .update(payload)
         .eq("id", person.id);
       if (error) throw error;
 
@@ -415,7 +457,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
         const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
         if (hasCnhData) {
           const docPayload = {
-            user_id: person.user_id,
+            user_id: newUserId,
             cpf: unmaskCPF(form.cpf) || null,
             cnh_number: form.cnh_number || null,
             cnh_category: form.cnh_category || null,
@@ -428,10 +470,24 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
             .maybeSingle();
 
           if (existing) {
-            await supabase.from("driver_documents").update(docPayload).eq("user_id", person.user_id);
+            await supabase.from("driver_documents").update(docPayload).eq("user_id", newUserId);
           } else {
             await supabase.from("driver_documents").insert(docPayload);
           }
+        }
+      }
+
+      // Save CPF in driver_documents for colaborador
+      if (form.category === "colaborador" && form.cpf) {
+        const { data: existing } = await supabase
+          .from("driver_documents")
+          .select("id")
+          .eq("user_id", newUserId)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("driver_documents").update({ cpf: unmaskCPF(form.cpf) || null }).eq("user_id", newUserId);
+        } else {
+          await supabase.from("driver_documents").insert({ user_id: newUserId, cpf: unmaskCPF(form.cpf) || null });
         }
       }
 
