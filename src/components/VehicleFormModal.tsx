@@ -312,7 +312,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     }
   };
 
-  const motoristas = profiles.filter((p) => p.category === "motorista");
+  const isLightVehicle = !TRUCK_TYPES.has(form.vehicleType);
+  const driverOptions = isLightVehicle
+    ? profiles.filter((p) => p.category === "colaborador")
+    : profiles.filter((p) => p.category === "motorista");
   const proprietarios = profiles.filter((p) => p.category === "proprietario");
 
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
@@ -366,7 +369,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs">Motorista</Label>
+                          <Label className="text-xs">{isLightVehicle ? "Colaborador" : "Motorista"}</Label>
                           <Select value={form.driverId || "__none__"} onValueChange={(v) => {
                             const newDriverId = v === "__none__" ? "" : v;
                             setForm((p) => ({ ...p, driverId: newDriverId }));
@@ -377,14 +380,14 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Nenhum</SelectItem>
-                              {motoristas.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
+                              {driverOptions.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Proprietário</Label>
                           {driverIsOwner ? (
-                            <Input value={motoristas.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
+                            <Input value={driverOptions.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
                           ) : (
                             <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
                               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
