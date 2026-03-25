@@ -1190,6 +1190,15 @@ ${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.favorecido}</td><td>${r.descr
                   Excluir
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={handlePrintSelected}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
             </div>
           )}
         </div>
