@@ -465,30 +465,40 @@ export function FinancialPayables() {
     let atrasado = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    filtered.forEach(item => {
+    // Use all items for "pago" total so it's always visible regardless of quickFilter
+    items.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           if (inst.status === "pago") {
             pago += Number(inst.valor);
-          } else {
+          }
+        });
+      } else if (item.status === "pago") {
+        pago += Number(item.valor_pago);
+      }
+    });
+
+    // Use filtered for pendente/atrasado
+    filtered.forEach(item => {
+      const installs = installmentsMap[item.id];
+      if (installs && installs.length > 0) {
+        installs.forEach(inst => {
+          if (inst.status !== "pago") {
             pendente += Number(inst.valor);
             const isOverdue = inst.data_vencimento < today;
             if (isOverdue) atrasado += Number(inst.valor);
           }
         });
-      } else {
-        pago += Number(item.valor_pago);
-        if (item.status !== "pago") {
-          const remaining = Number(item.valor_total) - Number(item.valor_pago);
-          pendente += remaining;
-          if (item.status === "atrasado") atrasado += remaining;
-        }
+      } else if (item.status !== "pago") {
+        const remaining = Number(item.valor_total) - Number(item.valor_pago);
+        pendente += remaining;
+        if (item.status === "atrasado") atrasado += remaining;
       }
     });
 
     return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [filtered, installmentsMap]);
+  }, [items, filtered, installmentsMap]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
