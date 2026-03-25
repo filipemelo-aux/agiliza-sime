@@ -680,31 +680,27 @@ export function FinancialPayables() {
                   >
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {!isInstPago && (
-                            <Checkbox
-                              checked={isInstSelected}
-                              onCheckedChange={() => toggleSelect(instCardId)}
-                              className="mt-0.5"
-                            />
-                          )}
-                          <p className="text-sm font-semibold text-foreground truncate">
-                            {item.favorecido_nome || "Sem favorecido"}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                            <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Badge variant="secondary" className="text-[10px]">
-                            P{inst.numero_parcela}/{installs.length}
-                          </Badge>
-                          <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
-                            {STATUS_MAP[instStatus]?.label || inst.status}
-                          </Badge>
-                        </div>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {!isInstPago && (
+                          <Checkbox
+                            checked={isInstSelected}
+                            onCheckedChange={() => toggleSelect(instCardId)}
+                            className="mt-0.5"
+                          />
+                        )}
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {item.favorecido_nome || "Sem favorecido"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+                        {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
+                        <Badge variant="secondary" className="text-[10px]">
+                          P{inst.numero_parcela}/{installs.length}
+                        </Badge>
+                        <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
+                          {STATUS_MAP[instStatus]?.label || inst.status}
+                        </Badge>
                       </div>
 
                       {/* Info */}
@@ -784,25 +780,21 @@ export function FinancialPayables() {
                 } ${isOverdue ? "border-destructive/40" : ""}`}
               >
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {!isPago && (
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelect(item.id)}
-                          className="mt-0.5"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {item.favorecido_nome || "Sem favorecido"}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                          <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {!isPago && (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelect(item.id)}
+                        className="mt-0.5"
+                      />
+                    )}
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {item.favorecido_nome || "Sem favorecido"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+                    {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
                     </Badge>
