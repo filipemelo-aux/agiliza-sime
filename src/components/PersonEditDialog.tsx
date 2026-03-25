@@ -85,6 +85,10 @@ interface FormState {
   bank_account_type: string;
   pix_key_type: string;
   pix_key: string;
+  cargo: string;
+  departamento: string;
+  data_admissao: string;
+  salario: string;
 }
 
 const emptyForm: FormState = {
