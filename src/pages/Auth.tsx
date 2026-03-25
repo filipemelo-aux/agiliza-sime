@@ -59,8 +59,9 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Only redirect on explicit sign-in, not on token refreshes
         if (event === 'SIGNED_IN' && session?.user) {
+          // Don't redirect if user must change password
+          if (session.user.user_metadata?.must_change_password) return;
           setTimeout(() => {
             handleRedirectAfterAuth(session.user.id);
           }, 0);
@@ -70,6 +71,11 @@ export default function Auth() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        if (session.user.user_metadata?.must_change_password) {
+          setPendingRedirectUserId(session.user.id);
+          setShowForceChange(true);
+          return;
+        }
         handleRedirectAfterAuth(session.user.id);
       }
     });
