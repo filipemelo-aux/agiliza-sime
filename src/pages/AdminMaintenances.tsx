@@ -133,7 +133,7 @@ export default function AdminMaintenances() {
     setLoading(true);
     const [{ data: mData }, { data: vData }] = await Promise.all([
       supabase.from("maintenances" as any).select("*").order("data_manutencao", { ascending: false }),
-      supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true),
+      supabase.from("vehicles").select("id, plate, brand, model, fleet_type").eq("is_active", true).eq("fleet_type", "propria"),
     ]);
     setItems((mData as any) || []);
     setVehicles((vData as any) || []);
