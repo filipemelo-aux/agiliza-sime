@@ -773,7 +773,12 @@ export function FinancialPayables() {
         }
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
-    }).sort((a, b) => (a.data_vencimento || a.data_emissao || "").localeCompare(b.data_vencimento || b.data_emissao || ""));
+    }).sort((a, b) => {
+      const da = a.data_vencimento || a.data_emissao || "";
+      const db = b.data_vencimento || b.data_emissao || "";
+      // Atrasadas: mais antiga primeiro (ascendente). Demais: mais recente primeiro (descendente).
+      return quickFilter === "atrasadas" ? da.localeCompare(db) : db.localeCompare(da);
+    });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   // Build a flat list of selectable card IDs (installment or expense)
