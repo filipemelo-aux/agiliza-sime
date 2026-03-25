@@ -665,7 +665,7 @@ export default function AdminSettings() {
       {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={(open) => {
         setShowCreateDialog(open);
-        if (!open) setCreateForm({ email: "", password: "", name: "", role: "user", profileId: "" });
+        if (!open) setCreateForm({ email: "", password: "", name: "", role: "moderator", profileId: "" });
       }}>
         <DialogContent>
           <DialogHeader>
@@ -753,20 +753,19 @@ export default function AdminSettings() {
               />
             </div>
 
-            {!createForm.profileId && (
-              <div className="space-y-2">
-                <Label>Perfil de acesso</Label>
-                <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Usuário</SelectItem>
-                    {isCurrentUserAdmin && <SelectItem value="moderator">Moderador</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Perfil de acesso</Label>
+              <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="operador">Operador</SelectItem>
+                  {(isCurrentUserAdmin || isCurrentUserModerator) && <SelectItem value="moderator">Moderador</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
 
             <Button onClick={handleCreateUser} disabled={creating} className="w-full">
               {creating ? "Criando..." : "Criar Usuário"}
