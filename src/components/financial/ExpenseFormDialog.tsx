@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
+import { maskName, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
 
@@ -883,7 +883,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 categories={["fornecedor"]}
                 placeholder="Buscar fornecedor..."
                 selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); if (p.cnpj) setFornecedorCnpj(p.cnpj); }}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
                 onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
                 endAction={
                   <button
