@@ -638,16 +638,35 @@ export function FinancialPayables() {
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
     return items.filter(i => {
+      const installs = installmentsMap[i.id];
+      const hasInst = installs && installs.length > 0;
+
       if (quickFilter === "all") {
         // Mostrar todas
       } else if (quickFilter === "hoje") {
-        if (!(i.data_vencimento === today && i.status !== "pago")) return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento === today && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento === today && i.status !== "pago")) return false;
+        }
       } else if (quickFilter === "semana") {
-        if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
+        }
       } else if (quickFilter === "atrasadas") {
-        if (i.status !== "atrasado") return false;
+        if (hasInst) {
+          if (!installs.some(inst => inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago"))) return false;
+        } else {
+          if (i.status !== "atrasado") return false;
+        }
       } else if (quickFilter === "pagas") {
-        if (i.status !== "pago") return false;
+        if (hasInst) {
+          if (!installs.every(inst => inst.status === "pago")) return false;
+        } else {
+          if (i.status !== "pago") return false;
+        }
       }
 
       const q = search.toLowerCase();
