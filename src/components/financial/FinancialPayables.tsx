@@ -1060,6 +1060,16 @@ export function FinancialPayables() {
                         <Check className="h-3.5 w-3.5" /> Pagar
                       </Button>
                     )}
+                    {isPago && !isHarvest && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                        onClick={() => handleReversePayment(item)}
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Estornar
+                      </Button>
+                    )}
                     {!isHarvest && (
                       <div className="ml-auto flex gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
