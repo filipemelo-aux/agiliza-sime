@@ -504,10 +504,61 @@ export default function AdminMaintenances() {
                     </CardContent>
                   </Card>
                 )}
+                {/* Delete button */}
+                <div className="pt-2 border-t border-border flex justify-end">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => setDeleteTarget(detailMaint)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir Manutenção
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir manutenção</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Deseja excluir este registro de manutenção?</p>
+                {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
+                  <p className="text-sm text-muted-foreground">
+                    Esta manutenção possui {[deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean).length} despesa(s) vinculada(s).
+                    Você pode removê-las junto ou manter as despesas no financeiro.
+                  </p>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={() => handleDelete(true)}
+                >
+                  {deleting ? "Excluindo..." : "Excluir tudo (manutenção + despesas)"}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={deleting}
+                onClick={() => handleDelete(false)}
+                className="border-destructive text-destructive hover:bg-destructive/10"
+              >
+                {deleting ? "Excluindo..." : "Excluir só a manutenção"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
