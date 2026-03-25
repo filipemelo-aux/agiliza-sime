@@ -869,8 +869,12 @@ export function FinancialPayables() {
           pago += Number(item.valor_pago);
         } else {
           const remaining = Number(item.valor_total) - Number(item.valor_pago);
-          pendente += remaining;
-          if (item.status === "atrasado") atrasado += remaining;
+          const dueDate = item.data_vencimento || item.data_emissao;
+          if (dueDate < today) {
+            atrasado += remaining;
+          } else {
+            pendente += remaining;
+          }
         }
       }
     });
