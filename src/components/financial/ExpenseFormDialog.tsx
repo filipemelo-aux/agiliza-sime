@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
-import { maskName, formatCurrency } from "@/lib/masks";
+import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 
 const CENTRO_CUSTO_OPTIONS = [
