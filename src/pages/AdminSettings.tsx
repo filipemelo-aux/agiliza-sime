@@ -654,30 +654,86 @@ export default function AdminSettings() {
       </div>
 
       {/* Create User Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) setCreateForm({ email: "", password: "", name: "", role: "user", profileId: "" });
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Novo Usuário</DialogTitle>
-            <DialogDescription>Crie uma conta de acesso ao sistema.</DialogDescription>
+            <DialogDescription>Crie uma conta de acesso ao sistema. Você pode vincular a um colaborador já cadastrado.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label>Nome completo</Label>
-              <Input
-                value={createForm.name}
-                onChange={(e) => setCreateForm((p) => ({ ...p, name: maskName(e.target.value) }))}
-                placeholder="Nome do usuário"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input
-                type="email"
-                value={createForm.email}
-                onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="usuario@email.com"
-              />
-            </div>
+            {/* Select existing colaborador */}
+            {colaboradores.length > 0 && (
+              <div className="space-y-2">
+                <Label>Vincular a Colaborador (opcional)</Label>
+                <Select
+                  value={createForm.profileId || "__none__"}
+                  onValueChange={(v) => {
+                    const profileId = v === "__none__" ? "" : v;
+                    if (profileId) {
+                      const selected = colaboradores.find(c => c.id === profileId);
+                      setCreateForm((p) => ({
+                        ...p,
+                        profileId,
+                        name: selected?.full_name || "",
+                        email: selected?.email || "",
+                      }));
+                    } else {
+                      setCreateForm((p) => ({ ...p, profileId: "", name: "", email: "" }));
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um colaborador..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum (criar manualmente)</SelectItem>
+                    {colaboradores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name} {c.email ? `(${c.email})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!createForm.profileId && (
+              <>
+                <div className="space-y-2">
+                  <Label>Nome completo</Label>
+                  <Input
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, name: maskName(e.target.value) }))}
+                    placeholder="Nome do usuário"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input
+                    type="email"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="usuario@email.com"
+                  />
+                </div>
+              </>
+            )}
+
+            {createForm.profileId && !colaboradores.find(c => c.id === createForm.profileId)?.email && (
+              <div className="space-y-2">
+                <Label>E-mail (obrigatório para login)</Label>
+                <Input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="usuario@email.com"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Senha</Label>
               <Input
@@ -687,18 +743,22 @@ export default function AdminSettings() {
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Perfil de acesso</Label>
-              <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Usuário</SelectItem>
-                  {isCurrentUserAdmin && <SelectItem value="moderator">Moderador</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
+
+            {!createForm.profileId && (
+              <div className="space-y-2">
+                <Label>Perfil de acesso</Label>
+                <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    {isCurrentUserAdmin && <SelectItem value="moderator">Moderador</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <Button onClick={handleCreateUser} disabled={creating} className="w-full">
               {creating ? "Criando..." : "Criar Usuário"}
             </Button>
