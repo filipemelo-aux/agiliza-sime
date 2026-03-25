@@ -736,6 +736,46 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
       </div>
 
+      {/* Employee fields - colaborador only */}
+      {isColaborador && (
+        <>
+          <Separator />
+          <p className="text-sm font-medium text-muted-foreground">Dados Funcionais</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Cargo *</Label>
+              <Input value={form.cargo} onChange={(e) => setForm((p) => ({ ...p, cargo: maskName(e.target.value) }))} placeholder="Ex: Auxiliar Administrativo" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={form.departamento || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, departamento: v === "__none__" ? "" : v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">-</SelectItem>
+                  <SelectItem value="administrativo">Administrativo</SelectItem>
+                  <SelectItem value="operacional">Operacional</SelectItem>
+                  <SelectItem value="financeiro">Financeiro</SelectItem>
+                  <SelectItem value="comercial">Comercial</SelectItem>
+                  <SelectItem value="logistica">Logística</SelectItem>
+                  <SelectItem value="manutencao">Manutenção</SelectItem>
+                  <SelectItem value="rh">Recursos Humanos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Data de Admissão</Label>
+              <Input type="date" value={form.data_admissao} onChange={(e) => setForm((p) => ({ ...p, data_admissao: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Salário (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={form.salario} onChange={(e) => setForm((p) => ({ ...p, salario: e.target.value }))} placeholder="0,00" />
+            </div>
+          </div>
+        </>
+      )}
+
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
