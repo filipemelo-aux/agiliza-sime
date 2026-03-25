@@ -18,6 +18,7 @@ import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, F
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
+import { splitPdfPages } from "@/lib/pdfSplitter";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -137,7 +138,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
   // Installments (parcelas)
-  interface Parcela { numero: number; valor: string; data_vencimento: string; }
+  interface Parcela { numero: number; valor: string; data_vencimento: string; boleto_url?: string | null; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
   const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
@@ -347,11 +348,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         numero: d.numero_parcela,
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
+        boleto_url: d.boleto_url || null,
       })));
-      // Load existing boleto reference
-      const firstBoleto = (data as any[]).find((d: any) => d.boleto_url);
-      if (firstBoleto) {
-        setBoletoPdfExistingUrl(firstBoleto.boleto_url);
+      // Check if any installment has boleto attached
+      const hasBoleto = (data as any[]).some((d: any) => d.boleto_url);
+      if (hasBoleto) {
+        setBoletoPdfExistingUrl("__per_installment__");
       }
     } else {
       setUseParcelas(false);
@@ -552,33 +554,47 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       })));
     }
 
-    // Save installments + boleto PDF
+    // Save installments + boleto PDF (split per page)
     if (expenseId) {
       await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
       if (useParcelas && parcelas.length > 0) {
-        // Upload boleto PDF if provided
-        let boletoStoragePath: string | null = null;
+        // Split PDF into individual pages and upload each
+        let boletoPaths: (string | null)[] = parcelas.map(() => null);
+
         if (boletoPdfFile) {
-          const ext = boletoPdfFile.name.split(".").pop() || "pdf";
-          const path = `boletos/${expenseId}/${Date.now()}.${ext}`;
-          const { error: uploadErr } = await supabase.storage.from("payment-receipts").upload(path, boletoPdfFile, { upsert: true });
-          if (uploadErr) {
-            console.error("Erro ao enviar boleto:", uploadErr);
-            toast.warning("Despesa salva, mas houve erro ao enviar o PDF dos boletos.");
-          } else {
-            boletoStoragePath = path;
+          try {
+            const pageBlobs = await splitPdfPages(boletoPdfFile);
+            const ts = Date.now();
+            for (let i = 0; i < parcelas.length; i++) {
+              if (i < pageBlobs.length) {
+                const path = `boletos/${expenseId}/${ts}_parcela_${i + 1}.pdf`;
+                const { error: upErr } = await supabase.storage
+                  .from("payment-receipts")
+                  .upload(path, pageBlobs[i], { upsert: true, contentType: "application/pdf" });
+                if (!upErr) boletoPaths[i] = path;
+              }
+            }
+            if (pageBlobs.length < parcelas.length) {
+              toast.info(`PDF tem ${pageBlobs.length} página(s) para ${parcelas.length} parcelas. Parcelas excedentes ficaram sem boleto.`);
+            }
+          } catch (err: any) {
+            console.error("Erro ao dividir PDF:", err);
+            toast.warning("Não foi possível dividir o PDF por parcela. Boletos não anexados.");
           }
         } else if (boletoPdfExistingUrl) {
-          boletoStoragePath = boletoPdfExistingUrl;
+          // Preserve existing per-installment boleto URLs from loaded data
+          parcelas.forEach((p, idx) => {
+            if (p.boleto_url) boletoPaths[idx] = p.boleto_url;
+          });
         }
 
-        await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
+        await supabase.from("expense_installments" as any).insert(parcelas.map((p, i) => ({
           expense_id: expenseId,
           numero_parcela: p.numero,
           valor: Number(p.valor) || 0,
           data_vencimento: p.data_vencimento,
           status: "pendente",
-          boleto_url: boletoStoragePath,
+          boleto_url: boletoPaths[i],
         })));
       }
     }
@@ -1003,8 +1019,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   ) : boletoPdfExistingUrl ? (
                     <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-xs truncate flex-1">Boleto anexado</span>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setBoletoPdfExistingUrl(null)}>
+                      <span className="text-xs truncate flex-1">
+                        Boletos anexados ({parcelas.filter(p => p.boleto_url).length} parcela{parcelas.filter(p => p.boleto_url).length !== 1 ? "s" : ""})
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => {
+                        setBoletoPdfExistingUrl(null);
+                        setParcelas(prev => prev.map(p => ({ ...p, boleto_url: null })));
+                      }}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </div>
