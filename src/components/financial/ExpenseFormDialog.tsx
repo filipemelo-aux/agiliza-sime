@@ -582,18 +582,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             toast.warning("Não foi possível dividir o PDF por parcela. Boletos não anexados.");
           }
         } else if (boletoPdfExistingUrl) {
-          // Keep existing URLs per installment (re-fetch from DB)
-          const { data: existingInstallments } = await supabase
-            .from("expense_installments" as any)
-            .select("numero_parcela, boleto_url")
-            .eq("expense_id", expenseId)
-            .order("numero_parcela");
-          if (existingInstallments) {
-            for (const inst of existingInstallments as any[]) {
-              const idx = parcelas.findIndex(p => p.numero === inst.numero_parcela);
-              if (idx >= 0 && inst.boleto_url) boletoPaths[idx] = inst.boleto_url;
-            }
-          }
+          // Preserve existing per-installment boleto URLs from loaded data
+          parcelas.forEach((p, idx) => {
+            if (p.boleto_url) boletoPaths[idx] = p.boleto_url;
+          });
         }
 
         await supabase.from("expense_installments" as any).insert(parcelas.map((p, i) => ({
