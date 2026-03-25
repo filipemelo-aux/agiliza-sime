@@ -11,11 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
