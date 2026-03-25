@@ -621,7 +621,11 @@ export function FinancialPayables() {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
-      all: items.length,
+      all: items.filter(i => {
+        const inst = installmentsMap[i.id];
+        if (inst && inst.length > 0) return !inst.every(x => x.status === "pago");
+        return i.status !== "pago";
+      }).length,
       hoje: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v === today && s !== "pago")).length,
       semana: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => v >= today && v <= in7days && s !== "pago")).length,
       atrasadas: items.filter(i => hasMatchingInstallmentOrSelf(i, (v, s) => s === "atrasado" || (v < today && s !== "pago"))).length,
@@ -642,7 +646,11 @@ export function FinancialPayables() {
       const hasInst = installs && installs.length > 0;
 
       if (quickFilter === "all") {
-        // Mostrar todas
+        if (hasInst) {
+          if (installs.every(inst => inst.status === "pago")) return false;
+        } else {
+          if (i.status === "pago") return false;
+        }
       } else if (quickFilter === "hoje") {
         if (hasInst) {
           if (!installs.some(inst => inst.data_vencimento === today && inst.status !== "pago")) return false;
@@ -890,6 +898,7 @@ export function FinancialPayables() {
                 size="sm"
                 className={`text-xs h-8 ${showLabel ? "gap-1.5" : "px-2"}`}
                 onClick={() => { setQuickFilter(f.key); setSelectedIds(new Set()); }}
+
                 title={f.label}
               >
                 {f.icon}
