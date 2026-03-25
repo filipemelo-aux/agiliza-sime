@@ -18,6 +18,7 @@ import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, F
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskCurrency, unmaskCurrency, formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
+import { splitPdfPages } from "@/lib/pdfSplitter";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -552,33 +553,55 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       })));
     }
 
-    // Save installments + boleto PDF
+    // Save installments + boleto PDF (split per page)
     if (expenseId) {
       await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
       if (useParcelas && parcelas.length > 0) {
-        // Upload boleto PDF if provided
-        let boletoStoragePath: string | null = null;
+        // Split PDF into individual pages and upload each
+        let boletoPaths: (string | null)[] = parcelas.map(() => null);
+
         if (boletoPdfFile) {
-          const ext = boletoPdfFile.name.split(".").pop() || "pdf";
-          const path = `boletos/${expenseId}/${Date.now()}.${ext}`;
-          const { error: uploadErr } = await supabase.storage.from("payment-receipts").upload(path, boletoPdfFile, { upsert: true });
-          if (uploadErr) {
-            console.error("Erro ao enviar boleto:", uploadErr);
-            toast.warning("Despesa salva, mas houve erro ao enviar o PDF dos boletos.");
-          } else {
-            boletoStoragePath = path;
+          try {
+            const pageBlobs = await splitPdfPages(boletoPdfFile);
+            const ts = Date.now();
+            for (let i = 0; i < parcelas.length; i++) {
+              if (i < pageBlobs.length) {
+                const path = `boletos/${expenseId}/${ts}_parcela_${i + 1}.pdf`;
+                const { error: upErr } = await supabase.storage
+                  .from("payment-receipts")
+                  .upload(path, pageBlobs[i], { upsert: true, contentType: "application/pdf" });
+                if (!upErr) boletoPaths[i] = path;
+              }
+            }
+            if (pageBlobs.length < parcelas.length) {
+              toast.info(`PDF tem ${pageBlobs.length} página(s) para ${parcelas.length} parcelas. Parcelas excedentes ficaram sem boleto.`);
+            }
+          } catch (err: any) {
+            console.error("Erro ao dividir PDF:", err);
+            toast.warning("Não foi possível dividir o PDF por parcela. Boletos não anexados.");
           }
         } else if (boletoPdfExistingUrl) {
-          boletoStoragePath = boletoPdfExistingUrl;
+          // Keep existing URLs per installment (re-fetch from DB)
+          const { data: existingInstallments } = await supabase
+            .from("expense_installments" as any)
+            .select("numero_parcela, boleto_url")
+            .eq("expense_id", expenseId)
+            .order("numero_parcela");
+          if (existingInstallments) {
+            for (const inst of existingInstallments as any[]) {
+              const idx = parcelas.findIndex(p => p.numero === inst.numero_parcela);
+              if (idx >= 0 && inst.boleto_url) boletoPaths[idx] = inst.boleto_url;
+            }
+          }
         }
 
-        await supabase.from("expense_installments" as any).insert(parcelas.map(p => ({
+        await supabase.from("expense_installments" as any).insert(parcelas.map((p, i) => ({
           expense_id: expenseId,
           numero_parcela: p.numero,
           valor: Number(p.valor) || 0,
           data_vencimento: p.data_vencimento,
           status: "pendente",
-          boleto_url: boletoStoragePath,
+          boleto_url: boletoPaths[i],
         })));
       }
     }
