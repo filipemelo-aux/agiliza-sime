@@ -68,6 +68,8 @@ export default function AdminPeople() {
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [deletePerson, setDeletePerson] = useState<PersonProfile | null>(null);
+  const [resetPerson, setResetPerson] = useState<PersonProfile | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const [viewPerson, setViewPerson] = useState<PersonProfile | null>(null);
   const [viewPersonDocs, setViewPersonDocs] = useState<{ cpf: string | null; cnh_number: string | null; cnh_category: string | null; cnh_expiry: string | null } | null>(null);
