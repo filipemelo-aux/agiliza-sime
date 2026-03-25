@@ -213,8 +213,7 @@ export default function AdminDashboard() {
           {userName && (
             <p className="text-lg text-muted-foreground mb-1">Olá, <span className="font-semibold text-foreground">{userName}</span>!</p>
           )}
-          <h1 className="text-3xl font-bold font-display">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Visão geral do sistema SIME TRANSPORTES</p>
+          <h1 className="text-3xl font-bold font-display">Visão Geral</h1>
         </div>
 
         {/* Atalhos rápidos */}
