@@ -670,7 +670,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? "Editar" : "Nova"} Despesa
@@ -1330,7 +1330,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 <div className="space-y-3 pl-5 border-l-2 border-muted">
                   {/* Payment summary */}
                   <Card className="bg-muted/50">
-                    <CardContent className="p-3 grid grid-cols-3 gap-2 text-center">
+                    <CardContent className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
                       <div>
                         <p className="text-[10px] text-muted-foreground">Total</p>
                         <p className="text-sm font-bold font-mono">R$ {Number(expense?.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
