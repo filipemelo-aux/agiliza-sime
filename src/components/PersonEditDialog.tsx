@@ -16,6 +16,7 @@ import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const CATEGORIES = [
   { value: "motorista", label: "Motorista" },
+  { value: "colaborador", label: "Colaborador" },
   { value: "cliente", label: "Cliente" },
   { value: "proprietario", label: "Proprietário" },
   { value: "fornecedor", label: "Fornecedor" },
