@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
+import { toast } from "sonner";
 
 
 interface Maintenance {
@@ -85,6 +87,41 @@ export default function AdminMaintenances() {
   const [nfeInstallments, setNfeInstallments] = useState<InstallmentDetail[]>([]);
   const [nfseInstallments, setNfseInstallments] = useState<InstallmentDetail[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<Maintenance | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (withExpenses: boolean) => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      if (withExpenses) {
+        const expenseIds = [deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean) as string[];
+        for (const eid of expenseIds) {
+          // Delete related records first
+          await supabase.from("expense_maintenance_items" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_installments" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_payments" as any).delete().eq("expense_id", eid);
+          await supabase.from("expense_items").delete().eq("expense_id", eid);
+          // Soft-delete the expense
+          await supabase.from("expenses").update({ deleted_at: new Date().toISOString() }).eq("id", eid);
+        }
+      }
+      // Delete the maintenance record
+      const { error } = await supabase.from("maintenances" as any).delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+
+      toast.success("Manutenção excluída com sucesso.");
+      setDeleteTarget(null);
+      setDetailOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error("Erro ao excluir: " + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -467,10 +504,61 @@ export default function AdminMaintenances() {
                     </CardContent>
                   </Card>
                 )}
+                {/* Delete button */}
+                <div className="pt-2 border-t border-border flex justify-end">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => setDeleteTarget(detailMaint)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir Manutenção
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir manutenção</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Deseja excluir este registro de manutenção?</p>
+                {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
+                  <p className="text-sm text-muted-foreground">
+                    Esta manutenção possui {[deleteTarget.expense_id, deleteTarget.nfse_expense_id].filter(Boolean).length} despesa(s) vinculada(s).
+                    Você pode removê-las junto ou manter as despesas no financeiro.
+                  </p>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              {deleteTarget && (deleteTarget.expense_id || deleteTarget.nfse_expense_id) && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={() => handleDelete(true)}
+                >
+                  {deleting ? "Excluindo..." : "Excluir tudo (manutenção + despesas)"}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={deleting}
+                onClick={() => handleDelete(false)}
+                className="border-destructive text-destructive hover:bg-destructive/10"
+              >
+                {deleting ? "Excluindo..." : "Excluir só a manutenção"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
