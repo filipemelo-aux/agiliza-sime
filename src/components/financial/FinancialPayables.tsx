@@ -919,7 +919,7 @@ export function FinancialPayables() {
                   {batchPaying ? "Processando..." : "Pagar"}
                 </Button>
               )}
-              {hasSelectedPaid && (
+              {hasSelectedPaid && !hasSelectedHarvest && (
                 <Button
                   size="sm"
                   variant="outline"
