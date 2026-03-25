@@ -25,7 +25,7 @@ export async function splitPdfPages(file: File): Promise<Blob[]> {
     canvas.height = viewport.height;
     const ctx = canvas.getContext("2d")!;
 
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
 
     // Create a new PDF with the same aspect ratio
     const widthMm = (viewport.width / scale) * 0.264583; // px to mm at 96dpi
