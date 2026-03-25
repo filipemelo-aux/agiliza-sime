@@ -95,10 +95,15 @@ export default function AdminPeople() {
         supabase.from("profiles").select("*").order("full_name"),
         supabase.from("driver_services" as any).select("*"),
         supabase.from("vehicles").select("*").order("brand"),
-        supabase.from("user_roles").select("user_id"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
 
-      const systemUserIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+      // Only exclude admin/moderator system users, not regular 'user' role (colaboradores)
+      const systemUserIds = new Set(
+        (rolesRes.data || [])
+          .filter((r: any) => r.role === "admin" || r.role === "moderator")
+          .map((r: any) => r.user_id)
+      );
       const profiles = (profilesRes.data || []).filter((p: any) => !systemUserIds.has(p.user_id));
       const services = (servicesRes.data as any[]) || [];
 
