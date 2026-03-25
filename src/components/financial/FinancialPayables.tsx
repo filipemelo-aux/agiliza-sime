@@ -659,7 +659,7 @@ export function FinancialPayables() {
             const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
             const isMaintenance = chart?.tipo_operacional === "manutencao";
             const descDisplay = item.documento_fiscal_numero
-              ? `NFSe ${item.documento_fiscal_numero}`
+              ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
               : item.descricao || "Serviço";
 
             // If expense has installments, render each installment as its own card
