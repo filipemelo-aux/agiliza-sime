@@ -129,12 +129,8 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
     setCnpjLoading(true);
     setCnpjError("");
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
-      if (!res.ok) {
-        setCnpjError("CNPJ não encontrado");
-        return;
-      }
-      const data = await res.json();
+      const { lookupCnpj } = await import("@/lib/cnpjLookup");
+      const data = await lookupCnpj(raw);
       setForm((p) => ({
         ...p,
         razao_social: data.razao_social ? maskName(data.razao_social) : p.razao_social,

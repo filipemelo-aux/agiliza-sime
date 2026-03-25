@@ -396,9 +396,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setCnpjLoading((p) => ({ ...p, [prefix]: true }));
     setCnpjErrors((p) => ({ ...p, [prefix]: "" }));
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
-      if (!res.ok) { setCnpjErrors((p) => ({ ...p, [prefix]: "CNPJ não encontrado" })); return; }
-      const data = await res.json();
+      const { lookupCnpj } = await import("@/lib/cnpjLookup");
+      const data = await lookupCnpj(raw);
       setForm((p) => ({
         ...p,
         [`${prefix}_nome`]: data.razao_social ? maskName(data.razao_social) : p[`${prefix}_nome` as keyof typeof p],
