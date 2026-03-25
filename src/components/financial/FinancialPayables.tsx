@@ -857,9 +857,10 @@ export function FinancialPayables() {
           registros++;
           if (inst.status === "pago") {
             pago += Number(inst.valor);
+          } else if (inst.data_vencimento < today) {
+            atrasado += Number(inst.valor);
           } else {
             pendente += Number(inst.valor);
-            if (inst.data_vencimento < today) atrasado += Number(inst.valor);
           }
         });
       } else {
