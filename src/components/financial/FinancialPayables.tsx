@@ -1080,7 +1080,11 @@ export function FinancialPayables() {
         </div>
       </div>
 
-      {/* Batch actions bar */}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+      </div>
       {selectableCardIds.length > 0 && (
         <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
           <Checkbox
