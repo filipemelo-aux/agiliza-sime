@@ -713,10 +713,14 @@ export default function HarvestDetail() {
         const totDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += mobileSummary("Agregados", [
+        const pdfSaldoAnterior = Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0;
+        const summaryItems = [
           { label: "Total Dias", value: String(totDias) },
           { label: "Total Descontos", value: formatCurrency(totDesc), className: "text-red" },
-        ], "Total Líquido", formatCurrency(totLiq));
+        ];
+        if (pdfSaldoAnterior > 0.01) summaryItems.push({ label: "📌 Saldo anterior (faltou)", value: `+${formatCurrency(pdfSaldoAnterior)}`, className: "text-red" });
+        if (pdfSaldoAnterior < -0.01) summaryItems.push({ label: "💰 Crédito anterior (pago a mais)", value: `-${formatCurrency(Math.abs(pdfSaldoAnterior))}`, className: "text-green" });
+        html += mobileSummary("Agregados", summaryItems, "Total Líquido", formatCurrency(totLiq + pdfSaldoAnterior));
         html += `</div></div>`;
       } else if (hasFilter) {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Período Início</th><th>Período Fim</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
@@ -727,7 +731,13 @@ export default function HarvestDetail() {
         const totAgrDias = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).days, 0);
         const totAgrDesc = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalDescontos, 0);
         const totAgrLiq = activeAssignments.reduce((s, a) => s + pdfGetAgregadoData(a).totalLiquido, 0);
-        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq)}</td></tr></tbody></table></div>`;
+        const pdfSaldoAnt = Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0;
+        if (pdfSaldoAnt > 0.01) {
+          html += `<tr style="background:#f8d7da"><td colspan="9" class="right" style="font-size:10px;color:#721c24">📌 Saldo acumulado anterior (faltou)</td><td class="right" style="color:#721c24;font-weight:600">+${formatCurrency(pdfSaldoAnt)}</td></tr>`;
+        } else if (pdfSaldoAnt < -0.01) {
+          html += `<tr style="background:#cce5ff"><td colspan="9" class="right" style="font-size:10px;color:#004085">💰 Crédito acumulado anterior (pago a mais)</td><td class="right" style="color:#004085;font-weight:600">-${formatCurrency(Math.abs(pdfSaldoAnt))}</td></tr>`;
+        }
+        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totAgrDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totAgrDesc)}</td><td class="right">${formatCurrency(totAgrLiq + pdfSaldoAnt)}</td></tr></tbody></table></div>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária</th><th>Bruto</th><th>Descontos</th><th>Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
