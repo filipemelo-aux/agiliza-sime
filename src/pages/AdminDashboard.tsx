@@ -218,7 +218,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Atalhos rápidos */}
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Atalhos</p>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-6">
           {/* CT-e */}
           <Link
