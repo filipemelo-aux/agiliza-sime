@@ -218,7 +218,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Atalhos rápidos */}
-        <div className="grid grid-cols-4 w-full gap-2 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-6">
           {/* CT-e */}
           <Link
             to="/admin/freight/cte"
