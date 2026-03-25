@@ -55,8 +55,9 @@ export default function AdminSettings() {
 
   // Create
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "user" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", name: "", role: "user", profileId: "" });
   const [creating, setCreating] = useState(false);
+  const [colaboradores, setColaboradores] = useState<{ id: string; full_name: string; email: string | null; user_id: string }[]>([]);
 
   // Edit
   const [editUser, setEditUser] = useState<SystemUser | null>(null);
