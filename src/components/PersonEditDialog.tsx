@@ -573,6 +573,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       if (!user) throw new Error("Não autenticado");
 
       let profileUserId = crypto.randomUUID();
+      let generatedPassword: string | null = null;
 
       // For colaborador, create auth account first
       if (form.category === "colaborador") {
@@ -584,22 +585,13 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
 
         profileUserId = authData.auth_user_id;
 
-        // Show generated password
-        toast({
-          title: "Conta de acesso criada!",
-          description: `Senha temporária: ${authData.generated_password}`,
-          duration: 20000,
-        });
+        // Store generated password to show after profile is created
+        generatedPassword = authData.generated_password;
       }
 
       const payload = { ...formToPayload(form), user_id: profileUserId };
       const { error } = await supabase.from("profiles").insert(payload as any);
       if (error) throw error;
-
-      // For colaborador, update profile_id link
-      if (form.category === "colaborador") {
-        // Profile already created with auth user_id, no extra step needed
-      }
 
       if (form.category === "motorista") {
         const hasCnhData = form.cnh_number || form.cpf || form.cnh_category || form.cnh_expiry;
