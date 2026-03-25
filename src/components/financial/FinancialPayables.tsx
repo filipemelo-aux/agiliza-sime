@@ -378,7 +378,7 @@ export function FinancialPayables() {
   };
 
   const handlePayInstallment = async (inst: Installment) => {
-    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — {formatCurrency(Number(inst.valor))}?`)) return;
+    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — ${formatCurrency(Number(inst.valor))}?`)) return;
     const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
     if (error) return toast.error(error.message);
     // Update expense valor_pago
@@ -904,7 +904,7 @@ export function FinancialPayables() {
           />
           <span className="text-xs text-muted-foreground">
             {selectedIds.size > 0
-              ? `${selectedIds.size} selecionada(s) — {formatCurrency(selectedTotal)}`
+              ? `${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`
               : "Selecionar todas"}
           </span>
           {selectedIds.size > 0 && (

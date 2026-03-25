@@ -214,7 +214,7 @@ export function FinancialReceivables() {
     id: `harvest-${h.id}`, description: `Colheita — ${h.farm_name}`, category_id: null,
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, cte_id: null, invoice_id: null,
-    notes: `${h.totalDays} dias | Mensal: {formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: {formatCurrency(h.invoicedAmount)}` : ""}`,
+    notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: {formatCurrency(h.invoicedAmount)}` : ""}`,
     created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
