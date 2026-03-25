@@ -1078,6 +1078,11 @@ export function FinancialPayables() {
                           </Button>
                         )}
                         <div className="ml-auto flex gap-0.5">
+                          {inst.boleto_url && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                              <Download className="h-3.5 w-3.5 text-primary" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
                             <FileText className="h-3.5 w-3.5" /> Detalhes
                           </Button>
