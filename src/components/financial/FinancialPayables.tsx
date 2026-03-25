@@ -958,7 +958,7 @@ export function FinancialPayables() {
         <Card className="hidden md:block">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Registros</p>
-            <p className="text-xl font-bold text-foreground">{filtered.length}</p>
+            <p className="text-xl font-bold text-foreground">{totalRegistros}</p>
           </CardContent>
         </Card>
       </div>
