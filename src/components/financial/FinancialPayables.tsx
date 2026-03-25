@@ -596,7 +596,7 @@ export function FinancialPayables() {
     const today = new Date().toISOString().split("T")[0];
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     return {
-      all: items.length,
+      all: items.filter(i => i.status !== "pago").length,
       hoje: items.filter(i => i.data_vencimento === today && i.status !== "pago").length,
       vencendo: items.filter(i => i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago").length,
       atrasadas: items.filter(i => i.status === "atrasado").length,
@@ -778,7 +778,7 @@ export function FinancialPayables() {
   }, [selectedIds]);
 
   const quickFilterButtons: { key: QuickFilter; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "all", label: "Todas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
+    { key: "all", label: "Não Pagas", icon: <Filter className="h-3.5 w-3.5" />, count: counts.all },
     { key: "hoje", label: "Hoje", icon: <Clock className="h-3.5 w-3.5" />, count: counts.hoje },
     { key: "vencendo", label: "Vencendo", icon: <CalendarClock className="h-3.5 w-3.5" />, count: counts.vencendo },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.atrasadas },
