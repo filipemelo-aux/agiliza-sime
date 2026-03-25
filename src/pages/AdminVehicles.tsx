@@ -188,7 +188,7 @@ export default function AdminVehicles() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold">🚛 {v.plate}</h3>
+                          <h3 className="font-semibold">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"} {v.plate}</h3>
                           <Badge variant="outline" className="text-xs">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
                           {v.cargo_type && <Badge variant="secondary" className="text-xs capitalize">{v.cargo_type}</Badge>}
                         </div>
@@ -253,7 +253,7 @@ export default function AdminVehicles() {
           {viewVehicle && (
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-base">🚛 {viewVehicle.plate}</span>
+                <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
                 <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
                 {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
               </div>
