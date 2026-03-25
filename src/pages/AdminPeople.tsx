@@ -307,6 +307,11 @@ export default function AdminPeople() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      {isAdmin && (
+                        <Button variant="outline" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePerson(driver)} title="Excluir">
                         <Trash2 className="h-4 w-4" />
                       </Button>
