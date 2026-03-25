@@ -1,22 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { 
-  Users, 
-  FileText, 
-  Package, 
-  Clock, 
-  CheckCircle, 
-  ArrowRight,
+import {
+  FileText,
   DollarSign,
-  MapPin,
-  Sprout,
-  Truck,
-  TrendingUp,
-  Car,
   ClipboardList,
   Fuel,
-  FileCheck,
-  Settings,
+  AlertTriangle,
+  CalendarClock,
+  ArrowRight,
 } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,34 +20,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
 
-interface DashboardStats {
-  totalDrivers: number;
-  activeHarvestJobs: number;
-  totalHarvestJobs: number;
-  totalFreights: number;
-  availableFreights: number;
-  inProgressFreights: number;
-  completedFreights: number;
-  pendingApplications: number;
-  totalValue: number;
-}
-
-interface ActiveHarvestJob {
+interface DueItem {
   id: string;
-  farm_name: string;
-  location: string;
+  expense_id: string;
+  numero_parcela: number;
+  valor: number;
+  data_vencimento: string;
   status: string;
-  monthly_value: number;
-  payment_value: number;
-  assignmentCount: number;
-}
-
-interface RecentApplication {
-  id: string;
-  status: string;
-  applied_at: string;
-  profile_name: string;
-  freight_route: string;
+  descricao: string;
+  favorecido_nome: string | null;
 }
 
 export default function AdminDashboard() {
@@ -64,28 +36,21 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
-  const [stats, setStats] = useState<DashboardStats>({
-    totalDrivers: 0,
-    activeHarvestJobs: 0,
-    totalHarvestJobs: 0,
-    totalFreights: 0,
-    availableFreights: 0,
-    inProgressFreights: 0,
-    completedFreights: 0,
-    pendingApplications: 0,
-    totalValue: 0,
-  });
-  const [activeJobs, setActiveJobs] = useState<ActiveHarvestJob[]>([]);
-  const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
   const [fuelingFormOpen, setFuelingFormOpen] = useState(false);
   const [empresaId, setEmpresaId] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [dueToday, setDueToday] = useState<DueItem[]>([]);
+  const [dueWeek, setDueWeek] = useState<DueItem[]>([]);
+  const [totalToday, setTotalToday] = useState(0);
+  const [totalWeek, setTotalWeek] = useState(0);
 
   useEffect(() => {
     supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setEmpresaId(data.id); });
   }, []);
+
   useEffect(() => {
     if (user) {
       supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle()
@@ -101,100 +66,76 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isAdmin || isModerator) {
-      fetchDashboardData();
+      fetchFinancialPreview();
     }
   }, [isAdmin, isModerator]);
 
-  const fetchDashboardData = async () => {
+  const fetchFinancialPreview = async () => {
     try {
-      // Parallel fetches
-      const [
-        { data: freights },
-        { data: applications },
-        { data: allProfiles },
-        { data: systemRoles },
-        { data: harvestJobs },
-        { data: harvestAssignments },
-      ] = await Promise.all([
-        supabase.from("freights").select("*"),
-        supabase.from("freight_applications").select("*").order("applied_at", { ascending: false }),
-        supabase.from("profiles").select("user_id, category"),
-        supabase.from("user_roles").select("user_id").in("role", ["admin", "moderator"]),
-        supabase.from("harvest_jobs").select("*").order("created_at", { ascending: false }),
-        supabase.from("harvest_assignments").select("harvest_job_id, user_id, status"),
-      ]);
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
 
-      // Count only motoristas (exclude admins/moderators)
-      const systemUserIds = new Set((systemRoles || []).map(r => r.user_id));
-      const driverCount = (allProfiles || []).filter(
-        p => p.category === "motorista" && !systemUserIds.has(p.user_id)
-      ).length;
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + 7);
+      const endWeekStr = endOfWeek.toISOString().split("T")[0];
 
-      const freightStats = freights || [];
-      const appStats = applications || [];
-      const jobs = harvestJobs || [];
-      const assignments = harvestAssignments || [];
+      // Fetch installments due today through end of week that are pending
+      const { data: installments } = await supabase
+        .from("expense_installments")
+        .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
+        .in("status", ["pendente", "atrasado"])
+        .gte("data_vencimento", todayStr)
+        .lte("data_vencimento", endWeekStr)
+        .order("data_vencimento", { ascending: true });
 
-      const totalValue = freightStats.reduce((sum, f) => sum + (f.value_brl || 0), 0);
+      if (!installments || installments.length === 0) {
+        setDueToday([]);
+        setDueWeek([]);
+        setTotalToday(0);
+        setTotalWeek(0);
+        setLoading(false);
+        return;
+      }
 
-      // Active harvest jobs with assignment counts
-      const activeJobsList = jobs
-        .filter(j => j.status === "active")
-        .map(j => ({
-          id: j.id,
-          farm_name: j.farm_name,
-          location: j.location,
-          status: j.status,
-          monthly_value: j.monthly_value,
-          payment_value: j.payment_value,
-          assignmentCount: assignments.filter(a => a.harvest_job_id === j.id && a.status === "active").length,
-        }));
+      // Fetch parent expenses for descriptions
+      const expenseIds = [...new Set(installments.map((i) => i.expense_id))];
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("id, descricao, favorecido_nome")
+        .in("id", expenseIds);
 
-      setStats({
-        totalDrivers: driverCount,
-        activeHarvestJobs: activeJobsList.length,
-        totalHarvestJobs: jobs.length,
-        totalFreights: freightStats.length,
-        availableFreights: freightStats.filter(f => f.status === "available").length,
-        inProgressFreights: freightStats.filter(f => f.status === "in_progress").length,
-        completedFreights: freightStats.filter(f => f.status === "completed").length,
-        pendingApplications: appStats.filter(a => a.status === "pending").length,
-        totalValue,
+      const expenseMap = new Map((expenses || []).map((e) => [e.id, e]));
+
+      const enriched: DueItem[] = installments.map((inst) => {
+        const exp = expenseMap.get(inst.expense_id);
+        return {
+          ...inst,
+          descricao: exp?.descricao || "—",
+          favorecido_nome: exp?.favorecido_nome || null,
+        };
       });
 
-      setActiveJobs(activeJobsList);
+      const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
+      const weekItems = enriched.filter((i) => i.data_vencimento > todayStr);
 
-      // Recent applications
-      if (appStats.length > 0) {
-        const recentApps = appStats.slice(0, 5);
-        const recentWithDetails = await Promise.all(
-          recentApps.map(async (app) => {
-            const [profileRes, freightRes] = await Promise.all([
-              supabase.from("profiles").select("full_name").eq("user_id", app.user_id).maybeSingle(),
-              supabase.from("freights").select("origin_city, origin_state, destination_city, destination_state").eq("id", app.freight_id).maybeSingle(),
-            ]);
-            return {
-              id: app.id,
-              status: app.status,
-              applied_at: app.applied_at,
-              profile_name: profileRes.data?.full_name || "Desconhecido",
-              freight_route: freightRes.data
-                ? `${freightRes.data.origin_city}/${freightRes.data.origin_state} → ${freightRes.data.destination_city}/${freightRes.data.destination_state}`
-                : "Rota desconhecida",
-            };
-          })
-        );
-        setRecentApplications(recentWithDetails);
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      setDueToday(todayItems);
+      setDueWeek(weekItems);
+      setTotalToday(todayItems.reduce((s, i) => s + Number(i.valor), 0));
+      setTotalWeek(weekItems.reduce((s, i) => s + Number(i.valor), 0));
+    } catch (err) {
+      console.error("Erro ao buscar previsão financeira:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  const fmtDate = (d: string) => {
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}`;
+  };
 
   if (roleLoading) {
     return (
@@ -218,8 +159,7 @@ export default function AdminDashboard() {
 
         {/* Atalhos rápidos */}
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Acesso Rápido</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-6">
-          {/* CT-e */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-2 mb-8">
           <Link
             to="/admin/freight/cte"
             className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
@@ -228,35 +168,23 @@ export default function AdminDashboard() {
             <span className="text-xs font-semibold leading-none">CT-e</span>
           </Link>
 
-          {/* Ordens - Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <button
-                className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full"
-              >
+              <button className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200 w-full">
                 <ClipboardList className="h-4 w-4 lg:h-5 lg:w-5" />
                 <span className="text-xs font-semibold leading-none">Ordens</span>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-44 p-1" align="center">
-              <Link
-                to="/admin/fuel-orders"
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                <Fuel className="h-4 w-4" />
-                Abastecimento
+              <Link to="/admin/fuel-orders" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <Fuel className="h-4 w-4" /> Abastecimento
               </Link>
-              <Link
-                to="/admin/applications"
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
-              >
-                <ClipboardList className="h-4 w-4" />
-                Carregamento
+              <Link to="/admin/applications" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
+                <ClipboardList className="h-4 w-4" /> Carregamento
               </Link>
             </PopoverContent>
           </Popover>
 
-          {/* Conta a Pagar - abre modal */}
           <button
             onClick={() => setExpenseFormOpen(true)}
             className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
@@ -265,7 +193,6 @@ export default function AdminDashboard() {
             <span className="text-xs font-semibold leading-none">Conta a Pagar</span>
           </button>
 
-          {/* Abastecimento - abre modal */}
           <button
             onClick={() => setFuelingFormOpen(true)}
             className="group flex items-center gap-2 rounded-xl px-3 py-2.5 bg-[#2B4C7E] text-white shadow-md hover:bg-[#F5C518] hover:text-[#2B4C7E] hover:shadow-lg hover:scale-105 transition-all duration-200"
@@ -297,269 +224,112 @@ export default function AdminDashboard() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <>
-            {/* Overview Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="border-border bg-card cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/admin/harvest")}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Serviços Ativos</CardTitle>
-                  <Sprout className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.activeHarvestJobs}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{stats.totalHarvestJobs} no total</p>
+          <div className="space-y-6">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="pt-5 pb-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Vencendo Hoje</p>
+                    <p className="text-lg font-bold truncate">{fmt(totalToday)}</p>
+                    <p className="text-[10px] text-muted-foreground">{dueToday.length} parcela{dueToday.length !== 1 ? "s" : ""}</p>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-border bg-card">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Motoristas</CardTitle>
-                  <Users className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalDrivers}</div>
-                  <p className="text-xs text-muted-foreground mt-1">cadastrados</p>
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="pt-5 pb-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <CalendarClock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Próximos 7 dias</p>
+                    <p className="text-lg font-bold truncate">{fmt(totalWeek)}</p>
+                    <p className="text-[10px] text-muted-foreground">{dueWeek.length} parcela{dueWeek.length !== 1 ? "s" : ""}</p>
+                  </div>
                 </CardContent>
               </Card>
-
-              {stats.totalFreights > 0 && (
-                <Card className="border-border bg-card">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Fretes</CardTitle>
-                    <Package className="h-4 w-4 text-accent" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.totalFreights}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{stats.availableFreights} disponíveis</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {stats.totalFreights > 0 ? (
-                <Card className="border-border bg-card">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Ordens Pendentes</CardTitle>
-                    <FileText className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.pendingApplications}</div>
-                    <p className="text-xs text-muted-foreground mt-1">pendentes</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  <Card className="border-border bg-card overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Valor Bruto Mensal</CardTitle>
-                      <DollarSign className="h-4 w-4 text-primary shrink-0" />
-                    </CardHeader>
-                    <CardContent className="min-w-0">
-                      <div className="text-base sm:text-2xl font-bold truncate">
-                        {formatCurrency(activeJobs.reduce((s, j) => s + j.monthly_value * j.assignmentCount, 0))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">valor mensal ativo</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-primary/20 bg-primary/5 overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Lucro Líquido Mensal</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-primary shrink-0" />
-                    </CardHeader>
-                    <CardContent className="min-w-0">
-                      <div className="text-base sm:text-2xl font-bold text-primary truncate">
-                        {formatCurrency(activeJobs.reduce((s, j) => s + (j.monthly_value - j.payment_value) * j.assignmentCount, 0))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">receita - custos</p>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
             </div>
 
-            {/* Active Harvest Jobs */}
-            {activeJobs.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold font-display">Serviços em Execução</h2>
-                  <Link to="/admin/harvest">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">
-                      Ver todos <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeJobs.slice(0, 6).map((job) => (
-                    <Link key={job.id} to={`/admin/harvest/${job.id}`}>
-                      <Card className="border-border bg-card hover:border-primary/50 transition-colors cursor-pointer">
-                        <CardContent className="pt-5 pb-4">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Sprout className="h-4 w-4 text-primary shrink-0" />
-                              <span className="font-medium truncate">{job.farm_name}</span>
-                            </div>
-                            <Badge variant="default" className="text-[10px] px-1.5 py-0 shrink-0">Ativo</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mb-3">
-                            <MapPin className="h-3 w-3" /> {job.location}
+            {/* Due today list */}
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  Vencendo Hoje
+                </CardTitle>
+                <Link to="/admin/financial/payables">
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                    Ver todas <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {dueToday.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta vencendo hoje 🎉</p>
+                ) : (
+                  <div className="space-y-2">
+                    {dueToday.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.favorecido_nome || item.descricao}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
                           </p>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <Users className="h-3 w-3" /> {job.assignmentCount} motorista{job.assignmentCount !== 1 ? "s" : ""}
-                            </span>
-                            <span className="font-medium text-primary">{formatCurrency(job.monthly_value * job.assignmentCount)}/mês</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+                        </div>
+                        <span className="text-sm font-semibold text-destructive whitespace-nowrap ml-3">{fmt(item.valor)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Freight Status - only show if freights exist */}
-            {stats.totalFreights > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <Card className="border-border bg-card">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <Clock className="h-6 w-6 text-blue-500" />
+            {/* Week forecast */}
+            <Card className="border-border bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                  Previsão da Semana
+                </CardTitle>
+                <Link to="/admin/financial/payables">
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                    Ver todas <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {dueWeek.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta nos próximos 7 dias</p>
+                ) : (
+                  <div className="space-y-2">
+                    {dueWeek.slice(0, 10).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.favorecido_nome || item.descricao}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                          </p>
+                        </div>
+                        <div className="text-right ml-3 shrink-0">
+                          <p className="text-sm font-semibold whitespace-nowrap">{fmt(item.valor)}</p>
+                          <p className="text-[10px] text-muted-foreground">{fmtDate(item.data_vencimento)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.availableFreights}</p>
-                        <p className="text-sm text-muted-foreground">Disponíveis</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-border bg-card">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                        <TrendingUp className="h-6 w-6 text-yellow-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.inProgressFreights}</p>
-                        <p className="text-sm text-muted-foreground">Em Andamento</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-border bg-card">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-green-500/20 flex items-center justify-center">
-                        <CheckCircle className="h-6 w-6 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{stats.completedFreights}</p>
-                        <p className="text-sm text-muted-foreground">Concluídos</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Quick Actions & Recent Applications */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border bg-card">
-                <CardHeader>
-                  <CardTitle className="text-lg font-display">Ações Rápidas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Link to="/admin/harvest">
-                    <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center gap-2">
-                        <Sprout className="h-4 w-4" />
-                        Gerenciar Colheita
-                      </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link to="/admin/drivers">
-                    <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        Gerenciar Cadastros
-                      </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  {stats.totalFreights > 0 && (
-                    <>
-                      <Link to="/">
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="flex items-center gap-2">
-                            <Package className="h-4 w-4" />
-                            Gerenciar Fretes
-                          </span>
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Link to="/admin/applications">
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            Ver Ordens de Carregamento
-                            {stats.pendingApplications > 0 && (
-                              <span className="bg-yellow-500 text-yellow-950 text-xs px-2 py-0.5 rounded-full">
-                                {stats.pendingApplications}
-                              </span>
-                            )}
-                          </span>
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Recent Applications - only if freights exist */}
-              {stats.totalFreights > 0 ? (
-                <Card className="border-border bg-card">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-display">Ordens Recentes</CardTitle>
-                    <Link to="/admin/applications">
-                      <Button variant="ghost" size="sm">Ver todas</Button>
-                    </Link>
-                  </CardHeader>
-                  <CardContent>
-                    {recentApplications.length === 0 ? (
-                      <p className="text-muted-foreground text-sm text-center py-4">
-                        Nenhuma candidatura ainda
+                    ))}
+                    {dueWeek.length > 10 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        + {dueWeek.length - 10} parcelas
                       </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {recentApplications.map((app) => (
-                          <div key={app.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{app.profile_name}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {app.freight_route}
-                              </p>
-                            </div>
-                            <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
-                              app.status === "approved"
-                                ? "bg-green-500/20 text-green-500"
-                                : app.status === "pending"
-                                ? "bg-yellow-500/20 text-yellow-500"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
-                              {app.status === "approved" ? "Aprovado" : app.status === "pending" ? "Pendente" : app.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
                     )}
-                  </CardContent>
-                </Card>
-              ) : null}
-            </div>
-          </>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
     </AdminLayout>
