@@ -1300,12 +1300,15 @@ export function FinancialPayables() {
             const isPago = item.status === "pago";
             const isSelected = selectedIds.has(item.id);
 
+            const todayStr2 = new Date().toISOString().split("T")[0];
+            const isDueToday = item.data_vencimento === todayStr2 && !isPago;
+
             return [(
               <Card
                 key={item.id}
                 className={`relative transition-all ${
                   isSelected ? "ring-2 ring-primary bg-primary/5" : ""
-                } ${isOverdue ? "border-destructive/40" : ""}`}
+                } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2.5 min-w-0">
