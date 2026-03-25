@@ -178,6 +178,22 @@ export default function AdminSettings() {
     if (user) fetchProfile();
   }, [user]);
 
+  const getInvokeErrorMessage = async (error: any) => {
+    if (!error) return "Erro desconhecido";
+
+    if (error?.context && typeof error.context.text === "function") {
+      try {
+        const raw = await error.context.text();
+        const parsed = JSON.parse(raw);
+        if (parsed?.error) return parsed.error;
+      } catch {
+        // fallback para mensagem padrão
+      }
+    }
+
+    return error.message || "Erro desconhecido";
+  };
+
   // --- Create User ---
   const handleCreateUser = async () => {
     if (!createForm.profileId && (!createForm.email || !createForm.password || !createForm.name)) {
@@ -188,17 +204,19 @@ export default function AdminSettings() {
       toast({ title: "Defina uma senha para o usuário", variant: "destructive" });
       return;
     }
+
     setCreating(true);
     try {
       if (createForm.profileId) {
-        const selected = colaboradores.find(c => c.id === createForm.profileId);
+        const selected = colaboradores.find((c) => c.id === createForm.profileId);
         if (!selected) throw new Error("Colaborador não encontrado");
+
         const email = selected.email || createForm.email;
         if (!email) {
           toast({ title: "O colaborador precisa ter um e-mail cadastrado", variant: "destructive" });
-          setCreating(false);
           return;
         }
+
         const { data, error } = await supabase.functions.invoke("create-employee-account", {
           body: {
             email,
@@ -208,11 +226,12 @@ export default function AdminSettings() {
             role: createForm.role,
           },
         });
-        if (error) throw error;
+
+        if (error) throw new Error(await getInvokeErrorMessage(error));
         if (data?.error) throw new Error(data.error);
 
         toast({
-          title: "Usuário criado com sucesso!",
+          title: data?.reused_existing_user ? "Conta existente vinculada com sucesso!" : "Usuário criado com sucesso!",
           description: `Senha: ${createForm.password}`,
           duration: 15000,
         });
@@ -225,13 +244,15 @@ export default function AdminSettings() {
             role: createForm.role,
           },
         });
-        if (error) throw error;
+
+        if (error) throw new Error(await getInvokeErrorMessage(error));
         if (data?.error) throw new Error(data.error);
+
         toast({ title: "Usuário criado com sucesso!" });
       }
 
       setShowCreateDialog(false);
-      setCreateForm({ email: "", password: "", name: "", role: "user", profileId: "" });
+      setCreateForm({ email: "", password: "", name: "", role: "moderator", profileId: "" });
       fetchUsers();
       fetchColaboradores();
     } catch (err: any) {
