@@ -511,6 +511,14 @@ export function FinancialPayables() {
             <p className="text-xl font-bold text-destructive">R$ {totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
+        <Card className={`border-l-4 ${selectedIds.size > 0 ? "border-l-primary" : "border-l-muted"}`}>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Selecionado</p>
+            <p className={`text-xl font-bold ${selectedIds.size > 0 ? "text-primary" : "text-muted-foreground"}`}>
+              R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
         <Card className="hidden md:block">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Registros</p>
