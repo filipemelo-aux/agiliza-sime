@@ -1,0 +1,1 @@
+UPDATE expenses SET favorecido_nome = 'Pais & Filhos Transportadora' WHERE id IN ('b0b321d1-3da0-4a83-8d4d-cd82d993739f', '937391c8-4dce-41e2-9423-55b475ebc755');
