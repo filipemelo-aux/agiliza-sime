@@ -288,7 +288,7 @@ export default function AdminPeople() {
                         setViewPerson(driver);
                         setViewPersonDocs(null);
                         setViewPersonHarvests([]);
-                        if (driver.category === "motorista") {
+                        if (driver.category === "motorista" || driver.category === "colaborador") {
                           const [docsRes, assignmentsRes] = await Promise.all([
                             supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
                             supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
