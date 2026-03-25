@@ -79,7 +79,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "hoje" | "semana" | "atrasadas" | "pagas";
+type QuickFilter = "semana" | "atrasadas" | "pagas";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
