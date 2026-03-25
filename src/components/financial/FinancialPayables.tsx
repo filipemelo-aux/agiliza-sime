@@ -606,9 +606,9 @@ export function FinancialPayables() {
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar por descrição, favorecido ou placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
-          <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="min-w-0 flex-1 max-w-[200px] h-9 truncate"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas Contas</SelectItem>
             {chartAccounts.filter(a => a.tipo === "despesa").map(a => (
@@ -618,11 +618,10 @@ export function FinancialPayables() {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Período:</span>
-          <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[130px] h-9" />
+        <div className="flex items-center gap-1 shrink-0">
+          <Input type="date" value={filterPeriodoInicio} onChange={e => setFilterPeriodoInicio(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
           <span className="text-xs text-muted-foreground">a</span>
-          <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[130px] h-9" />
+          <Input type="date" value={filterPeriodoFim} onChange={e => setFilterPeriodoFim(e.target.value)} className="w-[110px] h-9 px-1.5 text-xs" />
         </div>
       </div>
 
