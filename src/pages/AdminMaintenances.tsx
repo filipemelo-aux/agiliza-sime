@@ -8,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
-import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2, CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
 import { toast } from "sonner";
@@ -77,6 +81,8 @@ export default function AdminMaintenances() {
   const [search, setSearch] = useState("");
   const [filterVeiculo, setFilterVeiculo] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+  const [filterPeriodoInicio, setFilterPeriodoInicio] = useState<Date | undefined>();
+  const [filterPeriodoFim, setFilterPeriodoFim] = useState<Date | undefined>();
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
@@ -127,7 +133,7 @@ export default function AdminMaintenances() {
     setLoading(true);
     const [{ data: mData }, { data: vData }] = await Promise.all([
       supabase.from("maintenances" as any).select("*").order("data_manutencao", { ascending: false }),
-      supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true),
+      supabase.from("vehicles").select("id, plate, brand, model, fleet_type").eq("is_active", true).eq("fleet_type", "propria"),
     ]);
     setItems((mData as any) || []);
     setVehicles((vData as any) || []);
@@ -151,9 +157,12 @@ export default function AdminMaintenances() {
         (i.fornecedor || "").toLowerCase().includes(search.toLowerCase());
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchTipo = filterTipo === "all" || i.tipo_manutencao === filterTipo;
-      return matchSearch && matchVeiculo && matchTipo;
+      const dateRef = i.data_manutencao;
+      const matchPeriodoInicio = !filterPeriodoInicio || dateRef >= format(filterPeriodoInicio, "yyyy-MM-dd");
+      const matchPeriodoFim = !filterPeriodoFim || dateRef <= format(filterPeriodoFim, "yyyy-MM-dd");
+      return matchSearch && matchVeiculo && matchTipo && matchPeriodoInicio && matchPeriodoFim;
     });
-  }, [items, search, filterVeiculo, filterTipo, vehicleMap]);
+  }, [items, search, filterVeiculo, filterTipo, vehicleMap, filterPeriodoInicio, filterPeriodoFim]);
 
   const totalCusto = filtered.reduce((s, i) => s + Number(i.custo_total), 0);
 
@@ -239,26 +248,53 @@ export default function AdminMaintenances() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por descrição, placa ou fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
+            <Input placeholder="Buscar descrição, placa, fornecedor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
           </div>
           <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
-            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
+            <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Veículo" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos Veículos</SelectItem>
               {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterTipo} onValueChange={setFilterTipo}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos Tipos</SelectItem>
               <SelectItem value="preventiva">Preventiva</SelectItem>
               <SelectItem value="corretiva">Corretiva</SelectItem>
             </SelectContent>
           </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoInicio && "text-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterPeriodoInicio ? format(filterPeriodoInicio, "dd/MM/yy") : "De"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={filterPeriodoInicio} onSelect={setFilterPeriodoInicio} locale={ptBR} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 gap-1.5 text-xs font-normal", filterPeriodoFim && "text-foreground")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterPeriodoFim ? format(filterPeriodoFim, "dd/MM/yy") : "Até"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={filterPeriodoFim} onSelect={setFilterPeriodoFim} locale={ptBR} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          {(filterPeriodoInicio || filterPeriodoFim) && (
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => { setFilterPeriodoInicio(undefined); setFilterPeriodoFim(undefined); }} title="Limpar período">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {/* Cards */}
