@@ -672,14 +672,14 @@ export function FinancialPayables() {
           const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
             (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
           if (!inPeriod) return;
-          if (inst.status !== "pago") all++;
+          if (inst.status !== "pago" && inst.data_vencimento >= today) all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
           if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
       } else {
-        if (i.status !== "pago") all++;
+        if (i.status !== "pago" && !(i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today))) all++;
         if (i.data_vencimento === today && i.status !== "pago") hoje++;
         if (i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago") semana++;
         if (i.status === "atrasado") atrasadas++;
