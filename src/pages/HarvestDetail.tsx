@@ -1220,6 +1220,7 @@ export default function HarvestDetail() {
 
       if (estab) {
         const periodoLabel = `${filterStartDate.split("-").reverse().join("/")} a ${filterEndDate.split("-").reverse().join("/")}`;
+        const ownerNameForExpense = receiptOwnerInfo || "Proprietário";
         const descricao = `Colheita - ${job?.farm_name || "Serviço"} - ${periodoLabel}`;
         await supabase.from("expenses").insert({
           empresa_id: estab.id,
@@ -1231,7 +1232,7 @@ export default function HarvestDetail() {
           valor_total: totalAmount,
           data_emissao: paymentDate || new Date().toISOString().slice(0, 10),
           data_vencimento: paymentDueDate,
-          favorecido_nome: job?.client_name || null,
+          favorecido_nome: ownerNameForExpense,
           status: "pendente" as any,
           observacoes: `Pagamento colheita ${job?.farm_name || ""} - Período: ${periodoLabel}`,
         } as any);
