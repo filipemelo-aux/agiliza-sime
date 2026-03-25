@@ -79,12 +79,11 @@ export default function AdminDashboard() {
       endOfWeek.setDate(today.getDate() + 7);
       const endWeekStr = endOfWeek.toISOString().split("T")[0];
 
-      // Fetch installments due today through end of week that are pending
+      // Fetch installments due today through end of week OR overdue (before today)
       const { data: installments } = await supabase
         .from("expense_installments")
         .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
         .in("status", ["pendente", "atrasado"])
-        .gte("data_vencimento", todayStr)
         .lte("data_vencimento", endWeekStr)
         .order("data_vencimento", { ascending: true });
 
@@ -97,26 +96,31 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Fetch parent expenses for descriptions
+      // Fetch parent expenses for descriptions + filter out deleted
       const expenseIds = [...new Set(installments.map((i) => i.expense_id))];
       const { data: expenses } = await supabase
         .from("expenses")
-        .select("id, descricao, favorecido_nome")
+        .select("id, descricao, favorecido_nome, deleted_at")
         .in("id", expenseIds);
 
-      const expenseMap = new Map((expenses || []).map((e) => [e.id, e]));
+      const activeExpenses = (expenses || []).filter(e => !e.deleted_at);
+      const expenseMap = new Map(activeExpenses.map((e) => [e.id, e]));
 
-      const enriched: DueItem[] = installments.map((inst) => {
-        const exp = expenseMap.get(inst.expense_id);
-        return {
-          ...inst,
-          descricao: exp?.descricao || "—",
-          favorecido_nome: exp?.favorecido_nome || null,
-        };
-      });
+      // Only keep installments whose parent expense is active
+      const enriched: DueItem[] = installments
+        .filter((inst) => expenseMap.has(inst.expense_id))
+        .map((inst) => {
+          const exp = expenseMap.get(inst.expense_id);
+          return {
+            ...inst,
+            descricao: exp?.descricao || "—",
+            favorecido_nome: exp?.favorecido_nome || null,
+          };
+        });
 
-      const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
-      const weekItems = enriched.filter((i) => i.data_vencimento > todayStr);
+      // "Vencendo Hoje" includes today + overdue (past due)
+      const todayItems = enriched.filter((i) => i.data_vencimento <= todayStr);
+      const weekItems = enriched.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
 
       setDueToday(todayItems);
       setDueWeek(weekItems);

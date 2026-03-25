@@ -624,8 +624,8 @@ export function FinancialPayables() {
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
 
-    // Pre-filter items by non-quickFilter criteria (period, search, plano, etc.)
-    const base = items.filter(i => {
+    // Pre-filter items by non-quickFilter, non-period criteria for counting
+    const baseForCounts = items.filter(i => {
       const q = search.toLowerCase();
       const matchSearch = !search ||
         i.descricao.toLowerCase().includes(q) ||
@@ -643,15 +643,10 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      const dateRef = i.status === "pago"
-        ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
-        : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
     });
 
-    base.forEach(i => {
+    baseForCounts.forEach(i => {
       const installs = installmentsMap[i.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
@@ -671,7 +666,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap]);
 
   const filtered = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -731,11 +726,16 @@ export function FinancialPayables() {
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
       // Para contas pagas, filtrar pela data de pagamento; demais pela data de vencimento
+      // Quick filters "hoje", "semana", "atrasadas" bypass the period filter
+      // because their date logic is self-contained
+      const skipPeriodo = quickFilter === "hoje" || quickFilter === "semana" || quickFilter === "atrasadas";
       const dateRef = i.status === "pago"
         ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
         : (i.data_vencimento || i.data_emissao);
-      const matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-        (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+      const matchPeriodo = skipPeriodo || (
+        (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+        (!filterPeriodoFim || dateRef <= filterPeriodoFim)
+      );
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
