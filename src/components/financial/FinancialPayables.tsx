@@ -171,11 +171,12 @@ export function FinancialPayables() {
     const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
-    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }] = await Promise.all([
+    const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }] = await Promise.all([
       supabase.from("expenses").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       supabase.from("vehicles").select("id, plate").eq("is_active", true).eq("fleet_type", "propria"),
       supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id, nivel, tipo, tipo_operacional").eq("ativo", true).order("codigo"),
       supabase.from("expense_installments").select("*").order("numero_parcela"),
+      supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
     ]);
 
     const today = new Date().toISOString().split("T")[0];
@@ -193,6 +194,56 @@ export function FinancialPayables() {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
     }
 
+    // Build harvest paid items as virtual expenses
+    const harvestItems: Expense[] = [];
+    if (harvestPayments && harvestPayments.length > 0) {
+      const jobIds = [...new Set(harvestPayments.map(p => p.harvest_job_id))];
+      const { data: jobs } = await supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds);
+      const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
+
+      for (const payment of harvestPayments) {
+        const farmName = jobMap.get(payment.harvest_job_id) || "Colheita";
+        const periodLabel = `${format(new Date(payment.period_start + "T12:00:00"), "dd/MM/yy")} - ${format(new Date(payment.period_end + "T12:00:00"), "dd/MM/yy")}`;
+
+        let ownerName = "Proprietário";
+        if (payment.filter_context) {
+          const userIds = payment.filter_context.split(",").filter(Boolean);
+          if (userIds.length > 0) {
+            const { data: vehiclesData } = await supabase.from("vehicles").select("owner_id").in("driver_id", userIds).limit(1);
+            if (vehiclesData && vehiclesData.length > 0 && vehiclesData[0].owner_id) {
+              const { data: ownerProfile } = await supabase.from("profiles").select("full_name, nome_fantasia").eq("user_id", vehiclesData[0].owner_id).maybeSingle();
+              if (ownerProfile) ownerName = ownerProfile.nome_fantasia || ownerProfile.full_name;
+            }
+          }
+        }
+
+        harvestItems.push({
+          id: `harvest-${payment.id}`,
+          descricao: `🌱 ${farmName} — ${periodLabel}`,
+          plano_contas_id: null,
+          centro_custo: "operacional",
+          valor_total: Number(payment.total_amount),
+          valor_pago: Number(payment.total_amount),
+          data_emissao: payment.created_at?.split("T")[0] || today,
+          data_vencimento: payment.created_at?.split("T")[0] || null,
+          status: "pago",
+          forma_pagamento: null,
+          favorecido_nome: ownerName,
+          favorecido_id: null,
+          documento_fiscal_numero: null,
+          chave_nfe: null,
+          observacoes: null,
+          veiculo_placa: null,
+          veiculo_id: null,
+          litros: null,
+          km_odometro: null,
+          numero_multa: null,
+          origem: "colheita",
+          created_at: payment.created_at,
+        });
+      }
+    }
+
     // Build installments map
     const iMap: Record<string, Installment[]> = {};
     ((instData as any) || []).forEach((inst: Installment) => {
@@ -201,7 +252,7 @@ export function FinancialPayables() {
     });
     setInstallmentsMap(iMap);
 
-    setItems(processed);
+    setItems([...processed, ...harvestItems]);
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
     setLoading(false);
@@ -820,6 +871,7 @@ export function FinancialPayables() {
                 );
               });
             }
+            const isHarvest = item.id.startsWith("harvest-");
 
             // No installments — render as regular expense card
             const isOverdue = item.status === "atrasado";
@@ -849,6 +901,9 @@ export function FinancialPayables() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                     {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
+                    {isHarvest && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
+                    )}
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
                     </Badge>
@@ -907,14 +962,16 @@ export function FinancialPayables() {
                         <Check className="h-3.5 w-3.5" /> Pagar
                       </Button>
                     )}
-                    <div className="ml-auto flex gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
+                    {!isHarvest && (
+                      <div className="ml-auto flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
