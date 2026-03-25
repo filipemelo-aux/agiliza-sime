@@ -810,40 +810,70 @@ export function FinancialPayables() {
     let atrasado = 0;
     const today = new Date().toISOString().split("T")[0];
 
-    // Use all items for "pago" total so it's always visible regardless of quickFilter
-    items.forEach(item => {
-      const installs = installmentsMap[item.id];
-      if (installs && installs.length > 0) {
-        installs.forEach(inst => {
-          if (inst.status === "pago") {
-            pago += Number(inst.valor);
-          }
-        });
-      } else if (item.status === "pago") {
-        pago += Number(item.valor_pago);
-      }
+    // Apply period filter to all totals so cards reflect selected period
+    const periodFiltered = items.filter(item => {
+      const q = search.toLowerCase();
+      const matchSearch = !search ||
+        item.descricao.toLowerCase().includes(q) ||
+        (item.favorecido_nome || "").toLowerCase().includes(q) ||
+        (item.veiculo_placa || "").toLowerCase().includes(q) ||
+        (item.documento_fiscal_numero || "").toLowerCase().includes(q) ||
+        (item.chave_nfe || "").toLowerCase().includes(q) ||
+        (item.numero_multa || "").toLowerCase().includes(q) ||
+        (item.observacoes || "").toLowerCase().includes(q) ||
+        (item.fornecedor_cnpj || "").toLowerCase().includes(q) ||
+        (item.forma_pagamento || "").toLowerCase().includes(q) ||
+        String(item.valor_total).includes(q) ||
+        item.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
+      const matchPlanoContas = filterPlanoContas === "all" || (item.plano_contas_id && getAncestorIds(item.plano_contas_id).includes(filterPlanoContas));
+      const matchNivel = filterNivel === "all" || (item.plano_contas_id && chartIdMap[item.plano_contas_id]?.nivel === Number(filterNivel));
+      const matchVeiculo = filterVeiculo === "all" || item.veiculo_id === filterVeiculo;
+      const matchCentro = filterCentroCusto === "all" || item.centro_custo === filterCentroCusto;
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
     });
 
-    // Use filtered for pendente/atrasado
-    filtered.forEach(item => {
+    periodFiltered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
-          if (inst.status !== "pago") {
-            pendente += Number(inst.valor);
+          // Check if this installment falls within the period
+          const instDate = inst.status === "pago" ? inst.data_vencimento : inst.data_vencimento;
+          const inPeriod = (!filterPeriodoInicio || instDate >= filterPeriodoInicio) &&
+            (!filterPeriodoFim || instDate <= filterPeriodoFim);
+          
+          if (inst.status === "pago") {
+            if (inPeriod) pago += Number(inst.valor);
+          } else {
+            // For pending/overdue, always show if in period OR if overdue (regardless of period)
             const isOverdue = inst.data_vencimento < today;
-            if (isOverdue) atrasado += Number(inst.valor);
+            if (inPeriod || isOverdue) {
+              pendente += Number(inst.valor);
+              if (isOverdue) atrasado += Number(inst.valor);
+            }
           }
         });
-      } else if (item.status !== "pago") {
-        const remaining = Number(item.valor_total) - Number(item.valor_pago);
-        pendente += remaining;
-        if (item.status === "atrasado") atrasado += remaining;
+      } else {
+        const dateRef = item.status === "pago"
+          ? (item.data_pagamento ? (item.data_pagamento.includes("T") ? item.data_pagamento.split("T")[0] : item.data_pagamento) : item.data_vencimento || item.data_emissao)
+          : (item.data_vencimento || item.data_emissao);
+        const inPeriod = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
+          (!filterPeriodoFim || dateRef <= filterPeriodoFim);
+
+        if (item.status === "pago") {
+          if (inPeriod) pago += Number(item.valor_pago);
+        } else {
+          const isOverdue = item.status === "atrasado";
+          if (inPeriod || isOverdue) {
+            const remaining = Number(item.valor_total) - Number(item.valor_pago);
+            pendente += remaining;
+            if (isOverdue) atrasado += remaining;
+          }
+        }
       }
     });
 
     return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado };
-  }, [items, filtered, installmentsMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   // Calculate selected total considering both installments and regular expenses
   const selectedTotal = useMemo(() => {
