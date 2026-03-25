@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Car, Plus, Search, Pencil, Trash2, Eye } from "lucide-react";
+import { Car, Plus, Search, Pencil, Trash2, Eye, Truck } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -21,7 +22,10 @@ import { VehicleFormModal } from "@/components/VehicleFormModal";
 const VEHICLE_TYPE_LABELS: Record<string, string> = {
   truck: "Truck", bitruck: "Bitruck", carreta: "Carreta", carreta_ls: "LS",
   rodotrem: "Rodotrem", bitrem: "Bitrem", treminhao: "Treminhão",
+  utilitario: "Utilitário", passeio: "Passeio",
 };
+
+const TRUCK_TYPES = new Set(["truck", "bitruck", "carreta", "carreta_ls", "rodotrem", "bitrem", "treminhao"]);
 
 const TRAILER_LABELS: Record<string, string[]> = {
   carreta: ["Carreta"], carreta_ls: ["Carreta"],
@@ -45,6 +49,7 @@ export default function AdminVehicles() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("__all__");
 
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
@@ -96,13 +101,24 @@ export default function AdminVehicles() {
     }
   };
 
-  const filteredVehicles = vehicles.filter((v) =>
-    v.plate.toLowerCase().includes(search.toLowerCase()) ||
-    v.brand.toLowerCase().includes(search.toLowerCase()) ||
-    v.model.toLowerCase().includes(search.toLowerCase()) ||
-    (v.driver_name && v.driver_name.toLowerCase().includes(search.toLowerCase())) ||
-    (v.owner_name && v.owner_name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredVehicles = vehicles.filter((v) => {
+    const matchType = filterType === "__all__" ||
+      (filterType === "caminhao" && TRUCK_TYPES.has(v.vehicle_type)) ||
+      (filterType === "leve" && !TRUCK_TYPES.has(v.vehicle_type));
+    const matchSearch =
+      v.plate.toLowerCase().includes(search.toLowerCase()) ||
+      v.brand.toLowerCase().includes(search.toLowerCase()) ||
+      v.model.toLowerCase().includes(search.toLowerCase()) ||
+      (v.driver_name && v.driver_name.toLowerCase().includes(search.toLowerCase())) ||
+      (v.owner_name && v.owner_name.toLowerCase().includes(search.toLowerCase()));
+    return matchType && matchSearch;
+  });
+
+  const countByFilter = (f: string) => {
+    if (f === "__all__") return vehicles.length;
+    if (f === "caminhao") return vehicles.filter(v => TRUCK_TYPES.has(v.vehicle_type)).length;
+    return vehicles.filter(v => !TRUCK_TYPES.has(v.vehicle_type)).length;
+  };
 
   if (roleLoading) {
     return (
@@ -125,6 +141,20 @@ export default function AdminVehicles() {
             <Plus className="h-4 w-4 mr-1" /> Novo Veículo
           </Button>
         </div>
+
+        <Tabs value={filterType} onValueChange={(v) => { setFilterType(v); setSearch(""); }} className="mb-6">
+          <TabsList className="h-auto gap-1">
+            <TabsTrigger value="__all__" className="gap-1.5">
+              Todos <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("__all__")}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="caminhao" className="gap-1.5">
+              <Truck className="h-3.5 w-3.5" /> Caminhões <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("caminhao")}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="leve" className="gap-1.5">
+              <Car className="h-3.5 w-3.5" /> Veículos Leves <Badge variant="secondary" className="text-xs h-5 px-1.5">{countByFilter("leve")}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <div className="relative mb-6 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -158,7 +188,7 @@ export default function AdminVehicles() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold">🚛 {v.plate}</h3>
+                          <h3 className="font-semibold">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"} {v.plate}</h3>
                           <Badge variant="outline" className="text-xs">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
                           {v.cargo_type && <Badge variant="secondary" className="text-xs capitalize">{v.cargo_type}</Badge>}
                         </div>
@@ -223,7 +253,7 @@ export default function AdminVehicles() {
           {viewVehicle && (
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-base">🚛 {viewVehicle.plate}</span>
+                <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
                 <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
                 {viewVehicle.cargo_type && <Badge variant="secondary" className="capitalize">{viewVehicle.cargo_type}</Badge>}
               </div>
