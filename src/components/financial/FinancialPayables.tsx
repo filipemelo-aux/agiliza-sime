@@ -519,6 +519,57 @@ export function FinancialPayables() {
     }
   };
 
+  const handleBatchReverse = async () => {
+    if (selectedIds.size === 0) return;
+    if (!await confirm({ title: "Estornar selecionados", description: `Deseja estornar ${selectedIds.size} conta(s) selecionada(s)? Elas voltarão para pendente.` })) return;
+    setBatchPaying(true);
+
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        let foundInst: Installment | undefined;
+        let expenseId = "";
+        for (const [eid, installs] of Object.entries(installmentsMap)) {
+          foundInst = installs.find(i => i.id === instId);
+          if (foundInst) { expenseId = eid; break; }
+        }
+        if (!foundInst || foundInst.status !== "pago") continue;
+        await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", instId);
+        const expense = items.find(i => i.id === expenseId);
+        if (expense) {
+          const newPago = Math.max(0, Number(expense.valor_pago) - Number(foundInst.valor));
+          const newStatus = newPago <= 0 ? "pendente" : "parcial";
+          await supabase.from("expenses").update({
+            valor_pago: newPago,
+            status: newStatus,
+            ...(newPago <= 0 ? { data_pagamento: null } : {}),
+          } as any).eq("id", expenseId);
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (!item || item.status !== "pago") continue;
+        await supabase.from("expense_payments" as any).delete().eq("expense_id", id);
+        const installs = installmentsMap[id];
+        if (installs && installs.length > 0) {
+          for (const inst of installs) {
+            if (inst.status === "pago") {
+              await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+            }
+          }
+        }
+        await supabase.from("expenses").update({
+          valor_pago: 0,
+          status: "pendente",
+          data_pagamento: null,
+        } as any).eq("id", id);
+      }
+    }
+    toast.success(`${selectedIds.size} conta(s) estornada(s)`);
+    setSelectedIds(new Set());
+    setBatchPaying(false);
+    fetchData();
+  };
+
   const handleReverseInstallment = async (inst: Installment) => {
     if (!await confirm({ title: "Estornar parcela", description: `Deseja estornar o pagamento da parcela ${inst.numero_parcela}?` })) return;
     try {
