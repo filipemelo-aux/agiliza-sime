@@ -958,11 +958,11 @@ export function FinancialPayables() {
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {!isInstPago && (
                           <Checkbox
                             checked={isInstSelected}
                             onCheckedChange={() => toggleSelect(instCardId)}
                             className="mt-0.5"
+                          />
                           />
                         )}
                         <p className="text-sm font-semibold text-foreground truncate">
