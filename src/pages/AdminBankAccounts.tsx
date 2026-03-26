@@ -395,7 +395,59 @@ export default function AdminBankAccounts() {
               </Select>
             </div>
 
-            <div>
+            {/* Multi-unit toggle */}
+            {establishments.length > 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="multi-unit"
+                    checked={form.permitir_multiplas_unidades}
+                    onCheckedChange={(checked) =>
+                      setForm(f => ({
+                        ...f,
+                        permitir_multiplas_unidades: !!checked,
+                        unidade_ids: checked ? f.unidade_ids : [],
+                      }))
+                    }
+                  />
+                  <Label htmlFor="multi-unit" className="text-sm cursor-pointer">
+                    Compartilhar entre unidades (matriz/filial)
+                  </Label>
+                </div>
+
+                {form.permitir_multiplas_unidades && (
+                  <div className="border rounded-md p-3 space-y-2 bg-muted/30">
+                    <p className="text-xs text-muted-foreground">
+                      Selecione as unidades que poderão usar esta conta. Se nenhuma for selecionada, a conta será global.
+                    </p>
+                    {establishments.map(est => (
+                      <div key={est.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`unit-${est.id}`}
+                          checked={form.unidade_ids.includes(est.id)}
+                          onCheckedChange={(checked) => {
+                            setForm(f => ({
+                              ...f,
+                              unidade_ids: checked
+                                ? [...f.unidade_ids, est.id]
+                                : f.unidade_ids.filter(id => id !== est.id),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`unit-${est.id}`} className="text-sm cursor-pointer flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px]">
+                            {est.type === "matriz" ? "Matriz" : "Filial"}
+                          </Badge>
+                          {est.nome_fantasia || est.razao_social}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+
               <Label>Tipo</Label>
               <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
