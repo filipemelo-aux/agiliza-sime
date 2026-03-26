@@ -115,7 +115,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
     const receivableIds = items.filter(i => selected.has(i.id) && i.type === "receivable").map(i => i.id);
     const payableIds = items.filter(i => selected.has(i.id) && i.type === "payable").map(i => i.id);
 
-    const promises: Promise<any>[] = [];
+    const promises: PromiseLike<any>[] = [];
 
     if (receivableIds.length > 0) {
       promises.push(
