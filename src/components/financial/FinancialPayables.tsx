@@ -466,7 +466,7 @@ export function FinancialPayables() {
     if (selectedIds.size === 0) return;
     if (!await confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
     setBatchPaying(true);
-    const today = new Date().toISOString();
+    const todayISO = getLocalDateISO();
     const userId = (await supabase.auth.getUser()).data.user?.id;
 
     for (const id of selectedIds) {
@@ -485,7 +485,7 @@ export function FinancialPayables() {
         if (expense) {
           const newPago = Number(expense.valor_pago) + Number(foundInst.valor);
           const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: today } as any).eq("id", expenseId);
+          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: todayISO } as any).eq("id", expenseId);
         }
       } else {
         const item = items.find(i => i.id === id);
@@ -494,12 +494,13 @@ export function FinancialPayables() {
           expense_id: id,
           valor: Number(item.valor_total) - Number(item.valor_pago),
           forma_pagamento: "pix",
+          data_pagamento: todayISO,
           created_by: userId,
         } as any);
         await supabase.from("expenses").update({
           valor_pago: item.valor_total,
           status: "pago",
-          data_pagamento: today,
+          data_pagamento: todayISO,
         } as any).eq("id", id);
       }
     }
