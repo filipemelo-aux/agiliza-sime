@@ -134,7 +134,7 @@ export default function AdminFuelOrders() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Empresa</span>
-                        <span className="text-right truncate max-w-[55%]">{est?.nome_fantasia || est?.razao_social || "—"}</span>
+                        <span className="text-right truncate max-w-[55%]">{establishments.find(e => e.type === "matriz")?.razao_social || "Sime Transporte Ltda"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Fornecedor</span>

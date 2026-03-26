@@ -140,9 +140,11 @@ export function ChartOfAccounts() {
     if (estRes.error) toast.error(estRes.error.message);
     else {
       setEstablishments(estRes.data || []);
-      if (estRes.data?.length === 1 && !empresaId) {
-        setEmpresaId(estRes.data[0].id);
-        setFilterEmpresa(estRes.data[0].id);
+      // Auto-select matriz as the unified company
+      const matriz = estRes.data?.find((e: any) => e.type === "matriz") || estRes.data?.[0];
+      if (matriz && !empresaId) {
+        setEmpresaId(matriz.id);
+        setFilterEmpresa(matriz.id);
       }
     }
     setLoading(false);
@@ -248,19 +250,7 @@ export function ChartOfAccounts() {
           Plano de Contas
         </CardTitle>
         <div className="flex items-center gap-2">
-          {establishments.length > 1 && (
-            <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {establishments.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* Empresa unificada - filtro removido */}
           <Button variant="outline" size="sm" onClick={expandAll}>Expandir tudo</Button>
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
             <DialogTrigger asChild>
@@ -271,19 +261,7 @@ export function ChartOfAccounts() {
                 <DialogTitle>{editingId ? "Editar" : "Nova"} Conta</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                {establishments.length > 1 && (
-                  <div>
-                    <Label>Empresa</Label>
-                    <Select value={empresaId} onValueChange={setEmpresaId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {establishments.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {/* Empresa auto-selecionada */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <Label>Código</Label>

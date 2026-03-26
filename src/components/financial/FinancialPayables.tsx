@@ -1076,11 +1076,18 @@ export function FinancialPayables() {
       return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${statusLabel(s)}</span>`;
     };
 
-    // Fetch establishment info
+    // Fetch establishment info (unified company - show both CNPJs)
     let estName = ""; let estCnpj = "";
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj").eq("active", true).limit(1).maybeSingle();
-      if (data) { estName = data.razao_social; estCnpj = data.cnpj; }
+      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
+      if (data && data.length > 0) {
+        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
+        estName = matriz?.razao_social || "";
+        estCnpj = data.map((e: any) => {
+          const c = e.cnpj;
+          return c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
+        }).filter(Boolean).join(" / ");
+      }
     } catch {}
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";

@@ -406,26 +406,12 @@ export default function AdminBankAccounts() {
                 </Label>
               </div>
 
-              {!form.permitir_multiplas_unidades && (
                 <div>
-                  <Label>Empresa vinculada *</Label>
-                  <Select value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
-                    <SelectContent>
-                      {establishments.map(e => (
-                        <SelectItem key={e.id} value={e.id}>
-                          <span className="flex items-center gap-1.5">
-                            <Badge variant="outline" className="text-[10px]">
-                              {e.type === "matriz" ? "Matriz" : "Filial"}
-                            </Badge>
-                            {e.nome_fantasia || e.razao_social}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Empresa vinculada</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {establishments.find(e => e.type === "matriz")?.razao_social || "Sime Transporte Ltda"}
+                  </p>
                 </div>
-              )}
 
               {form.permitir_multiplas_unidades && (
                 <p className="text-xs text-muted-foreground">
