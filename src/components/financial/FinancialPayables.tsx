@@ -1535,12 +1535,11 @@ export function FinancialPayables() {
                       isSelected ? "ring-2 ring-primary bg-primary/5" : ""
                     } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleSelect(item.id)}
-                          className="mt-0.5"
                         />
                         <p className="text-sm font-semibold text-foreground truncate">
                           {item.favorecido_nome || "Sem favorecido"}
