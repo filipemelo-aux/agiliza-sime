@@ -421,7 +421,7 @@ export function FinancialPayables() {
     if (expense) {
       const newPago = Number(expense.valor_pago) + Number(inst.valor);
       const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: new Date().toISOString() } as any).eq("id", inst.expense_id);
+      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: getLocalDateISO() } as any).eq("id", inst.expense_id);
     }
     toast.success("Parcela quitada");
     fetchData();
