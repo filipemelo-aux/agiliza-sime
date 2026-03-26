@@ -35,6 +35,7 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
+  conta_bancaria_id: string | null;
   _source?: "manual" | "harvest" | "cte";
 }
 
