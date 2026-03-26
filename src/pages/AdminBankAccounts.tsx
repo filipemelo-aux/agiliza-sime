@@ -370,7 +370,7 @@ export default function AdminBankAccounts() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog />
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
