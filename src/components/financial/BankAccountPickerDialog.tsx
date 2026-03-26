@@ -177,31 +177,96 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
     return rows.length;
   };
 
+  const syncHarvestPayments = async (accountId: string, accountEmpresaId: string): Promise<number> => {
+    if (!harvestPaymentIds || harvestPaymentIds.length === 0) return 0;
+
+    const { data: payments } = await supabase
+      .from("harvest_payments")
+      .select("id, total_amount, created_at, period_start, period_end, harvest_job_id")
+      .in("id", harvestPaymentIds);
+
+    if (!payments || payments.length === 0) return 0;
+
+    const paymentIds = payments.map((p: any) => p.id);
+    const [{ data: txExisting }, { data: authData }] = await Promise.all([
+      supabase
+        .from("financial_transactions")
+        .select("origem_id, valor, tipo")
+        .eq("origem", "colheita_pagamento")
+        .eq("status", "confirmado")
+        .in("origem_id", paymentIds),
+      supabase.auth.getUser(),
+    ]);
+
+    const existingByPayment = new Map<string, number>();
+    (txExisting ?? []).forEach((tx: any) => {
+      if (tx.tipo !== "saida") return;
+      existingByPayment.set(tx.origem_id, (existingByPayment.get(tx.origem_id) ?? 0) + Number(tx.valor));
+    });
+
+    const userId = authData.user?.id;
+    const rows = (payments as any[]).flatMap((p) => {
+      const amount = Number(p.total_amount ?? 0);
+      const alreadyPosted = Number(existingByPayment.get(p.id) ?? 0);
+      const diff = Number((amount - alreadyPosted).toFixed(2));
+      if (diff <= 0.009) return [];
+
+      const periodLabel = `${(p.period_start || "").split("-").reverse().join("/")} a ${(p.period_end || "").split("-").reverse().join("/")}`;
+      return [{
+        conta_bancaria_id: accountId,
+        tipo: "saida",
+        valor: diff,
+        data_movimentacao: (p.created_at || todayISO()).slice(0, 10),
+        descricao: `Pgto Colheita: ${periodLabel} (retroativo)`,
+        origem: "colheita_pagamento",
+        origem_id: p.id,
+        status: "confirmado",
+        observacoes: "Movimentação criada automaticamente após vinculação da conta bancária",
+        empresa_id: accountEmpresaId,
+        unidade_id: accountEmpresaId,
+        created_by: userId || null,
+      }];
+    });
+
+    if (rows.length > 0) {
+      const { error: txError } = await supabase.from("financial_transactions").insert(rows as any);
+      if (txError) throw txError;
+      await supabase.rpc("recalc_bank_balance", { _conta_id: accountId } as any);
+    }
+
+    return rows.length;
+  };
+
   const handleSelect = async (accountId: string, accountName: string, accountEmpresaId: string) => {
     setSaving(true);
 
-    const { error } = await supabase
-      .from(target)
-      .update({ conta_bancaria_id: accountId } as any)
-      .in("id", selectedIds);
+    if (selectedIds.length > 0) {
+      const { error } = await supabase
+        .from(target)
+        .update({ conta_bancaria_id: accountId } as any)
+        .in("id", selectedIds);
 
-    if (error) {
-      toast.error("Erro ao vincular à conta bancária");
-      setSaving(false);
-      return;
+      if (error) {
+        toast.error("Erro ao vincular à conta bancária");
+        setSaving(false);
+        return;
+      }
     }
 
     let syncedCount = 0;
     try {
-      syncedCount = target === "expenses"
-        ? await syncPaidExpenses(accountId)
-        : await syncReceivedReceivables(accountId, accountEmpresaId);
+      if (target === "expenses") {
+        syncedCount += await syncPaidExpenses(accountId);
+        syncedCount += await syncHarvestPayments(accountId, accountEmpresaId);
+      } else {
+        syncedCount += await syncReceivedReceivables(accountId, accountEmpresaId);
+      }
     } catch (syncError: any) {
       console.error("Erro ao sincronizar movimentações retroativas:", syncError?.message || syncError);
       toast.warning("Vínculo salvo, mas houve erro na sincronização retroativa do extrato.");
     }
 
-    const linkedCount = selectedCount ?? selectedIds.length;
+    const linkedCount = selectedCount ?? (selectedIds.length + (harvestPaymentIds?.length ?? 0));
     if (syncedCount > 0) {
       toast.success(`${linkedCount} item(ns) vinculado(s) e ${syncedCount} movimentação(ões) retroativa(s) criada(s) em "${accountName}"`);
     } else {
