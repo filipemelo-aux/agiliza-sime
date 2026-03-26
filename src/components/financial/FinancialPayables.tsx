@@ -2028,6 +2028,7 @@ export function FinancialPayables() {
       <BankAccountPickerDialog
         open={bankPickerOpen}
         onOpenChange={setBankPickerOpen}
+        selectedCount={selectedIds.size}
         selectedIds={(() => {
           const ids = new Set<string>();
           selectedIds.forEach(id => {
