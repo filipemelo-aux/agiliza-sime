@@ -219,14 +219,13 @@ export default function AdminBankAccounts() {
 
     // Sync bank_account_units
     if (accountId) {
-      // Delete existing
       await supabase.from("bank_account_units").delete().eq("conta_bancaria_id", accountId);
 
-      // Insert selected units
-      if (form.permitir_multiplas_unidades && form.unidade_ids.length > 0) {
-        const rows = form.unidade_ids.map(uid => ({
+      // If global, link all establishments
+      if (form.permitir_multiplas_unidades) {
+        const rows = establishments.map(est => ({
           conta_bancaria_id: accountId!,
-          unidade_id: uid,
+          unidade_id: est.id,
         }));
         await supabase.from("bank_account_units").insert(rows as any);
       }
@@ -371,81 +370,62 @@ export default function AdminBankAccounts() {
 
       {/* Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Conta" : "Nova Conta Bancária"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Nome *</Label>
               <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Ex: Banco do Brasil" />
             </div>
 
-            <div>
-              <Label>Empresa *</Label>
-              <Select value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {establishments.map(e => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.nome_fantasia || e.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Multi-unit toggle */}
-            {establishments.length > 1 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="multi-unit"
-                    checked={form.permitir_multiplas_unidades}
-                    onCheckedChange={(checked) =>
-                      setForm(f => ({
-                        ...f,
-                        permitir_multiplas_unidades: !!checked,
-                        unidade_ids: checked ? f.unidade_ids : [],
-                      }))
-                    }
-                  />
-                  <Label htmlFor="multi-unit" className="text-sm cursor-pointer">
-                    Compartilhar entre unidades (matriz/filial)
-                  </Label>
-                </div>
-
-                {form.permitir_multiplas_unidades && (
-                  <div className="border rounded-md p-3 space-y-2 bg-muted/30">
-                    <p className="text-xs text-muted-foreground">
-                      Selecione as unidades que poderão usar esta conta. Se nenhuma for selecionada, a conta será global.
-                    </p>
-                    {establishments.map(est => (
-                      <div key={est.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`unit-${est.id}`}
-                          checked={form.unidade_ids.includes(est.id)}
-                          onCheckedChange={(checked) => {
-                            setForm(f => ({
-                              ...f,
-                              unidade_ids: checked
-                                ? [...f.unidade_ids, est.id]
-                                : f.unidade_ids.filter(id => id !== est.id),
-                            }));
-                          }}
-                        />
-                        <Label htmlFor={`unit-${est.id}`} className="text-sm cursor-pointer flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-[10px]">
-                            {est.type === "matriz" ? "Matriz" : "Filial"}
-                          </Badge>
-                          {est.nome_fantasia || est.razao_social}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Simplified: choose linked empresa OR mark as global */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="global-account"
+                  checked={form.permitir_multiplas_unidades}
+                  onCheckedChange={(checked) =>
+                    setForm(f => ({
+                      ...f,
+                      permitir_multiplas_unidades: !!checked,
+                      empresa_id: checked ? (establishments.find(e => e.type === "matriz")?.id || establishments[0]?.id || "") : f.empresa_id,
+                    }))
+                  }
+                />
+                <Label htmlFor="global-account" className="text-sm cursor-pointer">
+                  Conta global (usada por matriz e filiais)
+                </Label>
               </div>
-            )}
+
+              {!form.permitir_multiplas_unidades && (
+                <div>
+                  <Label>Empresa vinculada *</Label>
+                  <Select value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
+                    <SelectContent>
+                      {establishments.map(e => (
+                        <SelectItem key={e.id} value={e.id}>
+                          <span className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px]">
+                              {e.type === "matriz" ? "Matriz" : "Filial"}
+                            </Badge>
+                            {e.nome_fantasia || e.razao_social}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {form.permitir_multiplas_unidades && (
+                <p className="text-xs text-muted-foreground">
+                  Esta conta será compartilhada entre todas as unidades (matriz e filiais).
+                </p>
+              )}
+            </div>
 
             <div>
               <Label>Tipo</Label>
@@ -491,7 +471,7 @@ export default function AdminBankAccounts() {
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 pb-1">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
