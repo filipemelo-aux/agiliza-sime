@@ -1348,6 +1348,7 @@ export type Database = {
           plano_contas_id: string | null
           status: string
           tipo: string
+          unidade_id: string | null
           updated_at: string
           valor: number
         }
@@ -1366,6 +1367,7 @@ export type Database = {
           plano_contas_id?: string | null
           status?: string
           tipo: string
+          unidade_id?: string | null
           updated_at?: string
           valor?: number
         }
@@ -1384,6 +1386,7 @@ export type Database = {
           plano_contas_id?: string | null
           status?: string
           tipo?: string
+          unidade_id?: string | null
           updated_at?: string
           valor?: number
         }
@@ -1414,6 +1417,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
         ]
