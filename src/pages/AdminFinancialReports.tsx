@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, BarChart3, Wallet } from "lucide-react";
@@ -335,48 +335,31 @@ export default function AdminFinancialReports() {
             {fluxoData.dates.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Nenhuma movimentação no período.</p>
             ) : (
-              <div className="border rounded-lg overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Data</TableHead>
-                      {fluxoData.unitIds.map(uid => (
-                        <TableHead key={uid} colSpan={2} className="text-center text-xs">
-                          {getEstLabel(uid === "sem_unidade" ? null : uid)}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                    <TableRow>
-                      <TableHead />
-                      {fluxoData.unitIds.map(uid => (
-                        <>
-                          <TableHead key={`${uid}-e`} className="text-right text-[10px] text-emerald-600">Entradas</TableHead>
-                          <TableHead key={`${uid}-s`} className="text-right text-[10px] text-red-600">Saídas</TableHead>
-                        </>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fluxoData.dates.map(date => (
-                      <TableRow key={date}>
-                        <TableCell className="text-xs whitespace-nowrap">{format(parseISO(date), "dd/MM/yyyy")}</TableCell>
+              <div className="space-y-3">
+                {fluxoData.dates.map(date => (
+                  <Card key={date}>
+                    <CardContent className="p-3 space-y-2">
+                      <p className="text-sm font-semibold">{format(parseISO(date), "dd/MM/yyyy")}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {fluxoData.unitIds.map(uid => {
                           const v = fluxoData.dateMap[date]?.[uid];
+                          if (!v) return null;
                           return (
-                            <>
-                              <TableCell key={`${date}-${uid}-e`} className="text-right text-xs font-mono text-emerald-600">
-                                {v?.entradas ? formatCurrency(v.entradas) : "—"}
-                              </TableCell>
-                              <TableCell key={`${date}-${uid}-s`} className="text-right text-xs font-mono text-red-600">
-                                {v?.saidas ? formatCurrency(v.saidas) : "—"}
-                              </TableCell>
-                            </>
+                            <div key={uid} className="border rounded-md p-2 bg-muted/20">
+                              <p className="text-[10px] text-muted-foreground truncate mb-1">
+                                {getEstLabel(uid === "sem_unidade" ? null : uid)}
+                              </p>
+                              <div className="flex items-center justify-between gap-2 text-xs font-mono">
+                                <span className="text-emerald-600">+{formatCurrency(v.entradas)}</span>
+                                <span className="text-destructive">−{formatCurrency(v.saidas)}</span>
+                              </div>
+                            </div>
                           );
                         })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </TabsContent>
@@ -389,7 +372,7 @@ export default function AdminFinancialReports() {
               custoData.map(([uid, data]) => (
                 <Card key={uid}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center justify-between flex-wrap gap-1">
                       <span className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         {getEstLabel(uid === "sem_unidade" ? null : uid)}
@@ -401,38 +384,26 @@ export default function AdminFinancialReports() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="border rounded-lg overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Descrição</TableHead>
-                            <TableHead>Plano de Contas</TableHead>
-                            <TableHead>Centro de Custo</TableHead>
-                            <TableHead className="text-right">Valor</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {data.items.slice(0, 20).map((item, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="text-xs">{item.descricao}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{item.plano}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-[10px]">
-                                  {CENTRO_CUSTO_LABELS[item.centroCusto] || item.centroCusto}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-xs font-mono font-semibold">{formatCurrency(item.valor)}</TableCell>
-                            </TableRow>
-                          ))}
-                          {data.items.length > 20 && (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-xs text-muted-foreground text-center">
-                                ... e mais {data.items.length - 20} itens
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                    <div className="space-y-2">
+                      {data.items.slice(0, 20).map((item, i) => (
+                        <div key={i} className="border rounded-md p-2 flex flex-col gap-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-xs font-medium truncate">{item.descricao}</span>
+                            <span className="text-xs font-mono font-semibold shrink-0">{formatCurrency(item.valor)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] text-muted-foreground truncate">{item.plano}</span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {CENTRO_CUSTO_LABELS[item.centroCusto] || item.centroCusto}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {data.items.length > 20 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          ... e mais {data.items.length - 20} itens
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -459,43 +430,37 @@ export default function AdminFinancialReports() {
                         DRE — {getEstLabel(uid === "sem_unidade" ? null : uid)}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="border rounded-lg overflow-hidden">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Conta</TableHead>
-                              <TableHead className="text-right">Receitas</TableHead>
-                              <TableHead className="text-right">Despesas</TableHead>
-                              <TableHead className="text-right">Resultado</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {sortedCats.map(([catName, vals]) => (
-                              <TableRow key={catName}>
-                                <TableCell className="text-xs">{catName}</TableCell>
-                                <TableCell className="text-right text-xs font-mono text-emerald-600">
-                                  {vals.receitas > 0 ? formatCurrency(vals.receitas) : "—"}
-                                </TableCell>
-                                <TableCell className="text-right text-xs font-mono text-red-600">
-                                  {vals.despesas > 0 ? formatCurrency(vals.despesas) : "—"}
-                                </TableCell>
-                                <TableCell className={`text-right text-xs font-mono font-semibold ${vals.receitas - vals.despesas >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                  {formatCurrency(vals.receitas - vals.despesas)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            {/* Totals */}
-                            <TableRow className="bg-muted/30 font-bold">
-                              <TableCell className="text-xs font-bold">TOTAL</TableCell>
-                              <TableCell className="text-right text-xs font-mono font-bold text-emerald-600">{formatCurrency(totalReceitas)}</TableCell>
-                              <TableCell className="text-right text-xs font-mono font-bold text-red-600">{formatCurrency(totalDespesas)}</TableCell>
-                              <TableCell className={`text-right text-xs font-mono font-bold ${resultado >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                {formatCurrency(resultado)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
+                    <CardContent className="pt-0 space-y-2">
+                      {sortedCats.map(([catName, vals]) => {
+                        const res = vals.receitas - vals.despesas;
+                        return (
+                          <div key={catName} className="border rounded-md p-2">
+                            <p className="text-xs font-medium mb-1 truncate">{catName}</p>
+                            <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+                              <div>
+                                <span className="text-[10px] text-muted-foreground">Receitas</span>
+                                <p className="text-emerald-600">{vals.receitas > 0 ? formatCurrency(vals.receitas) : "—"}</p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground">Despesas</span>
+                                <p className="text-destructive">{vals.despesas > 0 ? formatCurrency(vals.despesas) : "—"}</p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-muted-foreground">Resultado</span>
+                                <p className={`font-semibold ${res >= 0 ? "text-emerald-600" : "text-destructive"}`}>{formatCurrency(res)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* Total */}
+                      <div className="border rounded-md p-2 bg-muted/30">
+                        <p className="text-xs font-bold mb-1">TOTAL</p>
+                        <div className="grid grid-cols-3 gap-2 text-xs font-mono font-bold">
+                          <p className="text-emerald-600">{formatCurrency(totalReceitas)}</p>
+                          <p className="text-destructive">{formatCurrency(totalDespesas)}</p>
+                          <p className={resultado >= 0 ? "text-emerald-600" : "text-destructive"}>{formatCurrency(resultado)}</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

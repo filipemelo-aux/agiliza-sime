@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 import { Plus, Search, ArrowUpCircle, ArrowDownCircle, RotateCcw, Filter, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
@@ -359,60 +359,54 @@ export default function AdminFinancialTransactions() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">Nenhuma movimentação encontrada.</p>
         ) : (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Conta</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[80px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(tx => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {format(parseISO(tx.data_movimentacao), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {tx.tipo === "entrada"
-                          ? <ArrowUpCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-                          : <ArrowDownCircle className="h-4 w-4 text-red-500 shrink-0" />}
-                        <span className="truncate max-w-[250px]">{tx.descricao}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">{(tx.bank_accounts as any)?.nome ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{origemLabel(tx.origem)}</Badge>
-                    </TableCell>
-                    <TableCell className={`text-right font-medium whitespace-nowrap ${tx.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filtered.map(tx => (
+              <Card key={tx.id} className={`border-l-4 ${tx.tipo === "entrada" ? "border-l-emerald-500" : "border-l-destructive"}`}>
+                <CardContent className="p-3 flex flex-col gap-1.5">
+                  {/* Header: description + value */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {tx.tipo === "entrada"
+                        ? <ArrowUpCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+                        : <ArrowDownCircle className="h-4 w-4 text-red-500 shrink-0" />}
+                      <span className="text-sm font-medium truncate">{tx.descricao}</span>
+                    </div>
+                    <span className={`text-sm font-bold font-mono whitespace-nowrap shrink-0 ${tx.tipo === "entrada" ? "text-emerald-600" : "text-destructive"}`}>
                       {tx.tipo === "entrada" ? "+" : "−"} {formatCurrency(tx.valor)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={tx.status === "confirmado" ? "default" : "secondary"} className="text-xs">
-                        {tx.status === "confirmado" ? "Confirmado" : "Pendente"}
+                    </span>
+                  </div>
+
+                  {/* Info line */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <span>{format(parseISO(tx.data_movimentacao), "dd/MM/yyyy")}</span>
+                    <span>·</span>
+                    <span>{(tx.bank_accounts as any)?.nome ?? "—"}</span>
+                  </div>
+
+                  {/* Unit + Origin */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social ? (
+                      <Badge variant="outline" className="text-[10px]">
+                        {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {tx.status === "confirmado" && tx.origem !== "ajuste" && (
-                        <Button variant="ghost" size="icon" title="Estornar" onClick={() => handleEstorno(tx)} className="h-8 w-8">
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    ) : null}
+                    <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
+                    <Badge variant={tx.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">
+                      {tx.status === "confirmado" ? "Confirmado" : "Pendente"}
+                    </Badge>
+                  </div>
+
+                  {/* Actions */}
+                  {tx.status === "confirmado" && tx.origem !== "ajuste" && (
+                    <div className="flex justify-end pt-1">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => handleEstorno(tx)}>
+                        <RotateCcw className="h-3.5 w-3.5" /> Estornar
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
