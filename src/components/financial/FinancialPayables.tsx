@@ -1600,9 +1600,9 @@ export function FinancialPayables() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 pt-1.5 border-t border-border">
+                      <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
                         {isMaintenance && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                             <Wrench className="h-3 w-3 text-primary" />
                           </Button>
                         )}
@@ -1610,7 +1610,7 @@ export function FinancialPayables() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 px-2 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10"
+                            className="h-7 px-1.5 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10 shrink-0"
                             onClick={() => handlePayment(item)}
                           >
                             <Check className="h-3 w-3" /> Pagar
@@ -1620,20 +1620,20 @@ export function FinancialPayables() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 px-2 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
                             onClick={() => handleReversePayment(item)}
                           >
                             <Undo2 className="h-3 w-3" /> Estornar
                           </Button>
                         )}
                         {!isHarvest && (
-                          <div className="ml-auto flex gap-0.5">
+                          <div className="ml-auto flex gap-0">
                             {!isPago && (
                               <>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(item)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleEdit(item)}>
                                   <Pencil className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(item)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDelete(item)}>
                                   <Trash2 className="h-3 w-3 text-destructive" />
                                 </Button>
                               </>
