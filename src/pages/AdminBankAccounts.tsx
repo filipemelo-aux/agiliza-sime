@@ -500,6 +500,15 @@ export default function AdminBankAccounts() {
 
       <BankStatementDialog open={extratoOpen} onOpenChange={setExtratoOpen} account={extratoAccount} />
 
+      {linkAccount && (
+        <LinkAccountDialog
+          open={linkOpen}
+          onOpenChange={setLinkOpen}
+          accountId={linkAccount.id}
+          accountName={linkAccount.nome}
+        />
+      )}
+
       {ConfirmDialog}
     </AdminLayout>
   );
