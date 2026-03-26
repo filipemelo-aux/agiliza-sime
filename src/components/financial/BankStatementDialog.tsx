@@ -311,7 +311,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                   <TableRow>
                      <TableHead className="w-[90px]">Data</TableHead>
                      <TableHead>Descrição</TableHead>
-                     <TableHead className="w-[120px]">Categoria</TableHead>
+                     <TableHead className="w-[150px]">Categoria</TableHead>
                      <TableHead className="text-right w-[110px]">Valor</TableHead>
                      <TableHead className="text-right w-[120px]">Saldo</TableHead>
                   </TableRow>
@@ -345,9 +345,9 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {tx.chart_of_accounts ? (
-                          <Badge variant="secondary" className="text-[9px]">
+                          <Badge variant="secondary" className="text-[9px] whitespace-nowrap">
                             {(tx.chart_of_accounts as any).nome}
                           </Badge>
                         ) : <span className="text-[9px] text-muted-foreground">—</span>}
