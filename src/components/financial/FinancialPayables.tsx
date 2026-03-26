@@ -208,16 +208,34 @@ export function FinancialPayables() {
     const today = format(new Date(), "yyyy-MM-dd");
     const expenses = ((expData as any) || []) as Expense[];
     const overdueIds: string[] = [];
+    const reopenedIds: string[] = [];
+
     const processed = expenses.map(e => {
-      if (e.data_vencimento && e.data_vencimento < today && e.status === "pendente") {
+      const dueDate = e.data_vencimento;
+      if (!dueDate || e.status === "pago") return e;
+
+      if (dueDate < today && (e.status === "pendente" || e.status === "parcial")) {
         overdueIds.push(e.id);
         return { ...e, status: "atrasado" };
       }
+
+      if (dueDate >= today && e.status === "atrasado") {
+        reopenedIds.push(e.id);
+        return { ...e, status: Number(e.valor_pago) > 0 ? "parcial" : "pendente" };
+      }
+
       return e;
     });
 
     if (overdueIds.length > 0) {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
+    }
+    if (reopenedIds.length > 0) {
+      supabase
+        .from("expenses")
+        .update({ status: "pendente" } as any)
+        .in("id", reopenedIds)
+        .then(() => {});
     }
 
     // Build harvest paid items as virtual expenses
