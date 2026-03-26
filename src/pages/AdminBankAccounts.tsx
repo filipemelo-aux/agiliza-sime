@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
@@ -27,6 +28,7 @@ interface BankAccount {
   saldo_atual: number;
   ativo: boolean;
   empresa_id: string;
+  permitir_multiplas_unidades: boolean;
   created_at: string;
 }
 
@@ -34,6 +36,7 @@ interface Establishment {
   id: string;
   razao_social: string;
   nome_fantasia: string | null;
+  type: string;
 }
 
 
@@ -66,6 +69,8 @@ const emptyForm = {
   conta_numero: "",
   saldo_inicial: "0,00",
   empresa_id: "",
+  permitir_multiplas_unidades: false,
+  unidade_ids: [] as string[],
 };
 
 export default function AdminBankAccounts() {
@@ -101,7 +106,7 @@ export default function AdminBankAccounts() {
   const fetchEstablishments = useCallback(async () => {
     const { data } = await supabase
       .from("fiscal_establishments")
-      .select("id, razao_social, nome_fantasia")
+      .select("id, razao_social, nome_fantasia, type")
       .eq("active", true)
       .order("razao_social");
     setEstablishments(data ?? []);
@@ -139,8 +144,17 @@ export default function AdminBankAccounts() {
     setDialogOpen(true);
   };
 
-  const openEdit = (acc: BankAccount) => {
+  const openEdit = async (acc: BankAccount) => {
     setEditing(acc);
+    // Fetch linked units
+    let unitIds: string[] = [];
+    if (acc.permitir_multiplas_unidades) {
+      const { data } = await supabase
+        .from("bank_account_units")
+        .select("unidade_id")
+        .eq("conta_bancaria_id", acc.id);
+      unitIds = (data ?? []).map((d: any) => d.unidade_id);
+    }
     setForm({
       nome: acc.nome,
       tipo: acc.tipo,
@@ -150,6 +164,8 @@ export default function AdminBankAccounts() {
       conta_numero: acc.conta_numero ?? "",
       saldo_inicial: formatCurrency(acc.saldo_inicial).replace("R$\u00a0", "").replace("R$ ", ""),
       empresa_id: acc.empresa_id,
+      permitir_multiplas_unidades: acc.permitir_multiplas_unidades,
+      unidade_ids: unitIds,
     });
     setDialogOpen(true);
   };
@@ -170,7 +186,10 @@ export default function AdminBankAccounts() {
       conta_numero: form.conta_numero.trim() || null,
       saldo_inicial: saldoInicial,
       empresa_id: form.empresa_id,
+      permitir_multiplas_unidades: form.permitir_multiplas_unidades,
     };
+
+    let accountId: string | null = null;
 
     if (editing) {
       const { error } = await supabase
@@ -179,19 +198,41 @@ export default function AdminBankAccounts() {
         .eq("id", editing.id);
       if (error) {
         toast.error("Erro ao atualizar conta");
-      } else {
-        toast.success("Conta atualizada");
-        // Recalculate balance when saldo_inicial changes
-        await supabase.rpc("recalc_bank_balance", { _conta_id: editing.id } as any);
+        setSaving(false);
+        return;
       }
+      accountId = editing.id;
+      await supabase.rpc("recalc_bank_balance", { _conta_id: editing.id } as any);
     } else {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from("bank_accounts")
-        .insert({ ...payload, saldo_atual: saldoInicial } as any);
-      if (error) toast.error("Erro ao criar conta");
-      else toast.success("Conta criada");
+        .insert({ ...payload, saldo_atual: saldoInicial } as any)
+        .select("id")
+        .single();
+      if (error || !inserted) {
+        toast.error("Erro ao criar conta");
+        setSaving(false);
+        return;
+      }
+      accountId = inserted.id;
     }
 
+    // Sync bank_account_units
+    if (accountId) {
+      // Delete existing
+      await supabase.from("bank_account_units").delete().eq("conta_bancaria_id", accountId);
+
+      // Insert selected units
+      if (form.permitir_multiplas_unidades && form.unidade_ids.length > 0) {
+        const rows = form.unidade_ids.map(uid => ({
+          conta_bancaria_id: accountId!,
+          unidade_id: uid,
+        }));
+        await supabase.from("bank_account_units").insert(rows as any);
+      }
+    }
+
+    toast.success(editing ? "Conta atualizada" : "Conta criada");
     setSaving(false);
     setDialogOpen(false);
     fetchAccounts();
@@ -353,6 +394,58 @@ export default function AdminBankAccounts() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Multi-unit toggle */}
+            {establishments.length > 1 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="multi-unit"
+                    checked={form.permitir_multiplas_unidades}
+                    onCheckedChange={(checked) =>
+                      setForm(f => ({
+                        ...f,
+                        permitir_multiplas_unidades: !!checked,
+                        unidade_ids: checked ? f.unidade_ids : [],
+                      }))
+                    }
+                  />
+                  <Label htmlFor="multi-unit" className="text-sm cursor-pointer">
+                    Compartilhar entre unidades (matriz/filial)
+                  </Label>
+                </div>
+
+                {form.permitir_multiplas_unidades && (
+                  <div className="border rounded-md p-3 space-y-2 bg-muted/30">
+                    <p className="text-xs text-muted-foreground">
+                      Selecione as unidades que poderão usar esta conta. Se nenhuma for selecionada, a conta será global.
+                    </p>
+                    {establishments.map(est => (
+                      <div key={est.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`unit-${est.id}`}
+                          checked={form.unidade_ids.includes(est.id)}
+                          onCheckedChange={(checked) => {
+                            setForm(f => ({
+                              ...f,
+                              unidade_ids: checked
+                                ? [...f.unidade_ids, est.id]
+                                : f.unidade_ids.filter(id => id !== est.id),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`unit-${est.id}`} className="text-sm cursor-pointer flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px]">
+                            {est.type === "matriz" ? "Matriz" : "Filial"}
+                          </Badge>
+                          {est.nome_fantasia || est.razao_social}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <Label>Tipo</Label>
