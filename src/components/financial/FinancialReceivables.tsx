@@ -442,13 +442,22 @@ export function FinancialReceivables() {
                 <CardContent className="p-4 space-y-2">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
-                        {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
-                        <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                    <div className="flex items-start gap-2 min-w-0">
+                      {item._source === "manual" && (
+                        <Checkbox
+                          checked={selectedIds.has(item.id)}
+                          onCheckedChange={() => toggleSelect(item.id)}
+                          className="mt-0.5 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
+                          <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                        </div>
+                        {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
                       </div>
-                      {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
                     </div>
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
