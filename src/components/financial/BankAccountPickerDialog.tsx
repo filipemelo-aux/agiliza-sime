@@ -38,7 +38,7 @@ const tipoIcon = (tipo: string) => {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selectedCount, target, onLinked }: BankAccountPickerDialogProps) {
+export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selectedCount, harvestPaymentIds, target, onLinked }: BankAccountPickerDialogProps) {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
