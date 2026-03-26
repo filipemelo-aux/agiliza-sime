@@ -338,6 +338,19 @@ export default function AdminFinancialTransactions() {
               <SelectItem value="saida">Saídas</SelectItem>
             </SelectContent>
           </Select>
+          {establishments.length > 1 && (
+            <Select value={filterUnidade} onValueChange={setFilterUnidade}>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Unidade" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Unidades</SelectItem>
+                {establishments.map(e => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Table */}
@@ -353,6 +366,7 @@ export default function AdminFinancialTransactions() {
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Conta</TableHead>
+                  <TableHead>Unidade</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
