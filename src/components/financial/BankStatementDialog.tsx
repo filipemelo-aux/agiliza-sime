@@ -354,19 +354,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                         ) : <span className="text-[9px] text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
-                        {isClickable(tx) ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-1.5 text-[10px] gap-1"
-                            onClick={() => handleOrigemClick(tx)}
-                          >
-                            {origemLabel(tx.origem)}
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
-                        )}
+                        <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
                       </TableCell>
                       <TableCell className={`text-right text-xs font-mono font-semibold whitespace-nowrap ${tx.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
                         {tx.tipo === "entrada" ? "+" : "−"} {formatCurrency(tx.valor)}
