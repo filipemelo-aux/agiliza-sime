@@ -27,6 +27,7 @@ interface UnlinkedItem {
   status: string;
   person_name: string | null;
   type: "receivable" | "payable";
+  already_linked: boolean;
 }
 
 export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }: LinkAccountDialogProps) {
@@ -43,12 +44,10 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
       supabase
         .from("accounts_receivable")
         .select("id, description, amount, due_date, status, debtor_name, conta_bancaria_id")
-        .is("conta_bancaria_id", null)
         .order("due_date", { ascending: true }),
       supabase
         .from("expenses")
         .select("id, descricao, valor_total, data_vencimento, status, favorecido_nome, conta_bancaria_id")
-        .is("conta_bancaria_id", null)
         .is("deleted_at", null)
         .order("data_vencimento", { ascending: true }),
     ]);
@@ -61,6 +60,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
       status: r.status,
       person_name: r.debtor_name,
       type: "receivable" as const,
+      already_linked: r.conta_bancaria_id === accountId,
     }));
 
     const payables: UnlinkedItem[] = (payRes.data ?? []).map((p: any) => ({
@@ -71,6 +71,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
       status: p.status,
       person_name: p.favorecido_nome,
       type: "payable" as const,
+      already_linked: p.conta_bancaria_id === accountId,
     }));
 
     setItems([...receivables, ...payables]);
@@ -203,7 +204,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhum lançamento pendente sem conta bancária vinculada.
+            Nenhum lançamento encontrado.
           </p>
         ) : (
           <>
@@ -226,8 +227,8 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
                   key={item.id}
                   className={`cursor-pointer transition-colors border-l-4 ${
                     item.type === "receivable" ? "border-l-emerald-500" : "border-l-destructive"
-                  } ${selected.has(item.id) ? "bg-accent/50" : ""}`}
-                  onClick={() => toggleSelect(item.id)}
+                  } ${selected.has(item.id) ? "bg-accent/50" : ""} ${item.already_linked ? "opacity-50" : ""}`}
+                  onClick={() => !item.already_linked && toggleSelect(item.id)}
                 >
                   <CardContent className="p-2.5 flex items-start gap-2">
                     <Checkbox
@@ -246,6 +247,9 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
                         >
                           {item.type === "receivable" ? "Receber" : "Pagar"}
                         </Badge>
+                        {item.already_linked && (
+                          <Badge variant="secondary" className="text-[10px] shrink-0">Já vinculado</Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                         {item.person_name && <span className="truncate">{item.person_name}</span>}
