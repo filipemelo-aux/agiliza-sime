@@ -219,14 +219,13 @@ export default function AdminBankAccounts() {
 
     // Sync bank_account_units
     if (accountId) {
-      // Delete existing
       await supabase.from("bank_account_units").delete().eq("conta_bancaria_id", accountId);
 
-      // Insert selected units
-      if (form.permitir_multiplas_unidades && form.unidade_ids.length > 0) {
-        const rows = form.unidade_ids.map(uid => ({
+      // If global, link all establishments
+      if (form.permitir_multiplas_unidades) {
+        const rows = establishments.map(est => ({
           conta_bancaria_id: accountId!,
-          unidade_id: uid,
+          unidade_id: est.id,
         }));
         await supabase.from("bank_account_units").insert(rows as any);
       }
