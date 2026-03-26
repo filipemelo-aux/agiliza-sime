@@ -25,7 +25,7 @@ import { Loader2 } from "lucide-react";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  establishments: any[];
+  matrizId: string;
   user: any;
   onCreated: (order: any) => void;
 }
@@ -74,13 +74,13 @@ async function resolveRequesterNameFromProfile(user: any) {
   return data.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
 }
 
-export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, onCreated }: Props) {
+export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCreated }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [userName, setUserName] = useState("");
 
-  const [establishmentId, setEstablishmentId] = useState("");
+  const establishmentId = matrizId;
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [supplierName, setSupplierName] = useState("");
   const [vehicleId, setVehicleId] = useState("");
@@ -125,14 +125,9 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
         }
         setVehicles(vList);
       });
-
-    if (establishments.length === 1) {
-      setEstablishmentId(establishments[0].id);
-    }
-  }, [open, establishments, user]);
+  }, [open, user]);
 
   const reset = () => {
-    setEstablishmentId(establishments.length === 1 ? establishments[0].id : "");
     setSupplierId(null);
     setSupplierName("");
     setVehicleId("");
@@ -193,8 +188,6 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
     onCreated(data);
   };
 
-  const selectedEst = establishments.find((e) => e.id === establishmentId);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
@@ -206,19 +199,8 @@ export function FuelOrderFormDialog({ open, onOpenChange, establishments, user, 
           <div className="rounded-lg border border-border p-3 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Identificação</p>
             <div className="space-y-1.5">
-              <Label className="text-xs">Empresa Solicitante *</Label>
-              <Select value={establishmentId} onValueChange={setEstablishmentId}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue placeholder="Selecione a empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {establishments.map((est) => (
-                    <SelectItem key={est.id} value={est.id}>
-                      {est.type === "matriz" ? "Matriz" : "Filial"} — {est.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs">Empresa Solicitante</Label>
+              <Input value="Sime Transporte Ltda" disabled className="bg-muted/30 text-sm" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Solicitante</Label>
