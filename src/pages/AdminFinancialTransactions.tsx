@@ -437,13 +437,26 @@ export default function AdminFinancialTransactions() {
               <Label>Conta Bancária *</Label>
               <Select value={form.conta_bancaria_id} onValueChange={v => {
                 const ba = bankAccounts.find(b => b.id === v);
-                setForm(f => ({ ...f, conta_bancaria_id: v, empresa_id: ba?.empresa_id || f.empresa_id }));
+                setForm(f => ({ ...f, conta_bancaria_id: v, empresa_id: ba?.empresa_id || f.empresa_id, unidade_id: "" }));
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
                   {bankAccounts
                     .filter(ba => !form.empresa_id || ba.empresa_id === form.empresa_id)
                     .map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.nome} ({formatCurrency(ba.saldo_atual)})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unidade *</Label>
+              <Select value={form.unidade_id} onValueChange={v => setForm(f => ({ ...f, unidade_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectContent>
+                  {(form.conta_bancaria_id ? getValidUnits(form.conta_bancaria_id) : establishments).map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
