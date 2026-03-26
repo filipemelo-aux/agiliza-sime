@@ -166,6 +166,42 @@ export type Database = {
           },
         ]
       }
+      bank_account_units: {
+        Row: {
+          conta_bancaria_id: string
+          created_at: string
+          id: string
+          unidade_id: string
+        }
+        Insert: {
+          conta_bancaria_id: string
+          created_at?: string
+          id?: string
+          unidade_id: string
+        }
+        Update: {
+          conta_bancaria_id?: string
+          created_at?: string
+          id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_account_units_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_account_units_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_accounts: {
         Row: {
           agencia: string | null
@@ -177,6 +213,7 @@ export type Database = {
           empresa_id: string
           id: string
           nome: string
+          permitir_multiplas_unidades: boolean
           saldo_atual: number
           saldo_inicial: number
           tipo: string
@@ -192,6 +229,7 @@ export type Database = {
           empresa_id: string
           id?: string
           nome: string
+          permitir_multiplas_unidades?: boolean
           saldo_atual?: number
           saldo_inicial?: number
           tipo?: string
@@ -207,6 +245,7 @@ export type Database = {
           empresa_id?: string
           id?: string
           nome?: string
+          permitir_multiplas_unidades?: boolean
           saldo_atual?: number
           saldo_inicial?: number
           tipo?: string
