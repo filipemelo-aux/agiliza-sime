@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, Landmark } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, Landmark, ArrowLeftRight } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +43,7 @@ const menuItems = [
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Contas Bancárias", url: "/admin/financial/bank-accounts", icon: Landmark },
+      { title: "Movimentações", url: "/admin/financial/transactions", icon: ArrowLeftRight },
     ],
   },
   {
