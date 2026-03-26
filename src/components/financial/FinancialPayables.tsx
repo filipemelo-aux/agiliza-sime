@@ -1548,7 +1548,7 @@ export function FinancialPayables() {
                   >
                     <CardContent className="p-3 flex flex-col gap-1.5">
                       {/* Row 1: Checkbox + Nome */}
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 min-h-[24px]">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleSelect(item.id)}
@@ -1558,7 +1558,7 @@ export function FinancialPayables() {
                         </p>
                       </div>
                       {/* Row 2: Badges */}
-                      <div className="flex items-center gap-1 flex-wrap min-h-[20px]">
+                      <div className="flex items-center gap-1 flex-wrap min-h-[22px]">
                         {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                         {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                         {isHarvest && (
