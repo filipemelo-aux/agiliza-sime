@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Landmark, PiggyBank, Building2, Wallet, Loader2, Link2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +10,6 @@ interface BankAccountPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedIds: string[];
-  /** How many items the user originally selected (may differ from selectedIds due to dedup) */
   selectedCount?: number;
   target: "expenses" | "accounts_receivable";
   onLinked: () => void;
@@ -25,6 +22,7 @@ interface BankAccount {
   banco_nome: string | null;
   saldo_atual: number;
   ativo: boolean;
+  empresa_id: string;
 }
 
 const tipoIcon = (tipo: string) => {
@@ -37,6 +35,8 @@ const tipoIcon = (tipo: string) => {
   }
 };
 
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
 export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selectedCount, target, onLinked }: BankAccountPickerDialogProps) {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +47,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
     setLoading(true);
     supabase
       .from("bank_accounts")
-      .select("id, nome, tipo, banco_nome, saldo_atual, ativo")
+      .select("id, nome, tipo, banco_nome, saldo_atual, ativo, empresa_id")
       .eq("ativo", true)
       .order("nome")
       .then(({ data }) => {
@@ -56,7 +56,127 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
       });
   }, [open]);
 
-  const handleSelect = async (accountId: string, accountName: string) => {
+  const syncPaidExpenses = async (accountId: string): Promise<number> => {
+    const { data: expenses } = await supabase
+      .from("expenses")
+      .select("id, descricao, status, valor_pago, data_pagamento, plano_contas_id, empresa_id, unidade_id")
+      .in("id", selectedIds)
+      .gt("valor_pago", 0)
+      .in("status", ["pago", "parcial"]);
+
+    if (!expenses || expenses.length === 0) return 0;
+
+    const expenseIds = expenses.map((e: any) => e.id);
+    const [{ data: txExisting }, { data: authData }] = await Promise.all([
+      supabase
+        .from("financial_transactions")
+        .select("origem_id, valor, tipo")
+        .eq("origem", "conta_pagar")
+        .eq("status", "confirmado")
+        .in("origem_id", expenseIds),
+      supabase.auth.getUser(),
+    ]);
+
+    const existingByExpense = new Map<string, number>();
+    (txExisting ?? []).forEach((tx: any) => {
+      if (tx.tipo !== "saida") return;
+      existingByExpense.set(tx.origem_id, (existingByExpense.get(tx.origem_id) ?? 0) + Number(tx.valor));
+    });
+
+    const userId = authData.user?.id;
+    const rows = (expenses as any[]).flatMap((e) => {
+      const paid = Number(e.valor_pago ?? 0);
+      const alreadyPosted = Number(existingByExpense.get(e.id) ?? 0);
+      const diff = Number((paid - alreadyPosted).toFixed(2));
+      if (diff <= 0.009) return [];
+
+      return [{
+        conta_bancaria_id: accountId,
+        tipo: "saida",
+        valor: diff,
+        data_movimentacao: (e.data_pagamento || todayISO()).slice(0, 10),
+        descricao: `Pgto: ${e.descricao || "Conta a Pagar"} (retroativo)`,
+        plano_contas_id: e.plano_contas_id || null,
+        origem: "conta_pagar",
+        origem_id: e.id,
+        status: "confirmado",
+        observacoes: "Movimentação criada automaticamente após vinculação da conta bancária",
+        empresa_id: e.empresa_id,
+        unidade_id: e.unidade_id || e.empresa_id,
+        created_by: userId || null,
+      }];
+    });
+
+    if (rows.length > 0) {
+      const { error: txError } = await supabase.from("financial_transactions").insert(rows as any);
+      if (txError) throw txError;
+      await supabase.rpc("recalc_bank_balance", { _conta_id: accountId } as any);
+    }
+
+    return rows.length;
+  };
+
+  const syncReceivedReceivables = async (accountId: string, accountEmpresaId: string): Promise<number> => {
+    const { data: receivables } = await supabase
+      .from("accounts_receivable")
+      .select("id, description, status, paid_amount, paid_at, category_id")
+      .in("id", selectedIds)
+      .gt("paid_amount", 0)
+      .in("status", ["pago", "parcial", "recebido"]);
+
+    if (!receivables || receivables.length === 0) return 0;
+
+    const receivableIds = receivables.map((r: any) => r.id);
+    const [{ data: txExisting }, { data: authData }] = await Promise.all([
+      supabase
+        .from("financial_transactions")
+        .select("origem_id, valor, tipo")
+        .eq("origem", "conta_receber")
+        .eq("status", "confirmado")
+        .in("origem_id", receivableIds),
+      supabase.auth.getUser(),
+    ]);
+
+    const existingByReceivable = new Map<string, number>();
+    (txExisting ?? []).forEach((tx: any) => {
+      if (tx.tipo !== "entrada") return;
+      existingByReceivable.set(tx.origem_id, (existingByReceivable.get(tx.origem_id) ?? 0) + Number(tx.valor));
+    });
+
+    const userId = authData.user?.id;
+    const rows = (receivables as any[]).flatMap((r) => {
+      const received = Number(r.paid_amount ?? 0);
+      const alreadyPosted = Number(existingByReceivable.get(r.id) ?? 0);
+      const diff = Number((received - alreadyPosted).toFixed(2));
+      if (diff <= 0.009) return [];
+
+      return [{
+        conta_bancaria_id: accountId,
+        tipo: "entrada",
+        valor: diff,
+        data_movimentacao: (r.paid_at || todayISO()).slice(0, 10),
+        descricao: `Recebimento: ${r.description || "Conta a Receber"} (retroativo)`,
+        plano_contas_id: r.category_id || null,
+        origem: "conta_receber",
+        origem_id: r.id,
+        status: "confirmado",
+        observacoes: "Movimentação criada automaticamente após vinculação da conta bancária",
+        empresa_id: accountEmpresaId,
+        unidade_id: accountEmpresaId,
+        created_by: userId || null,
+      }];
+    });
+
+    if (rows.length > 0) {
+      const { error: txError } = await supabase.from("financial_transactions").insert(rows as any);
+      if (txError) throw txError;
+      await supabase.rpc("recalc_bank_balance", { _conta_id: accountId } as any);
+    }
+
+    return rows.length;
+  };
+
+  const handleSelect = async (accountId: string, accountName: string, accountEmpresaId: string) => {
     setSaving(true);
 
     const { error } = await supabase
@@ -66,11 +186,29 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
 
     if (error) {
       toast.error("Erro ao vincular à conta bancária");
-    } else {
-      toast.success(`${selectedCount ?? selectedIds.length} item(ns) vinculado(s) à "${accountName}"`);
-      onLinked();
-      onOpenChange(false);
+      setSaving(false);
+      return;
     }
+
+    let syncedCount = 0;
+    try {
+      syncedCount = target === "expenses"
+        ? await syncPaidExpenses(accountId)
+        : await syncReceivedReceivables(accountId, accountEmpresaId);
+    } catch (syncError: any) {
+      console.error("Erro ao sincronizar movimentações retroativas:", syncError?.message || syncError);
+      toast.warning("Vínculo salvo, mas houve erro na sincronização retroativa do extrato.");
+    }
+
+    const linkedCount = selectedCount ?? selectedIds.length;
+    if (syncedCount > 0) {
+      toast.success(`${linkedCount} item(ns) vinculado(s) e ${syncedCount} movimentação(ões) retroativa(s) criada(s) em "${accountName}"`);
+    } else {
+      toast.success(`${linkedCount} item(ns) vinculado(s) à "${accountName}"`);
+    }
+
+    onLinked();
+    onOpenChange(false);
     setSaving(false);
   };
 
@@ -80,7 +218,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="h-5 w-5" />
-            Vincular {selectedIds.length} item(ns) à conta
+            Vincular {selectedCount ?? selectedIds.length} item(ns) à conta
           </DialogTitle>
         </DialogHeader>
 
@@ -98,7 +236,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
               <Card
                 key={acc.id}
                 className="cursor-pointer transition-colors hover:bg-accent/50 border-l-4 border-l-primary/40"
-                onClick={() => !saving && handleSelect(acc.id, acc.nome)}
+                onClick={() => !saving && handleSelect(acc.id, acc.nome, acc.empresa_id)}
               >
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="text-muted-foreground">{tipoIcon(acc.tipo)}</div>
@@ -109,7 +247,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className={`text-sm font-mono font-bold ${Number(acc.saldo_atual) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    <p className={`text-sm font-mono font-bold ${Number(acc.saldo_atual) >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatCurrency(Number(acc.saldo_atual))}
                     </p>
                   </div>
