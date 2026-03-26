@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   const [totalWeek, setTotalWeek] = useState(0);
 
   useEffect(() => {
-    supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle()
+    supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setEmpresaId(data.id); });
   }, []);
 
