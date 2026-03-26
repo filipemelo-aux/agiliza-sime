@@ -1576,16 +1576,6 @@ export function FinancialPayables() {
                                 <Check className="h-3 w-3" /> Pagar
                               </Button>
                             )}
-                            {isInstPago && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
-                                onClick={() => handleReverseInstallment(inst)}
-                              >
-                                <Undo2 className="h-3 w-3" /> Estornar
-                              </Button>
-                            )}
                             <div className="ml-auto flex gap-0">
                               {inst.boleto_url && (
                                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
@@ -1707,14 +1697,9 @@ export function FinancialPayables() {
                             <Check className="h-3 w-3" /> Pagar
                           </Button>
                         )}
-                        {isPago && !isHarvest && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
-                            onClick={() => handleReversePayment(item)}
-                          >
-                            <Undo2 className="h-3 w-3" /> Estornar
+                        {isPago && (
+                          <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
+                            <FileText className="h-3 w-3" /> Detalhes
                           </Button>
                         )}
                         {!isHarvest && (
