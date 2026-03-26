@@ -164,7 +164,7 @@ export default function AdminFinancialTransactions() {
       toast.error("Apenas movimentações confirmadas podem ser estornadas.");
       return;
     }
-    const ok = await confirm("Estornar movimentação", "Será criada uma movimentação inversa. Deseja continuar?");
+    const ok = await confirm({ title: "Estornar movimentação", description: "Será criada uma movimentação inversa. Deseja continuar?" });
     if (!ok) return;
 
     const { data: { user } } = await supabase.auth.getUser();
