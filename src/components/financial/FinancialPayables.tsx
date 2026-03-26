@@ -871,7 +871,7 @@ export function FinancialPayables() {
     }).sort((a, b) => {
       if (quickFilter === "pagas") {
         // Ordenar por data de pagamento — mais recente primeiro
-        const getPaidDate = (item: typeof a) => item.data_pagamento || item.updated_at || "";
+        const getPaidDate = (item: typeof a) => item.data_pagamento || "";
         return getPaidDate(b).localeCompare(getPaidDate(a));
       }
       // Para itens com parcelas, usar a menor data de vencimento pendente
