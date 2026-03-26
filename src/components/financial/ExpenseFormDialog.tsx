@@ -47,6 +47,13 @@ const ORIGEM_MAP: Record<string, string> = {
 
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; tipo_operacional?: string | null; }
 
+interface BankAccountOption {
+  id: string;
+  nome: string;
+  saldo_atual: number;
+  ativo: boolean;
+}
+
 interface Expense {
   id: string;
   descricao: string;
@@ -81,6 +88,7 @@ interface Expense {
   updated_at?: string;
   created_by?: string;
   unidade_id?: string | null;
+  conta_bancaria_id?: string | null;
 }
 
 interface PaymentRecord {
@@ -132,6 +140,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [kmOdometro, setKmOdometro] = useState("");
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
+  const [contaBancariaId, setContaBancariaId] = useState("");
+  const [bankAccountOptions, setBankAccountOptions] = useState<BankAccountOption[]>([]);
   const [showCreateFornecedor, setShowCreateFornecedor] = useState(false);
 
   // NF-e fields
@@ -250,6 +260,13 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Collapsible sections
   const [showDocFiscal, setShowDocFiscal] = useState(false);
 
+  // Load bank accounts
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("bank_accounts").select("id, nome, saldo_atual, ativo").eq("ativo", true).order("nome")
+      .then(({ data }) => setBankAccountOptions((data as any) || []));
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     if (expense) {
@@ -284,6 +301,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setProximaManutencaoKm(expense.proxima_manutencao_km ? String(expense.proxima_manutencao_km) : "");
       setShowDocFiscal(!!(expense.documento_fiscal_numero || expense.chave_nfe));
       setShowHistory(false);
+      setContaBancariaId(expense.conta_bancaria_id || "");
       if (expense.id) {
         loadItems(expense.id);
         if (expAccount?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
@@ -383,6 +401,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setShowDocFiscal(false); setShowHistory(false);
     setParcelas([]); setUseParcelas(false);
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
+    setContaBancariaId("");
   };
 
   const handleXmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -531,6 +550,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
       tempo_parado: isMaintenanceType ? (tempoParado.trim() || null) : null,
       proxima_manutencao_km: isMaintenanceType && proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
+      conta_bancaria_id: contaBancariaId || null,
     };
 
     let expenseId = expense?.id;
@@ -1125,6 +1145,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 </SelectContent>
               </Select>
             </div>
+           </div>
+
+          {/* Bank Account */}
+          <div>
+            <Label className="text-xs">Conta Bancária (para baixa)</Label>
+            <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione a conta..." /></SelectTrigger>
+              <SelectContent>
+                {bankAccountOptions.map(ba => (
+                  <SelectItem key={ba.id} value={ba.id}>
+                    {ba.nome} ({formatCurrency(ba.saldo_atual)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* ── Vehicle-specific fields (for combustivel category) ── */}
