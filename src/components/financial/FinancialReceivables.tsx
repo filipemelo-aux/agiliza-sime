@@ -165,6 +165,8 @@ export function FinancialReceivables() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bankPickerOpen, setBankPickerOpen] = useState(false);
 
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
