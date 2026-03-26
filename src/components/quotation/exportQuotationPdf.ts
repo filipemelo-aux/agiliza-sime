@@ -39,7 +39,8 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   <img src="${logoUrl}" alt="SIME" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
-    <div style="font-size:11px;color:#666">${companyName} — CNPJ: ${companyCnpjs}</div>
+    <div style="font-size:11px;color:#666">${companyName}</div>
+    ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("\n    ")}
   </div>
 </div>
 
@@ -96,7 +97,8 @@ ${isFrete ? `
 ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>` : ""}
 
 <div class="footer">
-  <p>SIME TRANSPORTES — ${companyName} — CNPJ: ${companyCnpjs}</p>
+  <p>SIME TRANSPORTES — ${companyName}</p>
+  ${companyCnpjs.split(" / ").map((c: string) => `<p>CNPJ: ${c}</p>`).join("\n  ")}
   <p>Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
 </div>
 

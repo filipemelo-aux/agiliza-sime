@@ -83,7 +83,7 @@ function buildFuelOrderHTMLWithSignature(
     <td style="vertical-align:middle">
       <div style="font-family:${EMAIL_FONT_STACK};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
       <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
-      <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${companyCnpjs}</div>
+      ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ")}
     </td>
   </tr></table>
 </td></tr>
@@ -198,7 +198,8 @@ ${order.notes ? `
 <!-- FOOTER -->
 <tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName} — CNPJ: ${companyCnpjs}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName}</div>
+  ${companyCnpjs.split(" / ").map((c: string) => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
 
