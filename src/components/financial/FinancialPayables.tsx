@@ -1416,7 +1416,7 @@ export function FinancialPayables() {
                       >
                         <CardContent className="p-3 flex flex-col gap-1.5">
                           {/* Row 1: Checkbox + Nome */}
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 min-h-[24px]">
                             <Checkbox
                               checked={isInstSelected}
                               onCheckedChange={() => toggleSelect(instCardId)}
@@ -1426,7 +1426,7 @@ export function FinancialPayables() {
                             </p>
                           </div>
                           {/* Row 2: Badges */}
-                          <div className="flex items-center gap-1 flex-wrap min-h-[20px]">
+                          <div className="flex items-center gap-1 flex-wrap min-h-[22px]">
                             {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                             {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                             <Badge variant="secondary" className="text-[10px]">
@@ -1442,14 +1442,14 @@ export function FinancialPayables() {
                             )}
                           </div>
                           {/* Row 3: Dados fixos */}
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs min-h-[32px]">
-                            <div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <div className="min-h-[32px]">
                               <span className="text-muted-foreground">Valor Parcela</span>
                               <p className="font-mono font-semibold text-foreground">
                                 {formatCurrency(Number(inst.valor))}
                               </p>
                             </div>
-                            <div>
+                            <div className="min-h-[32px]">
                               <span className="text-muted-foreground">Vencimento</span>
                               <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
                                 {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
@@ -1463,6 +1463,14 @@ export function FinancialPayables() {
                                     <span className="font-mono mr-1">{chart.codigo}</span>
                                     {chart.nome}
                                   </p>
+                                </>
+                              ) : <span>&nbsp;</span>}
+                            </div>
+                            <div className="col-span-2 min-h-[20px]">
+                              {item.veiculo_placa ? (
+                                <>
+                                  <span className="text-muted-foreground">Veículo</span>
+                                  <p className="text-foreground">{item.veiculo_placa}</p>
                                 </>
                               ) : <span>&nbsp;</span>}
                             </div>
