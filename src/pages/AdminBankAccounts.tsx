@@ -56,15 +56,6 @@ const tipoIcon = (tipo: string) => {
 
 const tipoLabel = (tipo: string) => TIPOS.find(t => t.value === tipo)?.label ?? tipo;
 
-const origemLabel = (o: string) => {
-  switch (o) {
-    case "manual": return "Manual";
-    case "ajuste": return "Ajuste";
-    case "conta_pagar": return "Conta a Pagar";
-    case "conta_receber": return "Conta a Receber";
-    default: return o;
-  }
-};
 
 const emptyForm = {
   nome: "",
