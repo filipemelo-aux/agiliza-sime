@@ -302,7 +302,7 @@ export function FinancialReceivables() {
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, debtor_id: null, cte_id: null, invoice_id: null,
     notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: ${formatCurrency(h.invoicedAmount)}` : ""}`,
-    created_at: new Date().toISOString(), _source: "harvest" as const,
+    created_at: new Date().toISOString(), conta_bancaria_id: null, _source: "harvest" as const,
   }));
 
   const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
@@ -310,7 +310,7 @@ export function FinancialReceivables() {
     amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: c.tomador_nome, debtor_id: null, cte_id: c.id, invoice_id: null,
     notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
-    created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
+    created_at: c.data_emissao || new Date().toISOString(), conta_bancaria_id: null, _source: "cte" as const,
   }));
 
   const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables, ...cteAsReceivables];
