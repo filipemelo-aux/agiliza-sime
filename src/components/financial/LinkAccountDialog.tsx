@@ -60,6 +60,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
       status: r.status,
       person_name: r.debtor_name,
       type: "receivable" as const,
+      already_linked: r.conta_bancaria_id === accountId,
     }));
 
     const payables: UnlinkedItem[] = (payRes.data ?? []).map((p: any) => ({
@@ -70,6 +71,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
       status: p.status,
       person_name: p.favorecido_nome,
       type: "payable" as const,
+      already_linked: p.conta_bancaria_id === accountId,
     }));
 
     setItems([...receivables, ...payables]);
