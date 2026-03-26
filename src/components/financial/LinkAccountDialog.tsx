@@ -247,6 +247,18 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
                         >
                           {item.type === "receivable" ? "Receber" : "Pagar"}
                         </Badge>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] shrink-0 ${
+                            item.status === "pago" || item.status === "recebido"
+                              ? "text-emerald-600 border-emerald-300"
+                              : item.status === "atrasado"
+                              ? "text-destructive border-destructive/30"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {item.status === "pago" ? "Pago" : item.status === "recebido" ? "Recebido" : item.status === "parcial" ? "Parcial" : item.status === "atrasado" ? "Atrasado" : "Pendente"}
+                        </Badge>
                         {item.already_linked && (
                           <Badge variant="secondary" className="text-[10px] shrink-0">Já vinculado</Badge>
                         )}
