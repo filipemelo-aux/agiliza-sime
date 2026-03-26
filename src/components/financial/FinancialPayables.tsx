@@ -1622,7 +1622,7 @@ export function FinancialPayables() {
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
-                vencimento: item.data_vencimento || item.data_emissao || "",
+                vencimento: quickFilter === "pagas" ? (item.data_pagamento || item.data_vencimento || item.data_emissao || "") : (item.data_vencimento || item.data_emissao || ""),
                 node: (
                   <Card
                     key={item.id}
