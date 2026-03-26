@@ -84,6 +84,7 @@ export type Database = {
         Row: {
           amount: number
           category_id: string | null
+          conta_bancaria_id: string | null
           created_at: string
           created_by: string
           cte_id: string | null
@@ -102,6 +103,7 @@ export type Database = {
         Insert: {
           amount?: number
           category_id?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           created_by: string
           cte_id?: string | null
@@ -120,6 +122,7 @@ export type Database = {
         Update: {
           amount?: number
           category_id?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           created_by?: string
           cte_id?: string | null
@@ -141,6 +144,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -1012,6 +1022,7 @@ export type Database = {
           centro_custo: Database["public"]["Enums"]["cost_center"]
           chave_nfe: string | null
           comprovante_url: string | null
+          conta_bancaria_id: string | null
           conta_financeira_id: string | null
           contrato_id: string | null
           created_at: string
@@ -1059,6 +1070,7 @@ export type Database = {
           centro_custo?: Database["public"]["Enums"]["cost_center"]
           chave_nfe?: string | null
           comprovante_url?: string | null
+          conta_bancaria_id?: string | null
           conta_financeira_id?: string | null
           contrato_id?: string | null
           created_at?: string
@@ -1106,6 +1118,7 @@ export type Database = {
           centro_custo?: Database["public"]["Enums"]["cost_center"]
           chave_nfe?: string | null
           comprovante_url?: string | null
+          conta_bancaria_id?: string | null
           conta_financeira_id?: string | null
           contrato_id?: string | null
           created_at?: string
@@ -1153,6 +1166,13 @@ export type Database = {
             columns: ["categoria_financeira_id"]
             isOneToOne: false
             referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
             referencedColumns: ["id"]
           },
           {
