@@ -347,9 +347,11 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-[9px]">
-                          {getUnitLabel(tx)}
-                        </Badge>
+                        {tx.chart_of_accounts ? (
+                          <Badge variant="secondary" className="text-[9px]">
+                            {(tx.chart_of_accounts as any).nome}
+                          </Badge>
+                        ) : <span className="text-[9px] text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         {isClickable(tx) ? (
