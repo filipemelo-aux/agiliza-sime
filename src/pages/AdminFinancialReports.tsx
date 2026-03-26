@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle, BarChart3, Wallet } from "lucide-react";
@@ -335,48 +335,31 @@ export default function AdminFinancialReports() {
             {fluxoData.dates.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Nenhuma movimentação no período.</p>
             ) : (
-              <div className="border rounded-lg overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">Data</TableHead>
-                      {fluxoData.unitIds.map(uid => (
-                        <TableHead key={uid} colSpan={2} className="text-center text-xs">
-                          {getEstLabel(uid === "sem_unidade" ? null : uid)}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                    <TableRow>
-                      <TableHead />
-                      {fluxoData.unitIds.map(uid => (
-                        <>
-                          <TableHead key={`${uid}-e`} className="text-right text-[10px] text-emerald-600">Entradas</TableHead>
-                          <TableHead key={`${uid}-s`} className="text-right text-[10px] text-red-600">Saídas</TableHead>
-                        </>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {fluxoData.dates.map(date => (
-                      <TableRow key={date}>
-                        <TableCell className="text-xs whitespace-nowrap">{format(parseISO(date), "dd/MM/yyyy")}</TableCell>
+              <div className="space-y-3">
+                {fluxoData.dates.map(date => (
+                  <Card key={date}>
+                    <CardContent className="p-3 space-y-2">
+                      <p className="text-sm font-semibold">{format(parseISO(date), "dd/MM/yyyy")}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {fluxoData.unitIds.map(uid => {
                           const v = fluxoData.dateMap[date]?.[uid];
+                          if (!v) return null;
                           return (
-                            <>
-                              <TableCell key={`${date}-${uid}-e`} className="text-right text-xs font-mono text-emerald-600">
-                                {v?.entradas ? formatCurrency(v.entradas) : "—"}
-                              </TableCell>
-                              <TableCell key={`${date}-${uid}-s`} className="text-right text-xs font-mono text-red-600">
-                                {v?.saidas ? formatCurrency(v.saidas) : "—"}
-                              </TableCell>
-                            </>
+                            <div key={uid} className="border rounded-md p-2 bg-muted/20">
+                              <p className="text-[10px] text-muted-foreground truncate mb-1">
+                                {getEstLabel(uid === "sem_unidade" ? null : uid)}
+                              </p>
+                              <div className="flex items-center justify-between gap-2 text-xs font-mono">
+                                <span className="text-emerald-600">+{formatCurrency(v.entradas)}</span>
+                                <span className="text-destructive">−{formatCurrency(v.saidas)}</span>
+                              </div>
+                            </div>
                           );
                         })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </TabsContent>
