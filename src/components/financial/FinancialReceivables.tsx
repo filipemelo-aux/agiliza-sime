@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
@@ -26,6 +30,7 @@ interface Receivable {
   paid_at: string | null;
   paid_amount: number | null;
   debtor_name: string | null;
+  debtor_id: string | null;
   cte_id: string | null;
   invoice_id: string | null;
   notes: string | null;
@@ -34,6 +39,13 @@ interface Receivable {
 }
 
 interface Category { id: string; nome: string; }
+
+interface BankAccount {
+  id: string;
+  nome: string;
+  saldo_atual: number;
+  empresa_id: string;
+}
 
 interface HarvestReceivable {
   id: string;
@@ -65,6 +77,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   vencido: { label: "Vencido", variant: "destructive" },
   cancelado: { label: "Cancelado", variant: "secondary" },
   previsao: { label: "Previsão", variant: "secondary" },
+  parcial: { label: "Parcial", variant: "secondary" },
 };
 
 async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
@@ -143,6 +156,7 @@ export function FinancialReceivables() {
   const [cteForecasts, setCteForecasts] = useState<CteReceivable[]>([]);
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary>({ totalFaturado: 0, totalQuitado: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -157,17 +171,28 @@ export function FinancialReceivables() {
   const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
+  // Receive payment dialog state
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [receiveItem, setReceiveItem] = useState<Receivable | null>(null);
+  const [receiveContaId, setReceiveContaId] = useState("");
+  const [receiveValor, setReceiveValor] = useState("");
+  const [receiveData, setReceiveData] = useState<Date>(new Date());
+  const [receiveObs, setReceiveObs] = useState("");
+  const [receiveSaving, setReceiveSaving] = useState(false);
+
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }, harvestData, cteData, invSummary] = await Promise.all([
+    const [{ data: recData }, { data: catData }, { data: baData }, harvestData, cteData, invSummary] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("chart_of_accounts").select("id, nome").eq("tipo", "receita").eq("ativo", true).order("codigo"),
+      supabase.from("bank_accounts").select("id, nome, saldo_atual, empresa_id").eq("ativo", true).order("nome"),
       fetchHarvestReceivables(),
       fetchCteReceivables(),
       fetchInvoiceSummary(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
+    setBankAccounts((baData as any) || []);
     setHarvestItems(harvestData);
     setCteForecasts(cteData);
     setInvoiceSummary(invSummary);
@@ -202,10 +227,67 @@ export function FinancialReceivables() {
     setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
   };
 
-  const handleMarkPaid = async (item: Receivable) => {
-    const { error } = await supabase.from("accounts_receivable").update({ status: "pago", paid_at: new Date().toISOString(), paid_amount: item.amount } as any).eq("id", item.id);
-    if (error) return toast.error(error.message);
-    toast.success("Marcado como pago");
+  const openReceiveDialog = (item: Receivable) => {
+    const paidSoFar = Number(item.paid_amount) || 0;
+    const remaining = Number(item.amount) - paidSoFar;
+    setReceiveItem(item);
+    setReceiveValor(String(remaining));
+    setReceiveContaId("");
+    setReceiveData(new Date());
+    setReceiveObs("");
+    setReceiveOpen(true);
+  };
+
+  const handleConfirmReceive = async () => {
+    if (!receiveItem) return;
+    const valorNum = Number(receiveValor);
+    if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
+    if (!receiveContaId) return toast.error("Selecione a conta bancária");
+
+    const paidSoFar = Number(receiveItem.paid_amount) || 0;
+    const remaining = Number(receiveItem.amount) - paidSoFar;
+    if (valorNum > remaining + 0.01) return toast.error("Valor excede o saldo restante");
+
+    setReceiveSaving(true);
+
+    const novoPago = paidSoFar + valorNum;
+    const novoStatus = novoPago >= Number(receiveItem.amount) ? "pago" : "parcial";
+    const dataFormatted = format(receiveData, "yyyy-MM-dd");
+
+    // Update receivable
+    const { error } = await supabase.from("accounts_receivable").update({
+      status: novoStatus,
+      paid_at: new Date().toISOString(),
+      paid_amount: novoPago,
+    } as any).eq("id", receiveItem.id);
+
+    if (error) { toast.error(error.message); setReceiveSaving(false); return; }
+
+    // Create financial transaction (entrada)
+    const selectedAccount = bankAccounts.find(ba => ba.id === receiveContaId);
+    const { error: txErr } = await supabase.from("financial_transactions").insert({
+      conta_bancaria_id: receiveContaId,
+      tipo: "entrada",
+      valor: valorNum,
+      data_movimentacao: dataFormatted,
+      descricao: `Recebimento: ${receiveItem.description}`,
+      plano_contas_id: receiveItem.category_id || null,
+      origem: "conta_receber",
+      origem_id: receiveItem.id,
+      status: "confirmado",
+      observacoes: receiveObs.trim() || null,
+      empresa_id: selectedAccount?.empresa_id || "",
+      created_by: user?.id,
+    } as any);
+
+    if (txErr) {
+      console.error("Erro ao criar movimentação:", txErr.message);
+      toast.warning("Recebimento registrado, mas houve erro ao criar movimentação financeira.");
+    }
+
+    toast.success(novoStatus === "pago" ? "Conta recebida!" : "Recebimento parcial registrado");
+    setReceiveSaving(false);
+    setReceiveOpen(false);
     fetchData();
   };
 
@@ -214,15 +296,15 @@ export function FinancialReceivables() {
   const harvestAsReceivables: Receivable[] = harvestItems.filter(h => (h.totalLiquido - h.invoicedAmount) > 0).map(h => ({
     id: `harvest-${h.id}`, description: `Colheita — ${h.farm_name}`, category_id: null,
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
-    debtor_name: h.client_name, cte_id: null, invoice_id: null,
-    notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: {formatCurrency(h.invoicedAmount)}` : ""}`,
+    debtor_name: h.client_name, debtor_id: null, cte_id: null, invoice_id: null,
+    notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: ${formatCurrency(h.invoicedAmount)}` : ""}`,
     created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
   const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
     id: `cte-${c.id}`, description: `CT-e #${c.numero || "—"}`, category_id: null,
     amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
-    debtor_name: c.tomador_nome, cte_id: c.id, invoice_id: null,
+    debtor_name: c.tomador_nome, debtor_id: null, cte_id: c.id, invoice_id: null,
     notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
     created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
   }));
@@ -273,6 +355,7 @@ export function FinancialReceivables() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
             <SelectItem value="vencido">Vencido</SelectItem>
             <SelectItem value="previsao">Previsão</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
@@ -306,64 +389,144 @@ export function FinancialReceivables() {
         <p className="text-muted-foreground text-sm text-center py-8">Nenhuma conta a receber</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.map((item) => (
-            <Card key={item.id} className={`hover:shadow-md transition-shadow ${item._source === "harvest" ? "border-l-4 border-l-primary/30" : item._source === "cte" ? "border-l-4 border-l-accent" : ""}`}>
-              <CardContent className="p-4 space-y-2">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
-                      {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
-                      <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+          {filtered.map((item) => {
+            const paidSoFar = Number(item.paid_amount) || 0;
+            const remaining = Number(item.amount) - paidSoFar;
+            return (
+              <Card key={item.id} className={`hover:shadow-md transition-shadow ${item._source === "harvest" ? "border-l-4 border-l-primary/30" : item._source === "cte" ? "border-l-4 border-l-accent" : ""}`}>
+                <CardContent className="p-4 space-y-2">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
+                        {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
+                        <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                      </div>
+                      {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
                     </div>
-                    {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
+                    <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
+                      {STATUS_MAP[item.status]?.label || item.status}
+                    </Badge>
                   </div>
-                  <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
-                    {STATUS_MAP[item.status]?.label || item.status}
-                  </Badge>
-                </div>
 
-                {/* Info */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Valor</span>
-                    <p className="font-mono font-semibold text-foreground">{formatCurrency(Number(item.amount))}</p>
+                  {/* Info */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Valor</span>
+                      <p className="font-mono font-semibold text-foreground">{formatCurrency(Number(item.amount))}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Vencimento</span>
+                      <p className="font-medium text-foreground">{item.due_date ? format(new Date(item.due_date + "T12:00:00"), "dd/MM/yyyy") : "—"}</p>
+                    </div>
+                    {paidSoFar > 0 && item.status === "parcial" && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Recebido: {formatCurrency(paidSoFar)} | Restante: {formatCurrency(remaining)}</span>
+                      </div>
+                    )}
+                    {item._source === "manual" && item.category_id && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Categoria</span>
+                        <p className="text-foreground">{getCategoryName(item.category_id)}</p>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Vencimento</span>
-                    <p className="font-medium text-foreground">{item.due_date ? format(new Date(item.due_date + "T12:00:00"), "dd/MM/yyyy") : "—"}</p>
-                  </div>
-                  {item._source === "manual" && item.category_id && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">Categoria</span>
-                      <p className="text-foreground">{getCategoryName(item.category_id)}</p>
+
+                  {(item._source === "harvest" || item._source === "cte") && item.notes && (
+                    <p className="text-[11px] text-muted-foreground">{item.notes}</p>
+                  )}
+
+                  {/* Actions */}
+                  {item._source === "manual" && (
+                    <div className="flex gap-1 pt-1 border-t border-border">
+                      {(item.status === "pendente" || item.status === "vencido" || item.status === "parcial") && (
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10" onClick={() => openReceiveDialog(item)}>
+                          <Check className="h-3.5 w-3.5" /> Receber
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => handleEdit(item)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   )}
-                </div>
-
-                {(item._source === "harvest" || item._source === "cte") && item.notes && (
-                  <p className="text-[11px] text-muted-foreground">{item.notes}</p>
-                )}
-
-                {/* Actions */}
-                {item._source === "manual" && (
-                  <div className="flex gap-1 pt-1 border-t border-border">
-                    {item.status === "pendente" && (
-                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10" onClick={() => handleMarkPaid(item)}>
-                        <Check className="h-3.5 w-3.5" /> Receber
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => handleEdit(item)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Receive Payment Dialog */}
+      <Dialog open={receiveOpen} onOpenChange={setReceiveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Receber Pagamento</DialogTitle></DialogHeader>
+          {receiveItem && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Total: {formatCurrency(receiveItem.amount)} |
+                Recebido: {formatCurrency(Number(receiveItem.paid_amount) || 0)} |
+                Restante: <strong className="text-foreground">{formatCurrency(Number(receiveItem.amount) - (Number(receiveItem.paid_amount) || 0))}</strong>
+              </div>
+
+              <div>
+                <Label>Conta Bancária *</Label>
+                <Select value={receiveContaId} onValueChange={setReceiveContaId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map(ba => (
+                      <SelectItem key={ba.id} value={ba.id}>
+                        {ba.nome} ({formatCurrency(ba.saldo_atual)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Valor (R$) *</Label>
+                  <Input
+                    value={receiveValor ? maskCurrency(String(Math.round(parseFloat(receiveValor) * 100))) : ""}
+                    onChange={e => setReceiveValor(unmaskCurrency(e.target.value))}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <Label>Data do Recebimento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !receiveData && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {receiveData ? format(receiveData, "dd/MM/yyyy") : "Selecionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={receiveData}
+                        onSelect={(d) => d && setReceiveData(d)}
+                        locale={ptBR}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Input value={receiveObs} onChange={e => setReceiveObs(e.target.value)} placeholder="Opcional" />
+              </div>
+
+              <Button onClick={handleConfirmReceive} className="w-full" disabled={receiveSaving}>
+                {receiveSaving ? "Salvando..." : "Confirmar Recebimento"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
