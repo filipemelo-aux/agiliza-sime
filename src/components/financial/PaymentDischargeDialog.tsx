@@ -15,6 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -97,7 +98,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       valor_pago: novoValorPago,
       status: novoStatus,
       forma_pagamento: formaPagamento,
-      data_pagamento: dataPagamento.toISOString(),
+      data_pagamento: getLocalDateISO(dataPagamento),
     } as any).eq("id", expenseId);
 
     if (error) { toast.error(error.message); setSaving(false); return; }
