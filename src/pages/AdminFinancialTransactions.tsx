@@ -92,6 +92,7 @@ const emptyForm = {
   origem: "manual",
   observacoes: "",
   empresa_id: "",
+  unidade_id: "",
 };
 
 export default function AdminFinancialTransactions() {
@@ -100,10 +101,12 @@ export default function AdminFinancialTransactions() {
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [bankAccountUnits, setBankAccountUnits] = useState<BankAccountUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterConta, setFilterConta] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+  const [filterUnidade, setFilterUnidade] = useState("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
