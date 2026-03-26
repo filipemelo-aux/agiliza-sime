@@ -12,7 +12,8 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   order: any;
-  establishments: any[];
+  unifiedLabel: string;
+  unifiedCnpjs: string;
   onStatusChanged?: (orderId: string, newStatus: string) => void;
 }
 
@@ -48,7 +49,7 @@ async function resolveSessionRequesterName() {
   return data?.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
 }
 
-export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments, onStatusChanged }: Props) {
+export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, unifiedCnpjs, onStatusChanged }: Props) {
   const { toast } = useToast();
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
@@ -76,7 +77,6 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
 
         if (base64Data?.startsWith("data:image/")) {
           try {
-            // Converter base64 para blob e fazer upload
             const res = await fetch(base64Data);
             const blob = await res.blob();
             const filePath = `signatures/${order.requester_user_id}.png`;
@@ -87,7 +87,7 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
 
             const { data: urlData } = await supabase.storage
               .from("fuel-order-pdfs")
-              .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 ano
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
             signatureUrl = urlData?.signedUrl || null;
           } catch {
@@ -102,7 +102,8 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, establishments
           ...order,
           requester_name: sessionRequesterName || order.requester_name,
         },
-        establishments,
+        unifiedLabel,
+        unifiedCnpjs,
         signatureUrl
       );
 

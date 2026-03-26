@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Fuel, Printer, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
@@ -28,29 +29,21 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminFuelOrders() {
   const { user } = useUserRole();
   const { toast } = useToast();
+  const { matrizId, unifiedLabel, unifiedCnpjs, establishments } = useUnifiedCompany();
   const [orders, setOrders] = useState<any[]>([]);
   const [driverMap, setDriverMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [establishments, setEstablishments] = useState<any[]>([]);
   const [emailOrder, setEmailOrder] = useState<any | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
-    const [ordersRes, estRes] = await Promise.all([
-      supabase
-        .from("fuel_orders")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("fiscal_establishments")
-        .select("id, razao_social, cnpj, nome_fantasia, type")
-        .eq("active", true)
-        .order("type"),
-    ]);
-    const ordersList = ordersRes.data || [];
+    const { data: ordersData } = await supabase
+      .from("fuel_orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+    const ordersList = ordersData || [];
     setOrders(ordersList);
-    setEstablishments(estRes.data || []);
 
     // Fetch driver names for vehicles linked to orders
     const vehicleIds = [...new Set(ordersList.map((o) => o.vehicle_id).filter(Boolean))];
@@ -117,78 +110,75 @@ export default function AdminFuelOrders() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {orders.map((o) => {
-              const est = establishments.find((e) => e.id === o.establishment_id);
-              return (
-                <Card key={o.id} className="flex flex-col">
-                  <CardContent className="p-4 flex flex-col gap-3 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-base">#{o.order_number}</span>
-                      <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>
-                    </div>
+            {orders.map((o) => (
+              <Card key={o.id} className="flex flex-col">
+                <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-base">#{o.order_number}</span>
+                    <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>
+                  </div>
 
-                    <div className="space-y-1.5 text-sm flex-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Data</span>
-                        <span>{format(new Date(o.created_at), "dd/MM/yyyy")}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Empresa</span>
-                        <span className="text-right truncate max-w-[55%]">{establishments.find(e => e.type === "matriz")?.razao_social || "Sime Transporte Ltda"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Fornecedor</span>
-                        <span className="text-right truncate max-w-[55%]">{o.supplier_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Veículo</span>
-                        <span>{o.vehicle_plate}</span>
-                      </div>
-                      {o.vehicle_id && driverMap.get(o.vehicle_id) && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Motorista</span>
-                          <span className="text-right truncate max-w-[55%]">{driverMap.get(o.vehicle_id)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Combustível</span>
-                        <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
-                      </div>
-                      <div className="flex justify-between font-medium">
-                        <span className="text-muted-foreground">Quantidade</span>
-                        <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
-                      </div>
+                  <div className="space-y-1.5 text-sm flex-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Data</span>
+                      <span>{format(new Date(o.created_at), "dd/MM/yyyy")}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Empresa</span>
+                      <span className="text-right truncate max-w-[55%]">{unifiedLabel}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Fornecedor</span>
+                      <span className="text-right truncate max-w-[55%]">{o.supplier_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Veículo</span>
+                      <span>{o.vehicle_plate}</span>
+                    </div>
+                    {o.vehicle_id && driverMap.get(o.vehicle_id) && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Motorista</span>
+                        <span className="text-right truncate max-w-[55%]">{driverMap.get(o.vehicle_id)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combustível</span>
+                      <span>{FUEL_LABELS[o.fuel_type] || o.fuel_type}</span>
+                    </div>
+                    <div className="flex justify-between font-medium">
+                      <span className="text-muted-foreground">Quantidade</span>
+                      <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
+                    </div>
+                  </div>
 
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => printFuelOrderPDF({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" }, establishments)}
-                      >
-                        <Printer className="h-4 w-4 mr-1" /> Imprimir
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setEmailOrder({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" })}
-                      >
-                        <Mail className="h-4 w-4 mr-1" /> E-mail
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  <div className="flex gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => printFuelOrderPDF({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" }, unifiedLabel, unifiedCnpjs)}
+                    >
+                      <Printer className="h-4 w-4 mr-1" /> Imprimir
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setEmailOrder({ ...o, driver_name: o.vehicle_id ? driverMap.get(o.vehicle_id) || "" : "" })}
+                    >
+                      <Mail className="h-4 w-4 mr-1" /> E-mail
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
 
         <FuelOrderFormDialog
           open={showForm}
           onOpenChange={setShowForm}
-          establishments={establishments}
+          matrizId={matrizId}
           user={user}
           onCreated={handleCreated}
         />
@@ -198,7 +188,8 @@ export default function AdminFuelOrders() {
             open={!!emailOrder}
             onOpenChange={(v) => !v && setEmailOrder(null)}
             order={emailOrder}
-            establishments={establishments}
+            unifiedLabel={unifiedLabel}
+            unifiedCnpjs={unifiedCnpjs}
             onStatusChanged={(id, newStatus) => {
               setOrders((prev) =>
                 prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))

@@ -23,12 +23,12 @@ function normalizeRequesterName(name?: string | null) {
     .replace(/\b\p{L}/gu, (char) => char.toUpperCase()) || "Usuário";
 }
 
-function buildFuelOrderHTML(order: any, establishments: any[]) {
-  return buildFuelOrderHTMLWithSignature(order, establishments, null);
-}
-
-function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], signatureDataUrl: string | null) {
-  const est = establishments.find((e) => e.id === order.establishment_id);
+function buildFuelOrderHTMLWithSignature(
+  order: any,
+  companyName: string,
+  companyCnpjs: string,
+  signatureDataUrl: string | null
+) {
   const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const qty = order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`;
   const requesterName = normalizeRequesterName(order.requester_name);
@@ -82,8 +82,8 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${EMAIL_FONT_STACK};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;mso-line-height-rule:exactly;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${est?.razao_social || ""}</div>
-      <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${est?.cnpj || ""}</div>
+      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
+      <div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${companyCnpjs}</div>
     </td>
   </tr></table>
 </td></tr>
@@ -123,7 +123,7 @@ function buildFuelOrderHTMLWithSignature(order: any, establishments: any[], sign
 <tr><td style="background:#ffffff;border-radius:10px;padding:12px 20px">
   <table width="100%" cellpadding="0" cellspacing="0" border="0">
     ${sectionTitle("Solicitante")}
-    ${infoRow("Empresa", `${est?.razao_social || "—"} (${est?.type === "matriz" ? "Matriz" : "Filial"})`)}
+    ${infoRow("Empresa", companyName)}
     ${infoRow("Solicitante", requesterName, true)}
   </table>
 </td></tr>
@@ -198,7 +198,7 @@ ${order.notes ? `
 <!-- FOOTER -->
 <tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName} — CNPJ: ${companyCnpjs}</div>
   <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
 </td></tr>
 
@@ -210,11 +210,16 @@ ${order.notes ? `
 </body></html>`;
 }
 
-export function exportFuelOrderPDF(order: any, establishments: any[], signatureDataUrl?: string | null) {
-  return buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl || null);
+export function exportFuelOrderPDF(
+  order: any,
+  companyName: string,
+  companyCnpjs: string,
+  signatureDataUrl?: string | null
+) {
+  return buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl || null);
 }
 
-export async function printFuelOrderPDF(order: any, establishments: any[]) {
+export async function printFuelOrderPDF(order: any, companyName: string, companyCnpjs: string) {
   let signatureDataUrl: string | null = null;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
@@ -228,7 +233,7 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
     // Continue without signature
   }
 
-  const html = buildFuelOrderHTMLWithSignature(order, establishments, signatureDataUrl);
+  const html = buildFuelOrderHTMLWithSignature(order, companyName, companyCnpjs, signatureDataUrl);
 
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -240,28 +245,6 @@ export async function printFuelOrderPDF(order: any, establishments: any[]) {
     };
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   } else {
-    // Fallback se popup for bloqueado
     window.location.href = url;
   }
-}
-
-export function emailFuelOrder(order: any, establishments: any[]) {
-  const est = establishments.find((e: any) => e.id === order.establishment_id);
-  const subject = encodeURIComponent(
-    `Ordem de Abastecimento Nº ${order.order_number} — ${est?.razao_social || "SIME"}`
-  );
-  const body = encodeURIComponent(
-    `Segue a Ordem de Abastecimento Nº ${order.order_number}\n\n` +
-    `Empresa: ${est?.razao_social || "—"}\n` +
-    `Fornecedor: ${order.supplier_name}\n` +
-    `Solicitante: ${normalizeRequesterName(order.requester_name)}\n` +
-    `Veículo: ${order.vehicle_plate}\n` +
-    `Combustível: ${FUEL_LABELS[order.fuel_type] || order.fuel_type}\n` +
-    `Quantidade: ${order.fill_mode === "completar" ? "Completar Tanque" : `${Number(order.liters).toLocaleString("pt-BR")} Litros`}\n` +
-    `Status: ${(order.status || "pendente").toUpperCase()}\n` +
-    `Data: ${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}\n\n` +
-    `Observações: ${order.notes || "Nenhuma"}\n\n` +
-    `---\nSIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}`
-  );
-  window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
 }
