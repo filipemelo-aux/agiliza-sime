@@ -2043,6 +2043,13 @@ export function FinancialPayables() {
           });
           return Array.from(ids);
         })()}
+        harvestPaymentIds={(() => {
+          const ids: string[] = [];
+          selectedIds.forEach(id => {
+            if (id.startsWith("harvest-")) ids.push(id.replace("harvest-", ""));
+          });
+          return ids;
+        })()}
         target="expenses"
         onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
       />
