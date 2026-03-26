@@ -58,6 +58,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
         
         const { data: expense, error } = await supabase.from("expenses").insert({
           empresa_id: empresaId,
+          unidade_id: empresaId,
           created_by: userId,
           descricao,
           tipo_despesa: derivedTipoDespesa as any,
@@ -65,7 +66,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           centro_custo: "frota_propria" as any,
           origem: "abastecimento" as any,
           valor_total: total,
-            data_emissao: getLocalDateISO(),
+          data_emissao: getLocalDateISO(),
           data_vencimento: dueDate,
           favorecido_nome: postos[0] || null,
           status: "pendente" as any,
@@ -86,6 +87,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           
           const { data: expense, error } = await supabase.from("expenses").insert({
             empresa_id: empresaId,
+            unidade_id: empresaId,
             created_by: userId,
             descricao,
             tipo_despesa: derivedTipoDespesa as any,
