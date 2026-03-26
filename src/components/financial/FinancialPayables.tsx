@@ -869,6 +869,11 @@ export function FinancialPayables() {
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     }).sort((a, b) => {
+      if (quickFilter === "pagas") {
+        // Ordenar por data de pagamento — mais recente primeiro
+        const getPaidDate = (item: typeof a) => item.data_pagamento || "";
+        return getPaidDate(b).localeCompare(getPaidDate(a));
+      }
       // Para itens com parcelas, usar a menor data de vencimento pendente
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -1617,7 +1622,7 @@ export function FinancialPayables() {
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
-                vencimento: item.data_vencimento || item.data_emissao || "",
+                vencimento: quickFilter === "pagas" ? (item.data_pagamento || item.data_vencimento || item.data_emissao || "") : (item.data_vencimento || item.data_emissao || ""),
                 node: (
                   <Card
                     key={item.id}
@@ -1732,7 +1737,12 @@ export function FinancialPayables() {
                 )
               }];
             })
-            .sort((a, b) => a.vencimento.localeCompare(b.vencimento))
+            .sort((a, b) => {
+              if (quickFilter === "pagas") {
+                return b.vencimento.localeCompare(a.vencimento);
+              }
+              return a.vencimento.localeCompare(b.vencimento);
+            })
             .map(entry => entry.node)}
         </div>
       )}
