@@ -31,9 +31,11 @@ interface Transaction {
   status: string;
   observacoes: string | null;
   empresa_id: string;
+  unidade_id: string | null;
   created_at: string;
   bank_accounts?: { nome: string } | null;
   chart_of_accounts?: { nome: string; codigo: string } | null;
+  fiscal_establishments?: { nome_fantasia: string | null; razao_social: string } | null;
 }
 
 interface BankAccount {
@@ -43,6 +45,12 @@ interface BankAccount {
   saldo_atual: number;
   ativo: boolean;
   empresa_id: string;
+  permitir_multiplas_unidades: boolean;
+}
+
+interface BankAccountUnit {
+  conta_bancaria_id: string;
+  unidade_id: string;
 }
 
 interface ChartAccount {
@@ -61,6 +69,7 @@ interface Establishment {
   id: string;
   razao_social: string;
   nome_fantasia: string | null;
+  type: string;
 }
 
 const ORIGENS = [
