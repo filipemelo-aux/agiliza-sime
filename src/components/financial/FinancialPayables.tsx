@@ -1664,6 +1664,9 @@ export function FinancialPayables() {
           expenseId={paymentExpense.id}
           valorTotal={paymentExpense.valor_total}
           valorPago={paymentExpense.valor_pago}
+          planoContasId={paymentExpense.plano_contas_id}
+          empresaId={empresaId}
+          descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
           onSaved={fetchData}
         />
       )}
