@@ -338,19 +338,7 @@ export default function AdminFinancialTransactions() {
               <SelectItem value="saida">Saídas</SelectItem>
             </SelectContent>
           </Select>
-          {establishments.length > 1 && (
-            <Select value={filterUnidade} onValueChange={setFilterUnidade}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Unidade" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Unidades</SelectItem>
-                {establishments.map(e => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* Unidade filter removed - unified company */}
         </div>
 
         {/* Table */}
@@ -383,13 +371,7 @@ export default function AdminFinancialTransactions() {
                     <span>{(tx.bank_accounts as any)?.nome ?? "—"}</span>
                   </div>
 
-                  {/* Unit + Origin */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social ? (
-                      <Badge variant="outline" className="text-[10px]">
-                        {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social}
-                      </Badge>
-                    ) : null}
+                    {/* Unified company - no per-unit badge needed */}
                     <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
                     <Badge variant={tx.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">
                       {tx.status === "confirmado" ? "Confirmado" : "Pendente"}
@@ -416,17 +398,7 @@ export default function AdminFinancialTransactions() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Nova Movimentação</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            {establishments.length > 1 && (
-              <div>
-                <Label>Empresa</Label>
-                <Select value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v, conta_bancaria_id: "" }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {establishments.map(e => <SelectItem key={e.id} value={e.id}>{e.nome_fantasia || e.razao_social}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Empresa unificada - auto-selecionada */}
             <div>
               <Label>Conta Bancária *</Label>
               <Select value={form.conta_bancaria_id} onValueChange={v => {
@@ -441,19 +413,7 @@ export default function AdminFinancialTransactions() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Unidade *</Label>
-              <Select value={form.unidade_id} onValueChange={v => setForm(f => ({ ...f, unidade_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
-                <SelectContent>
-                  {(form.conta_bancaria_id ? getValidUnits(form.conta_bancaria_id) : establishments).map(e => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Unidade auto-selecionada (empresa unificada) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo *</Label>
