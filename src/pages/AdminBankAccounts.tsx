@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { format, parseISO, startOfMonth } from "date-fns";
-import { getLocalDateISO } from "@/lib/date";
+import { BankStatementDialog } from "@/components/financial/BankStatementDialog";
 
 interface BankAccount {
   id: string;
@@ -37,16 +36,6 @@ interface Establishment {
   nome_fantasia: string | null;
 }
 
-interface Transaction {
-  id: string;
-  tipo: string;
-  valor: number;
-  data_movimentacao: string;
-  descricao: string;
-  origem: string;
-  status: string;
-  created_at: string;
-}
 
 const TIPOS = [
   { value: "corrente", label: "Conta Corrente" },
@@ -67,15 +56,6 @@ const tipoIcon = (tipo: string) => {
 
 const tipoLabel = (tipo: string) => TIPOS.find(t => t.value === tipo)?.label ?? tipo;
 
-const origemLabel = (o: string) => {
-  switch (o) {
-    case "manual": return "Manual";
-    case "ajuste": return "Ajuste";
-    case "conta_pagar": return "Conta a Pagar";
-    case "conta_receber": return "Conta a Receber";
-    default: return o;
-  }
-};
 
 const emptyForm = {
   nome: "",
@@ -102,10 +82,6 @@ export default function AdminBankAccounts() {
   // Statement (extrato) dialog state
   const [extratoOpen, setExtratoOpen] = useState(false);
   const [extratoAccount, setExtratoAccount] = useState<BankAccount | null>(null);
-  const [extratoTransactions, setExtratoTransactions] = useState<Transaction[]>([]);
-  const [extratoLoading, setExtratoLoading] = useState(false);
-  const [extratoInicio, setExtratoInicio] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [extratoFim, setExtratoFim] = useState(() => getLocalDateISO());
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -240,35 +216,8 @@ export default function AdminBankAccounts() {
   // Statement (extrato) functions
   const openExtrato = (acc: BankAccount) => {
     setExtratoAccount(acc);
-    setExtratoInicio(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-    setExtratoFim(getLocalDateISO());
     setExtratoOpen(true);
   };
-
-  const fetchExtrato = useCallback(async () => {
-    if (!extratoAccount) return;
-    setExtratoLoading(true);
-    let query = supabase
-      .from("financial_transactions")
-      .select("id, tipo, valor, data_movimentacao, descricao, origem, status, created_at")
-      .eq("conta_bancaria_id", extratoAccount.id)
-      .order("data_movimentacao", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    if (extratoInicio) query = query.gte("data_movimentacao", extratoInicio);
-    if (extratoFim) query = query.lte("data_movimentacao", extratoFim);
-
-    const { data } = await query;
-    setExtratoTransactions((data as any[]) || []);
-    setExtratoLoading(false);
-  }, [extratoAccount, extratoInicio, extratoFim]);
-
-  useEffect(() => {
-    if (extratoOpen && extratoAccount) fetchExtrato();
-  }, [extratoOpen, extratoAccount, fetchExtrato]);
-
-  const extratoEntradas = extratoTransactions.filter(t => t.tipo === "entrada" && t.status === "confirmado").reduce((s, t) => s + Number(t.valor), 0);
-  const extratoSaidas = extratoTransactions.filter(t => t.tipo === "saida" && t.status === "confirmado").reduce((s, t) => s + Number(t.valor), 0);
 
   const filtered = accounts.filter(a =>
     a.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -459,103 +408,7 @@ export default function AdminBankAccounts() {
         </DialogContent>
       </Dialog>
 
-      {/* Statement (Extrato) Dialog */}
-      <Dialog open={extratoOpen} onOpenChange={setExtratoOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Extrato — {extratoAccount?.nome}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Period filter */}
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <Label className="text-xs">Início</Label>
-                <Input type="date" className="h-9 w-[150px]" value={extratoInicio} onChange={e => setExtratoInicio(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">Fim</Label>
-                <Input type="date" className="h-9 w-[150px]" value={extratoFim} onChange={e => setExtratoFim(e.target.value)} />
-              </div>
-            </div>
-
-            {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3">
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2">
-                  <ArrowUpCircle className="h-5 w-5 text-emerald-500 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Entradas</p>
-                    <p className="text-sm font-bold text-emerald-600">{formatCurrency(extratoEntradas)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2">
-                  <ArrowDownCircle className="h-5 w-5 text-red-500 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Saídas</p>
-                    <p className="text-sm font-bold text-red-600">{formatCurrency(extratoSaidas)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2">
-                  <Landmark className="h-5 w-5 text-primary shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
-                    <p className={`text-sm font-bold ${Number(extratoAccount?.saldo_atual) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                      {formatCurrency(Number(extratoAccount?.saldo_atual))}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Transaction list */}
-            {extratoLoading ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-            ) : extratoTransactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma movimentação no período.</p>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {extratoTransactions.map(tx => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {format(parseISO(tx.data_movimentacao), "dd/MM/yyyy")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            {tx.tipo === "entrada"
-                              ? <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                              : <ArrowDownCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
-                            <span className="text-xs truncate max-w-[220px]">{tx.descricao}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
-                        </TableCell>
-                        <TableCell className={`text-right text-xs font-mono font-semibold whitespace-nowrap ${tx.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
-                          {tx.tipo === "entrada" ? "+" : "−"} {formatCurrency(tx.valor)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BankStatementDialog open={extratoOpen} onOpenChange={setExtratoOpen} account={extratoAccount} />
 
       {ConfirmDialog}
     </AdminLayout>
