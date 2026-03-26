@@ -42,6 +42,12 @@ const menuItems = [
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
+    ],
+  },
+  {
+    title: "Banco",
+    icon: Landmark,
+    children: [
       { title: "Contas Bancárias", url: "/admin/financial/bank-accounts", icon: Landmark },
       { title: "Movimentações", url: "/admin/financial/transactions", icon: ArrowLeftRight },
       { title: "Relatórios", url: "/admin/financial/reports", icon: BarChart3 },
