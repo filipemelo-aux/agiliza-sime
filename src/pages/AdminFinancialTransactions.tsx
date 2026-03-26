@@ -31,9 +31,11 @@ interface Transaction {
   status: string;
   observacoes: string | null;
   empresa_id: string;
+  unidade_id: string | null;
   created_at: string;
   bank_accounts?: { nome: string } | null;
   chart_of_accounts?: { nome: string; codigo: string } | null;
+  fiscal_establishments?: { nome_fantasia: string | null; razao_social: string } | null;
 }
 
 interface BankAccount {
@@ -43,6 +45,12 @@ interface BankAccount {
   saldo_atual: number;
   ativo: boolean;
   empresa_id: string;
+  permitir_multiplas_unidades: boolean;
+}
+
+interface BankAccountUnit {
+  conta_bancaria_id: string;
+  unidade_id: string;
 }
 
 interface ChartAccount {
@@ -61,6 +69,7 @@ interface Establishment {
   id: string;
   razao_social: string;
   nome_fantasia: string | null;
+  type: string;
 }
 
 const ORIGENS = [
@@ -83,6 +92,7 @@ const emptyForm = {
   origem: "manual",
   observacoes: "",
   empresa_id: "",
+  unidade_id: "",
 };
 
 export default function AdminFinancialTransactions() {
@@ -91,10 +101,12 @@ export default function AdminFinancialTransactions() {
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [bankAccountUnits, setBankAccountUnits] = useState<BankAccountUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterConta, setFilterConta] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
+  const [filterUnidade, setFilterUnidade] = useState("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -102,23 +114,25 @@ export default function AdminFinancialTransactions() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [txRes, baRes, caRes, estRes, fcRes] = await Promise.all([
+    const [txRes, baRes, caRes, estRes, fcRes, bauRes] = await Promise.all([
       supabase
         .from("financial_transactions")
-        .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo)")
+        .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo), fiscal_establishments:unidade_id(nome_fantasia, razao_social)")
         .order("data_movimentacao", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(500),
-      supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id").eq("ativo", true).order("nome"),
+      supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id, permitir_multiplas_unidades").eq("ativo", true).order("nome"),
       supabase.from("chart_of_accounts").select("id, nome, codigo").eq("ativo", true).order("codigo"),
-      supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia").eq("active", true),
+      supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia, type").eq("active", true),
       supabase.from("financial_categories").select("id, name, type").eq("active", true).order("name"),
+      supabase.from("bank_account_units").select("conta_bancaria_id, unidade_id"),
     ]);
     if (txRes.data) setTransactions(txRes.data as any);
-    if (baRes.data) setBankAccounts(baRes.data);
+    if (baRes.data) setBankAccounts(baRes.data as any);
     if (caRes.data) setChartAccounts(caRes.data);
-    if (estRes.data) setEstablishments(estRes.data);
+    if (estRes.data) setEstablishments(estRes.data as any);
     if (fcRes.data) setFinancialCategories(fcRes.data);
+    if (bauRes.data) setBankAccountUnits(bauRes.data as any);
     setLoading(false);
   }, []);
 
@@ -132,9 +146,29 @@ export default function AdminFinancialTransactions() {
     setOpen(true);
   };
 
+  // Get valid units for a given bank account
+  const getValidUnits = (contaId: string) => {
+    const ba = bankAccounts.find(b => b.id === contaId);
+    if (!ba) return establishments;
+    if (!ba.permitir_multiplas_unidades) {
+      // Only the owner establishment
+      return establishments.filter(e => e.id === ba.empresa_id);
+    }
+    const linkedIds = bankAccountUnits
+      .filter(u => u.conta_bancaria_id === contaId)
+      .map(u => u.unidade_id);
+    // If no units linked, treat as global
+    if (linkedIds.length === 0) return establishments;
+    return establishments.filter(e => linkedIds.includes(e.id));
+  };
+
   const handleSave = async () => {
     if (!form.conta_bancaria_id || !form.descricao.trim() || !form.valor) {
       toast.error("Preencha conta, descrição e valor.");
+      return;
+    }
+    if (!form.unidade_id) {
+      toast.error("Selecione a unidade.");
       return;
     }
     if (!form.categoria_financeira_id) {
@@ -149,6 +183,14 @@ export default function AdminFinancialTransactions() {
       toast.error("Informe a data da movimentação.");
       return;
     }
+
+    // Validate unit is linked to the account
+    const validUnits = getValidUnits(form.conta_bancaria_id);
+    if (!validUnits.find(u => u.id === form.unidade_id)) {
+      toast.error("Unidade não vinculada a esta conta bancária.");
+      return;
+    }
+
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sessão expirada."); setSaving(false); return; }
@@ -168,6 +210,7 @@ export default function AdminFinancialTransactions() {
       status: "confirmado",
       observacoes: form.observacoes?.trim() || null,
       empresa_id: form.empresa_id,
+      unidade_id: form.unidade_id,
       created_by: user.id,
     };
 
@@ -205,6 +248,7 @@ export default function AdminFinancialTransactions() {
       status: "confirmado",
       observacoes: `Estorno da movimentação de ${format(parseISO(tx.data_movimentacao), "dd/MM/yyyy")}`,
       empresa_id: tx.empresa_id,
+      unidade_id: tx.unidade_id,
       created_by: user.id,
     });
 
@@ -219,6 +263,7 @@ export default function AdminFinancialTransactions() {
   const filtered = transactions.filter(tx => {
     if (filterConta !== "all" && tx.conta_bancaria_id !== filterConta) return false;
     if (filterTipo !== "all" && tx.tipo !== filterTipo) return false;
+    if (filterUnidade !== "all" && tx.unidade_id !== filterUnidade) return false;
     if (search) {
       const s = search.toLowerCase();
       if (!tx.descricao.toLowerCase().includes(s) && !(tx.bank_accounts as any)?.nome?.toLowerCase().includes(s)) return false;
@@ -293,6 +338,19 @@ export default function AdminFinancialTransactions() {
               <SelectItem value="saida">Saídas</SelectItem>
             </SelectContent>
           </Select>
+          {establishments.length > 1 && (
+            <Select value={filterUnidade} onValueChange={setFilterUnidade}>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Unidade" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Unidades</SelectItem>
+                {establishments.map(e => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Table */}
@@ -308,6 +366,7 @@ export default function AdminFinancialTransactions() {
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Conta</TableHead>
+                  <TableHead>Unidade</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
@@ -329,6 +388,9 @@ export default function AdminFinancialTransactions() {
                       </div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{(tx.bank_accounts as any)?.nome ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{origemLabel(tx.origem)}</Badge>
                     </TableCell>
@@ -375,13 +437,26 @@ export default function AdminFinancialTransactions() {
               <Label>Conta Bancária *</Label>
               <Select value={form.conta_bancaria_id} onValueChange={v => {
                 const ba = bankAccounts.find(b => b.id === v);
-                setForm(f => ({ ...f, conta_bancaria_id: v, empresa_id: ba?.empresa_id || f.empresa_id }));
+                setForm(f => ({ ...f, conta_bancaria_id: v, empresa_id: ba?.empresa_id || f.empresa_id, unidade_id: "" }));
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                 <SelectContent>
                   {bankAccounts
                     .filter(ba => !form.empresa_id || ba.empresa_id === form.empresa_id)
                     .map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.nome} ({formatCurrency(ba.saldo_atual)})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unidade *</Label>
+              <Select value={form.unidade_id} onValueChange={v => setForm(f => ({ ...f, unidade_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                <SelectContent>
+                  {(form.conta_bancaria_id ? getValidUnits(form.conta_bancaria_id) : establishments).map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
