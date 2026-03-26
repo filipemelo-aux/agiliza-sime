@@ -419,7 +419,7 @@ export default function AdminFinancialTransactions() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog />
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
