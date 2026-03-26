@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 interface Fueling {
   id: string;
@@ -64,7 +65,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
           centro_custo: "frota_propria" as any,
           origem: "abastecimento" as any,
           valor_total: total,
-          data_emissao: new Date().toISOString().slice(0, 10),
+            data_emissao: getLocalDateISO(),
           data_vencimento: dueDate,
           favorecido_nome: postos[0] || null,
           status: "pendente" as any,
