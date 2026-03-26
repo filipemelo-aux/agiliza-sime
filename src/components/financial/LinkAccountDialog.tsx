@@ -27,6 +27,7 @@ interface UnlinkedItem {
   status: string;
   person_name: string | null;
   type: "receivable" | "payable";
+  already_linked: boolean;
 }
 
 export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }: LinkAccountDialogProps) {
