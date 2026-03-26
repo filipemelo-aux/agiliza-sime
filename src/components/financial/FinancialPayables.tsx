@@ -524,8 +524,39 @@ export function FinancialPayables() {
   };
 
   const handleReversePayment = async (item: Expense) => {
-    if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.` })) return;
+    if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente e movimentações inversas serão criadas.` })) return;
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      // Create reversal transactions for all linked financial_transactions
+      if (currentUser) {
+        const { data: linkedTxs } = await supabase
+          .from("financial_transactions")
+          .select("*")
+          .eq("origem", "conta_pagar")
+          .eq("origem_id", item.id)
+          .eq("status", "confirmado") as any;
+
+        if (linkedTxs && linkedTxs.length > 0) {
+          for (const tx of linkedTxs) {
+            await supabase.from("financial_transactions").insert({
+              conta_bancaria_id: tx.conta_bancaria_id,
+              tipo: tx.tipo === "saida" ? "entrada" : "saida",
+              valor: tx.valor,
+              data_movimentacao: getLocalDateISO(),
+              descricao: `Estorno: ${tx.descricao}`,
+              plano_contas_id: tx.plano_contas_id,
+              origem: "ajuste",
+              origem_id: tx.id,
+              status: "confirmado",
+              observacoes: `Estorno automático - conta a pagar`,
+              empresa_id: tx.empresa_id,
+              created_by: currentUser.id,
+            } as any);
+          }
+        }
+      }
+
       // Delete all payment records for this expense
       await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
       // Reset installments if any
