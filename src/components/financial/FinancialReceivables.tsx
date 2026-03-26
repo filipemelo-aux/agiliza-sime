@@ -171,6 +171,7 @@ export function FinancialReceivables() {
   const [debtorName, setDebtorName] = useState("");
   const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [formContaBancariaId, setFormContaBancariaId] = useState("");
 
   // Receive payment dialog state
   const [receiveOpen, setReceiveOpen] = useState(false);
