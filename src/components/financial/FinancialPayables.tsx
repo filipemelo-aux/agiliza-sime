@@ -1414,18 +1414,19 @@ export function FinancialPayables() {
                         key={instCardId}
                         className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                       >
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <CardContent className="p-3 flex flex-col gap-1.5">
+                          {/* Row 1: Checkbox + Nome */}
+                          <div className="flex items-center gap-2 min-w-0">
                             <Checkbox
                               checked={isInstSelected}
                               onCheckedChange={() => toggleSelect(instCardId)}
-                              className="mt-0.5"
                             />
                             <p className="text-sm font-semibold text-foreground truncate">
                               {item.favorecido_nome || "Sem favorecido"}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Row 2: Badges */}
+                          <div className="flex items-center gap-1 flex-wrap min-h-[20px]">
                             {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                             {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                             <Badge variant="secondary" className="text-[10px]">
@@ -1440,8 +1441,8 @@ export function FinancialPayables() {
                               </Badge>
                             )}
                           </div>
-
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                          {/* Row 3: Dados fixos */}
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs min-h-[32px]">
                             <div>
                               <span className="text-muted-foreground">Valor Parcela</span>
                               <p className="font-mono font-semibold text-foreground">
@@ -1454,15 +1455,17 @@ export function FinancialPayables() {
                                 {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
                               </p>
                             </div>
-                            {chart && (
-                              <div className="col-span-2 mt-1">
-                                <span className="text-muted-foreground">Conta Contábil</span>
-                                <p className="text-[11px] text-foreground truncate">
-                                  <span className="font-mono mr-1">{chart.codigo}</span>
-                                  {chart.nome}
-                                </p>
-                              </div>
-                            )}
+                            <div className="col-span-2 min-h-[28px]">
+                              {chart ? (
+                                <>
+                                  <span className="text-muted-foreground">Conta Contábil</span>
+                                  <p className="text-[11px] text-foreground truncate">
+                                    <span className="font-mono mr-1">{chart.codigo}</span>
+                                    {chart.nome}
+                                  </p>
+                                </>
+                              ) : <span>&nbsp;</span>}
+                            </div>
                           </div>
 
                           <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
@@ -1535,7 +1538,8 @@ export function FinancialPayables() {
                       isSelected ? "ring-2 ring-primary bg-primary/5" : ""
                     } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
-                    <CardContent className="p-3 space-y-2">
+                    <CardContent className="p-3 flex flex-col gap-1.5">
+                      {/* Row 1: Checkbox + Nome */}
                       <div className="flex items-center gap-2 min-w-0">
                         <Checkbox
                           checked={isSelected}
@@ -1545,7 +1549,8 @@ export function FinancialPayables() {
                           {item.favorecido_nome || "Sem favorecido"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Row 2: Badges */}
+                      <div className="flex items-center gap-1 flex-wrap min-h-[20px]">
                         {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                         {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                         {isHarvest && (
@@ -1560,9 +1565,9 @@ export function FinancialPayables() {
                           </Badge>
                         )}
                       </div>
-
+                      {/* Row 3: Dados fixos */}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                        <div>
+                        <div className="min-h-[32px]">
                           <span className="text-muted-foreground">Valor</span>
                           <p className="font-mono font-semibold text-foreground">
                             {formatCurrency(Number(item.valor_total))}
@@ -1573,7 +1578,7 @@ export function FinancialPayables() {
                             </p>
                           )}
                         </div>
-                        <div>
+                        <div className="min-h-[32px]">
                           <span className="text-muted-foreground">{isPago ? "Pago em" : "Vencimento"}</span>
                           <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
                             {isPago && item.data_pagamento
@@ -1583,21 +1588,25 @@ export function FinancialPayables() {
                                 : "—"}
                           </p>
                         </div>
-                        {chart && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Conta Contábil</span>
-                            <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
-                              <span className="font-mono mr-1">{chart.codigo}</span>
-                              {chart.nome}
-                            </p>
-                          </div>
-                        )}
-                        {item.veiculo_placa && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">Veículo</span>
-                            <p className="text-foreground">{item.veiculo_placa}</p>
-                          </div>
-                        )}
+                        <div className="col-span-2 min-h-[28px]">
+                          {chart ? (
+                            <>
+                              <span className="text-muted-foreground">Conta Contábil</span>
+                              <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
+                                <span className="font-mono mr-1">{chart.codigo}</span>
+                                {chart.nome}
+                              </p>
+                            </>
+                          ) : <span>&nbsp;</span>}
+                        </div>
+                        <div className="col-span-2 min-h-[20px]">
+                          {item.veiculo_placa ? (
+                            <>
+                              <span className="text-muted-foreground">Veículo</span>
+                              <p className="text-foreground">{item.veiculo_placa}</p>
+                            </>
+                          ) : <span>&nbsp;</span>}
+                        </div>
                       </div>
 
                       <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
