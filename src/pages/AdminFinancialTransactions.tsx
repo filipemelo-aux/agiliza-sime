@@ -102,7 +102,7 @@ export default function AdminFinancialTransactions() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [txRes, baRes, caRes, estRes] = await Promise.all([
+    const [txRes, baRes, caRes, estRes, fcRes] = await Promise.all([
       supabase
         .from("financial_transactions")
         .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo)")
@@ -112,11 +112,13 @@ export default function AdminFinancialTransactions() {
       supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id").eq("ativo", true).order("nome"),
       supabase.from("chart_of_accounts").select("id, nome, codigo").eq("ativo", true).order("codigo"),
       supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia").eq("active", true),
+      supabase.from("financial_categories").select("id, name, type").eq("active", true).order("name"),
     ]);
     if (txRes.data) setTransactions(txRes.data as any);
     if (baRes.data) setBankAccounts(baRes.data);
     if (caRes.data) setChartAccounts(caRes.data);
     if (estRes.data) setEstablishments(estRes.data);
+    if (fcRes.data) setFinancialCategories(fcRes.data);
     setLoading(false);
   }, []);
 
@@ -135,6 +137,18 @@ export default function AdminFinancialTransactions() {
       toast.error("Preencha conta, descrição e valor.");
       return;
     }
+    if (!form.categoria_financeira_id) {
+      toast.error("Selecione a categoria financeira.");
+      return;
+    }
+    if (!form.plano_contas_id) {
+      toast.error("Selecione o plano de contas.");
+      return;
+    }
+    if (!form.data_movimentacao) {
+      toast.error("Informe a data da movimentação.");
+      return;
+    }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sessão expirada."); setSaving(false); return; }
@@ -148,6 +162,7 @@ export default function AdminFinancialTransactions() {
       valor,
       data_movimentacao: form.data_movimentacao,
       descricao: form.descricao.trim(),
+      categoria_financeira_id: form.categoria_financeira_id || null,
       plano_contas_id: form.plano_contas_id || null,
       origem: form.origem,
       status: "confirmado",
