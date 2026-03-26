@@ -44,14 +44,12 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
         .from("accounts_receivable")
         .select("id, description, amount, due_date, status, debtor_name, conta_bancaria_id")
         .is("conta_bancaria_id", null)
-        .in("status", ["pendente", "parcial"])
         .order("due_date", { ascending: true }),
       supabase
         .from("expenses")
         .select("id, descricao, valor_total, data_vencimento, status, favorecido_nome, conta_bancaria_id")
         .is("conta_bancaria_id", null)
         .is("deleted_at", null)
-        .in("status", ["pendente", "parcial", "atrasado"])
         .order("data_vencimento", { ascending: true }),
     ]);
 
