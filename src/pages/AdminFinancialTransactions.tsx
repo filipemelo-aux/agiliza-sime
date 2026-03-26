@@ -248,6 +248,7 @@ export default function AdminFinancialTransactions() {
       status: "confirmado",
       observacoes: `Estorno da movimentação de ${format(parseISO(tx.data_movimentacao), "dd/MM/yyyy")}`,
       empresa_id: tx.empresa_id,
+      unidade_id: tx.unidade_id,
       created_by: user.id,
     });
 
