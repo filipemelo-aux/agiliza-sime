@@ -203,12 +203,12 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); };
+  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); setFormContaBancariaId(""); };
 
   const handleSave = async () => {
     if (!description.trim()) return toast.error("Informe a descrição");
     if (!amount || Number(amount) <= 0) return toast.error("Informe o valor");
-    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null };
+    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null, conta_bancaria_id: formContaBancariaId || null };
     if (editingId) {
       const { error } = await supabase.from("accounts_receivable").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
@@ -226,7 +226,7 @@ export function FinancialReceivables() {
 
   const handleEdit = (item: Receivable) => {
     setEditingId(item.id); setDescription(item.description); setCategoryId(item.category_id || "");
-    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
+    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setFormContaBancariaId(item.conta_bancaria_id || ""); setDialogOpen(true);
   };
 
   const openReceiveDialog = (item: Receivable) => {
@@ -234,7 +234,7 @@ export function FinancialReceivables() {
     const remaining = Number(item.amount) - paidSoFar;
     setReceiveItem(item);
     setReceiveValor(String(remaining));
-    setReceiveContaId("");
+    setReceiveContaId(item.conta_bancaria_id || "");
     setReceiveData(new Date());
     setReceiveObs("");
     setReceiveOpen(true);
