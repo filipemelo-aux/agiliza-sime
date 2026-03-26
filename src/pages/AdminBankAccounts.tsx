@@ -104,7 +104,7 @@ export default function AdminBankAccounts() {
   const fetchEstablishments = useCallback(async () => {
     const { data } = await supabase
       .from("fiscal_establishments")
-      .select("id, razao_social, nome_fantasia")
+      .select("id, razao_social, nome_fantasia, type")
       .eq("active", true)
       .order("razao_social");
     setEstablishments(data ?? []);
