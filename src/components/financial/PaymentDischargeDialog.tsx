@@ -55,10 +55,11 @@ interface Props {
   empresaId?: string | null;
   unidadeId?: string | null;
   descricao?: string | null;
+  contaBancariaIdPreset?: string | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, planoContasId, empresaId, unidadeId, descricao, onSaved }: Props) {
+export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, planoContasId, empresaId, unidadeId, descricao, contaBancariaIdPreset, onSaved }: Props) {
   const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
@@ -75,7 +76,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       setValor(String(valorTotal - valorPago));
       setObservacoes("");
       setDataPagamento(new Date());
-      setContaBancariaId("");
+      setContaBancariaId(contaBancariaIdPreset || "");
       loadHistory();
       loadBankAccounts();
     }
