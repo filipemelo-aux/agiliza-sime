@@ -146,9 +146,29 @@ export default function AdminFinancialTransactions() {
     setOpen(true);
   };
 
+  // Get valid units for a given bank account
+  const getValidUnits = (contaId: string) => {
+    const ba = bankAccounts.find(b => b.id === contaId);
+    if (!ba) return establishments;
+    if (!ba.permitir_multiplas_unidades) {
+      // Only the owner establishment
+      return establishments.filter(e => e.id === ba.empresa_id);
+    }
+    const linkedIds = bankAccountUnits
+      .filter(u => u.conta_bancaria_id === contaId)
+      .map(u => u.unidade_id);
+    // If no units linked, treat as global
+    if (linkedIds.length === 0) return establishments;
+    return establishments.filter(e => linkedIds.includes(e.id));
+  };
+
   const handleSave = async () => {
     if (!form.conta_bancaria_id || !form.descricao.trim() || !form.valor) {
       toast.error("Preencha conta, descrição e valor.");
+      return;
+    }
+    if (!form.unidade_id) {
+      toast.error("Selecione a unidade.");
       return;
     }
     if (!form.categoria_financeira_id) {
@@ -163,6 +183,14 @@ export default function AdminFinancialTransactions() {
       toast.error("Informe a data da movimentação.");
       return;
     }
+
+    // Validate unit is linked to the account
+    const validUnits = getValidUnits(form.conta_bancaria_id);
+    if (!validUnits.find(u => u.id === form.unidade_id)) {
+      toast.error("Unidade não vinculada a esta conta bancária.");
+      return;
+    }
+
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sessão expirada."); setSaving(false); return; }
@@ -182,6 +210,7 @@ export default function AdminFinancialTransactions() {
       status: "confirmado",
       observacoes: form.observacoes?.trim() || null,
       empresa_id: form.empresa_id,
+      unidade_id: form.unidade_id,
       created_by: user.id,
     };
 
