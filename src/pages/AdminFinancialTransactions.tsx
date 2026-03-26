@@ -371,13 +371,19 @@ export default function AdminFinancialTransactions() {
                     <span>{(tx.bank_accounts as any)?.nome ?? "—"}</span>
                   </div>
 
-                    {/* Origin badge */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
-                      <Badge variant={tx.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">
-                        {tx.status === "confirmado" ? "Confirmado" : "Pendente"}
-                      </Badge>
-                    </div>
+                  {/* Origin badge */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
+                    <Badge variant={tx.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">
+                      {tx.status === "confirmado" ? "Confirmado" : "Pendente"}
+                    </Badge>
+                  </div>
+
+                  {/* Actions */}
+                  {tx.status === "confirmado" && tx.origem !== "ajuste" && (
+                    <div className="flex justify-end pt-1">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => handleEstorno(tx)}>
+                        <RotateCcw className="h-3.5 w-3.5" /> Estornar
                       </Button>
                     </div>
                   )}
