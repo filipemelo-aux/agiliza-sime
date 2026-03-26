@@ -263,6 +263,7 @@ export default function AdminFinancialTransactions() {
   const filtered = transactions.filter(tx => {
     if (filterConta !== "all" && tx.conta_bancaria_id !== filterConta) return false;
     if (filterTipo !== "all" && tx.tipo !== filterTipo) return false;
+    if (filterUnidade !== "all" && tx.unidade_id !== filterUnidade) return false;
     if (search) {
       const s = search.toLowerCase();
       if (!tx.descricao.toLowerCase().includes(s) && !(tx.bank_accounts as any)?.nome?.toLowerCase().includes(s)) return false;
