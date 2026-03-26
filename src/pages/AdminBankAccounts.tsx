@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText, Link2 } from "lucide-react";
+import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { BankStatementDialog } from "@/components/financial/BankStatementDialog";
-import { LinkAccountDialog } from "@/components/financial/LinkAccountDialog";
+
 
 interface BankAccount {
   id: string;
@@ -89,9 +89,6 @@ export default function AdminBankAccounts() {
   const [extratoOpen, setExtratoOpen] = useState(false);
   const [extratoAccount, setExtratoAccount] = useState<BankAccount | null>(null);
 
-  // Link dialog state
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkAccount, setLinkAccount] = useState<BankAccount | null>(null);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -264,10 +261,6 @@ export default function AdminBankAccounts() {
     setExtratoOpen(true);
   };
 
-  const openLink = (acc: BankAccount) => {
-    setLinkAccount(acc);
-    setLinkOpen(true);
-  };
 
   const filtered = accounts.filter(a =>
     a.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -365,9 +358,6 @@ export default function AdminBankAccounts() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-1 pt-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openLink(acc)} title="Vincular lançamentos">
-                      <Link2 className="h-3.5 w-3.5" />
-                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openExtrato(acc)} title="Extrato">
                       <FileText className="h-3.5 w-3.5" />
                     </Button>
@@ -500,14 +490,6 @@ export default function AdminBankAccounts() {
 
       <BankStatementDialog open={extratoOpen} onOpenChange={setExtratoOpen} account={extratoAccount} />
 
-      {linkAccount && (
-        <LinkAccountDialog
-          open={linkOpen}
-          onOpenChange={setLinkOpen}
-          accountId={linkAccount.id}
-          accountName={linkAccount.nome}
-        />
-      )}
 
       {ConfirmDialog}
     </AdminLayout>

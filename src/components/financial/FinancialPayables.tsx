@@ -15,13 +15,14 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { getLocalDateISO, normalizeDateInput } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
 
 interface Installment {
   id: string;
@@ -137,6 +138,7 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
+  const [bankPickerOpen, setBankPickerOpen] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
@@ -1426,6 +1428,15 @@ export function FinancialPayables() {
                 <FileText className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={() => setBankPickerOpen(true)}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular Conta
+              </Button>
             </div>
           )}
         </div>
@@ -2014,6 +2025,26 @@ export function FinancialPayables() {
         </DialogContent>
       </Dialog>
       {ConfirmDialog}
+      <BankAccountPickerDialog
+        open={bankPickerOpen}
+        onOpenChange={setBankPickerOpen}
+        selectedIds={(() => {
+          const ids = new Set<string>();
+          selectedIds.forEach(id => {
+            if (id.startsWith("inst-")) {
+              const instId = id.replace("inst-", "");
+              for (const [expId, insts] of Object.entries(installmentsMap)) {
+                if (insts.some(i => i.id === instId)) { ids.add(expId); break; }
+              }
+            } else if (!id.startsWith("harvest-")) {
+              ids.add(id);
+            }
+          });
+          return Array.from(ids);
+        })()}
+        target="expenses"
+        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Receivable {
   id: string;
@@ -163,6 +165,8 @@ export function FinancialReceivables() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bankPickerOpen, setBankPickerOpen] = useState(false);
 
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -320,6 +324,16 @@ export function FinancialReceivables() {
     return matchSearch && matchStatus;
   });
 
+  const manualFiltered = filtered.filter(i => i._source === "manual");
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const toggleSelectAll = () => {
+    const ids = manualFiltered.map(i => i.id);
+    if (ids.every(id => selectedIds.has(id))) setSelectedIds(new Set());
+    else setSelectedIds(new Set(ids));
+  };
+
   const totalPrevisao = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
 
   return (
@@ -387,6 +401,32 @@ export function FinancialReceivables() {
         </Dialog>
       </div>
 
+      {/* Selection bar */}
+      {manualFiltered.length > 0 && (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
+          <Checkbox
+            checked={manualFiltered.length > 0 && manualFiltered.every(i => selectedIds.has(i.id))}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-xs text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas"}
+          </span>
+          {selectedIds.size > 0 && (
+            <div className="ml-auto flex gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={() => setBankPickerOpen(true)}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular Conta
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Cards */}
       {loading ? (
         <p className="text-muted-foreground text-sm text-center py-8">Carregando...</p>
@@ -402,13 +442,22 @@ export function FinancialReceivables() {
                 <CardContent className="p-4 space-y-2">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
-                        {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
-                        <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                    <div className="flex items-start gap-2 min-w-0">
+                      {item._source === "manual" && (
+                        <Checkbox
+                          checked={selectedIds.has(item.id)}
+                          onCheckedChange={() => toggleSelect(item.id)}
+                          className="mt-0.5 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {item._source === "harvest" && <Sprout className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          {item._source === "cte" && <FileText className="h-3.5 w-3.5 text-accent-foreground shrink-0" />}
+                          <p className="text-sm font-semibold text-foreground truncate">{item.description}</p>
+                        </div>
+                        {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
                       </div>
-                      {item.debtor_name && <p className="text-xs text-muted-foreground mt-0.5">{item.debtor_name}</p>}
                     </div>
                     <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                       {STATUS_MAP[item.status]?.label || item.status}
@@ -532,6 +581,14 @@ export function FinancialReceivables() {
           )}
         </DialogContent>
       </Dialog>
+
+      <BankAccountPickerDialog
+        open={bankPickerOpen}
+        onOpenChange={setBankPickerOpen}
+        selectedIds={Array.from(selectedIds)}
+        target="accounts_receivable"
+        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }
