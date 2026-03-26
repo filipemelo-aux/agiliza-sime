@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { ArrowUpCircle, ArrowDownCircle, Landmark, ExternalLink } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Landmark, ExternalLink, Building2 } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { format, parseISO, startOfMonth } from "date-fns";
@@ -31,14 +31,23 @@ interface Transaction {
   origem_id: string | null;
   status: string;
   plano_contas_id: string | null;
+  unidade_id: string | null;
   created_at: string;
   chart_of_accounts?: { nome: string; codigo: string } | null;
+  fiscal_establishments?: { nome_fantasia: string | null; razao_social: string; type: string } | null;
 }
 
 interface ChartAccount {
   id: string;
   nome: string;
   codigo: string;
+}
+
+interface Establishment {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  type: string;
 }
 
 interface Props {
@@ -61,22 +70,25 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [loading, setLoading] = useState(false);
   const [inicio, setInicio] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [fim, setFim] = useState(() => getLocalDateISO());
   const [filterTipo, setFilterTipo] = useState("all");
   const [filterCategoria, setFilterCategoria] = useState("all");
+  const [filterUnidade, setFilterUnidade] = useState("all");
   const [saldoAnterior, setSaldoAnterior] = useState(0);
 
-  // Fetch chart of accounts for filter
+  // Fetch chart of accounts and establishments
   useEffect(() => {
     if (!open) return;
-    supabase
-      .from("chart_of_accounts")
-      .select("id, nome, codigo")
-      .eq("ativo", true)
-      .order("codigo")
-      .then(({ data }) => setChartAccounts(data ?? []));
+    Promise.all([
+      supabase.from("chart_of_accounts").select("id, nome, codigo").eq("ativo", true).order("codigo"),
+      supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia, type").eq("active", true),
+    ]).then(([caRes, estRes]) => {
+      setChartAccounts(caRes.data ?? []);
+      setEstablishments((estRes.data as any) ?? []);
+    });
   }, [open]);
 
   const fetchTransactions = useCallback(async () => {
@@ -99,7 +111,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
     // 2) Fetch period transactions
     let query = supabase
       .from("financial_transactions")
-      .select("id, tipo, valor, data_movimentacao, descricao, origem, origem_id, status, plano_contas_id, created_at, chart_of_accounts:plano_contas_id(nome, codigo)")
+      .select("id, tipo, valor, data_movimentacao, descricao, origem, origem_id, status, plano_contas_id, unidade_id, created_at, chart_of_accounts:plano_contas_id(nome, codigo), fiscal_establishments:unidade_id(nome_fantasia, razao_social, type)")
       .eq("conta_bancaria_id", account.id)
       .eq("status", "confirmado")
       .gte("data_movimentacao", inicio)
@@ -128,9 +140,10 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
     return transactions.filter(tx => {
       if (filterTipo !== "all" && tx.tipo !== filterTipo) return false;
       if (filterCategoria !== "all" && tx.plano_contas_id !== filterCategoria) return false;
+      if (filterUnidade !== "all" && tx.unidade_id !== filterUnidade) return false;
       return true;
     });
-  }, [transactions, filterTipo, filterCategoria]);
+  }, [transactions, filterTipo, filterCategoria, filterUnidade]);
 
   // Compute running balance
   const rows = useMemo(() => {
@@ -144,6 +157,30 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
   const totalEntradas = filtered.filter(t => t.tipo === "entrada").reduce((s, t) => s + Number(t.valor), 0);
   const totalSaidas = filtered.filter(t => t.tipo === "saida").reduce((s, t) => s + Number(t.valor), 0);
   const saldoFinal = saldoAnterior + totalEntradas - totalSaidas;
+
+  // Per-unit summaries (from unfiltered transactions for full picture)
+  const unitSummary = useMemo(() => {
+    const map: Record<string, { label: string; type: string; entradas: number; saidas: number }> = {};
+    for (const tx of transactions) {
+      const uid = tx.unidade_id || "sem_unidade";
+      if (!map[uid]) {
+        const est = tx.fiscal_establishments as any;
+        const label = est ? (est.nome_fantasia || est.razao_social) : "Sem unidade";
+        const type = est?.type || "";
+        map[uid] = { label, type, entradas: 0, saidas: 0 };
+      }
+      if (tx.tipo === "entrada") map[uid].entradas += Number(tx.valor);
+      else map[uid].saidas += Number(tx.valor);
+    }
+    return Object.entries(map).sort((a, b) => (a[1].type === "matriz" ? -1 : 1));
+  }, [transactions]);
+
+  const getUnitLabel = (tx: Transaction) => {
+    const est = tx.fiscal_establishments as any;
+    if (!est) return "—";
+    const typeLabel = est.type === "matriz" ? "Matriz" : "Filial";
+    return `${typeLabel}`;
+  };
 
   const handleOrigemClick = (tx: Transaction) => {
     if (!tx.origem_id) return;
@@ -161,7 +198,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Landmark className="h-5 w-5" />
@@ -203,6 +240,22 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            {establishments.length > 1 && (
+              <div>
+                <Label className="text-xs">Unidade</Label>
+                <Select value={filterUnidade} onValueChange={setFilterUnidade}>
+                  <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Todas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {establishments.map(e => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Summary */}
@@ -243,6 +296,34 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
             </Card>
           </div>
 
+          {/* Per-unit breakdown */}
+          {unitSummary.length > 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {unitSummary.map(([uid, data]) => (
+                <Card key={uid} className="border-l-4 border-l-primary/40">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="text-xs font-semibold text-foreground">
+                        {data.type === "matriz" ? "Matriz" : "Filial"}: {data.label}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Entradas</span>
+                        <p className="font-mono font-semibold text-emerald-600">{formatCurrency(data.entradas)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Saídas</span>
+                        <p className="font-mono font-semibold text-red-600">{formatCurrency(data.saidas)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {/* Statement table */}
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
@@ -250,12 +331,12 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
             <p className="text-sm text-muted-foreground text-center py-4">Nenhuma movimentação no período.</p>
           ) : (
             <div className="border rounded-lg overflow-hidden">
-              {/* Initial balance row */}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[90px]">Data</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead className="w-[80px]">Unidade</TableHead>
                     <TableHead className="w-[110px]">Origem</TableHead>
                     <TableHead className="text-right w-[110px]">Valor</TableHead>
                     <TableHead className="text-right w-[120px]">Saldo</TableHead>
@@ -265,7 +346,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                   {/* Saldo anterior row */}
                   <TableRow className="bg-muted/30">
                     <TableCell className="text-xs font-medium">{format(parseISO(inicio), "dd/MM/yyyy")}</TableCell>
-                    <TableCell colSpan={2} className="text-xs font-medium italic">Saldo anterior</TableCell>
+                    <TableCell colSpan={3} className="text-xs font-medium italic">Saldo anterior</TableCell>
                     <TableCell />
                     <TableCell className={`text-right text-xs font-mono font-bold ${saldoAnterior >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {formatCurrency(saldoAnterior)}
@@ -289,6 +370,11 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                             </Badge>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[9px]">
+                          {getUnitLabel(tx)}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {isClickable(tx) ? (
@@ -317,7 +403,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                   {/* Saldo final row */}
                   <TableRow className="bg-muted/30">
                     <TableCell className="text-xs font-medium">{format(parseISO(fim), "dd/MM/yyyy")}</TableCell>
-                    <TableCell colSpan={2} className="text-xs font-medium italic">Saldo final</TableCell>
+                    <TableCell colSpan={3} className="text-xs font-medium italic">Saldo final</TableCell>
                     <TableCell />
                     <TableCell className={`text-right text-xs font-mono font-bold ${saldoFinal >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {formatCurrency(saldoFinal)}
