@@ -37,7 +37,7 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
         </DialogHeader>
 
         <div className="space-y-1">
-          <Row label="Empresa Contratada" value={q.establishment?.nome_fantasia || q.establishment?.razao_social} />
+          <Row label="Empresa Contratada" value="Sime Transporte Ltda" />
           <Row label="Cliente" value={q.client?.razao_social || q.client?.full_name} />
           <Row label="CNPJ Cliente" value={q.client?.cnpj} />
           <Row label="Responsável" value={q.creator?.full_name} />
