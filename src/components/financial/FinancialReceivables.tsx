@@ -401,6 +401,32 @@ export function FinancialReceivables() {
         </Dialog>
       </div>
 
+      {/* Selection bar */}
+      {manualFiltered.length > 0 && (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
+          <Checkbox
+            checked={manualFiltered.length > 0 && manualFiltered.every(i => selectedIds.has(i.id))}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-xs text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas"}
+          </span>
+          {selectedIds.size > 0 && (
+            <div className="ml-auto flex gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={() => setBankPickerOpen(true)}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular Conta
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Cards */}
       {loading ? (
         <p className="text-muted-foreground text-sm text-center py-8">Carregando...</p>
