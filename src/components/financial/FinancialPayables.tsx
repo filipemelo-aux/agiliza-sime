@@ -205,7 +205,7 @@ export function FinancialPayables() {
       supabase.from("harvest_payments").select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at").order("created_at", { ascending: false }),
     ]);
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = format(new Date(), "yyyy-MM-dd");
     const expenses = ((expData as any) || []) as Expense[];
     const overdueIds: string[] = [];
     const processed = expenses.map(e => {
@@ -624,7 +624,7 @@ export function FinancialPayables() {
   }, [installmentsMap]);
 
   const counts = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
     let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
 
@@ -695,7 +695,7 @@ export function FinancialPayables() {
   }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const filtered = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
     return items.filter(i => {
@@ -791,7 +791,7 @@ export function FinancialPayables() {
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
     const ids: string[] = [];
-    const today2 = new Date().toISOString().split("T")[0];
+    const today2 = format(new Date(), "yyyy-MM-dd");
     const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
@@ -857,7 +857,7 @@ export function FinancialPayables() {
     let pago = 0;
     let atrasado = 0;
     let registros = 0;
-    const today = new Date().toISOString().split("T")[0];
+    const today = format(new Date(), "yyyy-MM-dd");
 
     // Cards exibem totais GERAIS — sem nenhum filtro
     items.forEach(item => {
@@ -935,7 +935,7 @@ export function FinancialPayables() {
           const inst = installs.find(i => i.id === instId);
           if (inst) {
             const item = items.find(i => i.id === expId);
-            const today = new Date().toISOString().split("T")[0];
+            const today = format(new Date(), "yyyy-MM-dd");
             const isOverdue = inst.data_vencimento < today && inst.status !== "pago";
             const chart = item?.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
             rows.push({
@@ -1362,7 +1362,7 @@ export function FinancialPayables() {
                 : item.descricao || "Serviço";
 
               if (hasInstallments) {
-                const today2 = new Date().toISOString().split("T")[0];
+                const today2 = format(new Date(), "yyyy-MM-dd");
                 const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
                 const visibleInstalls = installs
                   .filter(inst => {
@@ -1375,7 +1375,7 @@ export function FinancialPayables() {
                   .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
 
                 return visibleInstalls.map(inst => {
-                  const today = new Date().toISOString().split("T")[0];
+                  const today = format(new Date(), "yyyy-MM-dd");
                   const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
                   const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
                   const isInstPago = inst.status === "pago";
@@ -1500,7 +1500,7 @@ export function FinancialPayables() {
               const isOverdue = item.status === "atrasado";
               const isPago = item.status === "pago";
               const isSelected = selectedIds.has(item.id);
-              const todayStr2 = new Date().toISOString().split("T")[0];
+              const todayStr2 = format(new Date(), "yyyy-MM-dd");
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
