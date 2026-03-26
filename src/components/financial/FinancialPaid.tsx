@@ -13,7 +13,7 @@ interface PaidItem {
   amount: number;
   paid_at: string | null;
   creditor_name: string | null;
-  source: "manual" | "harvest";
+  source: "expense" | "legacy";
 }
 
 export function FinancialPaid() {
@@ -25,82 +25,45 @@ export function FinancialPaid() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: paidAccounts } = await supabase
-      .from("accounts_payable")
-      .select("id, description, amount, paid_at, paid_amount, creditor_name")
-      .eq("status", "pago" as any)
-      .order("paid_at", { ascending: false });
 
-    const manualItems: PaidItem[] = (paidAccounts || []).map((a: any) => ({
-      id: a.id,
+    const [{ data: paidExpenses }, { data: paidLegacy }] = await Promise.all([
+      supabase
+        .from("expenses")
+        .select("id, descricao, valor_pago, data_pagamento, favorecido_nome")
+        .is("deleted_at", null)
+        .eq("status", "pago" as any)
+        .order("data_pagamento", { ascending: false }),
+      supabase
+        .from("accounts_payable")
+        .select("id, description, amount, paid_at, paid_amount, creditor_name")
+        .eq("status", "pago" as any)
+        .order("paid_at", { ascending: false }),
+    ]);
+
+    const expenseItems: PaidItem[] = (paidExpenses || []).map((e: any) => ({
+      id: e.id,
+      description: e.descricao,
+      amount: Number(e.valor_pago || 0),
+      paid_at: e.data_pagamento,
+      creditor_name: e.favorecido_nome,
+      source: "expense" as const,
+    }));
+
+    const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
+      id: `legacy-${a.id}`,
       description: a.description,
       amount: Number(a.paid_amount || a.amount),
       paid_at: a.paid_at,
       creditor_name: a.creditor_name,
-      source: "manual" as const,
+      source: "legacy" as const,
     }));
 
-    const { data: harvestPayments } = await supabase
-      .from("harvest_payments")
-      .select("id, harvest_job_id, period_start, period_end, total_amount, filter_context, created_at")
-      .order("created_at", { ascending: false });
-
-    const harvestItems: PaidItem[] = [];
-
-    if (harvestPayments && harvestPayments.length > 0) {
-      const jobIds = [...new Set(harvestPayments.map(p => p.harvest_job_id))];
-      // Collect all unique user IDs from filter_context
-      const allUserIds = [...new Set(harvestPayments.flatMap(p => (p.filter_context || "").split(",").filter(Boolean)))];
-
-      // Batch fetch jobs, vehicles, and profiles in parallel
-      const [{ data: jobs }, { data: vehiclesData }, { data: allProfiles }] = await Promise.all([
-        supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds),
-        allUserIds.length > 0 ? supabase.from("vehicles").select("driver_id, owner_id").in("driver_id", allUserIds) : Promise.resolve({ data: [] }),
-        allUserIds.length > 0 ? supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", allUserIds) : Promise.resolve({ data: [] }),
-      ]);
-
-      const jobMap = new Map((jobs || []).map(j => [j.id, j.farm_name]));
-
-      // Fetch owner profiles in batch
-      const ownerIds = [...new Set((vehiclesData || []).map((v: any) => v.owner_id).filter(Boolean))];
-      const { data: ownerProfiles } = ownerIds.length > 0
-        ? await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds)
-        : { data: [] };
-      const ownerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
-      const driverOwnerMap = new Map((vehiclesData || []).map((v: any) => [v.driver_id, v.owner_id]));
-
-      for (const payment of harvestPayments) {
-        const farmName = jobMap.get(payment.harvest_job_id) || "Colheita";
-        const periodLabel = `${format(new Date(payment.period_start + "T12:00:00"), "dd/MM/yy")} - ${format(new Date(payment.period_end + "T12:00:00"), "dd/MM/yy")}`;
-
-        let ownerName = "Proprietário";
-        if (payment.filter_context) {
-          const userIds = payment.filter_context.split(",").filter(Boolean);
-          for (const uid of userIds) {
-            const ownerId = driverOwnerMap.get(uid);
-            if (ownerId && ownerMap.has(ownerId)) {
-              ownerName = ownerMap.get(ownerId)!;
-              break;
-            }
-          }
-        }
-
-        harvestItems.push({
-          id: `harvest-${payment.id}`,
-          description: `🌱 ${farmName} — ${periodLabel}`,
-          amount: Number(payment.total_amount),
-          paid_at: payment.created_at,
-          creditor_name: ownerName,
-          source: "harvest",
-        });
-      }
-    }
-
-    setItems([...manualItems, ...harvestItems].sort((a, b) => {
+    setItems([...expenseItems, ...legacyItems].sort((a, b) => {
       const dateA = a.paid_at ? new Date(a.paid_at).getTime() : 0;
       const dateB = b.paid_at ? new Date(b.paid_at).getTime() : 0;
       return dateB - dateA;
     }));
+
     setLoading(false);
   };
 
@@ -148,8 +111,8 @@ export function FinancialPaid() {
                     <p className="text-sm font-semibold text-foreground truncate">{item.creditor_name || "—"}</p>
                     <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                   </div>
-                  <Badge variant={item.source === "harvest" ? "secondary" : "outline"} className="text-[10px] shrink-0">
-                    {item.source === "harvest" ? "Colheita" : "Manual"}
+                  <Badge variant={item.source === "expense" ? "outline" : "secondary"} className="text-[10px] shrink-0">
+                    {item.source === "expense" ? "Despesa" : "Legado"}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
