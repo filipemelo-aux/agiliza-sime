@@ -1428,6 +1428,15 @@ export function FinancialPayables() {
                 <FileText className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={() => setBankPickerOpen(true)}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular Conta
+              </Button>
             </div>
           )}
         </div>
