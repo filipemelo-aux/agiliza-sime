@@ -448,6 +448,7 @@ export default function AdminBankAccounts() {
             )}
 
             <div>
+              <Label>Tipo</Label>
               <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
