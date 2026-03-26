@@ -2025,6 +2025,26 @@ export function FinancialPayables() {
         </DialogContent>
       </Dialog>
       {ConfirmDialog}
+      <BankAccountPickerDialog
+        open={bankPickerOpen}
+        onOpenChange={setBankPickerOpen}
+        selectedIds={(() => {
+          const ids = new Set<string>();
+          selectedIds.forEach(id => {
+            if (id.startsWith("inst-")) {
+              const instId = id.replace("inst-", "");
+              for (const [expId, insts] of Object.entries(installmentsMap)) {
+                if (insts.some(i => i.id === instId)) { ids.add(expId); break; }
+              }
+            } else if (!id.startsWith("harvest-")) {
+              ids.add(id);
+            }
+          });
+          return Array.from(ids);
+        })()}
+        target="expenses"
+        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }
