@@ -204,7 +204,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhum lançamento pendente sem conta bancária vinculada.
+            Nenhum lançamento encontrado.
           </p>
         ) : (
           <>
@@ -227,8 +227,8 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
                   key={item.id}
                   className={`cursor-pointer transition-colors border-l-4 ${
                     item.type === "receivable" ? "border-l-emerald-500" : "border-l-destructive"
-                  } ${selected.has(item.id) ? "bg-accent/50" : ""}`}
-                  onClick={() => toggleSelect(item.id)}
+                  } ${selected.has(item.id) ? "bg-accent/50" : ""} ${item.already_linked ? "opacity-50" : ""}`}
+                  onClick={() => !item.already_linked && toggleSelect(item.id)}
                 >
                   <CardContent className="p-2.5 flex items-start gap-2">
                     <Checkbox
@@ -247,6 +247,9 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
                         >
                           {item.type === "receivable" ? "Receber" : "Pagar"}
                         </Badge>
+                        {item.already_linked && (
+                          <Badge variant="secondary" className="text-[10px] shrink-0">Já vinculado</Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                         {item.person_name && <span className="truncate">{item.person_name}</span>}
