@@ -419,12 +419,26 @@ export default function AdminFinancialTransactions() {
             </div>
             <div>
               <Label>Descrição *</Label>
-              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição da movimentação" />
+              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Ex: Aporte sócio, Saque, Ajuste de saldo" />
             </div>
             <div>
-              <Label>Plano de Contas</Label>
+              <Label>Categoria Financeira *</Label>
+              <Select value={form.categoria_financeira_id} onValueChange={v => setForm(f => ({ ...f, categoria_financeira_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+                <SelectContent>
+                  {financialCategories
+                    .filter(fc => form.tipo === "entrada" ? fc.type === "receita" : fc.type === "despesa")
+                    .map(fc => <SelectItem key={fc.id} value={fc.id}>{fc.name}</SelectItem>)}
+                  {financialCategories
+                    .filter(fc => fc.type !== "receita" && fc.type !== "despesa")
+                    .map(fc => <SelectItem key={fc.id} value={fc.id}>{fc.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Plano de Contas *</Label>
               <Select value={form.plano_contas_id} onValueChange={v => setForm(f => ({ ...f, plano_contas_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger>
                 <SelectContent>
                   {chartAccounts.map(ca => <SelectItem key={ca.id} value={ca.id}>{ca.codigo} - {ca.nome}</SelectItem>)}
                 </SelectContent>
