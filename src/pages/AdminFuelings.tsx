@@ -46,7 +46,7 @@ export default function AdminFuelings() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
+    const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
     const eid = estab?.id || "";
     setEmpresaId(eid);
 

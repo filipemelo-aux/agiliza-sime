@@ -200,7 +200,7 @@ export function FinancialPayables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: estab } = await supabase.from("fiscal_establishments").select("id").limit(1).maybeSingle();
+    const { data: estab } = await supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle();
     setEmpresaId(estab?.id || "");
 
     const [{ data: expData }, { data: vehData }, { data: chartData }, { data: instData }, { data: harvestPayments }] = await Promise.all([

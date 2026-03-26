@@ -1217,6 +1217,7 @@ export default function HarvestDetail() {
         .from("fiscal_establishments")
         .select("id")
         .eq("active", true)
+        .eq("type", "matriz")
         .limit(1)
         .maybeSingle();
 

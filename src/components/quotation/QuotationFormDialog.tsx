@@ -103,8 +103,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setCombustivelPorConta(editData.combustivel_por_conta || "contratada");
         setValorAlimentacaoDia(editData.valor_alimentacao_dia != null ? String(editData.valor_alimentacao_dia) : "");
       }
-    } else if (establishments.length === 1) {
-      setEstablishmentId(establishments[0].id);
+    } else if (establishments.length > 0) {
+      const matriz = establishments.find((e: any) => e.type === "matriz" || e.tipo === "matriz");
+      setEstablishmentId(matriz?.id || establishments[0].id);
     }
   }, [editData, establishments]);
 
@@ -180,19 +181,10 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Empresa contratada */}
+          {/* Empresa contratada - unified */}
           <div>
             <Label>Empresa Contratada (Emitente)</Label>
-            <Select value={establishmentId} onValueChange={setEstablishmentId}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {establishments.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.nome_fantasia || e.razao_social} ({e.tipo === "matriz" ? "Matriz" : "Filial"})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input value="Sime Transporte Ltda" disabled className="bg-muted/30" />
           </div>
 
           {/* Cliente */}

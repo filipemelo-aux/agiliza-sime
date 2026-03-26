@@ -4,7 +4,12 @@ const formatCurrency = (v: number | null) =>
   v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 
 export function exportQuotationPDF(q: any, establishments: any[]) {
-  const est = establishments.find((e) => e.id === q.establishment_id) || q.establishment;
+  // Use unified company: find matriz for label + combine all CNPJs
+  const matriz = establishments.find((e: any) => (e.type || e.tipo) === "matriz") || establishments[0] || q.establishment;
+  const companyName = matriz?.razao_social || "Sime Transporte Ltda";
+  const companyCnpjs = establishments.length > 0
+    ? establishments.map((e: any) => e.cnpj).filter(Boolean).join(" / ")
+    : (matriz?.cnpj || "");
   const isFrete = q.type === "frete";
   const diaria = q.valor_mensal_por_caminhao ? q.valor_mensal_por_caminhao / 30 : null;
 
@@ -34,7 +39,7 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
   <img src="${logoUrl}" alt="SIME" />
   <div>
     <div class="brand">SIME <span>TRANSPORTES</span></div>
-    <div style="font-size:11px;color:#666">${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</div>
+    <div style="font-size:11px;color:#666">${companyName} — CNPJ: ${companyCnpjs}</div>
   </div>
 </div>
 
@@ -91,7 +96,7 @@ ${isFrete ? `
 ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>` : ""}
 
 <div class="footer">
-  <p>SIME TRANSPORTES — ${est?.razao_social || ""} — CNPJ: ${est?.cnpj || ""}</p>
+  <p>SIME TRANSPORTES — ${companyName} — CNPJ: ${companyCnpjs}</p>
   <p>Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
 </div>
 

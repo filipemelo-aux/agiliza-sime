@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ export default function AdminQuotations() {
   const [formType, setFormType] = useState<"frete" | "colheita">("frete");
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
-  const [establishments, setEstablishments] = useState<any[]>([]);
+  const { matrizId, unifiedLabel, unifiedCnpjs, establishments } = useUnifiedCompany();
 
   const fetchQuotations = async () => {
     setLoading(true);
@@ -89,14 +90,10 @@ export default function AdminQuotations() {
     setLoading(false);
   };
 
-  const fetchEstablishments = async () => {
-    const { data } = await supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia, cnpj, tipo:type").eq("active", true);
-    setEstablishments(data || []);
-  };
+  // establishments now come from useUnifiedCompany
 
   useEffect(() => {
     fetchQuotations();
-    fetchEstablishments();
   }, []);
 
   const handleDelete = async (id: string) => {
