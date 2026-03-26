@@ -123,6 +123,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
           .from("accounts_receivable")
           .update({ conta_bancaria_id: accountId } as any)
           .in("id", receivableIds)
+          .then()
       );
     }
 
@@ -132,6 +133,7 @@ export function LinkAccountDialog({ open, onOpenChange, accountId, accountName }
           .from("expenses")
           .update({ conta_bancaria_id: accountId } as any)
           .in("id", payableIds)
+          .then()
       );
     }
 
