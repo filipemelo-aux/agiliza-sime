@@ -1465,48 +1465,48 @@ export function FinancialPayables() {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1 pt-1 border-t border-border">
+                          <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
                             {isMaintenance && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
-                                <Wrench className="h-3.5 w-3.5 text-primary" />
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
+                                <Wrench className="h-3 w-3 text-primary" />
                               </Button>
                             )}
                             {!isInstPago && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                                className="h-7 px-1.5 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10 shrink-0"
                                 onClick={() => handlePayInstallment(inst)}
                               >
-                                <Check className="h-3.5 w-3.5" /> Pagar
+                                <Check className="h-3 w-3" /> Pagar
                               </Button>
                             )}
                             {isInstPago && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                                className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
                                 onClick={() => handleReverseInstallment(inst)}
                               >
-                                <Undo2 className="h-3.5 w-3.5" /> Estornar
+                                <Undo2 className="h-3 w-3" /> Estornar
                               </Button>
                             )}
-                            <div className="ml-auto flex gap-0.5">
+                            <div className="ml-auto flex gap-0">
                               {inst.boleto_url && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
-                                  <Download className="h-3.5 w-3.5 text-primary" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                                  <Download className="h-3 w-3 text-primary" />
                                 </Button>
                               )}
-                              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
-                                <FileText className="h-3.5 w-3.5" /> Detalhes
+                              <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
+                                <FileText className="h-3 w-3" /> Detalhes
                               </Button>
                               {!isInstPago && (
                                 <>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInstallment(inst)}>
-                                    <Pencil className="h-3.5 w-3.5" />
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEditInstallment(inst)}>
+                                    <Pencil className="h-3 w-3" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInstallment(inst)}>
-                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDeleteInstallment(inst)}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
                                   </Button>
                                 </>
                               )}
@@ -1600,9 +1600,9 @@ export function FinancialPayables() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 pt-1.5 border-t border-border">
+                      <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
                         {isMaintenance && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                             <Wrench className="h-3 w-3 text-primary" />
                           </Button>
                         )}
@@ -1610,7 +1610,7 @@ export function FinancialPayables() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 px-2 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10"
+                            className="h-7 px-1.5 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10 shrink-0"
                             onClick={() => handlePayment(item)}
                           >
                             <Check className="h-3 w-3" /> Pagar
@@ -1620,20 +1620,20 @@ export function FinancialPayables() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 px-2 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
                             onClick={() => handleReversePayment(item)}
                           >
                             <Undo2 className="h-3 w-3" /> Estornar
                           </Button>
                         )}
                         {!isHarvest && (
-                          <div className="ml-auto flex gap-0.5">
+                          <div className="ml-auto flex gap-0">
                             {!isPago && (
                               <>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(item)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleEdit(item)}>
                                   <Pencil className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(item)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDelete(item)}>
                                   <Trash2 className="h-3 w-3 text-destructive" />
                                 </Button>
                               </>
