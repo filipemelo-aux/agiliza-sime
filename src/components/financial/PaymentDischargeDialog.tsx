@@ -27,6 +27,15 @@ const FORMA_PAGAMENTO_OPTIONS = [
   { value: "cheque", label: "Cheque" },
 ];
 
+interface BankAccount {
+  id: string;
+  nome: string;
+  tipo: string;
+  saldo_atual: number;
+  ativo: boolean;
+  empresa_id: string;
+}
+
 interface PaymentRecord {
   id: string;
   valor: number;
@@ -42,25 +51,32 @@ interface Props {
   expenseId: string;
   valorTotal: number;
   valorPago: number;
+  planoContasId?: string | null;
+  empresaId?: string | null;
+  descricao?: string | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, onSaved }: Props) {
+export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, planoContasId, empresaId, descricao, onSaved }: Props) {
   const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
+  const [contaBancariaId, setContaBancariaId] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
   useEffect(() => {
     if (open && expenseId) {
       setValor(String(valorTotal - valorPago));
       setObservacoes("");
       setDataPagamento(new Date());
+      setContaBancariaId("");
       loadHistory();
+      loadBankAccounts();
     }
   }, [open, expenseId]);
 
@@ -73,10 +89,19 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     setHistory((data as any) || []);
   };
 
+  const loadBankAccounts = async () => {
+    const query = supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id").eq("ativo", true).order("nome");
+    const { data } = empresaId
+      ? await query.eq("empresa_id", empresaId)
+      : await query;
+    setBankAccounts(data || []);
+  };
+
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
     if (valorNum > saldoRestante + 0.01) return toast.error("Valor excede o saldo restante");
+    if (!contaBancariaId) return toast.error("Selecione a conta bancária");
 
     setSaving(true);
 
@@ -102,6 +127,30 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     } as any).eq("id", expenseId);
 
     if (error) { toast.error(error.message); setSaving(false); return; }
+
+    // Create financial transaction (saida)
+    const selectedAccount = bankAccounts.find(ba => ba.id === contaBancariaId);
+    const { error: txErr } = await supabase.from("financial_transactions").insert({
+      conta_bancaria_id: contaBancariaId,
+      tipo: "saida",
+      valor: valorNum,
+      data_movimentacao: format(dataPagamento, "yyyy-MM-dd"),
+      descricao: `Pgto: ${descricao || "Conta a Pagar"}`,
+      plano_contas_id: planoContasId || null,
+      origem: "conta_pagar",
+      origem_id: expenseId,
+      status: "confirmado",
+      observacoes: observacoes.trim() || null,
+      empresa_id: selectedAccount?.empresa_id || empresaId || "",
+      created_by: user?.id,
+    } as any);
+
+    if (txErr) {
+      console.error("Erro ao criar movimentação:", txErr.message);
+      // Payment was already recorded — don't block, just warn
+      toast.warning("Pagamento registrado, mas houve erro ao criar movimentação financeira.");
+    }
+
     toast.success(novoStatus === "pago" ? "Despesa quitada" : "Pagamento parcial registrado");
     setSaving(false);
     onOpenChange(false);
@@ -122,6 +171,22 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
             Pago: {formatCurrency(valorPago)} | 
             Restante: <strong className="text-foreground">{formatCurrency(saldoRestante)}</strong>
           </div>
+
+          {/* Bank Account Selection */}
+          <div>
+            <Label>Conta Bancária *</Label>
+            <Select value={contaBancariaId} onValueChange={setContaBancariaId}>
+              <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+              <SelectContent>
+                {bankAccounts.map(ba => (
+                  <SelectItem key={ba.id} value={ba.id}>
+                    {ba.nome} ({formatCurrency(ba.saldo_atual)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label>Valor (R$)</Label>
