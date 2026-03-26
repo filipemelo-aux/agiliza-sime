@@ -166,6 +166,62 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco_codigo: string | null
+          banco_nome: string | null
+          conta_numero: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          saldo_atual: number
+          saldo_inicial: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          conta_numero?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          saldo_atual?: number
+          saldo_inicial?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          conta_numero?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          saldo_atual?: number
+          saldo_inicial?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           ativo: boolean
