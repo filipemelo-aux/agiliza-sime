@@ -56,6 +56,12 @@ export function useUnifiedCompany() {
     [establishments]
   );
 
+  /** Each CNPJ on its own line, e.g. ["CNPJ: 23.662.751/0001-79", "CNPJ: 23.662.751/0002-50"] */
+  const unifiedCnpjLines = useMemo(
+    () => establishments.map((e) => `CNPJ: ${maskCNPJ(e.cnpj)}`),
+    [establishments]
+  );
+
   const unifiedCnpjsRaw = useMemo(
     () => establishments.map((e) => e.cnpj),
     [establishments]
@@ -66,6 +72,7 @@ export function useUnifiedCompany() {
     allIds,
     unifiedLabel,
     unifiedCnpjs,
+    unifiedCnpjLines,
     unifiedCnpjsRaw,
     establishments,
     loading,
