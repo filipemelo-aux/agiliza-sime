@@ -263,7 +263,7 @@ export function FinancialReceivables() {
     // Update receivable
     const { error } = await supabase.from("accounts_receivable").update({
       status: novoStatus,
-      paid_at: new Date().toISOString(),
+      paid_at: dataFormatted,
       paid_amount: novoPago,
     } as any).eq("id", receiveItem.id);
 

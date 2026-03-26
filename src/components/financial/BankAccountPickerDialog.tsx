@@ -190,6 +190,28 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
     if (!payments || payments.length === 0) return 0;
 
     const paymentIds = payments.map((p: any) => p.id);
+
+    // Fetch linked expenses to get actual data_pagamento
+    const { data: linkedExpenses } = await supabase
+      .from("expenses")
+      .select("id, data_pagamento, viagem_id")
+      .eq("origem", "colheita" as any)
+      .eq("status", "pago")
+      .not("data_pagamento", "is", null);
+
+    // Build a map: harvest_payment notes contain payment IDs, but expenses link via origem
+    // We map harvest_payment.id -> expense.data_pagamento through expense viagem_id or by matching
+    const paymentDateMap = new Map<string, string>();
+    if (linkedExpenses) {
+      // Match expenses to harvest payments by looking at the expense records
+      for (const exp of linkedExpenses as any[]) {
+        if (exp.data_pagamento) {
+          // We'll use this as fallback; the direct link is via the expense_id in harvest context
+          paymentDateMap.set(exp.id, (exp.data_pagamento || "").slice(0, 10));
+        }
+      }
+    }
+
     const [{ data: txExisting }, { data: authData }] = await Promise.all([
       supabase
         .from("financial_transactions")
@@ -206,6 +228,13 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
       existingByPayment.set(tx.origem_id, (existingByPayment.get(tx.origem_id) ?? 0) + Number(tx.valor));
     });
 
+    // Also fetch expenses linked to these harvest payments to get their data_pagamento
+    const { data: harvestExpenses } = await supabase
+      .from("expenses")
+      .select("id, data_pagamento, contrato_id")
+      .eq("origem", "colheita" as any)
+      .eq("status", "pago");
+
     const userId = authData.user?.id;
     const rows = (payments as any[]).flatMap((p) => {
       const amount = Number(p.total_amount ?? 0);
@@ -213,12 +242,18 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
       const diff = Number((amount - alreadyPosted).toFixed(2));
       if (diff <= 0.009) return [];
 
+      // Find the expense linked to this harvest payment to get the real payment date
+      const linkedExp = (harvestExpenses as any[] || []).find(e => e.contrato_id === p.id);
+      const realPaymentDate = linkedExp?.data_pagamento
+        ? (linkedExp.data_pagamento as string).slice(0, 10)
+        : todayISO();
+
       const periodLabel = `${(p.period_start || "").split("-").reverse().join("/")} a ${(p.period_end || "").split("-").reverse().join("/")}`;
       return [{
         conta_bancaria_id: accountId,
         tipo: "saida",
         valor: diff,
-        data_movimentacao: (p.created_at || todayISO()).slice(0, 10),
+        data_movimentacao: realPaymentDate,
         descricao: `Pgto Colheita: ${periodLabel} (retroativo)`,
         origem: "colheita_pagamento",
         origem_id: p.id,

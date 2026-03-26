@@ -421,7 +421,7 @@ export function FinancialPayables() {
     if (expense) {
       const newPago = Number(expense.valor_pago) + Number(inst.valor);
       const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: new Date().toISOString() } as any).eq("id", inst.expense_id);
+      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: getLocalDateISO() } as any).eq("id", inst.expense_id);
     }
     toast.success("Parcela quitada");
     fetchData();
@@ -520,7 +520,7 @@ export function FinancialPayables() {
         const instId = id.replace("inst-", "");
         await supabase.from("expense_installments").delete().eq("id", instId);
       } else {
-        await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
+        await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id);
       }
     }
     toast.success(`${selectedIds.size} registro(s) excluído(s)`);
