@@ -208,7 +208,8 @@ export function FinancialPayables() {
     const today = format(new Date(), "yyyy-MM-dd");
     const expenses = ((expData as any) || []) as Expense[];
     const overdueIds: string[] = [];
-    const reopenedIds: string[] = [];
+    const reopenedPendingIds: string[] = [];
+    const reopenedPartialIds: string[] = [];
 
     const processed = expenses.map(e => {
       const dueDate = e.data_vencimento;
@@ -220,8 +221,12 @@ export function FinancialPayables() {
       }
 
       if (dueDate >= today && e.status === "atrasado") {
-        reopenedIds.push(e.id);
-        return { ...e, status: Number(e.valor_pago) > 0 ? "parcial" : "pendente" };
+        if (Number(e.valor_pago) > 0) {
+          reopenedPartialIds.push(e.id);
+          return { ...e, status: "parcial" };
+        }
+        reopenedPendingIds.push(e.id);
+        return { ...e, status: "pendente" };
       }
 
       return e;
@@ -230,12 +235,11 @@ export function FinancialPayables() {
     if (overdueIds.length > 0) {
       supabase.from("expenses").update({ status: "atrasado" } as any).in("id", overdueIds).then(() => {});
     }
-    if (reopenedIds.length > 0) {
-      supabase
-        .from("expenses")
-        .update({ status: "pendente" } as any)
-        .in("id", reopenedIds)
-        .then(() => {});
+    if (reopenedPendingIds.length > 0) {
+      supabase.from("expenses").update({ status: "pendente" } as any).in("id", reopenedPendingIds).then(() => {});
+    }
+    if (reopenedPartialIds.length > 0) {
+      supabase.from("expenses").update({ status: "parcial" } as any).in("id", reopenedPartialIds).then(() => {});
     }
 
     // Build harvest paid items as virtual expenses
