@@ -58,12 +58,14 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
   }, [open]);
 
   const syncPaidExpenses = async (accountId: string): Promise<number> => {
+    // Only sync expenses that are fully paid (status = "pago") — partial payments
+    // flow through PaymentDischargeDialog which creates its own transactions
     const { data: expenses } = await supabase
       .from("expenses")
       .select("id, descricao, status, valor_pago, data_pagamento, plano_contas_id, empresa_id, unidade_id")
       .in("id", selectedIds)
       .gt("valor_pago", 0)
-      .in("status", ["pago", "parcial"]);
+      .eq("status", "pago" as any);
 
     if (!expenses || expenses.length === 0) return 0;
 
