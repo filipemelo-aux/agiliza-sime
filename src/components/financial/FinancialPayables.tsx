@@ -1561,7 +1561,7 @@ export function FinancialPayables() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                         <div>
                           <span className="text-muted-foreground">Valor</span>
                           <p className="font-mono font-semibold text-foreground">
@@ -1584,7 +1584,7 @@ export function FinancialPayables() {
                           </p>
                         </div>
                         {chart && (
-                          <div className="col-span-2 mt-1">
+                          <div className="col-span-2">
                             <span className="text-muted-foreground">Conta Contábil</span>
                             <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
                               <span className="font-mono mr-1">{chart.codigo}</span>
@@ -1600,41 +1600,41 @@ export function FinancialPayables() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 pt-1 border-t border-border">
+                      <div className="flex items-center gap-1 pt-1.5 border-t border-border">
                         {isMaintenance && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
-                            <Wrench className="h-3.5 w-3.5 text-primary" />
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
+                            <Wrench className="h-3 w-3 text-primary" />
                           </Button>
                         )}
                         {!isPago && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                            className="h-6 px-2 text-[11px] gap-0.5 text-success border-success/30 hover:bg-success/10"
                             onClick={() => handlePayment(item)}
                           >
-                            <Check className="h-3.5 w-3.5" /> Pagar
+                            <Check className="h-3 w-3" /> Pagar
                           </Button>
                         )}
                         {isPago && !isHarvest && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            className="h-6 px-2 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
                             onClick={() => handleReversePayment(item)}
                           >
-                            <Undo2 className="h-3.5 w-3.5" /> Estornar
+                            <Undo2 className="h-3 w-3" /> Estornar
                           </Button>
                         )}
                         {!isHarvest && (
                           <div className="ml-auto flex gap-0.5">
                             {!isPago && (
                               <>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                                  <Pencil className="h-3.5 w-3.5" />
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(item)}>
+                                  <Pencil className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(item)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
                                 </Button>
                               </>
                             )}
