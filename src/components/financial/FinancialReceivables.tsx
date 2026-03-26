@@ -35,6 +35,7 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
+  conta_bancaria_id: string | null;
   _source?: "manual" | "harvest" | "cte";
 }
 
@@ -170,6 +171,7 @@ export function FinancialReceivables() {
   const [debtorName, setDebtorName] = useState("");
   const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [formContaBancariaId, setFormContaBancariaId] = useState("");
 
   // Receive payment dialog state
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -201,12 +203,12 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); };
+  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); setFormContaBancariaId(""); };
 
   const handleSave = async () => {
     if (!description.trim()) return toast.error("Informe a descrição");
     if (!amount || Number(amount) <= 0) return toast.error("Informe o valor");
-    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null };
+    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null, conta_bancaria_id: formContaBancariaId || null };
     if (editingId) {
       const { error } = await supabase.from("accounts_receivable").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
@@ -224,7 +226,7 @@ export function FinancialReceivables() {
 
   const handleEdit = (item: Receivable) => {
     setEditingId(item.id); setDescription(item.description); setCategoryId(item.category_id || "");
-    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
+    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setFormContaBancariaId(item.conta_bancaria_id || ""); setDialogOpen(true);
   };
 
   const openReceiveDialog = (item: Receivable) => {
@@ -232,7 +234,7 @@ export function FinancialReceivables() {
     const remaining = Number(item.amount) - paidSoFar;
     setReceiveItem(item);
     setReceiveValor(String(remaining));
-    setReceiveContaId("");
+    setReceiveContaId(item.conta_bancaria_id || "");
     setReceiveData(new Date());
     setReceiveObs("");
     setReceiveOpen(true);
@@ -300,7 +302,7 @@ export function FinancialReceivables() {
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, debtor_id: null, cte_id: null, invoice_id: null,
     notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: ${formatCurrency(h.invoicedAmount)}` : ""}`,
-    created_at: new Date().toISOString(), _source: "harvest" as const,
+    created_at: new Date().toISOString(), conta_bancaria_id: null, _source: "harvest" as const,
   }));
 
   const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
@@ -308,7 +310,7 @@ export function FinancialReceivables() {
     amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: c.tomador_nome, debtor_id: null, cte_id: c.id, invoice_id: null,
     notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
-    created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
+    created_at: c.data_emissao || new Date().toISOString(), conta_bancaria_id: null, _source: "cte" as const,
   }));
 
   const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables, ...cteAsReceivables];
@@ -376,6 +378,7 @@ export function FinancialReceivables() {
                 <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               </div>
               <div><Label>Conta Contábil</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Conta Bancária (para recebimento)</Label><Select value={formContaBancariaId} onValueChange={setFormContaBancariaId}><SelectTrigger><SelectValue placeholder="Selecione a conta..." /></SelectTrigger><SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.nome} ({formatCurrency(ba.saldo_atual)})</SelectItem>)}</SelectContent></Select></div>
               <div><Label>Devedor (Cliente)</Label><PersonSearchInput categories={["cliente"]} placeholder="Buscar cliente cadastrado..." selectedName={debtorName || undefined} onSelect={(person) => { setDebtorName(person.full_name); setDebtorId(person.id); }} onClear={() => { setDebtorName(""); setDebtorId(null); }} /></div>
               <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
