@@ -140,9 +140,11 @@ export function ChartOfAccounts() {
     if (estRes.error) toast.error(estRes.error.message);
     else {
       setEstablishments(estRes.data || []);
-      if (estRes.data?.length === 1 && !empresaId) {
-        setEmpresaId(estRes.data[0].id);
-        setFilterEmpresa(estRes.data[0].id);
+      // Auto-select matriz as the unified company
+      const matriz = estRes.data?.find((e: any) => e.type === "matriz") || estRes.data?.[0];
+      if (matriz && !empresaId) {
+        setEmpresaId(matriz.id);
+        setFilterEmpresa(matriz.id);
       }
     }
     setLoading(false);
