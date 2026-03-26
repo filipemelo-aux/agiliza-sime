@@ -378,6 +378,7 @@ export function FinancialReceivables() {
                 <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               </div>
               <div><Label>Conta Contábil</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Conta Bancária (para recebimento)</Label><Select value={formContaBancariaId} onValueChange={setFormContaBancariaId}><SelectTrigger><SelectValue placeholder="Selecione a conta..." /></SelectTrigger><SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.nome} ({formatCurrency(ba.saldo_atual)})</SelectItem>)}</SelectContent></Select></div>
               <div><Label>Devedor (Cliente)</Label><PersonSearchInput categories={["cliente"]} placeholder="Buscar cliente cadastrado..." selectedName={debtorName || undefined} onSelect={(person) => { setDebtorName(person.full_name); setDebtorId(person.id); }} onClear={() => { setDebtorName(""); setDebtorId(null); }} /></div>
               <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
