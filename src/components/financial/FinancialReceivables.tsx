@@ -581,6 +581,14 @@ export function FinancialReceivables() {
           )}
         </DialogContent>
       </Dialog>
+
+      <BankAccountPickerDialog
+        open={bankPickerOpen}
+        onOpenChange={setBankPickerOpen}
+        selectedIds={Array.from(selectedIds)}
+        target="accounts_receivable"
+        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }
