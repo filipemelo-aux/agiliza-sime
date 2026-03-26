@@ -51,6 +51,12 @@ interface ChartAccount {
   codigo: string;
 }
 
+interface FinancialCategory {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface Establishment {
   id: string;
   razao_social: string;
@@ -72,6 +78,7 @@ const emptyForm = {
   valor: "",
   data_movimentacao: getLocalDateISO(),
   descricao: "",
+  categoria_financeira_id: "",
   plano_contas_id: "",
   origem: "manual",
   observacoes: "",
@@ -82,6 +89,7 @@ export default function AdminFinancialTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -94,7 +102,7 @@ export default function AdminFinancialTransactions() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [txRes, baRes, caRes, estRes] = await Promise.all([
+    const [txRes, baRes, caRes, estRes, fcRes] = await Promise.all([
       supabase
         .from("financial_transactions")
         .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo)")
@@ -104,11 +112,13 @@ export default function AdminFinancialTransactions() {
       supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id").eq("ativo", true).order("nome"),
       supabase.from("chart_of_accounts").select("id, nome, codigo").eq("ativo", true).order("codigo"),
       supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia").eq("active", true),
+      supabase.from("financial_categories").select("id, name, type").eq("active", true).order("name"),
     ]);
     if (txRes.data) setTransactions(txRes.data as any);
     if (baRes.data) setBankAccounts(baRes.data);
     if (caRes.data) setChartAccounts(caRes.data);
     if (estRes.data) setEstablishments(estRes.data);
+    if (fcRes.data) setFinancialCategories(fcRes.data);
     setLoading(false);
   }, []);
 
@@ -127,6 +137,18 @@ export default function AdminFinancialTransactions() {
       toast.error("Preencha conta, descrição e valor.");
       return;
     }
+    if (!form.categoria_financeira_id) {
+      toast.error("Selecione a categoria financeira.");
+      return;
+    }
+    if (!form.plano_contas_id) {
+      toast.error("Selecione o plano de contas.");
+      return;
+    }
+    if (!form.data_movimentacao) {
+      toast.error("Informe a data da movimentação.");
+      return;
+    }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sessão expirada."); setSaving(false); return; }
@@ -140,6 +162,7 @@ export default function AdminFinancialTransactions() {
       valor,
       data_movimentacao: form.data_movimentacao,
       descricao: form.descricao.trim(),
+      categoria_financeira_id: form.categoria_financeira_id || null,
       plano_contas_id: form.plano_contas_id || null,
       origem: form.origem,
       status: "confirmado",
@@ -396,12 +419,26 @@ export default function AdminFinancialTransactions() {
             </div>
             <div>
               <Label>Descrição *</Label>
-              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição da movimentação" />
+              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Ex: Aporte sócio, Saque, Ajuste de saldo" />
             </div>
             <div>
-              <Label>Plano de Contas</Label>
+              <Label>Categoria Financeira *</Label>
+              <Select value={form.categoria_financeira_id} onValueChange={v => setForm(f => ({ ...f, categoria_financeira_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+                <SelectContent>
+                  {financialCategories
+                    .filter(fc => form.tipo === "entrada" ? fc.type === "receita" : fc.type === "despesa")
+                    .map(fc => <SelectItem key={fc.id} value={fc.id}>{fc.name}</SelectItem>)}
+                  {financialCategories
+                    .filter(fc => fc.type !== "receita" && fc.type !== "despesa")
+                    .map(fc => <SelectItem key={fc.id} value={fc.id}>{fc.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Plano de Contas *</Label>
               <Select value={form.plano_contas_id} onValueChange={v => setForm(f => ({ ...f, plano_contas_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger>
                 <SelectContent>
                   {chartAccounts.map(ca => <SelectItem key={ca.id} value={ca.id}>{ca.codigo} - {ca.nome}</SelectItem>)}
                 </SelectContent>
