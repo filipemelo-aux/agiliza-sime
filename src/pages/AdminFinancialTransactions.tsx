@@ -114,23 +114,25 @@ export default function AdminFinancialTransactions() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [txRes, baRes, caRes, estRes, fcRes] = await Promise.all([
+    const [txRes, baRes, caRes, estRes, fcRes, bauRes] = await Promise.all([
       supabase
         .from("financial_transactions")
-        .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo)")
+        .select("*, bank_accounts(nome), chart_of_accounts:plano_contas_id(nome, codigo), fiscal_establishments:unidade_id(nome_fantasia, razao_social)")
         .order("data_movimentacao", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(500),
-      supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id").eq("ativo", true).order("nome"),
+      supabase.from("bank_accounts").select("id, nome, tipo, saldo_atual, ativo, empresa_id, permitir_multiplas_unidades").eq("ativo", true).order("nome"),
       supabase.from("chart_of_accounts").select("id, nome, codigo").eq("ativo", true).order("codigo"),
-      supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia").eq("active", true),
+      supabase.from("fiscal_establishments").select("id, razao_social, nome_fantasia, type").eq("active", true),
       supabase.from("financial_categories").select("id, name, type").eq("active", true).order("name"),
+      supabase.from("bank_account_units").select("conta_bancaria_id, unidade_id"),
     ]);
     if (txRes.data) setTransactions(txRes.data as any);
-    if (baRes.data) setBankAccounts(baRes.data);
+    if (baRes.data) setBankAccounts(baRes.data as any);
     if (caRes.data) setChartAccounts(caRes.data);
-    if (estRes.data) setEstablishments(estRes.data);
+    if (estRes.data) setEstablishments(estRes.data as any);
     if (fcRes.data) setFinancialCategories(fcRes.data);
+    if (bauRes.data) setBankAccountUnits(bauRes.data as any);
     setLoading(false);
   }, []);
 
