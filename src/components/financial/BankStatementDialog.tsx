@@ -158,29 +158,19 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
   const totalSaidas = filtered.filter(t => t.tipo === "saida").reduce((s, t) => s + Number(t.valor), 0);
   const saldoFinal = saldoAnterior + totalEntradas - totalSaidas;
 
-  // Per-unit summaries (from unfiltered transactions for full picture)
+  // Unified company - no per-unit breakdown
   const unitSummary = useMemo(() => {
-    const map: Record<string, { label: string; type: string; entradas: number; saidas: number }> = {};
+    const totals = { entradas: 0, saidas: 0 };
     for (const tx of transactions) {
-      const uid = tx.unidade_id || "sem_unidade";
-      if (!map[uid]) {
-        const est = tx.fiscal_establishments as any;
-        const label = est ? (est.nome_fantasia || est.razao_social) : "Sem unidade";
-        const type = est?.type || "";
-        map[uid] = { label, type, entradas: 0, saidas: 0 };
-      }
-      if (tx.tipo === "entrada") map[uid].entradas += Number(tx.valor);
-      else map[uid].saidas += Number(tx.valor);
+      if (tx.tipo === "entrada") totals.entradas += Number(tx.valor);
+      else totals.saidas += Number(tx.valor);
     }
-    return Object.entries(map).sort((a, b) => (a[1].type === "matriz" ? -1 : 1));
-  }, [transactions]);
+    const matriz = establishments.find(e => (e as any).type === "matriz") || establishments[0];
+    const label = matriz ? ((matriz as any).razao_social || "Sime Transporte Ltda") : "Sime Transporte Ltda";
+    return [["unified", { label, type: "matriz", ...totals }]] as [string, { label: string; type: string; entradas: number; saidas: number }][];
+  }, [transactions, establishments]);
 
-  const getUnitLabel = (tx: Transaction) => {
-    const est = tx.fiscal_establishments as any;
-    if (!est) return "—";
-    const typeLabel = est.type === "matriz" ? "Matriz" : "Filial";
-    return `${typeLabel}`;
-  };
+  const getUnitLabel = (_tx: Transaction) => "";
 
   const handleOrigemClick = (tx: Transaction) => {
     if (!tx.origem_id) return;
@@ -240,22 +230,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            {establishments.length > 1 && (
-              <div>
-                <Label className="text-xs">Unidade</Label>
-                <Select value={filterUnidade} onValueChange={setFilterUnidade}>
-                  <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Todas" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {establishments.map(e => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.type === "matriz" ? "Matriz" : "Filial"}: {e.nome_fantasia || e.razao_social}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Unidade filter removed - empresa unificada */}
           </div>
 
           {/* Summary */}
