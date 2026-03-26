@@ -97,11 +97,10 @@ export default function AdminFinancialReports() {
     return m;
   }, [establishments]);
 
-  const getEstLabel = (id: string | null) => {
-    if (!id) return "Sem unidade";
-    const e = estMap.get(id);
-    if (!e) return "Desconhecida";
-    return `${e.type === "matriz" ? "Matriz" : "Filial"}: ${e.nome_fantasia || e.razao_social}`;
+  const getEstLabel = (_id: string | null) => {
+    // Unified: all establishments shown as single company
+    const matriz = establishments.find(e => e.type === "matriz") || establishments[0];
+    return matriz?.razao_social || "Sime Transporte Ltda";
   };
 
   const caMap = useMemo(() => {
@@ -110,70 +109,51 @@ export default function AdminFinancialReports() {
     return m;
   }, [chartAccounts]);
 
-  // ========== RESULTADO POR UNIDADE ==========
+  // ========== RESULTADO UNIFICADO ==========
   const resultadoData = useMemo(() => {
-    const map: Record<string, { entradas: number; saidas: number }> = {};
-    for (const est of establishments) {
-      map[est.id] = { entradas: 0, saidas: 0 };
-    }
-    map["sem_unidade"] = { entradas: 0, saidas: 0 };
-
+    const unified = { entradas: 0, saidas: 0 };
     for (const tx of transactions) {
-      const uid = tx.unidade_id || "sem_unidade";
-      if (!map[uid]) map[uid] = { entradas: 0, saidas: 0 };
-      if (tx.tipo === "entrada") map[uid].entradas += Number(tx.valor);
-      else map[uid].saidas += Number(tx.valor);
+      if (tx.tipo === "entrada") unified.entradas += Number(tx.valor);
+      else unified.saidas += Number(tx.valor);
     }
-
-    return Object.entries(map)
-      .filter(([, v]) => v.entradas > 0 || v.saidas > 0)
-      .sort((a, b) => {
-        const ea = estMap.get(a[0]);
-        const eb = estMap.get(b[0]);
-        if (ea?.type === "matriz") return -1;
-        if (eb?.type === "matriz") return 1;
-        return 0;
-      });
-  }, [transactions, establishments, estMap]);
+    if (unified.entradas === 0 && unified.saidas === 0) return [];
+    const matrizId = establishments.find(e => e.type === "matriz")?.id || establishments[0]?.id || "unified";
+    return [[matrizId, unified]] as [string, { entradas: number; saidas: number }][];
+  }, [transactions, establishments]);
 
   const totalGeralEntradas = resultadoData.reduce((s, [, v]) => s + v.entradas, 0);
   const totalGeralSaidas = resultadoData.reduce((s, [, v]) => s + v.saidas, 0);
 
-  // ========== FLUXO POR UNIDADE (daily flow) ==========
+  // ========== FLUXO UNIFICADO (daily flow) ==========
   const fluxoData = useMemo(() => {
+    const UNIFIED_KEY = "unified";
     const dateMap: Record<string, Record<string, { entradas: number; saidas: number }>> = {};
 
     for (const tx of transactions) {
       const date = tx.data_movimentacao;
-      const uid = tx.unidade_id || "sem_unidade";
       if (!dateMap[date]) dateMap[date] = {};
-      if (!dateMap[date][uid]) dateMap[date][uid] = { entradas: 0, saidas: 0 };
-      if (tx.tipo === "entrada") dateMap[date][uid].entradas += Number(tx.valor);
-      else dateMap[date][uid].saidas += Number(tx.valor);
+      if (!dateMap[date][UNIFIED_KEY]) dateMap[date][UNIFIED_KEY] = { entradas: 0, saidas: 0 };
+      if (tx.tipo === "entrada") dateMap[date][UNIFIED_KEY].entradas += Number(tx.valor);
+      else dateMap[date][UNIFIED_KEY].saidas += Number(tx.valor);
     }
 
-    const unitIds = [...new Set(transactions.map(t => t.unidade_id || "sem_unidade"))];
+    const unitIds = [UNIFIED_KEY];
     const dates = Object.keys(dateMap).sort();
 
     return { dates, unitIds, dateMap };
   }, [transactions]);
 
-  // ========== CUSTO POR UNIDADE (expenses grouped) ==========
+  // ========== CUSTO UNIFICADO (expenses grouped) ==========
   const custoData = useMemo(() => {
+    const UNIFIED_KEY = establishments.find(e => e.type === "matriz")?.id || establishments[0]?.id || "unified";
     const map: Record<string, { total: number; pago: number; items: { descricao: string; plano: string; centroCusto: string; valor: number }[] }> = {};
-
-    for (const est of establishments) {
-      map[est.id] = { total: 0, pago: 0, items: [] };
-    }
-    map["sem_unidade"] = { total: 0, pago: 0, items: [] };
+    map[UNIFIED_KEY] = { total: 0, pago: 0, items: [] };
 
     for (const exp of expenses) {
-      const uid = exp.unidade_id || exp.empresa_id || "sem_unidade";
-      if (!map[uid]) map[uid] = { total: 0, pago: 0, items: [] };
-      map[uid].total += Number(exp.valor_total);
-      map[uid].pago += Number(exp.valor_pago);
+      map[UNIFIED_KEY].total += Number(exp.valor_total);
+      map[UNIFIED_KEY].pago += Number(exp.valor_pago);
       const ca = exp.plano_contas_id ? caMap.get(exp.plano_contas_id) : null;
-      map[uid].items.push({
+      map[UNIFIED_KEY].items.push({
         descricao: exp.descricao,
         plano: ca ? `${ca.codigo} - ${ca.nome}` : "—",
         centroCusto: exp.centro_custo,
@@ -192,32 +172,24 @@ export default function AdminFinancialReports() {
       });
   }, [expenses, establishments, estMap, caMap]);
 
-  // ========== DRE POR UNIDADE (simple P&L) ==========
+  // ========== DRE UNIFICADO (simple P&L) ==========
   const dreData = useMemo(() => {
+    const UNIFIED_KEY = establishments.find(e => e.type === "matriz")?.id || establishments[0]?.id || "unified";
     const map: Record<string, Record<string, { receitas: number; despesas: number }>> = {};
+    map[UNIFIED_KEY] = {};
 
     for (const tx of transactions) {
-      const uid = tx.unidade_id || "sem_unidade";
-      if (!map[uid]) map[uid] = {};
-
       const ca = tx.plano_contas_id ? caMap.get(tx.plano_contas_id) : null;
       const catKey = ca ? `${ca.codigo} - ${ca.nome}` : "Sem classificação";
 
-      if (!map[uid][catKey]) map[uid][catKey] = { receitas: 0, despesas: 0 };
-      if (tx.tipo === "entrada") map[uid][catKey].receitas += Number(tx.valor);
-      else map[uid][catKey].despesas += Number(tx.valor);
+      if (!map[UNIFIED_KEY][catKey]) map[UNIFIED_KEY][catKey] = { receitas: 0, despesas: 0 };
+      if (tx.tipo === "entrada") map[UNIFIED_KEY][catKey].receitas += Number(tx.valor);
+      else map[UNIFIED_KEY][catKey].despesas += Number(tx.valor);
     }
 
     return Object.entries(map)
-      .filter(([, cats]) => Object.keys(cats).length > 0)
-      .sort((a, b) => {
-        const ea = estMap.get(a[0]);
-        const eb = estMap.get(b[0]);
-        if (ea?.type === "matriz") return -1;
-        if (eb?.type === "matriz") return 1;
-        return 0;
-      });
-  }, [transactions, estMap, caMap]);
+      .filter(([, cats]) => Object.keys(cats).length > 0);
+  }, [transactions, establishments, caMap]);
 
   const CENTRO_CUSTO_LABELS: Record<string, string> = {
     frota_propria: "Frota Própria",
@@ -232,7 +204,7 @@ export default function AdminFinancialReports() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="h-6 w-6" />
-            Relatórios por Unidade
+            Relatórios Financeiros
           </h1>
         </div>
 
