@@ -11,9 +11,9 @@ import { formatCurrency } from "@/lib/masks";
 interface BankAccountPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** IDs to update in the target table */
   selectedIds: string[];
-  /** Which table to update */
+  /** How many items the user originally selected (may differ from selectedIds due to dedup) */
+  selectedCount?: number;
   target: "expenses" | "accounts_receivable";
   onLinked: () => void;
 }
@@ -37,7 +37,7 @@ const tipoIcon = (tipo: string) => {
   }
 };
 
-export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, target, onLinked }: BankAccountPickerDialogProps) {
+export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selectedCount, target, onLinked }: BankAccountPickerDialogProps) {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,7 +67,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, targe
     if (error) {
       toast.error("Erro ao vincular à conta bancária");
     } else {
-      toast.success(`${selectedIds.length} lançamento(s) vinculado(s) à "${accountName}"`);
+      toast.success(`${selectedCount ?? selectedIds.length} item(ns) vinculado(s) à "${accountName}"`);
       onLinked();
       onOpenChange(false);
     }
