@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Receivable {
   id: string;
