@@ -144,8 +144,17 @@ export default function AdminBankAccounts() {
     setDialogOpen(true);
   };
 
-  const openEdit = (acc: BankAccount) => {
+  const openEdit = async (acc: BankAccount) => {
     setEditing(acc);
+    // Fetch linked units
+    let unitIds: string[] = [];
+    if (acc.permitir_multiplas_unidades) {
+      const { data } = await supabase
+        .from("bank_account_units")
+        .select("unidade_id")
+        .eq("conta_bancaria_id", acc.id);
+      unitIds = (data ?? []).map((d: any) => d.unidade_id);
+    }
     setForm({
       nome: acc.nome,
       tipo: acc.tipo,
@@ -155,6 +164,8 @@ export default function AdminBankAccounts() {
       conta_numero: acc.conta_numero ?? "",
       saldo_inicial: formatCurrency(acc.saldo_inicial).replace("R$\u00a0", "").replace("R$ ", ""),
       empresa_id: acc.empresa_id,
+      permitir_multiplas_unidades: acc.permitir_multiplas_unidades,
+      unidade_ids: unitIds,
     });
     setDialogOpen(true);
   };
@@ -175,7 +186,10 @@ export default function AdminBankAccounts() {
       conta_numero: form.conta_numero.trim() || null,
       saldo_inicial: saldoInicial,
       empresa_id: form.empresa_id,
+      permitir_multiplas_unidades: form.permitir_multiplas_unidades,
     };
+
+    let accountId: string | null = null;
 
     if (editing) {
       const { error } = await supabase
@@ -184,19 +198,41 @@ export default function AdminBankAccounts() {
         .eq("id", editing.id);
       if (error) {
         toast.error("Erro ao atualizar conta");
-      } else {
-        toast.success("Conta atualizada");
-        // Recalculate balance when saldo_inicial changes
-        await supabase.rpc("recalc_bank_balance", { _conta_id: editing.id } as any);
+        setSaving(false);
+        return;
       }
+      accountId = editing.id;
+      await supabase.rpc("recalc_bank_balance", { _conta_id: editing.id } as any);
     } else {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from("bank_accounts")
-        .insert({ ...payload, saldo_atual: saldoInicial } as any);
-      if (error) toast.error("Erro ao criar conta");
-      else toast.success("Conta criada");
+        .insert({ ...payload, saldo_atual: saldoInicial } as any)
+        .select("id")
+        .single();
+      if (error || !inserted) {
+        toast.error("Erro ao criar conta");
+        setSaving(false);
+        return;
+      }
+      accountId = inserted.id;
     }
 
+    // Sync bank_account_units
+    if (accountId) {
+      // Delete existing
+      await supabase.from("bank_account_units").delete().eq("conta_bancaria_id", accountId);
+
+      // Insert selected units
+      if (form.permitir_multiplas_unidades && form.unidade_ids.length > 0) {
+        const rows = form.unidade_ids.map(uid => ({
+          conta_bancaria_id: accountId!,
+          unidade_id: uid,
+        }));
+        await supabase.from("bank_account_units").insert(rows as any);
+      }
+    }
+
+    toast.success(editing ? "Conta atualizada" : "Conta criada");
     setSaving(false);
     setDialogOpen(false);
     fetchAccounts();
