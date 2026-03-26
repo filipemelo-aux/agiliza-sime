@@ -26,6 +26,7 @@ import AdminFinancial from "./pages/AdminFinancial";
 import AdminFuelOrders from "./pages/AdminFuelOrders";
 import AdminFuelings from "./pages/AdminFuelings";
 import AdminMaintenances from "./pages/AdminMaintenances";
+import AdminBankAccounts from "./pages/AdminBankAccounts";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 
@@ -77,6 +78,7 @@ const App = () => (
             <Route path="/admin/financial/paid" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
             <Route path="/admin/financial/chart" element={<AdminFinancial section="chart" />} />
+            <Route path="/admin/financial/bank-accounts" element={<AdminBankAccounts />} />
             <Route path="/freights" element={<Index />} />
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
