@@ -51,6 +51,12 @@ interface ChartAccount {
   codigo: string;
 }
 
+interface FinancialCategory {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface Establishment {
   id: string;
   razao_social: string;
@@ -72,6 +78,7 @@ const emptyForm = {
   valor: "",
   data_movimentacao: getLocalDateISO(),
   descricao: "",
+  categoria_financeira_id: "",
   plano_contas_id: "",
   origem: "manual",
   observacoes: "",
@@ -82,6 +89,7 @@ export default function AdminFinancialTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
