@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
