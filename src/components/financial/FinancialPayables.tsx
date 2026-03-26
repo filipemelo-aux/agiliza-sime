@@ -520,7 +520,7 @@ export function FinancialPayables() {
         const instId = id.replace("inst-", "");
         await supabase.from("expense_installments").delete().eq("id", instId);
       } else {
-        await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
+        await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id);
       }
     }
     toast.success(`${selectedIds.size} registro(s) excluído(s)`);
