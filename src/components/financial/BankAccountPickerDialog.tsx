@@ -195,7 +195,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
     const { data: linkedExpenses } = await supabase
       .from("expenses")
       .select("id, data_pagamento, viagem_id")
-      .eq("origem", "colheita")
+      .eq("origem", "colheita" as any)
       .eq("status", "pago")
       .not("data_pagamento", "is", null);
 
@@ -232,7 +232,7 @@ export function BankAccountPickerDialog({ open, onOpenChange, selectedIds, selec
     const { data: harvestExpenses } = await supabase
       .from("expenses")
       .select("id, data_pagamento, contrato_id")
-      .eq("origem", "colheita")
+      .eq("origem", "colheita" as any)
       .eq("status", "pago");
 
     const userId = authData.user?.id;
