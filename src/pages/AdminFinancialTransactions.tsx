@@ -388,6 +388,9 @@ export default function AdminFinancialTransactions() {
                       </div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{(tx.bank_accounts as any)?.nome ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {(tx.fiscal_establishments as any)?.nome_fantasia || (tx.fiscal_establishments as any)?.razao_social || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{origemLabel(tx.origem)}</Badge>
                     </TableCell>
