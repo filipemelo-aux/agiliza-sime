@@ -63,6 +63,7 @@ interface Expense {
   fornecedor_cnpj?: string | null;
   empresa_id?: string;
   unidade_id?: string | null;
+  conta_bancaria_id?: string | null;
 }
 
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
@@ -1737,6 +1738,7 @@ export function FinancialPayables() {
           empresaId={paymentExpense.empresa_id || empresaId}
           unidadeId={paymentExpense.unidade_id || paymentExpense.empresa_id || empresaId}
           descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
+          contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
           onSaved={fetchData}
         />
       )}
