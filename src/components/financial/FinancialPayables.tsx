@@ -524,8 +524,39 @@ export function FinancialPayables() {
   };
 
   const handleReversePayment = async (item: Expense) => {
-    if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente.` })) return;
+    if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar o pagamento de "${item.favorecido_nome || item.descricao}"? A conta voltará para pendente e movimentações inversas serão criadas.` })) return;
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      // Create reversal transactions for all linked financial_transactions
+      if (currentUser) {
+        const { data: linkedTxs } = await supabase
+          .from("financial_transactions")
+          .select("*")
+          .eq("origem", "conta_pagar")
+          .eq("origem_id", item.id)
+          .eq("status", "confirmado") as any;
+
+        if (linkedTxs && linkedTxs.length > 0) {
+          for (const tx of linkedTxs) {
+            await supabase.from("financial_transactions").insert({
+              conta_bancaria_id: tx.conta_bancaria_id,
+              tipo: tx.tipo === "saida" ? "entrada" : "saida",
+              valor: tx.valor,
+              data_movimentacao: getLocalDateISO(),
+              descricao: `Estorno: ${tx.descricao}`,
+              plano_contas_id: tx.plano_contas_id,
+              origem: "ajuste",
+              origem_id: tx.id,
+              status: "confirmado",
+              observacoes: `Estorno automático - conta a pagar`,
+              empresa_id: tx.empresa_id,
+              created_by: currentUser.id,
+            } as any);
+          }
+        }
+      }
+
       // Delete all payment records for this expense
       await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
       // Reset installments if any
@@ -550,10 +581,39 @@ export function FinancialPayables() {
     }
   };
 
+  const createReversalTransactions = async (expenseId: string, userId: string) => {
+    const { data: linkedTxs } = await supabase
+      .from("financial_transactions")
+      .select("*")
+      .eq("origem", "conta_pagar")
+      .eq("origem_id", expenseId)
+      .eq("status", "confirmado") as any;
+
+    if (linkedTxs && linkedTxs.length > 0) {
+      for (const tx of linkedTxs) {
+        await supabase.from("financial_transactions").insert({
+          conta_bancaria_id: tx.conta_bancaria_id,
+          tipo: tx.tipo === "saida" ? "entrada" : "saida",
+          valor: tx.valor,
+          data_movimentacao: getLocalDateISO(),
+          descricao: `Estorno: ${tx.descricao}`,
+          plano_contas_id: tx.plano_contas_id,
+          origem: "ajuste",
+          origem_id: tx.id,
+          status: "confirmado",
+          observacoes: `Estorno automático - conta a pagar`,
+          empresa_id: tx.empresa_id,
+          created_by: userId,
+        } as any);
+      }
+    }
+  };
+
   const handleBatchReverse = async () => {
     if (selectedIds.size === 0) return;
     if (!await confirm({ title: "Estornar selecionados", description: `Deseja estornar ${selectedIds.size} conta(s) selecionada(s)? Elas voltarão para pendente.` })) return;
     setBatchPaying(true);
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
 
     for (const id of selectedIds) {
       if (id.startsWith("inst-")) {
@@ -565,6 +625,7 @@ export function FinancialPayables() {
           if (foundInst) { expenseId = eid; break; }
         }
         if (!foundInst || foundInst.status !== "pago") continue;
+        if (currentUser) await createReversalTransactions(expenseId, currentUser.id);
         await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", instId);
         const expense = items.find(i => i.id === expenseId);
         if (expense) {
@@ -579,6 +640,7 @@ export function FinancialPayables() {
       } else {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== "pago") continue;
+        if (currentUser) await createReversalTransactions(id, currentUser.id);
         await supabase.from("expense_payments" as any).delete().eq("expense_id", id);
         const installs = installmentsMap[id];
         if (installs && installs.length > 0) {
@@ -604,6 +666,9 @@ export function FinancialPayables() {
   const handleReverseInstallment = async (inst: Installment) => {
     if (!await confirm({ title: "Estornar parcela", description: `Deseja estornar o pagamento da parcela ${inst.numero_parcela}?` })) return;
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) await createReversalTransactions(inst.expense_id, currentUser.id);
+
       await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
       // Recalculate expense totals
       const expense = items.find(i => i.id === inst.expense_id);
@@ -1664,6 +1729,9 @@ export function FinancialPayables() {
           expenseId={paymentExpense.id}
           valorTotal={paymentExpense.valor_total}
           valorPago={paymentExpense.valor_pago}
+          planoContasId={paymentExpense.plano_contas_id}
+          empresaId={empresaId}
+          descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
           onSaved={fetchData}
         />
       )}
