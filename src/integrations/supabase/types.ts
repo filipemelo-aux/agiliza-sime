@@ -1044,6 +1044,7 @@ export type Database = {
           tempo_parado: string | null
           tipo_despesa: Database["public"]["Enums"]["expense_type"]
           tipo_manutencao: string | null
+          unidade_id: string | null
           updated_at: string
           valor_pago: number
           valor_total: number
@@ -1090,6 +1091,7 @@ export type Database = {
           tempo_parado?: string | null
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
           tipo_manutencao?: string | null
+          unidade_id?: string | null
           updated_at?: string
           valor_pago?: number
           valor_total?: number
@@ -1136,6 +1138,7 @@ export type Database = {
           tempo_parado?: string | null
           tipo_despesa?: Database["public"]["Enums"]["expense_type"]
           tipo_manutencao?: string | null
+          unidade_id?: string | null
           updated_at?: string
           valor_pago?: number
           valor_total?: number
@@ -1178,6 +1181,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
           {
