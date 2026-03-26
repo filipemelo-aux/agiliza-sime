@@ -139,9 +139,11 @@ export default function AdminFinancialTransactions() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleOpen = () => {
+    const matrizId = establishments.find(e => e.type === "matriz")?.id || establishments[0]?.id || "";
     setForm({
       ...emptyForm,
-      empresa_id: establishments[0]?.id ?? "",
+      empresa_id: matrizId,
+      unidade_id: matrizId,
     });
     setOpen(true);
   };
