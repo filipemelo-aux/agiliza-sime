@@ -1079,9 +1079,9 @@ export function FinancialPayables() {
     // Fetch establishment info (unified company - show both CNPJs)
     let estName = ""; let estCnpj = "";
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj").eq("active", true).order("type");
+      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
       if (data && data.length > 0) {
-        const matriz = data.find((e: any) => true); // first is always matriz (ordered by type)
+        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
         estName = matriz?.razao_social || "";
         estCnpj = data.map((e: any) => {
           const c = e.cnpj;
