@@ -324,6 +324,16 @@ export function FinancialReceivables() {
     return matchSearch && matchStatus;
   });
 
+  const manualFiltered = filtered.filter(i => i._source === "manual");
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const toggleSelectAll = () => {
+    const ids = manualFiltered.map(i => i.id);
+    if (ids.every(id => selectedIds.has(id))) setSelectedIds(new Set());
+    else setSelectedIds(new Set(ids));
+  };
+
   const totalPrevisao = filtered.filter(i => i.status === "previsao").reduce((s, i) => s + Number(i.amount), 0);
 
   return (
