@@ -69,6 +69,8 @@ const emptyForm = {
   conta_numero: "",
   saldo_inicial: "0,00",
   empresa_id: "",
+  permitir_multiplas_unidades: false,
+  unidade_ids: [] as string[],
 };
 
 export default function AdminBankAccounts() {
