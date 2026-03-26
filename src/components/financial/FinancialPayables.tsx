@@ -61,6 +61,8 @@ interface Expense {
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
+  empresa_id?: string;
+  unidade_id?: string | null;
 }
 
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
@@ -551,6 +553,7 @@ export function FinancialPayables() {
               status: "confirmado",
               observacoes: `Estorno automático - conta a pagar`,
               empresa_id: tx.empresa_id,
+              unidade_id: tx.unidade_id || tx.empresa_id,
               created_by: currentUser.id,
             } as any);
           }
@@ -603,6 +606,7 @@ export function FinancialPayables() {
           status: "confirmado",
           observacoes: `Estorno automático - conta a pagar`,
           empresa_id: tx.empresa_id,
+          unidade_id: tx.unidade_id || tx.empresa_id,
           created_by: userId,
         } as any);
       }
@@ -1730,7 +1734,8 @@ export function FinancialPayables() {
           valorTotal={paymentExpense.valor_total}
           valorPago={paymentExpense.valor_pago}
           planoContasId={paymentExpense.plano_contas_id}
-          empresaId={empresaId}
+          empresaId={paymentExpense.empresa_id || empresaId}
+          unidadeId={paymentExpense.unidade_id || paymentExpense.empresa_id || empresaId}
           descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
           onSaved={fetchData}
         />
