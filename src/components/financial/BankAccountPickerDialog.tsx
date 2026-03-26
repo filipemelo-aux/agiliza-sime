@@ -11,6 +11,7 @@ interface BankAccountPickerDialogProps {
   onOpenChange: (open: boolean) => void;
   selectedIds: string[];
   selectedCount?: number;
+  harvestPaymentIds?: string[];
   target: "expenses" | "accounts_receivable";
   onLinked: () => void;
 }
