@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { format, parseISO, startOfMonth } from "date-fns";
-import { getLocalDateISO } from "@/lib/date";
+import { BankStatementDialog } from "@/components/financial/BankStatementDialog";
 
 interface BankAccount {
   id: string;
@@ -37,16 +36,6 @@ interface Establishment {
   nome_fantasia: string | null;
 }
 
-interface Transaction {
-  id: string;
-  tipo: string;
-  valor: number;
-  data_movimentacao: string;
-  descricao: string;
-  origem: string;
-  status: string;
-  created_at: string;
-}
 
 const TIPOS = [
   { value: "corrente", label: "Conta Corrente" },
