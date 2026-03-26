@@ -309,19 +309,18 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[90px]">Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="w-[80px]">Categoria</TableHead>
-                    <TableHead className="w-[110px]">Origem</TableHead>
-                    <TableHead className="text-right w-[110px]">Valor</TableHead>
-                    <TableHead className="text-right w-[120px]">Saldo</TableHead>
+                     <TableHead className="w-[90px]">Data</TableHead>
+                     <TableHead>Descrição</TableHead>
+                     <TableHead className="w-[120px]">Categoria</TableHead>
+                     <TableHead className="text-right w-[110px]">Valor</TableHead>
+                     <TableHead className="text-right w-[120px]">Saldo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {/* Saldo anterior row */}
                   <TableRow className="bg-muted/30">
                     <TableCell className="text-xs font-medium">{format(parseISO(inicio), "dd/MM/yyyy")}</TableCell>
-                    <TableCell colSpan={3} className="text-xs font-medium italic">Saldo anterior</TableCell>
+                    <TableCell colSpan={2} className="text-xs font-medium italic">Saldo anterior</TableCell>
                     <TableCell />
                     <TableCell className={`text-right text-xs font-mono font-bold ${saldoAnterior >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {formatCurrency(saldoAnterior)}
@@ -338,7 +337,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                           {tx.tipo === "entrada"
                             ? <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                             : <ArrowDownCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
-                          <span className="text-xs truncate max-w-[200px]">{tx.descricao}</span>
+                          <span className="text-xs truncate max-w-[300px]">{tx.descricao}</span>
                           {tx.chart_of_accounts && (
                             <Badge variant="outline" className="text-[9px] ml-1 shrink-0">
                               {(tx.chart_of_accounts as any).codigo}
@@ -352,9 +351,6 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                             {(tx.chart_of_accounts as any).nome}
                           </Badge>
                         ) : <span className="text-[9px] text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">{origemLabel(tx.origem)}</Badge>
                       </TableCell>
                       <TableCell className={`text-right text-xs font-mono font-semibold whitespace-nowrap ${tx.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
                         {tx.tipo === "entrada" ? "+" : "−"} {formatCurrency(tx.valor)}
