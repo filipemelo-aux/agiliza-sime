@@ -364,7 +364,7 @@ export function BankStatementDialog({ open, onOpenChange, account }: Props) {
                   {/* Saldo final row */}
                   <TableRow className="bg-muted/30">
                     <TableCell className="text-xs font-medium">{format(parseISO(fim), "dd/MM/yyyy")}</TableCell>
-                    <TableCell colSpan={3} className="text-xs font-medium italic">Saldo final</TableCell>
+                    <TableCell colSpan={2} className="text-xs font-medium italic">Saldo final</TableCell>
                     <TableCell />
                     <TableCell className={`text-right text-xs font-mono font-bold ${saldoFinal >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {formatCurrency(saldoFinal)}
