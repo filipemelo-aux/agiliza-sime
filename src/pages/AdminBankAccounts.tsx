@@ -306,65 +306,69 @@ export default function AdminBankAccounts() {
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma conta encontrada.</p>
         ) : (
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Conta</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Ag / Conta</TableHead>
-                  <TableHead className="text-right">Saldo Inicial</TableHead>
-                  <TableHead className="text-right">Saldo Atual</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(acc => (
-                  <TableRow key={acc.id} className={!acc.ativo ? "opacity-50" : ""}>
-                    <TableCell className="font-medium">{acc.nome}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {tipoIcon(acc.tipo)}
-                        <span className="text-xs">{tipoLabel(acc.tipo)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {acc.banco_nome ? `${acc.banco_nome}${acc.banco_codigo ? ` (${acc.banco_codigo})` : ""}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono">
-                      {acc.agencia || acc.conta_numero
-                        ? `${acc.agencia ?? "—"} / ${acc.conta_numero ?? "—"}`
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs">{formatCurrency(acc.saldo_inicial)}</TableCell>
-                    <TableCell className={`text-right font-mono text-xs font-semibold ${Number(acc.saldo_atual) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                      {formatCurrency(Number(acc.saldo_atual))}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={acc.ativo ? "default" : "secondary"} className="text-[10px]">
-                        {acc.ativo ? "Ativa" : "Inativa"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openExtrato(acc)} title="Extrato">
-                          <FileText className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(acc)} title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleAtivo(acc)} title={acc.ativo ? "Inativar" : "Reativar"}>
-                          <Ban className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filtered.map(acc => (
+              <Card key={acc.id} className={`relative ${!acc.ativo ? "opacity-50" : ""} border-l-4 ${acc.ativo ? (Number(acc.saldo_atual) >= 0 ? "border-l-emerald-500" : "border-l-destructive") : "border-l-muted-foreground"}`}>
+                <CardContent className="p-3 flex flex-col gap-1.5">
+                  {/* Header: name + status */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm truncate">{acc.nome}</span>
+                    <Badge variant={acc.ativo ? "default" : "secondary"} className="text-[10px] shrink-0">
+                      {acc.ativo ? "Ativa" : "Inativa"}
+                    </Badge>
+                  </div>
+
+                  {/* Type + Bank */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      {tipoIcon(acc.tipo)}
+                      <span>{tipoLabel(acc.tipo)}</span>
+                    </div>
+                    {acc.banco_nome && (
+                      <>
+                        <span>·</span>
+                        <span>{acc.banco_nome}{acc.banco_codigo ? ` (${acc.banco_codigo})` : ""}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Agency / Account */}
+                  {(acc.agencia || acc.conta_numero) && (
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Ag: {acc.agencia ?? "—"} / Conta: {acc.conta_numero ?? "—"}
+                    </p>
+                  )}
+
+                  {/* Balances */}
+                  <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-border">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Saldo Inicial</p>
+                      <p className="text-xs font-mono">{formatCurrency(acc.saldo_inicial)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground">Saldo Atual</p>
+                      <p className={`text-sm font-mono font-bold ${Number(acc.saldo_atual) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        {formatCurrency(Number(acc.saldo_atual))}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-1 pt-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openExtrato(acc)} title="Extrato">
+                      <FileText className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(acc)} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleAtivo(acc)} title={acc.ativo ? "Inativar" : "Reativar"}>
+                      <Ban className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 
