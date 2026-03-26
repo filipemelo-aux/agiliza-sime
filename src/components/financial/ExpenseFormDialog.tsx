@@ -80,6 +80,7 @@ interface Expense {
   created_at?: string;
   updated_at?: string;
   created_by?: string;
+  unidade_id?: string | null;
 }
 
 interface PaymentRecord {
@@ -513,7 +514,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     setSaving(true);
     const payload: any = {
-      empresa_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
+      empresa_id: empresaId, unidade_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
       plano_contas_id: planoContasId, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,

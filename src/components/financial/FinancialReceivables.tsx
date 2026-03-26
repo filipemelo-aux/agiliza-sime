@@ -265,6 +265,7 @@ export function FinancialReceivables() {
 
     // Create financial transaction (entrada)
     const selectedAccount = bankAccounts.find(ba => ba.id === receiveContaId);
+    const resolvedEmpresaId = selectedAccount?.empresa_id || "";
     const { error: txErr } = await supabase.from("financial_transactions").insert({
       conta_bancaria_id: receiveContaId,
       tipo: "entrada",
@@ -276,7 +277,8 @@ export function FinancialReceivables() {
       origem_id: receiveItem.id,
       status: "confirmado",
       observacoes: receiveObs.trim() || null,
-      empresa_id: selectedAccount?.empresa_id || "",
+      empresa_id: resolvedEmpresaId,
+      unidade_id: resolvedEmpresaId,
       created_by: user?.id,
     } as any);
 

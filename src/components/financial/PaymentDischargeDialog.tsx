@@ -53,11 +53,12 @@ interface Props {
   valorPago: number;
   planoContasId?: string | null;
   empresaId?: string | null;
+  unidadeId?: string | null;
   descricao?: string | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, planoContasId, empresaId, descricao, onSaved }: Props) {
+export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, planoContasId, empresaId, unidadeId, descricao, onSaved }: Props) {
   const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
@@ -130,6 +131,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
 
     // Create financial transaction (saida)
     const selectedAccount = bankAccounts.find(ba => ba.id === contaBancariaId);
+    const resolvedEmpresaId = selectedAccount?.empresa_id || empresaId || "";
     const { error: txErr } = await supabase.from("financial_transactions").insert({
       conta_bancaria_id: contaBancariaId,
       tipo: "saida",
@@ -141,7 +143,8 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
       origem_id: expenseId,
       status: "confirmado",
       observacoes: observacoes.trim() || null,
-      empresa_id: selectedAccount?.empresa_id || empresaId || "",
+      empresa_id: resolvedEmpresaId,
+      unidade_id: unidadeId || resolvedEmpresaId,
       created_by: user?.id,
     } as any);
 
