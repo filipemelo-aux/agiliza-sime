@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { getLocalDateISO, normalizeDateInput } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
@@ -280,8 +281,8 @@ export function FinancialPayables() {
           centro_custo: "operacional",
           valor_total: Number(payment.total_amount),
           valor_pago: Number(payment.total_amount),
-          data_emissao: payment.created_at?.split("T")[0] || today,
-          data_vencimento: payment.created_at?.split("T")[0] || null,
+          data_emissao: getLocalDateISO(payment.created_at),
+          data_vencimento: getLocalDateISO(payment.created_at),
           status: "pago",
           forma_pagamento: null,
           favorecido_nome: ownerName,
@@ -681,7 +682,7 @@ export function FinancialPayables() {
           });
         } else {
           const dateRef = i.status === "pago"
-            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            ? (normalizeDateInput(i.data_pagamento) || i.data_vencimento || i.data_emissao)
             : (i.data_vencimento || i.data_emissao);
           matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
             (!filterPeriodoFim || dateRef <= filterPeriodoFim);
@@ -788,7 +789,7 @@ export function FinancialPayables() {
           });
         } else {
           const dateRef = i.status === "pago"
-            ? (i.data_pagamento ? (i.data_pagamento.includes("T") ? i.data_pagamento.split("T")[0] : i.data_pagamento) : i.data_vencimento || i.data_emissao)
+            ? (normalizeDateInput(i.data_pagamento) || i.data_vencimento || i.data_emissao)
             : (i.data_vencimento || i.data_emissao);
           matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
             (!filterPeriodoFim || dateRef <= filterPeriodoFim);
