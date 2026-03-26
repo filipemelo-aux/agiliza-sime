@@ -1351,50 +1351,174 @@ export function FinancialPayables() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.flatMap(item => {
-            const installs = installmentsMap[item.id];
-            const hasInstallments = installs && installs.length > 0;
-            const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-            const isMaintenance = chart?.tipo_operacional === "manutencao";
-            const descDisplay = item.documento_fiscal_numero
-              ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
-              : item.descricao || "Serviço";
+          {filtered
+            .flatMap(item => {
+              const installs = installmentsMap[item.id];
+              const hasInstallments = installs && installs.length > 0;
+              const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
+              const isMaintenance = chart?.tipo_operacional === "manutencao";
+              const descDisplay = item.documento_fiscal_numero
+                ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
+                : item.descricao || "Serviço";
 
-            // If expense has installments, render each installment as its own card
-            if (hasInstallments) {
-              const today2 = new Date().toISOString().split("T")[0];
-              const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
-              const visibleInstalls = installs.filter(inst => {
-                if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
-                if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
-                if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-                if (quickFilter === "pagas") return inst.status === "pago";
-                if (quickFilter === "pagas") return inst.status === "pago";
-                return true;
-              });
-              return visibleInstalls.map(inst => {
-                const today = new Date().toISOString().split("T")[0];
-                const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
-                const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
-                const isInstPago = inst.status === "pago";
-                const instStatus = isInstOverdue ? "atrasado" : inst.status;
+              if (hasInstallments) {
+                const today2 = new Date().toISOString().split("T")[0];
+                const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
+                const visibleInstalls = installs
+                  .filter(inst => {
+                    if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
+                    if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
+                    if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
+                    if (quickFilter === "pagas") return inst.status === "pago";
+                    return true;
+                  })
+                  .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
 
-                const instCardId = `inst-${inst.id}`;
-                const isInstSelected = selectedIds.has(instCardId);
+                return visibleInstalls.map(inst => {
+                  const today = new Date().toISOString().split("T")[0];
+                  const isInstOverdue = inst.data_vencimento < today && inst.status !== "pago";
+                  const isInstToday = inst.data_vencimento === today && inst.status !== "pago";
+                  const isInstPago = inst.status === "pago";
+                  const instStatus = isInstOverdue ? "atrasado" : inst.status;
 
-                return (
+                  const instCardId = `inst-${inst.id}`;
+                  const isInstSelected = selectedIds.has(instCardId);
+
+                  return {
+                    vencimento: inst.data_vencimento,
+                    node: (
+                      <Card
+                        key={instCardId}
+                        className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                      >
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Checkbox
+                              checked={isInstSelected}
+                              onCheckedChange={() => toggleSelect(instCardId)}
+                              className="mt-0.5"
+                            />
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {item.favorecido_nome || "Sem favorecido"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
+                            {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
+                            <Badge variant="secondary" className="text-[10px]">
+                              P{inst.numero_parcela}/{installs.length}
+                            </Badge>
+                            <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
+                              {STATUS_MAP[instStatus]?.label || inst.status}
+                            </Badge>
+                            {isInstToday && (
+                              <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none">
+                                <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Valor Parcela</span>
+                              <p className="font-mono font-semibold text-foreground">
+                                {formatCurrency(Number(inst.valor))}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Vencimento</span>
+                              <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
+                                {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                            {chart && (
+                              <div className="col-span-2 mt-1">
+                                <span className="text-muted-foreground">Conta Contábil</span>
+                                <p className="text-[11px] text-foreground truncate">
+                                  <span className="font-mono mr-1">{chart.codigo}</span>
+                                  {chart.nome}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 pt-1 border-t border-border">
+                            {isMaintenance && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
+                                <Wrench className="h-3.5 w-3.5 text-primary" />
+                              </Button>
+                            )}
+                            {!isInstPago && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                                onClick={() => handlePayInstallment(inst)}
+                              >
+                                <Check className="h-3.5 w-3.5" /> Pagar
+                              </Button>
+                            )}
+                            {isInstPago && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                                onClick={() => handleReverseInstallment(inst)}
+                              >
+                                <Undo2 className="h-3.5 w-3.5" /> Estornar
+                              </Button>
+                            )}
+                            <div className="ml-auto flex gap-0.5">
+                              {inst.boleto_url && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                                  <Download className="h-3.5 w-3.5 text-primary" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
+                                <FileText className="h-3.5 w-3.5" /> Detalhes
+                              </Button>
+                              {!isInstPago && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInstallment(inst)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInstallment(inst)}>
+                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  };
+                });
+              }
+
+              const isHarvest = item.id.startsWith("harvest-");
+              const isOverdue = item.status === "atrasado";
+              const isPago = item.status === "pago";
+              const isSelected = selectedIds.has(item.id);
+              const todayStr2 = new Date().toISOString().split("T")[0];
+              const isDueToday = item.data_vencimento === todayStr2 && !isPago;
+
+              return [{
+                vencimento: item.data_vencimento || item.data_emissao || "",
+                node: (
                   <Card
-                    key={instCardId}
-                    className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                    key={item.id}
+                    className={`relative transition-all ${
+                      isSelected ? "ring-2 ring-primary bg-primary/5" : ""
+                    } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
                     <CardContent className="p-4 space-y-3">
-                      {/* Header */}
                       <div className="flex items-center gap-2.5 min-w-0">
-                          <Checkbox
-                            checked={isInstSelected}
-                            onCheckedChange={() => toggleSelect(instCardId)}
-                            className="mt-0.5"
-                          />
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelect(item.id)}
+                          className="mt-0.5"
+                        />
                         <p className="text-sm font-semibold text-foreground truncate">
                           {item.favorecido_nome || "Sem favorecido"}
                         </p>
@@ -1402,225 +1526,106 @@ export function FinancialPayables() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                         {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
-                        <Badge variant="secondary" className="text-[10px]">
-                          P{inst.numero_parcela}/{installs.length}
+                        {isHarvest && (
+                          <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
+                        )}
+                        <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
+                          {STATUS_MAP[item.status]?.label || item.status}
                         </Badge>
-                        <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
-                          {STATUS_MAP[instStatus]?.label || inst.status}
-                        </Badge>
-                        {isInstToday && (
-                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none">
+                        {isDueToday && (
+                          <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
                             <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
                           </Badge>
                         )}
                       </div>
 
-                      {/* Info */}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                         <div>
-                          <span className="text-muted-foreground">Valor Parcela</span>
+                          <span className="text-muted-foreground">Valor</span>
                           <p className="font-mono font-semibold text-foreground">
-                            {formatCurrency(Number(inst.valor))}
+                            {formatCurrency(Number(item.valor_total))}
                           </p>
+                          {item.valor_pago > 0 && !isPago && (
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              Pago: {formatCurrency(Number(item.valor_pago))}
+                            </p>
+                          )}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Vencimento</span>
-                          <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
-                            {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                          <span className="text-muted-foreground">{isPago ? "Pago em" : "Vencimento"}</span>
+                          <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
+                            {isPago && item.data_pagamento
+                              ? format(new Date(item.data_pagamento.includes("T") ? item.data_pagamento : item.data_pagamento + "T12:00:00"), "dd/MM/yyyy")
+                              : item.data_vencimento
+                                ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")
+                                : "—"}
                           </p>
                         </div>
                         {chart && (
                           <div className="col-span-2 mt-1">
                             <span className="text-muted-foreground">Conta Contábil</span>
-                            <p className="text-[11px] text-foreground truncate">
+                            <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
                               <span className="font-mono mr-1">{chart.codigo}</span>
                               {chart.nome}
                             </p>
                           </div>
                         )}
+                        {item.veiculo_placa && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Veículo</span>
+                            <p className="text-foreground">{item.veiculo_placa}</p>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Actions */}
                       <div className="flex items-center gap-1 pt-1 border-t border-border">
                         {isMaintenance && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                             <Wrench className="h-3.5 w-3.5 text-primary" />
                           </Button>
                         )}
-                        {!isInstPago && (
+                        {!isPago && (
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
-                            onClick={() => handlePayInstallment(inst)}
+                            onClick={() => handlePayment(item)}
                           >
                             <Check className="h-3.5 w-3.5" /> Pagar
                           </Button>
                         )}
-                        {isInstPago && (
+                        {isPago && !isHarvest && (
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                            onClick={() => handleReverseInstallment(inst)}
+                            onClick={() => handleReversePayment(item)}
                           >
                             <Undo2 className="h-3.5 w-3.5" /> Estornar
                           </Button>
                         )}
-                        <div className="ml-auto flex gap-0.5">
-                          {inst.boleto_url && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
-                              <Download className="h-3.5 w-3.5 text-primary" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => showExpenseDetail(item.id)}>
-                            <FileText className="h-3.5 w-3.5" /> Detalhes
-                          </Button>
-                          {!isInstPago && (
-                            <>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInstallment(inst)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInstallment(inst)}>
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        {!isHarvest && (
+                          <div className="ml-auto flex gap-0.5">
+                            {!isPago && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
-                );
-              });
-            }
-            const isHarvest = item.id.startsWith("harvest-");
-
-            // No installments — render as regular expense card
-            const isOverdue = item.status === "atrasado";
-            const isPago = item.status === "pago";
-            const isSelected = selectedIds.has(item.id);
-
-            const todayStr2 = new Date().toISOString().split("T")[0];
-            const isDueToday = item.data_vencimento === todayStr2 && !isPago;
-
-            return [(
-              <Card
-                key={item.id}
-                className={`relative transition-all ${
-                  isSelected ? "ring-2 ring-primary bg-primary/5" : ""
-                } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelect(item.id)}
-                        className="mt-0.5"
-                      />
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {item.favorecido_nome || "Sem favorecido"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
-                    {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
-                    {isHarvest && (
-                      <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
-                    )}
-                    <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
-                      {STATUS_MAP[item.status]?.label || item.status}
-                    </Badge>
-                    {isDueToday && (
-                      <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
-                        <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Valor</span>
-                      <p className="font-mono font-semibold text-foreground">
-                        {formatCurrency(Number(item.valor_total))}
-                      </p>
-                      {item.valor_pago > 0 && !isPago && (
-                        <p className="text-[10px] text-muted-foreground font-mono">
-                          Pago: {formatCurrency(Number(item.valor_pago))}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{isPago ? "Pago em" : "Vencimento"}</span>
-                      <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
-                        {isPago && item.data_pagamento
-                          ? format(new Date(item.data_pagamento.includes("T") ? item.data_pagamento : item.data_pagamento + "T12:00:00"), "dd/MM/yyyy")
-                          : item.data_vencimento
-                            ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")
-                            : "—"}
-                      </p>
-                    </div>
-                    {chart && (
-                      <div className="col-span-2 mt-1">
-                        <span className="text-muted-foreground">Conta Contábil</span>
-                        <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
-                          <span className="font-mono mr-1">{chart.codigo}</span>
-                          {chart.nome}
-                        </p>
-                      </div>
-                    )}
-                    {item.veiculo_placa && (
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">Veículo</span>
-                        <p className="text-foreground">{item.veiculo_placa}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 pt-1 border-t border-border">
-                    {isMaintenance && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
-                        <Wrench className="h-3.5 w-3.5 text-primary" />
-                      </Button>
-                    )}
-                    {!isPago && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
-                        onClick={() => handlePayment(item)}
-                      >
-                        <Check className="h-3.5 w-3.5" /> Pagar
-                      </Button>
-                    )}
-                    {isPago && !isHarvest && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                        onClick={() => handleReversePayment(item)}
-                      >
-                        <Undo2 className="h-3.5 w-3.5" /> Estornar
-                      </Button>
-                    )}
-                    {!isHarvest && (
-                      <div className="ml-auto flex gap-0.5">
-                        {!isPago && (
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(item)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )];
-          })}
+                )
+              }];
+            })
+            .sort((a, b) => a.vencimento.localeCompare(b.vencimento))
+            .map(entry => entry.node)}
         </div>
       )}
 
