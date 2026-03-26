@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Search, Landmark, Building2, Wallet, PiggyBank, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
@@ -27,6 +28,7 @@ interface BankAccount {
   saldo_atual: number;
   ativo: boolean;
   empresa_id: string;
+  permitir_multiplas_unidades: boolean;
   created_at: string;
 }
 
@@ -34,6 +36,7 @@ interface Establishment {
   id: string;
   razao_social: string;
   nome_fantasia: string | null;
+  type: string;
 }
 
 
