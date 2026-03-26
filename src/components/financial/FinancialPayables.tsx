@@ -1412,11 +1412,11 @@ export function FinancialPayables() {
                     node: (
                       <Card
                         key={instCardId}
-                        className={`relative transition-all ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                        className={`relative transition-all h-full ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                       >
-                        <CardContent className="p-3 flex flex-col gap-1.5">
+                        <CardContent className="p-3 flex flex-col h-full">
                           {/* Row 1: Checkbox + Nome */}
-                          <div className="flex items-center gap-2 min-w-0 min-h-[24px]">
+                          <div className="flex items-center gap-2 min-w-0 mb-1">
                             <Checkbox
                               checked={isInstSelected}
                               onCheckedChange={() => toggleSelect(instCardId)}
@@ -1426,7 +1426,7 @@ export function FinancialPayables() {
                             </p>
                           </div>
                           {/* Row 2: Badges */}
-                          <div className="flex items-center gap-1 flex-wrap min-h-[22px]">
+                          <div className="flex items-center gap-1 flex-wrap mb-1.5">
                             {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                             {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                             <Badge variant="secondary" className="text-[10px]">
@@ -1442,41 +1442,31 @@ export function FinancialPayables() {
                             )}
                           </div>
                           {/* Row 3: Dados fixos */}
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <div className="min-h-[32px]">
-                              <span className="text-muted-foreground">Valor Parcela</span>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs flex-1">
+                            <div>
+                              <span className="text-muted-foreground text-[11px]">Valor Parcela</span>
                               <p className="font-mono font-semibold text-foreground">
                                 {formatCurrency(Number(inst.valor))}
                               </p>
                             </div>
-                            <div className="min-h-[32px]">
-                              <span className="text-muted-foreground">Vencimento</span>
+                            <div>
+                              <span className="text-muted-foreground text-[11px]">Vencimento</span>
                               <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
                                 {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
                               </p>
                             </div>
-                            <div className="col-span-2 min-h-[28px]">
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground text-[11px]">Conta Contábil</span>
                               {chart ? (
-                                <>
-                                  <span className="text-muted-foreground">Conta Contábil</span>
-                                  <p className="text-[11px] text-foreground truncate">
-                                    <span className="font-mono mr-1">{chart.codigo}</span>
-                                    {chart.nome}
-                                  </p>
-                                </>
-                              ) : <span>&nbsp;</span>}
-                            </div>
-                            <div className="col-span-2 min-h-[20px]">
-                              {item.veiculo_placa ? (
-                                <>
-                                  <span className="text-muted-foreground">Veículo</span>
-                                  <p className="text-foreground">{item.veiculo_placa}</p>
-                                </>
-                              ) : <span>&nbsp;</span>}
+                                <p className="text-[11px] text-foreground truncate">
+                                  <span className="font-mono mr-1">{chart.codigo}</span>
+                                  {chart.nome}
+                                </p>
+                              ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                             </div>
                           </div>
-
-                          <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
+                          {/* Footer: Actions */}
+                          <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                             {isMaintenance && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                                 <Wrench className="h-3 w-3 text-primary" />
@@ -1542,13 +1532,13 @@ export function FinancialPayables() {
                 node: (
                   <Card
                     key={item.id}
-                    className={`relative transition-all ${
+                    className={`relative transition-all h-full ${
                       isSelected ? "ring-2 ring-primary bg-primary/5" : ""
                     } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
                   >
-                    <CardContent className="p-3 flex flex-col gap-1.5">
+                    <CardContent className="p-3 flex flex-col h-full">
                       {/* Row 1: Checkbox + Nome */}
-                      <div className="flex items-center gap-2 min-w-0 min-h-[24px]">
+                      <div className="flex items-center gap-2 min-w-0 mb-1">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleSelect(item.id)}
@@ -1558,7 +1548,7 @@ export function FinancialPayables() {
                         </p>
                       </div>
                       {/* Row 2: Badges */}
-                      <div className="flex items-center gap-1 flex-wrap min-h-[22px]">
+                      <div className="flex items-center gap-1 flex-wrap mb-1.5">
                         {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                         {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                         {isHarvest && (
@@ -1574,9 +1564,9 @@ export function FinancialPayables() {
                         )}
                       </div>
                       {/* Row 3: Dados fixos */}
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                        <div className="min-h-[32px]">
-                          <span className="text-muted-foreground">Valor</span>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs flex-1">
+                        <div>
+                          <span className="text-muted-foreground text-[11px]">Valor</span>
                           <p className="font-mono font-semibold text-foreground">
                             {formatCurrency(Number(item.valor_total))}
                           </p>
@@ -1586,8 +1576,8 @@ export function FinancialPayables() {
                             </p>
                           )}
                         </div>
-                        <div className="min-h-[32px]">
-                          <span className="text-muted-foreground">{isPago ? "Pago em" : "Vencimento"}</span>
+                        <div>
+                          <span className="text-muted-foreground text-[11px]">{isPago ? "Pago em" : "Vencimento"}</span>
                           <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
                             {isPago && item.data_pagamento
                               ? format(new Date(item.data_pagamento.includes("T") ? item.data_pagamento : item.data_pagamento + "T12:00:00"), "dd/MM/yyyy")
@@ -1596,28 +1586,18 @@ export function FinancialPayables() {
                                 : "—"}
                           </p>
                         </div>
-                        <div className="col-span-2 min-h-[28px]">
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground text-[11px]">Conta Contábil</span>
                           {chart ? (
-                            <>
-                              <span className="text-muted-foreground">Conta Contábil</span>
-                              <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
-                                <span className="font-mono mr-1">{chart.codigo}</span>
-                                {chart.nome}
-                              </p>
-                            </>
-                          ) : <span>&nbsp;</span>}
-                        </div>
-                        <div className="col-span-2 min-h-[20px]">
-                          {item.veiculo_placa ? (
-                            <>
-                              <span className="text-muted-foreground">Veículo</span>
-                              <p className="text-foreground">{item.veiculo_placa}</p>
-                            </>
-                          ) : <span>&nbsp;</span>}
+                            <p className="text-[11px] text-foreground truncate" title={getChartPath(item.plano_contas_id)}>
+                              <span className="font-mono mr-1">{chart.codigo}</span>
+                              {chart.nome}
+                            </p>
+                          ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                         </div>
                       </div>
-
-                      <div className="flex items-center flex-wrap gap-0.5 pt-1.5 border-t border-border">
+                      {/* Footer: Actions */}
+                      <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                         {isMaintenance && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Ver manutenção" onClick={() => openMaintenanceDetail(item.id)}>
                             <Wrench className="h-3 w-3 text-primary" />
