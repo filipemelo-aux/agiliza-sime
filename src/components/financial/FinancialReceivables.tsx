@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 interface Receivable {
   id: string;
@@ -94,7 +95,7 @@ async function fetchHarvestReceivables(): Promise<HarvestReceivable[]> {
     const { data: assignments } = await supabase.from("harvest_assignments").select("id, start_date, end_date, discounts, company_discounts").eq("harvest_job_id", job.id);
     if (!assignments || assignments.length === 0) continue;
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateISO();
     const dvCliente = job.monthly_value / 30;
     let totalLiquido = 0;
     let totalDays = 0;

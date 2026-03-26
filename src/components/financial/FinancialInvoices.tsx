@@ -15,6 +15,7 @@ import { Plus, FileText, Search, Eye, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 interface Cte { id: string; numero: number | null; tomador_nome: string | null; tomador_cnpj: string | null; valor_frete: number; data_emissao: string | null; status: string; }
 interface HarvestJob { id: string; farm_name: string; client_name: string | null; client_id: string | null; monthly_value: number; totalLiquido: number; invoicedAmount: number; remaining: number; }
@@ -77,7 +78,7 @@ export function FinancialInvoices() {
         if (job.client_id) { const { data: client } = await supabase.from("profiles").select("full_name, nome_fantasia").eq("id", job.client_id).maybeSingle(); clientName = client?.nome_fantasia || client?.full_name || null; }
         const { data: assignments } = await supabase.from("harvest_assignments").select("id, start_date, end_date, discounts, company_discounts").eq("harvest_job_id", job.id);
         if (!assignments || assignments.length === 0) continue;
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalDateISO();
         const dvCliente = job.monthly_value / 30;
         let totalLiquido = 0;
         for (const a of assignments) {

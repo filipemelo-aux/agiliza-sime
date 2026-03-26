@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { QuotationFormDialog } from "@/components/quotation/QuotationFormDialog";
 import { QuotationDetailDialog } from "@/components/quotation/QuotationDetailDialog";
 import { exportQuotationPDF } from "@/components/quotation/exportQuotationPdf";
+import { getLocalDateISO } from "@/lib/date";
 
 interface Quotation {
   id: string;
@@ -112,7 +113,7 @@ export default function AdminQuotations() {
       const { error: harvestError } = await supabase.from("harvest_jobs").insert({
         farm_name: `Cotação #${q.numero} - ${q.client?.razao_social || q.client?.full_name || "Cliente"}`,
         location: q.observacoes || "A definir",
-        harvest_period_start: q.previsao_inicio || new Date().toISOString().split("T")[0],
+        harvest_period_start: q.previsao_inicio || getLocalDateISO(),
         harvest_period_end: q.previsao_termino || null,
         monthly_value: q.valor_mensal_por_caminhao || 0,
         payment_value: diaria,

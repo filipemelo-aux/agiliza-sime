@@ -20,6 +20,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
+import { getLocalDateISO } from "@/lib/date";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -117,7 +118,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [planoContasId, setPlanoContasId] = useState("");
   const [centroCusto, setCentroCusto] = useState("operacional");
   const [valorTotal, setValorTotal] = useState("");
-  const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split("T")[0]);
+  const [dataEmissao, setDataEmissao] = useState(getLocalDateISO());
   const [dataVencimento, setDataVencimento] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("");
   const [favorecidoNome, setFavorecidoNome] = useState("");
@@ -367,7 +368,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
   const resetForm = () => {
     setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
-    setValorTotal(""); setDataEmissao(new Date().toISOString().split("T")[0]); setDataVencimento("");
+    setValorTotal(""); setDataEmissao(getLocalDateISO()); setDataVencimento("");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
@@ -395,7 +396,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setFornecedorCnpj(parsed.fornecedor_cnpj);
         setDocFiscal(parsed.numero_nota);
         setChaveNfe(parsed.chave_nfe);
-        setDataEmissao(parsed.data_emissao || new Date().toISOString().split("T")[0]);
+        setDataEmissao(parsed.data_emissao || getLocalDateISO());
         setValorTotal(String(parsed.valor_total));
         // Auto-select chart account based on XML suggestion
         const suggestedType = parsed.tipo_despesa_sugerido;
@@ -955,7 +956,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       for (let i = 0; i < newCount; i++) {
                         const d = new Date(base);
                         d.setMonth(d.getMonth() + i);
-                        newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: d.toISOString().slice(0, 10) });
+                        newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                       }
                       // Ajustar diferença de arredondamento na última
                       const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
@@ -1321,7 +1322,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 for (let i = 0; i < newCount; i++) {
                                   const d = new Date(base);
                                   d.setMonth(d.getMonth() + i);
-                                  newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: d.toISOString().slice(0, 10) });
+                                  newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                                 }
                                 const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
                                 if (Math.abs(diff) > 0.001) {

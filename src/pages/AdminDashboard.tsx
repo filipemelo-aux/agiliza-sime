@@ -19,6 +19,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { ExpenseFormDialog } from "@/components/financial/ExpenseFormDialog";
 import { FuelingFormDialog } from "@/components/fueling/FuelingFormDialog";
+import { getLocalDateISO } from "@/lib/date";
 
 interface DueItem {
   id: string;
@@ -73,11 +74,11 @@ export default function AdminDashboard() {
   const fetchFinancialPreview = async () => {
     try {
       const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
+      const todayStr = getLocalDateISO(today);
 
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + 7);
-      const endWeekStr = endOfWeek.toISOString().split("T")[0];
+      const endWeekStr = getLocalDateISO(endOfWeek);
 
       // Fetch installments due today through end of week OR overdue (before today)
       const { data: installments } = await supabase

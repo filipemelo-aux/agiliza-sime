@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 interface HarvestJob {
   id: string;
@@ -113,7 +114,7 @@ export default function HarvestDetail() {
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0]);
+  const [closingDate, setClosingDate] = useState(getLocalDateISO());
   const [paymentDate, setPaymentDate] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -124,7 +125,7 @@ export default function HarvestDetail() {
   const [assignForm, setAssignForm] = useState({
     user_id: "",
     vehicle_id: "",
-    start_date: new Date().toISOString().split("T")[0],
+    start_date: getLocalDateISO(),
     daily_value: "",
     monthly_value: "",
   });
@@ -132,7 +133,7 @@ export default function HarvestDetail() {
     type: "falta",
     description: "",
     value: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateISO(),
   });
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
@@ -216,7 +217,7 @@ export default function HarvestDetail() {
             ownerName = ownerData?.nome_fantasia || ownerData?.full_name || "—";
           }
 
-          const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+          const today = new Date(getLocalDateISO() + "T00:00:00");
           const endDate = a.end_date ? new Date(a.end_date + "T00:00:00") : today;
           const startDate = new Date(a.start_date + "T00:00:00");
           const daysWorked = Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
@@ -309,7 +310,7 @@ export default function HarvestDetail() {
 
       toast({ title: "Motorista vinculado com sucesso!" });
       setDialogOpen(false);
-      setAssignForm({ user_id: "", vehicle_id: "", start_date: new Date().toISOString().split("T")[0], daily_value: "", monthly_value: "" });
+      setAssignForm({ user_id: "", vehicle_id: "", start_date: getLocalDateISO(), daily_value: "", monthly_value: "" });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -1052,7 +1053,7 @@ export default function HarvestDetail() {
     return list.filter(a => {
       const assignEnd = a.end_date
         ? new Date(a.end_date + "T00:00:00")
-        : new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+        : new Date(getLocalDateISO() + "T00:00:00");
       const assignStart = new Date(a.start_date + "T00:00:00");
       if (filterStartDate && assignEnd < new Date(filterStartDate + "T00:00:00")) return false;
       if (filterEndDate && assignStart > new Date(filterEndDate + "T00:00:00")) return false;
@@ -1231,7 +1232,7 @@ export default function HarvestDetail() {
           centro_custo: "frota_terceiros" as any,
           origem: "manual" as any,
           valor_total: totalAmount,
-          data_emissao: paymentDate || new Date().toISOString().slice(0, 10),
+          data_emissao: paymentDate || getLocalDateISO(),
           data_vencimento: paymentDueDate,
           favorecido_nome: ownerNameForExpense,
           status: "pendente" as any,
@@ -1266,13 +1267,13 @@ export default function HarvestDetail() {
   // Discount handlers
   const openDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
+    setDiscountForm({ type: "falta", description: "", value: "", date: getLocalDateISO() });
     setDiscountDialogOpen(true);
   };
 
   const openCompanyDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
-    setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
+    setDiscountForm({ type: "falta", description: "", value: "", date: getLocalDateISO() });
     setCompanyDiscountDialogOpen(true);
   };
 
@@ -1304,7 +1305,7 @@ export default function HarvestDetail() {
         ...selectedAssignment,
         [field]: updated,
       });
-      setDiscountForm({ type: "falta", description: "", value: "", date: new Date().toISOString().split("T")[0] });
+      setDiscountForm({ type: "falta", description: "", value: "", date: getLocalDateISO() });
       fetchAll();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -1427,7 +1428,7 @@ export default function HarvestDetail() {
     const effectiveStart = filterStartDate
       ? new Date(Math.max(assignStart.getTime(), new Date(filterStartDate + "T00:00:00").getTime()))
       : assignStart;
-    const today = new Date(new Date().toISOString().split("T")[0] + "T00:00:00");
+    const today = new Date(getLocalDateISO() + "T00:00:00");
     const filterEnd = filterEndDate ? new Date(filterEndDate + "T00:00:00") : null;
     const assignEnd = a.end_date ? new Date(a.end_date + "T00:00:00") : null;
     let effectiveEnd: Date;

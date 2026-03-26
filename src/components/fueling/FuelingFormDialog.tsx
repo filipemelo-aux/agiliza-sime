@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { getLocalDateISO } from "@/lib/date";
 
 const FUEL_TYPES = [
   { value: "diesel", label: "Diesel" },
@@ -38,7 +39,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
 
   const [veiculoId, setVeiculoId] = useState("");
   const [motoristaId, setMotoristaId] = useState("");
-  const [dataAbastecimento, setDataAbastecimento] = useState(new Date().toISOString().slice(0, 10));
+  const [dataAbastecimento, setDataAbastecimento] = useState(getLocalDateISO());
   const [tipoCombustivel, setTipoCombustivel] = useState("diesel");
   const [litros, setLitros] = useState("");
   const [valorLitro, setValorLitro] = useState("");
@@ -63,7 +64,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
     if (fueling) {
       setVeiculoId(fueling.veiculo_id || "");
       setMotoristaId(fueling.motorista_id || "");
-      setDataAbastecimento(fueling.data_abastecimento || new Date().toISOString().slice(0, 10));
+      setDataAbastecimento(fueling.data_abastecimento || getLocalDateISO());
       setTipoCombustivel(fueling.tipo_combustivel || "diesel");
       setLitros(String(fueling.quantidade_litros || ""));
       setValorLitro(String(fueling.valor_por_litro || ""));
@@ -75,7 +76,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
     } else {
       setVeiculoId("");
       setMotoristaId("");
-      setDataAbastecimento(new Date().toISOString().slice(0, 10));
+      setDataAbastecimento(getLocalDateISO());
       setTipoCombustivel("diesel");
       setLitros("");
       setValorLitro("");
