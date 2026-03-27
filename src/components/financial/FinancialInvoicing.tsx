@@ -9,13 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, CalendarIcon } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins } from "lucide-react";
+import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
@@ -100,7 +98,7 @@ export function FinancialInvoicing() {
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [receiveFatura, setReceiveFatura] = useState<Fatura | null>(null);
   const [receiveContas, setReceiveContas] = useState<ContaReceber[]>([]);
-  const [receiveDate, setReceiveDate] = useState<Date>(new Date());
+  const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
 
@@ -258,7 +256,7 @@ export function FinancialInvoicing() {
   // --- Receber ---
   const openReceive = async (fatura: Fatura) => {
     setReceiveFatura(fatura);
-    setReceiveDate(new Date());
+    setReceiveDate(getLocalDateISO());
     setReceiveForma("pix");
 
     const { data } = await supabase
@@ -282,7 +280,7 @@ export function FinancialInvoicing() {
           .from("contas_receber")
           .update({
             status: "recebido" as any,
-            data_recebimento: format(receiveDate, "yyyy-MM-dd"),
+            data_recebimento: receiveDate,
             valor_recebido: Number(conta.valor),
             forma_recebimento: receiveForma,
           })
@@ -674,24 +672,7 @@ export function FinancialInvoicing() {
               <div className="space-y-3">
                 <div>
                   <Label>Data do Recebimento</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(receiveDate, "dd/MM/yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={receiveDate}
-                        onSelect={(d) => d && setReceiveDate(d)}
-                        locale={ptBR}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
                 </div>
                 <div>
                   <Label>Forma de Recebimento</Label>

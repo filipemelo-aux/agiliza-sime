@@ -6,13 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 
@@ -47,7 +42,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
   const { user } = useAuth();
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
-  const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
+  const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
 
   const totalGeral = items.reduce((s, i) => s + i.valor, 0);
@@ -55,7 +50,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
   const handleConfirm = async () => {
     if (items.length === 0) return;
     setSaving(true);
-    const todayISO = getLocalDateISO(dataPagamento);
+    const todayISO = dataPagamento;
 
     try {
       for (const item of items) {
@@ -145,27 +140,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Data do Pagamento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dataPagamento && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataPagamento ? format(dataPagamento, "dd/MM/yyyy") : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataPagamento}
-                    onSelect={(d) => d && setDataPagamento(d)}
-                    locale={ptBR}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} />
             </div>
             <div>
               <Label>Forma de Pagamento</Label>
