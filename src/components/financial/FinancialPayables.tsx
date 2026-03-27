@@ -22,7 +22,7 @@ import { getLocalDateISO, normalizeDateInput } from "@/lib/date";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
+
 
 interface Installment {
   id: string;
@@ -138,7 +138,7 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
-  const [bankPickerOpen, setBankPickerOpen] = useState(false);
+  
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
@@ -534,35 +534,7 @@ export function FinancialPayables() {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-      // Create reversal transactions for all linked financial_transactions
-      if (currentUser) {
-        const { data: linkedTxs } = await supabase
-          .from("financial_transactions")
-          .select("*")
-          .eq("origem", "conta_pagar")
-          .eq("origem_id", item.id)
-          .eq("status", "confirmado") as any;
-
-        if (linkedTxs && linkedTxs.length > 0) {
-          for (const tx of linkedTxs) {
-            await supabase.from("financial_transactions").insert({
-              conta_bancaria_id: tx.conta_bancaria_id,
-              tipo: tx.tipo === "saida" ? "entrada" : "saida",
-              valor: tx.valor,
-              data_movimentacao: getLocalDateISO(),
-              descricao: `Estorno: ${tx.descricao}`,
-              plano_contas_id: tx.plano_contas_id,
-              origem: "ajuste",
-              origem_id: tx.id,
-              status: "confirmado",
-              observacoes: `Estorno automático - conta a pagar`,
-              empresa_id: tx.empresa_id,
-              unidade_id: tx.unidade_id || tx.empresa_id,
-              created_by: currentUser.id,
-            } as any);
-          }
-        }
-      }
+      // Reversal logic removed (banking module removed)
 
       // Delete all payment records for this expense
       await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
@@ -588,33 +560,8 @@ export function FinancialPayables() {
     }
   };
 
-  const createReversalTransactions = async (expenseId: string, userId: string) => {
-    const { data: linkedTxs } = await supabase
-      .from("financial_transactions")
-      .select("*")
-      .eq("origem", "conta_pagar")
-      .eq("origem_id", expenseId)
-      .eq("status", "confirmado") as any;
-
-    if (linkedTxs && linkedTxs.length > 0) {
-      for (const tx of linkedTxs) {
-        await supabase.from("financial_transactions").insert({
-          conta_bancaria_id: tx.conta_bancaria_id,
-          tipo: tx.tipo === "saida" ? "entrada" : "saida",
-          valor: tx.valor,
-          data_movimentacao: getLocalDateISO(),
-          descricao: `Estorno: ${tx.descricao}`,
-          plano_contas_id: tx.plano_contas_id,
-          origem: "ajuste",
-          origem_id: tx.id,
-          status: "confirmado",
-          observacoes: `Estorno automático - conta a pagar`,
-          empresa_id: tx.empresa_id,
-          unidade_id: tx.unidade_id || tx.empresa_id,
-          created_by: userId,
-        } as any);
-      }
-    }
+  const createReversalTransactions = async (_expenseId: string, _userId: string) => {
+    // Banking module removed - no reversal transactions needed
   };
 
   const handleBatchReverse = async () => {
@@ -1442,15 +1389,6 @@ export function FinancialPayables() {
                 <FileText className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-8"
-                onClick={() => setBankPickerOpen(true)}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                Vincular Conta
-              </Button>
             </div>
           )}
         </div>
@@ -2029,34 +1967,6 @@ export function FinancialPayables() {
         </DialogContent>
       </Dialog>
       {ConfirmDialog}
-      <BankAccountPickerDialog
-        open={bankPickerOpen}
-        onOpenChange={setBankPickerOpen}
-        selectedCount={selectedIds.size}
-        selectedIds={(() => {
-          const ids = new Set<string>();
-          selectedIds.forEach(id => {
-            if (id.startsWith("inst-")) {
-              const instId = id.replace("inst-", "");
-              for (const [expId, insts] of Object.entries(installmentsMap)) {
-                if (insts.some(i => i.id === instId)) { ids.add(expId); break; }
-              }
-            } else if (!id.startsWith("harvest-")) {
-              ids.add(id);
-            }
-          });
-          return Array.from(ids);
-        })()}
-        harvestPaymentIds={(() => {
-          const ids: string[] = [];
-          selectedIds.forEach(id => {
-            if (id.startsWith("harvest-")) ids.push(id.replace("harvest-", ""));
-          });
-          return ids;
-        })()}
-        target="expenses"
-        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
-      />
     </div>
   );
 }
