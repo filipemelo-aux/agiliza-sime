@@ -144,6 +144,18 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
             </span>
           )}
         </Button>
+
+        {/* Clear all filters */}
+        {hasAnyFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 text-xs text-muted-foreground hover:text-destructive gap-1"
+            onClick={clearAll}
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Limpar filtros
+          </Button>
+        )}
       </div>
 
       {/* Advanced filters */}
