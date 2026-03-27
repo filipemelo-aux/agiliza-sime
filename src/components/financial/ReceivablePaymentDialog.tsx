@@ -54,7 +54,7 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
     const updateData: Record<string, any> = isTotal
       ? {
           status: "recebido",
-          data_recebimento: format(dataRecebimento, "yyyy-MM-dd"),
+          data_recebimento: dataRecebimento,
           valor_recebido: valorNum,
           forma_recebimento: formaRecebimento,
         }
@@ -105,27 +105,7 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
             </div>
             <div>
               <Label>Data do Recebimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dataRecebimento && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataRecebimento ? format(dataRecebimento, "dd/MM/yyyy") : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataRecebimento}
-                    onSelect={(d) => d && setDataRecebimento(d)}
-                    locale={ptBR}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input type="date" value={dataRecebimento} onChange={e => setDataRecebimento(e.target.value)} />
             </div>
             <div>
               <Label>Forma de Recebimento</Label>

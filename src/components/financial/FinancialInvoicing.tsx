@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
@@ -354,7 +355,7 @@ export function FinancialInvoicing() {
           {faturas.map((f) => {
             const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
             return (
-              <Card key={f.id} className={[
+              <Card key={f.id} className={cn(
                 "border-l-4",
                 f.status === "paga" && "border-l-green-500",
                 f.status === "faturada" && "border-l-primary",
@@ -671,24 +672,7 @@ export function FinancialInvoicing() {
               <div className="space-y-3">
                 <div>
                   <Label>Data do Recebimento</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(receiveDate, "dd/MM/yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={receiveDate}
-                        onSelect={(d) => d && setReceiveDate(d)}
-                        locale={ptBR}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
                 </div>
                 <div>
                   <Label>Forma de Recebimento</Label>
