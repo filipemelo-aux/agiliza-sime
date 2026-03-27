@@ -224,6 +224,54 @@ export type Database = {
           },
         ]
       }
+      contas_receber: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_recebimento: string | null
+          data_vencimento: string
+          fatura_id: string
+          id: string
+          status: Database["public"]["Enums"]["conta_receber_status"]
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_recebimento?: string | null
+          data_vencimento: string
+          fatura_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["conta_receber_status"]
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_recebimento?: string | null
+          data_vencimento?: string
+          fatura_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["conta_receber_status"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_receber_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contingency_events: {
         Row: {
           created_at: string
@@ -2825,6 +2873,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "operador"
+      conta_receber_status: "aberto" | "recebido" | "atrasado"
       cost_center:
         | "frota_propria"
         | "frota_terceiros"
@@ -2990,6 +3039,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "operador"],
+      conta_receber_status: ["aberto", "recebido", "atrasado"],
       cost_center: [
         "frota_propria",
         "frota_terceiros",
