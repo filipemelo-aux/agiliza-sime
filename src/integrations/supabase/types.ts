@@ -1108,6 +1108,8 @@ export type Database = {
           created_at: string
           data_emissao: string
           id: string
+          intervalo_dias: number
+          num_parcelas: number
           status: Database["public"]["Enums"]["fatura_status"]
           valor_total: number
         }
@@ -1116,6 +1118,8 @@ export type Database = {
           created_at?: string
           data_emissao?: string
           id?: string
+          intervalo_dias?: number
+          num_parcelas?: number
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_total?: number
         }
@@ -1124,6 +1128,8 @@ export type Database = {
           created_at?: string
           data_emissao?: string
           id?: string
+          intervalo_dias?: number
+          num_parcelas?: number
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_total?: number
         }
