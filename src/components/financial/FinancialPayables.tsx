@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
+import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
