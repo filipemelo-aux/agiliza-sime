@@ -3,14 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface ContaReceber {
   id: string;
@@ -31,46 +31,27 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 export function FinancialReceivables() {
+  const isMobile = useIsMobile();
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
-
-  // Payment dialog
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [selectedConta, setSelectedConta] = useState<ContaReceber | null>(null);
 
   const fetchContas = async () => {
     setLoading(true);
-    const query = supabase
+    const { data, error } = await supabase
       .from("contas_receber")
       .select("*, profiles:cliente_id(full_name)")
       .order("data_vencimento", { ascending: true });
-
-    const { data, error } = await query;
-
-    if (error) {
-      toast.error("Erro ao carregar contas a receber");
-      setLoading(false);
-      return;
-    }
-
-    const mapped = (data || []).map((c: any) => ({
-      ...c,
-      cliente_nome: c.profiles?.full_name || "—",
-    }));
-
-    setContas(mapped);
+    if (error) { toast.error("Erro ao carregar contas a receber"); setLoading(false); return; }
+    setContas((data || []).map((c: any) => ({ ...c, cliente_nome: c.profiles?.full_name || "—" })));
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchContas();
-  }, []);
+  useEffect(() => { fetchContas(); }, []);
 
-  const filtered = contas.filter(c => {
-    if (filterStatus === "todos") return true;
-    return c.status === filterStatus;
-  });
+  const filtered = contas.filter(c => filterStatus === "todos" || c.status === filterStatus);
 
   const totals = {
     aberto: contas.filter(c => c.status === "aberto").reduce((s, c) => s + Number(c.valor), 0),
@@ -78,50 +59,53 @@ export function FinancialReceivables() {
     atrasado: contas.filter(c => c.status === "atrasado").reduce((s, c) => s + Number(c.valor), 0),
   };
 
-  const openPayment = (conta: ContaReceber) => {
-    setSelectedConta(conta);
-    setPayDialogOpen(true);
-  };
+  const openPayment = (conta: ContaReceber) => { setSelectedConta(conta); setPayDialogOpen(true); };
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Contas a Receber</h1>
+      <h1 className="text-lg font-bold text-foreground">Contas a Receber</h1>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Summary cards - compact */}
+      <div className="grid grid-cols-3 gap-2">
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Em aberto</p>
-              <p className="text-lg font-bold">{formatCurrency(totals.aberto)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Clock className="h-4 w-4 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Em aberto</p>
+              <p className="text-sm font-bold text-foreground truncate">{formatCurrency(totals.aberto)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <div>
-              <p className="text-xs text-muted-foreground">Recebido</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(totals.recebido)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Recebido</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totals.recebido)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="text-xs text-muted-foreground">Atrasado</p>
-              <p className="text-lg font-bold text-destructive">{formatCurrency(totals.atrasado)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Atrasado</p>
+              <p className="text-sm font-bold text-destructive truncate">{formatCurrency(totals.atrasado)}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filter */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[150px] h-8 text-xs">
             <SelectValue placeholder="Filtrar status" />
           </SelectTrigger>
           <SelectContent>
@@ -131,68 +115,100 @@ export function FinancialReceivables() {
             <SelectItem value="atrasado">Atrasado</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-sm text-muted-foreground">{filtered.length} título(s)</span>
+        <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
       </div>
 
-      {/* Table */}
+      {/* List */}
       {loading ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">Carregando...</CardContent></Card>
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <DollarSign className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <DollarSign className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Nenhuma conta a receber encontrada.</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="border rounded-md overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Recebimento</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(c => {
-                const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
-                const Icon = st.icon;
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-sm">{c.cliente_nome}</TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell className="text-sm text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
-                    <TableCell>
-                      <Badge variant={st.variant} className="gap-1">
-                        <Icon className="h-3 w-3" />
-                        {st.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {c.data_recebimento
-                        ? format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy")
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {c.status !== "recebido" && (
-                        <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1">
-                          <HandCoins className="h-3.5 w-3.5" />
-                          Receber
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+      ) : isMobile ? (
+        <div className="grid grid-cols-1 gap-2">
+          {filtered.map(c => {
+            const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
+            const Icon = st.icon;
+            return (
+              <Card key={c.id} className={cn(
+                "border-l-4",
+                c.status === "recebido" && "border-l-green-500",
+                c.status === "atrasado" && "border-l-destructive",
+                c.status === "aberto" && "border-l-amber-400",
+              )}>
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-foreground truncate">{c.cliente_nome}</p>
+                    <Badge variant={st.variant} className="text-[10px] gap-0.5 shrink-0">
+                      <Icon className="h-2.5 w-2.5" />{st.label}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Venc: {format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</span>
+                    <span className="font-mono font-bold text-foreground">{formatCurrency(Number(c.valor))}</span>
+                  </div>
+                  {c.data_recebimento && (
+                    <p className="text-[11px] text-muted-foreground">Receb: {format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                  )}
+                  {c.status !== "recebido" && (
+                    <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs w-full mt-1">
+                      <HandCoins className="h-3 w-3" /> Receber
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Vencimento</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
+                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Recebimento</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(c => {
+                    const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
+                    const Icon = st.icon;
+                    return (
+                      <tr key={c.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 text-xs font-medium">{c.cliente_nome}</td>
+                        <td className="px-4 py-2.5 text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</td>
+                        <td className="px-4 py-2.5 text-xs text-right font-mono font-semibold">{formatCurrency(Number(c.valor))}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <Badge variant={st.variant} className="text-[10px] gap-0.5">
+                            <Icon className="h-2.5 w-2.5" />{st.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs">{c.data_recebimento ? format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy") : "—"}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          {c.status !== "recebido" && (
+                            <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs">
+                              <HandCoins className="h-3 w-3" /> Receber
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {selectedConta && (
