@@ -560,8 +560,10 @@ export function FinancialPayables() {
     }
   };
 
-  const createReversalTransactions = async (_expenseId: string, _userId: string) => {
-    // Banking module removed - no reversal transactions needed
+  const createReversalTransactions = async (expenseId: string, _userId: string) => {
+    // Remove bank movement for this expense
+    await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", expenseId);
+  };
   };
 
   const handleBatchReverse = async () => {
@@ -1356,7 +1358,7 @@ export function FinancialPayables() {
                   {batchPaying ? "Processando..." : "Pagar"}
                 </Button>
               )}
-              {hasSelectedPaid && !hasSelectedHarvest && (
+              {hasSelectedPaid && (
                 <Button
                   size="sm"
                   variant="outline"
