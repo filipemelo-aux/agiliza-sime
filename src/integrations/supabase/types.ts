@@ -2225,6 +2225,42 @@ export type Database = {
           },
         ]
       }
+      movimentacoes_bancarias: {
+        Row: {
+          conta_bancaria_id: string | null
+          created_at: string
+          data_movimentacao: string
+          descricao: string | null
+          id: string
+          origem: string
+          origem_id: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          conta_bancaria_id?: string | null
+          created_at?: string
+          data_movimentacao: string
+          descricao?: string | null
+          id?: string
+          origem: string
+          origem_id: string
+          tipo: string
+          valor: number
+        }
+        Update: {
+          conta_bancaria_id?: string | null
+          created_at?: string
+          data_movimentacao?: string
+          descricao?: string | null
+          id?: string
+          origem?: string
+          origem_id?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
