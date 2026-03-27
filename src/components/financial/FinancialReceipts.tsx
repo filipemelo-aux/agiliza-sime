@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasViewer";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, User, Calendar } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, User, Calendar, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -53,14 +53,10 @@ export function FinancialReceipts() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchReceipts();
-  }, []);
+  useEffect(() => { fetchReceipts(); }, []);
 
   useEffect(() => {
-    return () => {
-      if (viewerUrl) URL.revokeObjectURL(viewerUrl);
-    };
+    return () => { if (viewerUrl) URL.revokeObjectURL(viewerUrl); };
   }, [viewerUrl]);
 
   const handleUpload = async () => {
@@ -71,16 +67,13 @@ export function FinancialReceipts() {
 
     setUploading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
       const ext = file.name.split(".").pop();
       const filePath = `${user.id}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage.from("payment-receipts").upload(filePath, file);
-
       if (uploadError) throw uploadError;
 
       const { error: insertError } = await supabase.from("payment_receipts").insert({
@@ -152,19 +145,32 @@ export function FinancialReceipts() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Recibos de Pagamento</h2>
-          <p className="text-sm text-muted-foreground">
-            {receipts.length} recibo{receipts.length !== 1 ? "s" : ""} anexado{receipts.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-
+      {/* Summary + action */}
+      <div className="grid grid-cols-2 gap-2">
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Receipt className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+              <p className="text-sm font-bold text-foreground">{receipts.length} recibo{receipts.length !== 1 ? "s" : ""}</p>
+            </div>
+          </CardContent>
+        </Card>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Novo Recibo
-            </Button>
+            <Card className="cursor-pointer hover:bg-muted/30 transition-colors border-dashed">
+              <CardContent className="p-3 flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                  <Plus className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ação</p>
+                  <p className="text-sm font-bold text-foreground">Novo Recibo</p>
+                </div>
+              </CardContent>
+            </Card>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -175,34 +181,21 @@ export function FinancialReceipts() {
                 <Label>Credor / Proprietário</Label>
                 <PersonSearchInput
                   selectedName={personName}
-                  onSelect={(person) => {
-                    setPersonId(person.id);
-                    setPersonName(person.full_name);
-                  }}
-                  onClear={() => {
-                    setPersonId(null);
-                    setPersonName("");
-                  }}
+                  onSelect={(person) => { setPersonId(person.id); setPersonName(person.full_name); }}
+                  onClear={() => { setPersonId(null); setPersonName(""); }}
                   placeholder="Buscar pessoa..."
                 />
               </div>
               <div>
                 <Label>Descrição</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Recibo pagamento colheita Fazenda X - Jan/2026"
-                />
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Recibo pagamento colheita Fazenda X - Jan/2026" />
               </div>
               <div>
                 <Label>Arquivo (PDF ou Imagem)</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
+                <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
-              <Button onClick={handleUpload} disabled={uploading} className="w-full">
+              <Button onClick={handleUpload} disabled={uploading} className="w-full gap-1.5">
+                <Plus className="h-4 w-4" />
                 {uploading ? "Enviando..." : "Anexar Recibo"}
               </Button>
             </div>
@@ -210,72 +203,102 @@ export function FinancialReceipts() {
         </Dialog>
       </div>
 
+      {/* List */}
       {loading ? (
-        <div className="grid gap-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-4 bg-muted rounded w-1/3 mb-2" />
-                <div className="h-3 bg-muted rounded w-2/3" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : receipts.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Nenhum recibo anexado ainda.</p>
             <p className="text-muted-foreground text-xs mt-1">Clique em "Novo Recibo" para começar.</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-3">
+      ) : isMobile ? (
+        <div className="grid grid-cols-1 gap-2">
           {receipts.map((r) => (
-            <Card key={r.id} className="group hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5 text-sm font-medium">
-                        <User className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="truncate">{r.person_name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3 shrink-0" />
-                        {format(new Date(r.created_at), "dd/MM/yyyy")}
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
-
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <FileText className="h-3 w-3 shrink-0" />
-                      <span className="truncate max-w-[200px]">{r.file_name}</span>
-                    </div>
+            <Card key={r.id} className="border-l-4 border-l-primary">
+              <CardContent className="p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-foreground truncate">{r.person_name}</span>
                   </div>
-
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleView(r)} title="Visualizar">
-                      <Eye className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(r)}>
+                      <Eye className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(r)}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(r)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(r.created_at), "dd/MM/yyyy")}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    <span className="truncate max-w-[120px]">{r.file_name}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Credor</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Descrição</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Arquivo</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Data</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {receipts.map((r) => (
+                    <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 text-xs font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                          {r.person_name}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs max-w-[200px] truncate">{r.description}</td>
+                      <td className="px-4 py-2.5 text-xs">
+                        <div className="flex items-center gap-1 max-w-[150px]">
+                          <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{r.file_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs">{format(new Date(r.created_at), "dd/MM/yyyy")}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(r)} title="Visualizar">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(r)} title="Excluir">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
+      {/* Viewer Dialog */}
       <Dialog open={!!viewerUrl} onOpenChange={(open) => !open && closeViewer()}>
         <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
           <DialogHeader className="px-4 py-3 border-b">
@@ -298,9 +321,7 @@ export function FinancialReceipts() {
                   <div className="text-center space-y-3">
                     <p className="text-sm text-muted-foreground">Formato não suportado para visualização interna.</p>
                     <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
-                      <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
-                        Abrir arquivo
-                      </a>
+                      <a href={viewerUrl} target="_blank" rel="noopener noreferrer">Abrir arquivo</a>
                     </Button>
                   </div>
                 </div>
