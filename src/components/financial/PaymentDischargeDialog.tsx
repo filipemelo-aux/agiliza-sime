@@ -233,9 +233,9 @@ export function PaymentDischargeDialog({
                     onSelect={(d) => d && setDataPagamento(d)}
                     locale={ptBR}
                     initialFocus
-                    captionLayout="dropdown"
-                    fromYear={2020}
-                    toYear={new Date().getFullYear() + 2}
+                    captionLayout="dropdown-buttons"
+                    fromDate={new Date(2020, 0, 1)}
+                    toDate={new Date(new Date().getFullYear() + 2, 11, 31)}
                     className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
