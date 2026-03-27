@@ -66,10 +66,11 @@ export function FinancialCashFlow() {
     const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
     const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
     const despesaIds = movs.filter((m) => m.origem === "despesas").map((m) => m.origem_id);
+    const colheitaIds = movs.filter((m) => m.origem === "colheitas").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
 
-    const [pagarRes, receberRes, despesaRes] = await Promise.all([
+    const [pagarRes, receberRes, despesaRes, colheitaRes] = await Promise.all([
       pagarIds.length > 0
         ? supabase
             .from("accounts_payable")
@@ -88,6 +89,12 @@ export function FinancialCashFlow() {
             .select("id, favorecido_nome")
             .in("id", despesaIds)
         : Promise.resolve({ data: [] }),
+      colheitaIds.length > 0
+        ? supabase
+            .from("harvest_payments")
+            .select("id, harvest_job_id")
+            .in("id", colheitaIds)
+        : Promise.resolve({ data: [] }),
     ]);
 
     // Map payable creditor names
@@ -99,6 +106,20 @@ export function FinancialCashFlow() {
     (despesaRes.data || []).forEach((e: any) => {
       if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome);
     });
+
+    // Fetch farm names for harvest payments
+    const jobIds = [...new Set((colheitaRes.data || []).map((hp: any) => hp.harvest_job_id).filter(Boolean))];
+    if (jobIds.length > 0) {
+      const { data: jobs } = await supabase
+        .from("harvest_jobs")
+        .select("id, farm_name")
+        .in("id", jobIds);
+      const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
+      (colheitaRes.data || []).forEach((hp: any) => {
+        const farmName = jobMap.get(hp.harvest_job_id);
+        if (farmName) pessoaMap.set(hp.id, farmName);
+      });
+    }
 
     // Fetch client names for receivables
     const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];
@@ -161,6 +182,7 @@ export function FinancialCashFlow() {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
     if (o === "despesas") return "Despesa";
+    if (o === "colheitas") return "Colheita";
     return o;
   };
 
