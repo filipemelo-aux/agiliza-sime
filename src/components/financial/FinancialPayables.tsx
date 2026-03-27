@@ -843,6 +843,10 @@ export function FinancialPayables() {
         }
         return item.data_vencimento || item.data_emissao || "";
       };
+      if (quickFilter === "atrasadas") {
+        // Atrasadas: mais recentes primeiro (vencimento mais próximo no topo)
+        return getDate(b).localeCompare(getDate(a));
+      }
       return getDate(a).localeCompare(getDate(b));
     });
   }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
@@ -1738,7 +1742,7 @@ export function FinancialPayables() {
               }];
             })
             .sort((a, b) => {
-              if (quickFilter === "pagas") {
+              if (quickFilter === "pagas" || quickFilter === "atrasadas") {
                 return b.vencimento.localeCompare(a.vencimento);
               }
               return a.vencimento.localeCompare(b.vencimento);
