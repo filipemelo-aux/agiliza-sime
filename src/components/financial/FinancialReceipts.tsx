@@ -12,6 +12,7 @@ import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasV
 import { toast } from "sonner";
 import { Plus, FileText, Trash2, Eye, User, Calendar, Receipt } from "lucide-react";
 import { format } from "date-fns";
+import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Receipt {
