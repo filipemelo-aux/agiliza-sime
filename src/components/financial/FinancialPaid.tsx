@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, CheckCircle2, TrendingUp, DollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { formatCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -136,7 +137,7 @@ export function FinancialPaid() {
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{item.paid_at ? format(new Date(item.paid_at), "dd/MM/yyyy") : "—"}</span>
+                  <span className="text-muted-foreground">{formatDateBR(item.paid_at)}</span>
                   <span className="font-mono font-bold text-green-600">{formatCurrency(item.amount)}</span>
                 </div>
               </CardContent>
@@ -162,7 +163,7 @@ export function FinancialPaid() {
                     <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-2.5 text-xs font-medium">{item.creditor_name || "—"}</td>
                       <td className="px-4 py-2.5 text-xs max-w-[200px] truncate">{item.description}</td>
-                      <td className="px-4 py-2.5 text-xs">{item.paid_at ? format(new Date(item.paid_at), "dd/MM/yyyy") : "—"}</td>
+                      <td className="px-4 py-2.5 text-xs">{formatDateBR(item.paid_at)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-green-600">{formatCurrency(item.amount)}</td>
                       <td className="px-4 py-2.5 text-center">
                         <Badge variant={item.source === "expense" ? "outline" : "secondary"} className="text-[10px]">
