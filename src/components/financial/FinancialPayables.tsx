@@ -1760,11 +1760,20 @@ export function FinancialPayables() {
           planoContasId={paymentExpense.plano_contas_id}
           empresaId={paymentExpense.empresa_id || empresaId}
           unidadeId={paymentExpense.unidade_id || paymentExpense.empresa_id || empresaId}
-          descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
+          descricao={paymentExpense.descricao}
+          favorecidoNome={paymentExpense.favorecido_nome}
+          dataVencimento={paymentExpense.data_vencimento}
           contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
           onSaved={fetchData}
         />
       )}
+
+      <BatchPaymentDialog
+        open={batchPayOpen}
+        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); } }}
+        items={batchPayItems}
+        onSaved={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
 
       {/* Edit Installment Dialog */}
       <Dialog open={editInstOpen} onOpenChange={setEditInstOpen}>
