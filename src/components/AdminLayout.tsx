@@ -45,13 +45,13 @@ const menuItems = [
     ],
   },
   {
-    title: "Contas a Pagar",
+    title: "Financeiro",
     icon: DollarSign,
     children: [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
-      
       { title: "Recibos", url: "/admin/financial/receipts", icon: FileCheck },
     ],
   },
