@@ -458,52 +458,46 @@ export function FinancialPayables() {
     });
   };
 
-  const handleBatchPay = async () => {
+  const handleBatchPay = () => {
     if (selectedIds.size === 0) return;
-    if (!await confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
-    setBatchPaying(true);
-    const todayISO = getLocalDateISO();
-    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const batchItems: BatchItem[] = [];
 
     for (const id of selectedIds) {
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
-        // Find the installment
-        let foundInst: Installment | undefined;
-        let expenseId = "";
-        for (const [eid, installs] of Object.entries(installmentsMap)) {
-          foundInst = installs.find(i => i.id === instId);
-          if (foundInst) { expenseId = eid; break; }
-        }
-        if (!foundInst) continue;
-        await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", instId);
-        const expense = items.find(i => i.id === expenseId);
-        if (expense) {
-          const newPago = Number(expense.valor_pago) + Number(foundInst.valor);
-          const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: todayISO } as any).eq("id", expenseId);
+        for (const [expId, installs] of Object.entries(installmentsMap)) {
+          const foundInst = installs.find(i => i.id === instId);
+          if (foundInst && foundInst.status !== "pago") {
+            const expense = items.find(i => i.id === expId);
+            batchItems.push({
+              id: `inst-${instId}`,
+              descricao: expense?.favorecido_nome || expense?.descricao || "Parcela",
+              valor: Number(foundInst.valor),
+              tipo: "installment",
+              expenseId: expId,
+              installmentId: instId,
+              numeroParcela: foundInst.numero_parcela,
+              totalParcelas: installs.length,
+            });
+            break;
+          }
         }
       } else {
         const item = items.find(i => i.id === id);
-        if (!item) continue;
-        await supabase.from("expense_payments" as any).insert({
-          expense_id: id,
+        if (!item || item.status === "pago") continue;
+        batchItems.push({
+          id: item.id,
+          descricao: item.favorecido_nome || item.descricao,
           valor: Number(item.valor_total) - Number(item.valor_pago),
-          forma_pagamento: "pix",
-          data_pagamento: todayISO,
-          created_by: userId,
-        } as any);
-        await supabase.from("expenses").update({
-          valor_pago: item.valor_total,
-          status: "pago",
-          data_pagamento: todayISO,
-        } as any).eq("id", id);
+          tipo: "expense",
+          expenseId: item.id,
+        });
       }
     }
-    toast.success(`${selectedIds.size} conta(s) quitada(s)`);
-    setSelectedIds(new Set());
-    setBatchPaying(false);
-    fetchData();
+
+    if (batchItems.length === 0) return;
+    setBatchPayItems(batchItems);
+    setBatchPayOpen(true);
   };
 
   const handleBatchDelete = async () => {
