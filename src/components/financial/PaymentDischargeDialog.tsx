@@ -7,13 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 
@@ -82,7 +77,7 @@ export function PaymentDischargeDialog({
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
-  const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
+  const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
 
   useEffect(() => {
     if (open && expenseId) {
@@ -90,7 +85,7 @@ export function PaymentDischargeDialog({
       setValor(String(restante));
       setObservacoes("");
       setFormaPagamento("pix");
-      setDataPagamento(new Date());
+      setDataPagamento(getLocalDateISO());
       loadHistory();
     }
   }, [open, expenseId, installment?.installmentId]);
@@ -108,16 +103,17 @@ export function PaymentDischargeDialog({
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
     if (valorNum > saldoRestante + 0.01) return toast.error("Valor excede o saldo restante");
+    if (!dataPagamento) return toast.error("Informe a data do pagamento");
 
     setSaving(true);
-    const dataPagISO = getLocalDateISO(dataPagamento);
+    const dataPagISO = dataPagamento;
 
     // Insert payment record
     const { error: payErr } = await supabase.from("expense_payments" as any).insert({
       expense_id: expenseId,
       valor: valorNum,
       forma_pagamento: formaPagamento,
-      data_pagamento: format(dataPagamento, "yyyy-MM-dd"),
+      data_pagamento: dataPagISO,
       observacoes: observacoes.trim() || null,
       created_by: user?.id,
     } as any);
@@ -216,30 +212,7 @@ export function PaymentDischargeDialog({
             </div>
             <div>
               <Label>Data do Pagamento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dataPagamento && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataPagamento ? format(dataPagamento, "dd/MM/yyyy") : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataPagamento}
-                    onSelect={(d) => d && setDataPagamento(d)}
-                    locale={ptBR}
-                    initialFocus
-                    captionLayout="dropdown-buttons"
-                    fromDate={new Date(2020, 0, 1)}
-                    toDate={new Date(new Date().getFullYear() + 2, 11, 31)}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} />
             </div>
             <div>
               <Label>Forma de Pagamento</Label>
