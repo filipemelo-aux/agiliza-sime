@@ -126,10 +126,19 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
           <DialogTitle>Baixa de Pagamento</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Total: {formatCurrency(valorTotal)} | 
-            Pago: {formatCurrency(valorPago)} | 
-            Restante: <strong className="text-foreground">{formatCurrency(saldoRestante)}</strong>
+          {/* Resumo da conta */}
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+            {(favorecidoNome || descricao) && (
+              <p className="text-sm font-medium text-foreground">{favorecidoNome || descricao}</p>
+            )}
+            {dataVencimento && (
+              <p className="text-xs text-muted-foreground">Vencimento: {formatDateBR(dataVencimento)}</p>
+            )}
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">Total: <strong className="text-foreground">{formatCurrency(valorTotal)}</strong></span>
+              {valorPago > 0 && <span className="text-muted-foreground">Pago: <strong className="text-foreground">{formatCurrency(valorPago)}</strong></span>}
+              <span className="text-muted-foreground">Restante: <strong className="text-primary font-bold">{formatCurrency(saldoRestante)}</strong></span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
