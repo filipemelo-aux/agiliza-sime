@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, CheckCircle2, TrendingUp, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { formatCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PaidItem {
