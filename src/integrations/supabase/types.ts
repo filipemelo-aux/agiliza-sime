@@ -22,6 +22,7 @@ export type Database = {
           created_by: string
           creditor_id: string | null
           creditor_name: string | null
+          data_lancamento: string
           description: string
           due_date: string | null
           id: string
@@ -38,6 +39,7 @@ export type Database = {
           created_by: string
           creditor_id?: string | null
           creditor_name?: string | null
+          data_lancamento?: string
           description: string
           due_date?: string | null
           id?: string
@@ -54,6 +56,7 @@ export type Database = {
           created_by?: string
           creditor_id?: string | null
           creditor_name?: string | null
+          data_lancamento?: string
           description?: string
           due_date?: string | null
           id?: string
@@ -228,6 +231,7 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string
+          data_lancamento: string
           data_recebimento: string | null
           data_vencimento: string
           fatura_id: string
@@ -240,6 +244,7 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string
+          data_lancamento?: string
           data_recebimento?: string | null
           data_vencimento: string
           fatura_id: string
@@ -252,6 +257,7 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string
+          data_lancamento?: string
           data_recebimento?: string | null
           data_vencimento?: string
           fatura_id?: string
