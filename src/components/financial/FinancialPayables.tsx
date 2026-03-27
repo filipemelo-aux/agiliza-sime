@@ -1972,7 +1972,7 @@ export function FinancialPayables() {
                     </div>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
                       <div className="truncate"><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{maintNfseExpense.documento_fiscal_numero || "—"}</span></div>
-                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{formatDateBR(maintNfseExpense.data_emissao)}</span></div>
                       <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfseExpense.favorecido_nome || "—"}</span></div>
                       <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(maintNfseExpense.valor_total))}</span></div>
                     </div>
