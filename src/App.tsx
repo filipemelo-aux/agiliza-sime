@@ -78,6 +78,7 @@ const App = () => (
             <Route path="/admin/financial/paid" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
             <Route path="/admin/financial/chart" element={<AdminFinancial section="chart" />} />
+            <Route path="/admin/financial/cashflow" element={<AdminFinancial section="cashflow" />} />
             <Route path="/admin/financial/bank-accounts" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/transactions" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/reports" element={<Navigate to="/admin/financial/payables" replace />} />
