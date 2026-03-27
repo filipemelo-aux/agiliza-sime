@@ -17,11 +17,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
-        caption_dropdowns: "flex items-center gap-1",
-        dropdown: "h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
-        dropdown_month: "",
-        dropdown_year: "",
-        vhidden: "",
+        caption_dropdowns: "flex items-center gap-2",
+        dropdown: "h-8 rounded-md border border-input bg-background px-2 pr-7 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
+        dropdown_month: "relative",
+        dropdown_year: "relative",
+        vhidden: "sr-only",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -49,16 +49,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
-        Dropdown: ({ value, onChange, children, ...dropdownProps }: any) => (
-          <select
-            value={value}
-            onChange={onChange}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            {...dropdownProps}
-          >
-            {children}
-          </select>
-        ),
       }}
       {...props}
     />
