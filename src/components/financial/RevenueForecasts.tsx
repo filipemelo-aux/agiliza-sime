@@ -230,7 +230,7 @@ export function RevenueForecasts() {
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Icon className="h-3 w-3" />
                       <span className="uppercase">{p.origem_tipo}</span>
-                      <span>· {format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</span>
+                      <span>· {formatDateBR(p.data_prevista)}</span>
                     </div>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
                   </div>
@@ -281,7 +281,7 @@ export function RevenueForecasts() {
                         </TableCell>
                         <TableCell className="text-xs">{p.cliente_nome}</TableCell>
                         <TableCell className="text-xs">
-                          {format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}
+                          {formatDateBR(p.data_prevista)}
                         </TableCell>
                         <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
                         <TableCell>
