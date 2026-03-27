@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
