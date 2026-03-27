@@ -139,7 +139,8 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
-  
+  const [batchPayOpen, setBatchPayOpen] = useState(false);
+  const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
