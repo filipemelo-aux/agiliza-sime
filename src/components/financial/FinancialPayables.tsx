@@ -21,6 +21,7 @@ import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
+import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 
@@ -138,7 +139,8 @@ export function FinancialPayables() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
-  
+  const [batchPayOpen, setBatchPayOpen] = useState(false);
+  const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
@@ -412,19 +414,13 @@ export function FinancialPayables() {
     setMaintDetailLoading(false);
   };
 
-  const handlePayInstallment = async (inst: Installment) => {
-    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — ${formatCurrency(Number(inst.valor))}?`)) return;
-    const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
-    if (error) return toast.error(error.message);
-    // Update expense valor_pago
+  const handlePayInstallment = (inst: Installment) => {
+    // Open the PaymentDischargeDialog for the parent expense, pre-filled with installment value
     const expense = items.find(i => i.id === inst.expense_id);
     if (expense) {
-      const newPago = Number(expense.valor_pago) + Number(inst.valor);
-      const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: getLocalDateISO() } as any).eq("id", inst.expense_id);
+      setPaymentExpense(expense);
+      setPaymentOpen(true);
     }
-    toast.success("Parcela quitada");
-    fetchData();
   };
 
   const handleDeleteInstallment = async (inst: Installment) => {
@@ -462,52 +458,46 @@ export function FinancialPayables() {
     });
   };
 
-  const handleBatchPay = async () => {
+  const handleBatchPay = () => {
     if (selectedIds.size === 0) return;
-    if (!await confirm(`Confirma o pagamento de ${selectedIds.size} conta(s)?`)) return;
-    setBatchPaying(true);
-    const todayISO = getLocalDateISO();
-    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const batchItems: BatchItem[] = [];
 
     for (const id of selectedIds) {
       if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
-        // Find the installment
-        let foundInst: Installment | undefined;
-        let expenseId = "";
-        for (const [eid, installs] of Object.entries(installmentsMap)) {
-          foundInst = installs.find(i => i.id === instId);
-          if (foundInst) { expenseId = eid; break; }
-        }
-        if (!foundInst) continue;
-        await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", instId);
-        const expense = items.find(i => i.id === expenseId);
-        if (expense) {
-          const newPago = Number(expense.valor_pago) + Number(foundInst.valor);
-          const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-          await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: todayISO } as any).eq("id", expenseId);
+        for (const [expId, installs] of Object.entries(installmentsMap)) {
+          const foundInst = installs.find(i => i.id === instId);
+          if (foundInst && foundInst.status !== "pago") {
+            const expense = items.find(i => i.id === expId);
+            batchItems.push({
+              id: `inst-${instId}`,
+              descricao: expense?.favorecido_nome || expense?.descricao || "Parcela",
+              valor: Number(foundInst.valor),
+              tipo: "installment",
+              expenseId: expId,
+              installmentId: instId,
+              numeroParcela: foundInst.numero_parcela,
+              totalParcelas: installs.length,
+            });
+            break;
+          }
         }
       } else {
         const item = items.find(i => i.id === id);
-        if (!item) continue;
-        await supabase.from("expense_payments" as any).insert({
-          expense_id: id,
+        if (!item || item.status === "pago") continue;
+        batchItems.push({
+          id: item.id,
+          descricao: item.favorecido_nome || item.descricao,
           valor: Number(item.valor_total) - Number(item.valor_pago),
-          forma_pagamento: "pix",
-          data_pagamento: todayISO,
-          created_by: userId,
-        } as any);
-        await supabase.from("expenses").update({
-          valor_pago: item.valor_total,
-          status: "pago",
-          data_pagamento: todayISO,
-        } as any).eq("id", id);
+          tipo: "expense",
+          expenseId: item.id,
+        });
       }
     }
-    toast.success(`${selectedIds.size} conta(s) quitada(s)`);
-    setSelectedIds(new Set());
-    setBatchPaying(false);
-    fetchData();
+
+    if (batchItems.length === 0) return;
+    setBatchPayItems(batchItems);
+    setBatchPayOpen(true);
   };
 
   const handleBatchDelete = async () => {
@@ -1770,11 +1760,20 @@ export function FinancialPayables() {
           planoContasId={paymentExpense.plano_contas_id}
           empresaId={paymentExpense.empresa_id || empresaId}
           unidadeId={paymentExpense.unidade_id || paymentExpense.empresa_id || empresaId}
-          descricao={paymentExpense.favorecido_nome || paymentExpense.descricao}
+          descricao={paymentExpense.descricao}
+          favorecidoNome={paymentExpense.favorecido_nome}
+          dataVencimento={paymentExpense.data_vencimento}
           contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
           onSaved={fetchData}
         />
       )}
+
+      <BatchPaymentDialog
+        open={batchPayOpen}
+        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); } }}
+        items={batchPayItems}
+        onSaved={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
 
       {/* Edit Installment Dialog */}
       <Dialog open={editInstOpen} onOpenChange={setEditInstOpen}>

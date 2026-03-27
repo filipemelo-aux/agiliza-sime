@@ -15,10 +15,11 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, formatDateBR } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
+  { value: "ted", label: "TED" },
   { value: "boleto", label: "Boleto" },
   { value: "cartao_credito", label: "Cartão de Crédito" },
   { value: "cartao_debito", label: "Cartão de Débito" },
@@ -47,10 +48,12 @@ interface Props {
   unidadeId?: string | null;
   descricao?: string | null;
   contaBancariaIdPreset?: string | null;
+  favorecidoNome?: string | null;
+  dataVencimento?: string | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, onSaved }: Props) {
+export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, descricao, favorecidoNome, dataVencimento, onSaved }: Props) {
   const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
@@ -123,10 +126,19 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
           <DialogTitle>Baixa de Pagamento</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Total: {formatCurrency(valorTotal)} | 
-            Pago: {formatCurrency(valorPago)} | 
-            Restante: <strong className="text-foreground">{formatCurrency(saldoRestante)}</strong>
+          {/* Resumo da conta */}
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+            {(favorecidoNome || descricao) && (
+              <p className="text-sm font-medium text-foreground">{favorecidoNome || descricao}</p>
+            )}
+            {dataVencimento && (
+              <p className="text-xs text-muted-foreground">Vencimento: {formatDateBR(dataVencimento)}</p>
+            )}
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">Total: <strong className="text-foreground">{formatCurrency(valorTotal)}</strong></span>
+              {valorPago > 0 && <span className="text-muted-foreground">Pago: <strong className="text-foreground">{formatCurrency(valorPago)}</strong></span>}
+              <span className="text-muted-foreground">Restante: <strong className="text-primary font-bold">{formatCurrency(saldoRestante)}</strong></span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
