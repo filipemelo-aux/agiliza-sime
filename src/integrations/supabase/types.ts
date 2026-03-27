@@ -1018,6 +1018,77 @@ export type Database = {
           },
         ]
       }
+      fatura_previsoes: {
+        Row: {
+          created_at: string
+          fatura_id: string
+          id: string
+          previsao_id: string
+        }
+        Insert: {
+          created_at?: string
+          fatura_id: string
+          id?: string
+          previsao_id: string
+        }
+        Update: {
+          created_at?: string
+          fatura_id?: string
+          id?: string
+          previsao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fatura_previsoes_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_previsoes_previsao_id_fkey"
+            columns: ["previsao_id"]
+            isOneToOne: false
+            referencedRelation: "previsoes_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faturas_recebimento: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_emissao: string
+          id: string
+          status: Database["public"]["Enums"]["fatura_status"]
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_emissao?: string
+          id?: string
+          status?: Database["public"]["Enums"]["fatura_status"]
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_emissao?: string
+          id?: string
+          status?: Database["public"]["Enums"]["fatura_status"]
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_recebimento_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_categories: {
         Row: {
           active: boolean
@@ -2777,6 +2848,7 @@ export type Database = {
         | "frete_terceiro"
         | "imposto"
         | "outros"
+      fatura_status: "aberta" | "faturada" | "cancelada"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       previsao_origem_tipo: "cte" | "colheita"
       previsao_status: "pendente" | "faturado"
@@ -2944,6 +3016,7 @@ export const Constants = {
         "imposto",
         "outros",
       ],
+      fatura_status: ["aberta", "faturada", "cancelada"],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       previsao_origem_tipo: ["cte", "colheita"],
       previsao_status: ["pendente", "faturado"],
