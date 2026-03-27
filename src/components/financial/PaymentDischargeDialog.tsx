@@ -37,6 +37,15 @@ interface PaymentRecord {
   created_at: string;
 }
 
+/** Optional: when paying a specific installment */
+export interface InstallmentContext {
+  installmentId: string;
+  numeroParcela: number;
+  totalParcelas: number;
+  valorParcela: number;
+  dataVencimentoParcela: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,12 +59,24 @@ interface Props {
   contaBancariaIdPreset?: string | null;
   favorecidoNome?: string | null;
   dataVencimento?: string | null;
+  /** When set, the dialog operates on a single installment */
+  installment?: InstallmentContext | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, descricao, favorecidoNome, dataVencimento, onSaved }: Props) {
+export function PaymentDischargeDialog({
+  open, onOpenChange, expenseId, valorTotal, valorPago,
+  descricao, favorecidoNome, dataVencimento, installment, onSaved,
+}: Props) {
   const { user } = useAuth();
-  const saldoRestante = valorTotal - valorPago;
+
+  // Determine the effective amount for this payment context
+  const isInstallmentMode = !!installment;
+  const effectiveTotal = isInstallmentMode ? installment!.valorParcela : valorTotal;
+  const effectivePago = isInstallmentMode ? 0 : valorPago; // installments are either paid or not
+  const saldoRestante = effectiveTotal - effectivePago;
+  const effectiveVencimento = isInstallmentMode ? installment!.dataVencimentoParcela : dataVencimento;
+
   const [valor, setValor] = useState(String(saldoRestante));
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
@@ -65,12 +86,14 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
 
   useEffect(() => {
     if (open && expenseId) {
-      setValor(String(valorTotal - valorPago));
+      const restante = isInstallmentMode ? installment!.valorParcela : (valorTotal - valorPago);
+      setValor(String(restante));
       setObservacoes("");
+      setFormaPagamento("pix");
       setDataPagamento(new Date());
       loadHistory();
     }
-  }, [open, expenseId]);
+  }, [open, expenseId, installment?.installmentId]);
 
   const loadHistory = async () => {
     const { data } = await supabase
@@ -87,6 +110,7 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     if (valorNum > saldoRestante + 0.01) return toast.error("Valor excede o saldo restante");
 
     setSaving(true);
+    const dataPagISO = getLocalDateISO(dataPagamento);
 
     // Insert payment record
     const { error: payErr } = await supabase.from("expense_payments" as any).insert({
@@ -99,19 +123,50 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
     } as any);
     if (payErr) { toast.error(payErr.message); setSaving(false); return; }
 
-    const novoValorPago = valorPago + valorNum;
-    const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+    if (isInstallmentMode) {
+      // ---- INSTALLMENT MODE: update only the installment ----
+      const { error: instErr } = await supabase
+        .from("expense_installments")
+        .update({ status: "pago" } as any)
+        .eq("id", installment!.installmentId);
+      if (instErr) { toast.error(instErr.message); setSaving(false); return; }
 
-    const { error } = await supabase.from("expenses").update({
-      valor_pago: novoValorPago,
-      status: novoStatus,
-      forma_pagamento: formaPagamento,
-      data_pagamento: getLocalDateISO(dataPagamento),
-    } as any).eq("id", expenseId);
+      // Recalculate expense totals from all installments
+      const { data: allInst } = await supabase
+        .from("expense_installments")
+        .select("valor, status")
+        .eq("expense_id", expenseId);
 
-    if (error) { toast.error(error.message); setSaving(false); return; }
+      const totalPagoNow = ((allInst as any) || [])
+        .filter((i: any) => i.status === "pago")
+        .reduce((s: number, i: any) => s + Number(i.valor), 0);
+      const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
 
-    toast.success(novoStatus === "pago" ? "Despesa quitada" : "Pagamento parcial registrado");
+      const { error } = await supabase.from("expenses").update({
+        valor_pago: totalPagoNow,
+        status: allPaid ? "pago" : "parcial",
+        forma_pagamento: formaPagamento,
+        data_pagamento: dataPagISO,
+      } as any).eq("id", expenseId);
+
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success(`Parcela ${installment!.numeroParcela}/${installment!.totalParcelas} quitada`);
+    } else {
+      // ---- REGULAR MODE: update expense directly ----
+      const novoValorPago = valorPago + valorNum;
+      const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+
+      const { error } = await supabase.from("expenses").update({
+        valor_pago: novoValorPago,
+        status: novoStatus,
+        forma_pagamento: formaPagamento,
+        data_pagamento: dataPagISO,
+      } as any).eq("id", expenseId);
+
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success(novoStatus === "pago" ? "Despesa quitada" : "Pagamento parcial registrado");
+    }
+
     setSaving(false);
     onOpenChange(false);
     onSaved();
@@ -119,25 +174,38 @@ export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTot
 
   const formaLabel = (v: string) => FORMA_PAGAMENTO_OPTIONS.find(o => o.value === v)?.label || v;
 
+  const titleText = isInstallmentMode
+    ? `Pagamento — Parcela ${installment!.numeroParcela}/${installment!.totalParcelas}`
+    : "Baixa de Pagamento";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Baixa de Pagamento</DialogTitle>
+          <DialogTitle>{titleText}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Resumo da conta */}
+          {/* Resumo */}
           <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
             {(favorecidoNome || descricao) && (
               <p className="text-sm font-medium text-foreground">{favorecidoNome || descricao}</p>
             )}
-            {dataVencimento && (
-              <p className="text-xs text-muted-foreground">Vencimento: {formatDateBR(dataVencimento)}</p>
+            {effectiveVencimento && (
+              <p className="text-xs text-muted-foreground">Vencimento: {formatDateBR(effectiveVencimento)}</p>
             )}
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-muted-foreground">Total: <strong className="text-foreground">{formatCurrency(valorTotal)}</strong></span>
-              {valorPago > 0 && <span className="text-muted-foreground">Pago: <strong className="text-foreground">{formatCurrency(valorPago)}</strong></span>}
-              <span className="text-muted-foreground">Restante: <strong className="text-primary font-bold">{formatCurrency(saldoRestante)}</strong></span>
+            <div className="flex items-center gap-4 text-sm flex-wrap">
+              {isInstallmentMode ? (
+                <>
+                  <span className="text-muted-foreground">Valor da parcela: <strong className="text-primary font-bold">{formatCurrency(effectiveTotal)}</strong></span>
+                  <span className="text-muted-foreground text-xs">(Total da conta: {formatCurrency(valorTotal)})</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Total: <strong className="text-foreground">{formatCurrency(valorTotal)}</strong></span>
+                  {valorPago > 0 && <span className="text-muted-foreground">Pago: <strong className="text-foreground">{formatCurrency(valorPago)}</strong></span>}
+                  <span className="text-muted-foreground">Restante: <strong className="text-primary font-bold">{formatCurrency(saldoRestante)}</strong></span>
+                </>
+              )}
             </div>
           </div>
 
