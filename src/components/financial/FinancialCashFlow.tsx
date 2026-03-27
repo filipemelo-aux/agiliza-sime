@@ -21,8 +21,12 @@ interface Movimentacao {
   created_at: string;
 }
 
+interface MovimentacaoEnriquecida extends Movimentacao {
+  pessoa_nome: string | null;
+}
+
 export function FinancialCashFlow() {
-  const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
@@ -40,7 +44,7 @@ export function FinancialCashFlow() {
       .select("*")
       .gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"))
       .lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"))
-      .order("data_movimentacao", { ascending: true });
+      .order("data_movimentacao", { ascending: false });
 
     if (filters.tipo !== "todos") {
       query = query.eq("tipo", filters.tipo);
@@ -56,7 +60,54 @@ export function FinancialCashFlow() {
     }
 
     const { data } = await query;
-    setMovimentacoes((data as Movimentacao[]) || []);
+    const movs = (data as Movimentacao[]) || [];
+
+    // Enrich with client/supplier names in batch
+    const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
+    const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
+
+    const pessoaMap = new Map<string, string>();
+
+    const [pagarRes, receberRes] = await Promise.all([
+      pagarIds.length > 0
+        ? supabase
+            .from("accounts_payable")
+            .select("id, creditor_name, creditor_id")
+            .in("id", pagarIds)
+        : Promise.resolve({ data: [] }),
+      receberIds.length > 0
+        ? supabase
+            .from("contas_receber")
+            .select("id, cliente_id")
+            .in("id", receberIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    // Map payable creditor names
+    (pagarRes.data || []).forEach((ap: any) => {
+      if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name);
+    });
+
+    // Fetch client names for receivables
+    const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];
+    if (clienteIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", clienteIds);
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.full_name]));
+      (receberRes.data || []).forEach((cr: any) => {
+        const nome = profileMap.get(cr.cliente_id);
+        if (nome) pessoaMap.set(cr.id, nome);
+      });
+    }
+
+    const enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({
+      ...m,
+      pessoa_nome: pessoaMap.get(m.origem_id) || null,
+    }));
+
+    setMovimentacoes(enriched);
     setLoading(false);
   }, [filters]);
 
@@ -191,27 +242,29 @@ export function FinancialCashFlow() {
                   <TableHead>Data</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Origem</TableHead>
+                  <TableHead>Cliente / Fornecedor</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : movimentacoes.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma movimentação no período</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma movimentação no período</TableCell></TableRow>
                 ) : (
                   movimentacoes.map((m) => (
                     <TableRow key={m.id}>
-                      <TableCell className="text-sm">{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</TableCell>
                       <TableCell>
                         <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn(m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-sm max-w-[160px] truncate">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-sm max-w-[200px] truncate">{m.descricao || "—"}</TableCell>
-                      <TableCell className={cn("text-right font-mono font-semibold", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                      <TableCell className={cn("text-right font-mono font-semibold whitespace-nowrap", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
                     </TableRow>
