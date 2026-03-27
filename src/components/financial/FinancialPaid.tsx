@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, CheckCircle2, TrendingUp, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/masks";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PaidItem {
   id: string;
@@ -17,6 +18,7 @@ interface PaidItem {
 }
 
 export function FinancialPaid() {
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<PaidItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -77,60 +79,103 @@ export function FinancialPaid() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Pago</p>
-            <p className="text-xl font-bold text-success">{formatCurrency(total)}</p>
+      <h1 className="text-lg font-bold text-foreground">Pagos</h1>
+
+      {/* Summary cards - compact */}
+      <div className="grid grid-cols-2 gap-2">
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Pago</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(total)}</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Registros</p>
-            <p className="text-xl font-bold text-foreground">{filtered.length}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Registros</p>
+              <p className="text-sm font-bold text-foreground">{filtered.length}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Search */}
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9" />
+        <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9" />
       </div>
 
+      {/* List */}
       {loading ? (
-        <p className="text-muted-foreground text-sm text-center py-8">Carregando...</p>
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : filtered.length === 0 ? (
-        <p className="text-muted-foreground text-sm text-center py-8">Nenhuma conta paga encontrada</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <DollarSign className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground text-sm">Nenhuma conta paga encontrada.</p>
+          </CardContent>
+        </Card>
+      ) : isMobile ? (
+        <div className="grid grid-cols-1 gap-2">
           {filtered.map((item) => (
-            <Card key={item.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{item.creditor_name || "—"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                  </div>
+            <Card key={item.id} className="border-l-4 border-l-green-500">
+              <CardContent className="p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground truncate">{item.creditor_name || "—"}</p>
                   <Badge variant={item.source === "expense" ? "outline" : "secondary"} className="text-[10px] shrink-0">
                     {item.source === "expense" ? "Despesa" : "Legado"}
                   </Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Valor Pago</span>
-                    <p className="font-mono font-semibold text-foreground">
-                      {formatCurrency(item.amount)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Data Pgto</span>
-                    <p className="font-medium text-foreground">{item.paid_at ? format(new Date(item.paid_at), "dd/MM/yyyy") : "—"}</p>
-                  </div>
+                <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">{item.paid_at ? format(new Date(item.paid_at), "dd/MM/yyyy") : "—"}</span>
+                  <span className="font-mono font-bold text-green-600">{formatCurrency(item.amount)}</span>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Fornecedor</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Descrição</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Data Pgto</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
+                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Tipo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((item) => (
+                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 text-xs font-medium">{item.creditor_name || "—"}</td>
+                      <td className="px-4 py-2.5 text-xs max-w-[200px] truncate">{item.description}</td>
+                      <td className="px-4 py-2.5 text-xs">{item.paid_at ? format(new Date(item.paid_at), "dd/MM/yyyy") : "—"}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-green-600">{formatCurrency(item.amount)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <Badge variant={item.source === "expense" ? "outline" : "secondary"} className="text-[10px]">
+                          {item.source === "expense" ? "Despesa" : "Legado"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

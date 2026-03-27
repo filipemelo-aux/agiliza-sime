@@ -17,6 +17,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Fatura {
   id: string;
@@ -73,6 +74,7 @@ const FORMA_RECEBIMENTO_OPTIONS = [
 ];
 
 export function FinancialInvoicing() {
+  const isMobile = useIsMobile();
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -339,33 +341,68 @@ export function FinancialInvoicing() {
       </div>
 
       {/* Faturas list */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Parcelas</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">Carregando...</td>
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+      ) : faturas.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground text-sm">Nenhuma fatura encontrada.</p>
+            <p className="text-muted-foreground text-xs mt-1">Clique em "Nova Fatura" para criar.</p>
+          </CardContent>
+        </Card>
+      ) : isMobile ? (
+        <div className="grid grid-cols-1 gap-2">
+          {faturas.map((f) => {
+            const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+            return (
+              <Card key={f.id} className={cn(
+                "border-l-4",
+                f.status === "paga" && "border-l-green-500",
+                f.status === "faturada" && "border-l-primary",
+                f.status === "rascunho" && "border-l-muted-foreground/30",
+              )}>
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
+                    <Badge variant={st.variant} className="text-[10px] shrink-0">{st.label}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{format(new Date(f.data_emissao), "dd/MM/yyyy")} · {f.num_parcelas}x</span>
+                    <span className="font-mono font-bold text-foreground">{formatCurrency(Number(f.valor_total))}</span>
+                  </div>
+                  <div className="flex gap-1.5 pt-1">
+                    <Button variant="ghost" size="sm" onClick={() => openDetail(f)} className="gap-1 h-7 text-xs flex-1">
+                      <Eye className="h-3 w-3" /> Detalhes
+                    </Button>
+                    {hasPendingContas(f) && (
+                      <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs flex-1">
+                        <HandCoins className="h-3 w-3" /> Receber
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
+                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Parcelas</th>
+                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
                   </tr>
-                ) : faturas.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
-                      Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.
-                    </td>
-                  </tr>
-                ) : (
-                  faturas.map((f) => {
+                </thead>
+                <tbody className="divide-y">
+                  {faturas.map((f) => {
                     const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                     return (
                       <tr key={f.id} className="hover:bg-muted/20 transition-colors">
@@ -376,25 +413,27 @@ export function FinancialInvoicing() {
                         <td className="px-4 py-2.5 text-center">
                           <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                         </td>
-                        <td className="px-4 py-2.5 text-right space-x-1">
-                          <Button variant="ghost" size="sm" onClick={() => openDetail(f)} title="Detalhes" className="h-7 px-1.5">
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          {hasPendingContas(f) && (
-                            <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
-                              <HandCoins className="h-3 w-3" /> Receber
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
-                          )}
+                            {hasPendingContas(f) && (
+                              <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
+                                <HandCoins className="h-3 w-3" /> Receber
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
