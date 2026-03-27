@@ -255,7 +255,7 @@ export function FinancialInvoicing() {
   // --- Receber ---
   const openReceive = async (fatura: Fatura) => {
     setReceiveFatura(fatura);
-    setReceiveDate(new Date());
+    setReceiveDate(getLocalDateISO());
     setReceiveForma("pix");
 
     const { data } = await supabase
@@ -279,7 +279,7 @@ export function FinancialInvoicing() {
           .from("contas_receber")
           .update({
             status: "recebido" as any,
-            data_recebimento: format(receiveDate, "yyyy-MM-dd"),
+            data_recebimento: receiveDate,
             valor_recebido: Number(conta.valor),
             forma_recebimento: receiveForma,
           })
@@ -354,7 +354,7 @@ export function FinancialInvoicing() {
           {faturas.map((f) => {
             const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
             return (
-              <Card key={f.id} className={cn(
+              <Card key={f.id} className={[
                 "border-l-4",
                 f.status === "paga" && "border-l-green-500",
                 f.status === "faturada" && "border-l-primary",
