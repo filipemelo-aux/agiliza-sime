@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock, Receipt } from "lucide-react";
+import { Sprout, ArrowLeft, Plus, Trash2, Users, Calendar, DollarSign, MapPin, User, Building2, FileText, TrendingUp, MinusCircle, Pencil, Check, X, Download, FileSpreadsheet, File, ArrowUpDown, ArrowUp, ArrowDown, Search, CheckCircle2, Clock, Receipt, Undo2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AgregadoMobileCard, FaturamentoMobileCard, ClienteMobileCard } from "@/components/harvest/HarvestMobileCards";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -1271,12 +1271,24 @@ export default function HarvestDetail() {
 
   const handleDeletePayment = async (paymentId: string) => {
     try {
+      // Remove bank movement first
+      await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "colheitas").eq("origem_id", paymentId);
+      // Remove linked expenses
+      const { data: linkedExpenses } = await supabase.from("expenses").select("id").eq("contrato_id", paymentId);
+      if (linkedExpenses && linkedExpenses.length > 0) {
+        for (const exp of linkedExpenses) {
+          await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", exp.id);
+          await supabase.from("expense_payments" as any).delete().eq("expense_id", exp.id);
+        }
+        await supabase.from("expenses").delete().in("id", linkedExpenses.map(e => e.id));
+      }
+      // Finally delete the harvest payment
       const { error } = await supabase.from("harvest_payments").delete().eq("id", paymentId);
       if (error) throw error;
-      toast({ title: "Pagamento removido" });
+      toast({ title: "Pagamento estornado com sucesso" });
       fetchAll();
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao estornar", description: error.message, variant: "destructive" });
     }
   };
 
@@ -2030,8 +2042,8 @@ export default function HarvestDetail() {
                       return (
                         <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span>• {dateLabel}: {formatCurrency(p.total_amount)}</span>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDeletePayment(p.id)}>
-                            <Trash2 className="h-2.5 w-2.5" />
+                          <Button variant="ghost" size="sm" className="h-5 px-1 text-[10px] gap-0.5 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10" onClick={() => handleDeletePayment(p.id)}>
+                            <Undo2 className="h-2.5 w-2.5" /> Estornar
                           </Button>
                         </div>
                       );
