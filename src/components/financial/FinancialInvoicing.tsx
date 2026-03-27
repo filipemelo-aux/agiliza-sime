@@ -3,13 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign } from "lucide-react";
-import { formatCurrency } from "@/lib/masks";
+import { cn } from "@/lib/utils";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, CalendarIcon } from "lucide-react";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
 interface Fatura {
   id: string;
@@ -30,6 +37,8 @@ interface Previsao {
   valor: number;
   data_prevista: string;
   status: string;
+  cliente_id: string;
+  cliente_nome?: string;
 }
 
 interface ContaReceber {
@@ -38,6 +47,13 @@ interface ContaReceber {
   data_vencimento: string;
   status: string;
   data_recebimento: string | null;
+  valor_recebido: number | null;
+  forma_recebimento: string | null;
+}
+
+interface Cliente {
+  id: string;
+  full_name: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -46,13 +62,44 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   paga: { label: "Paga", variant: "secondary" },
 };
 
+const FORMA_RECEBIMENTO_OPTIONS = [
+  { value: "pix", label: "PIX" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transferencia", label: "Transferência" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+  { value: "cartao_credito", label: "Cartão de Crédito" },
+  { value: "cartao_debito", label: "Cartão de Débito" },
+];
+
 export function FinancialInvoicing() {
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFatura, setSelectedFatura] = useState<Fatura | null>(null);
-  const [previsoes, setPrevisoes] = useState<Previsao[]>([]);
-  const [contas, setContas] = useState<ContaReceber[]>([]);
+  const [detailPrevisoes, setDetailPrevisoes] = useState<Previsao[]>([]);
+  const [detailContas, setDetailContas] = useState<ContaReceber[]>([]);
+
+  // New invoice dialog
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [step, setStep] = useState<"client" | "preview">("client");
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [clientPrevisoes, setClientPrevisoes] = useState<Previsao[]>([]);
+  const [selectedPrevIds, setSelectedPrevIds] = useState<Set<string>>(new Set());
+  const [numParcelas, setNumParcelas] = useState(1);
+  const [intervaloDias, setIntervaloDias] = useState(30);
+  const [saving, setSaving] = useState(false);
+
+  // Receive dialog
+  const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
+  const [receiveFatura, setReceiveFatura] = useState<Fatura | null>(null);
+  const [receiveContas, setReceiveContas] = useState<ContaReceber[]>([]);
+  const [receiveDate, setReceiveDate] = useState<Date>(new Date());
+  const [receiveForma, setReceiveForma] = useState("pix");
+  const [receiveSaving, setReceiveSaving] = useState(false);
 
   useEffect(() => {
     fetchFaturas();
@@ -80,11 +127,11 @@ export function FinancialInvoicing() {
     setLoading(false);
   };
 
+  // --- Detail ---
   const openDetail = async (fatura: Fatura) => {
     setSelectedFatura(fatura);
     setDetailOpen(true);
 
-    // Load linked previsoes
     const { data: links } = await supabase
       .from("fatura_previsoes")
       .select("previsao_id")
@@ -96,29 +143,174 @@ export function FinancialInvoicing() {
         .from("previsoes_recebimento")
         .select("*")
         .in("id", ids);
-      setPrevisoes((prevData as Previsao[]) || []);
+      setDetailPrevisoes((prevData as Previsao[]) || []);
     } else {
-      setPrevisoes([]);
+      setDetailPrevisoes([]);
     }
 
-    // Load contas a receber
     const { data: contasData } = await supabase
       .from("contas_receber")
       .select("*")
       .eq("fatura_id", fatura.id)
       .order("data_vencimento", { ascending: true });
-    setContas((contasData as ContaReceber[]) || []);
+    setDetailContas((contasData as ContaReceber[]) || []);
+  };
+
+  // --- Nova Fatura ---
+  const openNewInvoice = async () => {
+    setStep("client");
+    setSelectedClientId("");
+    setClientPrevisoes([]);
+    setSelectedPrevIds(new Set());
+    setNumParcelas(1);
+    setIntervaloDias(30);
+    setNewDialogOpen(true);
+
+    // Load clients that have pending previsões
+    const { data } = await supabase
+      .from("previsoes_recebimento")
+      .select("cliente_id, profiles:cliente_id(full_name)")
+      .eq("status", "pendente");
+
+    if (data) {
+      const unique = new Map<string, string>();
+      data.forEach((d: any) => {
+        if (d.cliente_id && d.profiles?.full_name) {
+          unique.set(d.cliente_id, d.profiles.full_name);
+        }
+      });
+      setClientes(Array.from(unique.entries()).map(([id, full_name]) => ({ id, full_name })));
+    }
+  };
+
+  const handleClientSelect = async (clientId: string) => {
+    setSelectedClientId(clientId);
+    const { data } = await supabase
+      .from("previsoes_recebimento")
+      .select("*, profiles:cliente_id(full_name)")
+      .eq("cliente_id", clientId)
+      .eq("status", "pendente")
+      .order("data_prevista", { ascending: true });
+
+    const mapped = (data || []).map((p: any) => ({
+      ...p,
+      cliente_nome: p.profiles?.full_name || "—",
+    }));
+    setClientPrevisoes(mapped);
+    setSelectedPrevIds(new Set(mapped.map((p: any) => p.id)));
+    setStep("preview");
+  };
+
+  const togglePrev = (id: string) => {
+    setSelectedPrevIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedPrevTotal = clientPrevisoes
+    .filter((p) => selectedPrevIds.has(p.id))
+    .reduce((s, p) => s + Number(p.valor), 0);
+
+  const handleCreateInvoice = async () => {
+    const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
+    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    setSaving(true);
+
+    try {
+      const { data: fatura, error: faturaErr } = await supabase
+        .from("faturas_recebimento")
+        .insert({
+          cliente_id: selectedClientId,
+          valor_total: selectedPrevTotal,
+          num_parcelas: numParcelas,
+          intervalo_dias: intervaloDias,
+          status: "faturada" as any,
+        })
+        .select()
+        .single();
+
+      if (faturaErr) throw faturaErr;
+
+      const links = selectedItems.map((p) => ({
+        fatura_id: fatura.id,
+        previsao_id: p.id,
+      }));
+
+      const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
+      if (linkErr) throw linkErr;
+
+      toast.success(`Fatura criada com ${numParcelas} parcela(s)!`);
+      setNewDialogOpen(false);
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar fatura");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- Receber ---
+  const openReceive = async (fatura: Fatura) => {
+    setReceiveFatura(fatura);
+    setReceiveDate(new Date());
+    setReceiveForma("pix");
+
+    const { data } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .eq("fatura_id", fatura.id)
+      .in("status", ["aberto", "atrasado"])
+      .order("data_vencimento", { ascending: true });
+
+    setReceiveContas((data as ContaReceber[]) || []);
+    setReceiveDialogOpen(true);
+  };
+
+  const handleReceiveAll = async () => {
+    if (!receiveFatura || receiveContas.length === 0) return;
+    setReceiveSaving(true);
+
+    try {
+      for (const conta of receiveContas) {
+        const { error } = await supabase
+          .from("contas_receber")
+          .update({
+            status: "recebido" as any,
+            data_recebimento: format(receiveDate, "yyyy-MM-dd"),
+            valor_recebido: Number(conta.valor),
+            forma_recebimento: receiveForma,
+          })
+          .eq("id", conta.id);
+
+        if (error) throw error;
+      }
+
+      toast.success("Todos os títulos foram recebidos!");
+      setReceiveDialogOpen(false);
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar recebimento");
+    } finally {
+      setReceiveSaving(false);
+    }
   };
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
-  const totalFaturas = faturas.length;
+
+  const hasPendingContas = (f: Fatura) => f.status === "faturada";
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Faturamento</h1>
-      <p className="text-sm text-muted-foreground">
-        Gerencie faturas criadas a partir de previsões de recebimento. Para criar novas faturas, acesse "Previsões de Recebimento".
-      </p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Faturamento</h1>
+        <Button onClick={openNewInvoice} className="gap-1">
+          <Plus className="h-4 w-4" />
+          Nova Fatura
+        </Button>
+      </div>
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -127,7 +319,7 @@ export function FinancialInvoicing() {
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Total de Faturas</p>
-              <p className="text-lg font-bold">{totalFaturas}</p>
+              <p className="text-lg font-bold">{faturas.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,57 +335,59 @@ export function FinancialInvoicing() {
       </div>
 
       {/* Faturas Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Emissão</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-center">Parcelas</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
-                  </TableRow>
-                ) : faturas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Nenhuma fatura encontrada. Crie faturas a partir das Previsões de Recebimento.
+      <div className="border rounded-md overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Emissão</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-center">Parcelas</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
+              </TableRow>
+            ) : faturas.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.
+                </TableCell>
+              </TableRow>
+            ) : (
+              faturas.map((f) => {
+                const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+                return (
+                  <TableRow key={f.id}>
+                    <TableCell className="text-sm">{format(new Date(f.data_emissao), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-sm font-medium">{f.cliente_nome}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(Number(f.valor_total))}</TableCell>
+                    <TableCell className="text-center">{f.num_parcelas}x</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={st.variant}>{st.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openDetail(f)} title="Detalhes">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {hasPendingContas(f) && (
+                        <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1">
+                          <HandCoins className="h-3.5 w-3.5" />
+                          Receber
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  faturas.map((f) => {
-                    const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-                    return (
-                      <TableRow key={f.id}>
-                        <TableCell className="text-sm">{format(new Date(f.data_emissao), "dd/MM/yyyy")}</TableCell>
-                        <TableCell className="text-sm font-medium">{f.cliente_nome}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(Number(f.valor_total))}</TableCell>
-                        <TableCell className="text-center">{f.num_parcelas}x</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={st.variant}>{st.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button variant="ghost" size="sm" onClick={() => openDetail(f)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -210,9 +404,8 @@ export function FinancialInvoicing() {
                 <div><span className="text-muted-foreground">Parcelas:</span> <strong>{selectedFatura.num_parcelas}x (a cada {selectedFatura.intervalo_dias} dias)</strong></div>
               </div>
 
-              {/* Previsões vinculadas */}
               <div>
-                <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({previsoes.length})</p>
+                <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({detailPrevisoes.length})</p>
                 <div className="overflow-x-auto border rounded max-h-[150px] overflow-y-auto">
                   <Table>
                     <TableHeader>
@@ -223,12 +416,12 @@ export function FinancialInvoicing() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previsoes.map((p) => (
+                      {detailPrevisoes.map((p) => (
                         <TableRow key={p.id}>
                           <TableCell className="text-xs">
                             <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{format(new Date(p.data_prevista), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs">{format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                         </TableRow>
                       ))}
@@ -237,9 +430,8 @@ export function FinancialInvoicing() {
                 </div>
               </div>
 
-              {/* Contas a Receber geradas */}
               <div>
-                <p className="text-sm font-semibold mb-2">Contas a Receber Geradas ({contas.length})</p>
+                <p className="text-sm font-semibold mb-2">Contas a Receber ({detailContas.length})</p>
                 <div className="overflow-x-auto border rounded max-h-[150px] overflow-y-auto">
                   <Table>
                     <TableHeader>
@@ -251,22 +443,225 @@ export function FinancialInvoicing() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {contas.map((c) => (
+                      {detailContas.map((c) => (
                         <TableRow key={c.id}>
-                          <TableCell className="text-xs">{format(new Date(c.data_vencimento), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
                           <TableCell className="text-xs text-center">
                             <Badge variant={c.status === "recebido" ? "default" : c.status === "atrasado" ? "destructive" : "outline"}>
                               {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{c.data_recebimento ? format(new Date(c.data_recebimento), "dd/MM/yyyy") : "—"}</TableCell>
+                          <TableCell className="text-xs">{c.data_recebimento ? format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy") : "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Invoice Dialog */}
+      <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{step === "client" ? "Nova Fatura — Selecionar Cliente" : "Nova Fatura — Previsões"}</DialogTitle>
+          </DialogHeader>
+
+          {step === "client" && (
+            <div className="space-y-3">
+              {clientes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente com previsões pendentes.</p>
+              ) : (
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  {clientes.map((c) => (
+                    <Button
+                      key={c.id}
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleClientSelect(c.id)}
+                    >
+                      {c.full_name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === "preview" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Cliente: <strong className="text-foreground">{clientes.find((c) => c.id === selectedClientId)?.full_name}</strong>
+              </p>
+
+              {/* Previsões list */}
+              <div className="border rounded max-h-[200px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={selectedPrevIds.size === clientPrevisoes.length && clientPrevisoes.length > 0}
+                          onCheckedChange={() => {
+                            if (selectedPrevIds.size === clientPrevisoes.length) {
+                              setSelectedPrevIds(new Set());
+                            } else {
+                              setSelectedPrevIds(new Set(clientPrevisoes.map((p) => p.id)));
+                            }
+                          }}
+                        />
+                      </TableHead>
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientPrevisoes.map((p) => (
+                      <TableRow key={p.id} className={selectedPrevIds.has(p.id) ? "bg-accent/30" : ""}>
+                        <TableCell>
+                          <Checkbox checked={selectedPrevIds.has(p.id)} onCheckedChange={() => togglePrev(p.id)} />
+                        </TableCell>
+                        <TableCell className="text-xs">{p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</TableCell>
+                        <TableCell className="text-xs">{format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                Selecionadas: <strong className="text-foreground">{selectedPrevIds.size}</strong> |
+                Total: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
+              </div>
+
+              {/* Payment terms */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Nº de Parcelas</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={48}
+                    value={numParcelas}
+                    onChange={(e) => setNumParcelas(Math.max(1, Number(e.target.value)))}
+                  />
+                </div>
+                <div>
+                  <Label>Intervalo (dias)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={intervaloDias}
+                    onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value)))}
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
+                {numParcelas === 1 ? (
+                  <p>À vista — vencimento na data de emissão</p>
+                ) : (
+                  <p>{numParcelas}x de {formatCurrency(selectedPrevTotal / numParcelas)} a cada {intervaloDias} dias</p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
+                <Button onClick={handleCreateInvoice} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
+                  {saving ? "Criando..." : "Confirmar Fatura"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Receive Dialog */}
+      <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Recebimento</DialogTitle>
+          </DialogHeader>
+          {receiveFatura && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
+                <p>Valor da fatura: <strong className="text-foreground">{formatCurrency(Number(receiveFatura.valor_total))}</strong></p>
+              </div>
+
+              {/* Pending accounts */}
+              <div>
+                <p className="text-sm font-semibold mb-1">Títulos pendentes ({receiveContas.length})</p>
+                <div className="border rounded max-h-[150px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Vencimento</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {receiveContas.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
+                          <TableCell className="text-xs">
+                            <Badge variant={c.status === "atrasado" ? "destructive" : "outline"}>
+                              {c.status === "atrasado" ? "Atrasado" : "Aberto"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <Label>Data do Recebimento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(receiveDate, "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={receiveDate}
+                        onSelect={(d) => d && setReceiveDate(d)}
+                        locale={ptBR}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label>Forma de Recebimento</Label>
+                  <Select value={receiveForma} onValueChange={setReceiveForma}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FORMA_RECEBIMENTO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button onClick={handleReceiveAll} className="w-full" disabled={receiveSaving || receiveContas.length === 0}>
+                {receiveSaving ? "Processando..." : `Receber ${receiveContas.length} título(s)`}
+              </Button>
             </div>
           )}
         </DialogContent>
