@@ -359,7 +359,7 @@ export function FinancialPayables() {
     fetchData();
   };
 
-  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
+  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentInstallment(null); setPaymentOpen(true); };
 
   const showExpenseDetail = (expenseId: string) => {
     const exp = items.find(i => i.id === expenseId);
