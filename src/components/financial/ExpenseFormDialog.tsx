@@ -47,12 +47,6 @@ const ORIGEM_MAP: Record<string, string> = {
 
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; tipo_operacional?: string | null; }
 
-interface BankAccountOption {
-  id: string;
-  nome: string;
-  saldo_atual: number;
-  ativo: boolean;
-}
 
 interface Expense {
   id: string;
