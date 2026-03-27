@@ -19,9 +19,24 @@ export interface NfeDuplicata {
   valor: number;
 }
 
+export interface NfeEmitente {
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  inscricao_estadual: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  uf: string;
+  cep: string;
+}
+
 export interface NfeData {
   fornecedor_nome: string;
   fornecedor_cnpj: string;
+  emitente: NfeEmitente;
   numero_nota: string;
   chave_nfe: string;
   data_emissao: string;
