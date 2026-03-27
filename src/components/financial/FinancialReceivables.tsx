@@ -117,6 +117,11 @@ export function FinancialReceivables() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
+        {filterStatus !== "todos" && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterStatus("todos")}>
+            <X className="h-3 w-3" /> Limpar filtros
+          </Button>
+        )}
       </div>
 
       {/* List */}
