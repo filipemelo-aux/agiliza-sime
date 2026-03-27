@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins } from "lucide-react";
+import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
