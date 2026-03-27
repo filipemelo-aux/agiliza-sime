@@ -1048,7 +1048,7 @@ export type Database = {
           {
             foreignKeyName: "fatura_previsoes_previsao_id_fkey"
             columns: ["previsao_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "previsoes_recebimento"
             referencedColumns: ["id"]
           },
