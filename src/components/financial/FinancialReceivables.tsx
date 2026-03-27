@@ -181,17 +181,15 @@ export function FinancialReceivables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }, { data: baData }, harvestData, cteData, invSummary] = await Promise.all([
+    const [{ data: recData }, { data: catData }, harvestData, cteData, invSummary] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("chart_of_accounts").select("id, nome").eq("tipo", "receita").eq("ativo", true).order("codigo"),
-      supabase.from("bank_accounts").select("id, nome, saldo_atual, empresa_id").eq("ativo", true).order("nome"),
       fetchHarvestReceivables(),
       fetchCteReceivables(),
       fetchInvoiceSummary(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
-    setBankAccounts((baData as any) || []);
     setHarvestItems(harvestData);
     setCteForecasts(cteData);
     setInvoiceSummary(invSummary);
@@ -200,12 +198,12 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); setFormContaBancariaId(""); };
+  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); };
 
   const handleSave = async () => {
     if (!description.trim()) return toast.error("Informe a descrição");
     if (!amount || Number(amount) <= 0) return toast.error("Informe o valor");
-    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null, conta_bancaria_id: formContaBancariaId || null };
+    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null };
     if (editingId) {
       const { error } = await supabase.from("accounts_receivable").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
@@ -223,7 +221,7 @@ export function FinancialReceivables() {
 
   const handleEdit = (item: Receivable) => {
     setEditingId(item.id); setDescription(item.description); setCategoryId(item.category_id || "");
-    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setFormContaBancariaId(item.conta_bancaria_id || ""); setDialogOpen(true);
+    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
   };
 
   const openReceiveDialog = (item: Receivable) => {
@@ -231,7 +229,6 @@ export function FinancialReceivables() {
     const remaining = Number(item.amount) - paidSoFar;
     setReceiveItem(item);
     setReceiveValor(String(remaining));
-    setReceiveContaId(item.conta_bancaria_id || "");
     setReceiveData(new Date());
     setReceiveObs("");
     setReceiveOpen(true);
@@ -241,7 +238,6 @@ export function FinancialReceivables() {
     if (!receiveItem) return;
     const valorNum = Number(receiveValor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
-    if (!receiveContaId) return toast.error("Selecione a conta bancária");
 
     const paidSoFar = Number(receiveItem.paid_amount) || 0;
     const remaining = Number(receiveItem.amount) - paidSoFar;
@@ -262,30 +258,6 @@ export function FinancialReceivables() {
 
     if (error) { toast.error(error.message); setReceiveSaving(false); return; }
 
-    // Create financial transaction (entrada)
-    const selectedAccount = bankAccounts.find(ba => ba.id === receiveContaId);
-    const resolvedEmpresaId = selectedAccount?.empresa_id || "";
-    const { error: txErr } = await supabase.from("financial_transactions").insert({
-      conta_bancaria_id: receiveContaId,
-      tipo: "entrada",
-      valor: valorNum,
-      data_movimentacao: dataFormatted,
-      descricao: `Recebimento: ${receiveItem.description}`,
-      plano_contas_id: receiveItem.category_id || null,
-      origem: "conta_receber",
-      origem_id: receiveItem.id,
-      status: "confirmado",
-      observacoes: receiveObs.trim() || null,
-      empresa_id: resolvedEmpresaId,
-      unidade_id: resolvedEmpresaId,
-      created_by: user?.id,
-    } as any);
-
-    if (txErr) {
-      console.error("Erro ao criar movimentação:", txErr.message);
-      toast.warning("Recebimento registrado, mas houve erro ao criar movimentação financeira.");
-    }
-
     toast.success(novoStatus === "pago" ? "Conta recebida!" : "Recebimento parcial registrado");
     setReceiveSaving(false);
     setReceiveOpen(false);
@@ -299,7 +271,7 @@ export function FinancialReceivables() {
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, debtor_id: null, cte_id: null, invoice_id: null,
     notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: ${formatCurrency(h.invoicedAmount)}` : ""}`,
-    created_at: new Date().toISOString(), conta_bancaria_id: null, _source: "harvest" as const,
+    created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
   const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
@@ -307,7 +279,7 @@ export function FinancialReceivables() {
     amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: c.tomador_nome, debtor_id: null, cte_id: c.id, invoice_id: null,
     notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
-    created_at: c.data_emissao || new Date().toISOString(), conta_bancaria_id: null, _source: "cte" as const,
+    created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
   }));
 
   const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables, ...cteAsReceivables];
