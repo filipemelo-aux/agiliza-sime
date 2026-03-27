@@ -414,19 +414,13 @@ export function FinancialPayables() {
     setMaintDetailLoading(false);
   };
 
-  const handlePayInstallment = async (inst: Installment) => {
-    if (!await confirm(`Confirma o pagamento da parcela ${inst.numero_parcela} — ${formatCurrency(Number(inst.valor))}?`)) return;
-    const { error } = await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", inst.id);
-    if (error) return toast.error(error.message);
-    // Update expense valor_pago
+  const handlePayInstallment = (inst: Installment) => {
+    // Open the PaymentDischargeDialog for the parent expense, pre-filled with installment value
     const expense = items.find(i => i.id === inst.expense_id);
     if (expense) {
-      const newPago = Number(expense.valor_pago) + Number(inst.valor);
-      const newStatus = newPago >= Number(expense.valor_total) ? "pago" : "parcial";
-      await supabase.from("expenses").update({ valor_pago: newPago, status: newStatus, data_pagamento: getLocalDateISO() } as any).eq("id", inst.expense_id);
+      setPaymentExpense(expense);
+      setPaymentOpen(true);
     }
-    toast.success("Parcela quitada");
-    fetchData();
   };
 
   const handleDeleteInstallment = async (inst: Installment) => {
