@@ -19,6 +19,7 @@ import { getLocalDateISO } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
+  { value: "ted", label: "TED" },
   { value: "boleto", label: "Boleto" },
   { value: "cartao_credito", label: "Cartão de Crédito" },
   { value: "cartao_debito", label: "Cartão de Débito" },
