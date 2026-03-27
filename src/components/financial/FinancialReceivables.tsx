@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
-import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Receivable {
@@ -37,18 +36,12 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
-  conta_bancaria_id: string | null;
+  
   _source?: "manual" | "harvest" | "cte";
 }
 
 interface Category { id: string; nome: string; }
 
-interface BankAccount {
-  id: string;
-  nome: string;
-  saldo_atual: number;
-  empresa_id: string;
-}
 
 interface HarvestReceivable {
   id: string;
@@ -159,14 +152,14 @@ export function FinancialReceivables() {
   const [cteForecasts, setCteForecasts] = useState<CteReceivable[]>([]);
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary>({ totalFaturado: 0, totalQuitado: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bankPickerOpen, setBankPickerOpen] = useState(false);
+  
 
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -175,12 +168,12 @@ export function FinancialReceivables() {
   const [debtorName, setDebtorName] = useState("");
   const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [formContaBancariaId, setFormContaBancariaId] = useState("");
+  
 
   // Receive payment dialog state
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiveItem, setReceiveItem] = useState<Receivable | null>(null);
-  const [receiveContaId, setReceiveContaId] = useState("");
+  
   const [receiveValor, setReceiveValor] = useState("");
   const [receiveData, setReceiveData] = useState<Date>(new Date());
   const [receiveObs, setReceiveObs] = useState("");
