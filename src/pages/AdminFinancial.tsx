@@ -17,13 +17,13 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "receivables" && <FinancialReceivables />}
         {section === "receipts" && (
           <>
-            <h1 className="text-2xl font-bold text-foreground">Recibos</h1>
+            <h1 className="text-lg font-bold text-foreground">Recibos</h1>
             <FinancialReceipts />
           </>
         )}
         {section === "chart" && (
           <>
-            <h1 className="text-2xl font-bold text-foreground">Plano de Contas</h1>
+            <h1 className="text-lg font-bold text-foreground">Plano de Contas</h1>
             <ChartOfAccounts />
           </>
         )}
