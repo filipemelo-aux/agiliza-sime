@@ -193,72 +193,111 @@ export function RevenueForecasts() {
         </div>
       )}
 
-      {/* Table */}
       {loading ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">Carregando...</CardContent></Card>
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : previsoes.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Nenhuma previsão de recebimento encontrada.</p>
             <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita.</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="border rounded-md overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={pendentes.length > 0 && selected.size === pendentes.length}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Data Prevista</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {previsoes.map((p) => {
-                const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
-                const isPendente = p.status === "pendente";
-                return (
-                  <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
-                    <TableCell>
+      ) : isMobile ? (
+        <div className="grid grid-cols-1 gap-2">
+          {previsoes.map((p) => {
+            const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
+            const isPendente = p.status === "pendente";
+            return (
+              <Card key={p.id} className={cn(
+                "border-l-4",
+                isPendente ? "border-l-amber-400" : "border-l-green-500",
+              )}>
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {isPendente && (
-                        <Checkbox
-                          checked={selected.has(p.id)}
-                          onCheckedChange={() => toggleSelect(p.id)}
-                        />
+                        <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs uppercase">{p.origem_tipo}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{p.cliente_nome}</TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell className="text-sm text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                    <TableCell>
-                      <Badge variant={isPendente ? "outline" : "default"} className="gap-1">
-                        {isPendente ? <Clock className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                        {isPendente ? "Pendente" : "Faturado"}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
+                    </div>
+                    <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5 shrink-0">
+                      {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                      {isPendente ? "Pendente" : "Faturado"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Icon className="h-3 w-3" />
+                      <span className="uppercase">{p.origem_tipo}</span>
+                      <span>· {format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</span>
+                    </div>
+                    <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={pendentes.length > 0 && selected.size === pendentes.length}
+                        onCheckedChange={toggleAll}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs">Origem</TableHead>
+                    <TableHead className="text-xs">Cliente</TableHead>
+                    <TableHead className="text-xs">Data Prevista</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previsoes.map((p) => {
+                    const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
+                    const isPendente = p.status === "pendente";
+                    return (
+                      <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
+                        <TableCell>
+                          {isPendente && (
+                            <Checkbox
+                              checked={selected.has(p.id)}
+                              onCheckedChange={() => toggleSelect(p.id)}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-xs uppercase">{p.origem_tipo}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs">{p.cliente_nome}</TableCell>
+                        <TableCell className="text-xs">
+                          {format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
+                        <TableCell>
+                          <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                            {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                            {isPendente ? "Pendente" : "Faturado"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Invoice creation dialog */}
