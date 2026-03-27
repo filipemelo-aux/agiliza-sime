@@ -5,10 +5,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Filter, X } from "lucide-react";
+import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface CashFlowFilterValues {
@@ -33,6 +33,19 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
   };
 
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
+
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters;
+
+  const clearAll = () => {
+    onChange({
+      dataInicio: startOfMonth(new Date()),
+      dataFim: endOfMonth(new Date()),
+      tipo: "todos",
+      origem: "todos",
+      valorMin: "",
+      valorMax: "",
+    });
+  };
 
   const clearAdvanced = () => {
     update({ valorMin: "", valorMax: "" });
@@ -131,6 +144,18 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
             </span>
           )}
         </Button>
+
+        {/* Clear all filters */}
+        {hasAnyFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 text-xs text-muted-foreground hover:text-destructive gap-1"
+            onClick={clearAll}
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Limpar filtros
+          </Button>
+        )}
       </div>
 
       {/* Advanced filters */}

@@ -1351,7 +1351,7 @@ export function FinancialPayables() {
             </SelectContent>
           </Select>
 
-          {(quickFilter !== "all" || filterPlanoContas !== "all") && (
+          {(quickFilter !== "all" || filterPlanoContas !== "all" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
             <Button
               variant="ghost"
               size="sm"
@@ -1362,6 +1362,7 @@ export function FinancialPayables() {
                 setFilterNivel("all");
                 setFilterCentroCusto("all");
                 setFilterVeiculo("all");
+                setSearch("");
                 setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
                 setFilterPeriodoFim("");
                 setSelectedIds(new Set());

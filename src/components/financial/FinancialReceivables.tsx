@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins } from "lucide-react";
+import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
@@ -117,6 +117,11 @@ export function FinancialReceivables() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">{filtered.length} título(s)</span>
+        {filterStatus !== "todos" && (
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={() => setFilterStatus("todos")}>
+            <X className="h-3 w-3" /> Limpar filtros
+          </Button>
+        )}
       </div>
 
       {/* List */}
