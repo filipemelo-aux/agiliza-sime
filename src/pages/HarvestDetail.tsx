@@ -1271,12 +1271,24 @@ export default function HarvestDetail() {
 
   const handleDeletePayment = async (paymentId: string) => {
     try {
+      // Remove bank movement first
+      await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "colheitas").eq("origem_id", paymentId);
+      // Remove linked expenses
+      const { data: linkedExpenses } = await supabase.from("expenses").select("id").eq("contrato_id", paymentId);
+      if (linkedExpenses && linkedExpenses.length > 0) {
+        for (const exp of linkedExpenses) {
+          await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", exp.id);
+          await supabase.from("expense_payments" as any).delete().eq("expense_id", exp.id);
+        }
+        await supabase.from("expenses").delete().in("id", linkedExpenses.map(e => e.id));
+      }
+      // Finally delete the harvest payment
       const { error } = await supabase.from("harvest_payments").delete().eq("id", paymentId);
       if (error) throw error;
-      toast({ title: "Pagamento removido" });
+      toast({ title: "Pagamento estornado com sucesso" });
       fetchAll();
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao estornar", description: error.message, variant: "destructive" });
     }
   };
 

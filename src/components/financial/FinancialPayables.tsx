@@ -572,7 +572,21 @@ export function FinancialPayables() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
     for (const id of selectedIds) {
-      if (id.startsWith("inst-")) {
+      if (id.startsWith("harvest-")) {
+        // Estorno de colheita: remove harvest_payment + movimentação bancária + despesas vinculadas
+        const harvestPaymentId = id.replace("harvest-", "");
+        await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "colheitas").eq("origem_id", harvestPaymentId);
+        // Remove linked expenses (frota_terceiros generated from harvest)
+        const { data: linkedExpenses } = await supabase.from("expenses").select("id").eq("contrato_id", harvestPaymentId);
+        if (linkedExpenses && linkedExpenses.length > 0) {
+          for (const exp of linkedExpenses) {
+            await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", exp.id);
+            await supabase.from("expense_payments" as any).delete().eq("expense_id", exp.id);
+          }
+          await supabase.from("expenses").delete().in("id", linkedExpenses.map(e => e.id));
+        }
+        await supabase.from("harvest_payments").delete().eq("id", harvestPaymentId);
+      } else if (id.startsWith("inst-")) {
         const instId = id.replace("inst-", "");
         let foundInst: Installment | undefined;
         let expenseId = "";
