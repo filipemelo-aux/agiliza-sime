@@ -1,17 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { CalendarIcon, TrendingUp, TrendingDown, DollarSign, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
+import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 
 interface Movimentacao {
   id: string;
@@ -27,24 +24,45 @@ interface Movimentacao {
 export function FinancialCashFlow() {
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataInicio, setDataInicio] = useState<Date>(startOfMonth(new Date()));
-  const [dataFim, setDataFim] = useState<Date>(endOfMonth(new Date()));
+  const [filters, setFilters] = useState<CashFlowFilterValues>({
+    dataInicio: startOfMonth(new Date()),
+    dataFim: endOfMonth(new Date()),
+    tipo: "todos",
+    origem: "todos",
+    valorMin: "",
+    valorMax: "",
+  });
+
+  const loadMovimentacoes = useCallback(async () => {
+    setLoading(true);
+    let query = supabase
+      .from("movimentacoes_bancarias")
+      .select("*")
+      .gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"))
+      .lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"))
+      .order("data_movimentacao", { ascending: true });
+
+    if (filters.tipo !== "todos") {
+      query = query.eq("tipo", filters.tipo);
+    }
+    if (filters.origem !== "todos") {
+      query = query.eq("origem", filters.origem);
+    }
+    if (filters.valorMin) {
+      query = query.gte("valor", Number(filters.valorMin));
+    }
+    if (filters.valorMax) {
+      query = query.lte("valor", Number(filters.valorMax));
+    }
+
+    const { data } = await query;
+    setMovimentacoes((data as Movimentacao[]) || []);
+    setLoading(false);
+  }, [filters]);
 
   useEffect(() => {
     loadMovimentacoes();
-  }, [dataInicio, dataFim]);
-
-  const loadMovimentacoes = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("movimentacoes_bancarias")
-      .select("*")
-      .gte("data_movimentacao", format(dataInicio, "yyyy-MM-dd"))
-      .lte("data_movimentacao", format(dataFim, "yyyy-MM-dd"))
-      .order("data_movimentacao", { ascending: true });
-    setMovimentacoes((data as Movimentacao[]) || []);
-    setLoading(false);
-  };
+  }, [loadMovimentacoes]);
 
   const totals = useMemo(() => {
     const entradas = movimentacoes
@@ -84,38 +102,9 @@ export function FinancialCashFlow() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
-        <div className="flex items-center gap-2">
-          <div>
-            <Label className="text-xs text-muted-foreground">De</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-3 w-3" />
-                  {format(dataInicio, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dataInicio} onSelect={(d) => d && setDataInicio(d)} locale={ptBR} className="pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Até</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-3 w-3" />
-                  {format(dataFim, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dataFim} onSelect={(d) => d && setDataFim(d)} locale={ptBR} className="pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+        <CashFlowFilters filters={filters} onChange={setFilters} />
       </div>
 
       {/* Summary cards */}
