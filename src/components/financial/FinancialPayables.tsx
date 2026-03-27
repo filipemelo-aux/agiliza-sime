@@ -1651,9 +1651,48 @@ export function FinancialPayables() {
                             <Check className="h-3 w-3" /> Pagar
                           </Button>
                         )}
-                        {isPago && (
+                        {isPago && !isHarvest && (
                           <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
                             <FileText className="h-3 w-3" /> Detalhes
+                          </Button>
+                        )}
+                        {isPago && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-1.5 text-[11px] gap-0.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10 shrink-0"
+                            onClick={async () => {
+                              if (!await confirm({ title: "Estornar pagamento", description: `Deseja estornar "${item.descricao}"? O valor voltará para pendente.`, confirmLabel: "Estornar" })) return;
+                              if (isHarvest) {
+                                const harvestPaymentId = item.id.replace("harvest-", "");
+                                await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "colheitas").eq("origem_id", harvestPaymentId);
+                                const { data: linkedExpenses } = await supabase.from("expenses").select("id").eq("contrato_id", harvestPaymentId);
+                                if (linkedExpenses && linkedExpenses.length > 0) {
+                                  for (const exp of linkedExpenses) {
+                                    await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", exp.id);
+                                    await supabase.from("expense_payments" as any).delete().eq("expense_id", exp.id);
+                                  }
+                                  await supabase.from("expenses").delete().in("id", linkedExpenses.map(e => e.id));
+                                }
+                                await supabase.from("harvest_payments").delete().eq("id", harvestPaymentId);
+                              } else {
+                                await createReversalTransactions(item.id, "");
+                                await supabase.from("expense_payments" as any).delete().eq("expense_id", item.id);
+                                const installs = installmentsMap[item.id];
+                                if (installs && installs.length > 0) {
+                                  for (const inst of installs) {
+                                    if (inst.status === "pago") {
+                                      await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+                                    }
+                                  }
+                                }
+                                await supabase.from("expenses").update({ valor_pago: 0, status: "pendente", data_pagamento: null } as any).eq("id", item.id);
+                              }
+                              toast.success("Pagamento estornado");
+                              fetchData();
+                            }}
+                          >
+                            <Undo2 className="h-3 w-3" /> Estornar
                           </Button>
                         )}
                         {!isHarvest && (
