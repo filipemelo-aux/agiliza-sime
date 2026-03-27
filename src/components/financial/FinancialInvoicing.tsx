@@ -303,91 +303,98 @@ export function FinancialInvoicing() {
   const hasPendingContas = (f: Fatura) => f.status === "faturada";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Faturamento</h1>
-        <Button onClick={openNewInvoice} className="gap-1">
+        <h1 className="text-lg font-bold text-foreground">Faturamento</h1>
+        <Button onClick={openNewInvoice} className="gap-1.5 shadow-sm">
           <Plus className="h-4 w-4" />
           Nova Fatura
         </Button>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Summary - compact */}
+      <div className="grid grid-cols-2 gap-2">
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Total de Faturas</p>
-              <p className="text-lg font-bold">{faturas.length}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total de Faturas</p>
+              <p className="text-sm font-bold text-foreground">{faturas.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <DollarSign className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Valor Total Faturado</p>
-              <p className="text-lg font-bold">{formatCurrency(totalFaturado)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Valor Faturado</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totalFaturado)}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Faturas Table */}
-      <div className="border rounded-md overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Emissão</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-center">Parcelas</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
-              </TableRow>
-            ) : faturas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.
-                </TableCell>
-              </TableRow>
-            ) : (
-              faturas.map((f) => {
-                const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-                return (
-                  <TableRow key={f.id}>
-                    <TableCell className="text-sm">{format(new Date(f.data_emissao), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-sm font-medium">{f.cliente_nome}</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(Number(f.valor_total))}</TableCell>
-                    <TableCell className="text-center">{f.num_parcelas}x</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={st.variant}>{st.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => openDetail(f)} title="Detalhes">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {hasPendingContas(f) && (
-                        <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1">
-                          <HandCoins className="h-3.5 w-3.5" />
-                          Receber
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Faturas list */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Parcelas</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">Carregando...</td>
+                  </tr>
+                ) : faturas.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
+                      Nenhuma fatura encontrada. Clique em "Nova Fatura" para criar.
+                    </td>
+                  </tr>
+                ) : (
+                  faturas.map((f) => {
+                    const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+                    return (
+                      <tr key={f.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 text-xs">{format(new Date(f.data_emissao), "dd/MM/yyyy")}</td>
+                        <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
+                        <td className="px-4 py-2.5 text-center text-xs">{f.num_parcelas}x</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                        </td>
+                        <td className="px-4 py-2.5 text-right space-x-1">
+                          <Button variant="ghost" size="sm" onClick={() => openDetail(f)} title="Detalhes" className="h-7 px-1.5">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          {hasPendingContas(f) && (
+                            <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
+                              <HandCoins className="h-3 w-3" /> Receber
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
