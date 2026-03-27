@@ -233,7 +233,7 @@ export function PaymentDischargeDialog({
                     onSelect={(d) => d && setDataPagamento(d)}
                     locale={ptBR}
                     initialFocus
-                    captionLayout="dropdown-buttons"
+                    captionLayout="dropdown"
                     fromYear={2020}
                     toYear={new Date().getFullYear() + 2}
                     className={cn("p-3 pointer-events-auto")}
