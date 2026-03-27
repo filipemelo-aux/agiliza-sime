@@ -2185,6 +2185,47 @@ export type Database = {
           },
         ]
       }
+      previsoes_recebimento: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_prevista: string
+          id: string
+          origem_id: string
+          origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
+          status: Database["public"]["Enums"]["previsao_status"]
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_prevista: string
+          id?: string
+          origem_id: string
+          origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
+          status?: Database["public"]["Enums"]["previsao_status"]
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_prevista?: string
+          id?: string
+          origem_id?: string
+          origem_tipo?: Database["public"]["Enums"]["previsao_origem_tipo"]
+          status?: Database["public"]["Enums"]["previsao_status"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "previsoes_recebimento_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address_city: string | null
@@ -2737,6 +2778,8 @@ export type Database = {
         | "imposto"
         | "outros"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
+      previsao_origem_tipo: "cte" | "colheita"
+      previsao_status: "pendente" | "faturado"
       vehicle_type:
         | "truck"
         | "bitruck"
@@ -2902,6 +2945,8 @@ export const Constants = {
         "outros",
       ],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
+      previsao_origem_tipo: ["cte", "colheita"],
+      previsao_status: ["pendente", "faturado"],
       vehicle_type: [
         "truck",
         "bitruck",
