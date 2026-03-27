@@ -13,6 +13,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/masks";
 
 interface Previsao {
   id: string;
