@@ -53,20 +53,23 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
 
     setSaving(true);
 
-    const novoStatus = valorNum >= valorTotal ? "recebido" : "aberto";
-    const novoValor = valorNum >= valorTotal ? valorTotal : valorTotal - valorNum;
+    const isTotal = valorNum >= valorTotal;
 
-    const updateData: Record<string, any> = {
-      status: novoStatus,
-      data_recebimento: format(dataRecebimento, "yyyy-MM-dd"),
-    };
-
-    // For partial payment, reduce the remaining value
-    if (valorNum < valorTotal) {
-      updateData.valor = novoValor;
-      updateData.status = "aberto";
-      updateData.data_recebimento = null;
-    }
+    const updateData: Record<string, any> = isTotal
+      ? {
+          status: "recebido",
+          data_recebimento: format(dataRecebimento, "yyyy-MM-dd"),
+          valor_recebido: valorNum,
+          forma_recebimento: formaRecebimento,
+        }
+      : {
+          // Partial: reduce remaining, keep open, no receipt date
+          valor: valorTotal - valorNum,
+          status: "aberto",
+          data_recebimento: null,
+          valor_recebido: 0,
+          forma_recebimento: null,
+        };
 
     const { error } = await supabase
       .from("contas_receber")
@@ -79,7 +82,7 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
       return;
     }
 
-    toast.success(novoStatus === "recebido" ? "Título recebido!" : "Pagamento parcial registrado");
+    toast.success(isTotal ? "Título recebido!" : "Pagamento parcial registrado");
     setSaving(false);
     onOpenChange(false);
     onSaved();
