@@ -1760,7 +1760,7 @@ export function FinancialPayables() {
       {paymentExpense && (
         <PaymentDischargeDialog
           open={paymentOpen}
-          onOpenChange={setPaymentOpen}
+          onOpenChange={(v) => { setPaymentOpen(v); if (!v) setPaymentInstallment(null); }}
           expenseId={paymentExpense.id}
           valorTotal={paymentExpense.valor_total}
           valorPago={paymentExpense.valor_pago}
@@ -1771,6 +1771,7 @@ export function FinancialPayables() {
           favorecidoNome={paymentExpense.favorecido_nome}
           dataVencimento={paymentExpense.data_vencimento}
           contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
+          installment={paymentInstallment}
           onSaved={fetchData}
         />
       )}
