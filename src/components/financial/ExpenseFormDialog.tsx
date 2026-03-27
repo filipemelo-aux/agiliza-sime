@@ -425,7 +425,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           }
         }
 
-        // Lookup supplier in profiles by CNPJ/CPF
+        // Lookup supplier in profiles by CNPJ/CPF — auto-create if not found
         if (parsed.fornecedor_cnpj) {
           const cnpjClean = parsed.fornecedor_cnpj.replace(/\D/g, "");
           const { data: supplier } = await supabase
@@ -437,11 +437,45 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           if (supplier) {
             setFavorecidoId(supplier.id);
             setFavorecidoNome(supplier.nome_fantasia || supplier.razao_social || supplier.full_name);
-            toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""} — Fornecedor identificado: ${supplier.nome_fantasia || supplier.full_name}`);
+            toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""} — Fornecedor identificado automaticamente`);
+          } else if (user?.id) {
+            // Auto-create supplier from XML emitente data
+            const em = parsed.emitente;
+            const { data: created, error: createErr } = await supabase
+              .from("profiles")
+              .insert({
+                user_id: user.id,
+                full_name: em.razao_social || parsed.fornecedor_nome,
+                razao_social: em.razao_social || null,
+                nome_fantasia: em.nome_fantasia || null,
+                cnpj: cnpjClean,
+                inscricao_estadual: em.inscricao_estadual || null,
+                person_type: cnpjClean.length <= 11 ? "fisica" : "juridica",
+                category: "fornecedor",
+                address_street: em.logradouro || null,
+                address_number: em.numero || null,
+                address_complement: em.complemento || null,
+                address_neighborhood: em.bairro || null,
+                address_city: em.municipio || null,
+                address_state: em.uf || null,
+                address_zip: em.cep || null,
+                notes: `Cadastro automático via importação XML - NF ${parsed.numero_nota} em ${new Date().toLocaleDateString("pt-BR")}`,
+              })
+              .select("id, full_name, nome_fantasia, razao_social")
+              .single();
+
+            if (created && !createErr) {
+              setFavorecidoId(created.id);
+              setFavorecidoNome(created.nome_fantasia || created.razao_social || created.full_name);
+              toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""} — Novo fornecedor criado automaticamente`);
+            } else {
+              setFavorecidoNome(parsed.fornecedor_nome);
+              setFavorecidoId(null);
+              toast.warning(`XML importado, mas não foi possível criar fornecedor automaticamente. Cadastre "${parsed.fornecedor_nome}" manualmente.`, { duration: 6000 });
+            }
           } else {
             setFavorecidoNome(parsed.fornecedor_nome);
-            setFavorecidoId(null);
-            toast.warning(`XML importado com ${parsed.itens.length} item(ns). Fornecedor "${parsed.fornecedor_nome}" (${cnpjClean}) não encontrado no cadastro. Cadastre-o em Pessoas para vincular.`, { duration: 6000 });
+            toast.success(`XML importado: ${parsed.itens.length} item(ns)${parsed.duplicatas.length > 0 ? `, ${parsed.duplicatas.length} parcela(s)` : ""}`);
           }
         } else {
           setFavorecidoNome(parsed.fornecedor_nome);
