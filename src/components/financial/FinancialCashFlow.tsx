@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
+import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BarChart,
@@ -131,7 +132,7 @@ export function FinancialCashFlow() {
 
   const chartData = useMemo(() => {
     return dailySummary.map((d) => ({
-      name: format(parseISO(d.date), "dd/MM", { locale: ptBR }),
+      name: formatDateBR(d.date, "dd/MM"),
       Entradas: d.entradas,
       Saídas: d.saidas,
       Saldo: d.saldo,
@@ -246,7 +247,7 @@ export function FinancialCashFlow() {
                 <TableBody>
                   {dailySummary.map((d) => (
                     <TableRow key={d.date}>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{format(parseISO(d.date), isMobile ? "dd/MM" : "dd/MM/yyyy (EEE)", { locale: ptBR })}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(d.date, isMobile ? "dd/MM" : "dd/MM/yyyy (EEE)")}</TableCell>
                       <TableCell className="text-right text-xs text-green-600 font-mono py-2">{d.entradas > 0 ? formatCurrency(d.entradas) : "—"}</TableCell>
                       <TableCell className="text-right text-xs text-red-600 font-mono py-2">{d.saidas > 0 ? formatCurrency(d.saidas) : "—"}</TableCell>
                       <TableCell className={cn("text-right text-xs font-mono font-semibold py-2", d.saldo >= 0 ? "text-green-600" : "text-red-600")}>
@@ -289,7 +290,7 @@ export function FinancialCashFlow() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</span>
+                    <span>{formatDateBR(m.data_movimentacao)}</span>
                     <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
                   </div>
                   {(m.pessoa_nome || m.descricao) && (
@@ -316,7 +317,7 @@ export function FinancialCashFlow() {
                 <TableBody>
                   {movimentacoes.map((m) => (
                     <TableRow key={m.id}>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(m.data_movimentacao)}</TableCell>
                       <TableCell className="py-2">
                         <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn("text-[10px]", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
