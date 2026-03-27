@@ -15,7 +15,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
@@ -954,9 +954,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   </span>
                   <div className="flex gap-1">
                     <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                      const numParcelas = parcelas.length;
                       const val = Number(valorTotal) || 0;
-                      const newCount = numParcelas + 1;
+                      const newCount = parcelas.length + 1;
                       const parcelaVal = (val / newCount).toFixed(2);
                       const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                       const newParcelas: Parcela[] = [];
@@ -965,20 +964,35 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         d.setMonth(d.getMonth() + i);
                         newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                       }
-                      // Ajustar diferença de arredondamento na última
                       const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
                       if (Math.abs(diff) > 0.001) {
                         newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
                       }
                       setParcelas(newParcelas);
                     }}>
-                      Dividir em {parcelas.length + 1}x
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                      setParcelas(prev => [...prev, { numero: prev.length + 1, valor: "0", data_vencimento: "" }]);
-                    }}>
                       <Plus className="h-3 w-3 mr-0.5" /> Parcela
                     </Button>
+                    {parcelas.length > 1 && (
+                      <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => {
+                        const val = Number(valorTotal) || 0;
+                        const newCount = parcelas.length - 1;
+                        const parcelaVal = (val / newCount).toFixed(2);
+                        const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                        const newParcelas: Parcela[] = [];
+                        for (let i = 0; i < newCount; i++) {
+                          const d = new Date(base);
+                          d.setMonth(d.getMonth() + i);
+                          newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
+                        }
+                        const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
+                        if (Math.abs(diff) > 0.001) {
+                          newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
+                        }
+                        setParcelas(newParcelas);
+                      }}>
+                        <Minus className="h-3 w-3 mr-0.5" /> Parcela
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1348,13 +1362,29 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 }
                                 setNfseParcelas(newP);
                               }}>
-                                Dividir em {nfseParcelas.length + 1}x
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                                setNfseParcelas(prev => [...prev, { numero: prev.length + 1, valor: "0", data_vencimento: "" }]);
-                              }}>
                                 <Plus className="h-3 w-3 mr-0.5" /> Parcela
                               </Button>
+                              {nfseParcelas.length > 1 && (
+                                <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => {
+                                  const val = nfseValorTotal;
+                                  const newCount = nfseParcelas.length - 1;
+                                  const parcelaVal = (val / newCount).toFixed(2);
+                                  const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
+                                  const newP: NfseParcela[] = [];
+                                  for (let i = 0; i < newCount; i++) {
+                                    const d = new Date(base);
+                                    d.setMonth(d.getMonth() + i);
+                                    newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
+                                  }
+                                  const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
+                                  if (Math.abs(diff) > 0.001) {
+                                    newP[newP.length - 1].valor = (Number(newP[newP.length - 1].valor) + diff).toFixed(2);
+                                  }
+                                  setNfseParcelas(newP);
+                                }}>
+                                  <Minus className="h-3 w-3 mr-0.5" /> Parcela
+                                </Button>
+                              )}
                             </div>
                           </div>
 
