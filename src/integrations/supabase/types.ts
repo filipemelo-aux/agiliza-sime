@@ -231,9 +231,11 @@ export type Database = {
           data_recebimento: string | null
           data_vencimento: string
           fatura_id: string
+          forma_recebimento: string | null
           id: string
           status: Database["public"]["Enums"]["conta_receber_status"]
           valor: number
+          valor_recebido: number | null
         }
         Insert: {
           cliente_id: string
@@ -241,9 +243,11 @@ export type Database = {
           data_recebimento?: string | null
           data_vencimento: string
           fatura_id: string
+          forma_recebimento?: string | null
           id?: string
           status?: Database["public"]["Enums"]["conta_receber_status"]
           valor?: number
+          valor_recebido?: number | null
         }
         Update: {
           cliente_id?: string
@@ -251,9 +255,11 @@ export type Database = {
           data_recebimento?: string | null
           data_vencimento?: string
           fatura_id?: string
+          forma_recebimento?: string | null
           id?: string
           status?: Database["public"]["Enums"]["conta_receber_status"]
           valor?: number
+          valor_recebido?: number | null
         }
         Relationships: [
           {
