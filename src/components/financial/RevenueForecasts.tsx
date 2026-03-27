@@ -34,6 +34,7 @@ const ORIGEM_ICON: Record<string, typeof Truck> = {
 };
 
 export function RevenueForecasts() {
+  const isMobile = useIsMobile();
   const [previsoes, setPrevisoes] = useState<Previsao[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
