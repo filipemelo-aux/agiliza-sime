@@ -97,7 +97,7 @@ export function FinancialInvoicing() {
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [receiveFatura, setReceiveFatura] = useState<Fatura | null>(null);
   const [receiveContas, setReceiveContas] = useState<ContaReceber[]>([]);
-  const [receiveDate, setReceiveDate] = useState<Date>(new Date());
+  const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
 

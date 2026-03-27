@@ -31,14 +31,14 @@ interface Props {
 export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, valorTotal, onSaved }: Props) {
   const [valor, setValor] = useState("");
   const [formaRecebimento, setFormaRecebimento] = useState("pix");
-  const [dataRecebimento, setDataRecebimento] = useState<Date>(new Date());
+  const [dataRecebimento, setDataRecebimento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setValor(String(valorTotal));
       setFormaRecebimento("pix");
-      setDataRecebimento(new Date());
+      setDataRecebimento(getLocalDateISO());
     }
   }, [open, valorTotal]);
 
