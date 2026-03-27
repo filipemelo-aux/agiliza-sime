@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
-import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
+import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
@@ -138,6 +138,7 @@ export function FinancialPayables() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
+  const [paymentInstallment, setPaymentInstallment] = useState<InstallmentContext | null>(null);
   const [batchPaying, setBatchPaying] = useState(false);
   const [batchPayOpen, setBatchPayOpen] = useState(false);
   const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
@@ -358,7 +359,7 @@ export function FinancialPayables() {
     fetchData();
   };
 
-  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentOpen(true); };
+  const handlePayment = (item: Expense) => { setPaymentExpense(item); setPaymentInstallment(null); setPaymentOpen(true); };
 
   const showExpenseDetail = (expenseId: string) => {
     const exp = items.find(i => i.id === expenseId);
@@ -415,12 +416,18 @@ export function FinancialPayables() {
   };
 
   const handlePayInstallment = (inst: Installment) => {
-    // Open the PaymentDischargeDialog for the parent expense, pre-filled with installment value
     const expense = items.find(i => i.id === inst.expense_id);
-    if (expense) {
-      setPaymentExpense(expense);
-      setPaymentOpen(true);
-    }
+    if (!expense) return;
+    const allInst = installmentsMap[inst.expense_id] || [];
+    setPaymentExpense(expense);
+    setPaymentInstallment({
+      installmentId: inst.id,
+      numeroParcela: inst.numero_parcela,
+      totalParcelas: allInst.length,
+      valorParcela: Number(inst.valor),
+      dataVencimentoParcela: inst.data_vencimento,
+    });
+    setPaymentOpen(true);
   };
 
   const handleDeleteInstallment = async (inst: Installment) => {
@@ -1753,7 +1760,7 @@ export function FinancialPayables() {
       {paymentExpense && (
         <PaymentDischargeDialog
           open={paymentOpen}
-          onOpenChange={setPaymentOpen}
+          onOpenChange={(v) => { setPaymentOpen(v); if (!v) setPaymentInstallment(null); }}
           expenseId={paymentExpense.id}
           valorTotal={paymentExpense.valor_total}
           valorPago={paymentExpense.valor_pago}
@@ -1764,6 +1771,7 @@ export function FinancialPayables() {
           favorecidoNome={paymentExpense.favorecido_nome}
           dataVencimento={paymentExpense.data_vencimento}
           contaBancariaIdPreset={paymentExpense.conta_bancaria_id}
+          installment={paymentInstallment}
           onSaved={fetchData}
         />
       )}
