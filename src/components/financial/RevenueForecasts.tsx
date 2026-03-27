@@ -145,41 +145,45 @@ export function RevenueForecasts() {
   const totalFaturado = faturadas.reduce((s, p) => s + Number(p.valor), 0);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Previsões de Recebimento</h1>
+    <div className="space-y-3">
+      <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Summary - compact */}
+      <div className="grid grid-cols-2 gap-2">
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Pendentes</p>
-              <p className="text-lg font-bold">{formatCurrency(totalPendente)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Clock className="h-4 w-4 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendentes</p>
+              <p className="text-sm font-bold text-foreground truncate">{formatCurrency(totalPendente)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <div>
-              <p className="text-xs text-muted-foreground">Faturadas</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(totalFaturado)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Faturadas</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totalFaturado)}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Action bar */}
+      {/* Action bar - fixed at top when items selected */}
       {pendentes.length > 0 && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1">
+        <div className="flex items-center gap-2 flex-wrap p-2.5 bg-muted/50 rounded-lg border border-border">
+          <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1.5 shadow-sm">
             <Receipt className="h-4 w-4" />
             Gerar Fatura ({selected.size})
           </Button>
           {selected.size > 0 && (
-            <span className="text-sm text-muted-foreground">
-              Total selecionado: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong>
+            <span className="text-xs text-muted-foreground">
+              Total: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong>
               {!sameClient && <span className="text-destructive ml-2">⚠ Clientes diferentes</span>}
             </span>
           )}

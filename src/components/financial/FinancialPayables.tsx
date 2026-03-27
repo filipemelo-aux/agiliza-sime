@@ -1191,45 +1191,70 @@ export function FinancialPayables() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+        <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
         <Button size="sm" onClick={handleNew} className="gap-1.5">
           <Plus className="h-4 w-4" /> Nova Despesa
         </Button>
       </div>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="border-l-4 border-l-warning">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">A Pagar</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
+      {/* Summary Cards - compact modern */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Clock className="h-4 w-4 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">A Pagar</p>
+              <p className="text-sm font-bold text-foreground truncate">{formatCurrency(totalPendente)}</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Pago</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPago)}</p>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pago</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totalPago)}</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-destructive">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Atrasado</p>
-            <p className="text-xl font-bold text-destructive">{formatCurrency(totalAtrasado)}</p>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Atrasado</p>
+              <p className="text-sm font-bold text-destructive truncate">{formatCurrency(totalAtrasado)}</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className={`border-l-4 ${selectedIds.size > 0 ? "border-l-primary" : "border-l-muted"}`}>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Selecionado</p>
-            <p className={`text-xl font-bold ${selectedIds.size > 0 ? "text-primary" : "text-muted-foreground"}`}>
-              {formatCurrency(selectedTotal)}
-            </p>
+        <Card className={selectedIds.size > 0 ? "ring-1 ring-primary/30" : ""}>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", selectedIds.size > 0 ? "bg-primary/10" : "bg-muted")}>
+              <DollarSign className={cn("h-4 w-4", selectedIds.size > 0 ? "text-primary" : "text-muted-foreground")} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Selecionado</p>
+              <p className={cn("text-sm font-bold truncate", selectedIds.size > 0 ? "text-primary" : "text-muted-foreground")}>
+                {formatCurrency(selectedTotal)}
+              </p>
+            </div>
           </CardContent>
         </Card>
         <Card className="hidden md:block">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Registros</p>
-            <p className="text-xl font-bold text-foreground">{totalRegistros}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Registros</p>
+              <p className="text-sm font-bold text-foreground">{totalRegistros}</p>
+            </div>
           </CardContent>
         </Card>
       </div>

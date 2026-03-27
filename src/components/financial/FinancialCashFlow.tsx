@@ -1,14 +1,25 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 interface Movimentacao {
   id: string;
@@ -26,6 +37,7 @@ interface MovimentacaoEnriquecida extends Movimentacao {
 }
 
 export function FinancialCashFlow() {
+  const isMobile = useIsMobile();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
@@ -46,23 +58,14 @@ export function FinancialCashFlow() {
       .lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"))
       .order("data_movimentacao", { ascending: false });
 
-    if (filters.tipo !== "todos") {
-      query = query.eq("tipo", filters.tipo);
-    }
-    if (filters.origem !== "todos") {
-      query = query.eq("origem", filters.origem);
-    }
-    if (filters.valorMin) {
-      query = query.gte("valor", Number(filters.valorMin));
-    }
-    if (filters.valorMax) {
-      query = query.lte("valor", Number(filters.valorMax));
-    }
+    if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
+    if (filters.origem !== "todos") query = query.eq("origem", filters.origem);
+    if (filters.valorMin) query = query.gte("valor", Number(filters.valorMin));
+    if (filters.valorMax) query = query.lte("valor", Number(filters.valorMax));
 
     const { data } = await query;
     const movs = (data as Movimentacao[]) || [];
 
-    // Enrich with client/supplier names in batch
     const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
     const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
     const despesaIds = movs.filter((m) => m.origem === "despesas").map((m) => m.origem_id);
@@ -71,90 +74,38 @@ export function FinancialCashFlow() {
     const pessoaMap = new Map<string, string>();
 
     const [pagarRes, receberRes, despesaRes, colheitaRes] = await Promise.all([
-      pagarIds.length > 0
-        ? supabase
-            .from("accounts_payable")
-            .select("id, creditor_name, creditor_id")
-            .in("id", pagarIds)
-        : Promise.resolve({ data: [] }),
-      receberIds.length > 0
-        ? supabase
-            .from("contas_receber")
-            .select("id, cliente_id")
-            .in("id", receberIds)
-        : Promise.resolve({ data: [] }),
-      despesaIds.length > 0
-        ? supabase
-            .from("expenses")
-            .select("id, favorecido_nome")
-            .in("id", despesaIds)
-        : Promise.resolve({ data: [] }),
-      colheitaIds.length > 0
-        ? supabase
-            .from("harvest_payments")
-            .select("id, harvest_job_id")
-            .in("id", colheitaIds)
-        : Promise.resolve({ data: [] }),
+      pagarIds.length > 0 ? supabase.from("accounts_payable").select("id, creditor_name, creditor_id").in("id", pagarIds) : Promise.resolve({ data: [] }),
+      receberIds.length > 0 ? supabase.from("contas_receber").select("id, cliente_id").in("id", receberIds) : Promise.resolve({ data: [] }),
+      despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
+      colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id").in("id", colheitaIds) : Promise.resolve({ data: [] }),
     ]);
 
-    // Map payable creditor names
-    (pagarRes.data || []).forEach((ap: any) => {
-      if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name);
-    });
+    (pagarRes.data || []).forEach((ap: any) => { if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name); });
+    (despesaRes.data || []).forEach((e: any) => { if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome); });
 
-    // Map expense supplier names
-    (despesaRes.data || []).forEach((e: any) => {
-      if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome);
-    });
-
-    // Fetch farm names for harvest payments
     const jobIds = [...new Set((colheitaRes.data || []).map((hp: any) => hp.harvest_job_id).filter(Boolean))];
     if (jobIds.length > 0) {
-      const { data: jobs } = await supabase
-        .from("harvest_jobs")
-        .select("id, farm_name")
-        .in("id", jobIds);
+      const { data: jobs } = await supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds);
       const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
-      (colheitaRes.data || []).forEach((hp: any) => {
-        const farmName = jobMap.get(hp.harvest_job_id);
-        if (farmName) pessoaMap.set(hp.id, farmName);
-      });
+      (colheitaRes.data || []).forEach((hp: any) => { const fn = jobMap.get(hp.harvest_job_id); if (fn) pessoaMap.set(hp.id, fn); });
     }
 
-    // Fetch client names for receivables
     const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];
     if (clienteIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", clienteIds);
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", clienteIds);
       const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.full_name]));
-      (receberRes.data || []).forEach((cr: any) => {
-        const nome = profileMap.get(cr.cliente_id);
-        if (nome) pessoaMap.set(cr.id, nome);
-      });
+      (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
     }
 
-    const enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({
-      ...m,
-      pessoa_nome: pessoaMap.get(m.origem_id) || null,
-    }));
-
-    setMovimentacoes(enriched);
+    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || null })));
     setLoading(false);
   }, [filters]);
 
-  useEffect(() => {
-    loadMovimentacoes();
-  }, [loadMovimentacoes]);
+  useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);
 
   const totals = useMemo(() => {
-    const entradas = movimentacoes
-      .filter((m) => m.tipo === "entrada")
-      .reduce((sum, m) => sum + Number(m.valor), 0);
-    const saidas = movimentacoes
-      .filter((m) => m.tipo === "saida")
-      .reduce((sum, m) => sum + Number(m.valor), 0);
+    const entradas = movimentacoes.filter((m) => m.tipo === "entrada").reduce((sum, m) => sum + Number(m.valor), 0);
+    const saidas = movimentacoes.filter((m) => m.tipo === "saida").reduce((sum, m) => sum + Number(m.valor), 0);
     return { entradas, saidas, saldo: entradas - saidas };
   }, [movimentacoes]);
 
@@ -178,6 +129,15 @@ export function FinancialCashFlow() {
       });
   }, [movimentacoes]);
 
+  const chartData = useMemo(() => {
+    return dailySummary.map((d) => ({
+      name: format(parseISO(d.date), "dd/MM", { locale: ptBR }),
+      Entradas: d.entradas,
+      Saídas: d.saidas,
+      Saldo: d.saldo,
+    }));
+  }, [dailySummary]);
+
   const origemLabel = (o: string) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
@@ -188,71 +148,108 @@ export function FinancialCashFlow() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
+      <div className="flex flex-col gap-3">
+        <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
         <CashFlowFilters filters={filters} onChange={setFilters} />
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary cards - compact */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowUpCircle className="h-4 w-4 text-green-500" /> Entradas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totals.entradas)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <ArrowUpCircle className="h-4 w-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Entradas</p>
+              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totals.entradas)}</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowDownCircle className="h-4 w-4 text-red-500" /> Saídas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(totals.saidas)}</p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+              <ArrowDownCircle className="h-4 w-4 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Saídas</p>
+              <p className="text-sm font-bold text-red-600 truncate">{formatCurrency(totals.saidas)}</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> Saldo do Período
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={cn("text-2xl font-bold", totals.saldo >= 0 ? "text-green-600" : "text-red-600")}>
-              {formatCurrency(totals.saldo)}
-            </p>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", totals.saldo >= 0 ? "bg-green-500/10" : "bg-red-500/10")}>
+              <DollarSign className={cn("h-4 w-4", totals.saldo >= 0 ? "text-green-600" : "text-red-600")} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Saldo</p>
+              <p className={cn("text-sm font-bold truncate", totals.saldo >= 0 ? "text-green-600" : "text-red-600")}>
+                {formatCurrency(totals.saldo)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Movimentações</p>
+              <p className="text-sm font-bold text-foreground">{movimentacoes.length}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Daily summary */}
+      {/* Chart - entrada vs saída */}
+      {chartData.length > 1 && (
+        <Card>
+          <CardContent className="p-3 pt-4">
+            <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Entradas vs Saídas</p>
+            <div className="h-[220px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 0, right: 4, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Entradas" fill="hsl(142 70% 40%)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Saídas" fill="hsl(0 72% 51%)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Daily summary - compact */}
       {dailySummary.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Resumo Diário</CardTitle>
-          </CardHeader>
           <CardContent className="p-0">
+            <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">Resumo Diário</p>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead className="text-right">Entradas</TableHead>
-                    <TableHead className="text-right">Saídas</TableHead>
-                    <TableHead className="text-right">Saldo Acumulado</TableHead>
+                    <TableHead className="text-xs">Data</TableHead>
+                    <TableHead className="text-xs text-right">Entradas</TableHead>
+                    <TableHead className="text-xs text-right">Saídas</TableHead>
+                    <TableHead className="text-xs text-right">Saldo Acum.</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {dailySummary.map((d) => (
                     <TableRow key={d.date}>
-                      <TableCell>{format(parseISO(d.date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}</TableCell>
-                      <TableCell className="text-right text-green-600 font-mono">{d.entradas > 0 ? formatCurrency(d.entradas) : "—"}</TableCell>
-                      <TableCell className="text-right text-red-600 font-mono">{d.saidas > 0 ? formatCurrency(d.saidas) : "—"}</TableCell>
-                      <TableCell className={cn("text-right font-mono font-semibold", d.saldo >= 0 ? "text-green-600" : "text-red-600")}>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{format(parseISO(d.date), isMobile ? "dd/MM" : "dd/MM/yyyy (EEE)", { locale: ptBR })}</TableCell>
+                      <TableCell className="text-right text-xs text-green-600 font-mono py-2">{d.entradas > 0 ? formatCurrency(d.entradas) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs text-red-600 font-mono py-2">{d.saidas > 0 ? formatCurrency(d.saidas) : "—"}</TableCell>
+                      <TableCell className={cn("text-right text-xs font-mono font-semibold py-2", d.saldo >= 0 ? "text-green-600" : "text-red-600")}>
                         {formatCurrency(d.saldo)}
                       </TableCell>
                     </TableRow>
@@ -264,50 +261,79 @@ export function FinancialCashFlow() {
         </Card>
       )}
 
-      {/* Detail table */}
+      {/* Detail - mobile cards or table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Movimentações ({movimentacoes.length})</CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Cliente / Fornecedor</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-                ) : movimentacoes.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma movimentação no período</TableCell></TableRow>
-                ) : (
-                  movimentacoes.map((m) => (
+          <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">
+            Movimentações ({movimentacoes.length})
+          </p>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : movimentacoes.length === 0 ? (
+            <p className="text-center py-8 text-sm text-muted-foreground">Nenhuma movimentação no período</p>
+          ) : isMobile ? (
+            <div className="divide-y divide-border">
+              {movimentacoes.map((m) => (
+                <div key={m.id} className="p-3 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge
+                      variant={m.tipo === "entrada" ? "default" : "destructive"}
+                      className={cn("text-[10px] shrink-0", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+                    >
+                      {m.tipo === "entrada" ? "Entrada" : "Saída"}
+                    </Badge>
+                    <span className={cn("text-sm font-mono font-bold", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                      {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</span>
+                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                  </div>
+                  {(m.pessoa_nome || m.descricao) && (
+                    <p className="text-xs text-foreground truncate">
+                      {m.pessoa_nome || m.descricao}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Data</TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">Origem</TableHead>
+                    <TableHead className="text-xs">Cliente / Fornecedor</TableHead>
+                    <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movimentacoes.map((m) => (
                     <TableRow key={m.id}>
-                      <TableCell className="text-sm whitespace-nowrap">{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>
-                        <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn(m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{format(parseISO(m.data_movimentacao), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="py-2">
+                        <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn("text-[10px]", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{origemLabel(m.origem)}</TableCell>
-                      <TableCell className="text-sm max-w-[160px] truncate">{m.pessoa_nome || "—"}</TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">{m.descricao || "—"}</TableCell>
-                      <TableCell className={cn("text-right font-mono font-semibold whitespace-nowrap", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
+                      <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
+                      <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
