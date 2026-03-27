@@ -564,7 +564,6 @@ export function FinancialPayables() {
     // Remove bank movement for this expense
     await supabase.from("movimentacoes_bancarias" as any).delete().eq("origem", "despesas").eq("origem_id", expenseId);
   };
-  };
 
   const handleBatchReverse = async () => {
     if (selectedIds.size === 0) return;
