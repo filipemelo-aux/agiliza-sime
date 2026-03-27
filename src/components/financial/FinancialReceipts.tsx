@@ -12,6 +12,7 @@ import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasV
 import { toast } from "sonner";
 import { Plus, FileText, Trash2, Eye, User, Calendar, Receipt } from "lucide-react";
 import { format } from "date-fns";
+import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Receipt {
@@ -237,7 +238,7 @@ export function FinancialReceipts() {
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {format(new Date(r.created_at), "dd/MM/yyyy")}
+                    {formatDateBR(r.created_at)}
                   </div>
                   <div className="flex items-center gap-1">
                     <FileText className="h-3 w-3" />
@@ -278,7 +279,7 @@ export function FinancialReceipts() {
                           <span className="truncate">{r.file_name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-xs">{format(new Date(r.created_at), "dd/MM/yyyy")}</td>
+                      <td className="px-4 py-2.5 text-xs">{formatDateBR(r.created_at)}</td>
                       <td className="px-4 py-2.5 text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(r)} title="Visualizar">

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatDateBR } from "@/lib/date";
 
 interface Fatura {
   id: string;
@@ -368,7 +369,7 @@ export function FinancialInvoicing() {
                     <Badge variant={st.variant} className="text-[10px] shrink-0">{st.label}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{format(new Date(f.data_emissao), "dd/MM/yyyy")} · {f.num_parcelas}x</span>
+                    <span className="text-muted-foreground">{formatDateBR(f.data_emissao)} · {f.num_parcelas}x</span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(f.valor_total))}</span>
                   </div>
                   <div className="flex gap-1.5 pt-1">
@@ -406,7 +407,7 @@ export function FinancialInvoicing() {
                     const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                     return (
                       <tr key={f.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 text-xs">{format(new Date(f.data_emissao), "dd/MM/yyyy")}</td>
+                        <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
                         <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
                         <td className="px-4 py-2.5 text-center text-xs">{f.num_parcelas}x</td>
@@ -445,7 +446,7 @@ export function FinancialInvoicing() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Cliente:</span> <strong>{selectedFatura.cliente_nome}</strong></div>
-                <div><span className="text-muted-foreground">Emissão:</span> <strong>{format(new Date(selectedFatura.data_emissao), "dd/MM/yyyy")}</strong></div>
+                <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
                 <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
                 <div><span className="text-muted-foreground">Parcelas:</span> <strong>{selectedFatura.num_parcelas}x (a cada {selectedFatura.intervalo_dias} dias)</strong></div>
               </div>
@@ -467,7 +468,7 @@ export function FinancialInvoicing() {
                           <TableCell className="text-xs">
                             <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                         </TableRow>
                       ))}
@@ -491,14 +492,14 @@ export function FinancialInvoicing() {
                     <TableBody>
                       {detailContas.map((c) => (
                         <TableRow key={c.id}>
-                          <TableCell className="text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs">{formatDateBR(c.data_vencimento)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
                           <TableCell className="text-xs text-center">
                             <Badge variant={c.status === "recebido" ? "default" : c.status === "atrasado" ? "destructive" : "outline"}>
                               {c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{c.data_recebimento ? format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy") : "—"}</TableCell>
+                          <TableCell className="text-xs">{c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -573,7 +574,7 @@ export function FinancialInvoicing() {
                           <Checkbox checked={selectedPrevIds.has(p.id)} onCheckedChange={() => togglePrev(p.id)} />
                         </TableCell>
                         <TableCell className="text-xs">{p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</TableCell>
-                        <TableCell className="text-xs">{format(new Date(p.data_prevista + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                         <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                       </TableRow>
                     ))}
@@ -656,7 +657,7 @@ export function FinancialInvoicing() {
                     <TableBody>
                       {receiveContas.map((c) => (
                         <TableRow key={c.id}>
-                          <TableCell className="text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-xs">{formatDateBR(c.data_vencimento)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
                           <TableCell className="text-xs">
                             <Badge variant={c.status === "atrasado" ? "destructive" : "outline"}>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DollarSign, CheckCircle2, Clock, AlertTriangle, HandCoins } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -148,11 +149,11 @@ export function FinancialReceivables() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Venc: {format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</span>
+                    <span className="text-muted-foreground">Venc: {formatDateBR(c.data_vencimento)}</span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(c.valor))}</span>
                   </div>
                   {c.data_recebimento && (
-                    <p className="text-[11px] text-muted-foreground">Receb: {format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                    <p className="text-[11px] text-muted-foreground">Receb: {formatDateBR(c.data_recebimento)}</p>
                   )}
                   {c.status !== "recebido" && (
                     <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs w-full mt-1">
@@ -186,14 +187,14 @@ export function FinancialReceivables() {
                     return (
                       <tr key={c.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-2.5 text-xs font-medium">{c.cliente_nome}</td>
-                        <td className="px-4 py-2.5 text-xs">{format(new Date(c.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}</td>
+                        <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_vencimento)}</td>
                         <td className="px-4 py-2.5 text-xs text-right font-mono font-semibold">{formatCurrency(Number(c.valor))}</td>
                         <td className="px-4 py-2.5 text-center">
                           <Badge variant={st.variant} className="text-[10px] gap-0.5">
                             <Icon className="h-2.5 w-2.5" />{st.label}
                           </Badge>
                         </td>
-                        <td className="px-4 py-2.5 text-xs">{c.data_recebimento ? format(new Date(c.data_recebimento + "T12:00:00"), "dd/MM/yyyy") : "—"}</td>
+                        <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_recebimento)}</td>
                         <td className="px-4 py-2.5 text-right">
                           {c.status !== "recebido" && (
                             <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs">

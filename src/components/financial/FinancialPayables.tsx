@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Plus, Pencil, Check, Search, Trash2, FileText, CalendarClock, AlertTriangle, CheckCircle2, Clock, Wrench, Car, DollarSign, Eye, Loader2, X, Undo2, Download, List, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
-import { getLocalDateISO, normalizeDateInput } from "@/lib/date";
+import { getLocalDateISO, normalizeDateInput, formatDateBR } from "@/lib/date";
 
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog } from "./PaymentDischargeDialog";
@@ -268,7 +268,7 @@ export function FinancialPayables() {
 
       for (const payment of harvestPayments) {
         const farmName = jobMap.get(payment.harvest_job_id) || "Colheita";
-        const periodLabel = `${format(new Date(payment.period_start + "T12:00:00"), "dd/MM/yy")} - ${format(new Date(payment.period_end + "T12:00:00"), "dd/MM/yy")}`;
+        const periodLabel = `${formatDateBR(payment.period_start, "dd/MM/yy")} - ${formatDateBR(payment.period_end, "dd/MM/yy")}`;
 
         let ownerName = "Proprietário";
         if (payment.filter_context) {
@@ -1031,7 +1031,7 @@ export function FinancialPayables() {
     const total = rows.reduce((s, r) => s + r.valor, 0);
     const totalPendente = rows.filter(r => r.status !== "pago").reduce((s, r) => s + r.valor, 0);
     const totalPago = rows.filter(r => r.status === "pago").reduce((s, r) => s + r.valor, 0);
-    const fmtDate = (d: string) => { try { return format(new Date(d + "T12:00:00"), "dd/MM/yyyy"); } catch { return d; } };
+    const fmtDate = (d: string) => { return formatDateBR(d); };
     const statusLabel = (s: string) => STATUS_MAP[s]?.label || s;
     const statusBadge = (s: string) => {
       const colors: Record<string, { bg: string; fg: string }> = {
@@ -1525,7 +1525,7 @@ export function FinancialPayables() {
                             <div>
                               <span className="text-muted-foreground text-[11px]">Vencimento</span>
                               <p className={`font-medium ${isInstOverdue ? "text-destructive" : "text-foreground"}`}>
-                                {format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                                {formatDateBR(inst.data_vencimento)}
                               </p>
                             </div>
                             <div className="col-span-2">
@@ -1643,9 +1643,9 @@ export function FinancialPayables() {
                           <span className="text-muted-foreground text-[11px]">{isPago ? "Pago em" : "Vencimento"}</span>
                           <p className={`font-medium ${isOverdue ? "text-destructive" : "text-foreground"}`}>
                             {isPago && item.data_pagamento
-                              ? format(new Date(item.data_pagamento.includes("T") ? item.data_pagamento : item.data_pagamento + "T12:00:00"), "dd/MM/yyyy")
+                              ? formatDateBR(item.data_pagamento)
                               : item.data_vencimento
-                                ? format(new Date(item.data_vencimento + "T12:00:00"), "dd/MM/yyyy")
+                                ? formatDateBR(item.data_vencimento)
                                 : "—"}
                           </p>
                         </div>
@@ -1816,7 +1816,7 @@ export function FinancialPayables() {
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Emissão</span>
-                    <p className="text-foreground">{format(new Date(detailExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</p>
+                    <p className="text-foreground">{formatDateBR(detailExpense.data_emissao)}</p>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Valor Total</span>
@@ -1867,7 +1867,7 @@ export function FinancialPayables() {
                       {dInstalls.map(inst => (
                         <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
                           <span className="font-medium shrink-0">P{inst.numero_parcela}</span>
-                          <span className="text-muted-foreground shrink-0">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                          <span className="text-muted-foreground shrink-0">{formatDateBR(inst.data_vencimento, "dd/MM/yy")}</span>
                           <span className="font-mono shrink-0">{formatCurrency(Number(inst.valor))}</span>
                           <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
                             {inst.status === "pago" ? "Pago" : "Pend."}
@@ -1914,7 +1914,7 @@ export function FinancialPayables() {
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
                     <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium text-foreground">{maintData.tipo_manutencao === "preventiva" ? "Preventiva" : "Corretiva"}</span></div>
-                    <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{format(new Date(maintData.data_manutencao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                    <div><span className="text-muted-foreground">Data:</span> <span className="font-medium text-foreground">{formatDateBR(maintData.data_manutencao)}</span></div>
                     <div><span className="text-muted-foreground">KM:</span> <span className="font-mono font-medium text-foreground">{Number(maintData.odometro).toLocaleString("pt-BR")}</span></div>
                     <div><span className="text-muted-foreground">Total:</span> <span className="font-mono font-semibold text-foreground">{formatCurrency(Number(maintData.custo_total))}</span></div>
                     {maintData.fornecedor && <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintData.fornecedor}</span></div>}
@@ -1937,7 +1937,7 @@ export function FinancialPayables() {
                     </div>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
                       <div className="truncate"><span className="text-muted-foreground">Nº Doc:</span> <span className="text-foreground">{maintNfeExpense.documento_fiscal_numero || "—"}</span></div>
-                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfeExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{formatDateBR(maintNfeExpense.data_emissao)}</span></div>
                       <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfeExpense.favorecido_nome || "—"}</span></div>
                       <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(maintNfeExpense.valor_total))}</span></div>
                     </div>
@@ -1972,7 +1972,7 @@ export function FinancialPayables() {
                     </div>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
                       <div className="truncate"><span className="text-muted-foreground">Nº NFSe:</span> <span className="text-foreground">{maintNfseExpense.documento_fiscal_numero || "—"}</span></div>
-                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{format(new Date(maintNfseExpense.data_emissao + "T12:00:00"), "dd/MM/yyyy")}</span></div>
+                      <div><span className="text-muted-foreground">Emissão:</span> <span className="text-foreground">{formatDateBR(maintNfseExpense.data_emissao)}</span></div>
                       <div className="col-span-2 truncate"><span className="text-muted-foreground">Fornecedor:</span> <span className="text-foreground">{maintNfseExpense.favorecido_nome || "—"}</span></div>
                       <div className="col-span-2"><span className="text-muted-foreground">Valor:</span> <span className="font-mono font-semibold text-foreground"> {formatCurrency(Number(maintNfseExpense.valor_total))}</span></div>
                     </div>
@@ -2010,7 +2010,7 @@ export function FinancialPayables() {
                         {maintNfeInst.map((inst: any) => (
                           <div key={inst.id} className="grid grid-cols-[auto_1fr_auto_auto] gap-x-2 items-center py-1.5 text-xs">
                             <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
-                            <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                            <span className="text-muted-foreground truncate">{formatDateBR(inst.data_vencimento, "dd/MM/yy")}</span>
                             <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
                             <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                           </div>
@@ -2031,7 +2031,7 @@ export function FinancialPayables() {
                         {maintNfseInst.map((inst: any) => (
                           <div key={inst.id} className="grid grid-cols-[auto_1fr_auto_auto] gap-x-2 items-center py-1.5 text-xs">
                             <span className="text-foreground shrink-0">P{inst.numero_parcela}</span>
-                            <span className="text-muted-foreground truncate">{format(new Date(inst.data_vencimento + "T12:00:00"), "dd/MM/yy")}</span>
+                            <span className="text-muted-foreground truncate">{formatDateBR(inst.data_vencimento, "dd/MM/yy")}</span>
                             <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">{inst.status === "pago" ? "Pago" : "Pend."}</Badge>
                             <span className="font-mono text-foreground shrink-0">{formatCurrency(Number(inst.valor))}</span>
                           </div>
