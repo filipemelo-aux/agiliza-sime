@@ -15,7 +15,7 @@ export interface CashFlowFilterValues {
   dataInicio: Date;
   dataFim: Date;
   tipo: "todos" | "entrada" | "saida";
-  origem: "todos" | "contas_pagar" | "contas_receber";
+  origem: "todos" | "contas_pagar" | "contas_receber" | "despesas";
   valorMin: string;
   valorMax: string;
 }
@@ -110,6 +110,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
               <SelectItem value="todos">Todas</SelectItem>
               <SelectItem value="contas_pagar">Contas a Pagar</SelectItem>
               <SelectItem value="contas_receber">Contas a Receber</SelectItem>
+              <SelectItem value="despesas">Despesas</SelectItem>
             </SelectContent>
           </Select>
         </div>
