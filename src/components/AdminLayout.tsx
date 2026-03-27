@@ -45,14 +45,6 @@ const menuItems = [
     ],
   },
   {
-    title: "Contas a Receber",
-    icon: DollarSign,
-    children: [
-      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: DollarSign },
-      { title: "Faturamento", url: "/admin/financial/invoices", icon: FileText },
-    ],
-  },
-  {
     title: "Contas a Pagar",
     icon: DollarSign,
     children: [

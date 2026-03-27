@@ -70,9 +70,9 @@ const App = () => (
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
-            <Route path="/admin/financial" element={<Navigate to="/admin/financial/receivables" replace />} />
-            <Route path="/admin/financial/receivables" element={<AdminFinancial section="receivables" />} />
-            <Route path="/admin/financial/invoices" element={<AdminFinancial section="invoices" />} />
+            <Route path="/admin/financial" element={<Navigate to="/admin/financial/payables" replace />} />
+            <Route path="/admin/financial/receivables" element={<Navigate to="/admin/financial/payables" replace />} />
+            <Route path="/admin/financial/invoices" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/payables" element={<AdminFinancial section="payables" />} />
             <Route path="/admin/financial/paid" element={<Navigate to="/admin/financial/payables" replace />} />
             <Route path="/admin/financial/receipts" element={<AdminFinancial section="receipts" />} />
