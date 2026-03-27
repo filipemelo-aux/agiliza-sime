@@ -42,7 +42,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
   const { user } = useAuth();
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
-  const [dataPagamento, setDataPagamento] = useState<Date>(new Date());
+  const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
 
   const totalGeral = items.reduce((s, i) => s + i.valor, 0);
@@ -50,7 +50,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
   const handleConfirm = async () => {
     if (items.length === 0) return;
     setSaving(true);
-    const todayISO = getLocalDateISO(dataPagamento);
+    const todayISO = dataPagamento;
 
     try {
       for (const item of items) {
