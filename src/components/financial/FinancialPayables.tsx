@@ -416,12 +416,18 @@ export function FinancialPayables() {
   };
 
   const handlePayInstallment = (inst: Installment) => {
-    // Open the PaymentDischargeDialog for the parent expense, pre-filled with installment value
     const expense = items.find(i => i.id === inst.expense_id);
-    if (expense) {
-      setPaymentExpense(expense);
-      setPaymentOpen(true);
-    }
+    if (!expense) return;
+    const allInst = installmentsMap[inst.expense_id] || [];
+    setPaymentExpense(expense);
+    setPaymentInstallment({
+      installmentId: inst.id,
+      numeroParcela: inst.numero_parcela,
+      totalParcelas: allInst.length,
+      valorParcela: Number(inst.valor),
+      dataVencimentoParcela: inst.data_vencimento,
+    });
+    setPaymentOpen(true);
   };
 
   const handleDeleteInstallment = async (inst: Installment) => {
