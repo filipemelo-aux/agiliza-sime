@@ -175,6 +175,7 @@ export function parseNfeXml(xmlString: string): NfeData {
   return {
     fornecedor_nome,
     fornecedor_cnpj,
+    emitente,
     numero_nota,
     chave_nfe,
     data_emissao,
