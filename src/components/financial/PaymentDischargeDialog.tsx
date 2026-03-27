@@ -48,10 +48,12 @@ interface Props {
   unidadeId?: string | null;
   descricao?: string | null;
   contaBancariaIdPreset?: string | null;
+  favorecidoNome?: string | null;
+  dataVencimento?: string | null;
   onSaved: () => void;
 }
 
-export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, onSaved }: Props) {
+export function PaymentDischargeDialog({ open, onOpenChange, expenseId, valorTotal, valorPago, descricao, favorecidoNome, dataVencimento, onSaved }: Props) {
   const { user } = useAuth();
   const saldoRestante = valorTotal - valorPago;
   const [valor, setValor] = useState(String(saldoRestante));
