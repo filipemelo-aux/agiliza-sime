@@ -65,10 +65,11 @@ export function FinancialCashFlow() {
     // Enrich with client/supplier names in batch
     const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
     const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
+    const despesaIds = movs.filter((m) => m.origem === "despesas").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
 
-    const [pagarRes, receberRes] = await Promise.all([
+    const [pagarRes, receberRes, despesaRes] = await Promise.all([
       pagarIds.length > 0
         ? supabase
             .from("accounts_payable")
@@ -81,11 +82,22 @@ export function FinancialCashFlow() {
             .select("id, cliente_id")
             .in("id", receberIds)
         : Promise.resolve({ data: [] }),
+      despesaIds.length > 0
+        ? supabase
+            .from("expenses")
+            .select("id, favorecido_nome")
+            .in("id", despesaIds)
+        : Promise.resolve({ data: [] }),
     ]);
 
     // Map payable creditor names
     (pagarRes.data || []).forEach((ap: any) => {
       if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name);
+    });
+
+    // Map expense supplier names
+    (despesaRes.data || []).forEach((e: any) => {
+      if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome);
     });
 
     // Fetch client names for receivables
