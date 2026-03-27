@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, Landmark, BarChart3 } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,14 +45,6 @@ const menuItems = [
     ],
   },
   {
-    title: "Banco",
-    icon: Landmark,
-    children: [
-      { title: "Contas Bancárias", url: "/admin/financial/bank-accounts", icon: Landmark },
-      { title: "Relatórios", url: "/admin/financial/reports", icon: BarChart3 },
-    ],
-  },
-  {
     title: "Contas a Receber",
     icon: DollarSign,
     children: [
@@ -86,7 +78,7 @@ function SidebarNav() {
 
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart";
-  const isBancoActive = location.pathname === "/admin/financial/bank-accounts" || location.pathname === "/admin/financial/reports";
+  
   const isContasReceberActive = ["/admin/financial/receivables", "/admin/financial/invoices"].some(p => location.pathname.startsWith(p));
   const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/receipts", "/admin/fuelings", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 

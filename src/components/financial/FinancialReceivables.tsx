@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon, Link2 } from "lucide-react";
+import { Plus, Pencil, Check, Search, Sprout, FileText, TrendingUp, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
-import { BankAccountPickerDialog } from "./BankAccountPickerDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Receivable {
@@ -37,18 +36,12 @@ interface Receivable {
   invoice_id: string | null;
   notes: string | null;
   created_at: string;
-  conta_bancaria_id: string | null;
+  
   _source?: "manual" | "harvest" | "cte";
 }
 
 interface Category { id: string; nome: string; }
 
-interface BankAccount {
-  id: string;
-  nome: string;
-  saldo_atual: number;
-  empresa_id: string;
-}
 
 interface HarvestReceivable {
   id: string;
@@ -159,14 +152,14 @@ export function FinancialReceivables() {
   const [cteForecasts, setCteForecasts] = useState<CteReceivable[]>([]);
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary>({ totalFaturado: 0, totalQuitado: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bankPickerOpen, setBankPickerOpen] = useState(false);
+  
 
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -175,12 +168,12 @@ export function FinancialReceivables() {
   const [debtorName, setDebtorName] = useState("");
   const [debtorId, setDebtorId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [formContaBancariaId, setFormContaBancariaId] = useState("");
+  
 
   // Receive payment dialog state
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiveItem, setReceiveItem] = useState<Receivable | null>(null);
-  const [receiveContaId, setReceiveContaId] = useState("");
+  
   const [receiveValor, setReceiveValor] = useState("");
   const [receiveData, setReceiveData] = useState<Date>(new Date());
   const [receiveObs, setReceiveObs] = useState("");
@@ -188,17 +181,15 @@ export function FinancialReceivables() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: recData }, { data: catData }, { data: baData }, harvestData, cteData, invSummary] = await Promise.all([
+    const [{ data: recData }, { data: catData }, harvestData, cteData, invSummary] = await Promise.all([
       supabase.from("accounts_receivable").select("*").order("created_at", { ascending: false }),
       supabase.from("chart_of_accounts").select("id, nome").eq("tipo", "receita").eq("ativo", true).order("codigo"),
-      supabase.from("bank_accounts").select("id, nome, saldo_atual, empresa_id").eq("ativo", true).order("nome"),
       fetchHarvestReceivables(),
       fetchCteReceivables(),
       fetchInvoiceSummary(),
     ]);
     setItems((recData as any) || []);
     setCategories((catData as any) || []);
-    setBankAccounts((baData as any) || []);
     setHarvestItems(harvestData);
     setCteForecasts(cteData);
     setInvoiceSummary(invSummary);
@@ -207,12 +198,12 @@ export function FinancialReceivables() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); setFormContaBancariaId(""); };
+  const resetForm = () => { setDescription(""); setCategoryId(""); setAmount(""); setDueDate(""); setDebtorName(""); setDebtorId(null); setNotes(""); setEditingId(null); };
 
   const handleSave = async () => {
     if (!description.trim()) return toast.error("Informe a descrição");
     if (!amount || Number(amount) <= 0) return toast.error("Informe o valor");
-    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null, conta_bancaria_id: formContaBancariaId || null };
+    const payload: any = { description: description.trim(), category_id: categoryId || null, amount: Number(amount), due_date: dueDate || null, debtor_name: debtorName.trim() || null, debtor_id: debtorId || null, notes: notes.trim() || null };
     if (editingId) {
       const { error } = await supabase.from("accounts_receivable").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
@@ -230,7 +221,7 @@ export function FinancialReceivables() {
 
   const handleEdit = (item: Receivable) => {
     setEditingId(item.id); setDescription(item.description); setCategoryId(item.category_id || "");
-    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setFormContaBancariaId(item.conta_bancaria_id || ""); setDialogOpen(true);
+    setAmount(String(item.amount)); setDueDate(item.due_date || ""); setDebtorName(item.debtor_name || ""); setNotes(item.notes || ""); setDialogOpen(true);
   };
 
   const openReceiveDialog = (item: Receivable) => {
@@ -238,7 +229,6 @@ export function FinancialReceivables() {
     const remaining = Number(item.amount) - paidSoFar;
     setReceiveItem(item);
     setReceiveValor(String(remaining));
-    setReceiveContaId(item.conta_bancaria_id || "");
     setReceiveData(new Date());
     setReceiveObs("");
     setReceiveOpen(true);
@@ -248,7 +238,6 @@ export function FinancialReceivables() {
     if (!receiveItem) return;
     const valorNum = Number(receiveValor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
-    if (!receiveContaId) return toast.error("Selecione a conta bancária");
 
     const paidSoFar = Number(receiveItem.paid_amount) || 0;
     const remaining = Number(receiveItem.amount) - paidSoFar;
@@ -269,30 +258,6 @@ export function FinancialReceivables() {
 
     if (error) { toast.error(error.message); setReceiveSaving(false); return; }
 
-    // Create financial transaction (entrada)
-    const selectedAccount = bankAccounts.find(ba => ba.id === receiveContaId);
-    const resolvedEmpresaId = selectedAccount?.empresa_id || "";
-    const { error: txErr } = await supabase.from("financial_transactions").insert({
-      conta_bancaria_id: receiveContaId,
-      tipo: "entrada",
-      valor: valorNum,
-      data_movimentacao: dataFormatted,
-      descricao: `Recebimento: ${receiveItem.description}`,
-      plano_contas_id: receiveItem.category_id || null,
-      origem: "conta_receber",
-      origem_id: receiveItem.id,
-      status: "confirmado",
-      observacoes: receiveObs.trim() || null,
-      empresa_id: resolvedEmpresaId,
-      unidade_id: resolvedEmpresaId,
-      created_by: user?.id,
-    } as any);
-
-    if (txErr) {
-      console.error("Erro ao criar movimentação:", txErr.message);
-      toast.warning("Recebimento registrado, mas houve erro ao criar movimentação financeira.");
-    }
-
     toast.success(novoStatus === "pago" ? "Conta recebida!" : "Recebimento parcial registrado");
     setReceiveSaving(false);
     setReceiveOpen(false);
@@ -306,7 +271,7 @@ export function FinancialReceivables() {
     amount: h.totalLiquido - h.invoicedAmount, due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: h.client_name, debtor_id: null, cte_id: null, invoice_id: null,
     notes: `${h.totalDays} dias | Mensal: ${formatCurrency(h.monthly_value)}${h.invoicedAmount > 0 ? ` | Faturado: ${formatCurrency(h.invoicedAmount)}` : ""}`,
-    created_at: new Date().toISOString(), conta_bancaria_id: null, _source: "harvest" as const,
+    created_at: new Date().toISOString(), _source: "harvest" as const,
   }));
 
   const cteAsReceivables: Receivable[] = cteForecasts.map(c => ({
@@ -314,7 +279,7 @@ export function FinancialReceivables() {
     amount: Number(c.valor_frete), due_date: null, status: "previsao", paid_at: null, paid_amount: null,
     debtor_name: c.tomador_nome, debtor_id: null, cte_id: c.id, invoice_id: null,
     notes: c.data_emissao ? `Emissão: ${format(new Date(c.data_emissao), "dd/MM/yyyy")}` : null,
-    created_at: c.data_emissao || new Date().toISOString(), conta_bancaria_id: null, _source: "cte" as const,
+    created_at: c.data_emissao || new Date().toISOString(), _source: "cte" as const,
   }));
 
   const allItems = [...items.map(i => ({ ...i, _source: "manual" as const })), ...harvestAsReceivables, ...cteAsReceivables];
@@ -392,7 +357,7 @@ export function FinancialReceivables() {
                 <div><Label>Vencimento</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
               </div>
               <div><Label>Conta Contábil</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label>Conta Bancária (para recebimento)</Label><Select value={formContaBancariaId} onValueChange={setFormContaBancariaId}><SelectTrigger><SelectValue placeholder="Selecione a conta..." /></SelectTrigger><SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.nome} ({formatCurrency(ba.saldo_atual)})</SelectItem>)}</SelectContent></Select></div>
+              
               <div><Label>Devedor (Cliente)</Label><PersonSearchInput categories={["cliente"]} placeholder="Buscar cliente cadastrado..." selectedName={debtorName || undefined} onSelect={(person) => { setDebtorName(person.full_name); setDebtorId(person.id); }} onClear={() => { setDebtorName(""); setDebtorId(null); }} /></div>
               <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
               <Button onClick={handleSave} className="w-full">Salvar</Button>
@@ -411,19 +376,6 @@ export function FinancialReceivables() {
           <span className="text-xs text-muted-foreground">
             {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas"}
           </span>
-          {selectedIds.size > 0 && (
-            <div className="ml-auto flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-8"
-                onClick={() => setBankPickerOpen(true)}
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                Vincular Conta
-              </Button>
-            </div>
-          )}
         </div>
       )}
 
@@ -523,19 +475,6 @@ export function FinancialReceivables() {
                 Restante: <strong className="text-foreground">{formatCurrency(Number(receiveItem.amount) - (Number(receiveItem.paid_amount) || 0))}</strong>
               </div>
 
-              <div>
-                <Label>Conta Bancária *</Label>
-                <Select value={receiveContaId} onValueChange={setReceiveContaId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map(ba => (
-                      <SelectItem key={ba.id} value={ba.id}>
-                        {ba.nome} ({formatCurrency(ba.saldo_atual)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -582,13 +521,6 @@ export function FinancialReceivables() {
         </DialogContent>
       </Dialog>
 
-      <BankAccountPickerDialog
-        open={bankPickerOpen}
-        onOpenChange={setBankPickerOpen}
-        selectedIds={Array.from(selectedIds)}
-        target="accounts_receivable"
-        onLinked={() => { setSelectedIds(new Set()); fetchData(); }}
-      />
     </div>
   );
 }

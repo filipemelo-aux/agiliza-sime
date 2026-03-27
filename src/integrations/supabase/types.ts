@@ -84,7 +84,6 @@ export type Database = {
         Row: {
           amount: number
           category_id: string | null
-          conta_bancaria_id: string | null
           created_at: string
           created_by: string
           cte_id: string | null
@@ -103,7 +102,6 @@ export type Database = {
         Insert: {
           amount?: number
           category_id?: string | null
-          conta_bancaria_id?: string | null
           created_at?: string
           created_by: string
           cte_id?: string | null
@@ -122,7 +120,6 @@ export type Database = {
         Update: {
           amount?: number
           category_id?: string | null
-          conta_bancaria_id?: string | null
           created_at?: string
           created_by?: string
           cte_id?: string | null
@@ -147,13 +144,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "accounts_receivable_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "accounts_receivable_cte_id_fkey"
             columns: ["cte_id"]
             isOneToOne: false
@@ -172,101 +162,6 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "financial_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bank_account_units: {
-        Row: {
-          conta_bancaria_id: string
-          created_at: string
-          id: string
-          unidade_id: string
-        }
-        Insert: {
-          conta_bancaria_id: string
-          created_at?: string
-          id?: string
-          unidade_id: string
-        }
-        Update: {
-          conta_bancaria_id?: string
-          created_at?: string
-          id?: string
-          unidade_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_account_units_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bank_account_units_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_establishments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bank_accounts: {
-        Row: {
-          agencia: string | null
-          ativo: boolean
-          banco_codigo: string | null
-          banco_nome: string | null
-          conta_numero: string | null
-          created_at: string
-          empresa_id: string
-          id: string
-          nome: string
-          permitir_multiplas_unidades: boolean
-          saldo_atual: number
-          saldo_inicial: number
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          agencia?: string | null
-          ativo?: boolean
-          banco_codigo?: string | null
-          banco_nome?: string | null
-          conta_numero?: string | null
-          created_at?: string
-          empresa_id: string
-          id?: string
-          nome: string
-          permitir_multiplas_unidades?: boolean
-          saldo_atual?: number
-          saldo_inicial?: number
-          tipo?: string
-          updated_at?: string
-        }
-        Update: {
-          agencia?: string | null
-          ativo?: boolean
-          banco_codigo?: string | null
-          banco_nome?: string | null
-          conta_numero?: string | null
-          created_at?: string
-          empresa_id?: string
-          id?: string
-          nome?: string
-          permitir_multiplas_unidades?: boolean
-          saldo_atual?: number
-          saldo_inicial?: number
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_accounts_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
         ]
@@ -1022,7 +917,6 @@ export type Database = {
           centro_custo: Database["public"]["Enums"]["cost_center"]
           chave_nfe: string | null
           comprovante_url: string | null
-          conta_bancaria_id: string | null
           conta_financeira_id: string | null
           contrato_id: string | null
           created_at: string
@@ -1070,7 +964,6 @@ export type Database = {
           centro_custo?: Database["public"]["Enums"]["cost_center"]
           chave_nfe?: string | null
           comprovante_url?: string | null
-          conta_bancaria_id?: string | null
           conta_financeira_id?: string | null
           contrato_id?: string | null
           created_at?: string
@@ -1118,7 +1011,6 @@ export type Database = {
           centro_custo?: Database["public"]["Enums"]["cost_center"]
           chave_nfe?: string | null
           comprovante_url?: string | null
-          conta_bancaria_id?: string | null
           conta_financeira_id?: string | null
           contrato_id?: string | null
           created_at?: string
@@ -1166,13 +1058,6 @@ export type Database = {
             columns: ["categoria_financeira_id"]
             isOneToOne: false
             referencedRelation: "financial_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -1358,102 +1243,6 @@ export type Database = {
             columns: ["harvest_job_id"]
             isOneToOne: false
             referencedRelation: "harvest_jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      financial_transactions: {
-        Row: {
-          categoria_financeira_id: string | null
-          conta_bancaria_id: string
-          created_at: string
-          created_by: string
-          data_movimentacao: string
-          descricao: string
-          empresa_id: string
-          id: string
-          observacoes: string | null
-          origem: string
-          origem_id: string | null
-          plano_contas_id: string | null
-          status: string
-          tipo: string
-          unidade_id: string | null
-          updated_at: string
-          valor: number
-        }
-        Insert: {
-          categoria_financeira_id?: string | null
-          conta_bancaria_id: string
-          created_at?: string
-          created_by: string
-          data_movimentacao?: string
-          descricao: string
-          empresa_id: string
-          id?: string
-          observacoes?: string | null
-          origem?: string
-          origem_id?: string | null
-          plano_contas_id?: string | null
-          status?: string
-          tipo: string
-          unidade_id?: string | null
-          updated_at?: string
-          valor?: number
-        }
-        Update: {
-          categoria_financeira_id?: string | null
-          conta_bancaria_id?: string
-          created_at?: string
-          created_by?: string
-          data_movimentacao?: string
-          descricao?: string
-          empresa_id?: string
-          id?: string
-          observacoes?: string | null
-          origem?: string
-          origem_id?: string | null
-          plano_contas_id?: string | null
-          status?: string
-          tipo?: string
-          unidade_id?: string | null
-          updated_at?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "financial_transactions_categoria_financeira_id_fkey"
-            columns: ["categoria_financeira_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_conta_bancaria_id_fkey"
-            columns: ["conta_bancaria_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_establishments"
             referencedColumns: ["id"]
           },
         ]
@@ -3104,7 +2893,6 @@ export type Database = {
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
-      recalc_bank_balance: { Args: { _conta_id: string }; Returns: undefined }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
         Returns: number
