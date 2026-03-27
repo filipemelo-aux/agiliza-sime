@@ -210,7 +210,22 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
 
     await supabase.from("ctes").update(updateData).eq("id", cte_id);
 
-    // 9. Registrar log fiscal
+    // 9. Gerar previsão de recebimento (se autorizado e tomador vinculado)
+    if (sefazResponse.success && cte.tomador_id) {
+      await supabase.from("previsoes_recebimento").upsert(
+        {
+          origem_tipo: "cte" as any,
+          origem_id: cte_id,
+          cliente_id: cte.tomador_id,
+          valor: cte.valor_frete,
+          data_prevista: new Date().toISOString().split("T")[0],
+          status: "pendente" as any,
+        },
+        { onConflict: "origem_tipo,origem_id" }
+      );
+    }
+
+    // 10. Registrar log fiscal
     await supabase.from("fiscal_logs").insert({
       user_id,
       entity_type: "cte",
