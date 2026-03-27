@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, CalendarIcon } from "lucide-react";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 
 interface Fatura {
   id: string;
