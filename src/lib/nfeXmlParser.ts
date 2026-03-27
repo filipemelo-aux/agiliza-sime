@@ -82,6 +82,22 @@ export function parseNfeXml(xmlString: string): NfeData {
   const fornecedor_cnpj = emit ? (getTextContent(emit, "CNPJ") || getTextContent(emit, "CPF")) : "";
   const numero_nota = ide ? getTextContent(ide, "nNF") : "";
 
+  // Extract full emitente data
+  const enderEmit = emit ? emit.getElementsByTagName("enderEmit")[0] : null;
+  const emitente: NfeEmitente = {
+    cnpj: fornecedor_cnpj,
+    razao_social: emit ? getTextContent(emit, "xNome") : "",
+    nome_fantasia: emit ? getTextContent(emit, "xFant") : "",
+    inscricao_estadual: emit ? getTextContent(emit, "IE") : "",
+    logradouro: enderEmit ? getTextContent(enderEmit, "xLgr") : "",
+    numero: enderEmit ? getTextContent(enderEmit, "nro") : "",
+    complemento: enderEmit ? getTextContent(enderEmit, "xCpl") : "",
+    bairro: enderEmit ? getTextContent(enderEmit, "xBairro") : "",
+    municipio: enderEmit ? getTextContent(enderEmit, "xMun") : "",
+    uf: enderEmit ? getTextContent(enderEmit, "UF") : "",
+    cep: enderEmit ? getTextContent(enderEmit, "CEP") : "",
+  };
+
   // Extract chave from infNFe or protNFe
   let chave_nfe = "";
   const infNFe = doc.getElementsByTagName("infNFe")[0];
