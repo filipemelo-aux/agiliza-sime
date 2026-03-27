@@ -1274,6 +1274,16 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           selectedName={nfseFornecedorNome || undefined}
                           onSelect={p => { setNfseFornecedorNome(p.razao_social || p.nome_fantasia || p.full_name); setNfseFornecedorId(p.id); }}
                           onClear={() => { setNfseFornecedorNome(""); setNfseFornecedorId(null); }}
+                          endAction={
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateFornecedor(true)}
+                              className="text-muted-foreground hover:text-primary transition-colors"
+                              title="Cadastrar fornecedor"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </button>
+                          }
                         />
                       </div>
                       <div>
