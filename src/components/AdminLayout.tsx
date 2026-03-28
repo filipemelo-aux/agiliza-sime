@@ -80,7 +80,7 @@ function SidebarNav() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border fixed inset-y-0 left-0 z-30">
       {/* Branding no topo da sidebar */}
-      <div className="h-16 flex items-center px-3 border-b border-sidebar-border shrink-0">
+        <div className="h-16 flex items-center px-3 border-b border-sidebar-border/60 shrink-0">
         <span className="text-base text-primary whitespace-nowrap group-data-[collapsible=icon]:hidden" style={{ fontFamily: "'Exo', sans-serif", fontWeight: 800, fontStyle: 'italic' }}>
           SIME <span className="text-accent">TRANSPORTES</span>
         </span>
@@ -170,7 +170,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
   return (
     <div className="flex-1 flex flex-col min-w-0">
       <header
-        className="fixed top-0 right-0 z-30 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 transition-[left] duration-200"
+        className="fixed top-0 right-0 z-30 h-14 border-b border-border/40 backdrop-blur-xl bg-background/80 flex items-center justify-between px-4 transition-[left] duration-200 ease-out"
         style={{ left: headerLeft }}
       >
         <div className="flex items-center gap-4">
@@ -195,7 +195,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           </div>
         )}
       </header>
-      <div className="h-16 shrink-0" />
+      <div className="h-14 shrink-0" />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>

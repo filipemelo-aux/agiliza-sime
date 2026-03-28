@@ -4,13 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SIME TRANSPORTES - Design System
+/* SIME TRANSPORTES - Premium SaaS Design System
    Colors derived from logo: Navy blue (#2B4C7E), Medium blue (#3B7DD8), Yellow (#F5C518)
 */
 
 @layer base {
   :root {
-    --background: 216 25% 96%;
+    --background: 216 25% 97%;
     --foreground: 216 40% 15%;
 
     --card: 0 0% 100%;
@@ -22,11 +22,11 @@
     --primary: 214 48% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 214 20% 90%;
+    --secondary: 214 20% 92%;
     --secondary-foreground: 214 40% 20%;
 
-    --muted: 214 15% 93%;
-    --muted-foreground: 214 15% 45%;
+    --muted: 214 15% 94%;
+    --muted-foreground: 214 12% 50%;
 
     --accent: 46 91% 53%;
     --accent-foreground: 214 48% 15%;
@@ -40,32 +40,20 @@
     --warning: 46 91% 53%;
     --warning-foreground: 214 48% 15%;
 
-    --border: 214 15% 86%;
-    --input: 214 15% 86%;
+    --border: 214 12% 89%;
+    --input: 214 12% 89%;
     --ring: 214 48% 33%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 213 40% 95%;
-    --sidebar-foreground: 214 48% 25%;
+    --sidebar-background: 214 25% 97%;
+    --sidebar-foreground: 214 30% 30%;
     --sidebar-primary: 214 48% 33%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 45% 88%;
+    --sidebar-accent: 214 20% 92%;
     --sidebar-accent-foreground: 214 48% 20%;
-    --sidebar-border: 213 30% 88%;
+    --sidebar-border: 214 15% 91%;
     --sidebar-ring: 214 48% 33%;
-
-    /* Custom transport gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(214 48% 33%) 0%, hsl(214 55% 25%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(46 91% 53%) 0%, hsl(40 88% 48%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(214 48% 15%) 0%, hsl(214 50% 10%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(214 20% 98%) 100%);
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(214 40% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(214 40% 15% / 0.1), 0 2px 4px -2px hsl(214 40% 15% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(214 40% 15% / 0.1), 0 4px 6px -4px hsl(214 40% 15% / 0.1);
-    --shadow-freight: 0 4px 20px -2px hsl(214 48% 33% / 0.15);
   }
 
   .dark {
@@ -122,65 +110,81 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better focus rings */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
 @layer components {
   .freight-card {
-    @apply bg-card rounded-[14px] border border-border p-4 transition-all duration-200;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    @apply bg-card rounded-xl border border-border p-4;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px 0 hsl(214 40% 15% / 0.03);
   }
   
   .freight-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    @apply border-border -translate-y-0.5;
+    box-shadow: 0 4px 16px -2px hsl(214 40% 15% / 0.08);
+    border-color: hsl(var(--border));
+    transform: translateY(-1px);
   }
 
-
   .input-transport {
-    @apply w-full rounded-[10px] border border-border/60 bg-muted/30 px-3.5 py-3;
-    @apply text-foreground placeholder:text-muted-foreground/60;
-    @apply focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.15)];
-    @apply hover:border-border transition-all duration-150;
+    @apply w-full rounded-[10px] border border-border/60 bg-muted/20 px-3.5 py-3;
+    @apply text-foreground placeholder:text-muted-foreground/50;
+    @apply focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)];
+    @apply hover:border-border;
+    transition: all 0.15s ease;
   }
 
   .badge-status {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide;
   }
 
   .badge-available {
-    @apply badge-status bg-success/15 text-success;
+    @apply badge-status bg-success/10 text-success;
   }
 
   .badge-pending {
-    @apply badge-status bg-warning/15 text-warning;
+    @apply badge-status bg-warning/10 text-warning;
   }
 
   .glass-effect {
-    @apply backdrop-blur-md bg-background/80;
+    @apply backdrop-blur-xl bg-background/80;
   }
 
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-primary);
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(214 55% 25%));
   }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.3s ease-out forwards;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.5s ease-out forwards;
+    animation: slideUp 0.3s ease-out forwards;
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.3s ease-out forwards;
+    animation: scaleIn 0.2s ease-out forwards;
   }
 
   @keyframes fadeIn {
@@ -191,7 +195,7 @@
   @keyframes slideUp {
     from { 
       opacity: 0; 
-      transform: translateY(20px); 
+      transform: translateY(8px); 
     }
     to { 
       opacity: 1; 
@@ -202,7 +206,7 @@
   @keyframes scaleIn {
     from { 
       opacity: 0; 
-      transform: scale(0.95); 
+      transform: scale(0.97); 
     }
     to { 
       opacity: 1; 
