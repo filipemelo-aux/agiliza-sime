@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/SummaryCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,39 +69,9 @@ export function FinancialReceivables() {
 
       {/* Summary cards - compact */}
       <div className="grid grid-cols-3 gap-2">
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-              <Clock className="h-4 w-4 text-amber-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Em aberto</p>
-              <p className="text-sm font-bold text-foreground truncate">{formatCurrency(totals.aberto)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Recebido</p>
-              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totals.recebido)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Atrasado</p>
-              <p className="text-sm font-bold text-destructive truncate">{formatCurrency(totals.atrasado)}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SummaryCard icon={Clock} label="Em aberto" value={formatCurrency(totals.aberto)} />
+        <SummaryCard icon={CheckCircle2} label="Recebido" value={formatCurrency(totals.recebido)} valueColor="green" />
+        <SummaryCard icon={AlertTriangle} label="Atrasado" value={formatCurrency(totals.atrasado)} valueColor="red" />
       </div>
 
       {/* Filter */}
