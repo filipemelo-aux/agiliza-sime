@@ -210,10 +210,7 @@ export function RevenueForecasts() {
             const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
             const isPendente = p.status === "pendente";
             return (
-              <Card key={p.id} className={cn(
-                
-                isPendente ? false : false,
-              )}>
+              <Card key={p.id}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
