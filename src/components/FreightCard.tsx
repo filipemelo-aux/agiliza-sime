@@ -79,9 +79,9 @@ export function FreightCard({
       </div>
 
       {/* Cargo Info */}
-      <div className="grid grid-cols-2 gap-4 mb-4 min-w-0">
+      <div className="grid grid-cols-2 gap-3 mb-4 min-w-0">
         <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-          <Package className="w-4 h-4 shrink-0" />
+          <Package className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
           <span className="truncate">{cargoType}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
@@ -89,19 +89,19 @@ export function FreightCard({
         </div>
         {requiredVehicleType && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Truck className="w-4 h-4" />
+            <Truck className="w-3.5 h-3.5" strokeWidth={1.75} />
             <span>{vehicleTypeLabels[requiredVehicleType] || requiredVehicleType}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-3.5 h-3.5" strokeWidth={1.75} />
           <span>{formattedDate}</span>
         </div>
       </div>
 
       {/* Company & Distance */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 pb-4 border-b border-border">
-        <Building2 className="w-4 h-4" />
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 pb-4 border-b border-border/50">
+        <Building2 className="w-3.5 h-3.5" strokeWidth={1.75} />
         <span className="truncate">{companyName}</span>
         {distanceKm && (
           <span className="ml-auto text-xs bg-secondary px-2 py-0.5 rounded-full">
@@ -113,8 +113,8 @@ export function FreightCard({
       {/* Footer */}
       <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="min-w-0 shrink">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor do frete</p>
-          <p className="text-xl font-bold font-display text-primary truncate">{formattedValue}</p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Valor do frete</p>
+          <p className="text-lg font-semibold font-display text-primary truncate tracking-tight">{formattedValue}</p>
         </div>
         {!isAdmin && (
           <Button
