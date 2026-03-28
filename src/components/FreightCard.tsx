@@ -119,7 +119,7 @@ export function FreightCard({
         {!isAdmin && (
           <Button
             onClick={() => onApply?.(id)}
-            className="btn-transport-accent px-6 py-2.5"
+            className=" px-6 py-2.5"
           >
             Candidatar
           </Button>

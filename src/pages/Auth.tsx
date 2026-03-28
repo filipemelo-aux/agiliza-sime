@@ -266,7 +266,7 @@ export default function Auth() {
 
             <Button
               type="submit"
-              className="btn-transport-accent w-full py-6 text-base"
+              className=" w-full py-6 text-base"
               disabled={loading}
             >
               {loading

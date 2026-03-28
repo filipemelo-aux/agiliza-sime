@@ -342,7 +342,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
                   <Button
                     onClick={handleApply}
                     disabled={!selectedVehicle || submitting}
-                    className="w-full btn-transport-accent py-3 text-lg"
+                    className="w-full py-3 text-lg"
                   >
                     {submitting ? "Enviando..." : "Tenho Interesse"}
                   </Button>

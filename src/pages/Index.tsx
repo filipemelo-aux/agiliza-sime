@@ -331,7 +331,7 @@ export default function Index() {
               </Sheet>
 
               {isAdmin && (
-                <Button onClick={handleAddFreight} size="sm" className="btn-transport-accent">
+                <Button onClick={handleAddFreight} size="sm" className="">
                   <Plus className="w-4 h-4 mr-1" />
                   <span className="hidden sm:inline">Adicionar Frete</span>
                   <span className="sm:hidden">Adicionar</span>

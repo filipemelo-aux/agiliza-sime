@@ -319,7 +319,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving} className="btn-transport-accent">
+            <Button type="submit" disabled={saving} className="">
               {saving ? "Salvando..." : freight ? "Atualizar" : "Criar"}
             </Button>
           </div>

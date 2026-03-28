@@ -210,7 +210,7 @@ export default function AdminHarvest() {
             </h1>
             <p className="text-muted-foreground">Gestão de serviços de colheita terceirizados</p>
           </div>
-          <Button className="btn-transport-accent" onClick={openCreateDialog}>
+          <Button className="" onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" /> Novo Serviço
           </Button>
         </div>
@@ -297,7 +297,7 @@ export default function AdminHarvest() {
                 <Label>Observações</Label>
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observações gerais..." rows={3} />
               </div>
-              <Button onClick={handleSave} disabled={saving} className="w-full btn-transport-accent">
+              <Button onClick={handleSave} disabled={saving} className="w-full">
                 {saving ? "Salvando..." : editingJob ? "Salvar Alterações" : "Criar Serviço"}
               </Button>
             </div>

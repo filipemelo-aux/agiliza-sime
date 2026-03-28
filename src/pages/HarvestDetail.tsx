@@ -1770,7 +1770,7 @@ export default function HarvestDetail() {
                   </div>
                 </div>
               </div>
-              <Button onClick={handleAssign} disabled={saving || !assignForm.user_id} className="w-full btn-transport-accent">
+              <Button onClick={handleAssign} disabled={saving || !assignForm.user_id} className="w-full">
                 {saving ? "Salvando..." : "Vincular Motorista"}
               </Button>
             </div>
@@ -1855,7 +1855,7 @@ export default function HarvestDetail() {
                   ))}
                 </div>
               )}
-              <Button onClick={() => handleAddDiscount(false)} disabled={!discountForm.value} className="w-full btn-transport-accent">
+              <Button onClick={() => handleAddDiscount(false)} disabled={!discountForm.value} className="w-full">
                 Adicionar Desconto
               </Button>
             </div>
@@ -1919,7 +1919,7 @@ export default function HarvestDetail() {
                   ))}
                 </div>
               )}
-              <Button onClick={() => handleAddDiscount(true)} disabled={!discountForm.value} className="w-full btn-transport-accent">
+              <Button onClick={() => handleAddDiscount(true)} disabled={!discountForm.value} className="w-full">
                 Adicionar Desconto
               </Button>
             </div>
@@ -2031,7 +2031,7 @@ export default function HarvestDetail() {
                       {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
                     </span>
                     {isPartial && (
-                      <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
                         <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
                       </Button>
                     )}
@@ -2091,7 +2091,7 @@ export default function HarvestDetail() {
                       {isOverpaidSub && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excessoSub)}</span>}
                     </span>
                     {!isFullyPaid && (
-                      <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                      <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
                         <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
                       </Button>
                     )}
@@ -2117,7 +2117,7 @@ export default function HarvestDetail() {
                     <Clock className="h-3 w-3" />
                     Não Pago
                   </Badge>
-                  <Button size="sm" className="h-7 text-xs btn-transport-accent" onClick={() => setPaymentDialogOpen(true)}>
+                  <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
                     <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
                   </Button>
                 </div>
