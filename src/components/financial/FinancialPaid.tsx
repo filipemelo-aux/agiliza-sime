@@ -126,7 +126,7 @@ export function FinancialPaid() {
       ) : isMobile ? (
         <div className="grid grid-cols-1 gap-2">
           {filtered.map((item) => (
-            <Card key={item.id} className="">
+            <Card key={item.id}>
               <CardContent className="p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-foreground truncate">{item.creditor_name || "—"}</p>

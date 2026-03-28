@@ -227,13 +227,13 @@ export default function AdminMaintenances() {
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card className="">
+          <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Registros</p>
               <p className="text-xl font-bold text-foreground">{filtered.length}</p>
             </CardContent>
           </Card>
-          <Card className="">
+          <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Custo Total</p>
               <p className="text-xl font-bold text-foreground">{formatCurrency(totalCusto)}</p>
@@ -422,7 +422,7 @@ export default function AdminMaintenances() {
 
                 {/* NFe (Peças) */}
                 {nfeExpense && (
-                  <Card className="">
+                  <Card>
                     <CardContent className="p-3 space-y-2 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -459,7 +459,7 @@ export default function AdminMaintenances() {
 
                 {/* NFSe (Serviço) */}
                 {nfseExpense && (
-                  <Card className="">
+                  <Card>
                     <CardContent className="p-3 space-y-2 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="h-4 w-4 text-accent-foreground shrink-0" />
