@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/SummaryCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { ReceiptPdfCanvasViewer } from "@/components/financial/ReceiptPdfCanvasViewer";
@@ -148,27 +149,15 @@ export function FinancialReceipts() {
     <div className="space-y-4">
       {/* Summary + action */}
       <div className="grid grid-cols-2 gap-2">
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Receipt className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
-              <p className="text-sm font-bold text-foreground">{receipts.length} recibo{receipts.length !== 1 ? "s" : ""}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SummaryCard icon={Receipt} label="Total" value={`${receipts.length} recibo${receipts.length !== 1 ? "s" : ""}`} />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Card className="cursor-pointer hover:bg-muted/30 transition-colors border-dashed">
-              <CardContent className="p-3 flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-                  <Plus className="h-4 w-4 text-green-600" />
-                </div>
+              <CardContent className="p-3.5 flex items-center gap-3">
+                <Plus className="h-4 w-4 text-muted-foreground/70 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ação</p>
-                  <p className="text-sm font-bold text-foreground">Novo Recibo</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">Ação</p>
+                  <p className="text-base font-bold truncate leading-snug text-foreground">Novo Recibo</p>
                 </div>
               </CardContent>
             </Card>
