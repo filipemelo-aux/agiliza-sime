@@ -195,7 +195,7 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
           </div>
         )}
       </header>
-      <div className="h-16 shrink-0" />
+      <div className="h-14 shrink-0" />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>

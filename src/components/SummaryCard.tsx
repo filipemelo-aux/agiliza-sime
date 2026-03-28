@@ -22,12 +22,14 @@ const colorMap: Record<ValueColor, string> = {
 
 export function SummaryCard({ icon: Icon, label, value, valueColor = "default", className }: SummaryCardProps) {
   return (
-    <Card className={cn("", className)}>
+    <Card className={cn("hover:shadow-[0_2px_8px_-2px_hsl(214_40%_15%/0.08)]", className)}>
       <CardContent className="p-3.5 flex items-center gap-3">
-        <Icon className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted/60 shrink-0">
+          <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+        </div>
         <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">{label}</p>
-          <p className={cn("text-base font-bold truncate leading-snug", colorMap[valueColor])}>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider leading-tight">{label}</p>
+          <p className={cn("text-base font-semibold truncate leading-snug tracking-tight", colorMap[valueColor])}>
             {value}
           </p>
         </div>

@@ -63,15 +63,15 @@ export function FreightCard({
       <div className="mb-4 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex items-center gap-1.5 text-primary min-w-0 shrink">
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="font-semibold truncate">
+            <MapPin className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+            <span className="font-medium text-sm truncate">
               {originCity}, {originState}
             </span>
           </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+           <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" strokeWidth={1.75} />
           <div className="flex items-center gap-1.5 text-foreground min-w-0 shrink">
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="font-semibold truncate">
+            <MapPin className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+            <span className="font-medium text-sm truncate">
               {destinationCity}, {destinationState}
             </span>
           </div>
