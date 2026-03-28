@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/SummaryCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -227,24 +228,9 @@ export default function AdminMaintenances() {
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total Registros</p>
-              <p className="text-xl font-bold text-foreground">{filtered.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Custo Total</p>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(totalCusto)}</p>
-            </CardContent>
-          </Card>
-          <Card className="hidden md:block">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Veículos Atendidos</p>
-              <p className="text-xl font-bold text-foreground">{new Set(filtered.map(i => i.veiculo_id)).size}</p>
-            </CardContent>
-          </Card>
+          <SummaryCard icon={Wrench} label="Total Registros" value={filtered.length} />
+          <SummaryCard icon={DollarSign} label="Custo Total" value={formatCurrency(totalCusto)} valueColor="red" />
+          <SummaryCard icon={Car} label="Veículos Atendidos" value={new Set(filtered.map(i => i.veiculo_id)).size} className="hidden md:flex" />
         </div>
 
         {/* Filters */}

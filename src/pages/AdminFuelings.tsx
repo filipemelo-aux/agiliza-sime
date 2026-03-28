@@ -3,6 +3,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/SummaryCard";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -122,10 +123,10 @@ export default function AdminFuelings() {
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Registros</p><p className="text-xl font-bold text-foreground">{filtered.length}</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Litros</p><p className="text-xl font-bold text-foreground">{totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-xl font-bold text-primary">{formatCurrency(totalValue)}</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Selecionados</p><p className="text-xl font-bold text-foreground">{selected.size}</p></CardContent></Card>
+          <SummaryCard icon={Fuel} label="Registros" value={filtered.length} />
+          <SummaryCard icon={Fuel} label="Total Litros" value={`${totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L`} />
+          <SummaryCard icon={DollarSign} label="Valor Total" value={formatCurrency(totalValue)} valueColor="primary" />
+          <SummaryCard icon={Fuel} label="Selecionados" value={selected.size} />
         </div>
 
         {/* Batch actions */}
