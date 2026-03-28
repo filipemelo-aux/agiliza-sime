@@ -140,21 +140,6 @@
     @apply border-border -translate-y-0.5;
   }
 
-  .btn-transport {
-    @apply inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200;
-    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
-  }
-
-  .btn-transport-primary {
-    @apply btn-transport bg-primary text-primary-foreground;
-    @apply hover:opacity-90 active:scale-[0.98];
-  }
-
-  .btn-transport-accent {
-    @apply btn-transport text-accent-foreground;
-    background: var(--gradient-accent);
-    @apply hover:opacity-90 active:scale-[0.98];
-  }
 
   .input-transport {
     @apply w-full rounded-[10px] border border-border/60 bg-muted/30 px-3.5 py-3;

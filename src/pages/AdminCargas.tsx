@@ -96,7 +96,7 @@ export default function AdminCargas() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">Natureza de Cargas</h1>
-          <Button onClick={() => { setEditingCarga(null); setFormOpen(true); }} className="btn-transport-accent gap-2">
+          <Button onClick={() => { setEditingCarga(null); setFormOpen(true); }} className=" gap-2">
             <Plus className="w-4 h-4" />
             Nova Natureza
           </Button>

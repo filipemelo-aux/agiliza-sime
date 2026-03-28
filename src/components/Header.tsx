@@ -175,7 +175,7 @@ export function Header() {
                 </Button>
               </Link>
               <Link to="/?mode=signup" className="hidden sm:block">
-                <Button className="btn-transport-accent" size="sm">
+                <Button className="" size="sm">
                   Cadastrar
                 </Button>
               </Link>

@@ -106,7 +106,7 @@ export default function FreightCte() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
-          <Button onClick={handleNew} className="btn-transport-accent gap-2">
+          <Button onClick={handleNew} className=" gap-2">
             <Plus className="w-4 h-4" />
             Novo CT-e
           </Button>

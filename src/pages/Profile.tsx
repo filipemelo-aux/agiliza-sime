@@ -245,7 +245,7 @@ export default function Profile() {
                 <Button
                   onClick={handleSave}
                   disabled={saving}
-                  className="btn-transport-accent"
+                  className=""
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {saving ? "Salvando..." : "Salvar"}
