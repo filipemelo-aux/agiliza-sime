@@ -141,10 +141,10 @@ export function FinancialReceivables() {
             const Icon = st.icon;
             return (
               <Card key={c.id} className={cn(
-                "border-l-4",
-                c.status === "recebido" && "border-l-green-500",
-                c.status === "atrasado" && "border-l-destructive",
-                c.status === "aberto" && "border-l-amber-400",
+                
+                c.status === "recebido" && false,
+                c.status === "atrasado" && false,
+                c.status === "aberto" && false,
               )}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">

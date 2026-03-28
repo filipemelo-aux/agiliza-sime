@@ -356,10 +356,10 @@ export function FinancialInvoicing() {
             const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
             return (
               <Card key={f.id} className={cn(
-                "border-l-4",
-                f.status === "paga" && "border-l-green-500",
-                f.status === "faturada" && "border-l-primary",
-                f.status === "rascunho" && "border-l-muted-foreground/30",
+                
+                f.status === "paga" && false,
+                f.status === "faturada" && false,
+                f.status === "rascunho" && false,
               )}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">

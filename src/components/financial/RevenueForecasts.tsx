@@ -211,8 +211,8 @@ export function RevenueForecasts() {
             const isPendente = p.status === "pendente";
             return (
               <Card key={p.id} className={cn(
-                "border-l-4",
-                isPendente ? "border-l-amber-400" : "border-l-green-500",
+                
+                isPendente ? false : false,
               )}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">

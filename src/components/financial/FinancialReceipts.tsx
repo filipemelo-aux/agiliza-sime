@@ -218,7 +218,7 @@ export function FinancialReceipts() {
       ) : isMobile ? (
         <div className="grid grid-cols-1 gap-2">
           {receipts.map((r) => (
-            <Card key={r.id} className="border-l-4">
+            <Card key={r.id} className="">
               <CardContent className="p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
