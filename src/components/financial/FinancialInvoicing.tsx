@@ -315,28 +315,8 @@ export function FinancialInvoicing() {
 
       {/* Summary - compact */}
       <div className="grid grid-cols-2 gap-2">
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total de Faturas</p>
-              <p className="text-sm font-bold text-foreground">{faturas.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Valor Faturado</p>
-              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totalFaturado)}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SummaryCard icon={FileText} label="Total de Faturas" value={faturas.length} />
+        <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
       {/* Faturas list */}
