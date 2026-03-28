@@ -270,8 +270,8 @@ export default function MyApplications() {
                     className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                     onClick={() => setExpandedCard(isExpanded ? null : app.id)}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-1">
                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                           <Truck className="w-5 h-5 text-primary" />
                         </div>
@@ -361,7 +361,7 @@ export default function MyApplications() {
                           )}
 
                           {(app as any).discharge_proof_status === "rejected" && (
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                               <p className="text-sm text-orange-600 flex items-center gap-1">
                                 <XCircle className="w-4 h-4" />
                                 Comprovante recusado — reenvie
@@ -431,7 +431,7 @@ export default function MyApplications() {
                 <p className="text-xs text-muted-foreground">{dischargeApp.freight.company_name}</p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Nº CT-e *</Label>
                 <Input
                   value={dischargeCteNumber}
@@ -440,7 +440,7 @@ export default function MyApplications() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Veículo *</Label>
                 <Select value={dischargeVehicleId} onValueChange={setDischargeVehicleId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -454,7 +454,7 @@ export default function MyApplications() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Foto do Comprovante *</Label>
                 <div
                   className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"

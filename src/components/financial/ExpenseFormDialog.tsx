@@ -816,7 +816,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           )}
 
           {inputMode === "xml" && !isEditing && (
-            <div className="border-2 border-dashed rounded-lg p-4 text-center space-y-2">
+            <div className="border-2 border-dashed rounded-lg p-4 text-center space-y-1.5">
               <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
               <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
@@ -826,8 +826,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           )}
 
           {/* ── Conta Contábil (Plano de Contas) ── */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label className="text-xs flex items-center gap-1">
                   <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
@@ -918,7 +918,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           )}
 
           {/* ── Favorecido + CNPJ ── */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Favorecido</Label>
               <PersonSearchInput
@@ -946,7 +946,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           </div>
 
           {/* ── Valor, Emissão, Vencimento ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs">Valor (R$) *</Label>
               <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
@@ -981,7 +981,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
 
             {useParcelas && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground font-medium">
                     {parcelas.length} parcela(s) — Total: {formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
@@ -1102,7 +1102,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 )}
 
                 {/* Boleto PDF upload */}
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-[10px] text-muted-foreground font-medium">
@@ -1160,7 +1160,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Centro de Custo</Label>
               <Select value={centroCusto} onValueChange={setCentroCusto}>
@@ -1184,7 +1184,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Vehicle-specific fields (for combustivel category) ── */}
           {isCategoryWithVehicle && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">Placa Veículo</Label>
                 <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
@@ -1196,7 +1196,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           )}
           {showFuelFields && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">Litros</Label>
                 <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} placeholder="0,00" className="h-9" />
@@ -1206,7 +1206,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
           {/* ── Manutenção ── */}
           {isMaintenanceType && (
-            <div className="space-y-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+            <div className="space-y-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2">
                 <Wrench className="h-4 w-4 text-primary" />
                 <span className="text-xs font-semibold text-foreground">Dados da Manutenção</span>
@@ -1232,7 +1232,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               {/* NFSe / Ordem de Serviço expanded content */}
               {hasNfse && (
                 <div className="rounded-lg border p-3 transition-colors mt-3 border-orange-500/50 bg-orange-500/5">
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-start gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
                       <FileText className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
                       <p className="text-[11px] text-orange-700 dark:text-orange-400 font-medium leading-tight">
@@ -1313,7 +1313,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs">Prestador / Oficina</Label>
                         <PersonSearchInput
@@ -1345,7 +1345,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs">Emissão NFSe</Label>
                         <Input type="date" value={nfseDataEmissao} onChange={e => setNfseDataEmissao(e.target.value)} className="h-9" />
@@ -1373,7 +1373,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       </div>
 
                       {nfseUseParcelas && (
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-2 space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-muted-foreground font-medium">
                               {nfseParcelas.length} parcela(s) — Total: {formatCurrency(nfseParcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
@@ -1491,7 +1491,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           )}
 
                           {/* NFSe Boleto attachment */}
-                          <div className="mt-3 space-y-2">
+                          <div className="mt-3 space-y-1.5">
                             <div className="flex items-center gap-2">
                               <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                               <span className="text-[10px] text-muted-foreground font-medium">
@@ -1560,8 +1560,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             {(docFiscal || chaveNfe) && <Badge variant="secondary" className="text-[9px] ml-1">Preenchido</Badge>}
           </button>
           {showDocFiscal && (
-            <div className="space-y-3 pl-5 border-l-2 border-muted">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4 pl-5 border-l-2 border-muted">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs">Nº Doc. Fiscal</Label>
                   <Input value={docFiscal} onChange={e => setDocFiscal(e.target.value)} placeholder="Número NF/Recibo" className="h-9" />
@@ -1573,7 +1573,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               </div>
 
               {isEditing && (
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-muted-foreground">Origem:</span>{" "}
                     <span>{ORIGEM_MAP[expense?.origem || "manual"] || expense?.origem}</span>
@@ -1637,7 +1637,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 )}
               </button>
               {showHistory && (
-                <div className="space-y-3 pl-5 border-l-2 border-muted">
+                <div className="space-y-4 pl-5 border-l-2 border-muted">
                   {/* Payment summary */}
                   <Card className="bg-muted/50">
                     <CardContent className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
@@ -1659,7 +1659,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   </Card>
 
                   {/* Audit */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-muted-foreground">Criado em:</span>{" "}
                       {expense?.created_at ? format(new Date(expense.created_at), "dd/MM/yyyy HH:mm") : "—"}

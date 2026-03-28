@@ -94,7 +94,7 @@ export default function AdminCargas() {
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <BackButton to="/admin" label="Dashboard" />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">Natureza de Cargas</h1>
           <Button onClick={() => { setEditingCarga(null); setFormOpen(true); }} className="btn-transport-accent gap-2">
             <Plus className="w-4 h-4" />
@@ -113,7 +113,7 @@ export default function AdminCargas() {
         </div>
 
         {loading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
             ))}
@@ -125,15 +125,15 @@ export default function AdminCargas() {
             <p className="text-muted-foreground">Clique em "Nova Natureza" para cadastrar.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {filtered.map((carga) => (
               <Card
                 key={carga.id}
                 className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
                 onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
               >
-                <CardContent className="py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
+                <CardContent className="py-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
                     <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Package className="h-4 w-4 text-primary" />
                     </div>

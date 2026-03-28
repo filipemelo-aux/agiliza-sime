@@ -226,7 +226,7 @@ export default function AdminMaintenances() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Card className="border-l-4 border-l-primary">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Registros</p>
@@ -309,13 +309,13 @@ export default function AdminMaintenances() {
             <p className="text-xs text-muted-foreground mt-1">Crie uma despesa de manutenção em Contas a Pagar para registrar automaticamente.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(item => {
               const v = vehicleMap[item.veiculo_id];
               const hasNfse = getNfseInfo(item);
               return (
                 <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(item)}>
-                  <CardContent className="p-4 space-y-3">
+                  <CardContent className="p-4 space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
@@ -481,7 +481,7 @@ export default function AdminMaintenances() {
 
                 {/* Custo consolidado */}
                 {nfeExpense && nfseExpense && (
-                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
                     <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
                     <div className="flex justify-between text-xs">
                       <span className="text-foreground">NFe (Peças):</span>

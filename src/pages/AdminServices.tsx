@@ -38,7 +38,7 @@ export default function AdminServices() {
               {group.items.map((service) => (
                 <Link key={service.title} to={service.url}>
                   <Card className="border-border bg-card hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full">
-                    <CardContent className="flex flex-col items-center text-center py-8 gap-3">
+                    <CardContent className="flex flex-col items-center text-center py-8 gap-4">
                       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                         <service.icon className="h-6 w-6 text-primary" />
                       </div>

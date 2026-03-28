@@ -100,7 +100,7 @@ export default function AdminFuelOrders() {
           </div>
         ) : orders.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center py-12 gap-3">
+            <CardContent className="flex flex-col items-center py-12 gap-4">
               <Fuel className="h-10 w-10 text-muted-foreground" />
               <p className="text-muted-foreground">Nenhuma ordem de abastecimento encontrada</p>
               <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
@@ -112,7 +112,7 @@ export default function AdminFuelOrders() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {orders.map((o) => (
               <Card key={o.id} className="flex flex-col">
-                <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                <CardContent className="p-4 flex flex-col gap-4 flex-1">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-base">#{o.order_number}</span>
                     <Badge className={STATUS_COLORS[o.status] || ""}>{o.status}</Badge>

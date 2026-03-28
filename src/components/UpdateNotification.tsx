@@ -9,7 +9,7 @@ export function UpdateNotification() {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="bg-primary text-primary-foreground rounded-lg shadow-lg px-5 py-3 flex items-center gap-3 max-w-md">
+      <div className="bg-primary text-primary-foreground rounded-lg shadow-lg px-5 py-3 flex items-center gap-4 max-w-md">
         <RefreshCw className="h-5 w-5 shrink-0 animate-spin" style={{ animationDuration: "3s" }} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">Nova versão disponível! (v{newVersion})</p>

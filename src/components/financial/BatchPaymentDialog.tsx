@@ -137,7 +137,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
             <span className="text-lg font-bold text-primary">{formatCurrency(totalGeral)}</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Data do Pagamento</Label>
               <Input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} />

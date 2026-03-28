@@ -283,7 +283,7 @@ export default function Profile() {
 
               {/* Contact Info */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="w-4 h-4" />
                     Telefone
@@ -310,7 +310,7 @@ export default function Profile() {
                   Dados Bancários
                 </h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="flex items-center gap-2 text-muted-foreground">
                       <Building2 className="w-4 h-4" />
                       Banco
@@ -328,7 +328,7 @@ export default function Profile() {
                       <p className="font-medium">{profile.bank_name || "Não informado"}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="text-muted-foreground">Agência</Label>
                     {editing ? (
                       <Input
@@ -343,7 +343,7 @@ export default function Profile() {
                       <p className="font-medium">{profile.bank_agency || "Não informado"}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="flex items-center gap-2 text-muted-foreground">
                       <CreditCard className="w-4 h-4" />
                       Conta
@@ -361,7 +361,7 @@ export default function Profile() {
                       <p className="font-medium">{profile.bank_account || "Não informado"}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="text-muted-foreground">Tipo de Conta</Label>
                     {editing ? (
                       <Select
@@ -398,7 +398,7 @@ export default function Profile() {
                   Chave PIX
                 </h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="text-muted-foreground">Tipo de Chave</Label>
                     {editing ? (
                       <Select
@@ -434,7 +434,7 @@ export default function Profile() {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className="flex items-center gap-2 text-muted-foreground">
                       <Key className="w-4 h-4" />
                       Chave
@@ -487,15 +487,15 @@ export default function Profile() {
                     </span>
                   </h3>
                   <div className="grid md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label className="text-muted-foreground">Número</Label>
                       <p className="font-medium font-mono">{documents.cnh_masked}</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label className="text-muted-foreground">Categoria</Label>
                       <p className="font-medium">{documents.cnh_category}</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         Validade

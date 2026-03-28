@@ -79,7 +79,7 @@ export function CertificatesList() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {[1].map((i) => (
           <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
         ))}
@@ -105,7 +105,7 @@ export function CertificatesList() {
               Nenhum certificado cadastrado. Faça upload de um arquivo .pfx para começar.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {certificates.map((cert) => (
                 <div
                   key={cert.id}

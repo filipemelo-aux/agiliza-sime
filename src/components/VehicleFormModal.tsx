@@ -337,7 +337,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                 {/* Select existing vehicle option */}
                 {showLinkOption && (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Selecionar conjunto já cadastrado</Label>
                       <Select value={selectedExistingId || "__none__"} onValueChange={(v) => setSelectedExistingId(v === "__none__" ? "" : v)}>
                         <SelectTrigger>
@@ -365,10 +365,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                 ) : (
                   <>
                     {/* Vínculos */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
                           <Label className="text-xs">{isLightVehicle ? "Colaborador" : "Motorista"}</Label>
                           <Select value={form.driverId || "__none__"} onValueChange={(v) => {
                             const newDriverId = v === "__none__" ? "" : v;
@@ -384,7 +384,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <Label className="text-xs">Proprietário</Label>
                           {driverIsOwner ? (
                             <Input value={driverOptions.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
@@ -420,7 +420,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       </div>
 
                       {/* Tipo de Frota */}
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-xs font-medium">Tipo de Frota</Label>
                         <RadioGroup
                           value={form.fleetType}
@@ -442,18 +442,18 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     <Separator />
 
                     {/* Dados do veículo */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">{TRUCK_TYPES.has(form.vehicleType) ? "Placa do Cavalo *" : "Placa *"}</Label>
                         <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
                         {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">RENAVAM</Label>
                         <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
                         {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Tipo de Veículo *</Label>
                         <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
                           <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -466,23 +466,23 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                         </Select>
                         {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Marca *</Label>
                         <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
                         {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Modelo *</Label>
                         <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
                         {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Ano *</Label>
                         <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
                         {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
                       </div>
                       {TRUCK_TYPES.has(form.vehicleType) && (
-                        <div className="col-span-2 space-y-1">
+                        <div className="col-span-2 space-y-1.5">
                           <Label className="text-xs">ANTT (opcional)</Label>
                           <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
                         </div>
@@ -490,7 +490,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     </div>
 
                     {TRUCK_TYPES.has(form.vehicleType) && (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Tipo de Carroceria *</Label>
                         <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
                           {cargoTypes.map((t) => (
@@ -509,19 +509,19 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       <>
                         <Separator />
                         <p className="text-sm font-medium text-muted-foreground">Implementos do Conjunto</p>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           {Array.from({ length: trailerConfig.count }).map((_, i) => {
                             const idx = i + 1;
                             const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
                             const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
                             return (
-                              <div key={i} className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-                                <div className="space-y-1">
+                              <div key={i} className="grid grid-cols-2 gap-4 p-3 rounded-lg bg-muted/30 border border-border">
+                                <div className="space-y-1.5">
                                   <Label className="text-xs">{trailerConfig.labels[i]}</Label>
                                   <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
                                   {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
                                 </div>
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                   <Label className="text-xs">RENAVAM</Label>
                                   <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
                                   {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}

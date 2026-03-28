@@ -213,7 +213,7 @@ export function SmtpSettingsForm() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Host SMTP *</Label>
               <Input
                 value={form.host}
@@ -221,7 +221,7 @@ export function SmtpSettingsForm() {
                 placeholder="smtp.gmail.com"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Porta *</Label>
               <Input
                 type="number"
@@ -233,7 +233,7 @@ export function SmtpSettingsForm() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Usuário / E-mail *</Label>
               <Input
                 value={form.username}
@@ -241,7 +241,7 @@ export function SmtpSettingsForm() {
                 placeholder="seu@email.com"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>
                 Senha {hasPassword && !form.password && <Badge variant="outline" className="text-xs ml-2">Salva</Badge>}
               </Label>
@@ -257,7 +257,7 @@ export function SmtpSettingsForm() {
           <Separator />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>E-mail Remetente *</Label>
               <Input
                 type="email"
@@ -266,7 +266,7 @@ export function SmtpSettingsForm() {
                 placeholder="noreply@suaempresa.com"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Nome Remetente</Label>
               <Input
                 value={form.from_name}
@@ -276,7 +276,7 @@ export function SmtpSettingsForm() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Switch
               checked={form.use_tls}
               onCheckedChange={(v) => setForm((f) => ({ ...f, use_tls: v }))}
@@ -298,7 +298,7 @@ export function SmtpSettingsForm() {
           <CardDescription>Envie um e-mail de teste para verificar se a configuração está correta</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <Input
               type="email"
               value={testEmail}

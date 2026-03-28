@@ -129,7 +129,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-border p-3 space-y-1">
+          <div className="rounded-lg border border-border p-3 space-y-1.5">
             <p className="text-sm text-muted-foreground">Abastecimentos selecionados: <span className="font-semibold text-foreground">{selectedFuelings.length}</span></p>
             <p className="text-sm text-muted-foreground">Valor total: <span className="font-semibold text-foreground">{formatCurrency(total)}</span></p>
           </div>
@@ -141,7 +141,7 @@ export function GeneratePayablesDialog({ open, onOpenChange, selectedFuelings, e
 
           <div>
             <Label className="mb-2 block">Agrupamento</Label>
-            <RadioGroup value={groupMode} onValueChange={v => setGroupMode(v as any)} className="space-y-2">
+            <RadioGroup value={groupMode} onValueChange={v => setGroupMode(v as any)} className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="single" id="single" />
                 <Label htmlFor="single" className="font-normal">Título único (agrupar tudo)</Label>

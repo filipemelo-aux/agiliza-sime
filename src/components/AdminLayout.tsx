@@ -173,14 +173,14 @@ function SidebarContentInner({ children, handleLogout, user }: { children: React
         className="fixed top-0 right-0 z-30 h-16 border-b border-border/50 backdrop-blur-xl bg-background/70 flex items-center justify-between px-4 transition-[left] duration-200"
         style={{ left: headerLeft }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-accent transition-colors">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
           <img src={logo} alt="SIME" className="h-9 w-auto" />
         </div>
         {user && (
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <NotificationBell userId={user.id} />
             <UserAvatar userId={user.id} showName size="sm" />
             <Button

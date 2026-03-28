@@ -137,9 +137,9 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Identificação */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Package} title="Identificação" />
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Descrição *</Label>
                 <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskSentence(e.target.value))} placeholder="Ex: GESSO" />
@@ -163,9 +163,9 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
           <Separator />
 
           {/* Códigos e tolerância */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Settings2} title="Códigos e Tolerância" />
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Cód. Buonny</Label>
                 <Input value={form.cod_buonny} onChange={(e) => set("cod_buonny", e.target.value)} />
@@ -190,7 +190,7 @@ export function CargaFormDialog({ open, onOpenChange, carga, onSaved }: Props) {
           </section>
         </div>
 
-        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-3 bg-background">
+        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-4 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Salvando..." : carga ? "Atualizar" : "Cadastrar"}

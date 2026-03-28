@@ -319,7 +319,7 @@ export function FinancialReceipts() {
                 <ReceiptPdfCanvasViewer file={viewerBlob} fallbackUrl={viewerUrl} isMobile={isMobile} />
               ) : (
                 <div className="h-full w-full flex items-center justify-center p-6">
-                  <div className="text-center space-y-3">
+                  <div className="text-center space-y-4">
                     <p className="text-sm text-muted-foreground">Formato não suportado para visualização interna.</p>
                     <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
                       <a href={viewerUrl} target="_blank" rel="noopener noreferrer">Abrir arquivo</a>

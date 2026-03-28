@@ -258,7 +258,7 @@ export default function AdminDashboard() {
                 {dueToday.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {dueToday.map((item) => (
                       <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
                         <div className="min-w-0 flex-1">
@@ -293,7 +293,7 @@ export default function AdminDashboard() {
                 {dueWeek.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta nos próximos 7 dias</p>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {dueWeek.slice(0, 10).map((item) => (
                       <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
                         <div className="min-w-0 flex-1">

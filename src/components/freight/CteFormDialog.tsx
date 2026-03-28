@@ -193,7 +193,7 @@ function ActorSection({
   setCnpjError: (v: string) => void;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <SectionHeader icon={Building2} title={title} />
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Buscar no cadastro</Label>
@@ -493,7 +493,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Emitente (Estabelecimento) */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Building2} title="Emitente" />
             <div className="space-y-1.5">
               <Label className="text-xs">Estabelecimento *</Label>
@@ -516,7 +516,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Tipo CT-e / Serviço / Modal */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={FileText} title="Tipo do Documento" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
@@ -619,7 +619,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Tomador */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Users} title="Tomador do Serviço" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
@@ -659,19 +659,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Prestação — Origem / Destino */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={MapPin} title="Prestação" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <Card className="border-border bg-muted/30">
                 <CardHeader className="py-3 px-4">
                   <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Origem</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-3">
+                <CardContent className="px-4 pb-4 space-y-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Município</Label>
                     <Input value={form.municipio_origem_nome} onChange={(e) => set("municipio_origem_nome", maskName(e.target.value))} placeholder="Nome do município" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs">IBGE</Label>
                       <Input value={form.municipio_origem_ibge} onChange={(e) => set("municipio_origem_ibge", e.target.value)} placeholder="0000000" />
@@ -690,12 +690,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <CardHeader className="py-3 px-4">
                   <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Destino</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-3">
+                <CardContent className="px-4 pb-4 space-y-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Município</Label>
                     <Input value={form.municipio_destino_nome} onChange={(e) => set("municipio_destino_nome", maskName(e.target.value))} placeholder="Nome do município" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs">IBGE</Label>
                       <Input value={form.municipio_destino_ibge} onChange={(e) => set("municipio_destino_ibge", e.target.value)} placeholder="0000000" />
@@ -734,7 +734,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Valores e Tributos */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={DollarSign} title="Valores e Tributos" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <div className="space-y-1.5">
@@ -830,7 +830,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
             {/* Componentes do Frete */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold">Componentes do Frete</Label>
                 <Button
@@ -880,7 +880,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Carga */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Package} title="Informações da Carga" />
             
             <div className="space-y-1.5">
@@ -949,7 +949,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
             {/* Quantidades */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold">Quantidades (infQ)</Label>
                 <Button
@@ -1014,7 +1014,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             </div>
 
             {/* Chaves NF-e */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold">NF-e Referenciadas</Label>
                 <Button
@@ -1053,7 +1053,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Transporte */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={Truck} title="Transporte" />
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Buscar motorista</Label>
@@ -1099,14 +1099,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           <Separator />
 
           {/* Observações */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader icon={FileText} title="Observações" />
             <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} placeholder="Informações complementares..." />
           </section>
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-3 bg-background">
+        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-4 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}

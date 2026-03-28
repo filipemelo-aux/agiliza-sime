@@ -215,8 +215,8 @@ export default function Index() {
       <section className="py-8">
         <div className="container mx-auto px-4">
           {/* Header with counter and filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
                 <Truck className="w-4 h-4 shrink-0" />
                 <span className="text-lg font-bold font-display">{freights.length}</span>
@@ -249,7 +249,7 @@ export default function Index() {
                   </SheetHeader>
                   <div className="space-y-6 mt-6">
                     {/* Origin State */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label>Estado de Origem</Label>
                       <Select value={filterOriginState || undefined} onValueChange={(value) => setFilterOriginState(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
@@ -265,7 +265,7 @@ export default function Index() {
                     </div>
 
                     {/* Destination State */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label>Estado de Destino</Label>
                       <Select value={filterDestinationState || undefined} onValueChange={(value) => setFilterDestinationState(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
@@ -281,7 +281,7 @@ export default function Index() {
                     </div>
 
                     {/* Vehicle Type */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label>Tipo de Veículo</Label>
                       <Select value={filterVehicleType || undefined} onValueChange={(value) => setFilterVehicleType(value === "__all__" ? "" : value)}>
                         <SelectTrigger>
@@ -297,7 +297,7 @@ export default function Index() {
                     </div>
 
                     {/* Min Value */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label>Valor Mínimo (R$/ton)</Label>
                       <Input
                         type="number"
@@ -308,7 +308,7 @@ export default function Index() {
                     </div>
 
                     {/* Cargo Type */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label>Tipo de Carga</Label>
                       <Input
                         type="text"

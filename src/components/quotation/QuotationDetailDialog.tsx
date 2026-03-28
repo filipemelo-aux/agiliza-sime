@@ -36,7 +36,7 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Row label="Empresa Contratada" value="Sime Transporte Ltda" />
           <Row label="Cliente" value={q.client?.razao_social || q.client?.full_name} />
           <Row label="CNPJ Cliente" value={q.client?.cnpj} />
@@ -49,7 +49,7 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
         <hr className="border-border" />
 
         {isFrete ? (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h3 className="font-semibold text-sm mb-2">Dados do Frete</h3>
             <Row label="Origem" value={`${q.origem_cidade}/${q.origem_uf}`} />
             <Row label="Destino" value={`${q.destino_cidade}/${q.destino_uf}`} />
@@ -58,7 +58,7 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
             <Row label="Valor do Frete" value={formatCurrency(q.valor_frete)} />
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h3 className="font-semibold text-sm mb-2">Dados da Colheita</h3>
             <Row label="Previsão Início" value={q.previsao_inicio ? format(new Date(q.previsao_inicio + "T12:00:00"), "dd/MM/yyyy") : null} />
             <Row label="Previsão Término" value={q.previsao_termino ? format(new Date(q.previsao_termino + "T12:00:00"), "dd/MM/yyyy") : null} />

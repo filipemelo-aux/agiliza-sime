@@ -160,7 +160,7 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>Destinatário *</Label>
             <Input
               type="email"
@@ -169,7 +169,7 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
               placeholder="fornecedor@email.com"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>CC (opcional)</Label>
             <Input
               type="email"

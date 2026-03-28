@@ -149,7 +149,7 @@ export function RevenueForecasts() {
   const totalFaturado = faturadas.reduce((s, p) => s + Number(p.valor), 0);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
 
       {/* Summary - compact */}
@@ -314,7 +314,7 @@ export function RevenueForecasts() {
               <p>Valor total: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong></p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Nº de Parcelas</Label>
                 <Input

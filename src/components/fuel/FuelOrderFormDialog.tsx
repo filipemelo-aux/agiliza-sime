@@ -196,7 +196,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Empresa & Solicitante */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
+          <div className="rounded-lg border border-border p-3 space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Identificação</p>
             <div className="space-y-1.5">
               <Label className="text-xs">Empresa Solicitante</Label>
@@ -209,7 +209,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
           </div>
 
           {/* Fornecedor & Veículo */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
+          <div className="rounded-lg border border-border p-3 space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fornecedor & Veículo</p>
             <div className="space-y-1.5">
               <Label className="text-xs">Fornecedor (Destinatário) *</Label>
@@ -258,7 +258,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
           </div>
 
           {/* Combustível & Modo */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
+          <div className="rounded-lg border border-border p-3 space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Combustível</p>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo de Combustível *</Label>
@@ -274,7 +274,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-xs">Modo de Abastecimento *</Label>
               <RadioGroup value={fillMode} onValueChange={setFillMode} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
             </div>
 
             {fillMode === "completar" && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs">Completar Arla?</Label>
                 <RadioGroup
                   value={arlaMode}

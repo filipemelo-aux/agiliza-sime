@@ -104,7 +104,7 @@ export default function FreightCte() {
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <BackButton to="/admin" label="Dashboard" />
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
           <Button onClick={handleNew} className="btn-transport-accent gap-2">
             <Plus className="w-4 h-4" />
@@ -123,7 +123,7 @@ export default function FreightCte() {
         </div>
 
         {loading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
             ))}
@@ -135,14 +135,14 @@ export default function FreightCte() {
             <p className="text-muted-foreground">Clique em "Novo CT-e" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filtered.map((cte) => (
               <Card
                 key={cte.id}
                 className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
                 onClick={() => setDetailCte(cte)}
               >
-                <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <FileText className="h-5 w-5 text-primary" />

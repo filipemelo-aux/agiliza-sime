@@ -139,8 +139,8 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
           <DialogTitle>{fueling ? "Editar Abastecimento" : "Novo Abastecimento"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Veículo *</Label>
               <Select value={veiculoId} onValueChange={setVeiculoId}>
@@ -166,7 +166,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Data *</Label>
               <Input type="date" value={dataAbastecimento} onChange={e => setDataAbastecimento(e.target.value)} />
@@ -182,7 +182,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>Litros *</Label>
               <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} />
@@ -197,7 +197,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>KM Atual</Label>
               <Input type="number" value={kmAtual} onChange={e => setKmAtual(e.target.value)} />

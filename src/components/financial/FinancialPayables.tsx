@@ -1191,7 +1191,7 @@ export function FinancialPayables() {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
         <Button size="sm" onClick={handleNew} className="gap-1.5">
@@ -1374,7 +1374,7 @@ export function FinancialPayables() {
         </div>
       </div>
       {selectableCardIds.length > 0 && (
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border flex-wrap">
+        <div className="flex items-center gap-4 p-2 rounded-lg bg-muted/50 border flex-wrap">
           <Checkbox
             checked={selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0}
             onCheckedChange={toggleSelectAll}
@@ -1447,7 +1447,7 @@ export function FinancialPayables() {
           <Button variant="outline" size="sm" className="mt-3" onClick={handleNew}>Criar primeira despesa</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered
             .flatMap(item => {
               const installs = installmentsMap[item.id];
@@ -1792,7 +1792,7 @@ export function FinancialPayables() {
           <DialogHeader>
             <DialogTitle>Editar Parcela {editInstallment?.numero_parcela}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <Label>Valor (R$)</Label>
               <Input value={editInstValor ? maskCurrency(String(Math.round(parseFloat(editInstValor) * 100))) : ""} onChange={e => setEditInstValor(unmaskCurrency(e.target.value))} />
@@ -1820,7 +1820,7 @@ export function FinancialPayables() {
             const totalQuitado = pagas.reduce((s, i) => s + Number(i.valor), 0);
             return (
               <div className="space-y-4 text-sm">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground">Favorecido</span>
                     <p className="font-semibold text-foreground truncate">{detailExpense.favorecido_nome || "—"}</p>
@@ -1874,7 +1874,7 @@ export function FinancialPayables() {
                     <p className="text-xs font-medium text-muted-foreground mb-2">
                       Parcelas ({pagas.length}/{dInstalls.length} pagas) — Quitado: {formatCurrency(totalQuitado)}
                     </p>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {dInstalls.map(inst => (
                         <div key={inst.id} className={`flex items-center gap-2 text-xs p-1.5 rounded ${inst.status === "pago" ? "bg-success/10" : "bg-muted/50"}`}>
                           <span className="font-medium shrink-0">P{inst.numero_parcela}</span>
@@ -1994,7 +1994,7 @@ export function FinancialPayables() {
 
               {/* Resumo consolidado */}
               {maintNfeExpense && maintNfseExpense && (
-                <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground">Resumo Consolidado</p>
                   <div className="flex justify-between text-xs">
                     <span className="text-foreground">NFe (Peças):</span>

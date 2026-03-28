@@ -239,14 +239,14 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
 
           {/* Company & Value */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Building2 className="w-4 h-4" />
                 <span>Empresa</span>
               </div>
               <p className="font-semibold text-lg">{freight.company_name}</p>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <DollarSign className="w-4 h-4" />
                 <span>Valor do Frete</span>
@@ -257,14 +257,14 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
 
           {/* Cargo Details */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Package className="w-4 h-4" />
                 <span>Tipo de Carga</span>
               </div>
               <p className="font-medium">{freight.cargo_type}</p>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Weight className="w-4 h-4" />
                 <span>Peso</span>
@@ -272,7 +272,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
               <p className="font-medium">{formattedWeight} kg</p>
             </div>
             {freight.required_vehicle_type && (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Truck className="w-4 h-4" />
                   <span>Veículo Requerido</span>
@@ -286,7 +286,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Calendar className="w-4 h-4" />
                 <span>Data de Coleta</span>
@@ -294,7 +294,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
               <p className="font-medium">{formattedPickupDate}</p>
             </div>
             {formattedDeliveryDate && (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Calendar className="w-4 h-4" />
                   <span>Data de Entrega</span>
@@ -306,7 +306,7 @@ export function FreightDetailModal({ freight, open, onClose, userId }: FreightDe
 
           {/* Description */}
           {freight.description && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <FileText className="w-4 h-4" />
                 <span>Descrição</span>

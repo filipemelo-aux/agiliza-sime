@@ -222,7 +222,7 @@ export default function AdminHarvest() {
               <DialogTitle>{editingJob ? "Editar Serviço" : "Novo Serviço de Colheita"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Contratante (Cliente)</Label>
                 <Select value={form.client_id} onValueChange={(v) => {
                   const client = clients.find((c) => c.id === v);
@@ -248,44 +248,44 @@ export default function AdminHarvest() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Fazenda / Local *</Label>
                   <Input value={form.farm_name} onChange={(e) => setForm({ ...form, farm_name: maskName(e.target.value) })} placeholder="Nome da fazenda" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Cidade/Estado *</Label>
                   <Input value={form.location} onChange={(e) => setForm({ ...form, location: maskName(e.target.value) })} placeholder="Cidade/Estado" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Início do Período *</Label>
                   <Input type="date" value={form.harvest_period_start} onChange={(e) => setForm({ ...form, harvest_period_start: e.target.value })} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Fim do Período</Label>
                   <Input type="date" value={form.harvest_period_end} onChange={(e) => setForm({ ...form, harvest_period_end: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Qtd. Veículos</Label>
                   <Input type="number" min="1" value={form.total_third_party_vehicles} onChange={(e) => setForm({ ...form, total_third_party_vehicles: e.target.value })} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Dia Fechamento</Label>
                   <Input type="number" min="1" max="31" value={form.payment_closing_day} onChange={(e) => setForm({ ...form, payment_closing_day: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor Contrato (R$) *</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                     <Input className="pl-10" value={maskCurrency(String(Math.round(parseFloat(form.monthly_value || "0") * 100)))} onChange={(e) => setForm({ ...form, monthly_value: unmaskCurrency(e.target.value) })} placeholder="0,00" />
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor a Pagar Terceiros (R$)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -293,7 +293,7 @@ export default function AdminHarvest() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Observações</Label>
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observações gerais..." rows={3} />
               </div>
@@ -386,7 +386,7 @@ export default function AdminHarvest() {
                         {job.status === "active" ? "Ativo" : "Encerrado"}
                       </Badge>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>{formatDate(job.harvest_period_start)}</span>
