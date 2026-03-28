@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/SummaryCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -156,52 +157,10 @@ export function FinancialCashFlow() {
 
       {/* Summary cards - compact */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-              <ArrowUpCircle className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Entradas</p>
-              <p className="text-sm font-bold text-green-600 truncate">{formatCurrency(totals.entradas)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-              <ArrowDownCircle className="h-4 w-4 text-red-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Saídas</p>
-              <p className="text-sm font-bold text-red-600 truncate">{formatCurrency(totals.saidas)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", totals.saldo >= 0 ? "bg-green-500/10" : "bg-red-500/10")}>
-              <DollarSign className={cn("h-4 w-4", totals.saldo >= 0 ? "text-green-600" : "text-red-600")} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Saldo</p>
-              <p className={cn("text-sm font-bold truncate", totals.saldo >= 0 ? "text-green-600" : "text-red-600")}>
-                {formatCurrency(totals.saldo)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Movimentações</p>
-              <p className="text-sm font-bold text-foreground">{movimentacoes.length}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SummaryCard icon={ArrowUpCircle} label="Entradas" value={formatCurrency(totals.entradas)} valueColor="green" />
+        <SummaryCard icon={ArrowDownCircle} label="Saídas" value={formatCurrency(totals.saidas)} valueColor="red" />
+        <SummaryCard icon={DollarSign} label="Saldo" value={formatCurrency(totals.saldo)} valueColor={totals.saldo >= 0 ? "green" : "red"} />
+        <SummaryCard icon={TrendingUp} label="Movimentações" value={movimentacoes.length} />
       </div>
 
       {/* Chart - entrada vs saída */}
