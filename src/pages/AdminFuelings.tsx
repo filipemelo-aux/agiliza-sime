@@ -121,7 +121,7 @@ export default function AdminFuelings() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Registros</p><p className="text-xl font-bold text-foreground">{filtered.length}</p></CardContent></Card>
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Litros</p><p className="text-xl font-bold text-foreground">{totalLiters.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</p></CardContent></Card>
           <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-xl font-bold text-primary">{formatCurrency(totalValue)}</p></CardContent></Card>
@@ -130,7 +130,7 @@ export default function AdminFuelings() {
 
         {/* Batch actions */}
         {selected.size > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
             <DollarSign className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">
               {selected.size} abastecimento(s) — {formatCurrency(selectedFuelings.reduce((s, f) => s + Number(f.valor_total), 0))}
@@ -170,12 +170,12 @@ export default function AdminFuelings() {
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-12 gap-3">
+          <div className="flex flex-col items-center py-12 gap-4">
             <Fuel className="h-10 w-10 text-muted-foreground" />
             <p className="text-muted-foreground">Nenhum abastecimento encontrado</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(item => {
               const isFaturado = item.status_faturamento === "faturado";
               const isSelected = selected.has(item.id);
@@ -184,7 +184,7 @@ export default function AdminFuelings() {
                   key={item.id}
                   className={`transition-all ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
                 >
-                  <CardContent className="p-4 space-y-3">
+                  <CardContent className="p-4 space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">

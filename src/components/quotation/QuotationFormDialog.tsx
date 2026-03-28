@@ -317,7 +317,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
 
           {/* Observações e validade */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-3 space-y-1">
+            <div className="col-span-3 space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Observações</Label>
                 <Button

@@ -66,7 +66,7 @@ export function ForcePasswordChangeDialog({ open, onChanged }: ForcePasswordChan
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="new-password">Nova Senha</Label>
             <div className="relative">
               <Input
@@ -87,7 +87,7 @@ export function ForcePasswordChangeDialog({ open, onChanged }: ForcePasswordChan
               </button>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="confirm-new-password">Confirmar Nova Senha</Label>
             <Input
               id="confirm-new-password"

@@ -105,7 +105,7 @@ export function ReceiptPdfCanvasViewer({ file, fallbackUrl, isMobile }: ReceiptP
   if (error) {
     return (
       <div className="h-full w-full flex items-center justify-center p-6">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-4">
           <p className="text-sm text-muted-foreground">{error}</p>
           <Button asChild variant="outline" size={isMobile ? "sm" : "default"}>
             <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">

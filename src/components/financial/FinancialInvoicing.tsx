@@ -304,7 +304,7 @@ export function FinancialInvoicing() {
   const hasPendingContas = (f: Fatura) => f.status === "faturada";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">Faturamento</h1>
         <Button onClick={openNewInvoice} className="gap-1.5 shadow-sm">
@@ -517,7 +517,7 @@ export function FinancialInvoicing() {
           </DialogHeader>
 
           {step === "client" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente com previsões pendentes.</p>
               ) : (
@@ -586,7 +586,7 @@ export function FinancialInvoicing() {
               </div>
 
               {/* Payment terms */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nº de Parcelas</Label>
                   <Input
@@ -669,7 +669,7 @@ export function FinancialInvoicing() {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
                   <Label>Data do Recebimento</Label>
                   <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />

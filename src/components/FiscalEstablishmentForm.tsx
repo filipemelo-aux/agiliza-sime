@@ -379,7 +379,7 @@ export function FiscalEstablishmentForm({ open, onOpenChange, establishment, onS
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-3 bg-background">
+        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-4 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Salvando..." : establishment ? "Atualizar" : "Criar"}

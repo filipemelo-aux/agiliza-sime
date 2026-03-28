@@ -79,7 +79,7 @@ export function FreightCard({
       </div>
 
       {/* Cargo Info */}
-      <div className="grid grid-cols-2 gap-3 mb-4 min-w-0">
+      <div className="grid grid-cols-2 gap-4 mb-4 min-w-0">
         <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
           <Package className="w-4 h-4 shrink-0" />
           <span className="truncate">{cargoType}</span>

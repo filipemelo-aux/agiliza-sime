@@ -149,7 +149,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-3">
+          <DialogTitle className="font-display flex items-center gap-4">
             CT-e {cte.numero ? `Nº ${cte.numero}` : "(Sem número)"}
             <Badge className={statusColors[cte.status]}>
               {statusLabels[cte.status] || cte.status}

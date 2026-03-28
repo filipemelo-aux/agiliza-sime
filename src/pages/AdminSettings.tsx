@@ -425,8 +425,8 @@ export default function AdminSettings() {
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Settings className="w-5 h-5 text-primary" />
             </div>
@@ -477,7 +477,7 @@ export default function AdminSettings() {
 
           {/* ===== TAB GERAL ===== */}
           <TabsContent value="geral" className="space-y-5">
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Usuários do Sistema</h2>
                 <p className="text-sm text-muted-foreground">Gerencie contas e permissões de acesso</p>
@@ -498,7 +498,7 @@ export default function AdminSettings() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {loading ? (
                 <div className="flex justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -515,8 +515,8 @@ export default function AdminSettings() {
 
                   return (
                     <Card key={u.id} className="border border-border hover:border-primary/30 transition-colors">
-                      <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
+                      <CardContent className="p-4 flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
                           <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
                             <User className="w-4 h-4 text-muted-foreground" />
                           </div>
@@ -559,7 +559,7 @@ export default function AdminSettings() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Informações do Sistema</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Versão atual</span>
                   <Badge variant="outline" className="text-xs">v{currentVersion}</Badge>
@@ -641,7 +641,7 @@ export default function AdminSettings() {
                     </div>
                     <Separator />
                     <div className="space-y-4">
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label>Nome completo</Label>
                         <Input
                           value={profile.full_name}
@@ -649,7 +649,7 @@ export default function AdminSettings() {
                           placeholder="Seu nome completo"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label>E-mail</Label>
                         <Input
                           type="email"
@@ -658,7 +658,7 @@ export default function AdminSettings() {
                           placeholder="seu@email.com"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label>Telefone</Label>
                         <Input
                           value={profile.phone}
@@ -716,7 +716,7 @@ export default function AdminSettings() {
           <div className="space-y-4 mt-2">
             {/* Select existing colaborador */}
             {colaboradores.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Vincular a Colaborador (opcional)</Label>
                 <Select
                   value={createForm.profileId || "__none__"}
@@ -752,7 +752,7 @@ export default function AdminSettings() {
 
             {!createForm.profileId && (
               <>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Nome completo</Label>
                   <Input
                     value={createForm.name}
@@ -760,7 +760,7 @@ export default function AdminSettings() {
                     placeholder="Nome do usuário"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>E-mail</Label>
                   <Input
                     type="email"
@@ -773,7 +773,7 @@ export default function AdminSettings() {
             )}
 
             {createForm.profileId && !colaboradores.find(c => c.id === createForm.profileId)?.email && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>E-mail (obrigatório para login)</Label>
                 <Input
                   type="email"
@@ -784,7 +784,7 @@ export default function AdminSettings() {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Senha</Label>
               <Input
                 type="password"
@@ -794,7 +794,7 @@ export default function AdminSettings() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Perfil de acesso</Label>
               <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
                 <SelectTrigger>
@@ -823,14 +823,14 @@ export default function AdminSettings() {
             <DialogDescription>Atualize as informações do usuário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Nome completo</Label>
               <Input
                 value={editForm.name}
                 onChange={(e) => setEditForm((p) => ({ ...p, name: maskName(e.target.value) }))}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>E-mail</Label>
               <Input
                 type="email"
@@ -839,7 +839,7 @@ export default function AdminSettings() {
               />
             </div>
             {(isCurrentUserAdmin || isCurrentUserModerator) && editUser && !editUser.roles.includes("admin") && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Perfil de acesso</Label>
                 <Select value={editForm.role} onValueChange={(v) => setEditForm((p) => ({ ...p, role: v }))}>
                   <SelectTrigger>
@@ -890,7 +890,7 @@ export default function AdminSettings() {
             <DialogDescription>Informações da conta do sistema.</DialogDescription>
           </DialogHeader>
           {viewUser && (
-            <div className="space-y-3 mt-2">
+            <div className="space-y-4 mt-2">
               <div>
                 <span className="text-sm text-muted-foreground">Nome</span>
                 <p className="font-medium">{viewUser.profile_name || "Sem nome"}</p>

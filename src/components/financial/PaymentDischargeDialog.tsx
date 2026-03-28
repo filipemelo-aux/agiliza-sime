@@ -182,7 +182,7 @@ export function PaymentDischargeDialog({
         </DialogHeader>
         <div className="space-y-4">
           {/* Resumo */}
-          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5">
             {(favorecidoNome || descricao) && (
               <p className="text-sm font-medium text-foreground">{favorecidoNome || descricao}</p>
             )}
@@ -205,7 +205,7 @@ export function PaymentDischargeDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label>Valor (R$)</Label>
               <Input value={valor ? maskCurrency(String(Math.round(parseFloat(valor) * 100))) : ""} onChange={e => setValor(unmaskCurrency(e.target.value))} />

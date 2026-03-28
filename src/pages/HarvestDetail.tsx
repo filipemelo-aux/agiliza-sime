@@ -1578,7 +1578,7 @@ export default function HarvestDetail() {
       <main className="container mx-auto px-4 py-8">
         {/* Back + Title */}
         <div className="flex flex-col gap-2 mb-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link to="/admin/harvest">
               <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
@@ -1678,7 +1678,7 @@ export default function HarvestDetail() {
               <p className="text-sm text-muted-foreground">
                 Defina a data de encerramento. Motoristas sem data fim terão essa data definida automaticamente. O serviço será bloqueado para novos lançamentos.
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Data de Encerramento *</Label>
                 <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
               </div>
@@ -1702,7 +1702,7 @@ export default function HarvestDetail() {
               <DialogTitle>Vincular Motorista</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Motorista *</Label>
                 <Select value={assignForm.user_id} onValueChange={async (v) => {
                   setAssignForm(prev => ({ ...prev, user_id: v }));
@@ -1729,7 +1729,7 @@ export default function HarvestDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Veículo</Label>
                 <Select value={assignForm.vehicle_id} onValueChange={(v) => setAssignForm({ ...assignForm, vehicle_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione o veículo..." /></SelectTrigger>
@@ -1740,12 +1740,12 @@ export default function HarvestDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Data Início</Label>
                 <Input type="date" value={assignForm.start_date} onChange={(e) => setAssignForm({ ...assignForm, start_date: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor Mensal (R$)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -1757,7 +1757,7 @@ export default function HarvestDetail() {
                     }} placeholder={maskCurrency(String(Math.round(dailyValue * 30 * 100)))} />
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor Diária (R$)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -1784,7 +1784,7 @@ export default function HarvestDetail() {
               <DialogTitle>Adicionar Desconto — {selectedAssignment?.driver_name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Tipo de Desconto</Label>
                 <Select value={discountForm.type} onValueChange={(v) => setDiscountForm({ ...discountForm, type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1795,16 +1795,16 @@ export default function HarvestDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Descrição</Label>
                 <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
                   <Label>Data *</Label>
                   <Input type="date" value={discountForm.date} onChange={(e) => setDiscountForm({ ...discountForm, date: e.target.value })} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor (R$) *</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -1813,7 +1813,7 @@ export default function HarvestDetail() {
                 </div>
               </div>
               {selectedAssignment && selectedAssignment.discounts.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Descontos existentes</Label>
                   {selectedAssignment.discounts.map((d) => (
                     editingDiscountId === d.id ? (
@@ -1869,16 +1869,16 @@ export default function HarvestDetail() {
               <DialogTitle>Desconto Empresa — {selectedAssignment?.driver_name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Descrição</Label>
                 <Input value={discountForm.description} onChange={(e) => setDiscountForm({ ...discountForm, description: e.target.value })} placeholder="Detalhes do desconto..." />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
                   <Label>Data *</Label>
                   <Input type="date" value={discountForm.date} onChange={(e) => setDiscountForm({ ...discountForm, date: e.target.value })} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Valor (R$) *</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -1887,7 +1887,7 @@ export default function HarvestDetail() {
                 </div>
               </div>
               {selectedAssignment && getCompanyDialogDiscounts(selectedAssignment).length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Descontos existentes (Empresa + Diesel dos Agregados)</Label>
                   {getCompanyDialogDiscounts(selectedAssignment).map((d) => (
                     editingDiscountId === d.id ? (
@@ -2053,7 +2053,7 @@ export default function HarvestDetail() {
                     const allPaid = totalPaidAmount + totalSubPeriodPaid;
                     const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
                     return (
-                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1.5">
                       <p className="text-xs font-semibold text-foreground">
                         💰 Outros pagamentos em sub-períodos:
                       </p>
@@ -2096,7 +2096,7 @@ export default function HarvestDetail() {
                       </Button>
                     )}
                   </div>
-                   <div className="bg-muted/50 border border-border rounded p-2 space-y-1">
+                   <div className="bg-muted/50 border border-border rounded p-2 space-y-1.5">
                     <p className="text-xs font-semibold text-foreground">
                       💰 Pagamentos em sub-períodos:
                     </p>
@@ -2178,7 +2178,7 @@ export default function HarvestDetail() {
           {/* ===== TAB AGREGADOS ===== */}
           <TabsContent value="agregados">
             {isMobile ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {sortedAgregados.map((a) => {
                   const data = getAgregadoData(a);
                   return (
@@ -2210,7 +2210,7 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedAgregados.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Total Dias</span>
                       <span className="font-semibold">{sortedAgregados.reduce((s, a) => s + getAgregadoData(a).days, 0)}</span>
@@ -2357,7 +2357,7 @@ export default function HarvestDetail() {
           {/* ===== TAB FATURAMENTO ===== */}
           <TabsContent value="faturamento">
             {isMobile ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {sortedFaturamento.map((a) => {
                   const fat = getFaturamentoData(a);
                   return (
@@ -2370,7 +2370,7 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedFaturamento.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Total Dias</span>
                       <span className="font-semibold">{sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).days, 0)}</span>
@@ -2489,7 +2489,7 @@ export default function HarvestDetail() {
           {/* ===== TAB CLIENTE ===== */}
           <TabsContent value="cliente">
             {isMobile ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {sortedCliente.map((a) => {
                   const c = getClienteData(a);
                   return (
@@ -2501,7 +2501,7 @@ export default function HarvestDetail() {
                   );
                 })}
                 {sortedCliente.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1">
+                  <div className="bg-muted/50 rounded-xl p-3 border border-border space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Total Dias</span>
                       <span className="font-semibold">{sortedCliente.reduce((s, a) => s + getClienteData(a).days, 0)}</span>
@@ -2580,7 +2580,7 @@ export default function HarvestDetail() {
           <DialogHeader>
             <DialogTitle className="text-base">Opções do Relatório PDF</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-4">
+          <div className="space-y-4 py-4">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="useCustomPdfDiscountPeriod"
@@ -2633,7 +2633,7 @@ export default function HarvestDetail() {
           <DialogHeader>
             <DialogTitle className="text-base">Registrar Pagamento</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-4">
+          <div className="space-y-4 py-4">
             <div className="text-sm">
               <p className="text-muted-foreground">Período:</p>
               <p className="font-semibold">{filterStartDate ? formatDate(filterStartDate) : "—"} até {filterEndDate ? formatDate(filterEndDate) : "—"}</p>
@@ -2676,7 +2676,7 @@ export default function HarvestDetail() {
                       <p className="text-xs text-muted-foreground">Saldo restante: <span className="font-semibold text-destructive">{formatCurrency(remainingBalance)}</span></p>
                     </div>
                   )}
-                  <div className="text-sm space-y-1">
+                  <div className="text-sm space-y-1.5">
                     <p className="text-muted-foreground">Valor do pagamento:</p>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
@@ -2698,7 +2698,7 @@ export default function HarvestDetail() {
                       <p className="text-xs text-orange-500 font-medium">⚠ Pagamento parcial ({formatCurrency(paymentAmount)} de {formatCurrency(totalLiquido)})</p>
                     )}
                   </div>
-                  <div className="text-sm space-y-1">
+                  <div className="text-sm space-y-1.5">
                     <Label htmlFor="payment-due-date" className="text-muted-foreground text-xs">Data de vencimento *</Label>
                     <Input
                       id="payment-due-date"
@@ -2708,7 +2708,7 @@ export default function HarvestDetail() {
                       onChange={(e) => setPaymentDueDate(e.target.value)}
                     />
                   </div>
-                  <div className="text-sm space-y-1">
+                  <div className="text-sm space-y-1.5">
                     <Label htmlFor="payment-date" className="text-muted-foreground text-xs">Data do lançamento (opcional):</Label>
                     <Input
                       id="payment-date"

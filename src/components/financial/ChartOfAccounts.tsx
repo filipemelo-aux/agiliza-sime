@@ -262,7 +262,7 @@ export function ChartOfAccounts() {
               </DialogHeader>
               <div className="space-y-4">
                 {/* Empresa auto-selecionada */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label>Código</Label>
                     <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="1.1.01" />
@@ -272,7 +272,7 @@ export function ChartOfAccounts() {
                     <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Combustível" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Tipo</Label>
                     <Select value={tipo} onValueChange={(v) => setTipo(v as any)}>

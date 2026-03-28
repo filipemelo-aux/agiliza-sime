@@ -52,9 +52,9 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Primary filters row */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-4">
         {/* Date range */}
         <div>
           <Label className="text-xs text-muted-foreground">De</Label>
@@ -160,7 +160,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
 
       {/* Advanced filters */}
       {showAdvanced && (
-        <div className="flex flex-wrap items-end gap-3 p-3 rounded-md border border-border bg-muted/30">
+        <div className="flex flex-wrap items-end gap-4 p-3 rounded-md border border-border bg-muted/30">
           <div>
             <Label className="text-xs text-muted-foreground">Valor mínimo</Label>
             <Input

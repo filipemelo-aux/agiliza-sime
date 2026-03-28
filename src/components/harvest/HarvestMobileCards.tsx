@@ -92,7 +92,7 @@ export function AgregadoMobileCard({
   onOpenDiscount, onRemove,
 }: AgregadoCardProps) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       {/* Header: Driver + Plate */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -100,7 +100,7 @@ export function AgregadoMobileCard({
             <User className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="font-semibold text-sm truncate">{a.driver_name}</span>
           </div>
-          <div className="flex items-center gap-3 mt-0.5">
+          <div className="flex items-center gap-4 mt-0.5">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Truck className="h-3 w-3 shrink-0" />
               <span className="font-mono">{a.vehicle_plate}</span>
@@ -210,14 +210,14 @@ interface FaturamentoCardProps {
 
 export function FaturamentoMobileCard({ assignment: a, data, onOpenCompanyDiscount }: FaturamentoCardProps) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       {/* Header */}
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <User className="h-3.5 w-3.5 text-primary shrink-0" />
           <span className="font-semibold text-sm truncate">{a.driver_name}</span>
         </div>
-        <div className="flex items-center gap-3 mt-0.5">
+        <div className="flex items-center gap-4 mt-0.5">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Truck className="h-3 w-3 shrink-0" />
             <span className="font-mono">{a.vehicle_plate}</span>
@@ -297,7 +297,7 @@ interface ClienteCardProps {
 
 export function ClienteMobileCard({ assignment: a, data }: ClienteCardProps) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       {/* Header */}
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">

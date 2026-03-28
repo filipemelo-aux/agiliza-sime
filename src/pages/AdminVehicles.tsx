@@ -178,14 +178,14 @@ export default function AdminVehicles() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {filteredVehicles.map((v) => {
               const trailerLabels = TRAILER_LABELS[v.vehicle_type] || [];
               const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
               return (
                 <Card key={v.id} className="border-border">
                   <CardContent className="py-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"} {v.plate}</h3>
@@ -251,7 +251,7 @@ export default function AdminVehicles() {
             <DialogTitle>Detalhes do Veículo</DialogTitle>
           </DialogHeader>
           {viewVehicle && (
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-base">{TRUCK_TYPES.has(viewVehicle.vehicle_type) ? "🚛" : "🚗"} {viewVehicle.plate}</span>
                 <Badge variant="outline">{VEHICLE_TYPE_LABELS[viewVehicle.vehicle_type] || viewVehicle.vehicle_type}</Badge>
@@ -262,7 +262,7 @@ export default function AdminVehicles() {
                 const trailerLabels = TRAILER_LABELS[viewVehicle.vehicle_type] || [];
                 const trailerPlates = [viewVehicle.trailer_plate_1, viewVehicle.trailer_plate_2, viewVehicle.trailer_plate_3].filter(Boolean);
                 return trailerPlates.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <span className="text-muted-foreground">Conjunto:</span>
                     {trailerPlates.map((plate, i) => (
                       <p key={i} className="ml-2">{trailerLabels[i] || `Impl. ${i+1}`}: <strong>{plate}</strong></p>

@@ -250,7 +250,7 @@ export default function AdminPeople() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {filteredDrivers.map((driver) => (
               <Card key={driver.id} className="border-border">
                 <CardContent className="py-4">
@@ -380,7 +380,7 @@ export default function AdminPeople() {
             <DialogTitle>Detalhes do Cadastro</DialogTitle>
           </DialogHeader>
           {viewPerson && (
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-base">{viewPerson.full_name}</span>
                 <Badge className={`text-xs ${CATEGORY_COLORS[viewPerson.category] || "bg-muted text-muted-foreground"}`}>

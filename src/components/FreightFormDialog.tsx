@@ -158,7 +158,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Origin */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Cidade de Origem</Label>
               <Input
                 value={formData.origin_city}
@@ -167,7 +167,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 className="input-transport"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Estado de Origem</Label>
               <Select
                 value={formData.origin_state}
@@ -185,7 +185,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             </div>
 
             {/* Destination */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Cidade de Destino</Label>
               <Input
                 value={formData.destination_city}
@@ -194,7 +194,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 className="input-transport"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Estado de Destino</Label>
               <Select
                 value={formData.destination_state}
@@ -212,7 +212,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             </div>
 
             {/* Cargo Info */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Tipo de Carga</Label>
               <Input
                 value={formData.cargo_type}
@@ -221,7 +221,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 className="input-transport"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Peso (kg)</Label>
               <Input
                 type="number"
@@ -233,7 +233,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             </div>
 
             {/* Value and Distance */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Valor (R$)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
@@ -245,7 +245,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Distância (km)</Label>
               <Input
                 type="number"
@@ -256,7 +256,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             </div>
 
             {/* Dates */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Data de Coleta</Label>
               <Input
                 type="date"
@@ -266,7 +266,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 className="input-transport"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Data de Entrega</Label>
               <Input
                 type="date"
@@ -277,7 +277,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             </div>
 
             {/* Company and Vehicle Type */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Nome da Empresa</Label>
               <Input
                 value={formData.company_name}
@@ -286,7 +286,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
                 className="input-transport"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Tipo de Veículo</Label>
               <Select
                 value={formData.required_vehicle_type}
@@ -305,7 +305,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>Descrição</Label>
             <Textarea
               value={formData.description}
@@ -315,7 +315,7 @@ export function FreightFormDialog({ open, onClose, freight, onSuccess }: Freight
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>

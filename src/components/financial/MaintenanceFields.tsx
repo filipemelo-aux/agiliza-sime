@@ -130,9 +130,9 @@ export function MaintenanceFields({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Vehicle + Type */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-xs">Veículo *</Label>
           <Select value={veiculoId || ""} onValueChange={(v) => onVeiculoIdChange(v || null)}>
@@ -159,7 +159,7 @@ export function MaintenanceFields({
       </div>
 
       {/* KM + Fornecedor */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-xs">KM Atual (Odômetro) *</Label>
           <Input
@@ -220,7 +220,7 @@ export function MaintenanceFields({
       )}
 
       {/* Tempo parado + Próxima manutenção */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <Label className="text-xs">Tempo Parado</Label>
           <Input value={tempoParado} onChange={e => onTempoParadoChange(e.target.value)} placeholder="Ex: 2 dias" className="h-9" />

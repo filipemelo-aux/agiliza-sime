@@ -149,7 +149,7 @@ export function FinancialCashFlow() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
         <CashFlowFilters filters={filters} onChange={setFilters} />
       </div>
@@ -277,7 +277,7 @@ export function FinancialCashFlow() {
           ) : isMobile ? (
             <div className="divide-y divide-border">
               {movimentacoes.map((m) => (
-                <div key={m.id} className="p-3 space-y-1">
+                <div key={m.id} className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <Badge
                       variant={m.tipo === "entrada" ? "default" : "destructive"}

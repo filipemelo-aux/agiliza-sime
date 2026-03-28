@@ -159,7 +159,7 @@ export default function AdminQuotations() {
           </div>
           <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), "dd/MM/yyyy HH:mm")}</p>
         </CardHeader>
-        <CardContent className="space-y-3 flex-1">
+        <CardContent className="space-y-4 flex-1">
           <div className="space-y-1 text-sm">
             <p><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{q.client?.razao_social || q.client?.full_name || "—"}</span></p>
             <p><span className="text-muted-foreground">Rota:</span> <span className="font-medium">{q.origem_cidade}/{q.origem_uf} → {q.destino_cidade}/{q.destino_uf}</span></p>
@@ -216,7 +216,7 @@ export default function AdminQuotations() {
           </div>
           <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), "dd/MM/yyyy HH:mm")}</p>
         </CardHeader>
-        <CardContent className="space-y-3 flex-1">
+        <CardContent className="space-y-4 flex-1">
           <div className="space-y-1 text-sm">
             <p><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{q.client?.razao_social || q.client?.full_name || "—"}</span></p>
             <p><span className="text-muted-foreground">Período:</span> <span className="font-medium">

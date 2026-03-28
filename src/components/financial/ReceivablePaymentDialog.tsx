@@ -95,7 +95,7 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
             Valor do título: <strong className="text-foreground">{formatCurrency(valorTotal)}</strong>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <Label>Valor Recebido (R$)</Label>
               <Input

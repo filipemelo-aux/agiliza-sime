@@ -100,7 +100,7 @@ export function EstablishmentsList() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {[1, 2].map((i) => (
           <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
         ))}
@@ -130,7 +130,7 @@ export function EstablishmentsList() {
               Nenhum estabelecimento cadastrado. Crie a Matriz e suas Filiais.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {establishments.map((est) => (
                 <div
                   key={est.id}

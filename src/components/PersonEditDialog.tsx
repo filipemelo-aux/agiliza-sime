@@ -148,8 +148,8 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
     <>
       <Separator />
       <p className="text-sm font-medium text-muted-foreground">Endereço</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">CEP</Label>
           <div className="relative">
             <Input
@@ -167,31 +167,31 @@ function AddressFields({ form, setForm }: { form: FormState; setForm: React.Disp
           </div>
           {cepError && <p className="text-xs text-destructive">{cepError}</p>}
         </div>
-        <div className="col-span-2 space-y-1">
+        <div className="col-span-2 space-y-1.5">
           <Label className="text-xs">Rua</Label>
           <Input value={form.address_street} onChange={(e) => setForm((p) => ({ ...p, address_street: maskName(e.target.value) }))} placeholder="Rua / Av." />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Número</Label>
           <Input value={form.address_number} onChange={(e) => setForm((p) => ({ ...p, address_number: e.target.value }))} placeholder="Nº" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Complemento</Label>
           <Input value={form.address_complement} onChange={(e) => setForm((p) => ({ ...p, address_complement: maskSentence(e.target.value) }))} placeholder="Apto, Sala..." />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Bairro</Label>
           <Input value={form.address_neighborhood} onChange={(e) => setForm((p) => ({ ...p, address_neighborhood: maskName(e.target.value) }))} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Cidade</Label>
           <Input value={form.address_city} onChange={(e) => setForm((p) => ({ ...p, address_city: maskName(e.target.value) }))} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">UF</Label>
           <Select value={form.address_state || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, address_state: v === "__none__" ? "" : v }))}>
             <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
@@ -211,20 +211,20 @@ function BankFields({ form, setForm }: { form: FormState; setForm: React.Dispatc
     <>
       <Separator />
       <p className="text-sm font-medium text-muted-foreground">Dados Bancários</p>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Banco</Label>
           <Input value={form.bank_name} onChange={(e) => setForm((p) => ({ ...p, bank_name: maskName(e.target.value) }))} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Agência</Label>
           <Input value={form.bank_agency} onChange={(e) => setForm((p) => ({ ...p, bank_agency: e.target.value }))} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Conta</Label>
           <Input value={form.bank_account} onChange={(e) => setForm((p) => ({ ...p, bank_account: e.target.value }))} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Tipo de Conta</Label>
           <Select value={form.bank_account_type || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, bank_account_type: v === "__none__" ? "" : v }))}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -236,8 +236,8 @@ function BankFields({ form, setForm }: { form: FormState; setForm: React.Dispatc
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Tipo Chave PIX</Label>
           <Select value={form.pix_key_type || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, pix_key_type: v === "__none__" ? "" : v }))}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -251,7 +251,7 @@ function BankFields({ form, setForm }: { form: FormState; setForm: React.Dispatc
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Chave PIX</Label>
           <Input value={form.pix_key} onChange={(e) => setForm((p) => ({ ...p, pix_key: e.target.value }))} />
         </div>
@@ -265,12 +265,12 @@ function CNHFields({ form, setForm }: { form: FormState; setForm: React.Dispatch
     <>
       <Separator />
       <p className="text-sm font-medium text-muted-foreground">Habilitação (CNH)</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Nº CNH</Label>
           <Input value={form.cnh_number} maxLength={11} onChange={(e) => setForm((p) => ({ ...p, cnh_number: maskCNH(e.target.value) }))} placeholder="00000000000" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Categoria</Label>
           <Select value={form.cnh_category || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, cnh_category: v === "__none__" ? "" : v }))}>
             <SelectTrigger><SelectValue placeholder="Cat." /></SelectTrigger>
@@ -280,7 +280,7 @@ function CNHFields({ form, setForm }: { form: FormState; setForm: React.Dispatch
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Validade</Label>
           <Input type="date" value={form.cnh_expiry} onChange={(e) => setForm((p) => ({ ...p, cnh_expiry: e.target.value }))} />
         </div>
@@ -656,9 +656,9 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
   }, [form.cnpj, setForm]);
 
   return (
-    <div className="space-y-3 pt-2">
+    <div className="space-y-4 pt-2">
       {/* Category */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Label className="text-xs">Categoria *</Label>
         <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v, person_type: (v === "motorista" || v === "colaborador") ? "cpf" : p.person_type }))}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -670,7 +670,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
       {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}
       {!isMotorista && !isColaborador && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">Tipo de Pessoa</Label>
           <div className="flex gap-2">
             <Button
@@ -697,7 +697,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
       {/* CPF - for motorista, colaborador, or CPF person type */}
       {(isMotorista || isColaborador || form.person_type === "cpf") && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">CPF{isColaborador ? " *" : ""}</Label>
           <Input value={form.cpf} maxLength={14} onChange={(e) => setForm((p) => ({ ...p, cpf: maskCPF(e.target.value) }))} placeholder="000.000.000-00" />
         </div>
@@ -706,7 +706,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* CNPJ with auto-lookup - moved before name */}
       {showCNPJ && (
         <>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label className="text-xs">CNPJ</Label>
             <div className="flex gap-2">
               <Input
@@ -728,17 +728,17 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
             </div>
             {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label className="text-xs">Razão Social</Label>
               <Input value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: maskName(e.target.value) }))} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label className="text-xs">Nome Fantasia</Label>
               <Input value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: maskName(e.target.value) }))} />
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label className="text-xs">Inscrição Estadual (IE)</Label>
             <Input value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value.replace(/\D/g, "") }))} placeholder="Somente números" />
           </div>
@@ -746,18 +746,18 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       )}
 
       {/* Name */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Label className="text-xs">{showCNPJ ? "Nome / Razão Social *" : "Nome Completo *"}</Label>
         <Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: maskName(e.target.value) }))} />
       </div>
 
       {/* Phone + Email */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
           <Label className="text-xs">Telefone</Label>
           <Input value={form.phone} maxLength={15} onChange={(e) => setForm((p) => ({ ...p, phone: maskPhone(e.target.value) }))} placeholder="(11) 99999-9999" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <Label className="text-xs">E-mail</Label>
           <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value.toLowerCase() }))} placeholder="email@exemplo.com" />
         </div>
@@ -768,12 +768,12 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         <>
           <Separator />
           <p className="text-sm font-medium text-muted-foreground">Dados Funcionais</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label className="text-xs">Cargo *</Label>
               <Input value={form.cargo} onChange={(e) => setForm((p) => ({ ...p, cargo: maskName(e.target.value) }))} placeholder="Ex: Auxiliar Administrativo" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label className="text-xs">Departamento</Label>
               <Select value={form.departamento || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, departamento: v === "__none__" ? "" : v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -790,12 +790,12 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label className="text-xs">Data de Admissão</Label>
               <Input type="date" value={form.data_admissao} onChange={(e) => setForm((p) => ({ ...p, data_admissao: e.target.value }))} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label className="text-xs">Salário (R$)</Label>
               <Input type="number" step="0.01" min="0" value={form.salario} onChange={(e) => setForm((p) => ({ ...p, salario: e.target.value }))} placeholder="0,00" />
             </div>
@@ -824,7 +824,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
       {/* Notes */}
       <Separator />
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Label className="text-xs">Observações</Label>
         <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Anotações..." />
       </div>

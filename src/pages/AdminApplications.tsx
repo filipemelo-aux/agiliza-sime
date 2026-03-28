@@ -608,8 +608,8 @@ export default function AdminApplications() {
                   className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => toggleExpand(app.id)}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                         <User className="w-5 h-5 text-primary" />
                       </div>
@@ -795,7 +795,7 @@ export default function AdminApplications() {
                                 </span>
                               </div>
                               {app.vehicle.trailer_plate_1 && (
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">
                                       {app.vehicle.vehicle_type === "rodotrem" ? "Dolly:" : "Carreta 1:"}
@@ -811,7 +811,7 @@ export default function AdminApplications() {
                                 </div>
                               )}
                               {app.vehicle.trailer_plate_2 && (
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">
                                       {app.vehicle.vehicle_type === "rodotrem" ? "Carreta 1:" : "Carreta 2:"}
@@ -827,7 +827,7 @@ export default function AdminApplications() {
                                 </div>
                               )}
                               {app.vehicle.trailer_plate_3 && (
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">
                                       {app.vehicle.vehicle_type === "rodotrem" ? "Carreta 2:" : "Carreta 3:"}
@@ -897,7 +897,7 @@ export default function AdminApplications() {
 
                     {/* Action Buttons for Pending */}
                     {app.status === "pending" && !app.loading_order_url && (
-                      <div className="flex gap-3 mt-4 pt-4 border-t border-border">
+                      <div className="flex gap-4 mt-4 pt-4 border-t border-border">
                         <Button
                           className="flex-1 bg-green-600 hover:bg-green-700"
                           onClick={() => handleAccept(app)}
@@ -955,7 +955,7 @@ export default function AdminApplications() {
                             Comprovante de Descarga
                           </h5>
                           {app.discharge_proof_url && app.discharge_proof_status === "pending" ? (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm text-blue-600 flex items-center gap-1">
@@ -1106,7 +1106,7 @@ export default function AdminApplications() {
               </div>
 
               {/* File Upload */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Anexar Ordem (PDF, DOC, JPG)</Label>
                 <div 
                   className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
@@ -1187,7 +1187,7 @@ export default function AdminApplications() {
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="reject-reason">Motivo da rejeição *</Label>
                 <Textarea
                   id="reject-reason"
@@ -1255,7 +1255,7 @@ export default function AdminApplications() {
               </div>
 
               {paymentAction === "confirm" && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Anexar Comprovante (PDF, JPG, PNG)</Label>
                   <div 
                     className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
