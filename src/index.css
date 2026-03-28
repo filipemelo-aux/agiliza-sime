@@ -131,13 +131,13 @@
 
 @layer components {
   .freight-card {
-    @apply bg-card rounded-xl border border-border p-5 transition-all duration-300;
-    box-shadow: var(--shadow-md);
+    @apply bg-card rounded-[14px] border border-border p-4 transition-all duration-200;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
   
   .freight-card:hover {
-    box-shadow: var(--shadow-freight);
-    @apply border-primary/30 -translate-y-1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    @apply border-border -translate-y-0.5;
   }
 
   .btn-transport {

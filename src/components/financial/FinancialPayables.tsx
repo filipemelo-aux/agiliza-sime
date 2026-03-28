@@ -1937,7 +1937,7 @@ export function FinancialPayables() {
 
               {/* NFe (Peças) */}
               {maintNfeExpense && (
-                <Card className="border-l-4 border-l-primary">
+                <Card>
                   <CardContent className="p-3 space-y-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -1972,7 +1972,7 @@ export function FinancialPayables() {
 
               {/* NFSe (Serviço) */}
               {maintNfseExpense && (
-                <Card className="border-l-4 border-l-accent">
+                <Card>
                   <CardContent className="p-3 space-y-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                       <FileText className="h-4 w-4 text-accent-foreground shrink-0" />

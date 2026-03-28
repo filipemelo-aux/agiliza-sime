@@ -140,12 +140,7 @@ export function FinancialReceivables() {
             const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
             const Icon = st.icon;
             return (
-              <Card key={c.id} className={cn(
-                "border-l-4",
-                c.status === "recebido" && "border-l-green-500",
-                c.status === "atrasado" && "border-l-destructive",
-                c.status === "aberto" && "border-l-amber-400",
-              )}>
+              <Card key={c.id}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-foreground truncate">{c.cliente_nome}</p>
