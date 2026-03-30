@@ -30,12 +30,19 @@ export function FinancialPaid() {
   const fetchData = async () => {
     setLoading(true);
 
-    const [{ data: paidExpenses }, { data: paidLegacy }] = await Promise.all([
+    const [{ data: expensePayments }, { data: paidLegacy }] = await Promise.all([
       supabase
-        .from("expenses")
-        .select("id, descricao, valor_pago, data_pagamento, favorecido_nome, status")
-        .is("deleted_at", null)
-        .gt("valor_pago", 0)
+        .from("expense_payments" as any)
+        .select(`
+          id,
+          valor,
+          data_pagamento,
+          expense_id,
+          expenses:expense_id (
+            descricao,
+            favorecido_nome
+          )
+        `)
         .order("data_pagamento", { ascending: false }),
       supabase
         .from("accounts_payable")
@@ -44,14 +51,14 @@ export function FinancialPaid() {
         .order("paid_at", { ascending: false }),
     ]);
 
-    const expenseItems: PaidItem[] = (paidExpenses || []).map((e: any) => ({
-      id: e.id,
-      description: e.descricao,
-      amount: Number(e.valor_pago || 0),
-      paid_at: e.data_pagamento,
-      creditor_name: e.favorecido_nome,
-      source: "expense" as const,
-      status: e.status as string,
+    const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
+      id: p.id,
+      description: p.expenses?.descricao || "Pagamento de despesa",
+      amount: Number(p.valor || 0),
+      paid_at: p.data_pagamento,
+      creditor_name: p.expenses?.favorecido_nome || null,
+      source: "expense_payment" as const,
+      status: "pago",
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
