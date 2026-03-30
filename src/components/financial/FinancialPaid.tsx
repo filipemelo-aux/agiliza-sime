@@ -70,7 +70,7 @@ export function FinancialPaid() {
       id: `legacy-${a.id}`,
       description: a.description,
       amount: Number(a.paid_amount || a.amount),
-      paid_at: a.paid_at,
+      paid_at: getLocalDateISO(a.paid_at),
       creditor_name: a.creditor_name,
       source: "legacy" as const,
       forma_pagamento: null,
