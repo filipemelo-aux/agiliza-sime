@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
+import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
 interface PaidItem {
   id: string;
@@ -22,6 +24,84 @@ interface PaidItem {
   expense_id: string | null;
   forma_pagamento?: string | null;
 }
+
+interface ExpenseDetail {
+  id: string;
+  descricao: string;
+  plano_contas_id: string | null;
+  centro_custo: string;
+  valor_total: number;
+  valor_pago: number;
+  data_emissao: string;
+  data_vencimento: string | null;
+  status: string;
+  forma_pagamento: string | null;
+  favorecido_nome: string | null;
+  favorecido_id: string | null;
+  documento_fiscal_numero: string | null;
+  chave_nfe: string | null;
+  observacoes: string | null;
+  veiculo_placa: string | null;
+  veiculo_id: string | null;
+  litros: number | null;
+  km_odometro: number | null;
+  numero_multa: string | null;
+  origem: string;
+  created_at: string;
+  data_pagamento: string | null;
+  documento_fiscal_importado?: boolean;
+  xml_original?: string | null;
+  fornecedor_cnpj?: string | null;
+  empresa_id?: string;
+  unidade_id?: string | null;
+  tipo_manutencao?: string | null;
+  km_atual?: number | null;
+  fornecedor_mecanica?: string | null;
+  tempo_parado?: string | null;
+  proxima_manutencao_km?: number | null;
+}
+
+interface PaymentRecord {
+  id: string;
+  valor: number;
+  forma_pagamento: string;
+  data_pagamento: string;
+  observacoes: string | null;
+}
+
+interface ChartAccount {
+  id: string;
+  codigo: string;
+  nome: string;
+  tipo: string;
+  conta_pai_id: string | null;
+  tipo_operacional?: string | null;
+}
+
+const CENTRO_CUSTO_MAP: Record<string, string> = {
+  frota_propria: "Frota Própria",
+  frota_terceiros: "Frota Terceiros",
+  administrativo: "Administrativo",
+  operacional: "Operacional",
+};
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pendente: { label: "Pendente", variant: "outline" },
+  pago: { label: "Pago", variant: "default" },
+  atrasado: { label: "Atrasado", variant: "destructive" },
+  parcial: { label: "Parcial", variant: "secondary" },
+};
+
+const FORMA_PAGAMENTO_MAP: Record<string, string> = {
+  pix: "PIX",
+  ted: "TED",
+  boleto: "Boleto",
+  cartao_credito: "Cartão de Crédito",
+  cartao_debito: "Cartão de Débito",
+  transferencia: "Transferência",
+  dinheiro: "Dinheiro",
+  cheque: "Cheque",
+};
 
 const toDateOnly = (value?: string | null) => {
   if (!value) return null;
@@ -38,7 +118,29 @@ export function FinancialPaid() {
   const [periodoFim, setPeriodoFim] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => { fetchData(); }, []);
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null);
+  const [detailPayments, setDetailPayments] = useState<PaymentRecord[]>([]);
+  const [detailChart, setDetailChart] = useState<ChartAccount | null>(null);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editExpense, setEditExpense] = useState<ExpenseDetail | null>(null);
+  const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [empresaId, setEmpresaId] = useState("");
+
+  useEffect(() => { fetchData(); fetchMeta(); }, []);
+
+  const fetchMeta = async () => {
+    const [{ data: charts }, { data: estab }] = await Promise.all([
+      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo"),
+      supabase.from("fiscal_establishments").select("id").eq("type", "matriz" as any).limit(1).maybeSingle(),
+    ]);
+    setChartAccounts((charts || []) as ChartAccount[]);
+    if (estab) setEmpresaId(estab.id);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -116,7 +218,6 @@ export function FinancialPaid() {
     });
   }, [items, search, periodoInicio, periodoFim]);
 
-  // Only expense_payment items can be reversed
   const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
 
   const total = filtered.reduce((s, i) => s + i.amount, 0);
@@ -153,6 +254,42 @@ export function FinancialPaid() {
     }
   };
 
+  // --- Detail ---
+  const openDetail = async (item: PaidItem) => {
+    if (!item.expense_id) return;
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailExpense(null);
+    setDetailPayments([]);
+    setDetailChart(null);
+
+    const [{ data: exp }, { data: payments }] = await Promise.all([
+      supabase.from("expenses").select("*").eq("id", item.expense_id).maybeSingle(),
+      supabase.from("expense_payments" as any).select("id, valor, forma_pagamento, data_pagamento, observacoes").eq("expense_id", item.expense_id).order("data_pagamento"),
+    ]);
+
+    if (exp) {
+      setDetailExpense(exp as any);
+      if (exp.plano_contas_id) {
+        const chart = chartAccounts.find(c => c.id === exp.plano_contas_id);
+        setDetailChart(chart || null);
+      }
+    }
+    setDetailPayments((payments || []) as PaymentRecord[]);
+    setDetailLoading(false);
+  };
+
+  // --- Edit ---
+  const openEdit = async (item: PaidItem) => {
+    if (!item.expense_id) return;
+    const { data: exp } = await supabase.from("expenses").select("*").eq("id", item.expense_id).maybeSingle();
+    if (exp) {
+      setEditExpense(exp as any);
+      setEditOpen(true);
+    }
+  };
+
+  // --- Reverse ---
   const handleReverseSingle = async (item: PaidItem) => {
     if (item.source !== "expense_payment" || !item.expense_id) return;
     if (!await confirm({
@@ -199,10 +336,8 @@ export function FinancialPaid() {
   const reversePayment = async (item: PaidItem) => {
     if (!item.expense_id) return;
 
-    // Delete the specific payment record (trigger removes movimentacao_bancaria)
     await supabase.from("expense_payments" as any).delete().eq("id", item.id);
 
-    // Recalculate expense totals from remaining payments
     const { data: remainingPayments } = await supabase
       .from("expense_payments" as any)
       .select("valor")
@@ -210,7 +345,6 @@ export function FinancialPaid() {
 
     const totalPago = (remainingPayments || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
 
-    // Get expense to determine new status
     const { data: expense } = await supabase
       .from("expenses")
       .select("valor_total")
@@ -230,8 +364,6 @@ export function FinancialPaid() {
       ...(totalPago <= 0 ? { data_pagamento: null } : {}),
     } as any).eq("id", item.expense_id);
 
-    // Reset installment status if this payment was for an installment
-    // Find installments that are pago for this expense and check if payments still cover them
     const { data: installments } = await supabase
       .from("expense_installments")
       .select("id, valor, status")
@@ -239,7 +371,6 @@ export function FinancialPaid() {
       .eq("status", "pago" as any);
 
     if (installments && installments.length > 0 && totalPago < (installments || []).reduce((s: number, inst: any) => s + Number(inst.valor), 0)) {
-      // Some installments need to be reopened - reopen from last to first
       const sorted = [...installments].reverse();
       let deficit = (installments || []).reduce((s: number, inst: any) => s + Number(inst.valor), 0) - totalPago;
       for (const inst of sorted) {
@@ -369,30 +500,188 @@ export function FinancialPaid() {
                     {item.forma_pagamento && (
                       <div className="col-span-2">
                         <span className="text-[11px] text-muted-foreground">Forma Pgto</span>
-                        <p className="text-[11px] capitalize text-foreground">{item.forma_pagamento}</p>
+                        <p className="text-[11px] capitalize text-foreground">{FORMA_PAGAMENTO_MAP[item.forma_pagamento] || item.forma_pagamento}</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Footer: Estornar button */}
-                  {isSelectable && (
-                    <div className="flex items-center pt-1.5 mt-1.5 border-t border-border">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                        onClick={() => handleReverseSingle(item)}
-                        disabled={reversing}
-                      >
-                        <Undo2 className="h-3 w-3" /> Estornar
-                      </Button>
-                    </div>
-                  )}
+                  {/* Footer: Action buttons */}
+                  <div className="flex items-center gap-1 pt-1.5 mt-1.5 border-t border-border">
+                    {isSelectable && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-primary"
+                          onClick={() => openDetail(item)}
+                          title="Detalhes"
+                        >
+                          <Eye className="h-3 w-3" /> Detalhes
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-muted-foreground"
+                          onClick={() => openEdit(item)}
+                          title="Editar despesa"
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <div className="ml-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                            onClick={() => handleReverseSingle(item)}
+                            disabled={reversing}
+                          >
+                            <Undo2 className="h-3 w-3" /> Estornar
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+      )}
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-md overflow-x-hidden max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Pagamento</DialogTitle>
+          </DialogHeader>
+          {detailLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary" />
+            </div>
+          ) : detailExpense ? (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-xs text-muted-foreground">Favorecido</span>
+                  <p className="font-semibold text-foreground truncate">{detailExpense.favorecido_nome || "—"}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Emissão</span>
+                  <p className="text-foreground">{formatDateBR(detailExpense.data_emissao)}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Valor Total</span>
+                  <p className="font-mono font-bold text-foreground">{formatCurrency(Number(detailExpense.valor_total))}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Valor Pago</span>
+                  <p className="font-mono font-bold text-success">{formatCurrency(Number(detailExpense.valor_pago))}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Status</span>
+                  <Badge variant={STATUS_MAP[detailExpense.status]?.variant || "outline"} className="text-[10px]">
+                    {STATUS_MAP[detailExpense.status]?.label || detailExpense.status}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Centro de Custo</span>
+                  <p className="text-foreground text-xs">{CENTRO_CUSTO_MAP[detailExpense.centro_custo] || detailExpense.centro_custo}</p>
+                </div>
+                {detailChart && (
+                  <div className="col-span-2">
+                    <span className="text-xs text-muted-foreground">Conta Contábil</span>
+                    <p className="text-xs text-foreground truncate">
+                      <span className="font-mono mr-1">{detailChart.codigo}</span>{detailChart.nome}
+                    </p>
+                  </div>
+                )}
+                {detailExpense.documento_fiscal_numero && (
+                  <div className="col-span-2">
+                    <span className="text-xs text-muted-foreground">Documento Fiscal</span>
+                    <p className="text-foreground">{detailExpense.documento_fiscal_numero}</p>
+                  </div>
+                )}
+                {detailExpense.veiculo_placa && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Veículo</span>
+                    <p className="text-foreground">{detailExpense.veiculo_placa}</p>
+                  </div>
+                )}
+                {detailExpense.data_vencimento && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Vencimento</span>
+                    <p className="text-foreground">{formatDateBR(detailExpense.data_vencimento)}</p>
+                  </div>
+                )}
+                {detailExpense.observacoes && (
+                  <div className="col-span-2">
+                    <span className="text-xs text-muted-foreground">Observações</span>
+                    <p className="text-foreground text-xs break-words">{detailExpense.observacoes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment history */}
+              {detailPayments.length > 0 && (
+                <div className="border-t border-border pt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Histórico de Pagamentos ({detailPayments.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {detailPayments.map((pay) => (
+                      <div key={pay.id} className="flex items-center gap-2 text-xs p-1.5 rounded bg-success/10">
+                        <span className="font-mono font-semibold shrink-0">{formatCurrency(Number(pay.valor))}</span>
+                        <span className="text-muted-foreground shrink-0">{formatDateBR(toDateOnly(pay.data_pagamento))}</span>
+                        <span className="text-muted-foreground truncate">{FORMA_PAGAMENTO_MAP[pay.forma_pagamento] || pay.forma_pagamento}</span>
+                        {pay.observacoes && (
+                          <span className="text-muted-foreground truncate ml-auto" title={pay.observacoes}>💬</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    if (detailExpense) {
+                      setEditExpense(detailExpense);
+                      setEditOpen(true);
+                    }
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Editar Despesa
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">Despesa não encontrada.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      {editExpense && empresaId && (
+        <ExpenseFormDialog
+          open={editOpen}
+          onOpenChange={(open) => {
+            setEditOpen(open);
+            if (!open) setEditExpense(null);
+          }}
+          expense={editExpense as any}
+          empresaId={empresaId}
+          chartAccounts={chartAccounts as any}
+          onSaved={() => {
+            setEditOpen(false);
+            setEditExpense(null);
+            fetchData();
+          }}
+        />
       )}
     </div>
   );
