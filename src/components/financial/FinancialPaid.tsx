@@ -15,7 +15,7 @@ interface PaidItem {
   amount: number;
   paid_at: string | null;
   creditor_name: string | null;
-  source: "expense" | "legacy";
+  source: "expense_payment" | "legacy";
   status?: string;
 }
 
