@@ -783,11 +783,12 @@ export function FinancialPayables() {
         } else {
           if (i.status !== "atrasado") return false;
         }
-      } else if (quickFilter === "pagas") {
+      } else {
+        // Contas pagas foram movidas para a tela dedicada "Contas Pagas"
         if (hasInst) {
-          if (!installs.every(inst => inst.status === "pago")) return false;
+          if (!installs.some(inst => inst.status !== "pago")) return false;
         } else {
-          if (i.status !== "pago") return false;
+          if (i.status === "pago") return false;
         }
       }
 
