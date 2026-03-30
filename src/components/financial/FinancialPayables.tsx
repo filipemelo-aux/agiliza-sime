@@ -910,22 +910,22 @@ export function FinancialPayables() {
     }
   };
 
-  const { totalPendente, totalPago, totalAtrasado, totalRegistros } = useMemo(() => {
+  const { totalPendente, totalAtrasado, totalRegistros } = useMemo(() => {
     let pendente = 0;
-    let pago = 0;
     let atrasado = 0;
     let registros = 0;
     const today = format(new Date(), "yyyy-MM-dd");
 
-    // Cards exibem totais GERAIS — sem nenhum filtro
+    // Cards exibem totais GERAIS de itens NÃO pagos
     items.forEach(item => {
+      if (item.status === "pago") return;
+
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
+          if (inst.status === "pago") return;
           registros++;
-          if (inst.status === "pago") {
-            pago += Number(inst.valor);
-          } else if (inst.data_vencimento < today) {
+          if (inst.data_vencimento < today) {
             atrasado += Number(inst.valor);
           } else {
             pendente += Number(inst.valor);
@@ -933,21 +933,17 @@ export function FinancialPayables() {
         });
       } else {
         registros++;
-        if (item.status === "pago") {
-          pago += Number(item.valor_pago);
+        const remaining = Number(item.valor_total) - Number(item.valor_pago);
+        const dueDate = item.data_vencimento || item.data_emissao;
+        if (dueDate < today) {
+          atrasado += remaining;
         } else {
-          const remaining = Number(item.valor_total) - Number(item.valor_pago);
-          const dueDate = item.data_vencimento || item.data_emissao;
-          if (dueDate < today) {
-            atrasado += remaining;
-          } else {
-            pendente += remaining;
-          }
+          pendente += remaining;
         }
       }
     });
 
-    return { totalPendente: pendente, totalPago: pago, totalAtrasado: atrasado, totalRegistros: registros };
+    return { totalPendente: pendente, totalAtrasado: atrasado, totalRegistros: registros };
   }, [items, installmentsMap]);
 
   // Calculate selected total considering both installments and regular expenses
