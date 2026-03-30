@@ -1264,9 +1264,6 @@ export function FinancialPayables() {
                   } else if (f.key === "atrasadas") {
                     setFilterPeriodoInicio("");
                     setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
-                  } else if (f.key === "pagas") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim("");
                   }
                   setQuickFilter(f.key);
                   setSelectedIds(new Set());
