@@ -175,10 +175,9 @@ export function FinancialPaid() {
           period_start,
           period_end,
           notes,
+          filter_context,
           harvest_jobs:harvest_job_id (
-            farm_name,
-            client_id,
-            profiles:client_id ( full_name )
+            farm_name
           )
         `)
         .order("period_end", { ascending: false }),
