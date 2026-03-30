@@ -32,9 +32,10 @@ export function FinancialPaid() {
     const [{ data: paidExpenses }, { data: paidLegacy }] = await Promise.all([
       supabase
         .from("expenses")
-        .select("id, descricao, valor_pago, data_pagamento, favorecido_nome")
+        .select("id, descricao, valor_pago, data_pagamento, favorecido_nome, status")
         .is("deleted_at", null)
-        .eq("status", "pago" as any)
+        .in("status", ["pago", "parcial"] as any)
+        .gt("valor_pago", 0)
         .order("data_pagamento", { ascending: false }),
       supabase
         .from("accounts_payable")
