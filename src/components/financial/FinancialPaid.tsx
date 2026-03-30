@@ -51,6 +51,7 @@ export function FinancialPaid() {
       paid_at: e.data_pagamento,
       creditor_name: e.favorecido_nome,
       source: "expense" as const,
+      status: e.status as string,
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
