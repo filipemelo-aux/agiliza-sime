@@ -61,7 +61,12 @@ export function FinancialCashFlow() {
       .order("data_movimentacao", { ascending: false });
 
     if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
-    if (filters.origem !== "todos") query = query.eq("origem", filters.origem);
+    if (filters.origem === "despesas") {
+      // "Despesas" filter should include both legacy 'despesas' and new 'pagamento_despesa'
+      query = query.in("origem", ["despesas", "pagamento_despesa"]);
+    } else if (filters.origem !== "todos") {
+      query = query.eq("origem", filters.origem);
+    }
     if (filters.valorMin) query = query.gte("valor", Number(filters.valorMin));
     if (filters.valorMax) query = query.lte("valor", Number(filters.valorMax));
 
@@ -71,19 +76,34 @@ export function FinancialCashFlow() {
     const pagarIds = movs.filter((m) => m.origem === "contas_pagar").map((m) => m.origem_id);
     const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
     const despesaIds = movs.filter((m) => m.origem === "despesas").map((m) => m.origem_id);
+    const pagDespesaIds = movs.filter((m) => m.origem === "pagamento_despesa").map((m) => m.origem_id);
     const colheitaIds = movs.filter((m) => m.origem === "colheitas").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
 
-    const [pagarRes, receberRes, despesaRes, colheitaRes] = await Promise.all([
+    const [pagarRes, receberRes, despesaRes, colheitaRes, pagDespesaRes] = await Promise.all([
       pagarIds.length > 0 ? supabase.from("accounts_payable").select("id, creditor_name, creditor_id").in("id", pagarIds) : Promise.resolve({ data: [] }),
       receberIds.length > 0 ? supabase.from("contas_receber").select("id, cliente_id").in("id", receberIds) : Promise.resolve({ data: [] }),
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
       colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id").in("id", colheitaIds) : Promise.resolve({ data: [] }),
+      pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
     ]);
 
     (pagarRes.data || []).forEach((ap: any) => { if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name); });
     (despesaRes.data || []).forEach((e: any) => { if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome); });
+
+    // Enrich pagamento_despesa: look up expense favorecido_nome via expense_payments → expenses
+    if ((pagDespesaRes.data || []).length > 0) {
+      const expIds = [...new Set((pagDespesaRes.data || []).map((p: any) => p.expense_id).filter(Boolean))];
+      if (expIds.length > 0) {
+        const { data: exps } = await supabase.from("expenses").select("id, favorecido_nome").in("id", expIds);
+        const expMap = new Map((exps || []).map((e: any) => [e.id, e.favorecido_nome]));
+        (pagDespesaRes.data || []).forEach((p: any) => {
+          const nome = expMap.get(p.expense_id);
+          if (nome) pessoaMap.set(p.id, nome);
+        });
+      }
+    }
 
     const jobIds = [...new Set((colheitaRes.data || []).map((hp: any) => hp.harvest_job_id).filter(Boolean))];
     if (jobIds.length > 0) {
@@ -143,7 +163,7 @@ export function FinancialCashFlow() {
   const origemLabel = (o: string) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
-    if (o === "despesas") return "Despesa";
+    if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "colheitas") return "Colheita";
     return o;
   };

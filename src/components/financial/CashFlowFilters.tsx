@@ -15,7 +15,7 @@ export interface CashFlowFilterValues {
   dataInicio: Date;
   dataFim: Date;
   tipo: "todos" | "entrada" | "saida";
-  origem: "todos" | "contas_pagar" | "contas_receber" | "despesas" | "colheitas";
+  origem: "todos" | "contas_pagar" | "contas_receber" | "despesas" | "colheitas" | "pagamento_despesa";
   valorMin: string;
   valorMax: string;
 }
