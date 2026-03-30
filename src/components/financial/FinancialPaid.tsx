@@ -252,7 +252,7 @@ export function FinancialPaid() {
 
   return (
     <div className="space-y-4">
-      <ConfirmDialog />
+      {ConfirmDialog}
       <h1 className="text-lg font-bold text-foreground">Contas Pagas</h1>
 
       <div className="grid grid-cols-2 gap-2">
