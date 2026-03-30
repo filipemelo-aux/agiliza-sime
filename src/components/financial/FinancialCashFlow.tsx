@@ -85,7 +85,7 @@ export function FinancialCashFlow() {
       pagarIds.length > 0 ? supabase.from("accounts_payable").select("id, creditor_name, creditor_id").in("id", pagarIds) : Promise.resolve({ data: [] }),
       receberIds.length > 0 ? supabase.from("contas_receber").select("id, cliente_id").in("id", receberIds) : Promise.resolve({ data: [] }),
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
-      colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id").in("id", colheitaIds) : Promise.resolve({ data: [] }),
+      colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id, filter_context").in("id", colheitaIds) : Promise.resolve({ data: [] }),
       pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
     ]);
 
@@ -105,11 +105,31 @@ export function FinancialCashFlow() {
       }
     }
 
-    const jobIds = [...new Set((colheitaRes.data || []).map((hp: any) => hp.harvest_job_id).filter(Boolean))];
-    if (jobIds.length > 0) {
-      const { data: jobs } = await supabase.from("harvest_jobs").select("id, farm_name").in("id", jobIds);
-      const jobMap = new Map((jobs || []).map((j: any) => [j.id, j.farm_name]));
-      (colheitaRes.data || []).forEach((hp: any) => { const fn = jobMap.get(hp.harvest_job_id); if (fn) pessoaMap.set(hp.id, fn); });
+    // Enrich colheitas: resolve vehicle owner name via filter_context → vehicles → profiles
+    const colheitaData = colheitaRes.data || [];
+    if (colheitaData.length > 0) {
+      const allDriverIds = [...new Set(colheitaData.flatMap((hp: any) => (hp.filter_context || "").split(",").filter(Boolean)))];
+      const { data: hvVehicles } = allDriverIds.length > 0
+        ? await supabase.from("vehicles").select("driver_id, owner_id").in("driver_id", allDriverIds)
+        : { data: [] };
+      const ownerIds = [...new Set((hvVehicles || []).map((v: any) => v.owner_id).filter(Boolean))];
+      const { data: ownerProfiles } = ownerIds.length > 0
+        ? await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds)
+        : { data: [] };
+      const ownerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
+      const driverOwnerMap = new Map((hvVehicles || []).map((v: any) => [v.driver_id, v.owner_id]));
+
+      colheitaData.forEach((hp: any) => {
+        let ownerName = "";
+        if (hp.filter_context) {
+          const userIds = hp.filter_context.split(",").filter(Boolean);
+          for (const uid of userIds) {
+            const oid = driverOwnerMap.get(uid);
+            if (oid && ownerMap.has(oid)) { ownerName = ownerMap.get(oid)!; break; }
+          }
+        }
+        if (ownerName) pessoaMap.set(hp.id, ownerName);
+      });
     }
 
     const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];

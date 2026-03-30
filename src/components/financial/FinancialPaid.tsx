@@ -175,10 +175,9 @@ export function FinancialPaid() {
           period_start,
           period_end,
           notes,
+          filter_context,
           harvest_jobs:harvest_job_id (
-            farm_name,
-            client_id,
-            profiles:client_id ( full_name )
+            farm_name
           )
         `)
         .order("period_end", { ascending: false }),
@@ -206,15 +205,36 @@ export function FinancialPaid() {
       forma_pagamento: null,
     }));
 
+    // Resolve owner names for harvest payments
+    const allHarvestDriverIds = [...new Set((harvestPayments || []).flatMap((h: any) => (h.filter_context || "").split(",").filter(Boolean)))];
+    let harvestOwnerMap = new Map<string, string>();
+    let harvestDriverOwnerMap = new Map<string, string>();
+    if (allHarvestDriverIds.length > 0) {
+      const { data: hvVehicles } = await supabase.from("vehicles").select("driver_id, owner_id").in("driver_id", allHarvestDriverIds);
+      const ownerIds = [...new Set((hvVehicles || []).map((v: any) => v.owner_id).filter(Boolean))];
+      if (ownerIds.length > 0) {
+        const { data: ownerProfiles } = await supabase.from("profiles").select("user_id, full_name, nome_fantasia").in("user_id", ownerIds);
+        harvestOwnerMap = new Map((ownerProfiles || []).map((p: any) => [p.user_id, p.nome_fantasia || p.full_name]));
+      }
+      harvestDriverOwnerMap = new Map((hvVehicles || []).map((v: any) => [v.driver_id, v.owner_id]));
+    }
+
     const harvestItems: PaidItem[] = (harvestPayments || []).map((h: any) => {
       const farmName = h.harvest_jobs?.farm_name || "";
-      const clientName = h.harvest_jobs?.profiles?.full_name || "";
+      let ownerName = "";
+      if (h.filter_context) {
+        const userIds = h.filter_context.split(",").filter(Boolean);
+        for (const uid of userIds) {
+          const oid = harvestDriverOwnerMap.get(uid);
+          if (oid && harvestOwnerMap.has(oid)) { ownerName = harvestOwnerMap.get(oid)!; break; }
+        }
+      }
       return {
         id: `harvest-${h.id}`,
-        description: `Colheita - ${farmName}${clientName ? ` (${clientName})` : ""}`,
+        description: `Colheita - ${farmName}`,
         amount: Number(h.total_amount || 0),
         paid_at: toDateOnly(h.period_end),
-        creditor_name: clientName || farmName || "Colheita",
+        creditor_name: ownerName || farmName || "Colheita",
         source: "harvest" as const,
         expense_id: null,
         forma_pagamento: null,
