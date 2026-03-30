@@ -275,7 +275,7 @@ export function FinancialPaid() {
         setDetailChart(chart || null);
       }
     }
-    setDetailPayments((payments || []) as PaymentRecord[]);
+    setDetailPayments((payments || []) as unknown as PaymentRecord[]);
     setDetailLoading(false);
   };
 
