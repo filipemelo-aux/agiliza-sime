@@ -61,7 +61,12 @@ export function FinancialCashFlow() {
       .order("data_movimentacao", { ascending: false });
 
     if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
-    if (filters.origem !== "todos") query = query.eq("origem", filters.origem);
+    if (filters.origem === "despesas") {
+      // "Despesas" filter should include both legacy 'despesas' and new 'pagamento_despesa'
+      query = query.in("origem", ["despesas", "pagamento_despesa"]);
+    } else if (filters.origem !== "todos") {
+      query = query.eq("origem", filters.origem);
+    }
     if (filters.valorMin) query = query.gte("valor", Number(filters.valorMin));
     if (filters.valorMax) query = query.lte("valor", Number(filters.valorMax));
 
