@@ -212,7 +212,7 @@ export function FinancialCashFlow() {
       {dailySummary.length > 0 && (
         <Card>
           <CardContent className="p-0">
-            <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">Resumo Diário</p>
+            <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">Extrato</p>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

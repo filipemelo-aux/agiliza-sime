@@ -1,4 +1,5 @@
 import { format, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -51,7 +52,7 @@ export const formatDateBR = (input?: Date | string | null, pattern = "dd/MM/yyyy
   if (!input) return "—";
   const parsed = parseDateInput(input);
   if (!parsed) return "—";
-  return format(parsed, pattern);
+  return format(parsed, pattern, { locale: ptBR });
 };
 
 /**
