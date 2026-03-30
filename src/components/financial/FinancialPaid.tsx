@@ -530,8 +530,8 @@ export function FinancialPaid() {
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
+                    <Badge variant={item.source === "legacy" ? "secondary" : item.source === "harvest" ? "outline" : "default"} className="shrink-0 text-[10px]">
+                      {item.source === "legacy" ? "Legado" : item.source === "harvest" ? "Colheita" : "Pago"}
                     </Badge>
                   </div>
 
