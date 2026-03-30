@@ -85,7 +85,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "semana" | "atrasadas" | "pagas";
+type QuickFilter = "semana" | "atrasadas";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -783,11 +783,12 @@ export function FinancialPayables() {
         } else {
           if (i.status !== "atrasado") return false;
         }
-      } else if (quickFilter === "pagas") {
+      } else {
+        // Contas pagas foram movidas para a tela dedicada "Contas Pagas"
         if (hasInst) {
-          if (!installs.every(inst => inst.status === "pago")) return false;
+          if (!installs.some(inst => inst.status !== "pago")) return false;
         } else {
-          if (i.status !== "pago") return false;
+          if (i.status === "pago") return false;
         }
       }
 
@@ -828,12 +829,7 @@ export function FinancialPayables() {
         }
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
-    }).sort((a, b) => {
-      if (quickFilter === "pagas") {
-        // Ordenar por data de pagamento — mais recente primeiro
-        const getPaidDate = (item: typeof a) => item.data_pagamento || "";
-        return getPaidDate(b).localeCompare(getPaidDate(a));
-      }
+      }).sort((a, b) => {
       // Para itens com parcelas, usar a menor data de vencimento pendente
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
@@ -865,8 +861,6 @@ export function FinancialPayables() {
           if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-          else if (quickFilter === "pagas") visible = inst.status === "pago";
-          else if (quickFilter === "pagas") visible = inst.status === "pago";
           if (visible) ids.push(`inst-${inst.id}`);
         });
       } else {
@@ -1188,7 +1182,6 @@ export function FinancialPayables() {
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
-    { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3 w-3" />, count: counts.pagas },
   ];
 
   return (
@@ -1265,9 +1258,6 @@ export function FinancialPayables() {
                   } else if (f.key === "atrasadas") {
                     setFilterPeriodoInicio("");
                     setFilterPeriodoFim(format(addDays(new Date(), -1), "yyyy-MM-dd"));
-                  } else if (f.key === "pagas") {
-                    setFilterPeriodoInicio("");
-                    setFilterPeriodoFim("");
                   }
                   setQuickFilter(f.key);
                   setSelectedIds(new Set());
@@ -1415,8 +1405,7 @@ export function FinancialPayables() {
                     if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
                     if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                     if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-                    if (quickFilter === "pagas") return inst.status === "pago";
-                    return true;
+                    return inst.status !== "pago";
                   })
                   .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
 
@@ -1541,7 +1530,7 @@ export function FinancialPayables() {
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
-                vencimento: quickFilter === "pagas" ? (item.data_pagamento || item.data_vencimento || item.data_emissao || "") : (item.data_vencimento || item.data_emissao || ""),
+                vencimento: item.data_vencimento || item.data_emissao || "",
                 node: (
                   <Card
                     key={item.id}
@@ -1691,7 +1680,7 @@ export function FinancialPayables() {
               }];
             })
             .sort((a, b) => {
-              if (quickFilter === "pagas" || quickFilter === "atrasadas") {
+              if (quickFilter === "atrasadas") {
                 return b.vencimento.localeCompare(a.vencimento);
               }
               return a.vencimento.localeCompare(b.vencimento);

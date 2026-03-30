@@ -6,6 +6,7 @@ import { ChartOfAccounts } from "@/components/financial/ChartOfAccounts";
 import { RevenueForecasts } from "@/components/financial/RevenueForecasts";
 import { FinancialCashFlow } from "@/components/financial/FinancialCashFlow";
 import { FinancialInvoicing } from "@/components/financial/FinancialInvoicing";
+import { FinancialPaid } from "@/components/financial/FinancialPaid";
 
 export default function AdminFinancial({ section = "payables" }: { section?: string }) {
   return (
@@ -15,6 +16,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "invoicing" && <FinancialInvoicing />}
         {section === "forecasts" && <RevenueForecasts />}
         {section === "receivables" && <FinancialReceivables />}
+        {section === "paid" && <FinancialPaid />}
         {section === "receipts" && (
           <>
             <h1 className="text-lg font-bold text-foreground">Recibos</h1>

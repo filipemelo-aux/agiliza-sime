@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3 } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +52,7 @@ const menuItems = [
       { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
       { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
