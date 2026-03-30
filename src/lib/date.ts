@@ -52,7 +52,7 @@ export const formatDateBR = (input?: Date | string | null, pattern = "dd/MM/yyyy
   if (!input) return "—";
   const parsed = parseDateInput(input);
   if (!parsed) return "—";
-  return format(parsed, pattern);
+  return format(parsed, pattern, { locale: ptBR });
 };
 
 /**
