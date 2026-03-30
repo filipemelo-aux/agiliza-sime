@@ -35,7 +35,6 @@ export function FinancialPaid() {
         .from("expenses")
         .select("id, descricao, valor_pago, data_pagamento, favorecido_nome, status")
         .is("deleted_at", null)
-        .in("status", ["pago", "parcial"] as any)
         .gt("valor_pago", 0)
         .order("data_pagamento", { ascending: false }),
       supabase
