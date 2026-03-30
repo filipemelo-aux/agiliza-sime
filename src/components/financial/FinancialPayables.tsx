@@ -1193,12 +1193,10 @@ export function FinancialPayables() {
         </Button>
       </div>
       {/* Summary Cards - compact modern */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <SummaryCard icon={Clock} label="A Pagar" value={formatCurrency(totalPendente)} />
-        <SummaryCard icon={CheckCircle2} label="Pago" value={formatCurrency(totalPago)} valueColor="green" />
         <SummaryCard icon={AlertTriangle} label="Atrasado" value={formatCurrency(totalAtrasado)} valueColor="red" />
-        <SummaryCard icon={DollarSign} label="Selecionado" value={formatCurrency(selectedTotal)} valueColor={selectedIds.size > 0 ? "primary" : "muted"} className={selectedIds.size > 0 ? "ring-1 ring-primary/30" : ""} />
-        <SummaryCard icon={FileText} label="Registros" value={totalRegistros} className="hidden md:flex" />
+        <SummaryCard icon={FileText} label="Registros" value={totalRegistros} />
       </div>
 
       {/* Filter Card */}

@@ -473,32 +473,28 @@ export function FinancialPaid() {
         )}
       </div>
 
-      {/* Selection bar */}
-      {selectableIds.length > 0 && (
+      {/* Selection bar - only when items are selected */}
+      {selectedIds.size > 0 && (
         <div className="flex items-center gap-4 rounded-lg border bg-muted/50 p-2 flex-wrap">
           <Checkbox
             checked={selectedIds.size === selectableIds.length && selectableIds.length > 0}
             onCheckedChange={toggleSelectAll}
           />
           <span className="text-xs text-muted-foreground">
-            {selectedIds.size > 0
-              ? `${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`
-              : "Selecionar todas"}
+            {`${selectedIds.size} selecionada(s) — ${formatCurrency(selectedTotal)}`}
           </span>
-          {selectedIds.size > 0 && (
-            <div className="ml-auto">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
-                onClick={handleBatchReverse}
-                disabled={reversing}
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                {reversing ? "Processando..." : "Estornar"}
-              </Button>
-            </div>
-          )}
+          <div className="ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+              onClick={handleBatchReverse}
+              disabled={reversing}
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              {reversing ? "Processando..." : "Estornar"}
+            </Button>
+          </div>
         </div>
       )}
 
