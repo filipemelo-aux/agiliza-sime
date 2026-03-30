@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
@@ -20,7 +21,7 @@ interface PaidItem {
   amount: number;
   paid_at: string | null;
   creditor_name: string | null;
-  source: "expense_payment" | "legacy";
+  source: "expense_payment" | "legacy" | "harvest";
   expense_id: string | null;
   forma_pagamento?: string | null;
 }
@@ -116,6 +117,7 @@ export function FinancialPaid() {
   const [search, setSearch] = useState("");
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
+  const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy" | "harvest">("todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Detail dialog
@@ -145,7 +147,7 @@ export function FinancialPaid() {
   const fetchData = async () => {
     setLoading(true);
 
-    const [{ data: expensePayments }, { data: paidLegacy }] = await Promise.all([
+    const [{ data: expensePayments }, { data: paidLegacy }, { data: harvestPayments }] = await Promise.all([
       supabase
         .from("expense_payments" as any)
         .select(`
@@ -165,6 +167,21 @@ export function FinancialPaid() {
         .select("id, description, amount, paid_at, paid_amount, creditor_name")
         .eq("status", "pago" as any)
         .order("paid_at", { ascending: false }),
+      supabase
+        .from("harvest_payments")
+        .select(`
+          id,
+          total_amount,
+          period_start,
+          period_end,
+          notes,
+          harvest_jobs:harvest_job_id (
+            farm_name,
+            client_id,
+            profiles:client_id ( full_name )
+          )
+        `)
+        .order("period_end", { ascending: false }),
     ]);
 
     const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
@@ -189,8 +206,23 @@ export function FinancialPaid() {
       forma_pagamento: null,
     }));
 
+    const harvestItems: PaidItem[] = (harvestPayments || []).map((h: any) => {
+      const farmName = h.harvest_jobs?.farm_name || "";
+      const clientName = h.harvest_jobs?.profiles?.full_name || "";
+      return {
+        id: `harvest-${h.id}`,
+        description: `Colheita - ${farmName}${clientName ? ` (${clientName})` : ""}`,
+        amount: Number(h.total_amount || 0),
+        paid_at: toDateOnly(h.period_end),
+        creditor_name: clientName || farmName || "Colheita",
+        source: "harvest" as const,
+        expense_id: null,
+        forma_pagamento: null,
+      };
+    });
+
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...expenseItems, ...legacyItems, ...harvestItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
@@ -214,9 +246,11 @@ export function FinancialPaid() {
         matchPeriodo = (!periodoInicio || dateRef >= periodoInicio) && (!periodoFim || dateRef <= periodoFim);
       }
 
-      return matchSearch && matchPeriodo;
+      const matchOrigem = origemFilter === "todos" || i.source === origemFilter;
+
+      return matchSearch && matchPeriodo && matchOrigem;
     });
-  }, [items, search, periodoInicio, periodoFim]);
+  }, [items, search, periodoInicio, periodoFim, origemFilter]);
 
   const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
 
@@ -230,13 +264,17 @@ export function FinancialPaid() {
     return t;
   }, [selectedIds, items]);
 
-  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "";
+  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos";
 
   const clearFilters = () => {
     setSearch("");
     setPeriodoInicio("");
     setPeriodoFim("");
+    setOrigemFilter("todos");
   };
+
+
+
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -409,9 +447,22 @@ export function FinancialPaid() {
             )}
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0 relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+          </div>
+          <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
+            <SelectTrigger className="w-[150px] h-8 text-xs">
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas origens</SelectItem>
+              <SelectItem value="expense_payment">Despesas</SelectItem>
+              <SelectItem value="harvest">Colheitas</SelectItem>
+              <SelectItem value="legacy">Legado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {hasFilters && (
           <div className="flex items-center">
@@ -479,8 +530,8 @@ export function FinancialPaid() {
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
+                    <Badge variant={item.source === "legacy" ? "secondary" : item.source === "harvest" ? "outline" : "default"} className="shrink-0 text-[10px]">
+                      {item.source === "legacy" ? "Legado" : item.source === "harvest" ? "Colheita" : "Pago"}
                     </Badge>
                   </div>
 
