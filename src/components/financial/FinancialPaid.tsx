@@ -59,7 +59,7 @@ export function FinancialPaid() {
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
-      paid_at: p.data_pagamento,
+      paid_at: getLocalDateISO(p.data_pagamento),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       status: "pago",
