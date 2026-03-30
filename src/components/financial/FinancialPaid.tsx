@@ -447,9 +447,22 @@ export function FinancialPaid() {
             )}
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0 relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+          </div>
+          <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
+            <SelectTrigger className="w-[150px] h-8 text-xs">
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas origens</SelectItem>
+              <SelectItem value="expense_payment">Despesas</SelectItem>
+              <SelectItem value="harvest">Colheitas</SelectItem>
+              <SelectItem value="legacy">Legado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {hasFilters && (
           <div className="flex items-center">
