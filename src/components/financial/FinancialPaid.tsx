@@ -16,6 +16,7 @@ interface PaidItem {
   paid_at: string | null;
   creditor_name: string | null;
   source: "expense" | "legacy";
+  status?: string;
 }
 
 export function FinancialPaid() {
