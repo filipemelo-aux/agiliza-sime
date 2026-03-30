@@ -21,7 +21,7 @@ interface PaidItem {
   amount: number;
   paid_at: string | null;
   creditor_name: string | null;
-  source: "expense_payment" | "legacy";
+  source: "expense_payment" | "legacy" | "harvest";
   expense_id: string | null;
   forma_pagamento?: string | null;
 }
