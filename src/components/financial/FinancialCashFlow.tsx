@@ -163,7 +163,7 @@ export function FinancialCashFlow() {
   const origemLabel = (o: string) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
-    if (o === "despesas") return "Despesa";
+    if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "colheitas") return "Colheita";
     return o;
   };
