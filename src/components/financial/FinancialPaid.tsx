@@ -117,6 +117,7 @@ export function FinancialPaid() {
   const [search, setSearch] = useState("");
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
+  const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy" | "harvest">("todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Detail dialog
