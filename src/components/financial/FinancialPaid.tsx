@@ -147,7 +147,7 @@ export function FinancialPaid() {
   const fetchData = async () => {
     setLoading(true);
 
-    const [{ data: expensePayments }, { data: paidLegacy }] = await Promise.all([
+    const [{ data: expensePayments }, { data: paidLegacy }, { data: harvestPayments }] = await Promise.all([
       supabase
         .from("expense_payments" as any)
         .select(`
@@ -167,6 +167,21 @@ export function FinancialPaid() {
         .select("id, description, amount, paid_at, paid_amount, creditor_name")
         .eq("status", "pago" as any)
         .order("paid_at", { ascending: false }),
+      supabase
+        .from("harvest_payments")
+        .select(`
+          id,
+          total_amount,
+          period_start,
+          period_end,
+          notes,
+          harvest_jobs:harvest_job_id (
+            farm_name,
+            client_id,
+            profiles:client_id ( full_name )
+          )
+        `)
+        .order("period_end", { ascending: false }),
     ]);
 
     const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
@@ -191,8 +206,23 @@ export function FinancialPaid() {
       forma_pagamento: null,
     }));
 
+    const harvestItems: PaidItem[] = (harvestPayments || []).map((h: any) => {
+      const farmName = h.harvest_jobs?.farm_name || "";
+      const clientName = h.harvest_jobs?.profiles?.full_name || "";
+      return {
+        id: `harvest-${h.id}`,
+        description: `Colheita - ${farmName}${clientName ? ` (${clientName})` : ""}`,
+        amount: Number(h.total_amount || 0),
+        paid_at: toDateOnly(h.period_end),
+        creditor_name: clientName || farmName || "Colheita",
+        source: "harvest" as const,
+        expense_id: null,
+        forma_pagamento: null,
+      };
+    });
+
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...expenseItems, ...legacyItems, ...harvestItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
