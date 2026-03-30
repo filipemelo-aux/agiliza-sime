@@ -1680,7 +1680,7 @@ export function FinancialPayables() {
               }];
             })
             .sort((a, b) => {
-              if (quickFilter === "pagas" || quickFilter === "atrasadas") {
+              if (quickFilter === "atrasadas") {
                 return b.vencimento.localeCompare(a.vencimento);
               }
               return a.vencimento.localeCompare(b.vencimento);
