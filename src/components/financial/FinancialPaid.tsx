@@ -120,8 +120,8 @@ export function FinancialPaid() {
               <CardContent className="p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-foreground truncate">{item.creditor_name || "—"}</p>
-                  <Badge variant={item.status === "pago" ? "default" : "secondary"} className="text-[10px] shrink-0">
-                    {item.status === "pago" ? "Pago" : "Parcial"}
+                  <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="text-[10px] shrink-0">
+                    {item.source === "legacy" ? "Legado" : "Pago"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{item.description}</p>
