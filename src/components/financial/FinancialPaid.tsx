@@ -273,25 +273,8 @@ export function FinancialPaid() {
     setOrigemFilter("todos");
   };
 
-  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
 
-  const total = filtered.reduce((s, i) => s + i.amount, 0);
-  const selectedTotal = useMemo(() => {
-    let t = 0;
-    selectedIds.forEach(id => {
-      const item = items.find(i => i.id === id);
-      if (item) t += item.amount;
-    });
-    return t;
-  }, [selectedIds, items]);
 
-  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "";
-
-  const clearFilters = () => {
-    setSearch("");
-    setPeriodoInicio("");
-    setPeriodoFim("");
-  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
