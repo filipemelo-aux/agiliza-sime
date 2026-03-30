@@ -246,9 +246,32 @@ export function FinancialPaid() {
         matchPeriodo = (!periodoInicio || dateRef >= periodoInicio) && (!periodoFim || dateRef <= periodoFim);
       }
 
-      return matchSearch && matchPeriodo;
+      const matchOrigem = origemFilter === "todos" || i.source === origemFilter;
+
+      return matchSearch && matchPeriodo && matchOrigem;
     });
-  }, [items, search, periodoInicio, periodoFim]);
+  }, [items, search, periodoInicio, periodoFim, origemFilter]);
+
+  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
+
+  const total = filtered.reduce((s, i) => s + i.amount, 0);
+  const selectedTotal = useMemo(() => {
+    let t = 0;
+    selectedIds.forEach(id => {
+      const item = items.find(i => i.id === id);
+      if (item) t += item.amount;
+    });
+    return t;
+  }, [selectedIds, items]);
+
+  const hasFilters = search !== "" || periodoInicio !== "" || periodoFim !== "" || origemFilter !== "todos";
+
+  const clearFilters = () => {
+    setSearch("");
+    setPeriodoInicio("");
+    setPeriodoFim("");
+    setOrigemFilter("todos");
+  };
 
   const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
 
