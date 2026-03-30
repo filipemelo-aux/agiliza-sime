@@ -829,12 +829,7 @@ export function FinancialPayables() {
         }
       }
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
-    }).sort((a, b) => {
-      if (quickFilter === "pagas") {
-        // Ordenar por data de pagamento — mais recente primeiro
-        const getPaidDate = (item: typeof a) => item.data_pagamento || "";
-        return getPaidDate(b).localeCompare(getPaidDate(a));
-      }
+      }).sort((a, b) => {
       // Para itens com parcelas, usar a menor data de vencimento pendente
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
