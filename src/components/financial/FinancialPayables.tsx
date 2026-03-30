@@ -1188,7 +1188,6 @@ export function FinancialPayables() {
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
-    { key: "pagas", label: "Pagas", icon: <CheckCircle2 className="h-3 w-3" />, count: counts.pagas },
   ];
 
   return (
