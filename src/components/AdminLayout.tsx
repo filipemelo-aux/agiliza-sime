@@ -54,6 +54,7 @@ const menuItems = [
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
+      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
     ],
   },
