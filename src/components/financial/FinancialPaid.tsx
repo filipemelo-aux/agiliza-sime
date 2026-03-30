@@ -155,8 +155,8 @@ export function FinancialPaid() {
                       <td className="px-4 py-2.5 text-xs">{formatDateBR(item.paid_at)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-green-600">{formatCurrency(item.amount)}</td>
                       <td className="px-4 py-2.5 text-center">
-                        <Badge variant={item.status === "pago" ? "default" : "secondary"} className="text-[10px]">
-                          {item.status === "pago" ? "Pago" : item.source === "legacy" ? "Legado" : "Parcial"}
+                        <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="text-[10px]">
+                          {item.source === "legacy" ? "Legado" : "Pago"}
                         </Badge>
                       </td>
                     </tr>
