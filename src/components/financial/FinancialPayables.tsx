@@ -1405,8 +1405,7 @@ export function FinancialPayables() {
                     if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
                     if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                     if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-                    if (quickFilter === "pagas") return inst.status === "pago";
-                    return true;
+                    return inst.status !== "pago";
                   })
                   .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
 
