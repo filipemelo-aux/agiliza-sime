@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
-import { formatDateBR } from "@/lib/date";
+import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { format } from "date-fns";
 
 interface PaidItem {
@@ -59,7 +59,7 @@ export function FinancialPaid() {
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
-      paid_at: p.data_pagamento,
+      paid_at: getLocalDateISO(p.data_pagamento),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       status: "pago",
@@ -70,7 +70,7 @@ export function FinancialPaid() {
       id: `legacy-${a.id}`,
       description: a.description,
       amount: Number(a.paid_amount || a.amount),
-      paid_at: a.paid_at,
+      paid_at: getLocalDateISO(a.paid_at),
       creditor_name: a.creditor_name,
       source: "legacy" as const,
       forma_pagamento: null,
