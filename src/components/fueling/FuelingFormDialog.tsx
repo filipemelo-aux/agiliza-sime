@@ -257,7 +257,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
                 placeholder="Buscar fornecedor cadastrado..."
                 selectedName={fornecedorNome || undefined}
                 onSelect={(person) => {
-                  setFornecedorId(person.user_id);
+                  setFornecedorId(person.id);
                   setFornecedorNome(person.full_name);
                 }}
                 onClear={() => {
