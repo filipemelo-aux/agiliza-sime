@@ -142,7 +142,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       tipo_combustivel: tipoCombustivel,
       quantidade_litros: parseFloat(litros) || 0,
       valor_por_litro: parseFloat(valorLitro) || 0,
-      valor_total: parseFloat(valorTotal) || 0,
+      valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0),
       km_atual: kmAtual ? parseFloat(kmAtual) : null,
       posto_combustivel: fornecedorNome || null,
       fornecedor_id: fornecedorId || null,
