@@ -1778,6 +1778,9 @@ export type Database = {
       }
       fuelings: {
         Row: {
+          arla_litros: number | null
+          arla_valor_litro: number | null
+          arla_valor_total: number | null
           created_at: string
           created_by: string
           data_abastecimento: string
@@ -1785,6 +1788,7 @@ export type Database = {
           empresa_id: string
           expense_id: string | null
           forma_pagamento: string
+          fornecedor_id: string | null
           id: string
           km_atual: number | null
           motorista_id: string | null
@@ -1799,6 +1803,9 @@ export type Database = {
           veiculo_id: string
         }
         Insert: {
+          arla_litros?: number | null
+          arla_valor_litro?: number | null
+          arla_valor_total?: number | null
           created_at?: string
           created_by: string
           data_abastecimento?: string
@@ -1806,6 +1813,7 @@ export type Database = {
           empresa_id: string
           expense_id?: string | null
           forma_pagamento?: string
+          fornecedor_id?: string | null
           id?: string
           km_atual?: number | null
           motorista_id?: string | null
@@ -1820,6 +1828,9 @@ export type Database = {
           veiculo_id: string
         }
         Update: {
+          arla_litros?: number | null
+          arla_valor_litro?: number | null
+          arla_valor_total?: number | null
           created_at?: string
           created_by?: string
           data_abastecimento?: string
@@ -1827,6 +1838,7 @@ export type Database = {
           empresa_id?: string
           expense_id?: string | null
           forma_pagamento?: string
+          fornecedor_id?: string | null
           id?: string
           km_atual?: number | null
           motorista_id?: string | null
@@ -1853,6 +1865,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuelings_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
