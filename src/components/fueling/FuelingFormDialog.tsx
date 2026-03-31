@@ -5,17 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
+import { UserPlus } from "lucide-react";
 
 const FUEL_TYPES = [
   { value: "diesel", label: "Diesel" },
   { value: "diesel_s10", label: "Diesel S10" },
   { value: "gasolina", label: "Gasolina" },
   { value: "etanol", label: "Etanol" },
-  { value: "arla32", label: "Arla 32" },
 ];
 
 const PAYMENT_MODES = [
@@ -36,6 +39,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showCreateFornecedor, setShowCreateFornecedor] = useState(false);
 
   const [veiculoId, setVeiculoId] = useState("");
   const [motoristaId, setMotoristaId] = useState("");
@@ -45,9 +49,16 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   const [valorLitro, setValorLitro] = useState("");
   const [valorTotal, setValorTotal] = useState("");
   const [kmAtual, setKmAtual] = useState("");
-  const [posto, setPosto] = useState("");
+  const [fornecedorId, setFornecedorId] = useState<string | null>(null);
+  const [fornecedorNome, setFornecedorNome] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("prazo");
   const [obs, setObs] = useState("");
+
+  // Arla fields
+  const [temArla, setTemArla] = useState(false);
+  const [arlaLitros, setArlaLitros] = useState("");
+  const [arlaValorLitro, setArlaValorLitro] = useState("");
+  const [arlaValorTotal, setArlaValorTotal] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -70,9 +81,16 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setValorLitro(String(fueling.valor_por_litro || ""));
       setValorTotal(String(fueling.valor_total || ""));
       setKmAtual(String(fueling.km_atual || ""));
-      setPosto(fueling.posto_combustivel || "");
+      setFornecedorId(fueling.fornecedor_id || null);
+      setFornecedorNome(fueling.posto_combustivel || "");
       setFormaPagamento(fueling.forma_pagamento || "prazo");
       setObs(fueling.observacoes || "");
+
+      const hasArla = (fueling.arla_litros && fueling.arla_litros > 0);
+      setTemArla(!!hasArla);
+      setArlaLitros(hasArla ? String(fueling.arla_litros) : "");
+      setArlaValorLitro(hasArla ? String(fueling.arla_valor_litro || "") : "");
+      setArlaValorTotal(hasArla ? String(fueling.arla_valor_total || "") : "");
     } else {
       setVeiculoId("");
       setMotoristaId("");
@@ -82,13 +100,18 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setValorLitro("");
       setValorTotal("");
       setKmAtual("");
-      setPosto("");
+      setFornecedorId(null);
+      setFornecedorNome("");
       setFormaPagamento("prazo");
       setObs("");
+      setTemArla(false);
+      setArlaLitros("");
+      setArlaValorLitro("");
+      setArlaValorTotal("");
     }
   }, [fueling, open]);
 
-  // Auto-calc valor_total
+  // Auto-calc valor_total combustível
   useEffect(() => {
     const l = parseFloat(litros);
     const v = parseFloat(valorLitro);
@@ -96,6 +119,15 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setValorTotal((l * v).toFixed(2));
     }
   }, [litros, valorLitro]);
+
+  // Auto-calc arla valor_total
+  useEffect(() => {
+    const l = parseFloat(arlaLitros);
+    const v = parseFloat(arlaValorLitro);
+    if (!isNaN(l) && !isNaN(v)) {
+      setArlaValorTotal((l * v).toFixed(2));
+    }
+  }, [arlaLitros, arlaValorLitro]);
 
   const handleSave = async () => {
     if (!veiculoId) return toast.error("Selecione um veículo");
@@ -112,9 +144,13 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       valor_por_litro: parseFloat(valorLitro) || 0,
       valor_total: parseFloat(valorTotal) || 0,
       km_atual: kmAtual ? parseFloat(kmAtual) : null,
-      posto_combustivel: posto || null,
+      posto_combustivel: fornecedorNome || null,
+      fornecedor_id: fornecedorId || null,
       forma_pagamento: formaPagamento,
       observacoes: obs || null,
+      arla_litros: temArla ? (parseFloat(arlaLitros) || 0) : 0,
+      arla_valor_litro: temArla ? (parseFloat(arlaValorLitro) || 0) : 0,
+      arla_valor_total: temArla ? (parseFloat(arlaValorTotal) || 0) : 0,
     };
 
     let error;
@@ -133,104 +169,158 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{fueling ? "Editar Abastecimento" : "Novo Abastecimento"}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{fueling ? "Editar Abastecimento" : "Novo Abastecimento"}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Veículo *</Label>
-              <Select value={veiculoId} onValueChange={setVeiculoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {vehicles.map(v => (
-                    <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Veículo *</Label>
+                <Select value={veiculoId} onValueChange={setVeiculoId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {vehicles.map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Motorista</Label>
+                <Select value={motoristaId} onValueChange={setMotoristaId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {drivers.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Data *</Label>
+                <Input type="date" value={dataAbastecimento} onChange={e => setDataAbastecimento(e.target.value)} />
+              </div>
+              <div>
+                <Label>Combustível *</Label>
+                <Select value={tipoCombustivel} onValueChange={setTipoCombustivel}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FUEL_TYPES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Litros *</Label>
+                <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} />
+              </div>
+              <div>
+                <Label>R$/Litro</Label>
+                <Input type="number" step="0.001" value={valorLitro} onChange={e => setValorLitro(e.target.value)} />
+              </div>
+              <div>
+                <Label>Valor Total</Label>
+                <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>KM Atual</Label>
+                <Input type="number" value={kmAtual} onChange={e => setKmAtual(e.target.value)} />
+              </div>
+              <div>
+                <Label>Pagamento</Label>
+                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_MODES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div>
-              <Label>Motorista</Label>
-              <Select value={motoristaId} onValueChange={setMotoristaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {drivers.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Posto / Fornecedor</Label>
+              <PersonSearchInput
+                categories={["fornecedor"]}
+                placeholder="Buscar fornecedor cadastrado..."
+                selectedName={fornecedorNome || undefined}
+                onSelect={(person) => {
+                  setFornecedorId(person.user_id);
+                  setFornecedorNome(person.full_name);
+                }}
+                onClear={() => {
+                  setFornecedorId(null);
+                  setFornecedorNome("");
+                }}
+                endAction={
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateFornecedor(true)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Cadastrar fornecedor"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </button>
+                }
+              />
+            </div>
+
+            {/* Arla 32 toggle */}
+            <div className="flex items-center gap-3 pt-1">
+              <Switch checked={temArla} onCheckedChange={setTemArla} id="arla-switch" />
+              <Label htmlFor="arla-switch" className="cursor-pointer">Houve abastecimento de Arla 32?</Label>
+            </div>
+
+            {temArla && (
+              <div className="grid grid-cols-3 gap-4 p-3 border border-border rounded-md bg-muted/30">
+                <div>
+                  <Label>Litros Arla</Label>
+                  <Input value={arlaLitros ? maskCurrency(String(Math.round(parseFloat(arlaLitros) * 100))) : ""} onChange={e => setArlaLitros(unmaskCurrency(e.target.value))} />
+                </div>
+                <div>
+                  <Label>R$/Litro Arla</Label>
+                  <Input type="number" step="0.001" value={arlaValorLitro} onChange={e => setArlaValorLitro(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Total Arla</Label>
+                  <Input value={arlaValorTotal ? maskCurrency(String(Math.round(parseFloat(arlaValorTotal) * 100))) : ""} onChange={e => setArlaValorTotal(unmaskCurrency(e.target.value))} />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Data *</Label>
-              <Input type="date" value={dataAbastecimento} onChange={e => setDataAbastecimento(e.target.value)} />
-            </div>
-            <div>
-              <Label>Combustível *</Label>
-              <Select value={tipoCombustivel} onValueChange={setTipoCombustivel}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FUEL_TYPES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Litros *</Label>
-              <Input value={litros ? maskCurrency(String(Math.round(parseFloat(litros) * 100))) : ""} onChange={e => setLitros(unmaskCurrency(e.target.value))} />
-            </div>
-            <div>
-              <Label>R$/Litro</Label>
-              <Input type="number" step="0.001" value={valorLitro} onChange={e => setValorLitro(e.target.value)} />
-            </div>
-            <div>
-              <Label>Valor Total</Label>
-              <Input value={valorTotal ? maskCurrency(String(Math.round(parseFloat(valorTotal) * 100))) : ""} onChange={e => setValorTotal(unmaskCurrency(e.target.value))} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>KM Atual</Label>
-              <Input type="number" value={kmAtual} onChange={e => setKmAtual(e.target.value)} />
-            </div>
-            <div>
-              <Label>Pagamento</Label>
-              <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_MODES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label>Posto / Fornecedor</Label>
-            <Input value={posto} onChange={e => setPosto(e.target.value)} placeholder="Nome do posto" />
-          </div>
-
-          <div>
-            <Label>Observações</Label>
-            <Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar"}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <PersonCreateDialog
+        open={showCreateFornecedor}
+        onOpenChange={setShowCreateFornecedor}
+        onCreated={() => {}}
+        defaultCategory="fornecedor"
+      />
+    </>
   );
 }
