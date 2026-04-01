@@ -343,7 +343,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), companyName, companyCnpjs)}
           disabled={filtered.length === 0}
         />
       </div>
