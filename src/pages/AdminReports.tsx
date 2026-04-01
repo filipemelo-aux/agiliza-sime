@@ -495,7 +495,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Chart of Accounts Report ───
-function PlanoContasReport() {
+function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
