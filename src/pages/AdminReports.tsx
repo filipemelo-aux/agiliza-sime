@@ -411,20 +411,20 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
   ]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 items-end">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar por produto, NCM, sinônimos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-8 text-xs" />
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5 items-end">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input placeholder="Buscar produto, NCM, sinônimos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-7 h-7 text-[11px]" />
         </div>
         <Select value={tipoFilter} onValueChange={setTipoFilter}>
-          <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             {tipos.map(t => <SelectItem key={t} value={t}>{t === "__all__" ? "Todos os tipos" : t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[100px] h-7 text-[11px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todos</SelectItem>
             <SelectItem value="ativo">Ativo</SelectItem>
@@ -437,33 +437,33 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
           disabled={filtered.length === 0}
         />
       </div>
-      <div className="text-xs text-muted-foreground">{filtered.length} registro(s)</div>
+      <div className="text-[11px] text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="py-1.5 px-2 text-[11px]">Produto</TableHead>
-              <TableHead className="py-1.5 px-2 text-[11px]">Tipo</TableHead>
-              <TableHead className="py-1.5 px-2 text-[11px]">NCM</TableHead>
-              <TableHead className="py-1.5 px-2 text-[11px]">Sinônimos</TableHead>
-              <TableHead className="py-1.5 px-2 text-[11px]">Toler. Quebra</TableHead>
-              <TableHead className="py-1.5 px-2 text-[11px]">Status</TableHead>
+            <TableRow className="h-7">
+              <TableHead className="py-1 px-2 text-[10px]">Produto</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">NCM</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Sinônimos</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Toler. Quebra</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : filtered.map(c => (
-              <TableRow key={c.id} className="h-8">
-                <TableCell className="py-1.5 px-2 text-xs font-medium">{c.produto_predominante}</TableCell>
-                <TableCell className="py-1.5 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0">{c.tipo || "—"}</Badge></TableCell>
-                <TableCell className="py-1.5 px-2 font-mono text-[11px]">{c.ncm || "—"}</TableCell>
-                <TableCell className="py-1.5 px-2 text-xs max-w-[200px] truncate">{c.sinonimos || "—"}</TableCell>
-                <TableCell className="py-1.5 px-2 text-xs">{c.tolerancia_quebra != null ? `${c.tolerancia_quebra}%` : "—"}</TableCell>
-                <TableCell className="py-1.5 px-2">
-                  <Badge variant={c.ativo ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">{c.ativo ? "Ativo" : "Inativo"}</Badge>
+              <TableRow key={c.id} className="h-7">
+                <TableCell className="py-1 px-2 text-[11px] font-medium">{c.produto_predominante}</TableCell>
+                <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{c.tipo || "—"}</Badge></TableCell>
+                <TableCell className="py-1 px-2 font-mono text-[11px]">{c.ncm || "—"}</TableCell>
+                <TableCell className="py-1 px-2 text-[11px] max-w-[200px] truncate">{c.sinonimos || "—"}</TableCell>
+                <TableCell className="py-1 px-2 text-[11px]">{c.tolerancia_quebra != null ? `${c.tolerancia_quebra}%` : "—"}</TableCell>
+                <TableCell className="py-1 px-2">
+                  <Badge variant={c.ativo ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 leading-tight">{c.ativo ? "Ativo" : "Inativo"}</Badge>
                 </TableCell>
               </TableRow>
             ))}
