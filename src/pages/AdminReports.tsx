@@ -453,7 +453,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), companyName, companyCnpjs)}
           disabled={filtered.length === 0}
         />
       </div>
