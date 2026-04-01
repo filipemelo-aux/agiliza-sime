@@ -649,10 +649,10 @@ export default function AdminReports() {
 
         <Card>
           <CardContent className="pt-6">
-            {activeTab === "pessoas" && <PeopleReport />}
-            {activeTab === "veiculos" && <VehiclesReport />}
-            {activeTab === "cargas" && <CargasReport />}
-            {activeTab === "plano_contas" && <PlanoContasReport />}
+            {activeTab === "pessoas" && <PeopleReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
+            {activeTab === "veiculos" && <VehiclesReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
+            {activeTab === "cargas" && <CargasReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
+            {activeTab === "plano_contas" && <PlanoContasReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
           </CardContent>
         </Card>
       </div>
