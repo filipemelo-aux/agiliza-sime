@@ -610,17 +610,17 @@ export default function AdminReports() {
 
   return (
     <AdminLayout>
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <FileSpreadsheet className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Relatórios de Cadastros</h1>
+      <div className="p-3 md:p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <FileSpreadsheet className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold">Relatórios de Cadastros</h1>
         </div>
 
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as ReportType)}>
           <TabsList className="flex-wrap h-auto gap-1">
             {REPORT_TABS.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                <tab.icon className="h-4 w-4" />
+              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs h-8 px-2.5">
+                <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}
               </TabsTrigger>
             ))}
@@ -628,7 +628,7 @@ export default function AdminReports() {
         </Tabs>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-3 pb-3 px-3">
             {activeTab === "pessoas" && <PeopleReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
             {activeTab === "veiculos" && <VehiclesReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
             {activeTab === "cargas" && <CargasReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
