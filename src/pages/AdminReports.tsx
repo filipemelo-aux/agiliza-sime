@@ -175,7 +175,6 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("__all__");
-  const [statusFilter, setStatusFilter] = useState("__all__");
 
   useEffect(() => { fetchData(); }, []);
 
@@ -188,28 +187,23 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
 
   const filtered = useMemo(() => {
     let result = data;
-    if (category !== "__all__") result = result.filter(p => p.role === category);
-    if (statusFilter !== "__all__") {
-      const isActive = statusFilter === "ativo";
-      result = result.filter(p => (p.status === "approved") === isActive);
-    }
+    if (category !== "__all__") result = result.filter(p => p.category === category);
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(p =>
         (p.full_name || "").toLowerCase().includes(s) ||
-        (p.cpf_cnpj || "").includes(s) ||
+        (p.cnpj || "").includes(s) ||
         (p.phone || "").includes(s) ||
-        (p.city || "").toLowerCase().includes(s)
+        (p.address_city || "").toLowerCase().includes(s)
       );
     }
     return result;
-  }, [data, category, statusFilter, search]);
+  }, [data, category, search]);
 
-  const getHeaders = () => ["Nome", "Categoria", "CPF/CNPJ", "Telefone", "Cidade", "UF", "Status"];
+  const getHeaders = () => ["Nome", "Categoria", "CNPJ", "Telefone", "Cidade", "UF"];
   const getRows = () => filtered.map(p => [
-    p.full_name || "", PERSON_CAT_LABELS[p.role] || p.role || "",
-    p.cpf_cnpj || "", p.phone || "", p.city || "", p.state || "",
-    p.status === "approved" ? "Ativo" : "Inativo",
+    p.full_name || "", PERSON_CAT_LABELS[p.category] || p.category || "",
+    p.cnpj || "", p.phone || "", p.address_city || "", p.address_state || "",
   ]);
 
   return (
@@ -225,14 +219,6 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
             {PERSON_CATEGORIES.map(c => <SelectItem key={c} value={c}>{PERSON_CAT_LABELS[c]}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todos</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="inativo">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
           onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), companyName, companyCnpjs)}
@@ -246,29 +232,23 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
-              <TableHead>CPF/CNPJ</TableHead>
+              <TableHead>CNPJ</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Cidade/UF</TableHead>
-              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : filtered.map(p => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.full_name}</TableCell>
-                <TableCell><Badge variant="secondary">{PERSON_CAT_LABELS[p.role] || p.role}</Badge></TableCell>
-                <TableCell className="font-mono text-xs">{p.cpf_cnpj || "—"}</TableCell>
+                <TableCell><Badge variant="secondary">{PERSON_CAT_LABELS[p.category] || p.category}</Badge></TableCell>
+                <TableCell className="font-mono text-xs">{p.cnpj || "—"}</TableCell>
                 <TableCell>{p.phone || "—"}</TableCell>
-                <TableCell>{[p.city, p.state].filter(Boolean).join("/") || "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={p.status === "approved" ? "default" : "secondary"}>
-                    {p.status === "approved" ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
+                <TableCell>{[p.address_city, p.address_state].filter(Boolean).join("/") || "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
