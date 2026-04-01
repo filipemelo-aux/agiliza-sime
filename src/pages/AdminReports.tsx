@@ -385,7 +385,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
 }
 
 // ─── Cargas Report ───
-function CargasReport() {
+function CargasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
