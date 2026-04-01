@@ -570,7 +570,7 @@ function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string;
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), companyName, companyCnpjs)}
           disabled={filtered.length === 0}
         />
       </div>
