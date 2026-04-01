@@ -175,7 +175,6 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("__all__");
-  const [statusFilter, setStatusFilter] = useState("__all__");
 
   useEffect(() => { fetchData(); }, []);
 
