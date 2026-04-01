@@ -232,29 +232,23 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
-              <TableHead>CPF/CNPJ</TableHead>
+              <TableHead>CNPJ</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Cidade/UF</TableHead>
-              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : filtered.map(p => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.full_name}</TableCell>
-                <TableCell><Badge variant="secondary">{PERSON_CAT_LABELS[p.role] || p.role}</Badge></TableCell>
-                <TableCell className="font-mono text-xs">{p.cpf_cnpj || "—"}</TableCell>
+                <TableCell><Badge variant="secondary">{PERSON_CAT_LABELS[p.category] || p.category}</Badge></TableCell>
+                <TableCell className="font-mono text-xs">{p.cnpj || "—"}</TableCell>
                 <TableCell>{p.phone || "—"}</TableCell>
-                <TableCell>{[p.city, p.state].filter(Boolean).join("/") || "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={p.status === "approved" ? "default" : "secondary"}>
-                    {p.status === "approved" ? "Ativo" : "Inativo"}
-                  </Badge>
-                </TableCell>
+                <TableCell>{[p.address_city, p.address_state].filter(Boolean).join("/") || "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
