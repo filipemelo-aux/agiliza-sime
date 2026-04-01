@@ -616,6 +616,7 @@ function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string;
 // ─── Main Page ───
 export default function AdminReports() {
   const { hasAdminAccess, loading: roleLoading } = useUserRole();
+  const { unifiedLabel, unifiedCnpjs } = useUnifiedCompany();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ReportType>("pessoas");
 
