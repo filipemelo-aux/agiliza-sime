@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileSpreadsheet, Search, Download, Users, Car, Package, FolderTree } from "lucide-react";
+import { FileSpreadsheet, Search, Download, Users, Car, Package, FolderTree, Printer } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { useToast } from "@/hooks/use-toast";
-import { maskCNPJ, maskPhone } from "@/lib/masks";
 
 type ReportType = "pessoas" | "veiculos" | "cargas" | "plano_contas";
 
@@ -48,6 +46,46 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+function printPdf(title: string, headers: string[], rows: string[][]) {
+  const now = new Date().toLocaleString("pt-BR");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; color: #222; }
+  h1 { font-size: 16px; margin-bottom: 4px; }
+  .meta { font-size: 10px; color: #666; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; font-size: 10px; text-transform: uppercase; }
+  tr:nth-child(even) { background: #fafafa; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+<h1>${title}</h1>
+<div class="meta">Gerado em ${now} — ${rows.length} registro(s)</div>
+<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
+<tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c ?? ""}</td>`).join("")}</tr>`).join("")}</tbody></table>
+</body></html>`;
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (win) {
+    win.onload = () => { win.print(); };
+  }
+}
+
+function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled: boolean }) {
+  return (
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={onCsv} disabled={disabled} size="sm">
+        <Download className="h-4 w-4 mr-2" /> CSV
+      </Button>
+      <Button variant="outline" onClick={onPdf} disabled={disabled} size="sm">
+        <Printer className="h-4 w-4 mr-2" /> PDF
+      </Button>
+    </div>
+  );
 }
 
 // ─── People Report ───
@@ -86,15 +124,12 @@ function PeopleReport() {
     return result;
   }, [data, category, statusFilter, search]);
 
-  const exportCsv = () => {
-    const headers = ["Nome", "Categoria", "CPF/CNPJ", "Telefone", "Cidade", "UF", "Status"];
-    const rows = filtered.map(p => [
-      p.full_name || "", PERSON_CAT_LABELS[p.role] || p.role || "",
-      p.cpf_cnpj || "", p.phone || "", p.city || "", p.state || "",
-      p.status === "approved" ? "Ativo" : "Inativo",
-    ]);
-    downloadCsv("relatorio_pessoas.csv", headers, rows);
-  };
+  const getHeaders = () => ["Nome", "Categoria", "CPF/CNPJ", "Telefone", "Cidade", "UF", "Status"];
+  const getRows = () => filtered.map(p => [
+    p.full_name || "", PERSON_CAT_LABELS[p.role] || p.role || "",
+    p.cpf_cnpj || "", p.phone || "", p.city || "", p.state || "",
+    p.status === "approved" ? "Ativo" : "Inativo",
+  ]);
 
   return (
     <div className="space-y-4">
@@ -117,9 +152,11 @@ function PeopleReport() {
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
+        <ExportButtons
+          onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows())}
+          disabled={filtered.length === 0}
+        />
       </div>
       <div className="text-sm text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
@@ -193,6 +230,7 @@ function VehiclesReport() {
       const s = search.toLowerCase();
       result = result.filter(v =>
         (v.plate || "").toLowerCase().includes(s) ||
+        (v.renavam || "").toLowerCase().includes(s) ||
         (v.brand || "").toLowerCase().includes(s) ||
         (v.model || "").toLowerCase().includes(s) ||
         getName(v.driver_id).toLowerCase().includes(s) ||
@@ -202,22 +240,19 @@ function VehiclesReport() {
     return result;
   }, [data, typeFilter, search, profiles]);
 
-  const exportCsv = () => {
-    const headers = ["Placa", "Marca", "Modelo", "Ano", "Tipo", "Motorista", "Proprietário"];
-    const rows = filtered.map(v => [
-      v.plate, v.brand, v.model, String(v.year),
-      VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
-      getName(v.driver_id), getName(v.owner_id),
-    ]);
-    downloadCsv("relatorio_veiculos.csv", headers, rows);
-  };
+  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Motorista", "Proprietário"];
+  const getRows = () => filtered.map(v => [
+    v.plate, v.renavam || "", v.brand, v.model, String(v.year),
+    VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
+    getName(v.driver_id), getName(v.owner_id),
+  ]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 items-end">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por placa, marca, modelo, motorista..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar por placa, RENAVAM, marca, modelo, motorista..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
@@ -225,9 +260,11 @@ function VehiclesReport() {
             {Object.entries(VEHICLE_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
+        <ExportButtons
+          onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows())}
+          disabled={filtered.length === 0}
+        />
       </div>
       <div className="text-sm text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
@@ -235,6 +272,7 @@ function VehiclesReport() {
           <TableHeader>
             <TableRow>
               <TableHead>Placa</TableHead>
+              <TableHead>RENAVAM</TableHead>
               <TableHead>Marca/Modelo</TableHead>
               <TableHead>Ano</TableHead>
               <TableHead>Tipo</TableHead>
@@ -244,12 +282,13 @@ function VehiclesReport() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : filtered.map(v => (
               <TableRow key={v.id}>
                 <TableCell className="font-mono font-medium">{v.plate}</TableCell>
+                <TableCell className="font-mono text-xs">{v.renavam || "—"}</TableCell>
                 <TableCell>{v.brand} {v.model}</TableCell>
                 <TableCell>{v.year}</TableCell>
                 <TableCell><Badge variant="secondary">{VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type}</Badge></TableCell>
@@ -304,14 +343,11 @@ function CargasReport() {
     return result;
   }, [data, tipoFilter, statusFilter, search]);
 
-  const exportCsv = () => {
-    const headers = ["Produto", "Tipo", "NCM", "Sinônimos", "Tolerância Quebra", "Status"];
-    const rows = filtered.map(c => [
-      c.produto_predominante, c.tipo || "", c.ncm || "", c.sinonimos || "",
-      c.tolerancia_quebra != null ? `${c.tolerancia_quebra}%` : "", c.ativo ? "Ativo" : "Inativo",
-    ]);
-    downloadCsv("relatorio_cargas.csv", headers, rows);
-  };
+  const getHeaders = () => ["Produto", "Tipo", "NCM", "Sinônimos", "Tolerância Quebra", "Status"];
+  const getRows = () => filtered.map(c => [
+    c.produto_predominante, c.tipo || "", c.ncm || "", c.sinonimos || "",
+    c.tolerancia_quebra != null ? `${c.tolerancia_quebra}%` : "", c.ativo ? "Ativo" : "Inativo",
+  ]);
 
   return (
     <div className="space-y-4">
@@ -334,9 +370,11 @@ function CargasReport() {
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
+        <ExportButtons
+          onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows())}
+          disabled={filtered.length === 0}
+        />
       </div>
       <div className="text-sm text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
@@ -422,14 +460,11 @@ function PlanoContasReport() {
     return grandParent ? `${grandParent} > ${parent.nome}` : parent.nome;
   };
 
-  const exportCsv = () => {
-    const headers = ["Código", "Nome", "Tipo", "Nível", "Tipo Operacional", "Caminho", "Status"];
-    const rows = filtered.map(c => [
-      c.codigo, c.nome, c.tipo, String(c.nivel),
-      c.tipo_operacional || "", getParentPath(c), c.ativo ? "Ativo" : "Inativo",
-    ]);
-    downloadCsv("relatorio_plano_contas.csv", headers, rows);
-  };
+  const getHeaders = () => ["Código", "Nome", "Tipo", "Nível", "Tipo Operacional", "Caminho", "Status"];
+  const getRows = () => filtered.map(c => [
+    c.codigo, c.nome, c.tipo, String(c.nivel),
+    c.tipo_operacional || "", getParentPath(c), c.ativo ? "Ativo" : "Inativo",
+  ]);
 
   return (
     <div className="space-y-4">
@@ -452,9 +487,11 @@ function PlanoContasReport() {
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
+        <ExportButtons
+          onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows())}
+          disabled={filtered.length === 0}
+        />
       </div>
       <div className="text-sm text-muted-foreground">{filtered.length} registro(s)</div>
       <div className="rounded-md border overflow-x-auto">
