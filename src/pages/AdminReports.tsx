@@ -279,7 +279,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Vehicles Report ───
-function VehiclesReport() {
+function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
   const [data, setData] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
