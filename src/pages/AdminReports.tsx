@@ -49,30 +49,110 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
-function printPdf(title: string, headers: string[], rows: string[][]) {
-  const now = new Date().toLocaleString("pt-BR");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; color: #222; }
-  h1 { font-size: 16px; margin-bottom: 4px; }
-  .meta { font-size: 10px; color: #666; margin-bottom: 12px; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
-  th { background: #f0f0f0; font-weight: 600; font-size: 10px; text-transform: uppercase; }
-  tr:nth-child(even) { background: #fafafa; }
-  @media print { body { padding: 0; } }
-</style></head><body>
-<h1>${title}</h1>
-<div class="meta">Gerado em ${now} — ${rows.length} registro(s)</div>
-<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
-<tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c ?? ""}</td>`).join("")}</tr>`).join("")}</tbody></table>
+function printPdf(title: string, headers: string[], rows: string[][], companyName: string, companyCnpjs: string) {
+  const now = format(new Date(), "dd/MM/yyyy HH:mm");
+  const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
+  const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
+
+  const tableRows = rows.map((r, i) => {
+    const bg = i % 2 === 0 ? "#ffffff" : "#f8f9fb";
+    return `<tr style="background:${bg}">${r.map(c => `<td style="font-family:${FONT};font-size:11px;color:#333;padding:7px 10px;border-bottom:1px solid #e8ecf0">${c ?? ""}</td>`).join("")}</tr>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style type="text/css">
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  @page { margin: 8mm 6mm; size: A4 landscape; }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${FONT};-webkit-text-size-adjust:100%">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
+<tr><td align="center" style="padding:10px 8px">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:1100px;font-family:${FONT}">
+
+<!-- HEADER -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+    <td style="width:48px;vertical-align:middle;padding-right:16px">
+      <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px;border:0" />
+    </td>
+    <td style="vertical-align:middle">
+      <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
+      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
+      ${companyCnpjs.split(" / ").map(c => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ")}
+    </td>
+  </tr></table>
+</td></tr>
+
+<tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
+
+<!-- TITLE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
+  <div style="font-family:${FONT};font-size:17px;font-weight:700;color:#2B4C7E;margin:0">${title.toUpperCase()}</div>
+</td></tr>
+
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
+
+<!-- SUMMARY BOXES -->
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Total de Registros</div>
+      <div style="font-family:${FONT};font-size:20px;font-weight:700;color:#2B4C7E;margin:0">${rows.length}</div>
+    </td>
+    <td width="4%" style="font-size:0">&nbsp;</td>
+    <td width="48%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:14px 16px;vertical-align:top">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 6px;font-weight:600">Data de Geração</div>
+      <div style="font-family:${FONT};font-size:14px;font-weight:700;color:#2B4C7E;margin:0">${now}</div>
+    </td>
+  </tr></table>
+</td></tr>
+
+<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>
+
+<!-- TABLE -->
+<tr><td style="background:#ffffff;border-radius:10px;padding:12px 16px;overflow-x:auto">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;min-width:600px">
+    <thead>
+      <tr style="background:#2B4C7E">
+        ${headers.map(h => `<th style="font-family:${FONT};font-size:10px;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;padding:10px;text-align:left;border-bottom:2px solid #1d3a5f">${h}</th>`).join("")}
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+</td></tr>
+
+<tr><td style="height:10px;font-size:0;line-height:0">&nbsp;</td></tr>
+
+<!-- FOOTER -->
+<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName}</div>
+  ${companyCnpjs.split(" / ").map(c => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
+  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${now}</div>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
 </body></html>`;
+
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
   if (win) {
-    win.onload = () => { win.print(); };
+    win.onload = () => { win.focus(); win.print(); };
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    window.location.href = url;
   }
 }
 
