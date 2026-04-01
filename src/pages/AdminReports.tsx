@@ -170,7 +170,7 @@ function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: (
 }
 
 // ─── People Report ───
-function PeopleReport() {
+function PeopleReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
