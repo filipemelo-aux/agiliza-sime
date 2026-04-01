@@ -235,7 +235,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows())}
+          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), companyName, companyCnpjs)}
           disabled={filtered.length === 0}
         />
       </div>
