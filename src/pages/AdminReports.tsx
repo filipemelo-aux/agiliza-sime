@@ -188,28 +188,23 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
 
   const filtered = useMemo(() => {
     let result = data;
-    if (category !== "__all__") result = result.filter(p => p.role === category);
-    if (statusFilter !== "__all__") {
-      const isActive = statusFilter === "ativo";
-      result = result.filter(p => (p.status === "approved") === isActive);
-    }
+    if (category !== "__all__") result = result.filter(p => p.category === category);
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(p =>
         (p.full_name || "").toLowerCase().includes(s) ||
-        (p.cpf_cnpj || "").includes(s) ||
+        (p.cnpj || "").includes(s) ||
         (p.phone || "").includes(s) ||
-        (p.city || "").toLowerCase().includes(s)
+        (p.address_city || "").toLowerCase().includes(s)
       );
     }
     return result;
-  }, [data, category, statusFilter, search]);
+  }, [data, category, search]);
 
-  const getHeaders = () => ["Nome", "Categoria", "CPF/CNPJ", "Telefone", "Cidade", "UF", "Status"];
+  const getHeaders = () => ["Nome", "Categoria", "CNPJ", "Telefone", "Cidade", "UF"];
   const getRows = () => filtered.map(p => [
-    p.full_name || "", PERSON_CAT_LABELS[p.role] || p.role || "",
-    p.cpf_cnpj || "", p.phone || "", p.city || "", p.state || "",
-    p.status === "approved" ? "Ativo" : "Inativo",
+    p.full_name || "", PERSON_CAT_LABELS[p.category] || p.category || "",
+    p.cnpj || "", p.phone || "", p.address_city || "", p.address_state || "",
   ]);
 
   return (
