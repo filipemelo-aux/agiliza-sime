@@ -26,6 +26,7 @@ import AdminFinancial from "./pages/AdminFinancial";
 import AdminFuelOrders from "./pages/AdminFuelOrders";
 import AdminFuelings from "./pages/AdminFuelings";
 import AdminMaintenances from "./pages/AdminMaintenances";
+import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
 
