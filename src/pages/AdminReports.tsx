@@ -158,12 +158,12 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
 
 function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled: boolean }) {
   return (
-    <div className="flex gap-1.5">
-      <Button variant="outline" onClick={onCsv} disabled={disabled} size="sm" className="h-8 text-xs px-2.5">
-        <Download className="h-3.5 w-3.5 mr-1.5" /> CSV
+    <div className="flex gap-1">
+      <Button variant="outline" onClick={onCsv} disabled={disabled} size="sm" className="h-7 text-[11px] px-2">
+        <Download className="h-3 w-3 mr-1" /> CSV
       </Button>
-      <Button variant="outline" onClick={onPdf} disabled={disabled} size="sm" className="h-8 text-xs px-2.5">
-        <Printer className="h-3.5 w-3.5 mr-1.5" /> PDF
+      <Button variant="outline" onClick={onPdf} disabled={disabled} size="sm" className="h-7 text-[11px] px-2">
+        <Printer className="h-3 w-3 mr-1" /> PDF
       </Button>
     </div>
   );
