@@ -70,6 +70,7 @@ const App = () => (
             <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
             <Route path="/admin/financial" element={<Navigate to="/admin/financial/invoicing" replace />} />
             <Route path="/admin/financial/invoicing" element={<AdminFinancial section="invoicing" />} />
