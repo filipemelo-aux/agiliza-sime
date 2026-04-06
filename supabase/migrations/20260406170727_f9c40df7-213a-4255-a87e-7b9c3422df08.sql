@@ -1,0 +1,1 @@
+ALTER TABLE public.quotations ADD COLUMN tipo_valor_frete text NOT NULL DEFAULT 'total';
