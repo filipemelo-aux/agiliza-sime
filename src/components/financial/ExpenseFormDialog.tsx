@@ -507,7 +507,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const sum = itensNota.reduce((s, i) => s + Number(i.valor_total), 0);
       if (sum > 0) setValorTotal(String(sum.toFixed(2)));
     }
-  }, [itensNota]);
+    // Auto-fill description from manual items
+    if (manualItemsEnabled && itensNota.length > 0 && inputMode === "manual") {
+      const summary = itensNota.map(i => i.descricao).join(", ");
+      setDescricao(maskSentence(summary));
+    }
+  }, [itensNota, manualItemsEnabled]);
 
   // Auto-fill maintenance items from NF-e items when maintenance mode is activated
   useEffect(() => {
