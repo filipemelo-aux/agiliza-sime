@@ -1625,24 +1625,26 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {/* Manual item entry (non-maintenance, manual mode) */}
-              {!isMaintenanceType && inputMode === "manual" && (
-                <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                      <div>
-                        <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
-                        <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
-                      </div>
-                    </div>
-                    <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
+          {/* Manual item entry (non-maintenance, manual mode) */}
+          {!isMaintenanceType && inputMode === "manual" && (
+            <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
+                    <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
                   </div>
+                </div>
+                <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
+              </div>
 
-                  {manualItemsEnabled && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
+              {manualItemsEnabled && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
                           if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
