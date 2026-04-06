@@ -997,40 +997,45 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
             {useParcelas && (
               <div className="mt-3 space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-[10px] text-muted-foreground font-medium">
                     {parcelas.length} parcela(s) — Total: {formatCurrency(parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
                   </span>
-                  <div className="flex gap-1">
-                    <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
-                      const val = Number(valorTotal) || 0;
-                      const newCount = parcelas.length + 1;
-                      const parcelaVal = (val / newCount).toFixed(2);
-                      const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
-                      const newParcelas: Parcela[] = [];
-                      for (let i = 0; i < newCount; i++) {
-                        const d = new Date(base);
-                        d.setMonth(d.getMonth() + i);
-                        newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
-                      }
-                      const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
-                      if (Math.abs(diff) > 0.001) {
-                        newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
-                      }
-                      setParcelas(newParcelas);
-                    }}>
-                      <Plus className="h-3 w-3 mr-0.5" /> Parcela
-                    </Button>
-                    {parcelas.length > 1 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => {
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Intervalo (dias):</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={intervaloDias}
+                        onChange={(e) => {
+                          const v = Math.max(1, Math.min(365, Number(e.target.value) || 30));
+                          setIntervaloDias(v);
+                          if (parcelas.length > 1) {
+                            const val = Number(valorTotal) || 0;
+                            const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                            const newParcelas: Parcela[] = parcelas.map((p, i) => {
+                              const d = new Date(base);
+                              d.setDate(d.getDate() + v * i);
+                              return { ...p, data_vencimento: getLocalDateISO(d) };
+                            });
+                            setParcelas(newParcelas);
+                          }
+                        }}
+                        className="h-6 w-16 text-[10px] px-1.5 text-center"
+                      />
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
                         const val = Number(valorTotal) || 0;
-                        const newCount = parcelas.length - 1;
+                        const newCount = parcelas.length + 1;
                         const parcelaVal = (val / newCount).toFixed(2);
                         const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                         const newParcelas: Parcela[] = [];
                         for (let i = 0; i < newCount; i++) {
                           const d = new Date(base);
-                          d.setMonth(d.getMonth() + i);
+                          d.setDate(d.getDate() + intervaloDias * i);
                           newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                         }
                         const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
@@ -1039,9 +1044,30 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         }
                         setParcelas(newParcelas);
                       }}>
-                        <Minus className="h-3 w-3 mr-0.5" /> Parcela
+                        <Plus className="h-3 w-3 mr-0.5" /> Parcela
                       </Button>
-                    )}
+                      {parcelas.length > 1 && (
+                        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-destructive" onClick={() => {
+                          const val = Number(valorTotal) || 0;
+                          const newCount = parcelas.length - 1;
+                          const parcelaVal = (val / newCount).toFixed(2);
+                          const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                          const newParcelas: Parcela[] = [];
+                          for (let i = 0; i < newCount; i++) {
+                            const d = new Date(base);
+                            d.setDate(d.getDate() + intervaloDias * i);
+                            newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
+                          }
+                          const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
+                          if (Math.abs(diff) > 0.001) {
+                            newParcelas[newParcelas.length - 1].valor = (Number(newParcelas[newParcelas.length - 1].valor) + diff).toFixed(2);
+                          }
+                          setParcelas(newParcelas);
+                        }}>
+                          <Minus className="h-3 w-3 mr-0.5" /> Parcela
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
