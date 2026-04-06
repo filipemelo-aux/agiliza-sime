@@ -1,0 +1,1 @@
+ALTER TABLE public.quotations ADD COLUMN prazo_pagamento_referencia text;
