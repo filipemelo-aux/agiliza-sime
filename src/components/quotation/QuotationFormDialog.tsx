@@ -198,6 +198,18 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               selectedName={clientName}
               onSelect={(p) => { setClientId(p.id); setClientName(p.full_name); }}
               onClear={() => { setClientId(null); setClientName(""); }}
+              endAction={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title="Cadastrar novo cliente"
+                  onClick={() => setShowCreateClient(true)}
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              }
             />
           </div>
 
