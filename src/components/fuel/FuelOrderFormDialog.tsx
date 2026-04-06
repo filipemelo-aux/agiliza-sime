@@ -330,7 +330,7 @@ export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCrea
             <Label className="text-xs">Observações</Label>
             <Textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => setNotes(maskSentence(e.target.value))}
               placeholder="Informações adicionais..."
               rows={3}
               className="text-sm"
