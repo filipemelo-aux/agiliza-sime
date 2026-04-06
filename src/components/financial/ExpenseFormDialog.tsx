@@ -713,7 +713,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
 
     // Create second expense for NFSe/Ordem de Serviço if enabled
-    if (!isEditing && isMaintenanceType && hasNfse && nfseValorTotal > 0) {
+    if (isMaintenanceType && hasNfse && nfseValorTotal > 0) {
       const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
         empresa_id: empresaId,
