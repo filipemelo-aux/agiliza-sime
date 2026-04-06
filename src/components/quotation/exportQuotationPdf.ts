@@ -83,7 +83,7 @@ ${isFrete ? `
 <h2>Condições de Pagamento</h2>
 <table>
   <tr><td style="width:200px;font-weight:600">Forma de Pagamento</td><td>${{pix:"PIX",ted:"TED",boleto:"Boleto",dinheiro:"Dinheiro",cheque:"Cheque",deposito:"Depósito"}[q.forma_pagamento_frete as string] || "—"}</td></tr>
-  <tr><td style="font-weight:600">Prazo</td><td>${q.prazo_pagamento || "—"}</td></tr>
+  <tr><td style="font-weight:600">Prazo</td><td>${q.prazo_pagamento ? q.prazo_pagamento + " dias" + (q.prazo_pagamento_referencia === "emissao_cte" ? " após emissão do CT-e" : q.prazo_pagamento_referencia === "entrega" ? " após entrega" : "") : "—"}</td></tr>
   ${q.adiantamento_percentual ? `<tr><td style="font-weight:600">Adiantamento</td><td>${q.adiantamento_percentual}%</td></tr>` : ""}
   ${q.condicoes_pagamento ? `<tr><td style="font-weight:600">Observações</td><td>${q.condicoes_pagamento}</td></tr>` : ""}
 </table>

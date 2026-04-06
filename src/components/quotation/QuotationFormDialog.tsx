@@ -48,6 +48,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
   const [prazoPagamento, setPrazoPagamento] = useState("");
   const [adiantamentoPercentual, setAdiantamentoPercentual] = useState("");
+  const [prazoPagamentoReferencia, setPrazoPagamentoReferencia] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
@@ -107,6 +108,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setFormaPagamentoFrete(editData.forma_pagamento_frete || "");
         setPrazoPagamento(editData.prazo_pagamento || "");
         setAdiantamentoPercentual(editData.adiantamento_percentual != null ? String(editData.adiantamento_percentual) : "");
+        setPrazoPagamentoReferencia(editData.prazo_pagamento_referencia || "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
@@ -154,6 +156,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         forma_pagamento_frete: formaPagamentoFrete || null,
         prazo_pagamento: prazoPagamento || null,
         adiantamento_percentual: adiantamentoPercentual ? parseFloat(adiantamentoPercentual) : null,
+        prazo_pagamento_referencia: prazoPagamentoReferencia || null,
       });
     } else {
       if (!previsaoInicio || !valorMensal) { toast({ title: "Preencha o período e valor mensal", variant: "destructive" }); setSaving(false); return; }
@@ -293,7 +296,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               </div>
 
               <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <Label>Forma de Pagamento</Label>
                   <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
@@ -311,6 +314,16 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 <div>
                   <Label>Prazo de Pagamento (dias)</Label>
                   <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value.replace(/\D/g, ""))} placeholder="Ex: 30" inputMode="numeric" />
+                </div>
+                <div>
+                  <Label>A partir de</Label>
+                  <Select value={prazoPagamentoReferencia} onValueChange={setPrazoPagamentoReferencia}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="emissao_cte">Emissão do CT-e</SelectItem>
+                      <SelectItem value="entrega">Entrega da carga</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Adiantamento (%)</Label>

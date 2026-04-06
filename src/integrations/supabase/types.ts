@@ -2550,6 +2550,7 @@ export type Database = {
           origem_uf: string | null
           peso_kg: number | null
           prazo_pagamento: string | null
+          prazo_pagamento_referencia: string | null
           previsao_inicio: string | null
           previsao_termino: string | null
           produto: string | null
@@ -2583,6 +2584,7 @@ export type Database = {
           origem_uf?: string | null
           peso_kg?: number | null
           prazo_pagamento?: string | null
+          prazo_pagamento_referencia?: string | null
           previsao_inicio?: string | null
           previsao_termino?: string | null
           produto?: string | null
@@ -2616,6 +2618,7 @@ export type Database = {
           origem_uf?: string | null
           peso_kg?: number | null
           prazo_pagamento?: string | null
+          prazo_pagamento_referencia?: string | null
           previsao_inicio?: string | null
           previsao_termino?: string | null
           produto?: string | null
