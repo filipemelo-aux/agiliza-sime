@@ -282,8 +282,8 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Tipo do Valor</Label>
-                  <Select value={tipoValorFrete} onValueChange={(v) => setTipoValorFrete(v as "total" | "por_tonelada")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={tipoValorFrete} onValueChange={setTipoValorFrete}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="total">Frete Total</SelectItem>
                       <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
