@@ -44,6 +44,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [pesoKg, setPesoKg] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
+  const [condicoesPagamento, setCondicoesPagamento] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
