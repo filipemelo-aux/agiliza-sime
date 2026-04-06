@@ -104,9 +104,9 @@ ${isFrete ? `
 
 ${q.observacoes ? `<h2>Observações</h2><div class="obs">${q.observacoes}</div>` : ""}
 
-<div style="display:flex;justify-content:space-between;margin-top:60px;gap:40px">
+<div style="display:flex;justify-content:space-between;margin-top:30px;gap:30px">
   <div style="flex:1;text-align:center">
-    ${q.creator?.signature_data ? `<img src="${q.creator.signature_data}" alt="Assinatura" style="max-height:60px;margin:0 auto 4px;display:block" />` : '<div style="height:60px"></div>'}
+    ${q.creator?.signature_data ? `<img src="${q.creator.signature_data}" alt="Assinatura" style="max-height:50px;margin:0 auto 4px;display:block" />` : '<div style="height:50px"></div>'}
     <div style="border-top:1px solid #333;margin:0 20px;padding-top:8px">
       <p style="margin:0;font-weight:600;font-size:12px">${q.creator?.full_name || "Responsável"}</p>
       <p style="margin:2px 0 0;font-size:10px;color:#666">CONTRATADA — ${companyName}</p>
