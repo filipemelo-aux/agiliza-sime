@@ -45,6 +45,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [valorFrete, setValorFrete] = useState("");
   const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
   const [condicoesPagamento, setCondicoesPagamento] = useState("");
+  const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
+  const [prazoPagamento, setPrazoPagamento] = useState("");
+  const [adiantamentoPercentual, setAdiantamentoPercentual] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
