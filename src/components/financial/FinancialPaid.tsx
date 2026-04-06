@@ -585,15 +585,6 @@ export function FinancialPaid() {
                         >
                           <Eye className="h-3 w-3" /> Detalhes
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-[11px] gap-1 text-muted-foreground"
-                          onClick={() => openEdit(item)}
-                          title="Editar despesa"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
                         <div className="ml-auto">
                           <Button
                             variant="outline"
@@ -709,22 +700,7 @@ export function FinancialPaid() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    setDetailOpen(false);
-                    if (detailExpense) {
-                      setEditExpense(detailExpense);
-                      setEditOpen(true);
-                    }
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Editar Despesa
-                </Button>
-              </div>
+
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">Despesa não encontrada.</p>
