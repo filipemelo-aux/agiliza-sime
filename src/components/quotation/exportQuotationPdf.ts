@@ -17,22 +17,22 @@ export function exportQuotationPDF(q: any, establishments: any[]) {
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-  body{font-family:Arial,sans-serif;padding:30px 40px;color:#222;font-size:12px;max-width:800px;margin:0 auto}
-  .header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #2B4C7E;padding-bottom:16px;margin-bottom:24px}
-  .header img{height:50px}
-  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:22px;color:#2B4C7E}
+  body{font-family:Arial,sans-serif;padding:20px 30px;color:#222;font-size:11px;line-height:1.2;max-width:800px;margin:0 auto}
+  .header{display:flex;align-items:center;gap:12px;border-bottom:3px solid #2B4C7E;padding-bottom:10px;margin-bottom:14px}
+  .header img{height:40px}
+  .brand{font-family:'Exo',Arial,sans-serif;font-weight:800;font-style:italic;font-size:20px;color:#2B4C7E}
   .brand span{color:#F5C518}
-  .meta{display:flex;justify-content:space-between;margin-bottom:20px}
-  .meta-box{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:12px 16px;flex:1;margin:0 4px}
-  .meta-box h4{margin:0 0 4px;font-size:11px;color:#666;text-transform:uppercase}
-  .meta-box p{margin:0;font-size:13px;font-weight:600}
-  h2{font-size:16px;color:#2B4C7E;border-bottom:1px solid #e0e0e0;padding-bottom:6px;margin:24px 0 12px}
-  table{width:100%;border-collapse:collapse;margin-bottom:16px}
-  th{background:#2B4C7E;color:#fff;text-align:left;padding:8px 10px;font-size:11px}
-  td{border-bottom:1px solid #e0e0e0;padding:8px 10px;font-size:12px}
+  .meta{display:flex;justify-content:space-between;margin-bottom:12px}
+  .meta-box{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:8px 12px;flex:1;margin:0 4px}
+  .meta-box h4{margin:0 0 2px;font-size:10px;color:#666;text-transform:uppercase}
+  .meta-box p{margin:0;font-size:12px;font-weight:600}
+  h2{font-size:13px;color:#2B4C7E;border-bottom:1px solid #e0e0e0;padding-bottom:4px;margin:14px 0 6px}
+  table{width:100%;border-collapse:collapse;margin-bottom:8px}
+  th{background:#2B4C7E;color:#fff;text-align:left;padding:5px 8px;font-size:10px}
+  td{border-bottom:1px solid #e0e0e0;padding:4px 8px;font-size:11px}
   .highlight{background:#FFF8E1;font-weight:600}
-  .footer{margin-top:40px;border-top:2px solid #2B4C7E;padding-top:12px;text-align:center;font-size:10px;color:#666}
-  .obs{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:12px 16px;margin-top:12px;white-space:pre-wrap;font-size:12px}
+  .footer{margin-top:20px;border-top:2px solid #2B4C7E;padding-top:8px;text-align:center;font-size:9px;color:#666}
+  .obs{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:8px 12px;margin-top:6px;white-space:pre-wrap;font-size:11px}
 </style></head><body>
 
 <div class="header">
