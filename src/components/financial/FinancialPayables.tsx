@@ -736,14 +736,14 @@ export function FinancialPayables() {
           const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
             (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
           if (!inPeriod) return;
-          if (inst.status !== "pago" && inst.data_vencimento >= today) all++;
+          if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
           if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
       } else {
-        if (i.status !== "pago" && !(i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today))) all++;
+        if (i.status !== "pago") all++;
         if (i.data_vencimento === today && i.status !== "pago") hoje++;
         if (i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago") semana++;
         if (i.status === "atrasado") atrasadas++;
@@ -764,12 +764,11 @@ export function FinancialPayables() {
 
       if (quickFilter === "all") {
         if (hasInst) {
-          // Excluir totalmente pagas e também atrasadas (vencidas) — ficam no filtro "Atrasadas"
-          const hasPendingFuture = installs.some(inst => inst.status !== "pago" && inst.data_vencimento >= today);
-          if (!hasPendingFuture) return false;
+          // Mostrar despesas que tenham qualquer parcela não paga (incluindo atrasadas)
+          const hasNonPaid = installs.some(inst => inst.status !== "pago");
+          if (!hasNonPaid) return false;
         } else {
           if (i.status === "pago") return false;
-          if (i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today)) return false;
         }
       } else if (quickFilter === "semana") {
         if (hasInst) {
@@ -863,7 +862,7 @@ export function FinancialPayables() {
       if (installs && installs.length > 0) {
         installs.forEach(inst => {
           let visible = true;
-          if (quickFilter === "all") visible = inst.status !== "pago" && inst.data_vencimento >= today2;
+          if (quickFilter === "all") visible = inst.status !== "pago";
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
           if (visible) ids.push(`inst-${inst.id}`);
@@ -1401,7 +1400,7 @@ export function FinancialPayables() {
                 const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
                 const visibleInstalls = installs
                   .filter(inst => {
-                    if (quickFilter === "all") return inst.status !== "pago" && inst.data_vencimento >= today2;
+                    if (quickFilter === "all") return inst.status !== "pago";
                     if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                     if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
                     return inst.status !== "pago";
