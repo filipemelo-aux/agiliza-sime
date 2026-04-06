@@ -740,12 +740,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
 
     // Create second expense for NFSe/Ordem de Serviço if enabled
-    if (isMaintenanceType && hasNfse && nfseValorTotal > 0) {
+    if (hasNfse && nfseValorTotal > 0) {
       const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
         empresa_id: empresaId,
-        descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço de manutenção`,
-        tipo_despesa: "manutencao",
+        descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço`,
+        tipo_despesa: isMaintenanceType ? "manutencao" : tipoDespesa,
         plano_contas_id: planoContasId,
         centro_custo: centroCusto,
         valor_total: nfseValorTotal,
