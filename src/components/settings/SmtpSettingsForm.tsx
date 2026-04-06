@@ -263,7 +263,7 @@ export function SmtpSettingsForm() {
               <Input
                 type="email"
                 value={form.from_email}
-                onChange={(e) => setForm((f) => ({ ...f, from_email: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, from_email: e.target.value.toLowerCase() }))}
                 placeholder="noreply@suaempresa.com"
               />
             </div>
