@@ -2551,6 +2551,7 @@ export type Database = {
           produto: string | null
           quantidade_caminhoes: number | null
           status: string
+          tipo_valor_frete: string
           type: string
           updated_at: string
           validade_dias: number | null
@@ -2579,6 +2580,7 @@ export type Database = {
           produto?: string | null
           quantidade_caminhoes?: number | null
           status?: string
+          tipo_valor_frete?: string
           type: string
           updated_at?: string
           validade_dias?: number | null
@@ -2607,6 +2609,7 @@ export type Database = {
           produto?: string | null
           quantidade_caminhoes?: number | null
           status?: string
+          tipo_valor_frete?: string
           type?: string
           updated_at?: string
           validade_dias?: number | null

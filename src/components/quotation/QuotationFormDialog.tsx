@@ -43,6 +43,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [produto, setProduto] = useState("");
   const [pesoKg, setPesoKg] = useState("");
   const [valorFrete, setValorFrete] = useState("");
+  const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
@@ -97,6 +98,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setProduto(editData.produto || "");
         setPesoKg(editData.peso_kg != null ? String(editData.peso_kg) : "");
         setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
+        setTipoValorFrete(editData.tipo_valor_frete || "total");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
@@ -139,6 +141,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         produto,
         peso_kg: pesoKg ? parseFloat(pesoKg) : null,
         valor_frete: valorFrete ? parseFloat(valorFrete) : null,
+        tipo_valor_frete: tipoValorFrete,
       });
     } else {
       if (!previsaoInicio || !valorMensal) { toast({ title: "Preencha o período e valor mensal", variant: "destructive" }); setSaving(false); return; }
@@ -256,7 +259,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Peso Total (kg)</Label>
                   <Input type="number" value={pesoKg} onChange={(e) => setPesoKg(e.target.value)} placeholder="0" />
@@ -264,6 +267,16 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 <div>
                   <Label>Valor do Frete (R$)</Label>
                   <Input value={valorFrete ? maskCurrency(String(Math.round(parseFloat(valorFrete) * 100))) : ""} onChange={(e) => setValorFrete(unmaskCurrency(e.target.value))} placeholder="0,00" />
+                </div>
+                <div>
+                  <Label>Tipo do Valor</Label>
+                  <Select value={tipoValorFrete} onValueChange={(v) => setTipoValorFrete(v as "total" | "por_tonelada")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="total">Frete Total</SelectItem>
+                      <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </>
