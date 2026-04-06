@@ -1668,44 +1668,42 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
                           }}><Plus className="h-4 w-4" /></Button>
                         </div>
+                  </div>
+
+                  {/* Items da Nota */}
+                  {itensNota.length > 0 && (
+                    <div>
+                      <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
+                      <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-[10px]">Descrição</TableHead>
+                              <TableHead className="text-[10px] text-right">Qtd</TableHead>
+                              <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
+                              <TableHead className="text-[10px] text-right">Total</TableHead>
+                              <TableHead className="text-[10px] w-[32px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {itensNota.map((item, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
+                                <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
+                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
+                                <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Items da Nota */}
-              {itensNota.length > 0 && (
-                <div>
-                  <Label className="text-xs mb-1 block">Itens da Nota ({itensNota.length})</Label>
-                  <div className="border rounded-md overflow-x-auto max-h-[200px] overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-[10px]">Descrição</TableHead>
-                          <TableHead className="text-[10px] text-right">Qtd</TableHead>
-                          <TableHead className="text-[10px] text-right">Vl. Unit.</TableHead>
-                          <TableHead className="text-[10px] text-right">Total</TableHead>
-                          <TableHead className="text-[10px] w-[32px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itensNota.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="text-[11px] max-w-[160px] truncate">{item.descricao}</TableCell>
-                            <TableCell className="text-[11px] text-right">{item.quantidade}</TableCell>
-                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_unitario)}</TableCell>
-                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(item.valor_total)}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeItem(idx)}>
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
                 </div>
               )}
             </div>
