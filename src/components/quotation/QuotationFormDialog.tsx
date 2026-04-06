@@ -26,6 +26,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [formalizing, setFormalizing] = useState(false);
+  const [showCreateClient, setShowCreateClient] = useState(false);
   const [establishmentId, setEstablishmentId] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
