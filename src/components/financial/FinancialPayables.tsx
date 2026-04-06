@@ -1502,11 +1502,11 @@ export function FinancialPayables() {
                               <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
                                 <FileText className="h-3 w-3" /> Detalhes
                               </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Editar despesa" onClick={() => handleEdit(item)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
                               {!isInstPago && (
                                 <>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEditInstallment(inst)}>
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDeleteInstallment(inst)}>
                                     <Trash2 className="h-3 w-3 text-destructive" />
                                   </Button>
