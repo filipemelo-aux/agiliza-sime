@@ -1626,9 +1626,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                       <Label className="text-xs">Observações NFSe</Label>
                       <Input value={nfseObservacoes} onChange={e => setNfseObservacoes(maskSentence(e.target.value))} placeholder="Observações adicionais..." className="h-9" />
                     </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
