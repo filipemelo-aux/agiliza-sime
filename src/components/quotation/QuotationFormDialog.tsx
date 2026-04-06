@@ -43,7 +43,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [produto, setProduto] = useState("");
   const [pesoKg, setPesoKg] = useState("");
   const [valorFrete, setValorFrete] = useState("");
-  const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
+  const [tipoValorFrete, setTipoValorFrete] = useState("");
   const [condicoesPagamento, setCondicoesPagamento] = useState("");
   const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
   const [prazoPagamento, setPrazoPagamento] = useState("");
@@ -149,7 +149,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         produto,
         peso_kg: pesoKg ? parseFloat(pesoKg) : null,
         valor_frete: valorFrete ? parseFloat(valorFrete) : null,
-        tipo_valor_frete: tipoValorFrete,
+        tipo_valor_frete: tipoValorFrete || null,
         condicoes_pagamento: condicoesPagamento || null,
         forma_pagamento_frete: formaPagamentoFrete || null,
         prazo_pagamento: prazoPagamento || null,
@@ -282,8 +282,8 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Tipo do Valor</Label>
-                  <Select value={tipoValorFrete} onValueChange={(v) => setTipoValorFrete(v as "total" | "por_tonelada")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={tipoValorFrete} onValueChange={setTipoValorFrete}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="total">Frete Total</SelectItem>
                       <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
