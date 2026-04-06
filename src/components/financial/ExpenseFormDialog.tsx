@@ -151,6 +151,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   interface Parcela { numero: number; valor: string; data_vencimento: string; boleto_url?: string | null; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
+  const [intervaloDias, setIntervaloDias] = useState(30);
   const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
   const [boletoPdfExistingUrl, setBoletoPdfExistingUrl] = useState<string | null>(null);
   const boletoInputRef = useRef<HTMLInputElement>(null);
