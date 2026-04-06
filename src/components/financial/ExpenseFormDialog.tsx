@@ -410,7 +410,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setDescricao(maskSentence(itemSummary));
         setFornecedorCnpj(parsed.fornecedor_cnpj);
         setDocFiscal(parsed.numero_nota);
-        setChaveNfe(parsed.chave_nfe);
+        setChaveNfe(parsed.chave_nfe.replace(/\D/g, ""));
         setDataEmissao(parsed.data_emissao || getLocalDateISO());
         setValorTotal(String(parsed.valor_total));
         // Auto-select chart account based on XML suggestion
