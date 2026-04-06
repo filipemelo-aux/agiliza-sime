@@ -44,6 +44,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [pesoKg, setPesoKg] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
+  const [condicoesPagamento, setCondicoesPagamento] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
@@ -99,6 +100,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setPesoKg(editData.peso_kg != null ? String(editData.peso_kg) : "");
         setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
         setTipoValorFrete(editData.tipo_valor_frete || "total");
+        setCondicoesPagamento(editData.condicoes_pagamento || "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
@@ -142,6 +144,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         peso_kg: pesoKg ? parseFloat(pesoKg) : null,
         valor_frete: valorFrete ? parseFloat(valorFrete) : null,
         tipo_valor_frete: tipoValorFrete,
+        condicoes_pagamento: condicoesPagamento || null,
       });
     } else {
       if (!previsaoInicio || !valorMensal) { toast({ title: "Preencha o período e valor mensal", variant: "destructive" }); setSaving(false); return; }
@@ -278,6 +281,15 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label>Condições de Pagamento</Label>
+                <Input
+                  value={condicoesPagamento}
+                  onChange={(e) => setCondicoesPagamento(maskSentence(e.target.value))}
+                  placeholder="Ex: 30/60 dias após entrega, à vista, etc."
+                />
               </div>
             </>
           ) : (
