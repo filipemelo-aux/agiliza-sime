@@ -292,12 +292,49 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
               </div>
 
+              <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="ted">TED</SelectItem>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="deposito">Depósito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Prazo de Pagamento</Label>
+                  <Select value={prazoPagamento} onValueChange={setPrazoPagamento}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="a_vista">À vista</SelectItem>
+                      <SelectItem value="7_dias">7 dias</SelectItem>
+                      <SelectItem value="15_dias">15 dias</SelectItem>
+                      <SelectItem value="30_dias">30 dias</SelectItem>
+                      <SelectItem value="30_60_dias">30/60 dias</SelectItem>
+                      <SelectItem value="30_60_90_dias">30/60/90 dias</SelectItem>
+                      <SelectItem value="na_entrega">Na entrega</SelectItem>
+                      <SelectItem value="apos_descarga">Após descarga</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Adiantamento (%)</Label>
+                  <Input type="number" min={0} max={100} value={adiantamentoPercentual} onChange={(e) => setAdiantamentoPercentual(e.target.value)} placeholder="0" />
+                </div>
+              </div>
               <div>
-                <Label>Condições de Pagamento</Label>
+                <Label>Observações do Pagamento</Label>
                 <Input
                   value={condicoesPagamento}
                   onChange={(e) => setCondicoesPagamento(maskSentence(e.target.value))}
-                  placeholder="Ex: 30/60 dias após entrega, à vista, etc."
+                  placeholder="Informações adicionais sobre pagamento..."
                 />
               </div>
             </>
