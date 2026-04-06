@@ -238,7 +238,7 @@ export function SmtpSettingsForm() {
               <Label>Usuário / E-mail *</Label>
               <Input
                 value={form.username}
-                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
                 placeholder="seu@email.com"
               />
             </div>
