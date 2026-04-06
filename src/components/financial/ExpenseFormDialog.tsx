@@ -756,11 +756,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         favorecido_id: nfseFornecedorId || null,
         documento_fiscal_numero: nfseNumero.trim() || null,
         origem: "manual",
-        observacoes: nfseObservacoes.trim() || `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}`,
-        veiculo_id: veiculoId,
-        tipo_manutencao: tipoManutencao,
-        km_atual: kmAtual ? Number(kmAtual) : null,
-        fornecedor_mecanica: fornecedorMecanica.trim() || null,
+        observacoes: nfseObservacoes.trim() || (isMaintenanceType ? `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}` : `NFSe ${nfseNumero} - ${descricao.trim()}`),
+        veiculo_id: isMaintenanceType ? veiculoId : null,
+        tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
+        km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
+        fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
         created_by: user?.id,
       };
 
