@@ -79,11 +79,12 @@ export default function AdminQuotations() {
     if (creatorIds.length > 0) {
       const { data: creators } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, signature_data")
         .in("user_id", creatorIds);
-      const creatorMap = new Map((creators || []).map((c: any) => [c.user_id, c.full_name]));
+      const creatorMap = new Map((creators || []).map((c: any) => [c.user_id, { full_name: c.full_name, signature_data: c.signature_data }]));
       items.forEach((q) => {
-        q.creator = { full_name: creatorMap.get(q.created_by) || null };
+        const c = creatorMap.get(q.created_by);
+        q.creator = c ? { full_name: c.full_name, signature_data: c.signature_data } : null;
       });
     }
 
