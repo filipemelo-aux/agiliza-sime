@@ -118,6 +118,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const isEditing = !!expense;
 
   const [descricao, setDescricao] = useState("");
+  const [manualItemsEnabled, setManualItemsEnabled] = useState(false);
+  const [newItemDesc, setNewItemDesc] = useState("");
+  const [newItemQtd, setNewItemQtd] = useState("1");
+  const [newItemValor, setNewItemValor] = useState("");
   const [planoContasId, setPlanoContasId] = useState("");
   const [centroCusto, setCentroCusto] = useState("operacional");
   const [valorTotal, setValorTotal] = useState("");
@@ -378,6 +382,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
+    setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
@@ -398,10 +403,14 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       try {
         const xmlStr = ev.target?.result as string;
         const parsed = parseNfeXml(xmlStr);
-        setDescricao(parsed.itens.length > 0 ? `NF ${parsed.numero_nota} - ${parsed.fornecedor_nome}` : `NF ${parsed.numero_nota}`);
+        // Auto-fill description with item summaries
+        const itemSummary = parsed.itens.length > 0
+          ? parsed.itens.map(i => i.descricao).join(", ")
+          : `NF ${parsed.numero_nota}`;
+        setDescricao(maskSentence(itemSummary));
         setFornecedorCnpj(parsed.fornecedor_cnpj);
         setDocFiscal(parsed.numero_nota);
-        setChaveNfe(parsed.chave_nfe);
+        setChaveNfe(parsed.chave_nfe.replace(/\D/g, ""));
         setDataEmissao(parsed.data_emissao || getLocalDateISO());
         setValorTotal(String(parsed.valor_total));
         // Auto-select chart account based on XML suggestion
@@ -498,7 +507,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const sum = itensNota.reduce((s, i) => s + Number(i.valor_total), 0);
       if (sum > 0) setValorTotal(String(sum.toFixed(2)));
     }
-  }, [itensNota]);
+    // Auto-fill description from manual items
+    if (manualItemsEnabled && itensNota.length > 0 && inputMode === "manual") {
+      const summary = itensNota.map(i => i.descricao).join(", ");
+      setDescricao(maskSentence(summary));
+    }
+  }, [itensNota, manualItemsEnabled]);
 
   // Auto-fill maintenance items from NF-e items when maintenance mode is activated
   useEffect(() => {
@@ -1568,7 +1582,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 </div>
                 <div>
                   <Label className="text-xs">Chave NF-e</Label>
-                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} className="h-9" />
+                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value.replace(/\D/g, "").slice(0, 44))} placeholder="44 dígitos" maxLength={44} className="h-9" />
                 </div>
               </div>
 
@@ -1582,6 +1596,52 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                     <span className="text-muted-foreground">Importado:</span>{" "}
                     <span>{documentoImportado ? "Sim" : "Não"}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Manual item entry (non-maintenance, manual mode) */}
+              {!isMaintenanceType && inputMode === "manual" && (
+                <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                      <div>
+                        <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
+                        <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
+                      </div>
+                    </div>
+                    <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
+                  </div>
+
+                  {manualItemsEnabled && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                          if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                          const qtd = Number(newItemQtd) || 1;
+                          const vu = Number(newItemValor);
+                          setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                          setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                        }
+                      }}>
+                        <Input className="flex-1 h-9 min-w-0" value={newItemDesc} onChange={e => setNewItemDesc(maskSentence(e.target.value))} placeholder="Descrição do item" />
+                        <div className="flex gap-1.5">
+                          <Input className="w-[60px] h-9" type="number" value={newItemQtd} onChange={e => setNewItemQtd(e.target.value)} placeholder="Qtd" />
+                          <Input className="w-[90px] h-9" value={newItemValor ? maskCurrency(String(Math.round(parseFloat(newItemValor) * 100))) : ""} onChange={e => setNewItemValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                            if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                            if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                            const qtd = Number(newItemQtd) || 1;
+                            const vu = Number(newItemValor);
+                            setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                            setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                          }}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
