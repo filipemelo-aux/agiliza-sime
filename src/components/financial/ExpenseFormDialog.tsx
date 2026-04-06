@@ -403,7 +403,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       try {
         const xmlStr = ev.target?.result as string;
         const parsed = parseNfeXml(xmlStr);
-        setDescricao(parsed.itens.length > 0 ? `NF ${parsed.numero_nota} - ${parsed.fornecedor_nome}` : `NF ${parsed.numero_nota}`);
+        // Auto-fill description with item summaries
+        const itemSummary = parsed.itens.length > 0
+          ? parsed.itens.map(i => i.descricao).join(", ")
+          : `NF ${parsed.numero_nota}`;
+        setDescricao(maskSentence(itemSummary));
         setFornecedorCnpj(parsed.fornecedor_cnpj);
         setDocFiscal(parsed.numero_nota);
         setChaveNfe(parsed.chave_nfe);
