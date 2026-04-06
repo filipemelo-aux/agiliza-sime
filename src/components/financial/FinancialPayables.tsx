@@ -1391,7 +1391,7 @@ export function FinancialPayables() {
               const installs = installmentsMap[item.id];
               const hasInstallments = installs && installs.length > 0;
               const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-              const isMaintenance = chart?.tipo_operacional === "manutencao";
+              const isMaintenance = !!(item.veiculo_id && item.tipo_manutencao);
               const descDisplay = item.documento_fiscal_numero
                 ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
                 : item.descricao || "Serviço";
@@ -1502,11 +1502,11 @@ export function FinancialPayables() {
                               <Button variant="ghost" size="sm" className="h-7 px-1.5 text-[11px] gap-0.5 shrink-0" onClick={() => showExpenseDetail(item.id)}>
                                 <FileText className="h-3 w-3" /> Detalhes
                               </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Editar despesa" onClick={() => handleEdit(item)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
                               {!isInstPago && (
                                 <>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEditInstallment(inst)}>
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDeleteInstallment(inst)}>
                                     <Trash2 className="h-3 w-3 text-destructive" />
                                   </Button>
