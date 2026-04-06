@@ -259,7 +259,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Peso Total (kg)</Label>
                   <Input type="number" value={pesoKg} onChange={(e) => setPesoKg(e.target.value)} placeholder="0" />
@@ -267,6 +267,16 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 <div>
                   <Label>Valor do Frete (R$)</Label>
                   <Input value={valorFrete ? maskCurrency(String(Math.round(parseFloat(valorFrete) * 100))) : ""} onChange={(e) => setValorFrete(unmaskCurrency(e.target.value))} placeholder="0,00" />
+                </div>
+                <div>
+                  <Label>Tipo do Valor</Label>
+                  <Select value={tipoValorFrete} onValueChange={(v) => setTipoValorFrete(v as "total" | "por_tonelada")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="total">Frete Total</SelectItem>
+                      <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </>
