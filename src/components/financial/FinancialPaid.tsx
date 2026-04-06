@@ -700,7 +700,7 @@ export function FinancialPaid() {
                 </div>
               )}
 
-            </div>
+
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">Despesa não encontrada.</p>
