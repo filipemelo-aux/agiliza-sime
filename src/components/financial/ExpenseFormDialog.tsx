@@ -745,7 +745,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       const nfsePayload: any = {
         empresa_id: empresaId,
         descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço`,
-        tipo_despesa: isMaintenanceType ? "manutencao" : tipoDespesa,
+        tipo_despesa: isMaintenanceType ? "manutencao" : (selectedAccount?.tipo_operacional || "outros"),
         plano_contas_id: planoContasId,
         centro_custo: centroCusto,
         valor_total: nfseValorTotal,
