@@ -325,7 +325,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               {alimentacaoPorConta === "contratante" && (
                 <div>
                   <Label>Valor da Alimentação por Dia (R$)</Label>
-                  <Input type="number" value={valorAlimentacaoDia} onChange={(e) => setValorAlimentacaoDia(e.target.value)} placeholder="0,00" step="0.01" />
+                  <Input value={valorAlimentacaoDia ? maskCurrency(String(Math.round(parseFloat(valorAlimentacaoDia) * 100))) : ""} onChange={(e) => setValorAlimentacaoDia(unmaskCurrency(e.target.value))} placeholder="0,00" />
                 </div>
               )}
             </>
