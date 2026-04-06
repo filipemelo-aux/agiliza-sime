@@ -226,7 +226,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
               </div>
               <div>
                 <Label>R$/Litro</Label>
-                <Input type="number" step="0.001" value={valorLitro} onChange={e => setValorLitro(e.target.value)} />
+                <Input value={valorLitro ? maskCurrency(String(Math.round(parseFloat(valorLitro) * 100))) : ""} onChange={e => setValorLitro(unmaskCurrency(e.target.value))} />
               </div>
               <div>
                 <Label>Valor Total</Label>
