@@ -310,7 +310,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Prazo de Pagamento (dias)</Label>
-                  <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value)} placeholder="Ex: 30, 30/60, à vista" />
+                  <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value.replace(/\D/g, ""))} placeholder="Ex: 30" inputMode="numeric" />
                 </div>
                 <div>
                   <Label>Adiantamento (%)</Label>
