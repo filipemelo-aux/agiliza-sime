@@ -1391,7 +1391,7 @@ export function FinancialPayables() {
               const installs = installmentsMap[item.id];
               const hasInstallments = installs && installs.length > 0;
               const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
-              const isMaintenance = chart?.tipo_operacional === "manutencao";
+              const isMaintenance = !!(item.veiculo_id && item.tipo_manutencao);
               const descDisplay = item.documento_fiscal_numero
                 ? `${item.chave_nfe ? "NF-e" : "NFSe"} ${item.documento_fiscal_numero}`
                 : item.descricao || "Serviço";
