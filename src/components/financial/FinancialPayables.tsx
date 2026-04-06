@@ -1655,15 +1655,13 @@ export function FinancialPayables() {
                         )}
                         {!isHarvest && (
                           <div className="ml-auto flex gap-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
                             {!isPago && (
-                              <>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleEdit(item)}>
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDelete(item)}>
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                </Button>
-                              </>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleDelete(item)}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
                             )}
                           </div>
                         )}
