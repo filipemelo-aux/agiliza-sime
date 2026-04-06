@@ -1582,7 +1582,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 </div>
                 <div>
                   <Label className="text-xs">Chave NF-e</Label>
-                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value)} placeholder="44 dígitos" maxLength={44} className="h-9" />
+                  <Input value={chaveNfe} onChange={e => setChaveNfe(e.target.value.replace(/\D/g, "").slice(0, 44))} placeholder="44 dígitos" maxLength={44} className="h-9" />
                 </div>
               </div>
 
