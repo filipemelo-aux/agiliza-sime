@@ -1599,6 +1599,52 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 </div>
               )}
 
+              {/* Manual item entry (non-maintenance, manual mode) */}
+              {!isMaintenanceType && inputMode === "manual" && (
+                <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className={`h-4 w-4 ${manualItemsEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                      <div>
+                        <Label className="text-xs font-medium cursor-pointer" htmlFor="manual-items-toggle">Inserir itens da nota</Label>
+                        <p className="text-[10px] text-muted-foreground">Adicionar produtos/serviços individualmente</p>
+                      </div>
+                    </div>
+                    <Switch id="manual-items-toggle" checked={manualItemsEnabled} onCheckedChange={setManualItemsEnabled} />
+                  </div>
+
+                  {manualItemsEnabled && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex flex-col sm:flex-row gap-1.5" onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                          if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                          const qtd = Number(newItemQtd) || 1;
+                          const vu = Number(newItemValor);
+                          setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                          setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                        }
+                      }}>
+                        <Input className="flex-1 h-9 min-w-0" value={newItemDesc} onChange={e => setNewItemDesc(maskSentence(e.target.value))} placeholder="Descrição do item" />
+                        <div className="flex gap-1.5">
+                          <Input className="w-[60px] h-9" type="number" value={newItemQtd} onChange={e => setNewItemQtd(e.target.value)} placeholder="Qtd" />
+                          <Input className="w-[90px] h-9" value={newItemValor ? maskCurrency(String(Math.round(parseFloat(newItemValor) * 100))) : ""} onChange={e => setNewItemValor(unmaskCurrency(e.target.value))} placeholder="Valor" />
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+                            if (!newItemDesc.trim()) return toast.error("Informe a descrição do item");
+                            if (!newItemValor || Number(newItemValor) <= 0) return toast.error("Informe o valor");
+                            const qtd = Number(newItemQtd) || 1;
+                            const vu = Number(newItemValor);
+                            setItensNota(prev => [...prev, { descricao: newItemDesc.trim(), quantidade: qtd, valor_unitario: vu, valor_total: qtd * vu, ncm: "", cfop: "", unidade: "UN" }]);
+                            setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
+                          }}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Items da Nota */}
               {itensNota.length > 0 && (
                 <div>
