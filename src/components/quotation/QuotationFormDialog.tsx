@@ -288,7 +288,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Valor Mensal por Caminhão (R$)</Label>
-                  <Input type="number" value={valorMensal} onChange={(e) => setValorMensal(e.target.value)} placeholder="0,00" step="0.01" />
+                  <Input value={valorMensal ? maskCurrency(String(Math.round(parseFloat(valorMensal) * 100))) : ""} onChange={(e) => setValorMensal(unmaskCurrency(e.target.value))} placeholder="0,00" />
                 </div>
               </div>
 
