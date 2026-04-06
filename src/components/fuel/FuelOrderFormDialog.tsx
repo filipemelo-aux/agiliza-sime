@@ -21,6 +21,7 @@ import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { maskSentence } from "@/lib/masks";
 
 interface Props {
   open: boolean;
