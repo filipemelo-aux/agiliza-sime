@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { maskCurrency, unmaskCurrency, maskSentence } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
@@ -226,7 +226,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
               </div>
               <div>
                 <Label>R$/Litro</Label>
-                <Input type="number" step="0.001" value={valorLitro} onChange={e => setValorLitro(e.target.value)} />
+                <Input value={valorLitro ? maskCurrency(String(Math.round(parseFloat(valorLitro) * 100))) : ""} onChange={e => setValorLitro(unmaskCurrency(e.target.value))} />
               </div>
               <div>
                 <Label>Valor Total</Label>
@@ -291,7 +291,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
                 </div>
                 <div>
                   <Label>R$/Litro Arla</Label>
-                  <Input type="number" step="0.001" value={arlaValorLitro} onChange={e => setArlaValorLitro(e.target.value)} />
+                  <Input value={arlaValorLitro ? maskCurrency(String(Math.round(parseFloat(arlaValorLitro) * 100))) : ""} onChange={e => setArlaValorLitro(unmaskCurrency(e.target.value))} />
                 </div>
                 <div>
                   <Label>Total Arla</Label>
@@ -302,7 +302,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
 
             <div>
               <Label>Observações</Label>
-              <Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} />
+              <Textarea value={obs} onChange={e => setObs(maskSentence(e.target.value))} rows={2} />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

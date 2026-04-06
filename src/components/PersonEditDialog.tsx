@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName, maskSentence } from "@/lib/masks";
+import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName, maskSentence, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
@@ -797,7 +797,7 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Salário (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.salario} onChange={(e) => setForm((p) => ({ ...p, salario: e.target.value }))} placeholder="0,00" />
+              <Input value={form.salario ? maskCurrency(String(Math.round(parseFloat(form.salario) * 100))) : ""} onChange={(e) => setForm((p) => ({ ...p, salario: unmaskCurrency(e.target.value) }))} placeholder="0,00" />
             </div>
           </div>
         </>

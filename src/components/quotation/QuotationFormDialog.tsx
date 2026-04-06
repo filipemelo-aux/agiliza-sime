@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles, UserPlus } from "lucide-react";
+import { maskName, maskSentence, maskCurrency, unmaskCurrency, maskUf } from "@/lib/masks";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -220,11 +221,11 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Cidade Origem</Label>
-                  <Input value={origemCidade} onChange={(e) => setOrigemCidade(e.target.value)} placeholder="Ex: Uberlândia" />
+                  <Input value={origemCidade} onChange={(e) => setOrigemCidade(maskName(e.target.value))} placeholder="Ex: Uberlândia" />
                 </div>
                 <div>
                   <Label>UF Origem</Label>
-                  <Input value={origemUf} onChange={(e) => setOrigemUf(e.target.value.toUpperCase())} placeholder="MG" maxLength={2} />
+                  <Input value={origemUf} onChange={(e) => setOrigemUf(maskUf(e.target.value))} placeholder="MG" maxLength={2} />
                 </div>
               </div>
 
@@ -232,11 +233,11 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Cidade Destino</Label>
-                  <Input value={destinoCidade} onChange={(e) => setDestinoCidade(e.target.value)} placeholder="Ex: Santos" />
+                  <Input value={destinoCidade} onChange={(e) => setDestinoCidade(maskName(e.target.value))} placeholder="Ex: Santos" />
                 </div>
                 <div>
                   <Label>UF Destino</Label>
-                  <Input value={destinoUf} onChange={(e) => setDestinoUf(e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
+                  <Input value={destinoUf} onChange={(e) => setDestinoUf(maskUf(e.target.value))} placeholder="SP" maxLength={2} />
                 </div>
               </div>
 
@@ -262,7 +263,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Valor do Frete (R$)</Label>
-                  <Input type="number" value={valorFrete} onChange={(e) => setValorFrete(e.target.value)} placeholder="0,00" step="0.01" />
+                  <Input value={valorFrete ? maskCurrency(String(Math.round(parseFloat(valorFrete) * 100))) : ""} onChange={(e) => setValorFrete(unmaskCurrency(e.target.value))} placeholder="0,00" />
                 </div>
               </div>
             </>
@@ -287,7 +288,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>Valor Mensal por Caminhão (R$)</Label>
-                  <Input type="number" value={valorMensal} onChange={(e) => setValorMensal(e.target.value)} placeholder="0,00" step="0.01" />
+                  <Input value={valorMensal ? maskCurrency(String(Math.round(parseFloat(valorMensal) * 100))) : ""} onChange={(e) => setValorMensal(unmaskCurrency(e.target.value))} placeholder="0,00" />
                 </div>
               </div>
 
@@ -324,7 +325,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               {alimentacaoPorConta === "contratante" && (
                 <div>
                   <Label>Valor da Alimentação por Dia (R$)</Label>
-                  <Input type="number" value={valorAlimentacaoDia} onChange={(e) => setValorAlimentacaoDia(e.target.value)} placeholder="0,00" step="0.01" />
+                  <Input value={valorAlimentacaoDia ? maskCurrency(String(Math.round(parseFloat(valorAlimentacaoDia) * 100))) : ""} onChange={(e) => setValorAlimentacaoDia(unmaskCurrency(e.target.value))} placeholder="0,00" />
                 </div>
               )}
             </>
@@ -347,7 +348,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                   Formalizar com IA
                 </Button>
               </div>
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} placeholder="Digite suas observações e clique em 'Formalizar com IA' para reescrever formalmente..." />
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(maskSentence(e.target.value))} rows={3} placeholder="Digite suas observações e clique em 'Formalizar com IA' para reescrever formalmente..." />
             </div>
             <div>
               <Label>Validade (dias)</Label>

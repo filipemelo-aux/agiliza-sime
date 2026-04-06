@@ -10,6 +10,7 @@ import { Loader2, Save, Send, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { maskName } from "@/lib/masks";
 
 interface SmtpForm {
   host: string;
@@ -237,7 +238,7 @@ export function SmtpSettingsForm() {
               <Label>Usuário / E-mail *</Label>
               <Input
                 value={form.username}
-                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
                 placeholder="seu@email.com"
               />
             </div>
@@ -262,7 +263,7 @@ export function SmtpSettingsForm() {
               <Input
                 type="email"
                 value={form.from_email}
-                onChange={(e) => setForm((f) => ({ ...f, from_email: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, from_email: e.target.value.toLowerCase() }))}
                 placeholder="noreply@suaempresa.com"
               />
             </div>
@@ -270,7 +271,7 @@ export function SmtpSettingsForm() {
               <Label>Nome Remetente</Label>
               <Input
                 value={form.from_name}
-                onChange={(e) => setForm((f) => ({ ...f, from_name: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, from_name: maskName(e.target.value) }))}
                 placeholder="SIME Transportes"
               />
             </div>
@@ -302,7 +303,7 @@ export function SmtpSettingsForm() {
             <Input
               type="email"
               value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
+              onChange={(e) => setTestEmail(e.target.value.toLowerCase())}
               placeholder="destinatario@email.com"
               className="flex-1"
             />
