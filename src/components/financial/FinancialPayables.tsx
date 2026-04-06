@@ -764,12 +764,11 @@ export function FinancialPayables() {
 
       if (quickFilter === "all") {
         if (hasInst) {
-          // Excluir totalmente pagas e também atrasadas (vencidas) — ficam no filtro "Atrasadas"
-          const hasPendingFuture = installs.some(inst => inst.status !== "pago" && inst.data_vencimento >= today);
-          if (!hasPendingFuture) return false;
+          // Mostrar despesas que tenham qualquer parcela não paga (incluindo atrasadas)
+          const hasNonPaid = installs.some(inst => inst.status !== "pago");
+          if (!hasNonPaid) return false;
         } else {
           if (i.status === "pago") return false;
-          if (i.status === "atrasado" || (i.data_vencimento && i.data_vencimento < today)) return false;
         }
       } else if (quickFilter === "semana") {
         if (hasInst) {
