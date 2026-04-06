@@ -237,7 +237,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
                 <div>
                   <Label>UF Destino</Label>
-                  <Input value={destinoUf} onChange={(e) => setDestinoUf(e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
+                  <Input value={destinoUf} onChange={(e) => setDestinoUf(maskUf(e.target.value))} placeholder="SP" maxLength={2} />
                 </div>
               </div>
 
