@@ -364,5 +364,16 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         </div>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={showCreateClient}
+      onOpenChange={setShowCreateClient}
+      onCreated={(person) => {
+        setClientId(person.id);
+        setClientName(person.full_name);
+      }}
+      defaultCategory="cliente"
+    />
+    </>
   );
 }
