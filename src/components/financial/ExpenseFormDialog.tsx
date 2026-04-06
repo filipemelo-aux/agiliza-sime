@@ -366,6 +366,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
         boleto_url: d.boleto_url || null,
+        status: d.status || "pendente",
+        id: d.id,
       })));
       // Check if any installment has boleto attached
       const hasBoleto = (data as any[]).some((d: any) => d.boleto_url);
