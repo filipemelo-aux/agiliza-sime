@@ -2535,6 +2535,7 @@ export type Database = {
           carga_id: string | null
           client_id: string | null
           combustivel_por_conta: string | null
+          condicoes_pagamento: string | null
           created_at: string
           created_by: string
           destino_cidade: string | null
@@ -2564,6 +2565,7 @@ export type Database = {
           carga_id?: string | null
           client_id?: string | null
           combustivel_por_conta?: string | null
+          condicoes_pagamento?: string | null
           created_at?: string
           created_by: string
           destino_cidade?: string | null
@@ -2593,6 +2595,7 @@ export type Database = {
           carga_id?: string | null
           client_id?: string | null
           combustivel_por_conta?: string | null
+          condicoes_pagamento?: string | null
           created_at?: string
           created_by?: string
           destino_cidade?: string | null

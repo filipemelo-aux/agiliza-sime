@@ -1,0 +1,1 @@
+ALTER TABLE public.quotations ADD COLUMN condicoes_pagamento text;
