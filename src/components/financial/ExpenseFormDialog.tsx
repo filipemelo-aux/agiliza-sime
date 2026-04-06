@@ -118,6 +118,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const isEditing = !!expense;
 
   const [descricao, setDescricao] = useState("");
+  const [manualItemsEnabled, setManualItemsEnabled] = useState(false);
+  const [newItemDesc, setNewItemDesc] = useState("");
+  const [newItemQtd, setNewItemQtd] = useState("1");
+  const [newItemValor, setNewItemValor] = useState("");
   const [planoContasId, setPlanoContasId] = useState("");
   const [centroCusto, setCentroCusto] = useState("operacional");
   const [valorTotal, setValorTotal] = useState("");
