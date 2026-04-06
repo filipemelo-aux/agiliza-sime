@@ -66,6 +66,11 @@ interface Expense {
   empresa_id?: string;
   unidade_id?: string | null;
   conta_bancaria_id?: string | null;
+  tipo_manutencao?: string | null;
+  km_atual?: number | null;
+  fornecedor_mecanica?: string | null;
+  tempo_parado?: string | null;
+  proxima_manutencao_km?: number | null;
 }
 
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; nivel: number; tipo_operacional?: string | null; }
