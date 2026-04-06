@@ -281,9 +281,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
       setInputMode(expense.documento_fiscal_importado ? "xml" : "manual");
-      // Determine maintenance from chart account tipo_operacional
+      // Determine maintenance from chart account tipo_operacional OR from existing expense data
       const expAccount = chartAccounts.find(c => c.id === expense.plano_contas_id);
-      setIsManutencao(expAccount?.tipo_operacional === "manutencao");
+      const hasMaintData = !!(expense.veiculo_id || expense.tipo_manutencao || expense.km_atual);
+      setIsManutencao(expAccount?.tipo_operacional === "manutencao" || hasMaintData);
       setVeiculoId(expense.veiculo_id || null);
       setTipoManutencao(expense.tipo_manutencao || "corretiva");
       setKmAtual(expense.km_atual ? String(expense.km_atual) : "");
@@ -295,14 +296,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       
       if (expense.id) {
         loadItems(expense.id);
-        if (expAccount?.tipo_operacional === "manutencao") loadMaintenanceItems(expense.id);
+        // Always load maintenance items when editing — they may exist regardless of current account type
+        loadMaintenanceItems(expense.id);
         loadPaymentHistory(expense.id);
         loadInstallments(expense.id);
       }
     } else {
       resetForm();
     }
-  }, [expense, open]);
+  }, [expense, open, chartAccounts]);
 
   // Show fuel suggestion for combustivel account
   const isCategoryCombustivel = selectedAccount?.tipo_operacional === "combustivel";
