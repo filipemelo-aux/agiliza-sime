@@ -309,20 +309,8 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                   </Select>
                 </div>
                 <div>
-                  <Label>Prazo de Pagamento</Label>
-                  <Select value={prazoPagamento} onValueChange={setPrazoPagamento}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="a_vista">À vista</SelectItem>
-                      <SelectItem value="7_dias">7 dias</SelectItem>
-                      <SelectItem value="15_dias">15 dias</SelectItem>
-                      <SelectItem value="30_dias">30 dias</SelectItem>
-                      <SelectItem value="30_60_dias">30/60 dias</SelectItem>
-                      <SelectItem value="30_60_90_dias">30/60/90 dias</SelectItem>
-                      <SelectItem value="na_entrega">Na entrega</SelectItem>
-                      <SelectItem value="apos_descarga">Após descarga</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Prazo de Pagamento (dias)</Label>
+                  <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value)} placeholder="Ex: 30, 30/60, à vista" />
                 </div>
                 <div>
                   <Label>Adiantamento (%)</Label>
