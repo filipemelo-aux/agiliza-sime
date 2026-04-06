@@ -48,6 +48,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
   const [prazoPagamento, setPrazoPagamento] = useState("");
   const [adiantamentoPercentual, setAdiantamentoPercentual] = useState("");
+  const [prazoPagamentoReferencia, setPrazoPagamentoReferencia] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
