@@ -1301,22 +1301,38 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 hasNfse={hasNfse}
                 onHasNfseChange={setHasNfse}
               />
+            </div>
+          )}
 
-              {/* NFSe / Ordem de Serviço expanded content */}
-              {hasNfse && (
-                <div className="rounded-lg border p-3 transition-colors mt-3 border-orange-500/50 bg-orange-500/5">
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
-                      <FileText className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
-                      <p className="text-[11px] text-orange-700 dark:text-orange-400 font-medium leading-tight">
-                        Uma segunda despesa será criada no Contas a Pagar referente à NFSe/OS deste serviço.
-                      </p>
-                    </div>
+          {/* ── NFSe / Ordem de Serviço (available for all expense types) ── */}
+          <div className={`rounded-lg border p-3 transition-colors ${hasNfse ? "border-orange-500/50 bg-orange-500/5" : "border-border"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className={`h-4 w-4 ${hasNfse ? "text-orange-600" : "text-muted-foreground"}`} />
+                <div>
+                  <Label className="text-xs font-medium cursor-pointer" htmlFor="has-nfse-global">Possui NFSe / Ordem de Serviço?</Label>
+                  <p className="text-[10px] text-muted-foreground">Gera uma segunda despesa para o serviço prestado</p>
+                </div>
+              </div>
+              <Switch id="has-nfse-global" checked={hasNfse} onCheckedChange={setHasNfse} />
+            </div>
+          </div>
 
-                    <div>
-                      <Label className="text-xs">Nº NFSe / OS</Label>
-                      <Input value={nfseNumero} onChange={e => setNfseNumero(e.target.value)} placeholder="Número do documento" className="h-9" />
-                    </div>
+          {/* NFSe / Ordem de Serviço expanded content */}
+          {hasNfse && (
+            <div className="rounded-lg border p-3 transition-colors mt-0 border-orange-500/50 bg-orange-500/5">
+              <div className="space-y-4">
+                <div className="flex items-start gap-1.5 rounded-md bg-orange-500/10 px-2.5 py-1.5">
+                  <FileText className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-orange-700 dark:text-orange-400 font-medium leading-tight">
+                    Uma segunda despesa será criada no Contas a Pagar referente à NFSe/OS deste serviço.
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Nº NFSe / OS</Label>
+                  <Input value={nfseNumero} onChange={e => setNfseNumero(e.target.value)} placeholder="Número do documento" className="h-9" />
+                </div>
 
                     {/* Itens de serviço da NFSe */}
                     <div>
