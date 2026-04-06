@@ -316,6 +316,16 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                   <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value.replace(/\D/g, ""))} placeholder="Ex: 30" inputMode="numeric" />
                 </div>
                 <div>
+                  <Label>A partir de</Label>
+                  <Select value={prazoPagamentoReferencia} onValueChange={setPrazoPagamentoReferencia}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="emissao_cte">Emissão do CT-e</SelectItem>
+                      <SelectItem value="entrega">Entrega da carga</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Adiantamento (%)</Label>
                   <Input type="number" min={0} max={100} value={adiantamentoPercentual} onChange={(e) => setAdiantamentoPercentual(e.target.value)} placeholder="0" />
                 </div>
