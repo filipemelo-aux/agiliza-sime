@@ -382,6 +382,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
+    setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
     setVeiculoId(null); setTipoManutencao("corretiva"); setKmAtual(""); setDescricaoServico(""); setFornecedorMecanica(""); setTipoServico("interno"); setIsManutencao(false);
     setTempoParado(""); setProximaManutencaoKm(""); setDataProximaManutencao(""); setItensManutencao([]);
     setHasNfse(false); setNfseNumero(""); setNfseItens([]); setNfseNewDesc(""); setNfseNewQtd("1"); setNfseNewValor(""); setNfseDataEmissao("");
