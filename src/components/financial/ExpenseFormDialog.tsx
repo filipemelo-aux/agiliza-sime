@@ -414,10 +414,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setChaveNfe(parsed.chave_nfe.replace(/\D/g, ""));
         setDataEmissao(parsed.data_emissao || getLocalDateISO());
         setValorTotal(String(parsed.valor_total));
-        // Auto-select chart account based on XML suggestion
-        const suggestedType = parsed.tipo_despesa_sugerido;
-        const matchingAccount = chartAccounts.find(c => c.tipo_operacional === suggestedType);
-        if (matchingAccount) setPlanoContasId(matchingAccount.id);
+        // Do NOT auto-select plano de contas from XML — let user choose manually
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
