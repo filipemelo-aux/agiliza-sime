@@ -151,6 +151,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         valor_frete: valorFrete ? parseFloat(valorFrete) : null,
         tipo_valor_frete: tipoValorFrete,
         condicoes_pagamento: condicoesPagamento || null,
+        forma_pagamento_frete: formaPagamentoFrete || null,
+        prazo_pagamento: prazoPagamento || null,
+        adiantamento_percentual: adiantamentoPercentual ? parseFloat(adiantamentoPercentual) : null,
       });
     } else {
       if (!previsaoInicio || !valorMensal) { toast({ title: "Preencha o período e valor mensal", variant: "destructive" }); setSaving(false); return; }
