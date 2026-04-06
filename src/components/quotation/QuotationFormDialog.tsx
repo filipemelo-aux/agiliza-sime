@@ -369,9 +369,19 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
     <PersonCreateDialog
       open={showCreateClient}
       onOpenChange={setShowCreateClient}
-      onCreated={(person) => {
-        setClientId(person.id);
-        setClientName(person.full_name);
+      onCreated={async () => {
+        // Fetch latest created client profile
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("category", "cliente")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (data) {
+          setClientId(data.id);
+          setClientName(data.full_name);
+        }
       }}
       defaultCategory="cliente"
     />
