@@ -45,6 +45,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [valorFrete, setValorFrete] = useState("");
   const [tipoValorFrete, setTipoValorFrete] = useState<"total" | "por_tonelada">("total");
   const [condicoesPagamento, setCondicoesPagamento] = useState("");
+  const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
+  const [prazoPagamento, setPrazoPagamento] = useState("");
+  const [adiantamentoPercentual, setAdiantamentoPercentual] = useState("");
 
   // Harvest fields
   const [previsaoInicio, setPrevisaoInicio] = useState("");
@@ -101,6 +104,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
         setTipoValorFrete(editData.tipo_valor_frete || "total");
         setCondicoesPagamento(editData.condicoes_pagamento || "");
+        setFormaPagamentoFrete(editData.forma_pagamento_frete || "");
+        setPrazoPagamento(editData.prazo_pagamento || "");
+        setAdiantamentoPercentual(editData.adiantamento_percentual != null ? String(editData.adiantamento_percentual) : "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
@@ -145,6 +151,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         valor_frete: valorFrete ? parseFloat(valorFrete) : null,
         tipo_valor_frete: tipoValorFrete,
         condicoes_pagamento: condicoesPagamento || null,
+        forma_pagamento_frete: formaPagamentoFrete || null,
+        prazo_pagamento: prazoPagamento || null,
+        adiantamento_percentual: adiantamentoPercentual ? parseFloat(adiantamentoPercentual) : null,
       });
     } else {
       if (!previsaoInicio || !valorMensal) { toast({ title: "Preencha o período e valor mensal", variant: "destructive" }); setSaving(false); return; }
@@ -283,12 +292,49 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                 </div>
               </div>
 
+              <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="ted">TED</SelectItem>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="deposito">Depósito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Prazo de Pagamento</Label>
+                  <Select value={prazoPagamento} onValueChange={setPrazoPagamento}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="a_vista">À vista</SelectItem>
+                      <SelectItem value="7_dias">7 dias</SelectItem>
+                      <SelectItem value="15_dias">15 dias</SelectItem>
+                      <SelectItem value="30_dias">30 dias</SelectItem>
+                      <SelectItem value="30_60_dias">30/60 dias</SelectItem>
+                      <SelectItem value="30_60_90_dias">30/60/90 dias</SelectItem>
+                      <SelectItem value="na_entrega">Na entrega</SelectItem>
+                      <SelectItem value="apos_descarga">Após descarga</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Adiantamento (%)</Label>
+                  <Input type="number" min={0} max={100} value={adiantamentoPercentual} onChange={(e) => setAdiantamentoPercentual(e.target.value)} placeholder="0" />
+                </div>
+              </div>
               <div>
-                <Label>Condições de Pagamento</Label>
+                <Label>Observações do Pagamento</Label>
                 <Input
                   value={condicoesPagamento}
                   onChange={(e) => setCondicoesPagamento(maskSentence(e.target.value))}
-                  placeholder="Ex: 30/60 dias após entrega, à vista, etc."
+                  placeholder="Informações adicionais sobre pagamento..."
                 />
               </div>
             </>

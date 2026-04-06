@@ -2531,6 +2531,7 @@ export type Database = {
       }
       quotations: {
         Row: {
+          adiantamento_percentual: number | null
           alimentacao_por_conta: string | null
           carga_id: string | null
           client_id: string | null
@@ -2541,12 +2542,14 @@ export type Database = {
           destino_cidade: string | null
           destino_uf: string | null
           establishment_id: string | null
+          forma_pagamento_frete: string | null
           id: string
           numero: number
           observacoes: string | null
           origem_cidade: string | null
           origem_uf: string | null
           peso_kg: number | null
+          prazo_pagamento: string | null
           previsao_inicio: string | null
           previsao_termino: string | null
           produto: string | null
@@ -2561,6 +2564,7 @@ export type Database = {
           valor_mensal_por_caminhao: number | null
         }
         Insert: {
+          adiantamento_percentual?: number | null
           alimentacao_por_conta?: string | null
           carga_id?: string | null
           client_id?: string | null
@@ -2571,12 +2575,14 @@ export type Database = {
           destino_cidade?: string | null
           destino_uf?: string | null
           establishment_id?: string | null
+          forma_pagamento_frete?: string | null
           id?: string
           numero?: number
           observacoes?: string | null
           origem_cidade?: string | null
           origem_uf?: string | null
           peso_kg?: number | null
+          prazo_pagamento?: string | null
           previsao_inicio?: string | null
           previsao_termino?: string | null
           produto?: string | null
@@ -2591,6 +2597,7 @@ export type Database = {
           valor_mensal_por_caminhao?: number | null
         }
         Update: {
+          adiantamento_percentual?: number | null
           alimentacao_por_conta?: string | null
           carga_id?: string | null
           client_id?: string | null
@@ -2601,12 +2608,14 @@ export type Database = {
           destino_cidade?: string | null
           destino_uf?: string | null
           establishment_id?: string | null
+          forma_pagamento_frete?: string | null
           id?: string
           numero?: number
           observacoes?: string | null
           origem_cidade?: string | null
           origem_uf?: string | null
           peso_kg?: number | null
+          prazo_pagamento?: string | null
           previsao_inicio?: string | null
           previsao_termino?: string | null
           produto?: string | null
