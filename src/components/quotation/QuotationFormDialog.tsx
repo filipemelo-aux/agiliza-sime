@@ -348,7 +348,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                   Formalizar com IA
                 </Button>
               </div>
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} placeholder="Digite suas observações e clique em 'Formalizar com IA' para reescrever formalmente..." />
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(maskSentence(e.target.value))} rows={3} placeholder="Digite suas observações e clique em 'Formalizar com IA' para reescrever formalmente..." />
             </div>
             <div>
               <Label>Validade (dias)</Label>
