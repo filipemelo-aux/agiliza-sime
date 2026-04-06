@@ -104,6 +104,9 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
         setTipoValorFrete(editData.tipo_valor_frete || "total");
         setCondicoesPagamento(editData.condicoes_pagamento || "");
+        setFormaPagamentoFrete(editData.forma_pagamento_frete || "");
+        setPrazoPagamento(editData.prazo_pagamento || "");
+        setAdiantamentoPercentual(editData.adiantamento_percentual != null ? String(editData.adiantamento_percentual) : "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
