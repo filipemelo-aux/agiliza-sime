@@ -10,6 +10,7 @@ import { Loader2, Save, Send, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { maskName } from "@/lib/masks";
 
 interface SmtpForm {
   host: string;
