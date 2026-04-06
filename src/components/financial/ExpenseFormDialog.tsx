@@ -808,34 +808,32 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Input mode selector for new expense */}
-          {!isEditing && (
-            <div className="flex gap-2">
-              <Button
-                variant={inputMode === "manual" ? "default" : "outline"}
-                size="sm"
-                className="flex-1 gap-1.5"
-                onClick={() => setInputMode("manual")}
-              >
-                <FileText className="h-3.5 w-3.5" /> Manual
-              </Button>
-              <Button
-                variant={inputMode === "xml" ? "default" : "outline"}
-                size="sm"
-                className="flex-1 gap-1.5"
-                onClick={() => setInputMode("xml")}
-              >
-                <Upload className="h-3.5 w-3.5" /> Importar XML
-              </Button>
-            </div>
-          )}
+          {/* Input mode selector */}
+          <div className="flex gap-2">
+            <Button
+              variant={inputMode === "manual" ? "default" : "outline"}
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => setInputMode("manual")}
+            >
+              <FileText className="h-3.5 w-3.5" /> Manual
+            </Button>
+            <Button
+              variant={inputMode === "xml" ? "default" : "outline"}
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => setInputMode("xml")}
+            >
+              <Upload className="h-3.5 w-3.5" /> Importar XML
+            </Button>
+          </div>
 
-          {inputMode === "xml" && !isEditing && (
+          {inputMode === "xml" && (
             <div className="border-2 border-dashed rounded-lg p-4 text-center space-y-1.5">
               <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Selecione um arquivo XML de NF-e ou NFS-e</p>
               <input ref={fileInputRef} type="file" accept=".xml" onChange={handleXmlImport} className="hidden" />
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Selecionar XML</Button>
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>{isEditing ? "Reimportar XML" : "Selecionar XML"}</Button>
               {documentoImportado && <Badge variant="default" className="ml-2">Importado ✓</Badge>}
             </div>
           )}
