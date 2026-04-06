@@ -271,7 +271,7 @@ export function SmtpSettingsForm() {
               <Label>Nome Remetente</Label>
               <Input
                 value={form.from_name}
-                onChange={(e) => setForm((f) => ({ ...f, from_name: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, from_name: maskName(e.target.value) }))}
                 placeholder="SIME Transportes"
               />
             </div>
