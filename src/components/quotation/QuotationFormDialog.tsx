@@ -108,6 +108,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setFormaPagamentoFrete(editData.forma_pagamento_frete || "");
         setPrazoPagamento(editData.prazo_pagamento || "");
         setAdiantamentoPercentual(editData.adiantamento_percentual != null ? String(editData.adiantamento_percentual) : "");
+        setPrazoPagamentoReferencia(editData.prazo_pagamento_referencia || "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
