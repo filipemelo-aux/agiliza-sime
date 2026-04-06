@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, Sprout, Download, Trash2, Eye, CheckCircle, Clock, Send, Pencil } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -274,6 +275,21 @@ export default function AdminQuotations() {
             <h1 className="text-3xl font-bold font-display">Cotações</h1>
             <p className="text-muted-foreground">Gerencie propostas de frete e serviços de colheita</p>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Cotação
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openNewForm("frete")} className="gap-2">
+                <FileText className="h-4 w-4" /> Cotação de Frete
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openNewForm("colheita")} className="gap-2">
+                <Sprout className="h-4 w-4" /> Cotação de Colheita
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Tabs defaultValue="todos" className="space-y-4">
