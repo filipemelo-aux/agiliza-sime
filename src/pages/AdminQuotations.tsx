@@ -45,7 +45,7 @@ interface Quotation {
   created_by: string;
   client?: { full_name: string; cnpj: string | null; razao_social: string | null } | null;
   establishment?: { razao_social: string; nome_fantasia: string | null; cnpj: string } | null;
-  creator?: { full_name: string } | null;
+  creator?: { full_name: string; signature_data?: string | null } | null;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Clock }> = {
