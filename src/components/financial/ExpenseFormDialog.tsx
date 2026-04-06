@@ -1102,19 +1102,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <TableHead className="text-[10px] w-[50px]">Nº</TableHead>
                         <TableHead className="text-[10px]">Vencimento</TableHead>
                         <TableHead className="text-[10px] text-right">Valor (R$)</TableHead>
-                        <TableHead className="text-[10px] w-[32px]"></TableHead>
+                        <TableHead className="text-[10px] w-[60px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {parcelas.map((p, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="text-[11px] font-mono">{p.numero}</TableCell>
+                      {parcelas.map((p, idx) => {
+                        const isPaid = p.status === "pago";
+                        return (
+                        <TableRow key={idx} className={isPaid ? "opacity-60 bg-muted/30" : ""}>
+                          <TableCell className="text-[11px] font-mono">
+                            {p.numero}
+                            {isPaid && <Badge variant="default" className="ml-1 text-[8px] px-1 py-0">Pago</Badge>}
+                          </TableCell>
                           <TableCell>
                             <Input
                               type="date"
                               value={p.data_vencimento}
                               onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
                               className="h-7 text-[11px]"
+                              disabled={isPaid}
                             />
                           </TableCell>
                           <TableCell>
@@ -1143,10 +1149,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 });
                               }}
                               className="h-7 text-[11px] text-right font-mono"
+                              disabled={isPaid}
                             />
                           </TableCell>
                           <TableCell>
-                            {parcelas.length > 1 && (
+                            {!isPaid && parcelas.filter(pp => pp.status !== "pago").length > 1 && (
                               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() =>
                                 setParcelas(prev => prev.filter((_, i) => i !== idx).map((pp, i) => ({ ...pp, numero: i + 1 })))
                               }>
@@ -1155,7 +1162,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             )}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
