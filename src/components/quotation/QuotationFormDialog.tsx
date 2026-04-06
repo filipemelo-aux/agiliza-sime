@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles, UserPlus } from "lucide-react";
+import { maskName, maskSentence, maskCurrency, unmaskCurrency, maskUf } from "@/lib/masks";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
