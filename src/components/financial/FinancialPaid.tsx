@@ -585,15 +585,6 @@ export function FinancialPaid() {
                         >
                           <Eye className="h-3 w-3" /> Detalhes
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-[11px] gap-1 text-muted-foreground"
-                          onClick={() => openEdit(item)}
-                          title="Editar despesa"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
                         <div className="ml-auto">
                           <Button
                             variant="outline"
