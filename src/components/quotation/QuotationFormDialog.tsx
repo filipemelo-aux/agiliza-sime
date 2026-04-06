@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { CargaSearchInput } from "@/components/freight/CargaSearchInput";
 
 interface Props {
@@ -25,6 +26,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [formalizing, setFormalizing] = useState(false);
+  const [showCreateClient, setShowCreateClient] = useState(false);
   const [establishmentId, setEstablishmentId] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -170,6 +172,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const isEditing = !!editData;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -196,6 +199,18 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               selectedName={clientName}
               onSelect={(p) => { setClientId(p.id); setClientName(p.full_name); }}
               onClear={() => { setClientId(null); setClientName(""); }}
+              endAction={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title="Cadastrar novo cliente"
+                  onClick={() => setShowCreateClient(true)}
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              }
             />
           </div>
 
@@ -350,5 +365,26 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         </div>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={showCreateClient}
+      onOpenChange={setShowCreateClient}
+      onCreated={async () => {
+        // Fetch latest created client profile
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("category", "cliente")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (data) {
+          setClientId(data.id);
+          setClientName(data.full_name);
+        }
+      }}
+      defaultCategory="cliente"
+    />
+    </>
   );
 }
