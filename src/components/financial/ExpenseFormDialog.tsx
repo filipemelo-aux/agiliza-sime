@@ -148,7 +148,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [inputMode, setInputMode] = useState<"manual" | "xml">("manual");
 
   // Installments (parcelas)
-  interface Parcela { numero: number; valor: string; data_vencimento: string; boleto_url?: string | null; }
+  interface Parcela { numero: number; valor: string; data_vencimento: string; boleto_url?: string | null; status?: string; id?: string; }
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
   const [intervaloDias, setIntervaloDias] = useState(30);
@@ -366,6 +366,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         valor: String(d.valor),
         data_vencimento: d.data_vencimento,
         boleto_url: d.boleto_url || null,
+        status: d.status || "pendente",
+        id: d.id,
       })));
       // Check if any installment has boleto attached
       const hasBoleto = (data as any[]).some((d: any) => d.boleto_url);
@@ -616,16 +618,32 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     // Save installments + boleto PDF (split per page)
     if (expenseId) {
-      await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
       if (useParcelas && parcelas.length > 0) {
-        // Split PDF into individual pages and upload each
-        let boletoPaths: (string | null)[] = parcelas.map(() => null);
+        // Separate paid vs pending installments
+        const paidParcelas = parcelas.filter(p => p.status === "pago" && p.id);
+        const pendingParcelas = parcelas.filter(p => p.status !== "pago");
+
+        // Only delete non-paid installments to preserve payment history
+        if (isEditing) {
+          // Delete only pending/non-paid installments (keep paid ones intact)
+          const paidIds = paidParcelas.map(p => p.id!);
+          if (paidIds.length > 0) {
+            await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId).not("id", "in", `(${paidIds.join(",")})`);
+          } else {
+            await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+          }
+        } else {
+          await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+        }
+
+        // Split PDF into individual pages and upload each (only for pending)
+        let boletoPaths: (string | null)[] = pendingParcelas.map(() => null);
 
         if (boletoPdfFile) {
           try {
             const pageBlobs = await splitPdfPages(boletoPdfFile);
             const ts = Date.now();
-            for (let i = 0; i < parcelas.length; i++) {
+            for (let i = 0; i < pendingParcelas.length; i++) {
               if (i < pageBlobs.length) {
                 const path = `boletos/${expenseId}/${ts}_parcela_${i + 1}.pdf`;
                 const { error: upErr } = await supabase.storage
@@ -634,28 +652,37 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 if (!upErr) boletoPaths[i] = path;
               }
             }
-            if (pageBlobs.length < parcelas.length) {
-              toast.info(`PDF tem ${pageBlobs.length} página(s) para ${parcelas.length} parcelas. Parcelas excedentes ficaram sem boleto.`);
+            if (pageBlobs.length < pendingParcelas.length) {
+              toast.info(`PDF tem ${pageBlobs.length} página(s) para ${pendingParcelas.length} parcelas pendentes. Parcelas excedentes ficaram sem boleto.`);
             }
           } catch (err: any) {
             console.error("Erro ao dividir PDF:", err);
             toast.warning("Não foi possível dividir o PDF por parcela. Boletos não anexados.");
           }
         } else if (boletoPdfExistingUrl) {
-          // Preserve existing per-installment boleto URLs from loaded data
-          parcelas.forEach((p, idx) => {
+          pendingParcelas.forEach((p, idx) => {
             if (p.boleto_url) boletoPaths[idx] = p.boleto_url;
           });
         }
 
-        await supabase.from("expense_installments" as any).insert(parcelas.map((p, i) => ({
-          expense_id: expenseId,
-          numero_parcela: p.numero,
-          valor: Number(p.valor) || 0,
-          data_vencimento: p.data_vencimento,
-          status: "pendente",
-          boleto_url: boletoPaths[i],
-        })));
+        // Insert only pending installments (paid ones are preserved)
+        if (pendingParcelas.length > 0) {
+          await supabase.from("expense_installments" as any).insert(pendingParcelas.map((p, i) => ({
+            expense_id: expenseId,
+            numero_parcela: p.numero,
+            valor: Number(p.valor) || 0,
+            data_vencimento: p.data_vencimento,
+            status: "pendente",
+            boleto_url: boletoPaths[i],
+          })));
+        }
+      } else {
+        // If parcelas disabled, only delete pending ones
+        if (isEditing) {
+          await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId).neq("status", "pago");
+        } else {
+          await supabase.from("expense_installments" as any).delete().eq("expense_id", expenseId);
+        }
       }
     }
 
@@ -1075,19 +1102,25 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <TableHead className="text-[10px] w-[50px]">Nº</TableHead>
                         <TableHead className="text-[10px]">Vencimento</TableHead>
                         <TableHead className="text-[10px] text-right">Valor (R$)</TableHead>
-                        <TableHead className="text-[10px] w-[32px]"></TableHead>
+                        <TableHead className="text-[10px] w-[60px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {parcelas.map((p, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="text-[11px] font-mono">{p.numero}</TableCell>
+                      {parcelas.map((p, idx) => {
+                        const isPaid = p.status === "pago";
+                        return (
+                        <TableRow key={idx} className={isPaid ? "opacity-60 bg-muted/30" : ""}>
+                          <TableCell className="text-[11px] font-mono">
+                            {p.numero}
+                            {isPaid && <Badge variant="default" className="ml-1 text-[8px] px-1 py-0">Pago</Badge>}
+                          </TableCell>
                           <TableCell>
                             <Input
                               type="date"
                               value={p.data_vencimento}
                               onChange={e => setParcelas(prev => prev.map((pp, i) => i === idx ? { ...pp, data_vencimento: e.target.value } : pp))}
                               className="h-7 text-[11px]"
+                              disabled={isPaid}
                             />
                           </TableCell>
                           <TableCell>
@@ -1116,10 +1149,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 });
                               }}
                               className="h-7 text-[11px] text-right font-mono"
+                              disabled={isPaid}
                             />
                           </TableCell>
                           <TableCell>
-                            {parcelas.length > 1 && (
+                            {!isPaid && parcelas.filter(pp => pp.status !== "pago").length > 1 && (
                               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() =>
                                 setParcelas(prev => prev.filter((_, i) => i !== idx).map((pp, i) => ({ ...pp, numero: i + 1 })))
                               }>
@@ -1128,7 +1162,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                             )}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
