@@ -302,7 +302,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
 
             <div>
               <Label>Observações</Label>
-              <Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} />
+              <Textarea value={obs} onChange={e => setObs(maskSentence(e.target.value))} rows={2} />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

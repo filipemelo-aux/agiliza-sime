@@ -303,7 +303,7 @@ export function SmtpSettingsForm() {
             <Input
               type="email"
               value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
+              onChange={(e) => setTestEmail(e.target.value.toLowerCase())}
               placeholder="destinatario@email.com"
               className="flex-1"
             />
