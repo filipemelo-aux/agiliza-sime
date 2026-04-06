@@ -191,19 +191,6 @@ export function MaintenanceFields({
         </div>
       </div>
 
-      {/* NFSe toggle */}
-      <div className={`rounded-lg border p-3 transition-colors ${hasNfse ? "border-orange-500/50 bg-orange-500/5" : "border-border"}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className={`h-4 w-4 ${hasNfse ? "text-orange-600" : "text-muted-foreground"}`} />
-            <div>
-              <Label className="text-xs font-medium cursor-pointer" htmlFor="has-nfse">Possui NFSe / Ordem de Serviço?</Label>
-              <p className="text-[10px] text-muted-foreground">Gera uma segunda despesa para o serviço prestado</p>
-            </div>
-          </div>
-          <Switch id="has-nfse" checked={hasNfse} onCheckedChange={onHasNfseChange} />
-        </div>
-      </div>
 
       {/* Descrição do serviço - shown only when NFSe is NOT active */}
       {!hasNfse && (
