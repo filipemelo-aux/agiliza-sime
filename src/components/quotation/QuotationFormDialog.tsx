@@ -296,7 +296,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               </div>
 
               <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <Label>Forma de Pagamento</Label>
                   <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
