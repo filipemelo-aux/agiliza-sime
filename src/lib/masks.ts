@@ -185,6 +185,11 @@ export const maskName = (value: string): string => {
     .join(" ");
 };
 
+// UF mask: only 2 uppercase letters
+export const maskUf = (value: string): string => {
+  return value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 2);
+};
+
 // Currency mask: formats number as R$ 1.234,56 (for inputs — receives cents string)
 export const maskCurrency = (value: string): string => {
   const numbers = value.replace(/\D/g, "");
