@@ -78,6 +78,7 @@ ${isFrete ? `
   <tr><td style="font-weight:600">Produto</td><td>${q.produto || "—"}</td></tr>
   <tr><td style="font-weight:600">Peso (kg)</td><td>${q.peso_kg ? Number(q.peso_kg).toLocaleString("pt-BR") : "—"}</td></tr>
   <tr class="highlight"><td style="font-weight:600">Valor do Frete</td><td>${formatCurrency(q.valor_frete)}${q.tipo_valor_frete === "por_tonelada" ? " por tonelada" : " (frete total)"}</td></tr>
+  ${q.condicoes_pagamento ? `<tr><td style="font-weight:600">Condições de Pagamento</td><td>${q.condicoes_pagamento}</td></tr>` : ""}
 </table>
 ` : `
 <h2>Dados do Serviço de Colheita</h2>

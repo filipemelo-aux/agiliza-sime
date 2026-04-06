@@ -282,6 +282,15 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
                   </Select>
                 </div>
               </div>
+
+              <div>
+                <Label>Condições de Pagamento</Label>
+                <Input
+                  value={condicoesPagamento}
+                  onChange={(e) => setCondicoesPagamento(maskSentence(e.target.value))}
+                  placeholder="Ex: 30/60 dias após entrega, à vista, etc."
+                />
+              </div>
             </>
           ) : (
             <>
