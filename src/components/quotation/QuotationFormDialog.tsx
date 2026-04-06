@@ -100,6 +100,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setPesoKg(editData.peso_kg != null ? String(editData.peso_kg) : "");
         setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
         setTipoValorFrete(editData.tipo_valor_frete || "total");
+        setCondicoesPagamento(editData.condicoes_pagamento || "");
       } else {
         setPrevisaoInicio(editData.previsao_inicio || "");
         setPrevisaoTermino(editData.previsao_termino || "");
