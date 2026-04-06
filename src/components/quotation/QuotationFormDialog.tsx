@@ -233,7 +233,7 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Cidade Destino</Label>
-                  <Input value={destinoCidade} onChange={(e) => setDestinoCidade(e.target.value)} placeholder="Ex: Santos" />
+                  <Input value={destinoCidade} onChange={(e) => setDestinoCidade(maskName(e.target.value))} placeholder="Ex: Santos" />
                 </div>
                 <div>
                   <Label>UF Destino</Label>
