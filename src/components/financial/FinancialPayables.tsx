@@ -1191,6 +1191,7 @@ export function FinancialPayables() {
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
+    { key: "a_vencer", label: "A vencer", icon: <CalendarClock className="h-3 w-3" />, count: counts.aVencer },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
   ];
