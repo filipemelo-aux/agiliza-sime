@@ -155,6 +155,7 @@ export function FinancialPayables() {
   const [editInstVenc, setEditInstVenc] = useState("");
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
 
   // Persist filters to sessionStorage
   useEffect(() => {
