@@ -76,7 +76,7 @@ export function parseNfeXml(xmlString: string): NfeData {
   const emit = doc.getElementsByTagName("emit")[0];
   const ide = doc.getElementsByTagName("ide")[0];
   const infProt = doc.getElementsByTagName("infProt")[0];
-  const total = doc.getElementsByTagName("ICMSTot")[0] || doc.getElementsByTagName("vNF")[0]?.parentElement;
+  const icmsTot = doc.getElementsByTagName("ICMSTot")[0];
 
   const fornecedor_nome = emit ? (getTextContent(emit, "xFant") || getTextContent(emit, "xNome")) : "";
   const fornecedor_cnpj = emit ? (getTextContent(emit, "CNPJ") || getTextContent(emit, "CPF")) : "";
@@ -116,10 +116,16 @@ export function parseNfeXml(xmlString: string): NfeData {
     if (dhEmi) data_emissao = dhEmi.substring(0, 10);
   }
 
-  // Total value
+  // Total value — use vNF (total da nota fiscal, inclui frete/seguro/impostos)
   let valor_total = 0;
-  if (total) {
-    valor_total = parseFloat(getTextContent(total, "vNF")) || 0;
+  if (icmsTot) {
+    valor_total = parseFloat(getTextContent(icmsTot, "vNF")) || 0;
+  } else {
+    // Fallback: try to find vNF anywhere in the total group
+    const totalEl = doc.getElementsByTagName("total")[0];
+    if (totalEl) {
+      valor_total = parseFloat(getTextContent(totalEl, "vNF")) || 0;
+    }
   }
 
   // Items (det elements)
