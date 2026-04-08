@@ -110,7 +110,7 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = format(new Date(), "yyyy-MM-dd");
+  const defaultStart = "";
   const defaultEnd = "";
 
   // Clear the state flag so refreshes / CRUD don't reset filters
