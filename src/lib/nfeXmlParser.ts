@@ -181,7 +181,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   // Parse duplicatas (cobr/dup)
   const duplicatas: NfeDuplicata[] = [];
-  const dupElements = doc.getElementsByTagName("dup");
+  const dupElements = getTags(root, "dup");
   for (let i = 0; i < dupElements.length; i++) {
     const dup = dupElements[i];
     duplicatas.push({
