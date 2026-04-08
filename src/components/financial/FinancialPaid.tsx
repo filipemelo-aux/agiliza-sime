@@ -24,6 +24,8 @@ interface PaidItem {
   source: "expense_payment" | "legacy" | "harvest";
   expense_id: string | null;
   forma_pagamento?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
 }
 
 interface ExpenseDetail {
@@ -156,6 +158,8 @@ export function FinancialPaid() {
           data_pagamento,
           forma_pagamento,
           expense_id,
+          created_by,
+          created_at,
           expenses:expense_id (
             descricao,
             favorecido_nome
@@ -183,6 +187,17 @@ export function FinancialPaid() {
         .order("period_end", { ascending: false }),
     ]);
 
+    // Fetch profile names for creators
+    const creatorIds = [...new Set((expensePayments || []).map((p: any) => p.created_by).filter(Boolean))];
+    let creatorsMap: Record<string, string> = {};
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      (profiles || []).forEach((p: any) => { creatorsMap[p.user_id] = p.full_name; });
+    }
+
     const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
@@ -192,6 +207,8 @@ export function FinancialPaid() {
       source: "expense_payment" as const,
       expense_id: p.expense_id,
       forma_pagamento: p.forma_pagamento || null,
+      created_by_name: creatorsMap[p.created_by] || null,
+      created_at: p.created_at || null,
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
@@ -572,6 +589,13 @@ export function FinancialPaid() {
                       </div>
                     )}
                   </div>
+
+                  {/* Creator info */}
+                  {item.created_by_name && (
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">
+                      Registrado por {item.created_by_name} em {formatDateBR(item.created_at)}
+                    </p>
+                  )}
 
                   {/* Footer: Action buttons */}
                   <div className="flex items-center gap-1 pt-1.5 mt-1.5 border-t border-border">

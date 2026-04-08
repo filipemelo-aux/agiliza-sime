@@ -59,6 +59,7 @@ interface Expense {
   numero_multa: string | null;
   origem: string;
   created_at: string;
+  created_by?: string;
   data_pagamento: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
@@ -154,6 +155,7 @@ export function FinancialPayables() {
   const [editInstVenc, setEditInstVenc] = useState("");
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
 
   // Persist filters to sessionStorage
   useEffect(() => {
@@ -323,9 +325,23 @@ export function FinancialPayables() {
     });
     setInstallmentsMap(iMap);
 
-    setItems([...processed, ...harvestItems]);
+    const allItems = [...processed, ...harvestItems];
+    setItems(allItems);
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
+
+    // Fetch profile names for created_by
+    const creatorIds = [...new Set(allItems.map(e => e.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      const pMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { pMap[p.user_id] = p.full_name; });
+      setProfilesMap(pMap);
+    }
+
     setLoading(false);
   };
 
@@ -1447,6 +1463,12 @@ export function FinancialPayables() {
                               ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                             </div>
                           </div>
+                          {/* Creator info */}
+                          {item.created_by && profilesMap[item.created_by] && (
+                            <p className="text-[10px] text-muted-foreground/50 mt-1">
+                              Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
+                            </p>
+                          )}
                           {/* Footer: Actions */}
                           <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                             {isMaintenance && (
@@ -1569,6 +1591,12 @@ export function FinancialPayables() {
                           ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                         </div>
                       </div>
+                      {/* Creator info */}
+                      {item.created_by && profilesMap[item.created_by] && (
+                        <p className="text-[10px] text-muted-foreground/50 mt-1">
+                          Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
+                        </p>
+                      )}
                       {/* Footer: Actions */}
                       <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                         {isMaintenance && (
