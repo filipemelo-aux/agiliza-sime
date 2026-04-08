@@ -1677,8 +1677,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
           )}
 
-          {/* Manual item entry (non-maintenance, manual mode) */}
-          {!isMaintenanceType && inputMode === "manual" && (
+          {/* Manual item entry (non-maintenance) */}
+          {!isMaintenanceType && (
             <div className={`rounded-lg border p-3 transition-colors ${manualItemsEnabled ? "border-primary/50 bg-primary/5" : "border-border"}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
