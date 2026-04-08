@@ -328,6 +328,29 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
               </div>
             )}
 
+            {/* Óleo Lubrificante toggle */}
+            <div className="flex items-center gap-3 pt-1">
+              <Switch checked={temOleo} onCheckedChange={setTemOleo} id="oleo-switch" />
+              <Label htmlFor="oleo-switch" className="cursor-pointer">Houve compra de Óleo Lubrificante?</Label>
+            </div>
+
+            {temOleo && (
+              <div className="grid grid-cols-3 gap-4 p-3 border border-border rounded-md bg-muted/30">
+                <div>
+                  <Label>Litros Óleo</Label>
+                  <Input value={oleoLitros ? maskCurrency(String(Math.round(parseFloat(oleoLitros) * 100))) : ""} onChange={e => setOleoLitros(unmaskCurrency(e.target.value))} />
+                </div>
+                <div>
+                  <Label>R$/Litro Óleo</Label>
+                  <Input value={oleoValorLitro ? maskCurrency(String(Math.round(parseFloat(oleoValorLitro) * 100))) : ""} onChange={e => setOleoValorLitro(unmaskCurrency(e.target.value))} />
+                </div>
+                <div>
+                  <Label>Total Óleo</Label>
+                  <Input value={oleoValorTotal ? maskCurrency(String(Math.round(parseFloat(oleoValorTotal) * 100))) : ""} onChange={e => setOleoValorTotal(unmaskCurrency(e.target.value))} />
+                </div>
+              </div>
+            )}
+
             <div>
               <Label>Observações</Label>
               <Textarea value={obs} onChange={e => setObs(maskSentence(e.target.value))} rows={2} />
