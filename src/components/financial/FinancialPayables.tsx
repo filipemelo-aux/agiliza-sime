@@ -1223,14 +1223,14 @@ export function FinancialPayables() {
             <Input
               type="date"
               value={filterPeriodoInicio}
-              onChange={(e) => { setFilterPeriodoInicio(e.target.value); setQuickFilter("all"); }}
+              onChange={(e) => { setFilterPeriodoInicio(e.target.value); }}
               className="h-8 text-xs flex-1 min-w-0"
             />
             <span className="text-xs text-muted-foreground shrink-0">até</span>
             <Input
               type="date"
               value={filterPeriodoFim}
-              onChange={(e) => { setFilterPeriodoFim(e.target.value); setQuickFilter("all"); }}
+              onChange={(e) => { setFilterPeriodoFim(e.target.value); }}
               className="h-8 text-xs flex-1 min-w-0"
             />
             {(filterPeriodoInicio || filterPeriodoFim) && (
