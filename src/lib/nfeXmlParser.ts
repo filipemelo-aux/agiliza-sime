@@ -47,9 +47,20 @@ export interface NfeData {
   xml_original: string;
 }
 
+function getTag(parent: Element, tagName: string): Element | null {
+  // Try namespace-aware search first (handles xmlns), then fallback
+  return parent.getElementsByTagNameNS("*", tagName)[0] || parent.getElementsByTagName(tagName)[0] || null;
+}
+
 function getTextContent(parent: Element, tagName: string): string {
-  const el = parent.getElementsByTagName(tagName)[0];
+  const el = getTag(parent, tagName);
   return el?.textContent?.trim() || "";
+}
+
+function getTags(parent: Element, tagName: string): HTMLCollectionOf<Element> | Element[] {
+  const ns = parent.getElementsByTagNameNS("*", tagName);
+  if (ns.length > 0) return ns;
+  return parent.getElementsByTagName(tagName);
 }
 
 function suggestExpenseType(items: NfeItem[], fornecedor: string): string {
@@ -72,18 +83,19 @@ export function parseNfeXml(xmlString: string): NfeData {
   const parseError = doc.querySelector("parsererror");
   if (parseError) throw new Error("XML inválido. Verifique o arquivo.");
 
-  // Try NF-e format first
-  const emit = doc.getElementsByTagName("emit")[0];
-  const ide = doc.getElementsByTagName("ide")[0];
-  const infProt = doc.getElementsByTagName("infProt")[0];
-  const icmsTot = doc.getElementsByTagName("ICMSTot")[0];
+  // Try NF-e format first (namespace-aware)
+  const root = doc.documentElement;
+  const emit = getTag(root, "emit");
+  const ide = getTag(root, "ide");
+  const infProt = getTag(root, "infProt");
+  const icmsTot = getTag(root, "ICMSTot");
 
   const fornecedor_nome = emit ? (getTextContent(emit, "xFant") || getTextContent(emit, "xNome")) : "";
   const fornecedor_cnpj = emit ? (getTextContent(emit, "CNPJ") || getTextContent(emit, "CPF")) : "";
   const numero_nota = ide ? getTextContent(ide, "nNF") : "";
 
   // Extract full emitente data
-  const enderEmit = emit ? emit.getElementsByTagName("enderEmit")[0] : null;
+  const enderEmit = emit ? getTag(emit, "enderEmit") : null;
   const emitente: NfeEmitente = {
     cnpj: fornecedor_cnpj,
     razao_social: emit ? getTextContent(emit, "xNome") : "",
@@ -100,7 +112,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   // Extract chave from infNFe or protNFe
   let chave_nfe = "";
-  const infNFe = doc.getElementsByTagName("infNFe")[0];
+  const infNFe = getTag(root, "infNFe");
   if (infNFe) {
     const id = infNFe.getAttribute("Id") || "";
     chave_nfe = id.replace(/^NFe/, "");
@@ -120,21 +132,22 @@ export function parseNfeXml(xmlString: string): NfeData {
   let valor_total = 0;
   if (icmsTot) {
     valor_total = parseFloat(getTextContent(icmsTot, "vNF")) || 0;
-  } else {
-    // Fallback: try to find vNF anywhere in the total group
-    const totalEl = doc.getElementsByTagName("total")[0];
+  }
+  // Fallback: try vNFTot (NF-e 4.01+) or vNF in total group
+  if (!valor_total) {
+    const totalEl = getTag(root, "total");
     if (totalEl) {
-      valor_total = parseFloat(getTextContent(totalEl, "vNF")) || 0;
+      valor_total = parseFloat(getTextContent(totalEl, "vNFTot")) || parseFloat(getTextContent(totalEl, "vNF")) || 0;
     }
   }
 
-  // Items (det elements)
-  const detElements = doc.getElementsByTagName("det");
+  // Items (det elements) — namespace-aware
+  const detElements = getTags(root, "det");
   const itens: NfeItem[] = [];
 
   for (let i = 0; i < detElements.length; i++) {
     const det = detElements[i];
-    const prod = det.getElementsByTagName("prod")[0];
+    const prod = getTag(det, "prod");
     if (!prod) continue;
 
     itens.push({
@@ -150,7 +163,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   // If no items found, try NFS-e format (simplified)
   if (itens.length === 0) {
-    const servico = doc.getElementsByTagName("Servico")[0] || doc.getElementsByTagName("InfDeclaracaoPrestacaoServico")[0];
+    const servico = getTag(root, "Servico") || getTag(root, "InfDeclaracaoPrestacaoServico");
     if (servico) {
       const descServ = getTextContent(servico, "Discriminacao") || getTextContent(servico, "xServ") || "Serviço";
       const vServ = parseFloat(getTextContent(servico, "ValorServicos") || getTextContent(servico, "vServ")) || valor_total;
@@ -168,7 +181,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   // Parse duplicatas (cobr/dup)
   const duplicatas: NfeDuplicata[] = [];
-  const dupElements = doc.getElementsByTagName("dup");
+  const dupElements = getTags(root, "dup");
   for (let i = 0; i < dupElements.length; i++) {
     const dup = dupElements[i];
     duplicatas.push({
