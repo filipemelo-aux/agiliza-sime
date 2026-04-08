@@ -537,7 +537,8 @@ export function FinancialPaid() {
             return (
               <Card
                 key={item.id}
-                className={`h-full transition-all ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                className={`h-full transition-all ${isSelectable ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                onClick={(e) => { if (!isSelectable) return; if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
               >
                 <CardContent className="flex h-full flex-col p-3">
                   {/* Row 1: Checkbox + Nome + Badge */}
