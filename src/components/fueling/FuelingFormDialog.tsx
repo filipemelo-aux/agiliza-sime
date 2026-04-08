@@ -145,6 +145,15 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
     }
   }, [arlaLitros, arlaValorLitro]);
 
+  // Auto-calc óleo valor_total
+  useEffect(() => {
+    const l = parseFloat(oleoLitros);
+    const v = parseFloat(oleoValorLitro);
+    if (!isNaN(l) && !isNaN(v)) {
+      setOleoValorTotal((l * v).toFixed(2));
+    }
+  }, [oleoLitros, oleoValorLitro]);
+
   const handleSave = async () => {
     if (!veiculoId) return toast.error("Selecione um veículo");
     if (!litros || parseFloat(litros) <= 0) return toast.error("Informe a quantidade de litros");
@@ -158,7 +167,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       tipo_combustivel: tipoCombustivel,
       quantidade_litros: parseFloat(litros) || 0,
       valor_por_litro: parseFloat(valorLitro) || 0,
-      valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0),
+      valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0) + (temOleo ? (parseFloat(oleoValorTotal) || 0) : 0),
       km_atual: kmAtual ? parseFloat(kmAtual) : null,
       posto_combustivel: fornecedorNome || null,
       fornecedor_id: fornecedorId || null,
@@ -167,6 +176,9 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       arla_litros: temArla ? (parseFloat(arlaLitros) || 0) : 0,
       arla_valor_litro: temArla ? (parseFloat(arlaValorLitro) || 0) : 0,
       arla_valor_total: temArla ? (parseFloat(arlaValorTotal) || 0) : 0,
+      oleo_litros: temOleo ? (parseFloat(oleoLitros) || 0) : 0,
+      oleo_valor_litro: temOleo ? (parseFloat(oleoValorLitro) || 0) : 0,
+      oleo_valor_total: temOleo ? (parseFloat(oleoValorTotal) || 0) : 0,
     };
 
     let error;
