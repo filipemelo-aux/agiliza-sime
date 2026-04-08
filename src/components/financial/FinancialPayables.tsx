@@ -1438,7 +1438,8 @@ export function FinancialPayables() {
                     node: (
                       <Card
                         key={instCardId}
-                        className={`relative transition-all h-full ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                        className={`relative transition-all h-full cursor-pointer ${isInstSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isInstOverdue ? "border-destructive/40" : ""} ${isInstToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                        onClick={(e) => { if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(instCardId); }}
                       >
                         <CardContent className="p-3 flex flex-col h-full">
                           {/* Row 1: Checkbox + Nome */}
@@ -1548,9 +1549,10 @@ export function FinancialPayables() {
                 node: (
                   <Card
                     key={item.id}
-                    className={`relative transition-all h-full ${
+                    className={`relative transition-all h-full cursor-pointer ${
                       isSelected ? "ring-2 ring-primary bg-primary/5" : ""
                     } ${isOverdue ? "border-destructive/40" : ""} ${isDueToday ? "border-amber-400 ring-1 ring-amber-300/50" : ""}`}
+                    onClick={(e) => { if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
                   >
                     <CardContent className="p-3 flex flex-col h-full">
                       {/* Row 1: Checkbox + Nome */}
