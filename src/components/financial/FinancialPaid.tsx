@@ -24,6 +24,8 @@ interface PaidItem {
   source: "expense_payment" | "legacy" | "harvest";
   expense_id: string | null;
   forma_pagamento?: string | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
 }
 
 interface ExpenseDetail {
@@ -156,6 +158,8 @@ export function FinancialPaid() {
           data_pagamento,
           forma_pagamento,
           expense_id,
+          created_by,
+          created_at,
           expenses:expense_id (
             descricao,
             favorecido_nome
