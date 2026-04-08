@@ -852,8 +852,8 @@ export function FinancialPayables() {
         }
         return item.data_vencimento || item.data_emissao || "";
       };
-      if (quickFilter === "atrasadas") {
-        // Atrasadas: mais recentes primeiro (vencimento mais próximo no topo)
+      if (quickFilter === "atrasadas" || quickFilter === "all") {
+        // Atrasadas e Todas: mais recentes primeiro (vencimento mais próximo no topo)
         return getDate(b).localeCompare(getDate(a));
       }
       return getDate(a).localeCompare(getDate(b));
