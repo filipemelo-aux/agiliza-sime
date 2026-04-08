@@ -1463,6 +1463,12 @@ export function FinancialPayables() {
                               ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                             </div>
                           </div>
+                          {/* Creator info */}
+                          {item.created_by && profilesMap[item.created_by] && (
+                            <p className="text-[10px] text-muted-foreground/50 mt-1">
+                              Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
+                            </p>
+                          )}
                           {/* Footer: Actions */}
                           <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                             {isMaintenance && (
@@ -1585,6 +1591,12 @@ export function FinancialPayables() {
                           ) : <p className="text-[11px] text-muted-foreground/40">—</p>}
                         </div>
                       </div>
+                      {/* Creator info */}
+                      {item.created_by && profilesMap[item.created_by] && (
+                        <p className="text-[10px] text-muted-foreground/50 mt-1">
+                          Criado por {profilesMap[item.created_by]} em {formatDateBR(item.created_at)}
+                        </p>
+                      )}
                       {/* Footer: Actions */}
                       <div className="flex items-center flex-wrap gap-0.5 pt-1.5 mt-1.5 border-t border-border">
                         {isMaintenance && (
