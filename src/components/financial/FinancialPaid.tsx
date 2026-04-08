@@ -590,6 +590,13 @@ export function FinancialPaid() {
                     )}
                   </div>
 
+                  {/* Creator info */}
+                  {item.created_by_name && (
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">
+                      Registrado por {item.created_by_name} em {formatDateBR(item.created_at)}
+                    </p>
+                  )}
+
                   {/* Footer: Action buttons */}
                   <div className="flex items-center gap-1 pt-1.5 mt-1.5 border-t border-border">
                     {isSelectable && (
