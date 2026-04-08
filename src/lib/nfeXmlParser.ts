@@ -47,9 +47,20 @@ export interface NfeData {
   xml_original: string;
 }
 
+function getTag(parent: Element, tagName: string): Element | null {
+  // Try namespace-aware search first (handles xmlns), then fallback
+  return parent.getElementsByTagNameNS("*", tagName)[0] || parent.getElementsByTagName(tagName)[0] || null;
+}
+
 function getTextContent(parent: Element, tagName: string): string {
-  const el = parent.getElementsByTagName(tagName)[0];
+  const el = getTag(parent, tagName);
   return el?.textContent?.trim() || "";
+}
+
+function getTags(parent: Element, tagName: string): HTMLCollectionOf<Element> | Element[] {
+  const ns = parent.getElementsByTagNameNS("*", tagName);
+  if (ns.length > 0) return ns;
+  return parent.getElementsByTagName(tagName);
 }
 
 function suggestExpenseType(items: NfeItem[], fornecedor: string): string {
