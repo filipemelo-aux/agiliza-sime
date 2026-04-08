@@ -1259,6 +1259,9 @@ export function FinancialPayables() {
                 className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
                 onClick={() => {
                   if (f.key === "all") {
+                    setFilterPeriodoInicio("");
+                    setFilterPeriodoFim("");
+                  } else if (f.key === "a_vencer") {
                     setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
                     setFilterPeriodoFim("");
                   } else if (f.key === "semana") {
