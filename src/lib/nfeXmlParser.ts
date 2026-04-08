@@ -147,7 +147,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   for (let i = 0; i < detElements.length; i++) {
     const det = detElements[i];
-    const prod = det.getElementsByTagName("prod")[0];
+    const prod = getTag(det, "prod");
     if (!prod) continue;
 
     itens.push({
