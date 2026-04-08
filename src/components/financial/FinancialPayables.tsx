@@ -59,6 +59,7 @@ interface Expense {
   numero_multa: string | null;
   origem: string;
   created_at: string;
+  created_by?: string;
   data_pagamento: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
