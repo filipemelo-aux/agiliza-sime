@@ -187,6 +187,17 @@ export function FinancialPaid() {
         .order("period_end", { ascending: false }),
     ]);
 
+    // Fetch profile names for creators
+    const creatorIds = [...new Set((expensePayments || []).map((p: any) => p.created_by).filter(Boolean))];
+    let creatorsMap: Record<string, string> = {};
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      (profiles || []).forEach((p: any) => { creatorsMap[p.user_id] = p.full_name; });
+    }
+
     const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
@@ -196,6 +207,8 @@ export function FinancialPaid() {
       source: "expense_payment" as const,
       expense_id: p.expense_id,
       forma_pagamento: p.forma_pagamento || null,
+      created_by_name: creatorsMap[p.created_by] || null,
+      created_at: p.created_at || null,
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
