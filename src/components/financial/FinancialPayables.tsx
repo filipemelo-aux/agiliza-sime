@@ -1416,6 +1416,7 @@ export function FinancialPayables() {
                 const visibleInstalls = installs
                   .filter(inst => {
                     if (quickFilter === "all") return inst.status !== "pago";
+                    if (quickFilter === "a_vencer") return inst.data_vencimento >= today2 && inst.status !== "pago";
                     if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
                     if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
                     return inst.status !== "pago";
