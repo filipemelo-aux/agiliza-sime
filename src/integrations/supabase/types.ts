@@ -1793,6 +1793,9 @@ export type Database = {
           km_atual: number | null
           motorista_id: string | null
           observacoes: string | null
+          oleo_litros: number | null
+          oleo_valor_litro: number | null
+          oleo_valor_total: number | null
           posto_combustivel: string | null
           quantidade_litros: number
           status_faturamento: string
@@ -1818,6 +1821,9 @@ export type Database = {
           km_atual?: number | null
           motorista_id?: string | null
           observacoes?: string | null
+          oleo_litros?: number | null
+          oleo_valor_litro?: number | null
+          oleo_valor_total?: number | null
           posto_combustivel?: string | null
           quantidade_litros?: number
           status_faturamento?: string
@@ -1843,6 +1849,9 @@ export type Database = {
           km_atual?: number | null
           motorista_id?: string | null
           observacoes?: string | null
+          oleo_litros?: number | null
+          oleo_valor_litro?: number | null
+          oleo_valor_total?: number | null
           posto_combustivel?: string | null
           quantidade_litros?: number
           status_faturamento?: string

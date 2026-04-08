@@ -60,6 +60,12 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   const [arlaValorLitro, setArlaValorLitro] = useState("");
   const [arlaValorTotal, setArlaValorTotal] = useState("");
 
+  // Óleo lubrificante fields
+  const [temOleo, setTemOleo] = useState(false);
+  const [oleoLitros, setOleoLitros] = useState("");
+  const [oleoValorLitro, setOleoValorLitro] = useState("");
+  const [oleoValorTotal, setOleoValorTotal] = useState("");
+
   useEffect(() => {
     if (!open) return;
     const loadData = async () => {
@@ -91,6 +97,12 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setArlaLitros(hasArla ? String(fueling.arla_litros) : "");
       setArlaValorLitro(hasArla ? String(fueling.arla_valor_litro || "") : "");
       setArlaValorTotal(hasArla ? String(fueling.arla_valor_total || "") : "");
+
+      const hasOleo = (fueling.oleo_litros && fueling.oleo_litros > 0);
+      setTemOleo(!!hasOleo);
+      setOleoLitros(hasOleo ? String(fueling.oleo_litros) : "");
+      setOleoValorLitro(hasOleo ? String(fueling.oleo_valor_litro || "") : "");
+      setOleoValorTotal(hasOleo ? String(fueling.oleo_valor_total || "") : "");
     } else {
       setVeiculoId("");
       setMotoristaId("");
@@ -108,6 +120,10 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setArlaLitros("");
       setArlaValorLitro("");
       setArlaValorTotal("");
+      setTemOleo(false);
+      setOleoLitros("");
+      setOleoValorLitro("");
+      setOleoValorTotal("");
     }
   }, [fueling, open]);
 
@@ -129,6 +145,15 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
     }
   }, [arlaLitros, arlaValorLitro]);
 
+  // Auto-calc óleo valor_total
+  useEffect(() => {
+    const l = parseFloat(oleoLitros);
+    const v = parseFloat(oleoValorLitro);
+    if (!isNaN(l) && !isNaN(v)) {
+      setOleoValorTotal((l * v).toFixed(2));
+    }
+  }, [oleoLitros, oleoValorLitro]);
+
   const handleSave = async () => {
     if (!veiculoId) return toast.error("Selecione um veículo");
     if (!litros || parseFloat(litros) <= 0) return toast.error("Informe a quantidade de litros");
@@ -142,7 +167,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       tipo_combustivel: tipoCombustivel,
       quantidade_litros: parseFloat(litros) || 0,
       valor_por_litro: parseFloat(valorLitro) || 0,
-      valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0),
+      valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0) + (temOleo ? (parseFloat(oleoValorTotal) || 0) : 0),
       km_atual: kmAtual ? parseFloat(kmAtual) : null,
       posto_combustivel: fornecedorNome || null,
       fornecedor_id: fornecedorId || null,
@@ -151,6 +176,9 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       arla_litros: temArla ? (parseFloat(arlaLitros) || 0) : 0,
       arla_valor_litro: temArla ? (parseFloat(arlaValorLitro) || 0) : 0,
       arla_valor_total: temArla ? (parseFloat(arlaValorTotal) || 0) : 0,
+      oleo_litros: temOleo ? (parseFloat(oleoLitros) || 0) : 0,
+      oleo_valor_litro: temOleo ? (parseFloat(oleoValorLitro) || 0) : 0,
+      oleo_valor_total: temOleo ? (parseFloat(oleoValorTotal) || 0) : 0,
     };
 
     let error;
@@ -296,6 +324,29 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
                 <div>
                   <Label>Total Arla</Label>
                   <Input value={arlaValorTotal ? maskCurrency(String(Math.round(parseFloat(arlaValorTotal) * 100))) : ""} onChange={e => setArlaValorTotal(unmaskCurrency(e.target.value))} />
+                </div>
+              </div>
+            )}
+
+            {/* Óleo Lubrificante toggle */}
+            <div className="flex items-center gap-3 pt-1">
+              <Switch checked={temOleo} onCheckedChange={setTemOleo} id="oleo-switch" />
+              <Label htmlFor="oleo-switch" className="cursor-pointer">Houve compra de Óleo Lubrificante?</Label>
+            </div>
+
+            {temOleo && (
+              <div className="grid grid-cols-3 gap-4 p-3 border border-border rounded-md bg-muted/30">
+                <div>
+                  <Label>Litros Óleo</Label>
+                  <Input value={oleoLitros ? maskCurrency(String(Math.round(parseFloat(oleoLitros) * 100))) : ""} onChange={e => setOleoLitros(unmaskCurrency(e.target.value))} />
+                </div>
+                <div>
+                  <Label>R$/Litro Óleo</Label>
+                  <Input value={oleoValorLitro ? maskCurrency(String(Math.round(parseFloat(oleoValorLitro) * 100))) : ""} onChange={e => setOleoValorLitro(unmaskCurrency(e.target.value))} />
+                </div>
+                <div>
+                  <Label>Total Óleo</Label>
+                  <Input value={oleoValorTotal ? maskCurrency(String(Math.round(parseFloat(oleoValorTotal) * 100))) : ""} onChange={e => setOleoValorTotal(unmaskCurrency(e.target.value))} />
                 </div>
               </div>
             )}
