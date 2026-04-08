@@ -505,16 +505,19 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const isMaintenanceType = isManutencao;
 
   useEffect(() => {
-    if (itensNota.length > 0 && !isMaintenanceType) {
+    const shouldSyncTotalFromItems = manualItemsEnabled && inputMode === "manual" && itensNota.length > 0 && !isMaintenanceType;
+
+    if (shouldSyncTotalFromItems) {
       const sum = itensNota.reduce((s, i) => s + Number(i.valor_total), 0);
       if (sum > 0) setValorTotal(String(sum.toFixed(2)));
     }
+
     // Auto-fill description from manual items
     if (manualItemsEnabled && itensNota.length > 0 && inputMode === "manual") {
       const summary = itensNota.map(i => i.descricao).join(", ");
       setDescricao(maskSentence(summary));
     }
-  }, [itensNota, manualItemsEnabled]);
+  }, [itensNota, manualItemsEnabled, inputMode, isMaintenanceType]);
 
   // Auto-fill maintenance items from NF-e items when maintenance mode is activated
   useEffect(() => {
