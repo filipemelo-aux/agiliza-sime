@@ -686,7 +686,7 @@ export function FinancialPayables() {
   const counts = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-    let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
+    let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0, aVencer = 0;
 
     // REGRA: período é SEMPRE aplicado primeiro em tudo
     const baseForCounts = items.filter(i => {
