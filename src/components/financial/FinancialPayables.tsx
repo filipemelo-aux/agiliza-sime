@@ -763,12 +763,20 @@ export function FinancialPayables() {
       const hasInst = installs && installs.length > 0;
 
       if (quickFilter === "all") {
+        // "Todas" — show all non-paid items (including overdue)
         if (hasInst) {
-          // Mostrar despesas que tenham qualquer parcela não paga (incluindo atrasadas)
           const hasNonPaid = installs.some(inst => inst.status !== "pago");
           if (!hasNonPaid) return false;
         } else {
           if (i.status === "pago") return false;
+        }
+      } else if (quickFilter === "a_vencer") {
+        // "A vencer" — only items with due date >= today
+        const today2 = format(new Date(), "yyyy-MM-dd");
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento >= today2 && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento && i.data_vencimento >= today2 && i.status !== "pago")) return false;
         }
       } else if (quickFilter === "semana") {
         if (hasInst) {
