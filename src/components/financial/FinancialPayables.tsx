@@ -325,9 +325,23 @@ export function FinancialPayables() {
     });
     setInstallmentsMap(iMap);
 
-    setItems([...processed, ...harvestItems]);
+    const allItems = [...processed, ...harvestItems];
+    setItems(allItems);
     setChartAccounts((chartData as any) || []);
     setVehicles((vehData as any) || []);
+
+    // Fetch profile names for created_by
+    const creatorIds = [...new Set(allItems.map(e => e.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      const pMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { pMap[p.user_id] = p.full_name; });
+      setProfilesMap(pMap);
+    }
+
     setLoading(false);
   };
 
