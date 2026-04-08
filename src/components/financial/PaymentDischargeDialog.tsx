@@ -102,20 +102,26 @@ export function PaymentDischargeDialog({
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
-    if (valorNum > saldoRestante + 0.01) return toast.error("Valor excede o saldo restante");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
+
+    // Calculate interest: any amount above the remaining balance is interest
+    const juros = Math.max(0, Math.round((valorNum - saldoRestante) * 100) / 100);
+    const valorPrincipal = Math.round((valorNum - juros) * 100) / 100;
 
     setSaving(true);
     const dataPagISO = dataPagamento;
 
-    // Insert payment record
+    // Insert payment record with interest
     const { error: payErr } = await supabase.from("expense_payments" as any).insert({
       expense_id: expenseId,
       valor: valorNum,
       forma_pagamento: formaPagamento,
       data_pagamento: dataPagISO,
-      observacoes: observacoes.trim() || null,
+      observacoes: juros > 0
+        ? `${observacoes.trim() ? observacoes.trim() + ' | ' : ''}Juros por atraso: R$ ${juros.toFixed(2).replace('.', ',')}`
+        : (observacoes.trim() || null),
       created_by: user?.id,
+      juros: juros,
     } as any);
     if (payErr) { toast.error(payErr.message); setSaving(false); return; }
 
@@ -149,7 +155,7 @@ export function PaymentDischargeDialog({
       toast.success(`Parcela ${installment!.numeroParcela}/${installment!.totalParcelas} quitada`);
     } else {
       // ---- REGULAR MODE: update expense directly ----
-      const novoValorPago = valorPago + valorNum;
+      const novoValorPago = valorPago + valorPrincipal;
       const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
 
       const { error } = await supabase.from("expenses").update({
@@ -228,6 +234,24 @@ export function PaymentDischargeDialog({
             <Label>Observações</Label>
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
+
+          {/* Interest indicator */}
+          {Number(valor) > saldoRestante + 0.009 && (
+            <div className="rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3 space-y-1">
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">⚠️ Juros por atraso detectado</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Valor principal:</span>
+                <span className="font-mono">{formatCurrency(saldoRestante)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Juros:</span>
+                <span className="font-mono text-yellow-700 dark:text-yellow-400 font-bold">
+                  {formatCurrency(Math.round((Number(valor) - saldoRestante) * 100) / 100)}
+                </span>
+              </div>
+            </div>
+          )}
+
           <Button onClick={handleConfirm} className="w-full" disabled={saving}>
             {saving ? "Salvando..." : "Confirmar Pagamento"}
           </Button>

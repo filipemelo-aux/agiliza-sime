@@ -67,6 +67,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
             data_pagamento: todayISO,
             observacoes: observacoes.trim() || null,
             created_by: user?.id,
+            juros: 0,
           } as any);
         }
 
