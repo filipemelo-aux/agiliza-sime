@@ -674,14 +674,32 @@ export function FinancialPayables() {
     } catch { toast.error("Erro ao baixar boleto"); }
   };
 
-  // Helper: for each expense, check if ANY installment matches a condition (or fall back to expense-level)
-  const hasMatchingInstallmentOrSelf = useCallback((item: Expense, predicate: (venc: string, status: string) => boolean): boolean => {
-    const installs = installmentsMap[item.id];
-    if (installs && installs.length > 0) {
-      return installs.some(inst => predicate(inst.data_vencimento, inst.status));
-    }
-    return predicate(item.data_vencimento || item.data_emissao, item.status);
-  }, [installmentsMap]);
+  const matchesPeriod = useCallback((date?: string | null) => {
+    if (!filterPeriodoInicio && !filterPeriodoFim) return true;
+    if (!date) return false;
+    return (!filterPeriodoInicio || date >= filterPeriodoInicio) &&
+      (!filterPeriodoFim || date <= filterPeriodoFim);
+  }, [filterPeriodoInicio, filterPeriodoFim]);
+
+  const getExpenseDateRef = useCallback((item: Expense) => {
+    return item.status === "pago"
+      ? (normalizeDateInput(item.data_pagamento) || item.data_vencimento || item.data_emissao)
+      : (item.data_vencimento || item.data_emissao);
+  }, []);
+
+  const matchesQuickFilter = useCallback((date?: string | null, status?: string) => {
+    if (!date || status === "pago") return false;
+
+    const today = format(new Date(), "yyyy-MM-dd");
+    const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+    if (quickFilter === "all") return true;
+    if (quickFilter === "a_vencer") return date >= today;
+    if (quickFilter === "semana") return date >= today && date <= in7days;
+    if (quickFilter === "atrasadas") return date < today;
+
+    return true;
+  }, [quickFilter]);
 
   const counts = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
@@ -710,21 +728,9 @@ export function FinancialPayables() {
       // Para despesas COM parcelas, checar se alguma parcela cai no período
       const installs = installmentsMap[i.id];
       const hasInst = installs && installs.length > 0;
-      let matchPeriodo = true;
-      if (filterPeriodoInicio || filterPeriodoFim) {
-        if (hasInst) {
-          matchPeriodo = installs.some(inst => {
-            return (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
-              (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
-          });
-        } else {
-          const dateRef = i.status === "pago"
-            ? (normalizeDateInput(i.data_pagamento) || i.data_vencimento || i.data_emissao)
-            : (i.data_vencimento || i.data_emissao);
-          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
-        }
-      }
+      const matchPeriodo = hasInst
+        ? installs.some(inst => matchesPeriod(inst.data_vencimento))
+        : matchesPeriod(getExpenseDateRef(i));
       return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
     });
 
@@ -744,66 +750,33 @@ export function FinancialPayables() {
           if (inst.status === "pago") pagas++;
         });
       } else {
+        const expenseDate = getExpenseDateRef(i);
+        const isOverdue = !!expenseDate && expenseDate < today && i.status !== "pago";
         if (i.status !== "pago") all++;
-        if (i.data_vencimento === today && i.status !== "pago") hoje++;
-        if (i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago") semana++;
-        if (i.data_vencimento && i.data_vencimento >= today && i.status !== "pago") aVencer++;
-        if (i.status === "atrasado") atrasadas++;
+        if (expenseDate === today && i.status !== "pago") hoje++;
+        if (expenseDate && expenseDate >= today && expenseDate <= in7days && i.status !== "pago") semana++;
+        if (expenseDate && expenseDate >= today && i.status !== "pago") aVencer++;
+        if (isOverdue) atrasadas++;
         if (i.status === "pago") pagas++;
       }
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef]);
 
   const filtered = useMemo(() => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-
     return items.filter(i => {
       const installs = installmentsMap[i.id];
       const hasInst = installs && installs.length > 0;
+      const visibleInstallments = hasInst
+        ? installs.filter(inst => matchesPeriod(inst.data_vencimento) && matchesQuickFilter(inst.data_vencimento, inst.status))
+        : [];
 
-      if (quickFilter === "all") {
-        // "Todas" — show all non-paid items (including overdue)
-        if (hasInst) {
-          const hasNonPaid = installs.some(inst => inst.status !== "pago");
-          if (!hasNonPaid) return false;
-        } else {
-          if (i.status === "pago") return false;
-        }
-      } else if (quickFilter === "a_vencer") {
-        // "A vencer" — only items with due date >= today
-        const today2 = format(new Date(), "yyyy-MM-dd");
-        if (hasInst) {
-          if (!installs.some(inst => inst.data_vencimento >= today2 && inst.status !== "pago")) return false;
-        } else {
-          if (!(i.data_vencimento && i.data_vencimento >= today2 && i.status !== "pago")) return false;
-        }
-      } else if (quickFilter === "semana") {
-        if (hasInst) {
-          if (!installs.some(inst => inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago")) return false;
-        } else {
-          if (!(i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago")) return false;
-        }
-      } else if (quickFilter === "atrasadas") {
-        if (hasInst) {
-          if (!installs.some(inst => {
-            const isOverdue = inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago");
-            const inPeriod = (!filterPeriodoInicio || inst.data_vencimento >= filterPeriodoInicio) &&
-              (!filterPeriodoFim || inst.data_vencimento <= filterPeriodoFim);
-            return isOverdue && inPeriod;
-          })) return false;
-        } else {
-          if (i.status !== "atrasado") return false;
-        }
+      if (hasInst) {
+        if (visibleInstallments.length === 0) return false;
       } else {
-        // Contas pagas foram movidas para a tela dedicada "Contas Pagas"
-        if (hasInst) {
-          if (!installs.some(inst => inst.status !== "pago")) return false;
-        } else {
-          if (i.status === "pago") return false;
-        }
+        const expenseDate = getExpenseDateRef(i);
+        if (!matchesPeriod(expenseDate) || !matchesQuickFilter(expenseDate, i.status)) return false;
       }
 
       const q = search.toLowerCase();
@@ -823,67 +796,51 @@ export function FinancialPayables() {
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
       const matchCentro = filterCentroCusto === "all" || i.centro_custo === filterCentroCusto;
-      // REGRA: O filtro de período SEMPRE é aplicado
-      // Para despesas COM parcelas, verificar se ALGUMA parcela cai no período
-      // Para despesas SEM parcelas, usar data de vencimento/emissão/pagamento
-      let matchPeriodo = true;
-      if (filterPeriodoInicio || filterPeriodoFim) {
-        if (hasInst) {
-          matchPeriodo = installs.some(inst => {
-            const instDate = inst.data_vencimento;
-            return (!filterPeriodoInicio || instDate >= filterPeriodoInicio) &&
-              (!filterPeriodoFim || instDate <= filterPeriodoFim);
-          });
-        } else {
-          const dateRef = i.status === "pago"
-            ? (normalizeDateInput(i.data_pagamento) || i.data_vencimento || i.data_emissao)
-            : (i.data_vencimento || i.data_emissao);
-          matchPeriodo = (!filterPeriodoInicio || dateRef >= filterPeriodoInicio) &&
-            (!filterPeriodoFim || dateRef <= filterPeriodoFim);
-        }
-      }
-      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro && matchPeriodo;
-      }).sort((a, b) => {
-      // Para itens com parcelas, usar a menor data de vencimento pendente
+
+      return matchSearch && matchPlanoContas && matchNivel && matchVeiculo && matchCentro;
+    }).sort((a, b) => {
       const getDate = (item: typeof a) => {
         const inst = installmentsMap[item.id];
         if (inst && inst.length > 0) {
-          const pending = inst.filter(i => i.status !== "pago").map(i => i.data_vencimento).sort();
-          if (pending.length > 0) return pending[0];
-          return inst.map(i => i.data_vencimento).sort()[0];
+          const visibleDates = inst
+            .filter(installment => matchesPeriod(installment.data_vencimento) && matchesQuickFilter(installment.data_vencimento, installment.status))
+            .map(installment => installment.data_vencimento)
+            .sort();
+
+          if (visibleDates.length > 0) {
+            return quickFilter === "atrasadas" || quickFilter === "all"
+              ? visibleDates[visibleDates.length - 1]
+              : visibleDates[0];
+          }
         }
-        return item.data_vencimento || item.data_emissao || "";
+        return getExpenseDateRef(item);
       };
+
+      const dateA = getDate(a);
+      const dateB = getDate(b);
+
       if (quickFilter === "atrasadas" || quickFilter === "all") {
-        // Atrasadas e Todas: mais recentes primeiro (vencimento mais próximo no topo)
-        return getDate(b).localeCompare(getDate(a));
+        return dateB.localeCompare(dateA);
       }
-      return getDate(a).localeCompare(getDate(b));
+      return dateA.localeCompare(dateB);
     });
-  }, [items, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
+  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
     const ids: string[] = [];
-    const today2 = format(new Date(), "yyyy-MM-dd");
-    const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
     filtered.forEach(item => {
       const installs = installmentsMap[item.id];
       if (installs && installs.length > 0) {
-        installs.forEach(inst => {
-          let visible = true;
-          if (quickFilter === "all") visible = inst.status !== "pago";
-          else if (quickFilter === "a_vencer") visible = inst.data_vencimento >= today2 && inst.status !== "pago";
-          else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
-          else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-          if (visible) ids.push(`inst-${inst.id}`);
-        });
+        installs
+          .filter(inst => matchesPeriod(inst.data_vencimento) && matchesQuickFilter(inst.data_vencimento, inst.status))
+          .forEach(inst => ids.push(`inst-${inst.id}`));
       } else {
         ids.push(item.id);
       }
     });
     return ids;
-  }, [filtered, installmentsMap, quickFilter]);
+  }, [filtered, installmentsMap, matchesPeriod, matchesQuickFilter]);
 
   const hasSelectedPaid = useMemo(() => {
     for (const id of selectedIds) {
@@ -1234,7 +1191,7 @@ export function FinancialPayables() {
               className="h-8 text-xs flex-1 min-w-0"
             />
             {(filterPeriodoInicio || filterPeriodoFim) && (
-              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); setQuickFilter("all"); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Limpar período">
+              <button type="button" onClick={() => { setFilterPeriodoInicio(""); setFilterPeriodoFim(""); }} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Limpar período">
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -1412,16 +1369,14 @@ export function FinancialPayables() {
 
               if (hasInstallments) {
                 const today2 = format(new Date(), "yyyy-MM-dd");
-                const in7days2 = format(addDays(new Date(), 7), "yyyy-MM-dd");
                 const visibleInstalls = installs
-                  .filter(inst => {
-                    if (quickFilter === "all") return inst.status !== "pago";
-                    if (quickFilter === "a_vencer") return inst.data_vencimento >= today2 && inst.status !== "pago";
-                    if (quickFilter === "semana") return inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
-                    if (quickFilter === "atrasadas") return inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
-                    return inst.status !== "pago";
-                  })
-                  .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
+                  .filter(inst => matchesPeriod(inst.data_vencimento) && matchesQuickFilter(inst.data_vencimento, inst.status))
+                  .sort((a, b) => {
+                    if (quickFilter === "atrasadas" || quickFilter === "all") {
+                      return b.data_vencimento.localeCompare(a.data_vencimento);
+                    }
+                    return a.data_vencimento.localeCompare(b.data_vencimento);
+                  });
 
                 return visibleInstalls.map(inst => {
                   const today = format(new Date(), "yyyy-MM-dd");
