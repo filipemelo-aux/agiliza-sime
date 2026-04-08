@@ -90,7 +90,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "semana" | "atrasadas";
+type QuickFilter = "semana" | "atrasadas" | "a_vencer";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
