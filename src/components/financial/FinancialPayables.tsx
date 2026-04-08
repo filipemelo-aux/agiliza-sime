@@ -90,7 +90,7 @@ const CENTRO_CUSTO_MAP: Record<string, string> = {
   operacional: "Operacional",
 };
 
-type QuickFilter = "semana" | "atrasadas";
+type QuickFilter = "semana" | "atrasadas" | "a_vencer";
 
 export function FinancialPayables() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -110,7 +110,7 @@ export function FinancialPayables() {
   };
 
   const stored = getStoredFilters();
-  const defaultStart = format(new Date(), "yyyy-MM-dd");
+  const defaultStart = "";
   const defaultEnd = "";
 
   // Clear the state flag so refreshes / CRUD don't reset filters
@@ -686,7 +686,7 @@ export function FinancialPayables() {
   const counts = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-    let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0;
+    let all = 0, hoje = 0, semana = 0, atrasadas = 0, pagas = 0, aVencer = 0;
 
     // REGRA: período é SEMPRE aplicado primeiro em tudo
     const baseForCounts = items.filter(i => {
@@ -739,6 +739,7 @@ export function FinancialPayables() {
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
+          if (inst.data_vencimento >= today && inst.status !== "pago") aVencer++;
           if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
@@ -746,12 +747,13 @@ export function FinancialPayables() {
         if (i.status !== "pago") all++;
         if (i.data_vencimento === today && i.status !== "pago") hoje++;
         if (i.data_vencimento && i.data_vencimento >= today && i.data_vencimento <= in7days && i.status !== "pago") semana++;
+        if (i.data_vencimento && i.data_vencimento >= today && i.status !== "pago") aVencer++;
         if (i.status === "atrasado") atrasadas++;
         if (i.status === "pago") pagas++;
       }
     });
 
-    return { all, hoje, semana, atrasadas, pagas };
+    return { all, hoje, semana, atrasadas, pagas, aVencer };
   }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const filtered = useMemo(() => {
@@ -763,12 +765,20 @@ export function FinancialPayables() {
       const hasInst = installs && installs.length > 0;
 
       if (quickFilter === "all") {
+        // "Todas" — show all non-paid items (including overdue)
         if (hasInst) {
-          // Mostrar despesas que tenham qualquer parcela não paga (incluindo atrasadas)
           const hasNonPaid = installs.some(inst => inst.status !== "pago");
           if (!hasNonPaid) return false;
         } else {
           if (i.status === "pago") return false;
+        }
+      } else if (quickFilter === "a_vencer") {
+        // "A vencer" — only items with due date >= today
+        const today2 = format(new Date(), "yyyy-MM-dd");
+        if (hasInst) {
+          if (!installs.some(inst => inst.data_vencimento >= today2 && inst.status !== "pago")) return false;
+        } else {
+          if (!(i.data_vencimento && i.data_vencimento >= today2 && i.status !== "pago")) return false;
         }
       } else if (quickFilter === "semana") {
         if (hasInst) {
@@ -844,8 +854,8 @@ export function FinancialPayables() {
         }
         return item.data_vencimento || item.data_emissao || "";
       };
-      if (quickFilter === "atrasadas") {
-        // Atrasadas: mais recentes primeiro (vencimento mais próximo no topo)
+      if (quickFilter === "atrasadas" || quickFilter === "all") {
+        // Atrasadas e Todas: mais recentes primeiro (vencimento mais próximo no topo)
         return getDate(b).localeCompare(getDate(a));
       }
       return getDate(a).localeCompare(getDate(b));
@@ -863,6 +873,7 @@ export function FinancialPayables() {
         installs.forEach(inst => {
           let visible = true;
           if (quickFilter === "all") visible = inst.status !== "pago";
+          else if (quickFilter === "a_vencer") visible = inst.data_vencimento >= today2 && inst.status !== "pago";
           else if (quickFilter === "semana") visible = inst.data_vencimento >= today2 && inst.data_vencimento <= in7days2 && inst.status !== "pago";
           else if (quickFilter === "atrasadas") visible = inst.status === "atrasado" || (inst.data_vencimento < today2 && inst.status !== "pago");
           if (visible) ids.push(`inst-${inst.id}`);
@@ -1180,6 +1191,7 @@ export function FinancialPayables() {
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "all", label: "Todas", icon: <List className="h-3 w-3" />, count: counts.all },
+    { key: "a_vencer", label: "A vencer", icon: <Clock className="h-3 w-3" />, count: counts.aVencer },
     { key: "semana", label: "Semana", icon: <CalendarClock className="h-3 w-3" />, count: counts.semana },
     { key: "atrasadas", label: "Atrasadas", icon: <AlertTriangle className="h-3 w-3" />, count: counts.atrasadas },
   ];
@@ -1247,6 +1259,9 @@ export function FinancialPayables() {
                 className={cn("h-7 px-2.5 text-[11px] gap-1 rounded-full font-medium transition-all", isActive && "shadow-sm")}
                 onClick={() => {
                   if (f.key === "all") {
+                    setFilterPeriodoInicio("");
+                    setFilterPeriodoFim("");
+                  } else if (f.key === "a_vencer") {
                     setFilterPeriodoInicio(format(new Date(), "yyyy-MM-dd"));
                     setFilterPeriodoFim("");
                   } else if (f.key === "semana") {
