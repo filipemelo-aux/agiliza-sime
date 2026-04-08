@@ -739,6 +739,7 @@ export function FinancialPayables() {
           if (inst.status !== "pago") all++;
           if (inst.data_vencimento === today && inst.status !== "pago") hoje++;
           if (inst.data_vencimento >= today && inst.data_vencimento <= in7days && inst.status !== "pago") semana++;
+          if (inst.data_vencimento >= today && inst.status !== "pago") aVencer++;
           if (inst.status === "atrasado" || (inst.data_vencimento < today && inst.status !== "pago")) atrasadas++;
           if (inst.status === "pago") pagas++;
         });
