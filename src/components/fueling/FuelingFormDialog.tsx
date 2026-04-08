@@ -60,6 +60,12 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   const [arlaValorLitro, setArlaValorLitro] = useState("");
   const [arlaValorTotal, setArlaValorTotal] = useState("");
 
+  // Óleo lubrificante fields
+  const [temOleo, setTemOleo] = useState(false);
+  const [oleoLitros, setOleoLitros] = useState("");
+  const [oleoValorLitro, setOleoValorLitro] = useState("");
+  const [oleoValorTotal, setOleoValorTotal] = useState("");
+
   useEffect(() => {
     if (!open) return;
     const loadData = async () => {
@@ -91,6 +97,12 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setArlaLitros(hasArla ? String(fueling.arla_litros) : "");
       setArlaValorLitro(hasArla ? String(fueling.arla_valor_litro || "") : "");
       setArlaValorTotal(hasArla ? String(fueling.arla_valor_total || "") : "");
+
+      const hasOleo = (fueling.oleo_litros && fueling.oleo_litros > 0);
+      setTemOleo(!!hasOleo);
+      setOleoLitros(hasOleo ? String(fueling.oleo_litros) : "");
+      setOleoValorLitro(hasOleo ? String(fueling.oleo_valor_litro || "") : "");
+      setOleoValorTotal(hasOleo ? String(fueling.oleo_valor_total || "") : "");
     } else {
       setVeiculoId("");
       setMotoristaId("");
@@ -108,6 +120,10 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       setArlaLitros("");
       setArlaValorLitro("");
       setArlaValorTotal("");
+      setTemOleo(false);
+      setOleoLitros("");
+      setOleoValorLitro("");
+      setOleoValorTotal("");
     }
   }, [fueling, open]);
 
