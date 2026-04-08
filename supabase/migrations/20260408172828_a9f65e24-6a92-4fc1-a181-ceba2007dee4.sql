@@ -1,0 +1,1 @@
+ALTER TABLE public.expense_payments ADD COLUMN juros numeric NOT NULL DEFAULT 0;

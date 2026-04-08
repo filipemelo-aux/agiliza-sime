@@ -851,6 +851,7 @@ export type Database = {
           expense_id: string
           forma_pagamento: string
           id: string
+          juros: number
           observacoes: string | null
           valor: number
         }
@@ -861,6 +862,7 @@ export type Database = {
           expense_id: string
           forma_pagamento?: string
           id?: string
+          juros?: number
           observacoes?: string | null
           valor?: number
         }
@@ -871,6 +873,7 @@ export type Database = {
           expense_id?: string
           forma_pagamento?: string
           id?: string
+          juros?: number
           observacoes?: string | null
           valor?: number
         }
