@@ -753,7 +753,7 @@ export function FinancialPayables() {
       }
     });
 
-    return { all, hoje, semana, atrasadas, pagas };
+    return { all, hoje, semana, atrasadas, pagas, aVencer };
   }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, filterPeriodoInicio, filterPeriodoFim, chartIdMap]);
 
   const filtered = useMemo(() => {
