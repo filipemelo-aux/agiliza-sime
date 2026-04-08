@@ -163,7 +163,7 @@ export function parseNfeXml(xmlString: string): NfeData {
 
   // If no items found, try NFS-e format (simplified)
   if (itens.length === 0) {
-    const servico = doc.getElementsByTagName("Servico")[0] || doc.getElementsByTagName("InfDeclaracaoPrestacaoServico")[0];
+    const servico = getTag(root, "Servico") || getTag(root, "InfDeclaracaoPrestacaoServico");
     if (servico) {
       const descServ = getTextContent(servico, "Discriminacao") || getTextContent(servico, "xServ") || "Serviço";
       const vServ = parseFloat(getTextContent(servico, "ValorServicos") || getTextContent(servico, "vServ")) || valor_total;
