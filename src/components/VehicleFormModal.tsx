@@ -109,6 +109,7 @@ interface VehicleFormModalProps {
 
 export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defaultDriverId }: VehicleFormModalProps) {
   const isEdit = !!vehicleId;
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -116,6 +117,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const [form, setForm] = useState<VehicleFormData>(emptyVehicle);
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [driverIsOwner, setDriverIsOwner] = useState(false);
+  const [driverName, setDriverName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
 
   // Link existing vehicle mode (only when creating with defaultDriverId)
   const showLinkOption = !isEdit && !!defaultDriverId;
