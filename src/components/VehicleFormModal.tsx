@@ -448,6 +448,20 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       )}
                     </div>
 
+                    {/* Tipo específico de veículo */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tipo de Veículo *</Label>
+                      <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {vehicleTypes.filter(t => isTruck ? t.group === "caminhao" : t.group === "leve").map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
+                    </div>
+
                     {isTruck && (
                       <div className="space-y-1">
                         <Label className="text-xs">Tipo de Carroceria *</Label>
