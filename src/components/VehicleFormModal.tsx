@@ -345,11 +345,11 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogHeader className="px-6 pt-5 pb-1">
           <DialogTitle>{isEdit ? "Editar Veículo" : showLinkOption ? "Vincular Veículo" : "Novo Veículo"}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[75vh]">
-          <div className="px-6 pb-6 space-y-4">
+          <div className="px-6 pb-5 space-y-3">
             {fetching ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -359,7 +359,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                 {/* Select existing vehicle option */}
                 {showLinkOption && (
                   <>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <Label className="text-xs font-medium">Selecionar conjunto já cadastrado</Label>
                       <Select value={selectedExistingId || "__none__"} onValueChange={(v) => setSelectedExistingId(v === "__none__" ? "" : v)}>
                         <SelectTrigger>
@@ -386,11 +386,109 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                   </Button>
                 ) : (
                   <>
+                    {/* Tipo de Veículo no topo */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tipo de Veículo *</Label>
+                      <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__separator_caminhoes__" disabled className="text-xs font-semibold text-muted-foreground">Caminhões</SelectItem>
+                          {vehicleTypes.filter(t => t.group === "caminhao").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                          <SelectItem value="__separator_leves__" disabled className="text-xs font-semibold text-muted-foreground mt-1">Veículos Leves</SelectItem>
+                          {vehicleTypes.filter(t => t.group === "leve").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
+                    </div>
+
+                    <Separator className="my-1" />
+
+                    {/* Dados do veículo */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">{isTruck ? "Placa do Cavalo *" : "Placa *"}</Label>
+                        <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
+                        {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">RENAVAM</Label>
+                        <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
+                        {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Marca *</Label>
+                        <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
+                        {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Modelo *</Label>
+                        <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
+                        {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Ano *</Label>
+                        <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
+                        {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
+                      </div>
+                      {isTruck && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">ANTT (opcional)</Label>
+                          <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
+                        </div>
+                      )}
+                    </div>
+
+                    {isTruck && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tipo de Carroceria *</Label>
+                        <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
+                          {cargoTypes.map((t) => (
+                            <div key={t.value} className="flex items-center space-x-2">
+                              <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
+                              <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                        {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
+                      </div>
+                    )}
+
+                    {/* Implementos */}
+                    {trailerConfig.count > 0 && (
+                      <>
+                        <Separator className="my-1" />
+                        <p className="text-xs font-medium text-muted-foreground">Implementos do Conjunto</p>
+                        <div className="space-y-2">
+                          {Array.from({ length: trailerConfig.count }).map((_, i) => {
+                            const idx = i + 1;
+                            const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
+                            const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
+                            return (
+                              <div key={i} className="grid grid-cols-2 gap-3 p-2.5 rounded-lg bg-muted/30 border border-border">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">{trailerConfig.labels[i]}</Label>
+                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
+                                  {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">RENAVAM</Label>
+                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
+                                  {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    <Separator className="my-1" />
+
                     {/* Vínculos */}
-                    <div className="space-y-4">
-                      <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
-                      <div className="space-y-3">
-                        <div className="space-y-1.5">
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Vínculos</p>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
                           <Label className="text-xs">{isTruck ? "Motorista" : "Colaborador"}</Label>
                           <PersonSearchInput
                             categories={isTruck ? ["motorista"] : ["colaborador"]}
@@ -432,7 +530,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             }
                           />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           <Label className="text-xs">Proprietário</Label>
                           {driverIsOwner ? (
                             <Input value={driverName || "—"} disabled className="text-muted-foreground" />
@@ -485,13 +583,13 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                           }}
                           disabled={!form.driverId}
                         />
-                        <Label htmlFor="driver-is-owner" className="text-sm font-normal cursor-pointer">
-                          Motorista é o proprietário do conjunto
+                        <Label htmlFor="driver-is-owner" className="text-xs font-normal cursor-pointer">
+                          {isTruck ? "Motorista é o proprietário do conjunto" : "Colaborador é o proprietário"}
                         </Label>
                       </div>
 
                       {/* Tipo de Frota */}
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         <Label className="text-xs font-medium">Tipo de Frota</Label>
                         <RadioGroup
                           value={form.fleetType}
@@ -510,101 +608,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       </div>
                     </div>
 
-                    <Separator />
-
-                    {/* Dados do veículo */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">{TRUCK_TYPES.has(form.vehicleType) ? "Placa do Cavalo *" : "Placa *"}</Label>
-                        <Input name="plate" placeholder="ABC-1D23" maxLength={8} value={form.plate} onChange={handleChange} className="uppercase" />
-                        {errors.plate && <p className="text-xs text-destructive">{errors.plate}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">RENAVAM</Label>
-                        <Input name="renavam" placeholder="00000000000" maxLength={11} value={form.renavam} onChange={handleChange} />
-                        {errors.renavam && <p className="text-xs text-destructive">{errors.renavam}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tipo de Veículo *</Label>
-                        <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__separator_caminhoes__" disabled className="text-xs font-semibold text-muted-foreground">Caminhões</SelectItem>
-                            {vehicleTypes.filter(t => t.group === "caminhao").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                            <SelectItem value="__separator_leves__" disabled className="text-xs font-semibold text-muted-foreground mt-1">Veículos Leves</SelectItem>
-                            {vehicleTypes.filter(t => t.group === "leve").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Marca *</Label>
-                        <Input name="brand" placeholder="Volvo, Scania..." value={form.brand} onChange={handleChange} />
-                        {errors.brand && <p className="text-xs text-destructive">{errors.brand}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Modelo *</Label>
-                        <Input name="model" placeholder="FH 540" value={form.model} onChange={handleChange} />
-                        {errors.model && <p className="text-xs text-destructive">{errors.model}</p>}
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Ano *</Label>
-                        <Input name="year" placeholder="2024" maxLength={4} value={form.year} onChange={handleChange} />
-                        {errors.year && <p className="text-xs text-destructive">{errors.year}</p>}
-                      </div>
-                      {TRUCK_TYPES.has(form.vehicleType) && (
-                        <div className="col-span-2 space-y-1.5">
-                          <Label className="text-xs">ANTT (opcional)</Label>
-                          <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
-                        </div>
-                      )}
-                    </div>
-
-                    {TRUCK_TYPES.has(form.vehicleType) && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tipo de Carroceria *</Label>
-                        <RadioGroup value={form.cargoType} onValueChange={(v) => setForm((p) => ({ ...p, cargoType: v }))} className="flex gap-6">
-                          {cargoTypes.map((t) => (
-                            <div key={t.value} className="flex items-center space-x-2">
-                              <RadioGroupItem value={t.value} id={`vfm-${t.value}`} />
-                              <Label htmlFor={`vfm-${t.value}`} className="font-normal cursor-pointer text-sm">{t.label}</Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                        {errors.cargoType && <p className="text-xs text-destructive">{errors.cargoType}</p>}
-                      </div>
-                    )}
-
-                    {/* Implementos */}
-                    {trailerConfig.count > 0 && (
-                      <>
-                        <Separator />
-                        <p className="text-sm font-medium text-muted-foreground">Implementos do Conjunto</p>
-                        <div className="space-y-4">
-                          {Array.from({ length: trailerConfig.count }).map((_, i) => {
-                            const idx = i + 1;
-                            const plateKey = `trailerPlate${idx}` as keyof VehicleFormData;
-                            const renavamKey = `trailerRenavam${idx}` as keyof VehicleFormData;
-                            return (
-                              <div key={i} className="grid grid-cols-2 gap-4 p-3 rounded-lg bg-muted/30 border border-border">
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs">{trailerConfig.labels[i]}</Label>
-                                  <Input name={plateKey} placeholder="ABC-1D23" maxLength={8} value={form[plateKey]} onChange={handleChange} className="uppercase" />
-                                  {errors[plateKey] && <p className="text-xs text-destructive">{errors[plateKey]}</p>}
-                                </div>
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs">RENAVAM</Label>
-                                  <Input name={renavamKey} placeholder="00000000000" maxLength={11} value={form[renavamKey]} onChange={handleChange} />
-                                  {errors[renavamKey] && <p className="text-xs text-destructive">{errors[renavamKey]}</p>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
-
-                    <Button className="w-full" onClick={handleSubmit} disabled={loading}>
+                    <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
                       {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
                     </Button>
                   </>
