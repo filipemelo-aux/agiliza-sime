@@ -388,35 +388,82 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                     {/* Vínculos */}
                     <div className="space-y-4">
                       <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs">{isLightVehicle ? "Colaborador" : "Motorista"}</Label>
-                          <Select value={form.driverId || "__none__"} onValueChange={(v) => {
-                            const newDriverId = v === "__none__" ? "" : v;
-                            setForm((p) => ({ ...p, driverId: newDriverId }));
-                            if (driverIsOwner) {
-                              setForm((p) => ({ ...p, driverId: newDriverId, ownerId: newDriverId }));
+                          <Label className="text-xs">Motorista</Label>
+                          <PersonSearchInput
+                            categories={["motorista"]}
+                            placeholder="Buscar motorista..."
+                            selectedName={driverName || undefined}
+                            onSelect={(person) => {
+                              const newDriverId = person.user_id;
+                              setForm((p) => ({
+                                ...p,
+                                driverId: newDriverId,
+                                ...(driverIsOwner ? { ownerId: newDriverId } : {}),
+                              }));
+                              setDriverName(person.full_name);
+                              if (driverIsOwner) setOwnerName(person.full_name);
+                            }}
+                            onClear={() => {
+                              setForm((p) => ({ ...p, driverId: "" }));
+                              setDriverName("");
+                              if (driverIsOwner) {
+                                setDriverIsOwner(false);
+                                setForm((p) => ({ ...p, ownerId: "" }));
+                                setOwnerName("");
+                              }
+                            }}
+                            endAction={
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                title="Cadastrar motorista"
+                                onClick={() => {
+                                  onOpenChange(false);
+                                  navigate("/admin/drivers");
+                                }}
+                              >
+                                <UserPlus className="h-3.5 w-3.5" />
+                              </Button>
                             }
-                          }}>
-                            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">Nenhum</SelectItem>
-                              {driverOptions.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                          />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Proprietário</Label>
                           {driverIsOwner ? (
-                            <Input value={driverOptions.find(m => m.user_id === form.driverId)?.full_name || "—"} disabled className="text-muted-foreground" />
+                            <Input value={driverName || "—"} disabled className="text-muted-foreground" />
                           ) : (
-                            <Select value={form.ownerId || "__none__"} onValueChange={(v) => setForm((p) => ({ ...p, ownerId: v === "__none__" ? "" : v }))}>
-                              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Nenhum</SelectItem>
-                                {proprietarios.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
+                            <PersonSearchInput
+                              categories={["proprietario"]}
+                              placeholder="Buscar proprietário..."
+                              selectedName={ownerName || undefined}
+                              onSelect={(person) => {
+                                setForm((p) => ({ ...p, ownerId: person.user_id }));
+                                setOwnerName(person.full_name);
+                              }}
+                              onClear={() => {
+                                setForm((p) => ({ ...p, ownerId: "" }));
+                                setOwnerName("");
+                              }}
+                              endAction={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Cadastrar proprietário"
+                                  onClick={() => {
+                                    onOpenChange(false);
+                                    navigate("/admin/people");
+                                  }}
+                                >
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
                           )}
                         </div>
                       </div>
@@ -429,8 +476,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                             setDriverIsOwner(isChecked);
                             if (isChecked) {
                               setForm((p) => ({ ...p, ownerId: p.driverId }));
+                              setOwnerName(driverName);
                             } else {
                               setForm((p) => ({ ...p, ownerId: "" }));
+                              setOwnerName("");
                             }
                           }}
                           disabled={!form.driverId}
