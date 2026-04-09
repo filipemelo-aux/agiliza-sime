@@ -386,19 +386,29 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                   </Button>
                 ) : (
                   <>
-                    {/* Tipo de Veículo no topo */}
+                    {/* Categoria do veículo no topo */}
                     <div className="space-y-1">
-                      <Label className="text-xs">Tipo de Veículo *</Label>
-                      <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__separator_caminhoes__" disabled className="text-xs font-semibold text-muted-foreground">Caminhões</SelectItem>
-                          {vehicleTypes.filter(t => t.group === "caminhao").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                          <SelectItem value="__separator_leves__" disabled className="text-xs font-semibold text-muted-foreground mt-1">Veículos Leves</SelectItem>
-                          {vehicleTypes.filter(t => t.group === "leve").map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
+                      <Label className="text-xs font-medium">Categoria *</Label>
+                      <RadioGroup
+                        value={form.vehicleType ? (TRUCK_TYPES.has(form.vehicleType) ? "caminhao" : "leve") : ""}
+                        onValueChange={(cat) => {
+                          if (cat === "caminhao") {
+                            handleVehicleTypeChange("rodotrem");
+                          } else {
+                            handleVehicleTypeChange("passeio");
+                          }
+                        }}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="caminhao" id="cat-caminhao" />
+                          <Label htmlFor="cat-caminhao" className="text-sm font-normal cursor-pointer">🚛 Caminhão</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="leve" id="cat-leve" />
+                          <Label htmlFor="cat-leve" className="text-sm font-normal cursor-pointer">🚗 Veículo Leve</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
 
                     <Separator className="my-1" />
@@ -436,6 +446,20 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                           <Input name="anttNumber" placeholder="Número do RNTRC" value={form.anttNumber} onChange={handleChange} />
                         </div>
                       )}
+                    </div>
+
+                    {/* Tipo específico de veículo */}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tipo de Veículo *</Label>
+                      <Select value={form.vehicleType} onValueChange={handleVehicleTypeChange}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {vehicleTypes.filter(t => isTruck ? t.group === "caminhao" : t.group === "leve").map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.vehicleType && <p className="text-xs text-destructive">{errors.vehicleType}</p>}
                     </div>
 
                     {isTruck && (
