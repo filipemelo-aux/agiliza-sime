@@ -338,6 +338,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   };
 
   const isLightVehicle = !TRUCK_TYPES.has(form.vehicleType);
+  const isTruck = TRUCK_TYPES.has(form.vehicleType);
 
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
 
