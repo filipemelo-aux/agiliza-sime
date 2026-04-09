@@ -154,7 +154,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   useEffect(() => {
     if (open && isEdit && vehicleId) {
       setFetching(true);
-      supabase.from("vehicles").select("*").eq("id", vehicleId).single().then(({ data, error }) => {
+      supabase.from("vehicles").select("*").eq("id", vehicleId).single().then(async ({ data, error }) => {
         if (error || !data) {
           toast({ title: "Veículo não encontrado", variant: "destructive" });
           onOpenChange(false);
@@ -182,13 +182,32 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
         setDriverIsOwner(!!dId && dId === oId);
+        // Resolve names for driver/owner
+        const idsToResolve = [dId, oId].filter(Boolean);
+        if (idsToResolve.length > 0) {
+          const { data: names } = await supabase.from("profiles").select("user_id, full_name").in("user_id", idsToResolve);
+          if (names) {
+            const driverProfile = names.find((n: any) => n.user_id === dId);
+            const ownerProfile = names.find((n: any) => n.user_id === oId);
+            if (driverProfile) setDriverName(driverProfile.full_name);
+            if (ownerProfile) setOwnerName(ownerProfile.full_name);
+          }
+        }
         setFetching(false);
       });
     } else if (open && !isEdit) {
       setForm(defaultDriverId ? { ...emptyVehicle, driverId: defaultDriverId } : emptyVehicle);
       setErrors({});
       setDriverIsOwner(false);
+      setDriverName("");
+      setOwnerName("");
       setSelectedExistingId("");
+      // Resolve default driver name
+      if (defaultDriverId) {
+        supabase.from("profiles").select("full_name").eq("user_id", defaultDriverId).single().then(({ data }) => {
+          if (data) setDriverName(data.full_name);
+        });
+      }
     }
   }, [open, vehicleId, isEdit]);
 
