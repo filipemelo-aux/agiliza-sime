@@ -338,6 +338,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   };
 
   const isLightVehicle = !TRUCK_TYPES.has(form.vehicleType);
+  const isTruck = TRUCK_TYPES.has(form.vehicleType);
 
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
 
@@ -390,10 +391,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                       <p className="text-sm font-medium text-muted-foreground">Vínculos</p>
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Motorista</Label>
+                          <Label className="text-xs">{isTruck ? "Motorista" : "Colaborador"}</Label>
                           <PersonSearchInput
-                            categories={["motorista"]}
-                            placeholder="Buscar motorista..."
+                            categories={isTruck ? ["motorista"] : ["colaborador"]}
+                            placeholder={isTruck ? "Buscar motorista..." : "Buscar colaborador..."}
                             selectedName={driverName || undefined}
                             onSelect={(person) => {
                               const newDriverId = person.user_id;
@@ -420,10 +421,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
-                                title="Cadastrar motorista"
+                                title={isTruck ? "Cadastrar motorista" : "Cadastrar colaborador"}
                                 onClick={() => {
                                   onOpenChange(false);
-                                  navigate("/admin/drivers");
+                                  navigate(isTruck ? "/admin/drivers" : "/admin/people");
                                 }}
                               >
                                 <UserPlus className="h-3.5 w-3.5" />
