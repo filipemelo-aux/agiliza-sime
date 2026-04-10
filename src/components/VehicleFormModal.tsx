@@ -549,9 +549,35 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                                 size="icon"
                                 className="h-6 w-6"
                                 title={isTruck ? "Cadastrar motorista" : "Cadastrar colaborador"}
-                                onClick={() => {
-                                  onOpenChange(false);
-                                  navigate(isTruck ? "/admin/drivers" : "/admin/people");
+                                onClick={async () => {
+                                  if (!validate()) {
+                                    toast({ title: "Preencha os dados do veículo antes de cadastrar", variant: "destructive" });
+                                    return;
+                                  }
+                                  setLoading(true);
+                                  try {
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) throw new Error("Não autenticado");
+                                    if (isEdit && vehicleId) {
+                                      const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
+                                      if (error) throw error;
+                                      setSavedVehicleIdForLink(vehicleId);
+                                    } else {
+                                      const { data, error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id }).select("id").single();
+                                      if (error) throw error;
+                                      setSavedVehicleIdForLink(data.id);
+                                    }
+                                    toast({ title: "Veículo salvo! Agora cadastre o " + (isTruck ? "motorista" : "colaborador") + "." });
+                                    onOpenChange(false);
+                                    onSaved();
+                                    setPersonCreateCategory(isTruck ? "motorista" : "colaborador");
+                                    setPersonCreateTarget("driver");
+                                    setPersonCreateOpen(true);
+                                  } catch (error: any) {
+                                    toast({ title: "Erro ao salvar veículo", description: error.message, variant: "destructive" });
+                                  } finally {
+                                    setLoading(false);
+                                  }
                                 }}
                               >
                                 <UserPlus className="h-3.5 w-3.5" />
