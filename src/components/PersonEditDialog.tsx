@@ -567,7 +567,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
     if (uid) {
       toast({ title: "Cadastro criado com sucesso!" });
       onOpenChange(false);
-      onCreated();
+      onCreated(uid);
     }
   };
 
