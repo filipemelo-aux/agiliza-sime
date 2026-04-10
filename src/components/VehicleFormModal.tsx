@@ -120,6 +120,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const [driverIsOwner, setDriverIsOwner] = useState(false);
   const [driverName, setDriverName] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [personCreateOpen, setPersonCreateOpen] = useState(false);
+  const [personCreateCategory, setPersonCreateCategory] = useState<string>("motorista");
+  const [savedVehicleIdForLink, setSavedVehicleIdForLink] = useState<string | null>(null);
+  const [personCreateTarget, setPersonCreateTarget] = useState<"driver" | "owner">("driver");
 
   // Link existing vehicle mode (only when creating with defaultDriverId)
   const showLinkOption = !isEdit && !!defaultDriverId;
