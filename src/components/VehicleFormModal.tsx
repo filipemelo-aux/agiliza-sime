@@ -700,5 +700,21 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         </ScrollArea>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={personCreateOpen}
+      onOpenChange={setPersonCreateOpen}
+      defaultCategory={personCreateCategory}
+      onCreated={async (createdUserId) => {
+        if (createdUserId && savedVehicleIdForLink) {
+          const updateField = personCreateTarget === "driver" ? "driver_id" : "owner_id";
+          await supabase.from("vehicles").update({ [updateField]: createdUserId } as any).eq("id", savedVehicleIdForLink);
+          onSaved();
+          toast({ title: personCreateTarget === "driver" ? "Motorista vinculado ao veículo!" : "Proprietário vinculado ao veículo!" });
+        }
+        setSavedVehicleIdForLink(null);
+      }}
+    />
+    </>
   );
 }
