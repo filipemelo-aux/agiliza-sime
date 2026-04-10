@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { UserPlus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -119,6 +120,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const [driverIsOwner, setDriverIsOwner] = useState(false);
   const [driverName, setDriverName] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [personCreateOpen, setPersonCreateOpen] = useState(false);
+  const [personCreateCategory, setPersonCreateCategory] = useState<string>("motorista");
+  const [savedVehicleIdForLink, setSavedVehicleIdForLink] = useState<string | null>(null);
+  const [personCreateTarget, setPersonCreateTarget] = useState<"driver" | "owner">("driver");
 
   // Link existing vehicle mode (only when creating with defaultDriverId)
   const showLinkOption = !isEdit && !!defaultDriverId;
@@ -343,6 +348,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-5 pb-1">
@@ -544,9 +550,35 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                                 size="icon"
                                 className="h-6 w-6"
                                 title={isTruck ? "Cadastrar motorista" : "Cadastrar colaborador"}
-                                onClick={() => {
-                                  onOpenChange(false);
-                                  navigate(isTruck ? "/admin/drivers" : "/admin/people");
+                                onClick={async () => {
+                                  if (!validate()) {
+                                    toast({ title: "Preencha os dados do veículo antes de cadastrar", variant: "destructive" });
+                                    return;
+                                  }
+                                  setLoading(true);
+                                  try {
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) throw new Error("Não autenticado");
+                                    if (isEdit && vehicleId) {
+                                      const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
+                                      if (error) throw error;
+                                      setSavedVehicleIdForLink(vehicleId);
+                                    } else {
+                                      const { data, error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id }).select("id").single();
+                                      if (error) throw error;
+                                      setSavedVehicleIdForLink(data.id);
+                                    }
+                                    toast({ title: "Veículo salvo! Agora cadastre o " + (isTruck ? "motorista" : "colaborador") + "." });
+                                    onOpenChange(false);
+                                    onSaved();
+                                    setPersonCreateCategory(isTruck ? "motorista" : "colaborador");
+                                    setPersonCreateTarget("driver");
+                                    setPersonCreateOpen(true);
+                                  } catch (error: any) {
+                                    toast({ title: "Erro ao salvar veículo", description: error.message, variant: "destructive" });
+                                  } finally {
+                                    setLoading(false);
+                                  }
                                 }}
                               >
                                 <UserPlus className="h-3.5 w-3.5" />
@@ -578,9 +610,35 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                                   size="icon"
                                   className="h-6 w-6"
                                   title="Cadastrar proprietário"
-                                  onClick={() => {
-                                    onOpenChange(false);
-                                    navigate("/admin/people");
+                                  onClick={async () => {
+                                    if (!validate()) {
+                                      toast({ title: "Preencha os dados do veículo antes de cadastrar", variant: "destructive" });
+                                      return;
+                                    }
+                                    setLoading(true);
+                                    try {
+                                      const { data: { user } } = await supabase.auth.getUser();
+                                      if (!user) throw new Error("Não autenticado");
+                                      if (isEdit && vehicleId) {
+                                        const { error } = await supabase.from("vehicles").update(buildPayload()).eq("id", vehicleId);
+                                        if (error) throw error;
+                                        setSavedVehicleIdForLink(vehicleId);
+                                      } else {
+                                        const { data, error } = await supabase.from("vehicles").insert({ ...buildPayload(), user_id: user.id }).select("id").single();
+                                        if (error) throw error;
+                                        setSavedVehicleIdForLink(data.id);
+                                      }
+                                      toast({ title: "Veículo salvo! Agora cadastre o proprietário." });
+                                      onOpenChange(false);
+                                      onSaved();
+                                      setPersonCreateCategory("proprietario");
+                                      setPersonCreateTarget("owner");
+                                      setPersonCreateOpen(true);
+                                    } catch (error: any) {
+                                      toast({ title: "Erro ao salvar veículo", description: error.message, variant: "destructive" });
+                                    } finally {
+                                      setLoading(false);
+                                    }
                                   }}
                                 >
                                   <UserPlus className="h-3.5 w-3.5" />
@@ -643,5 +701,21 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         </ScrollArea>
       </DialogContent>
     </Dialog>
+
+    <PersonCreateDialog
+      open={personCreateOpen}
+      onOpenChange={setPersonCreateOpen}
+      defaultCategory={personCreateCategory}
+      onCreated={async (createdUserId) => {
+        if (createdUserId && savedVehicleIdForLink) {
+          const updateField = personCreateTarget === "driver" ? "driver_id" : "owner_id";
+          await supabase.from("vehicles").update({ [updateField]: createdUserId } as any).eq("id", savedVehicleIdForLink);
+          onSaved();
+          toast({ title: personCreateTarget === "driver" ? "Motorista vinculado ao veículo!" : "Proprietário vinculado ao veículo!" });
+        }
+        setSavedVehicleIdForLink(null);
+      }}
+    />
+    </>
   );
 }

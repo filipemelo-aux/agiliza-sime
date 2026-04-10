@@ -496,7 +496,7 @@ export function PersonEditDialog({ person, open, onOpenChange, onSaved }: Person
 interface PersonCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onCreated: (createdUserId?: string) => void;
   defaultCategory?: string;
 }
 
@@ -567,7 +567,7 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
     if (uid) {
       toast({ title: "Cadastro criado com sucesso!" });
       onOpenChange(false);
-      onCreated();
+      onCreated(uid);
     }
   };
 
