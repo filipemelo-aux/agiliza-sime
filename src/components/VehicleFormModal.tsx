@@ -347,7 +347,7 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
 
   const isLinkingExisting = showLinkOption && !!selectedExistingId;
 
-  return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-5 pb-1">
