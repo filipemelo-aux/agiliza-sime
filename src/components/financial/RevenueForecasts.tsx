@@ -311,33 +311,69 @@ export function RevenueForecasts() {
               <p>Valor total: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong></p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Nº de Parcelas</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={48}
-                  value={numParcelas}
-                  onChange={(e) => setNumParcelas(Math.max(1, Number(e.target.value)))}
-                />
-              </div>
-              <div>
-                <Label>Intervalo (dias)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={intervaloDias}
-                  onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value)))}
-                />
-              </div>
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
+              <RadioGroup
+                value={condicaoPagamento}
+                onValueChange={(v) => {
+                  setCondicaoPagamento(v as "avista" | "parcelado");
+                  if (v === "avista") {
+                    setNumParcelas(1);
+                    setIntervaloDias(0);
+                  } else {
+                    setNumParcelas(2);
+                    setIntervaloDias(30);
+                  }
+                }}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="avista" id="prev-avista" />
+                  <Label htmlFor="prev-avista" className="cursor-pointer text-sm">À Vista</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="parcelado" id="prev-parcelado" />
+                  <Label htmlFor="prev-parcelado" className="cursor-pointer text-sm">Parcelado</Label>
+                </div>
+              </RadioGroup>
+
+              {condicaoPagamento === "parcelado" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Nº de Parcelas</Label>
+                    <Input
+                      type="number"
+                      min={2}
+                      max={48}
+                      value={numParcelas}
+                      onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Intervalo entre parcelas</Label>
+                    <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INTERVALO_PRESETS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
-              {numParcelas === 1 ? (
-                <p>À vista — vencimento na data de emissão</p>
+            <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
+              {condicaoPagamento === "avista" ? (
+                <p className="font-medium">À vista — vencimento na data de emissão</p>
               ) : (
-                <p>{numParcelas}x de {formatCurrency(selectedTotal / numParcelas)} a cada {intervaloDias} dias</p>
+                <>
+                  <p className="font-medium">{numParcelas}x de {formatCurrency(selectedTotal / numParcelas)}</p>
+                  <p className="text-muted-foreground">Intervalo de {intervaloDias} dias entre parcelas</p>
+                </>
               )}
             </div>
 
