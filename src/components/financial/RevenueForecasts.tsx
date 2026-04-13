@@ -14,11 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Previsao {
   id: string;
@@ -40,6 +41,7 @@ const ORIGEM_ICON: Record<string, typeof Truck> = {
 
 export function RevenueForecasts() {
   const isMobile = useIsMobile();
+  const { ConfirmDialog, confirm } = useConfirmDialog();
   const [previsoes, setPrevisoes] = useState<Previsao[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -169,11 +171,33 @@ export function RevenueForecasts() {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedItems.length === 0) return;
+    const confirmed = await confirm({
+      description: `Deseja excluir ${selectedItems.length} previsão(ões) pendente(s)? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      const { error } = await supabase
+        .from("previsoes_recebimento")
+        .delete()
+        .in("id", selectedItems.map((p) => p.id));
+      if (error) throw error;
+      toast.success(`${selectedItems.length} previsão(ões) excluída(s)`);
+      fetchPrevisoes();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir previsões");
+    }
+  };
+
   const totalPendente = pendentes.reduce((s, p) => s + Number(p.valor), 0);
   const totalFaturado = faturadas.reduce((s, p) => s + Number(p.valor), 0);
 
   return (
     <div className="space-y-4">
+      {ConfirmDialog}
       <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
 
       {/* Summary - compact */}
@@ -188,6 +212,10 @@ export function RevenueForecasts() {
           <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1.5 shadow-sm">
             <Receipt className="h-4 w-4" />
             Gerar Fatura ({selected.size})
+          </Button>
+          <Button onClick={handleDeleteSelected} disabled={selected.size === 0} variant="destructive" size="sm" className="gap-1.5">
+            <Trash2 className="h-4 w-4" />
+            Excluir ({selected.size})
           </Button>
           {selected.size > 0 && (
             <span className="text-xs text-muted-foreground">
