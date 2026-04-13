@@ -2500,19 +2500,6 @@ export default function HarvestDetail() {
               </div>
             </Card>
             )}
-            {sortedCliente.length > 0 && job?.client_id && (
-              <div className="flex justify-end mt-3">
-                <Button
-                  onClick={handleCreatePrevisao}
-                  disabled={savingPrevisao || !filterStartDate || !filterEndDate}
-                  className="gap-1.5"
-                  variant="outline"
-                >
-                  <Receipt className="h-4 w-4" />
-                  {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
-                </Button>
-              </div>
-            )}
           </TabsContent>
         </Tabs>
         )}
