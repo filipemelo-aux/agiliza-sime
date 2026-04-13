@@ -90,7 +90,7 @@ const INTERVALO_PRESETS = [
 
 export function FinancialInvoicing() {
   const isMobile = useIsMobile();
-  const { unifiedLabel, unifiedCnpjLines } = useUnifiedCompany();
+  const { unifiedLabel, unifiedCnpjLines, establishments } = useUnifiedCompany();
   const { ConfirmDialog, confirm } = useConfirmDialog();
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [loading, setLoading] = useState(true);
