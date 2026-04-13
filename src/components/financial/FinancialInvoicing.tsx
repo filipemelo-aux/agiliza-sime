@@ -24,6 +24,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Fatura {
   id: string;
+  numero: number;
   cliente_id: string;
   valor_total: number;
   num_parcelas: number;
@@ -150,7 +151,7 @@ export function FinancialInvoicing() {
     const { data, error } = await supabase
       .from("faturas_recebimento")
       .select("*, profiles:cliente_id(full_name)")
-      .order("created_at", { ascending: false });
+      .order("numero", { ascending: false });
 
     if (error) {
       toast.error("Erro ao carregar faturas");
@@ -627,7 +628,7 @@ export function FinancialInvoicing() {
     }
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Fatura ${fatura.id.slice(0,8).toUpperCase()}</title>
+<html><head><meta charset="UTF-8"><title>Fatura ${String(fatura.numero).padStart(4, '0')}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:40px 48px;font-size:13px;line-height:1.5}
@@ -674,7 +675,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
   </div>
   <div class="doc-info">
     <div class="doc-title">Fatura</div>
-    <div class="doc-number">#${fatura.id.slice(0, 8).toUpperCase()}</div>
+    <div class="doc-number">#${String(fatura.numero).padStart(4, '0')}</div>
     <div style="font-size:11px;color:#6b7280;margin-top:4px">${formatDateBR(fatura.data_emissao)}</div>
   </div>
 </div>
