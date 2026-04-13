@@ -155,7 +155,7 @@ export function RevenueForecasts() {
       const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
       if (linkErr) throw linkErr;
 
-      toast.success(`Fatura criada com ${numParcelas} parcela(s)! Contas a receber geradas automaticamente.`);
+      toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)! Contas a receber geradas automaticamente.`);
       setInvoiceDialogOpen(false);
       fetchPrevisoes();
     } catch (err: any) {
