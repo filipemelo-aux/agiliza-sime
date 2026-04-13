@@ -819,7 +819,10 @@ ${previsoes.length > 0 ? `
               <Card key={f.id}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</span>
+                      <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
+                    </div>
                     <Badge variant={st.variant} className="text-[10px] shrink-0">{st.label}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
@@ -863,6 +866,7 @@ ${previsoes.length > 0 ? `
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Nº</th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
                     <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
@@ -876,6 +880,7 @@ ${previsoes.length > 0 ? `
                     const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                     return (
                       <tr key={f.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
                         <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
