@@ -544,7 +544,8 @@ export function FinancialInvoicing() {
     const clienteIE = cli?.inscricao_estadual || "—";
     const clienteEmail = cli?.email || "—";
     const clientePhone = cli?.phone || "—";
-    const clientePersonType = cli?.person_type === "juridica" ? "Pessoa Jurídica" : "Pessoa Física";
+    const isJuridica = cli?.person_type === "cnpj" || cli?.person_type === "juridica";
+    const clientePersonType = isJuridica ? "Pessoa Jurídica" : "Pessoa Física";
 
     let clienteAddress = "—";
     if (cli) {
