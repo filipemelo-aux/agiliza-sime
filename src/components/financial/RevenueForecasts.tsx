@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,9 +43,22 @@ export function RevenueForecasts() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [saving, setSaving] = useState(false);
+
+  const INTERVALO_PRESETS = [
+    { value: "7", label: "7 dias" },
+    { value: "14", label: "14 dias" },
+    { value: "15", label: "15 dias" },
+    { value: "21", label: "21 dias" },
+    { value: "28", label: "28 dias" },
+    { value: "30", label: "30 dias" },
+    { value: "45", label: "45 dias" },
+    { value: "60", label: "60 dias" },
+    { value: "90", label: "90 dias" },
+  ];
 
   const fetchPrevisoes = async () => {
     setLoading(true);
@@ -102,10 +117,14 @@ export function RevenueForecasts() {
   const openInvoiceDialog = () => {
     if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
     if (!sameClient) return toast.error("Todas as previsões devem ser do mesmo cliente");
+    setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
     setInvoiceDialogOpen(true);
   };
+
+  const effectiveParcelas = condicaoPagamento === "avista" ? 1 : numParcelas;
+  const effectiveIntervalo = condicaoPagamento === "avista" ? 0 : intervaloDias;
 
   const handleCreateInvoice = async () => {
     if (selectedItems.length === 0 || !sameClient) return;
@@ -118,8 +137,8 @@ export function RevenueForecasts() {
         .insert({
           cliente_id: selectedClientIds[0],
           valor_total: selectedTotal,
-          num_parcelas: numParcelas,
-          intervalo_dias: intervaloDias,
+          num_parcelas: effectiveParcelas,
+          intervalo_dias: effectiveIntervalo,
           status: "faturada" as any,
         })
         .select()
@@ -136,7 +155,7 @@ export function RevenueForecasts() {
       const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
       if (linkErr) throw linkErr;
 
-      toast.success(`Fatura criada com ${numParcelas} parcela(s)! Contas a receber geradas automaticamente.`);
+      toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)! Contas a receber geradas automaticamente.`);
       setInvoiceDialogOpen(false);
       fetchPrevisoes();
     } catch (err: any) {
@@ -292,33 +311,69 @@ export function RevenueForecasts() {
               <p>Valor total: <strong className="text-foreground">{formatCurrency(selectedTotal)}</strong></p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Nº de Parcelas</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={48}
-                  value={numParcelas}
-                  onChange={(e) => setNumParcelas(Math.max(1, Number(e.target.value)))}
-                />
-              </div>
-              <div>
-                <Label>Intervalo (dias)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={intervaloDias}
-                  onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value)))}
-                />
-              </div>
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
+              <RadioGroup
+                value={condicaoPagamento}
+                onValueChange={(v) => {
+                  setCondicaoPagamento(v as "avista" | "parcelado");
+                  if (v === "avista") {
+                    setNumParcelas(1);
+                    setIntervaloDias(0);
+                  } else {
+                    setNumParcelas(2);
+                    setIntervaloDias(30);
+                  }
+                }}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="avista" id="prev-avista" />
+                  <Label htmlFor="prev-avista" className="cursor-pointer text-sm">À Vista</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="parcelado" id="prev-parcelado" />
+                  <Label htmlFor="prev-parcelado" className="cursor-pointer text-sm">Parcelado</Label>
+                </div>
+              </RadioGroup>
+
+              {condicaoPagamento === "parcelado" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Nº de Parcelas</Label>
+                    <Input
+                      type="number"
+                      min={2}
+                      max={48}
+                      value={numParcelas}
+                      onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Intervalo entre parcelas</Label>
+                    <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INTERVALO_PRESETS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
-              {numParcelas === 1 ? (
-                <p>À vista — vencimento na data de emissão</p>
+            <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
+              {condicaoPagamento === "avista" ? (
+                <p className="font-medium">À vista — vencimento na data de emissão</p>
               ) : (
-                <p>{numParcelas}x de {formatCurrency(selectedTotal / numParcelas)} a cada {intervaloDias} dias</p>
+                <>
+                  <p className="font-medium">{numParcelas}x de {formatCurrency(selectedTotal / numParcelas)}</p>
+                  <p className="text-muted-foreground">Intervalo de {intervaloDias} dias entre parcelas</p>
+                </>
               )}
             </div>
 
