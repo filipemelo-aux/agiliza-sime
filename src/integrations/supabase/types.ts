@@ -1125,6 +1125,7 @@ export type Database = {
           id: string
           intervalo_dias: number
           num_parcelas: number
+          numero: number
           status: Database["public"]["Enums"]["fatura_status"]
           valor_total: number
         }
@@ -1135,6 +1136,7 @@ export type Database = {
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
+          numero?: number
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_total?: number
         }
@@ -1145,6 +1147,7 @@ export type Database = {
           id?: string
           intervalo_dias?: number
           num_parcelas?: number
+          numero?: number
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_total?: number
         }
