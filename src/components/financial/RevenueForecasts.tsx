@@ -318,27 +318,47 @@ export function RevenueForecasts() {
               <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
               <RadioGroup
                 value={condicaoPagamento}
-                onValueChange={(v) => {
-                  setCondicaoPagamento(v as "avista" | "parcelado");
-                  if (v === "avista") {
+                  onValueChange={(v) => {
+                  const val = v as "avista" | "unico" | "parcelado";
+                  setCondicaoPagamento(val);
+                  if (val === "avista") {
                     setNumParcelas(1);
                     setIntervaloDias(0);
+                  } else if (val === "unico") {
+                    setNumParcelas(1);
+                    setIntervaloDias(0);
+                    setDataVencimentoUnico(getLocalDateISO());
                   } else {
                     setNumParcelas(2);
                     setIntervaloDias(30);
                   }
                 }}
-                className="flex gap-4"
+                className="flex gap-4 flex-wrap"
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="avista" id="prev-avista" />
                   <Label htmlFor="prev-avista" className="cursor-pointer text-sm">À Vista</Label>
                 </div>
                 <div className="flex items-center gap-2">
+                  <RadioGroupItem value="unico" id="prev-unico" />
+                  <Label htmlFor="prev-unico" className="cursor-pointer text-sm">Pagamento Único</Label>
+                </div>
+                <div className="flex items-center gap-2">
                   <RadioGroupItem value="parcelado" id="prev-parcelado" />
                   <Label htmlFor="prev-parcelado" className="cursor-pointer text-sm">Parcelado</Label>
                 </div>
               </RadioGroup>
+
+              {condicaoPagamento === "unico" && (
+                <div>
+                  <Label className="text-xs">Data de Vencimento</Label>
+                  <Input
+                    type="date"
+                    value={dataVencimentoUnico}
+                    onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                  />
+                </div>
+              )}
 
               {condicaoPagamento === "parcelado" && (
                 <div className="grid grid-cols-2 gap-3">
@@ -372,6 +392,8 @@ export function RevenueForecasts() {
             <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
               {condicaoPagamento === "avista" ? (
                 <p className="font-medium">À vista — vencimento na data de emissão</p>
+              ) : condicaoPagamento === "unico" ? (
+                <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
               ) : (
                 <>
                   <p className="font-medium">{numParcelas}x de {formatCurrency(selectedTotal / numParcelas)}</p>
