@@ -2601,6 +2601,7 @@ export default function HarvestDetail() {
                 </Table>
               </div>
             </Card>
+            )}
             {sortedCliente.length > 0 && job?.client_id && (
               <div className="flex justify-end mt-3">
                 <Button
@@ -2613,7 +2614,6 @@ export default function HarvestDetail() {
                   {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
                 </Button>
               </div>
-            )}
             )}
           </TabsContent>
         </Tabs>
