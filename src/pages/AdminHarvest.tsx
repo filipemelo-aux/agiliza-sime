@@ -233,7 +233,8 @@ export default function AdminHarvest() {
                   selectedName={selectedClientName}
                   onSelect={(person) => {
                     const updates: Partial<typeof form> = { client_id: person.id };
-                    updates.farm_name = person.nome_fantasia || person.razao_social || person.full_name;
+                    const addressParts = [person.address_street, person.address_number, person.address_neighborhood].filter(Boolean);
+                    updates.farm_name = addressParts.length > 0 ? addressParts.join(", ") : (person.nome_fantasia || person.razao_social || person.full_name);
                     if (person.address_city) {
                       updates.location = [person.address_city, person.address_state].filter(Boolean).join("/");
                     }
