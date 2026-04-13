@@ -109,9 +109,10 @@ export function FinancialInvoicing() {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clientPrevisoes, setClientPrevisoes] = useState<Previsao[]>([]);
   const [selectedPrevIds, setSelectedPrevIds] = useState<Set<string>>(new Set());
-  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "parcelado">("avista");
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
+  const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
 
   // Receive dialog
