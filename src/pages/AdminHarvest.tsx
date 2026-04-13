@@ -129,6 +129,7 @@ export default function AdminHarvest() {
   const openCreateDialog = () => {
     setEditingJob(null);
     setForm(emptyForm);
+    setSelectedClientName("");
     setDialogOpen(true);
   };
 
@@ -226,28 +227,24 @@ export default function AdminHarvest() {
             <div className="space-y-4 mt-2">
               <div className="space-y-1.5">
                 <Label>Contratante (Cliente)</Label>
-                <Select value={form.client_id} onValueChange={(v) => {
-                  const client = clients.find((c) => c.id === v);
-                  const updates: Partial<typeof form> = { client_id: v };
-                  if (client && !editingJob) {
-                    if (!form.farm_name) updates.farm_name = client.nome_fantasia || client.full_name;
-                    if (!form.location && client.address_city) {
-                      updates.location = [client.address_city, client.address_state].filter(Boolean).join("/");
+                <PersonSearchInput
+                  categories={["cliente"]}
+                  placeholder="Buscar cliente pelo nome..."
+                  selectedName={selectedClientName}
+                  onSelect={(person) => {
+                    const updates: Partial<typeof form> = { client_id: person.id };
+                    if (!form.farm_name) updates.farm_name = person.nome_fantasia || person.razao_social || person.full_name;
+                    if (!form.location && person.address_city) {
+                      updates.location = [person.address_city, person.address_state].filter(Boolean).join("/");
                     }
-                  }
-                  setForm((prev) => ({ ...prev, ...updates }));
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome_fantasia || c.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    setForm((prev) => ({ ...prev, ...updates }));
+                    setSelectedClientName(person.nome_fantasia || person.razao_social || person.full_name);
+                  }}
+                  onClear={() => {
+                    setForm((prev) => ({ ...prev, client_id: "" }));
+                    setSelectedClientName("");
+                  }}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
