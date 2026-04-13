@@ -117,10 +117,14 @@ export function RevenueForecasts() {
   const openInvoiceDialog = () => {
     if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
     if (!sameClient) return toast.error("Todas as previsões devem ser do mesmo cliente");
+    setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
     setInvoiceDialogOpen(true);
   };
+
+  const effectiveParcelas = condicaoPagamento === "avista" ? 1 : numParcelas;
+  const effectiveIntervalo = condicaoPagamento === "avista" ? 0 : intervaloDias;
 
   const handleCreateInvoice = async () => {
     if (selectedItems.length === 0 || !sameClient) return;
