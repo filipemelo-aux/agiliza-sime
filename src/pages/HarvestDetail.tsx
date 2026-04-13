@@ -113,6 +113,7 @@ export default function HarvestDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
+  const [savingPrevisao, setSavingPrevisao] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [closingDate, setClosingDate] = useState(getLocalDateISO());
   const [paymentDate, setPaymentDate] = useState("");
@@ -1241,20 +1242,7 @@ export default function HarvestDetail() {
         } as any);
       }
 
-      // Gerar previsão de recebimento para colheita
-      if (job?.client_id && id) {
-        await supabase.from("previsoes_recebimento").upsert(
-          {
-            origem_tipo: "colheita" as any,
-            origem_id: id,
-            cliente_id: job.client_id,
-            valor: totalAmount,
-            data_prevista: paymentDueDate || getLocalDateISO(),
-            status: "pendente" as any,
-          } as any,
-          { onConflict: "origem_tipo,origem_id" }
-        );
-      }
+      // Previsão de recebimento é gerada manualmente pela aba Cliente
 
       toast({ title: "Pagamento registrado e conta a pagar gerada!" });
       setPaymentDialogOpen(false);
