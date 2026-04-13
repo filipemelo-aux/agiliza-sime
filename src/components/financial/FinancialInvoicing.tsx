@@ -697,9 +697,9 @@ td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
 <div class="section">
   <div class="section-title">Dados do Cliente</div>
   <div class="info-grid">
-    <div class="info-item"><label>${cli?.person_type === "juridica" ? "Razão Social" : "Nome"}</label><span>${clienteNomeDisplay}</span></div>
+    <div class="info-item"><label>${isJuridica ? "Razão Social" : "Nome"}</label><span>${clienteNomeDisplay}</span></div>
     <div class="info-item"><label>Tipo</label><span>${clientePersonType}</span></div>
-    <div class="info-item"><label>${cli?.person_type === "juridica" ? "CNPJ" : "CPF/CNPJ"}</label><span>${clienteCnpj}</span></div>
+    <div class="info-item"><label>${isJuridica ? "CNPJ" : "CPF"}</label><span>${clienteCnpj}</span></div>
     <div class="info-item"><label>Inscrição Estadual</label><span>${clienteIE}</span></div>
     <div class="info-item"><label>E-mail</label><span>${clienteEmail}</span></div>
     <div class="info-item"><label>Telefone</label><span>${clientePhone}</span></div>
