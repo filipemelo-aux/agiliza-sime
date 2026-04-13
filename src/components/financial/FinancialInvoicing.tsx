@@ -559,32 +559,70 @@ export function FinancialInvoicing() {
       if (addrParts.length > 0) clienteAddress = addrParts.join(", ");
     }
 
-    // Build harvest details section
+    // Build harvest details section from metadata (filter context)
     let harvestDetailsHtml = "";
-    if (colheitaOrigemIds.length > 0) {
-      const rows = colheitaOrigemIds.map(id => {
-        const hj = harvestJobs[id];
-        if (!hj) return "";
-        const diaria = hj.payment_value || hj.monthly_value || 0;
-        const periodo = hj.harvest_period_start && hj.harvest_period_end
-          ? `${formatDateBR(hj.harvest_period_start)} a ${formatDateBR(hj.harvest_period_end)}`
+    if (colheitaPrevisoes.length > 0) {
+      const sections = colheitaPrevisoes.map(p => {
+        const meta = p.metadata as Previsao["metadata"];
+        const hj = harvestJobs[p.origem_id]; // legacy fallback
+        
+        const fazenda = meta?.fazenda || hj?.farm_name || "—";
+        const localizacao = meta?.localizacao || hj?.location || "—";
+        const diaria = meta?.diaria_cliente ?? (hj ? (hj.payment_value || (hj.monthly_value / 30)) : 0);
+        const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
+        const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
+        const periodo = periodoInicio && periodoFim
+          ? `${formatDateBR(periodoInicio)} a ${formatDateBR(periodoFim)}`
           : "—";
-        return `<tr>
-          <td>${hj.farm_name || "—"}</td>
-          <td>${hj.location || "—"}</td>
-          <td class="text-right mono">${formatCurrency(Number(diaria))}</td>
-          <td>${periodo}</td>
-        </tr>`;
+
+        let html = `
+<div class="section">
+  <div class="section-title">Detalhes da Colheita — ${fazenda}</div>
+  <div class="info-grid" style="margin-bottom:12px">
+    <div class="info-item"><label>Fazenda</label><span>${fazenda}</span></div>
+    <div class="info-item"><label>Localização</label><span>${localizacao}</span></div>
+    <div class="info-item"><label>Valor Diária</label><span class="mono">${formatCurrency(Number(diaria))}</span></div>
+    <div class="info-item"><label>Período Faturado</label><span>${periodo}</span></div>
+  </div>`;
+
+        if (meta?.detalhamento && meta.detalhamento.length > 0) {
+          const driverRows = meta.detalhamento.map(d => `<tr>
+            <td>${d.motorista}</td>
+            <td>${d.placa}</td>
+            <td>${d.proprietario || "—"}</td>
+            <td class="text-center">${d.dias}</td>
+            <td class="text-right mono">${formatCurrency(d.diaria)}</td>
+            <td class="text-right mono">${formatCurrency(d.bruto)}</td>
+            <td class="text-right mono">${formatCurrency(d.descontos)}</td>
+            <td class="text-right mono">${formatCurrency(d.liquido)}</td>
+          </tr>`).join("");
+          const totDias = meta.detalhamento.reduce((s, d) => s + d.dias, 0);
+          const totBruto = meta.detalhamento.reduce((s, d) => s + d.bruto, 0);
+          const totDesc = meta.detalhamento.reduce((s, d) => s + d.descontos, 0);
+          const totLiq = meta.detalhamento.reduce((s, d) => s + d.liquido, 0);
+
+          html += `
+  <table>
+    <thead><tr><th>Motorista</th><th>Placa</th><th>Proprietário</th><th class="text-center">Dias</th><th class="text-right">Diária</th><th class="text-right">Bruto</th><th class="text-right">Descontos</th><th class="text-right">Líquido</th></tr></thead>
+    <tbody>
+      ${driverRows}
+      <tr class="total-row">
+        <td colspan="3" class="text-right">TOTAIS</td>
+        <td class="text-center">${totDias}</td>
+        <td></td>
+        <td class="text-right mono">${formatCurrency(totBruto)}</td>
+        <td class="text-right mono">${formatCurrency(totDesc)}</td>
+        <td class="text-right mono">${formatCurrency(totLiq)}</td>
+      </tr>
+    </tbody>
+  </table>`;
+        }
+
+        html += `</div>`;
+        return html;
       }).join("");
 
-      harvestDetailsHtml = `
-<div class="section">
-  <div class="section-title">Detalhes da Colheita</div>
-  <table>
-    <thead><tr><th>Fazenda</th><th>Localização</th><th class="text-right">Valor Diária</th><th>Período do Contrato</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-</div>`;
+      harvestDetailsHtml = sections;
     }
 
     const html = `<!DOCTYPE html>
@@ -624,7 +662,7 @@ td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
 .summary-item .value{font-size:16px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px}
 .divider{border:none;border-top:1px dashed #e5e7eb;margin:16px 0}
-@media print{body{padding:24px 32px}@page{margin:15mm}}
+@media print{body{padding:24px 32px}@page{margin:15mm;size:landscape}}
 </style></head><body>
 
 <div class="header">
@@ -674,19 +712,26 @@ ${previsoes.length > 0 ? `
 <div class="section">
   <div class="section-title">Previsões Vinculadas (${previsoes.length})</div>
   <table>
-    <thead><tr><th>Origem</th><th>Descrição</th><th>Data Prevista</th><th class="text-right">Valor</th></tr></thead>
+    <thead><tr><th>Origem</th><th>Descrição</th><th>Período Faturado</th><th class="text-right">Valor</th></tr></thead>
     <tbody>
       ${previsoes.map(p => {
-        const hj = p.origem_tipo === "colheita" ? harvestJobs[p.origem_id] : null;
+        const meta = p.metadata as Previsao["metadata"];
+        const hj = harvestJobs[p.origem_id];
+        const fazenda = meta?.fazenda || hj?.farm_name || "";
+        const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
+        const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
         const descricao = p.origem_tipo === "cte"
           ? "Conhecimento de Transporte"
-          : hj
-            ? `Colheita — ${hj.farm_name || ""}${hj.harvest_period_start ? ` (${formatDateBR(hj.harvest_period_start)} a ${formatDateBR(hj.harvest_period_end)})` : ""}`
+          : fazenda
+            ? `Colheita — ${fazenda}`
             : "Colheita";
+        const periodoStr = periodoInicio && periodoFim
+          ? `${formatDateBR(periodoInicio)} a ${formatDateBR(periodoFim)}`
+          : formatDateBR(p.data_prevista);
         return `<tr>
           <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</span></td>
           <td style="font-size:11px">${descricao}</td>
-          <td>${formatDateBR(p.data_prevista)}</td>
+          <td>${periodoStr}</td>
           <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
         </tr>`;
       }).join("")}
