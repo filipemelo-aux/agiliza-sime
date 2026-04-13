@@ -124,8 +124,9 @@ export function RevenueForecasts() {
     setInvoiceDialogOpen(true);
   };
 
-  const effectiveParcelas = condicaoPagamento === "avista" ? 1 : numParcelas;
-  const effectiveIntervalo = condicaoPagamento === "avista" ? 0 : intervaloDias;
+  const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
+  const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
+  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : undefined;
 
   const handleCreateInvoice = async () => {
     if (selectedItems.length === 0 || !sameClient) return;
