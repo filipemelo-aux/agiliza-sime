@@ -373,10 +373,11 @@ export function FinancialInvoicing() {
       return;
     }
 
-    const confirmed = await confirmAction(
-      "Excluir Fatura",
-      `Deseja excluir esta fatura de ${formatCurrency(Number(fatura.valor_total))}? As previsões vinculadas voltarão ao status pendente e os títulos a receber serão removidos.`
-    );
+    const confirmed = await confirm({
+      title: "Excluir Fatura",
+      description: `Deseja excluir esta fatura de ${formatCurrency(Number(fatura.valor_total))}? As previsões vinculadas voltarão ao status pendente e os títulos a receber serão removidos.`,
+      variant: "destructive",
+    });
     if (!confirmed) return;
 
     try {
