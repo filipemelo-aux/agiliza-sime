@@ -197,7 +197,7 @@ export function RevenueForecasts() {
 
   return (
     <div className="space-y-4">
-      <ConfirmDialog />
+      {ConfirmDialog}
       <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
 
       {/* Summary - compact */}
