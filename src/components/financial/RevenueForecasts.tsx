@@ -141,6 +141,7 @@ export function RevenueForecasts() {
           valor_total: selectedTotal,
           num_parcelas: effectiveParcelas,
           intervalo_dias: effectiveIntervalo,
+          ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
           status: "faturada" as any,
         })
         .select()
