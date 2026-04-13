@@ -1045,7 +1045,7 @@ ${previsoes.length > 0 ? `
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog />
+      {ConfirmDialog}
     </div>
   );
 }
