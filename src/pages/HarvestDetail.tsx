@@ -1287,6 +1287,39 @@ export default function HarvestDetail() {
     setDiscountDialogOpen(true);
   };
 
+  const handleCreatePrevisao = async () => {
+    if (!job?.client_id || !id) {
+      toast({ title: "Este serviço não possui cliente vinculado", variant: "destructive" });
+      return;
+    }
+    if (!filterStartDate || !filterEndDate) {
+      toast({ title: "Defina o período (datas de início e fim) para gerar a previsão", variant: "destructive" });
+      return;
+    }
+    const totalCliente = sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+    if (totalCliente <= 0) {
+      toast({ title: "Valor total do cliente deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+    setSavingPrevisao(true);
+    try {
+      const { error } = await supabase.from("previsoes_recebimento").insert({
+        origem_tipo: "colheita" as any,
+        origem_id: id,
+        cliente_id: job.client_id,
+        valor: totalCliente,
+        data_prevista: filterEndDate,
+        status: "pendente" as any,
+      } as any);
+      if (error) throw error;
+      toast({ title: "Previsão de recebimento gerada!", description: `Valor: ${formatCurrency(totalCliente)} — Período: ${formatDate(filterStartDate)} a ${formatDate(filterEndDate)}` });
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar previsão", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingPrevisao(false);
+    }
+  };
+
   const openCompanyDiscountDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
     setDiscountForm({ type: "falta", description: "", value: "", date: getLocalDateISO() });
