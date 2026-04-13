@@ -628,7 +628,7 @@ export function FinancialInvoicing() {
     }
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Fatura ${String(fatura.numero).padStart(4, '0')}</title>
+<html><head><meta charset="UTF-8"><title>faturamento-${String(fatura.numero).padStart(4, '0')}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:40px 48px;font-size:13px;line-height:1.5}
