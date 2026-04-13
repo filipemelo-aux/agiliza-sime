@@ -174,9 +174,8 @@ export function RevenueForecasts() {
   const handleDeleteSelected = async () => {
     if (selectedItems.length === 0) return;
     const confirmed = await confirm({
-      title: "Excluir previsões",
       description: `Deseja excluir ${selectedItems.length} previsão(ões) pendente(s)? Esta ação não pode ser desfeita.`,
-      confirmText: "Excluir",
+      confirmLabel: "Excluir",
       variant: "destructive",
     });
     if (!confirmed) return;
