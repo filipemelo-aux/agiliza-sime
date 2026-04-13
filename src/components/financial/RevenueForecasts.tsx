@@ -43,9 +43,10 @@ export function RevenueForecasts() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
-  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "parcelado">("avista");
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "unico" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
+  const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const INTERVALO_PRESETS = [
