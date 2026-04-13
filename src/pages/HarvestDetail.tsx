@@ -1303,6 +1303,31 @@ export default function HarvestDetail() {
     }
     setSavingPrevisao(true);
     try {
+      // Build detailed breakdown per driver for the invoice
+      const detalhamento = sortedCliente.map((a) => {
+        const c = getClienteData(a);
+        return {
+          motorista: a.driver_name || "—",
+          placa: a.vehicle_plate || "—",
+          proprietario: a.owner_name || "—",
+          dias: c.days,
+          diaria: c.dvCliente,
+          bruto: c.totalBruto,
+          descontos: c.totalDescontos,
+          liquido: c.totalLiquido,
+        };
+      });
+
+      const metadata = {
+        periodo_inicio: filterStartDate,
+        periodo_fim: filterEndDate,
+        fazenda: job.farm_name,
+        localizacao: job.location || "",
+        diaria_cliente: job.monthly_value / 30,
+        valor_mensal: job.monthly_value,
+        detalhamento,
+      };
+
       const { error } = await supabase.from("previsoes_recebimento").insert({
         origem_tipo: "colheita" as any,
         origem_id: id,
@@ -1310,6 +1335,7 @@ export default function HarvestDetail() {
         valor: totalCliente,
         data_prevista: filterEndDate,
         status: "pendente" as any,
+        metadata,
       } as any);
       if (error) throw error;
       toast({ title: "Previsão de recebimento gerada!", description: `Valor: ${formatCurrency(totalCliente)} — Período: ${formatDate(filterStartDate)} a ${formatDate(filterEndDate)}` });
