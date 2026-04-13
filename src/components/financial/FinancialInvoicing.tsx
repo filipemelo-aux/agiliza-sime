@@ -929,7 +929,7 @@ ${previsoes.length > 0 ? `
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Detalhes da Fatura</DialogTitle>
+            <DialogTitle>Fatura #{String(selectedFatura?.numero ?? 0).padStart(4, '0')}</DialogTitle>
           </DialogHeader>
           {selectedFatura && (
             <div className="space-y-4">
