@@ -90,7 +90,7 @@ const INTERVALO_PRESETS = [
 
 export function FinancialInvoicing() {
   const isMobile = useIsMobile();
-  const { unifiedLabel, unifiedCnpjLines } = useUnifiedCompany();
+  const { unifiedLabel, unifiedCnpjLines, establishments } = useUnifiedCompany();
   const { ConfirmDialog, confirm } = useConfirmDialog();
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [loading, setLoading] = useState(true);
@@ -448,7 +448,7 @@ export function FinancialInvoicing() {
 
   // --- Print ---
   const handlePrintFatura = async (fatura: Fatura) => {
-    // Load linked data
+    // Load linked previsões
     const { data: links } = await supabase
       .from("fatura_previsoes")
       .select("previsao_id")
@@ -464,6 +464,7 @@ export function FinancialInvoicing() {
       previsoes = (prevData as Previsao[]) || [];
     }
 
+    // Load contas a receber
     const { data: contasData } = await supabase
       .from("contas_receber")
       .select("*")
@@ -471,8 +472,100 @@ export function FinancialInvoicing() {
       .order("data_vencimento", { ascending: true });
     const contas = (contasData as ContaReceber[]) || [];
 
+    // Load full client profile
+    const { data: clienteProfile } = await supabase
+      .from("profiles")
+      .select("full_name, razao_social, cnpj, inscricao_estadual, email, phone, person_type, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip")
+      .eq("id", fatura.cliente_id)
+      .single();
+
+    // Load harvest job details for colheita previsões
+    const colheitaOrigemIds = [...new Set(previsoes.filter(p => p.origem_tipo === "colheita").map(p => p.origem_id))];
+    let harvestJobs: Record<string, any> = {};
+    if (colheitaOrigemIds.length > 0) {
+      const { data: hjData } = await supabase
+        .from("harvest_jobs")
+        .select("id, farm_name, location, harvest_period_start, harvest_period_end, payment_value, monthly_value")
+        .in("id", colheitaOrigemIds);
+      if (hjData) {
+        hjData.forEach((hj: any) => { harvestJobs[hj.id] = hj; });
+      }
+    }
+
+    // Company info
     const companyName = unifiedLabel;
     const cnpjLines = unifiedCnpjLines.join("<br/>");
+    const matriz = establishments.find(e => e.type === "matriz") || establishments[0];
+
+    // Build company address from establishment
+    let companyAddress = "";
+    if (matriz) {
+      const { data: estData } = await supabase
+        .from("fiscal_establishments")
+        .select("endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+        .eq("id", matriz.id)
+        .single();
+      if (estData) {
+        const parts = [
+          estData.endereco_logradouro,
+          estData.endereco_numero ? `nº ${estData.endereco_numero}` : null,
+          estData.endereco_bairro,
+          estData.endereco_municipio && estData.endereco_uf ? `${estData.endereco_municipio}/${estData.endereco_uf}` : null,
+          estData.endereco_cep ? `CEP: ${estData.endereco_cep}` : null,
+        ].filter(Boolean);
+        companyAddress = parts.join(", ");
+      }
+    }
+
+    // Client display info
+    const cli = clienteProfile;
+    const clienteNomeDisplay = cli?.razao_social || cli?.full_name || fatura.cliente_nome || "—";
+    const clienteCnpj = cli?.cnpj || "—";
+    const clienteIE = cli?.inscricao_estadual || "—";
+    const clienteEmail = cli?.email || "—";
+    const clientePhone = cli?.phone || "—";
+    const clientePersonType = cli?.person_type === "juridica" ? "Pessoa Jurídica" : "Pessoa Física";
+
+    let clienteAddress = "—";
+    if (cli) {
+      const addrParts = [
+        cli.address_street,
+        cli.address_number ? `nº ${cli.address_number}` : null,
+        cli.address_complement,
+        cli.address_neighborhood,
+        cli.address_city && cli.address_state ? `${cli.address_city}/${cli.address_state}` : null,
+        cli.address_zip ? `CEP: ${cli.address_zip}` : null,
+      ].filter(Boolean);
+      if (addrParts.length > 0) clienteAddress = addrParts.join(", ");
+    }
+
+    // Build harvest details section
+    let harvestDetailsHtml = "";
+    if (colheitaOrigemIds.length > 0) {
+      const rows = colheitaOrigemIds.map(id => {
+        const hj = harvestJobs[id];
+        if (!hj) return "";
+        const diaria = hj.payment_value || hj.monthly_value || 0;
+        const periodo = hj.harvest_period_start && hj.harvest_period_end
+          ? `${formatDateBR(hj.harvest_period_start)} a ${formatDateBR(hj.harvest_period_end)}`
+          : "—";
+        return `<tr>
+          <td>${hj.farm_name || "—"}</td>
+          <td>${hj.location || "—"}</td>
+          <td class="text-right mono">${formatCurrency(Number(diaria))}</td>
+          <td>${periodo}</td>
+        </tr>`;
+      }).join("");
+
+      harvestDetailsHtml = `
+<div class="section">
+  <div class="section-title">Detalhes da Colheita</div>
+  <table>
+    <thead><tr><th>Fazenda</th><th>Localização</th><th class="text-right">Valor Diária</th><th>Período do Contrato</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
+    }
 
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Fatura ${fatura.id.slice(0,8).toUpperCase()}</title>
@@ -482,14 +575,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;bac
 .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:2px solid #1a1a2e;margin-bottom:24px}
 .company{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1a1a2e}
 .company-sub{font-size:11px;color:#6b7280;margin-top:4px}
+.company-addr{font-size:10px;color:#9ca3af;margin-top:2px}
 .doc-info{text-align:right}
 .doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#1a1a2e;text-transform:uppercase}
 .doc-number{font-size:11px;color:#6b7280;margin-top:2px;font-family:monospace}
 .section{margin-bottom:20px}
 .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+.info-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 24px}
 .info-item label{display:block;font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
-.info-item span{font-size:13px;font-weight:600;color:#1a1a2e}
+.info-item span{font-size:12px;font-weight:600;color:#1a1a2e}
+.info-item-full{grid-column:1/-1}
 table{width:100%;border-collapse:collapse;margin-top:4px}
 th{background:#f8f9fa;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb}
 td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
@@ -507,16 +603,20 @@ td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
 .summary-item{text-align:center}
 .summary-item .value{font-size:16px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px}
-@media print{body{padding:24px 32px}@page{margin:20mm}}
+.divider{border:none;border-top:1px dashed #e5e7eb;margin:16px 0}
+@media print{body{padding:24px 32px}@page{margin:15mm}}
 </style></head><body>
+
 <div class="header">
   <div>
     <div class="company">${companyName}</div>
     <div class="company-sub">${cnpjLines}</div>
+    ${companyAddress ? `<div class="company-addr">${companyAddress}</div>` : ""}
   </div>
   <div class="doc-info">
     <div class="doc-title">Fatura</div>
     <div class="doc-number">#${fatura.id.slice(0, 8).toUpperCase()}</div>
+    <div style="font-size:11px;color:#6b7280;margin-top:4px">${formatDateBR(fatura.data_emissao)}</div>
   </div>
 </div>
 
@@ -530,32 +630,48 @@ td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
     <div class="label">Condição</div>
   </div>
   <div class="summary-item">
-    <div class="value">${formatDateBR(fatura.data_emissao)}</div>
-    <div class="label">Emissão</div>
+    <div class="value">${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</div>
+    <div class="label">Status</div>
   </div>
 </div>
 
 <div class="section">
   <div class="section-title">Dados do Cliente</div>
   <div class="info-grid">
-    <div class="info-item"><label>Nome</label><span>${fatura.cliente_nome}</span></div>
-    <div class="info-item"><label>Status</label><span>${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</span></div>
+    <div class="info-item"><label>${cli?.person_type === "juridica" ? "Razão Social" : "Nome"}</label><span>${clienteNomeDisplay}</span></div>
+    <div class="info-item"><label>Tipo</label><span>${clientePersonType}</span></div>
+    <div class="info-item"><label>${cli?.person_type === "juridica" ? "CNPJ" : "CPF/CNPJ"}</label><span>${clienteCnpj}</span></div>
+    <div class="info-item"><label>Inscrição Estadual</label><span>${clienteIE}</span></div>
+    <div class="info-item"><label>E-mail</label><span>${clienteEmail}</span></div>
+    <div class="info-item"><label>Telefone</label><span>${clientePhone}</span></div>
+    <div class="info-item info-item-full"><label>Endereço</label><span>${clienteAddress}</span></div>
   </div>
 </div>
+
+${harvestDetailsHtml}
 
 ${previsoes.length > 0 ? `
 <div class="section">
   <div class="section-title">Previsões Vinculadas (${previsoes.length})</div>
   <table>
-    <thead><tr><th>Origem</th><th>Data Prevista</th><th class="text-right">Valor</th></tr></thead>
+    <thead><tr><th>Origem</th><th>Descrição</th><th>Data Prevista</th><th class="text-right">Valor</th></tr></thead>
     <tbody>
-      ${previsoes.map(p => `<tr>
-        <td>${p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</td>
-        <td>${formatDateBR(p.data_prevista)}</td>
-        <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
-      </tr>`).join("")}
+      ${previsoes.map(p => {
+        const hj = p.origem_tipo === "colheita" ? harvestJobs[p.origem_id] : null;
+        const descricao = p.origem_tipo === "cte"
+          ? "Conhecimento de Transporte"
+          : hj
+            ? `Colheita — ${hj.farm_name || ""}${hj.harvest_period_start ? ` (${formatDateBR(hj.harvest_period_start)} a ${formatDateBR(hj.harvest_period_end)})` : ""}`
+            : "Colheita";
+        return `<tr>
+          <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</span></td>
+          <td style="font-size:11px">${descricao}</td>
+          <td>${formatDateBR(p.data_prevista)}</td>
+          <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
+        </tr>`;
+      }).join("")}
       <tr class="total-row">
-        <td colspan="2">Total</td>
+        <td colspan="3">Total</td>
         <td class="text-right mono">${formatCurrency(previsoes.reduce((s, p) => s + Number(p.valor), 0))}</td>
       </tr>
     </tbody>
@@ -582,6 +698,8 @@ ${previsoes.length > 0 ? `
     </tbody>
   </table>
 </div>
+
+<hr class="divider" />
 
 <div class="footer">
   Documento gerado em ${new Date().toLocaleString("pt-BR")} · ${companyName}
