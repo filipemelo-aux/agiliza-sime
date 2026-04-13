@@ -1,0 +1,1 @@
+ALTER TABLE public.previsoes_recebimento ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;

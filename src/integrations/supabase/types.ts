@@ -2395,6 +2395,7 @@ export type Database = {
           created_at: string
           data_prevista: string
           id: string
+          metadata: Json | null
           origem_id: string
           origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
           status: Database["public"]["Enums"]["previsao_status"]
@@ -2405,6 +2406,7 @@ export type Database = {
           created_at?: string
           data_prevista: string
           id?: string
+          metadata?: Json | null
           origem_id: string
           origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
           status?: Database["public"]["Enums"]["previsao_status"]
@@ -2415,6 +2417,7 @@ export type Database = {
           created_at?: string
           data_prevista?: string
           id?: string
+          metadata?: Json | null
           origem_id?: string
           origem_tipo?: Database["public"]["Enums"]["previsao_origem_tipo"]
           status?: Database["public"]["Enums"]["previsao_status"]
