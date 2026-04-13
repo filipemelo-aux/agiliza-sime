@@ -43,6 +43,24 @@ interface Previsao {
   status: string;
   cliente_id: string;
   cliente_nome?: string;
+  metadata?: {
+    periodo_inicio?: string;
+    periodo_fim?: string;
+    fazenda?: string;
+    localizacao?: string;
+    diaria_cliente?: number;
+    valor_mensal?: number;
+    detalhamento?: Array<{
+      motorista: string;
+      placa: string;
+      proprietario: string;
+      dias: number;
+      diaria: number;
+      bruto: number;
+      descontos: number;
+      liquido: number;
+    }>;
+  };
 }
 
 interface ContaReceber {
