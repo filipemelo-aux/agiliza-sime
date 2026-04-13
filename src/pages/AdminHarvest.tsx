@@ -343,7 +343,8 @@ export default function AdminHarvest() {
                             payment_closing_day: String(job.payment_closing_day),
                             notes: job.notes || "",
                             client_id: job.client_id || "",
-                          });
+                           });
+                            setSelectedClientName(job.client_name || "");
                             setDialogOpen(true);
                           }}>
                             <Pencil className="h-3.5 w-3.5" />
