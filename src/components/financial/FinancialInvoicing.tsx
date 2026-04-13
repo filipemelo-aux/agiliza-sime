@@ -8,16 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
-import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { formatCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Fatura {
   id: string;
@@ -73,8 +76,22 @@ const FORMA_RECEBIMENTO_OPTIONS = [
   { value: "cartao_debito", label: "Cartão de Débito" },
 ];
 
+const INTERVALO_PRESETS = [
+  { value: "7", label: "7 dias" },
+  { value: "14", label: "14 dias" },
+  { value: "15", label: "15 dias" },
+  { value: "21", label: "21 dias" },
+  { value: "28", label: "28 dias" },
+  { value: "30", label: "30 dias" },
+  { value: "45", label: "45 dias" },
+  { value: "60", label: "60 dias" },
+  { value: "90", label: "90 dias" },
+];
+
 export function FinancialInvoicing() {
   const isMobile = useIsMobile();
+  const { unifiedLabel, unifiedCnpjLines } = useUnifiedCompany();
+  const { ConfirmDialog, confirmAction } = useConfirmDialog();
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,13 +101,15 @@ export function FinancialInvoicing() {
   const [detailPrevisoes, setDetailPrevisoes] = useState<Previsao[]>([]);
   const [detailContas, setDetailContas] = useState<ContaReceber[]>([]);
 
-  // New invoice dialog
+  // New/Edit invoice dialog
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [editingFaturaId, setEditingFaturaId] = useState<string | null>(null);
   const [step, setStep] = useState<"client" | "preview">("client");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clientPrevisoes, setClientPrevisoes] = useState<Previsao[]>([]);
   const [selectedPrevIds, setSelectedPrevIds] = useState<Set<string>>(new Set());
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [saving, setSaving] = useState(false);
@@ -160,15 +179,16 @@ export function FinancialInvoicing() {
 
   // --- Nova Fatura ---
   const openNewInvoice = async () => {
+    setEditingFaturaId(null);
     setStep("client");
     setSelectedClientId("");
     setClientPrevisoes([]);
     setSelectedPrevIds(new Set());
+    setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
     setNewDialogOpen(true);
 
-    // Load clients that have pending previsões
     const { data } = await supabase
       .from("previsoes_recebimento")
       .select("cliente_id, profiles:cliente_id(full_name)")
@@ -183,6 +203,64 @@ export function FinancialInvoicing() {
       });
       setClientes(Array.from(unique.entries()).map(([id, full_name]) => ({ id, full_name })));
     }
+  };
+
+  // --- Edit Fatura ---
+  const openEditInvoice = async (fatura: Fatura) => {
+    // Only faturada can be edited (not paid)
+    if (fatura.status === "paga") {
+      toast.error("Faturas pagas não podem ser editadas");
+      return;
+    }
+
+    setEditingFaturaId(fatura.id);
+    setSelectedClientId(fatura.cliente_id);
+    setCondicaoPagamento(fatura.num_parcelas === 1 ? "avista" : "parcelado");
+    setNumParcelas(fatura.num_parcelas);
+    setIntervaloDias(fatura.intervalo_dias);
+    setStep("preview");
+
+    // Load linked previsões (faturado) + any pending for this client
+    const { data: links } = await supabase
+      .from("fatura_previsoes")
+      .select("previsao_id")
+      .eq("fatura_id", fatura.id);
+
+    const linkedIds = (links || []).map((l: any) => l.previsao_id);
+
+    const { data: prevLinked } = await supabase
+      .from("previsoes_recebimento")
+      .select("*, profiles:cliente_id(full_name)")
+      .in("id", linkedIds.length > 0 ? linkedIds : ["__none__"]);
+
+    const { data: prevPending } = await supabase
+      .from("previsoes_recebimento")
+      .select("*, profiles:cliente_id(full_name)")
+      .eq("cliente_id", fatura.cliente_id)
+      .eq("status", "pendente");
+
+    const all = [
+      ...((prevLinked || []) as any[]),
+      ...((prevPending || []) as any[]),
+    ].map((p: any) => ({
+      ...p,
+      cliente_nome: p.profiles?.full_name || "—",
+    }));
+
+    // Deduplicate
+    const seen = new Set<string>();
+    const deduped = all.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+
+    setClientPrevisoes(deduped);
+    setSelectedPrevIds(new Set(linkedIds));
+
+    // Also load clients for "Voltar" step
+    setClientes([{ id: fatura.cliente_id, full_name: fatura.cliente_nome || "—" }]);
+    setNewDialogOpen(true);
   };
 
   const handleClientSelect = async (clientId: string) => {
@@ -216,41 +294,104 @@ export function FinancialInvoicing() {
     .filter((p) => selectedPrevIds.has(p.id))
     .reduce((s, p) => s + Number(p.valor), 0);
 
-  const handleCreateInvoice = async () => {
+  const effectiveParcelas = condicaoPagamento === "avista" ? 1 : numParcelas;
+  const effectiveIntervalo = condicaoPagamento === "avista" ? 0 : intervaloDias;
+
+  const handleCreateOrUpdateInvoice = async () => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
     setSaving(true);
 
     try {
-      const { data: fatura, error: faturaErr } = await supabase
-        .from("faturas_recebimento")
-        .insert({
-          cliente_id: selectedClientId,
-          valor_total: selectedPrevTotal,
-          num_parcelas: numParcelas,
-          intervalo_dias: intervaloDias,
-          status: "faturada" as any,
-        })
-        .select()
-        .single();
+      if (editingFaturaId) {
+        // --- UPDATE existing fatura ---
+        // 1. Delete existing contas_receber for this fatura
+        await supabase.from("contas_receber").delete().eq("fatura_id", editingFaturaId);
+        // 2. Delete existing links (triggers set previsões back to pendente)
+        await supabase.from("fatura_previsoes").delete().eq("fatura_id", editingFaturaId);
+        // 3. Update fatura
+        const { error: updErr } = await supabase
+          .from("faturas_recebimento")
+          .update({
+            valor_total: selectedPrevTotal,
+            num_parcelas: effectiveParcelas,
+            intervalo_dias: effectiveIntervalo,
+            status: "faturada" as any,
+          })
+          .eq("id", editingFaturaId);
+        if (updErr) throw updErr;
 
-      if (faturaErr) throw faturaErr;
+        // 4. Re-link previsões
+        const links = selectedItems.map((p) => ({
+          fatura_id: editingFaturaId,
+          previsao_id: p.id,
+        }));
+        const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
+        if (linkErr) throw linkErr;
 
-      const links = selectedItems.map((p) => ({
-        fatura_id: fatura.id,
-        previsao_id: p.id,
-      }));
+        toast.success("Fatura atualizada com sucesso!");
+      } else {
+        // --- CREATE new fatura ---
+        const { data: fatura, error: faturaErr } = await supabase
+          .from("faturas_recebimento")
+          .insert({
+            cliente_id: selectedClientId,
+            valor_total: selectedPrevTotal,
+            num_parcelas: effectiveParcelas,
+            intervalo_dias: effectiveIntervalo,
+            status: "faturada" as any,
+          })
+          .select()
+          .single();
 
-      const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
-      if (linkErr) throw linkErr;
+        if (faturaErr) throw faturaErr;
 
-      toast.success(`Fatura criada com ${numParcelas} parcela(s)!`);
+        const links = selectedItems.map((p) => ({
+          fatura_id: fatura.id,
+          previsao_id: p.id,
+        }));
+
+        const { error: linkErr } = await supabase.from("fatura_previsoes").insert(links);
+        if (linkErr) throw linkErr;
+
+        toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)!`);
+      }
+
       setNewDialogOpen(false);
       fetchFaturas();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar fatura");
+      toast.error(err.message || "Erro ao salvar fatura");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // --- Delete Fatura ---
+  const handleDeleteFatura = async (fatura: Fatura) => {
+    if (fatura.status === "paga") {
+      toast.error("Faturas pagas não podem ser excluídas");
+      return;
+    }
+
+    const confirmed = await confirmAction(
+      "Excluir Fatura",
+      `Deseja excluir esta fatura de ${formatCurrency(Number(fatura.valor_total))}? As previsões vinculadas voltarão ao status pendente e os títulos a receber serão removidos.`
+    );
+    if (!confirmed) return;
+
+    try {
+      // Delete contas_receber
+      await supabase.from("contas_receber").delete().eq("fatura_id", fatura.id);
+      // Delete links (trigger reverts previsões to pendente)
+      await supabase.from("fatura_previsoes").delete().eq("fatura_id", fatura.id);
+      // Delete fatura
+      const { error } = await supabase.from("faturas_recebimento").delete().eq("id", fatura.id);
+      if (error) throw error;
+
+      toast.success("Fatura excluída com sucesso!");
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir fatura");
     }
   };
 
@@ -300,8 +441,159 @@ export function FinancialInvoicing() {
     }
   };
 
-  const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
+  // --- Print ---
+  const handlePrintFatura = async (fatura: Fatura) => {
+    // Load linked data
+    const { data: links } = await supabase
+      .from("fatura_previsoes")
+      .select("previsao_id")
+      .eq("fatura_id", fatura.id);
 
+    let previsoes: Previsao[] = [];
+    if (links && links.length > 0) {
+      const ids = links.map((l: any) => l.previsao_id);
+      const { data: prevData } = await supabase
+        .from("previsoes_recebimento")
+        .select("*")
+        .in("id", ids);
+      previsoes = (prevData as Previsao[]) || [];
+    }
+
+    const { data: contasData } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .eq("fatura_id", fatura.id)
+      .order("data_vencimento", { ascending: true });
+    const contas = (contasData as ContaReceber[]) || [];
+
+    const companyName = unifiedLabel;
+    const cnpjLines = unifiedCnpjLines.join("<br/>");
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Fatura ${fatura.id.slice(0,8).toUpperCase()}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:40px 48px;font-size:13px;line-height:1.5}
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:2px solid #1a1a2e;margin-bottom:24px}
+.company{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1a1a2e}
+.company-sub{font-size:11px;color:#6b7280;margin-top:4px}
+.doc-info{text-align:right}
+.doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#1a1a2e;text-transform:uppercase}
+.doc-number{font-size:11px;color:#6b7280;margin-top:2px;font-family:monospace}
+.section{margin-bottom:20px}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+.info-item label{display:block;font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px}
+.info-item span{font-size:13px;font-weight:600;color:#1a1a2e}
+table{width:100%;border-collapse:collapse;margin-top:4px}
+th{background:#f8f9fa;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb}
+td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
+.text-right{text-align:right}
+.text-center{text-align:center}
+.mono{font-family:'SF Mono',Monaco,monospace;font-weight:600}
+.total-row{background:#f0fdf4;font-weight:700}
+.total-row td{border-bottom:2px solid #16a34a;color:#15803d}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.badge-open{background:#fef3c7;color:#92400e}
+.badge-received{background:#dcfce7;color:#166534}
+.badge-late{background:#fee2e2;color:#991b1b}
+.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:10px;color:#9ca3af}
+.summary-box{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.summary-item{text-align:center}
+.summary-item .value{font-size:16px;font-weight:800;color:#1a1a2e}
+.summary-item .label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px}
+@media print{body{padding:24px 32px}@page{margin:20mm}}
+</style></head><body>
+<div class="header">
+  <div>
+    <div class="company">${companyName}</div>
+    <div class="company-sub">${cnpjLines}</div>
+  </div>
+  <div class="doc-info">
+    <div class="doc-title">Fatura</div>
+    <div class="doc-number">#${fatura.id.slice(0, 8).toUpperCase()}</div>
+  </div>
+</div>
+
+<div class="summary-box">
+  <div class="summary-item">
+    <div class="value">${formatCurrency(Number(fatura.valor_total))}</div>
+    <div class="label">Valor Total</div>
+  </div>
+  <div class="summary-item">
+    <div class="value">${fatura.num_parcelas === 1 ? 'À Vista' : fatura.num_parcelas + 'x'}</div>
+    <div class="label">Condição</div>
+  </div>
+  <div class="summary-item">
+    <div class="value">${formatDateBR(fatura.data_emissao)}</div>
+    <div class="label">Emissão</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Dados do Cliente</div>
+  <div class="info-grid">
+    <div class="info-item"><label>Nome</label><span>${fatura.cliente_nome}</span></div>
+    <div class="info-item"><label>Status</label><span>${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</span></div>
+  </div>
+</div>
+
+${previsoes.length > 0 ? `
+<div class="section">
+  <div class="section-title">Previsões Vinculadas (${previsoes.length})</div>
+  <table>
+    <thead><tr><th>Origem</th><th>Data Prevista</th><th class="text-right">Valor</th></tr></thead>
+    <tbody>
+      ${previsoes.map(p => `<tr>
+        <td>${p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</td>
+        <td>${formatDateBR(p.data_prevista)}</td>
+        <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
+      </tr>`).join("")}
+      <tr class="total-row">
+        <td colspan="2">Total</td>
+        <td class="text-right mono">${formatCurrency(previsoes.reduce((s, p) => s + Number(p.valor), 0))}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+` : ""}
+
+<div class="section">
+  <div class="section-title">Parcelas / Contas a Receber (${contas.length})</div>
+  <table>
+    <thead><tr><th>#</th><th>Vencimento</th><th class="text-right">Valor</th><th class="text-center">Status</th><th>Recebimento</th></tr></thead>
+    <tbody>
+      ${contas.map((c, i) => {
+        const badgeClass = c.status === "recebido" ? "badge-received" : c.status === "atrasado" ? "badge-late" : "badge-open";
+        const statusLabel = c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto";
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${formatDateBR(c.data_vencimento)}</td>
+          <td class="text-right mono">${formatCurrency(Number(c.valor))}</td>
+          <td class="text-center"><span class="badge ${badgeClass}">${statusLabel}</span></td>
+          <td>${c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Documento gerado em ${new Date().toLocaleString("pt-BR")} · ${companyName}
+</div>
+</body></html>`;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (win) {
+      win.addEventListener("load", () => {
+        setTimeout(() => win.print(), 300);
+      });
+    }
+  };
+
+  const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
   const hasPendingContas = (f: Fatura) => f.status === "faturada";
 
   return (
@@ -314,13 +606,11 @@ export function FinancialInvoicing() {
         </Button>
       </div>
 
-      {/* Summary - compact */}
       <div className="grid grid-cols-2 gap-2">
         <SummaryCard icon={FileText} label="Total de Faturas" value={faturas.length} />
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
-      {/* Faturas list */}
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : faturas.length === 0 ? (
@@ -343,13 +633,28 @@ export function FinancialInvoicing() {
                     <Badge variant={st.variant} className="text-[10px] shrink-0">{st.label}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{formatDateBR(f.data_emissao)} · {f.num_parcelas}x</span>
+                    <span className="text-muted-foreground">
+                      {formatDateBR(f.data_emissao)} · {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x`}
+                    </span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(f.valor_total))}</span>
                   </div>
-                  <div className="flex gap-1.5 pt-1">
+                  <div className="flex gap-1.5 pt-1 flex-wrap">
                     <Button variant="ghost" size="sm" onClick={() => openDetail(f)} className="gap-1 h-7 text-xs flex-1">
                       <Eye className="h-3 w-3" /> Detalhes
                     </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handlePrintFatura(f)} className="gap-1 h-7 text-xs">
+                      <Printer className="h-3 w-3" />
+                    </Button>
+                    {f.status !== "paga" && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => openEditInvoice(f)} className="gap-1 h-7 text-xs">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteFatura(f)} className="gap-1 h-7 text-xs text-destructive hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
                     {hasPendingContas(f) && (
                       <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs flex-1">
                         <HandCoins className="h-3 w-3" /> Receber
@@ -371,7 +676,7 @@ export function FinancialInvoicing() {
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
                     <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
-                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Parcelas</th>
+                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Condição</th>
                     <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
                     <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
                   </tr>
@@ -384,7 +689,9 @@ export function FinancialInvoicing() {
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
                         <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
-                        <td className="px-4 py-2.5 text-center text-xs">{f.num_parcelas}x</td>
+                        <td className="px-4 py-2.5 text-center text-xs">
+                          {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
+                        </td>
                         <td className="px-4 py-2.5 text-center">
                           <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                         </td>
@@ -393,6 +700,19 @@ export function FinancialInvoicing() {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePrintFatura(f)} title="Imprimir">
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                            {f.status !== "paga" && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInvoice(f)} title="Editar">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteFatura(f)} title="Excluir">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
                             {hasPendingContas(f) && (
                               <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
                                 <HandCoins className="h-3 w-3" /> Receber
@@ -422,7 +742,7 @@ export function FinancialInvoicing() {
                 <div><span className="text-muted-foreground">Cliente:</span> <strong>{selectedFatura.cliente_nome}</strong></div>
                 <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
                 <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
-                <div><span className="text-muted-foreground">Parcelas:</span> <strong>{selectedFatura.num_parcelas}x (a cada {selectedFatura.intervalo_dias} dias)</strong></div>
+                <div><span className="text-muted-foreground">Condição:</span> <strong>{selectedFatura.num_parcelas === 1 ? "À vista" : `${selectedFatura.num_parcelas}x (a cada ${selectedFatura.intervalo_dias} dias)`}</strong></div>
               </div>
 
               <div>
@@ -480,19 +800,34 @@ export function FinancialInvoicing() {
                   </Table>
                 </div>
               </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" onClick={() => handlePrintFatura(selectedFatura)} className="gap-1.5">
+                  <Printer className="h-4 w-4" /> Imprimir
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* New Invoice Dialog */}
+      {/* New/Edit Invoice Dialog */}
       <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{step === "client" ? "Nova Fatura — Selecionar Cliente" : "Nova Fatura — Previsões"}</DialogTitle>
+            <DialogTitle>
+              {editingFaturaId
+                ? "Editar Fatura"
+                : step === "client"
+                  ? "Nova Fatura — Selecionar Cliente"
+                  : "Nova Fatura — Condições"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+            </DialogDescription>
           </DialogHeader>
 
-          {step === "client" && (
+          {step === "client" && !editingFaturaId && (
             <div className="space-y-4">
               {clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente com previsões pendentes.</p>
@@ -520,7 +855,7 @@ export function FinancialInvoicing() {
               </p>
 
               {/* Previsões list */}
-              <div className="border rounded max-h-[200px] overflow-y-auto">
+              <div className="border rounded max-h-[180px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -561,41 +896,80 @@ export function FinancialInvoicing() {
                 Total: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
               </div>
 
-              {/* Payment terms */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Nº de Parcelas</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={48}
-                    value={numParcelas}
-                    onChange={(e) => setNumParcelas(Math.max(1, Number(e.target.value)))}
-                  />
-                </div>
-                <div>
-                  <Label>Intervalo (dias)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={intervaloDias}
-                    onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value)))}
-                  />
-                </div>
+              {/* Payment condition */}
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
+                <RadioGroup
+                  value={condicaoPagamento}
+                  onValueChange={(v) => {
+                    setCondicaoPagamento(v as "avista" | "parcelado");
+                    if (v === "avista") {
+                      setNumParcelas(1);
+                      setIntervaloDias(0);
+                    } else {
+                      setNumParcelas(2);
+                      setIntervaloDias(30);
+                    }
+                  }}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="avista" id="avista" />
+                    <Label htmlFor="avista" className="cursor-pointer text-sm">À Vista</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="parcelado" id="parcelado" />
+                    <Label htmlFor="parcelado" className="cursor-pointer text-sm">Parcelado</Label>
+                  </div>
+                </RadioGroup>
+
+                {condicaoPagamento === "parcelado" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Nº de Parcelas</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={48}
+                        value={numParcelas}
+                        onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Intervalo entre parcelas</Label>
+                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INTERVALO_PRESETS.map((p) => (
+                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
-                {numParcelas === 1 ? (
-                  <p>À vista — vencimento na data de emissão</p>
+              {/* Summary preview */}
+              <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
+                {condicaoPagamento === "avista" ? (
+                  <p className="font-medium">À vista — vencimento na data de emissão</p>
                 ) : (
-                  <p>{numParcelas}x de {formatCurrency(selectedPrevTotal / numParcelas)} a cada {intervaloDias} dias</p>
+                  <>
+                    <p className="font-medium">{numParcelas}x de {formatCurrency(selectedPrevTotal / numParcelas)}</p>
+                    <p className="text-muted-foreground">Intervalo de {intervaloDias} dias entre parcelas</p>
+                  </>
                 )}
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
-                <Button onClick={handleCreateInvoice} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
-                  {saving ? "Criando..." : "Confirmar Fatura"}
+                {!editingFaturaId && (
+                  <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
+                )}
+                <Button onClick={handleCreateOrUpdateInvoice} className={cn("flex-1", editingFaturaId && "w-full")} disabled={saving || selectedPrevIds.size === 0}>
+                  {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
                 </Button>
               </div>
             </div>
@@ -616,7 +990,6 @@ export function FinancialInvoicing() {
                 <p>Valor da fatura: <strong className="text-foreground">{formatCurrency(Number(receiveFatura.valor_total))}</strong></p>
               </div>
 
-              {/* Pending accounts */}
               <div>
                 <p className="text-sm font-semibold mb-1">Títulos pendentes ({receiveContas.length})</p>
                 <div className="border rounded max-h-[150px] overflow-y-auto">
@@ -670,6 +1043,8 @@ export function FinancialInvoicing() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog />
     </div>
   );
 }
