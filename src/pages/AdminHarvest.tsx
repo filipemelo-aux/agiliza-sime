@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sprout, Plus, MapPin, Calendar, Users, DollarSign, ChevronRight, Pencil, Trash2, Building2 } from "lucide-react";
+import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
