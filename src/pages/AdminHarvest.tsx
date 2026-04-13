@@ -66,6 +66,7 @@ export default function AdminHarvest() {
   const [saving, setSaving] = useState(false);
   const [editingJob, setEditingJob] = useState<HarvestJob | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [selectedClientName, setSelectedClientName] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !hasAdminAccess) navigate("/");
