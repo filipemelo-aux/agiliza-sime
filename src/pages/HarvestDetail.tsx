@@ -2523,6 +2523,28 @@ export default function HarvestDetail() {
 
           {/* ===== TAB CLIENTE ===== */}
           <TabsContent value="cliente">
+            {/* Gerar Previsão de Recebimento (Contas a Receber) */}
+            <div className="flex items-center gap-2 mb-4">
+              {sortedCliente.length > 0 && job?.client_id ? (
+                <>
+                  <Button
+                    onClick={handleCreatePrevisao}
+                    disabled={savingPrevisao || !filterStartDate || !filterEndDate}
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    variant="outline"
+                  >
+                    <Receipt className="h-3.5 w-3.5" />
+                    {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
+                  </Button>
+                  {(!filterStartDate || !filterEndDate) && (
+                    <span className="text-xs text-muted-foreground italic">Defina início e fim do período</span>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs text-muted-foreground italic">Vincule um cliente ao serviço para gerar previsões</span>
+              )}
+            </div>
             {isMobile ? (
               <div className="space-y-4">
                 {sortedCliente.map((a) => {
@@ -2550,17 +2572,6 @@ export default function HarvestDetail() {
                       <span className="text-lg font-bold text-primary">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</span>
                     </div>
                   </div>
-                )}
-                {sortedCliente.length > 0 && job?.client_id && (
-                  <Button
-                    onClick={handleCreatePrevisao}
-                    disabled={savingPrevisao || !filterStartDate || !filterEndDate}
-                    className="w-full gap-1.5"
-                    variant="outline"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
-                  </Button>
                 )}
               </div>
             ) : (
@@ -2615,22 +2626,6 @@ export default function HarvestDetail() {
                 </Table>
               </div>
             </Card>
-            )}
-            {sortedCliente.length > 0 && job?.client_id && (
-              <div className="flex justify-end mt-3">
-                <Button
-                  onClick={handleCreatePrevisao}
-                  disabled={savingPrevisao || !filterStartDate || !filterEndDate}
-                  className="gap-1.5"
-                  variant="outline"
-                >
-                  <Receipt className="h-4 w-4" />
-                  {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
-                </Button>
-                {(!filterStartDate || !filterEndDate) && (
-                  <span className="text-xs text-muted-foreground italic ml-2 self-center">Defina início e fim do período</span>
-                )}
-              </div>
             )}
           </TabsContent>
         </Tabs>
