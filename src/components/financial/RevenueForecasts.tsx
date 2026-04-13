@@ -137,8 +137,8 @@ export function RevenueForecasts() {
         .insert({
           cliente_id: selectedClientIds[0],
           valor_total: selectedTotal,
-          num_parcelas: numParcelas,
-          intervalo_dias: intervaloDias,
+          num_parcelas: effectiveParcelas,
+          intervalo_dias: effectiveIntervalo,
           status: "faturada" as any,
         })
         .select()
