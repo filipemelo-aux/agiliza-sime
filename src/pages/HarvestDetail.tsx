@@ -2446,17 +2446,6 @@ export default function HarvestDetail() {
                     </div>
                   </div>
                 )}
-                {sortedCliente.length > 0 && job?.client_id && (
-                  <Button
-                    onClick={handleCreatePrevisao}
-                    disabled={savingPrevisao || !filterStartDate || !filterEndDate}
-                    className="w-full gap-1.5"
-                    variant="outline"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
-                  </Button>
-                )}
               </div>
             ) : (
             <Card className="border-border overflow-hidden">
