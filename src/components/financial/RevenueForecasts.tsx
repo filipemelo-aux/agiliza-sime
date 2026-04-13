@@ -30,6 +30,7 @@ interface Previsao {
   status: string;
   created_at: string;
   cliente_nome?: string;
+  metadata?: Record<string, any>;
 }
 
 const ORIGEM_ICON: Record<string, typeof Truck> = {
