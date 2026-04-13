@@ -1,0 +1,1 @@
+ALTER TABLE previsoes_recebimento DROP CONSTRAINT previsoes_recebimento_origem_unique;

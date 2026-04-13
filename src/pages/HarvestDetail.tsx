@@ -113,6 +113,7 @@ export default function HarvestDetail() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [partialPaymentValue, setPartialPaymentValue] = useState("");
+  const [savingPrevisao, setSavingPrevisao] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [closingDate, setClosingDate] = useState(getLocalDateISO());
   const [paymentDate, setPaymentDate] = useState("");
@@ -1241,20 +1242,7 @@ export default function HarvestDetail() {
         } as any);
       }
 
-      // Gerar previsão de recebimento para colheita
-      if (job?.client_id && id) {
-        await supabase.from("previsoes_recebimento").upsert(
-          {
-            origem_tipo: "colheita" as any,
-            origem_id: id,
-            cliente_id: job.client_id,
-            valor: totalAmount,
-            data_prevista: paymentDueDate || getLocalDateISO(),
-            status: "pendente" as any,
-          } as any,
-          { onConflict: "origem_tipo,origem_id" }
-        );
-      }
+      // Previsão de recebimento é gerada manualmente pela aba Cliente
 
       toast({ title: "Pagamento registrado e conta a pagar gerada!" });
       setPaymentDialogOpen(false);
@@ -1297,6 +1285,39 @@ export default function HarvestDetail() {
     setSelectedAssignment(assignment);
     setDiscountForm({ type: "falta", description: "", value: "", date: getLocalDateISO() });
     setDiscountDialogOpen(true);
+  };
+
+  const handleCreatePrevisao = async () => {
+    if (!job?.client_id || !id) {
+      toast({ title: "Este serviço não possui cliente vinculado", variant: "destructive" });
+      return;
+    }
+    if (!filterStartDate || !filterEndDate) {
+      toast({ title: "Defina o período (datas de início e fim) para gerar a previsão", variant: "destructive" });
+      return;
+    }
+    const totalCliente = sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0);
+    if (totalCliente <= 0) {
+      toast({ title: "Valor total do cliente deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+    setSavingPrevisao(true);
+    try {
+      const { error } = await supabase.from("previsoes_recebimento").insert({
+        origem_tipo: "colheita" as any,
+        origem_id: id,
+        cliente_id: job.client_id,
+        valor: totalCliente,
+        data_prevista: filterEndDate,
+        status: "pendente" as any,
+      } as any);
+      if (error) throw error;
+      toast({ title: "Previsão de recebimento gerada!", description: `Valor: ${formatCurrency(totalCliente)} — Período: ${formatDate(filterStartDate)} a ${formatDate(filterEndDate)}` });
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar previsão", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingPrevisao(false);
+    }
   };
 
   const openCompanyDiscountDialog = (assignment: Assignment) => {
@@ -2516,6 +2537,17 @@ export default function HarvestDetail() {
                     </div>
                   </div>
                 )}
+                {sortedCliente.length > 0 && job?.client_id && (
+                  <Button
+                    onClick={handleCreatePrevisao}
+                    disabled={savingPrevisao || !filterStartDate || !filterEndDate}
+                    className="w-full gap-1.5"
+                    variant="outline"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
+                  </Button>
+                )}
               </div>
             ) : (
             <Card className="border-border overflow-hidden">
@@ -2569,6 +2601,19 @@ export default function HarvestDetail() {
                 </Table>
               </div>
             </Card>
+            )}
+            {sortedCliente.length > 0 && job?.client_id && (
+              <div className="flex justify-end mt-3">
+                <Button
+                  onClick={handleCreatePrevisao}
+                  disabled={savingPrevisao || !filterStartDate || !filterEndDate}
+                  className="gap-1.5"
+                  variant="outline"
+                >
+                  <Receipt className="h-4 w-4" />
+                  {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
+                </Button>
+              </div>
             )}
           </TabsContent>
         </Tabs>
