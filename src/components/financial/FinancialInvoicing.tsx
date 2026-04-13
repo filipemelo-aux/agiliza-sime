@@ -497,14 +497,16 @@ export function FinancialInvoicing() {
       .eq("id", fatura.cliente_id)
       .single();
 
-    // Load harvest job details for colheita previsões
-    const colheitaOrigemIds = [...new Set(previsoes.filter(p => p.origem_tipo === "colheita").map(p => p.origem_id))];
+    // Harvest details are now read from previsao.metadata (stored at creation time)
+    // Fallback to harvest_jobs only for legacy previsões without metadata
+    const colheitaPrevisoes = previsoes.filter(p => p.origem_tipo === "colheita");
+    const legacyColheitaIds = colheitaPrevisoes.filter(p => !p.metadata?.fazenda).map(p => p.origem_id);
     let harvestJobs: Record<string, any> = {};
-    if (colheitaOrigemIds.length > 0) {
+    if (legacyColheitaIds.length > 0) {
       const { data: hjData } = await supabase
         .from("harvest_jobs")
         .select("id, farm_name, location, harvest_period_start, harvest_period_end, payment_value, monthly_value")
-        .in("id", colheitaOrigemIds);
+        .in("id", [...new Set(legacyColheitaIds)]);
       if (hjData) {
         hjData.forEach((hj: any) => { harvestJobs[hj.id] = hj; });
       }
