@@ -2052,24 +2052,6 @@ export default function HarvestDetail() {
               )}
             </div>
           </div>
-          {/* Gerar Previsão de Recebimento */}
-          {sortedCliente.length > 0 && job?.client_id && (
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreatePrevisao}
-                disabled={savingPrevisao || !filterStartDate || !filterEndDate}
-                size="sm"
-                className="h-8 text-xs gap-1.5"
-                variant="outline"
-              >
-                <Receipt className="h-3.5 w-3.5" />
-                {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
-              </Button>
-              {(!filterStartDate || !filterEndDate) && (
-                <span className="text-xs text-muted-foreground italic">Defina início e fim do período</span>
-              )}
-            </div>
-          )}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
