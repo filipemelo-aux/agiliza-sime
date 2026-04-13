@@ -2052,141 +2052,24 @@ export default function HarvestDetail() {
               )}
             </div>
           </div>
-          {/* Payment status + register button */}
-          <div className="flex items-center justify-between gap-2">
-            {filterStartDate && filterEndDate ? (
-              currentPeriodPayments.length > 0 ? (() => {
-                const totalLiqCalc = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const allPaymentsInRange = [...currentPeriodPayments, ...subPeriodPayments];
-                const totalExpectedSum = sumExpectedByPeriod(allPaymentsInRange);
-                const totalLiq = totalExpectedSum > 0 ? Math.min(totalLiqCalc, totalExpectedSum) : totalLiqCalc;
-                const allPaidInRange = totalPaidAmount + totalSubPeriodPaid;
-                const saldo = totalLiq - allPaidInRange;
-                const isPartial = saldo > 0.01;
-                const isOverpaid = saldo < -0.01;
-                const excesso = Math.abs(saldo);
-                return (
-                <div className="flex flex-col gap-1.5 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isPartial ? "bg-orange-500/20 text-orange-600 border-0 gap-1" : isOverpaid ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : "bg-green-500/20 text-green-600 border-0 gap-1"}>
-                      <CheckCircle2 className="h-3 w-3" />
-                      {isPartial ? "Parcial" : isOverpaid ? "Pago com Excesso" : "Período Pago"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Total Pago: {formatCurrency(allPaidInRange)}
-                      {isPartial && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldo)}</span>}
-                      {isOverpaid && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excesso)}</span>}
-                    </span>
-                    {isPartial && (
-                      <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
-                        <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    {currentPeriodPayments.map((p) => {
-                      const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
-                      return (
-                        <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span>• {dateLabel}: {formatCurrency(p.total_amount)}</span>
-                          <Button variant="ghost" size="sm" className="h-5 px-1 text-[10px] gap-0.5 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10" onClick={() => handleDeletePayment(p.id)}>
-                            <Undo2 className="h-2.5 w-2.5" /> Estornar
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {subPeriodPayments.length > 0 && (() => {
-                    const allPaid = totalPaidAmount + totalSubPeriodPaid;
-                    const totalLiq = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                    return (
-                    <div className="bg-muted/50 border border-border rounded p-2 space-y-1.5">
-                      <p className="text-xs font-semibold text-foreground">
-                        💰 Outros pagamentos em sub-períodos:
-                      </p>
-                      {subPeriodPayments.map((p) => {
-                        const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
-                        return (
-                          <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    );
-                  })()}
-                </div>
-                );
-              })() : subPeriodPayments.length > 0 ? (() => {
-                const totalLiqCalcSub = sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0);
-                const subExpectedSum = sumExpectedByPeriod(subPeriodPayments);
-                const totalLiqSub = subExpectedSum > 0 ? Math.min(totalLiqCalcSub, subExpectedSum) : totalLiqCalcSub;
-                const saldoSub = totalLiqSub - totalSubPeriodPaid;
-                const isFullyPaid = saldoSub <= 0.01;
-                const isOverpaidSub = saldoSub < -0.01;
-                const excessoSub = Math.abs(saldoSub);
-                return (
-                <div className="flex flex-col gap-1.5 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={isOverpaidSub ? "bg-blue-500/20 text-blue-600 border-0 gap-1" : isFullyPaid ? "bg-green-500/20 text-green-600 border-0 gap-1" : "bg-orange-500/20 text-orange-600 border-0 gap-1"}>
-                      <CheckCircle2 className="h-3 w-3" />
-                      {isOverpaidSub ? "Pago com Excesso" : isFullyPaid ? "Período Pago" : "Parcial"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Total Pago: {formatCurrency(totalSubPeriodPaid)}
-                      {!isFullyPaid && !isOverpaidSub && <span className="text-destructive font-semibold ml-1">| Saldo: {formatCurrency(saldoSub)}</span>}
-                      {isOverpaidSub && <span className="text-blue-600 font-semibold ml-1">| Excesso: {formatCurrency(excessoSub)}</span>}
-                    </span>
-                    {!isFullyPaid && (
-                      <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
-                        <DollarSign className="h-3.5 w-3.5 mr-1" /> Novo Pagamento
-                      </Button>
-                    )}
-                  </div>
-                   <div className="bg-muted/50 border border-border rounded p-2 space-y-1.5">
-                    <p className="text-xs font-semibold text-foreground">
-                      💰 Pagamentos em sub-períodos:
-                    </p>
-                    {subPeriodPayments.map((p) => {
-                      const dateLabel = p.notes?.match(/Lançamento em (.+)/)?.[1] || new Date(p.created_at).toLocaleDateString("pt-BR");
-                      return (
-                        <div key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span>• {formatDate(p.period_start)} a {formatDate(p.period_end)} — {dateLabel}: {formatCurrency(p.total_amount)}</span>
-                        </div>
-                      );
-                    })}
-                   </div>
-                </div>
-                );
-              })() : (
-                <div className="flex items-center gap-2 flex-1">
-                  <Badge variant="outline" className="gap-1 text-orange-500 border-orange-300">
-                    <Clock className="h-3 w-3" />
-                    Não Pago
-                  </Badge>
-                  <Button size="sm" className="h-7 text-xs" onClick={() => setPaymentDialogOpen(true)}>
-                    <DollarSign className="h-3.5 w-3.5 mr-1" /> Registrar Pagamento
-                  </Button>
-                </div>
-              )
-            ) : (
-              <span className="text-xs text-muted-foreground italic">Defina início e fim do período para registrar pagamento</span>
-            )}
-            {accumulatedPastBalance > 0.01 && filterStartDate && filterEndDate && (
-              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-destructive/10 border border-destructive/20">
-                <span className="text-xs font-semibold text-destructive">
-                  📌 Saldo acumulado de períodos anteriores: {formatCurrency(accumulatedPastBalance)}
-                </span>
-              </div>
-            )}
-            {accumulatedPastBalance < -0.01 && filterStartDate && filterEndDate && (
-              <div className="flex items-center gap-2 mt-1 px-2 py-1 rounded bg-blue-500/10 border border-blue-300/30">
-                <span className="text-xs font-semibold text-blue-600">
-                  💰 Crédito acumulado de períodos anteriores: {formatCurrency(Math.abs(accumulatedPastBalance))}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Gerar Previsão de Recebimento */}
+          {sortedCliente.length > 0 && job?.client_id && (
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCreatePrevisao}
+                disabled={savingPrevisao || !filterStartDate || !filterEndDate}
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                variant="outline"
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                {savingPrevisao ? "Gerando..." : "Gerar Previsão de Recebimento"}
+              </Button>
+              {(!filterStartDate || !filterEndDate) && (
+                <span className="text-xs text-muted-foreground italic">Defina início e fim do período</span>
+              )}
+            </div>
+          )}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
