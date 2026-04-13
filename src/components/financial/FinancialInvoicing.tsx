@@ -342,6 +342,7 @@ export function FinancialInvoicing() {
             valor_total: selectedPrevTotal,
             num_parcelas: effectiveParcelas,
             intervalo_dias: effectiveIntervalo,
+            ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
             status: "faturada" as any,
           })
           .select()
