@@ -43,9 +43,22 @@ export function RevenueForecasts() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [condicaoPagamento, setCondicaoPagamento] = useState<"avista" | "parcelado">("avista");
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [saving, setSaving] = useState(false);
+
+  const INTERVALO_PRESETS = [
+    { value: "7", label: "7 dias" },
+    { value: "14", label: "14 dias" },
+    { value: "15", label: "15 dias" },
+    { value: "21", label: "21 dias" },
+    { value: "28", label: "28 dias" },
+    { value: "30", label: "30 dias" },
+    { value: "45", label: "45 dias" },
+    { value: "60", label: "60 dias" },
+    { value: "90", label: "90 dias" },
+  ];
 
   const fetchPrevisoes = async () => {
     setLoading(true);
