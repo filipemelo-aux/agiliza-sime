@@ -663,7 +663,7 @@ td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
 .summary-item .value{font-size:16px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px}
 .divider{border:none;border-top:1px dashed #e5e7eb;margin:16px 0}
-@media print{body{padding:24px 32px}@page{margin:15mm;size:landscape}}
+@media print{body{padding:16px 20px;font-size:9px}@page{margin:10mm;size:portrait}table{font-size:8px}.header{margin-bottom:12px}.summary-box{padding:10px;gap:8px;margin-bottom:12px}.summary-item .value{font-size:13px}.divider{margin:10px 0}.footer{margin-top:16px;padding-top:10px}h2{font-size:13px;margin-bottom:6px}}
 </style></head><body>
 
 <div class="header">
