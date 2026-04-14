@@ -397,7 +397,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
-    setShowDocFiscal(false); setShowHistory(false);
+    setShowDocFiscal(true); setShowHistory(false);
     setParcelas([]); setUseParcelas(false); setIntervaloDias(30);
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
