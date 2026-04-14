@@ -73,7 +73,7 @@ export function PaymentDischargeDialog({
   const effectiveVencimento = isInstallmentMode ? installment!.dataVencimentoParcela : dataVencimento;
 
   const [valor, setValor] = useState(String(saldoRestante));
-  const [formaPagamento, setFormaPagamento] = useState("pix");
+  const [formaPagamento, setFormaPagamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
