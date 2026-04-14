@@ -34,7 +34,13 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
 
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
 
-  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters;
+  const defaultStart = startOfMonth(new Date());
+  const defaultEnd = endOfMonth(new Date());
+  const hasDateFilter =
+    format(filters.dataInicio, "yyyy-MM-dd") !== format(defaultStart, "yyyy-MM-dd") ||
+    format(filters.dataFim, "yyyy-MM-dd") !== format(defaultEnd, "yyyy-MM-dd");
+
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || hasDateFilter;
 
   const clearAll = () => {
     onChange({
