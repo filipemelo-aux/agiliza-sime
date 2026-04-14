@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
@@ -46,12 +46,13 @@ export function FinancialCashFlow() {
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
-    dataInicio: null,
-    dataFim: null,
+    dataInicio: startOfMonth(new Date()),
+    dataFim: endOfMonth(new Date()),
     tipo: "todos",
     origem: "todos",
     valorMin: "",
     valorMax: "",
+    quickPeriod: "mes_atual",
   });
 
   const loadMovimentacoes = useCallback(async () => {

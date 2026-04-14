@@ -5,11 +5,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+export type QuickPeriod = "todos" | "mes_atual" | "mes_anterior";
 
 export interface CashFlowFilterValues {
   dataInicio: Date | null;
@@ -18,11 +19,22 @@ export interface CashFlowFilterValues {
   origem: "todos" | "contas_pagar" | "contas_receber" | "despesas" | "colheitas" | "pagamento_despesa" | "manual";
   valorMin: string;
   valorMax: string;
+  quickPeriod: QuickPeriod;
 }
 
 interface CashFlowFiltersProps {
   filters: CashFlowFilterValues;
   onChange: (filters: CashFlowFilterValues) => void;
+}
+
+function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; dataFim: Date | null } {
+  const now = new Date();
+  if (period === "mes_atual") return { dataInicio: startOfMonth(now), dataFim: endOfMonth(now) };
+  if (period === "mes_anterior") {
+    const prev = subMonths(now, 1);
+    return { dataInicio: startOfMonth(prev), dataFim: endOfMonth(prev) };
+  }
+  return { dataInicio: null, dataFim: null };
 }
 
 export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
@@ -32,11 +44,13 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
     onChange({ ...filters, ...partial });
   };
 
+  const setQuickPeriod = (period: QuickPeriod) => {
+    const dates = getDatesForPeriod(period);
+    onChange({ ...filters, ...dates, quickPeriod: period });
+  };
+
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
-
-  const hasDateFilter = filters.dataInicio !== null || filters.dataFim !== null;
-
-  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || hasDateFilter;
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || filters.dataInicio !== null || filters.dataFim !== null;
 
   const clearAll = () => {
     onChange({
@@ -46,6 +60,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
       origem: "todos",
       valorMin: "",
       valorMax: "",
+      quickPeriod: "todos",
     });
   };
 
@@ -53,9 +68,30 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
     update({ valorMin: "", valorMax: "" });
   };
 
+  const periodButtons: { key: QuickPeriod; label: string }[] = [
+    { key: "todos", label: "Todas" },
+    { key: "mes_atual", label: "Mês atual" },
+    { key: "mes_anterior", label: "Mês anterior" },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Primary filters row */}
+    <div className="space-y-3">
+      {/* Quick period buttons */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {periodButtons.map((p) => (
+          <Button
+            key={p.key}
+            variant={filters.quickPeriod === p.key ? "default" : "outline"}
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setQuickPeriod(p.key)}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Secondary filters row */}
       <div className="flex flex-wrap items-end gap-4">
         {/* Date range */}
         <div>
@@ -71,7 +107,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
               <Calendar
                 mode="single"
                 selected={filters.dataInicio ?? undefined}
-                onSelect={(d) => d && update({ dataInicio: d })}
+                onSelect={(d) => d && update({ dataInicio: d, quickPeriod: "todos" })}
                 locale={ptBR}
                 className="pointer-events-auto"
               />
@@ -91,7 +127,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
               <Calendar
                 mode="single"
                 selected={filters.dataFim ?? undefined}
-                onSelect={(d) => d && update({ dataFim: d })}
+                onSelect={(d) => d && update({ dataFim: d, quickPeriod: "todos" })}
                 locale={ptBR}
                 className="pointer-events-auto"
               />
