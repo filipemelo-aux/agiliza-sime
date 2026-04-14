@@ -1090,8 +1090,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                         const newParcelas: Parcela[] = [];
                         for (let i = 0; i < newCount; i++) {
-                          const d = new Date(base);
-                          d.setDate(d.getDate() + intervaloDias * i);
+                          const d = intervaloTipo === "meses"
+                            ? addMonthsPreserveDay(base, intervaloDias * i)
+                            : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
                           newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                         }
                         const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
@@ -1110,8 +1111,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                           const newParcelas: Parcela[] = [];
                           for (let i = 0; i < newCount; i++) {
-                            const d = new Date(base);
-                            d.setDate(d.getDate() + intervaloDias * i);
+                            const d = intervaloTipo === "meses"
+                              ? addMonthsPreserveDay(base, intervaloDias * i)
+                              : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
                             newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                           }
                           const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
