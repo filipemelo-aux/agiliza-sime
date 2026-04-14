@@ -46,12 +46,13 @@ export function FinancialCashFlow() {
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
-    dataInicio: null,
-    dataFim: null,
+    dataInicio: startOfMonth(new Date()),
+    dataFim: endOfMonth(new Date()),
     tipo: "todos",
     origem: "todos",
     valorMin: "",
     valorMax: "",
+    quickPeriod: "mes_atual",
   });
 
   const loadMovimentacoes = useCallback(async () => {
