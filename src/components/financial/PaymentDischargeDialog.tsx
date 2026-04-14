@@ -102,6 +102,7 @@ export function PaymentDischargeDialog({
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
+    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
 
     // Calculate interest: any amount above the remaining balance is interest
