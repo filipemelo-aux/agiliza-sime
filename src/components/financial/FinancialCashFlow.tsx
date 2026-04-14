@@ -192,7 +192,6 @@ export function FinancialCashFlow() {
     return o;
   };
 
-  const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
   return (
     <div className="space-y-4">
