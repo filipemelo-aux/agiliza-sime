@@ -20,7 +20,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -152,6 +152,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
   const [intervaloDias, setIntervaloDias] = useState(30);
+  const [intervaloTipo, setIntervaloTipo] = useState<"meses" | "dias">("meses");
   const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
   const [boletoPdfExistingUrl, setBoletoPdfExistingUrl] = useState<string | null>(null);
   const boletoInputRef = useRef<HTMLInputElement>(null);
@@ -398,7 +399,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(true); setShowHistory(false);
-    setParcelas([]); setUseParcelas(false); setIntervaloDias(30);
+    setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
   };
@@ -1037,27 +1038,68 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                   </span>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
-                      <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Intervalo (dias):</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={intervaloDias}
+                      <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Intervalo:</Label>
+                      <select
+                        value={intervaloTipo}
                         onChange={(e) => {
-                          const v = Math.max(1, Math.min(365, Number(e.target.value) || 30));
-                          setIntervaloDias(v);
+                          const tipo = e.target.value as "meses" | "dias";
+                          setIntervaloTipo(tipo);
+                          const defaultVal = tipo === "meses" ? 1 : 30;
+                          setIntervaloDias(defaultVal);
                           if (parcelas.length > 1) {
                             const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
-                            const newParcelas: Parcela[] = parcelas.map((p, i) => {
-                              const d = new Date(base);
-                              d.setDate(d.getDate() + v * i);
+                            setParcelas(prev => prev.map((p, i) => {
+                              const d = tipo === "meses" ? addMonthsPreserveDay(base, defaultVal * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + defaultVal * i); return dd; })();
                               return { ...p, data_vencimento: getLocalDateISO(d) };
-                            });
-                            setParcelas(newParcelas);
+                            }));
                           }
                         }}
-                        className="h-6 w-16 text-[10px] px-1.5 text-center"
-                      />
+                        className="h-6 text-[10px] px-1 border rounded bg-background text-foreground"
+                      >
+                        <option value="meses">Mensal</option>
+                        <option value="dias">Dias</option>
+                      </select>
+                      {intervaloTipo === "dias" && (
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={intervaloDias}
+                          onChange={(e) => {
+                            const v = Math.max(1, Math.min(365, Number(e.target.value) || 30));
+                            setIntervaloDias(v);
+                            if (parcelas.length > 1) {
+                              const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                              setParcelas(prev => prev.map((p, i) => {
+                                const d = new Date(base);
+                                d.setDate(d.getDate() + v * i);
+                                return { ...p, data_vencimento: getLocalDateISO(d) };
+                              }));
+                            }
+                          }}
+                          className="h-6 w-16 text-[10px] px-1.5 text-center"
+                        />
+                      )}
+                      {intervaloTipo === "meses" && intervaloDias !== 1 && (
+                        <Input
+                          type="number"
+                          min={1}
+                          max={12}
+                          value={intervaloDias}
+                          onChange={(e) => {
+                            const v = Math.max(1, Math.min(12, Number(e.target.value) || 1));
+                            setIntervaloDias(v);
+                            if (parcelas.length > 1) {
+                              const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
+                              setParcelas(prev => prev.map((p, i) => {
+                                const d = addMonthsPreserveDay(base, v * i);
+                                return { ...p, data_vencimento: getLocalDateISO(d) };
+                              }));
+                            }
+                          }}
+                          className="h-6 w-16 text-[10px] px-1.5 text-center"
+                        />
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
@@ -1067,8 +1109,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                         const newParcelas: Parcela[] = [];
                         for (let i = 0; i < newCount; i++) {
-                          const d = new Date(base);
-                          d.setDate(d.getDate() + intervaloDias * i);
+                          const d = intervaloTipo === "meses" ? addMonthsPreserveDay(base, intervaloDias * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
                           newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                         }
                         const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
@@ -1087,8 +1128,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                           const base = dataVencimento ? new Date(dataVencimento + "T12:00:00") : new Date();
                           const newParcelas: Parcela[] = [];
                           for (let i = 0; i < newCount; i++) {
-                            const d = new Date(base);
-                            d.setDate(d.getDate() + intervaloDias * i);
+                            const d = intervaloTipo === "meses" ? addMonthsPreserveDay(base, intervaloDias * i) : (() => { const dd = new Date(base); dd.setDate(dd.getDate() + intervaloDias * i); return dd; })();
                             newParcelas.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                           }
                           const diff = val - newParcelas.reduce((s, p) => s + Number(p.valor), 0);
@@ -1484,8 +1524,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
                                 const newP: NfseParcela[] = [];
                                 for (let i = 0; i < newCount; i++) {
-                                  const d = new Date(base);
-                                  d.setDate(d.getDate() + 30 * i);
+                                  const d = addMonthsPreserveDay(base, i);
                                   newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                                 }
                                 const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
@@ -1504,8 +1543,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                   const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
                                   const newP: NfseParcela[] = [];
                                   for (let i = 0; i < newCount; i++) {
-                                    const d = new Date(base);
-                                    d.setDate(d.getDate() + 30 * i);
+                                    const d = addMonthsPreserveDay(base, i);
                                     newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                                   }
                                   const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
