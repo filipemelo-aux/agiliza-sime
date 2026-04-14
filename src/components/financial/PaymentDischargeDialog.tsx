@@ -73,7 +73,7 @@ export function PaymentDischargeDialog({
   const effectiveVencimento = isInstallmentMode ? installment!.dataVencimentoParcela : dataVencimento;
 
   const [valor, setValor] = useState(String(saldoRestante));
-  const [formaPagamento, setFormaPagamento] = useState("pix");
+  const [formaPagamento, setFormaPagamento] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
@@ -84,7 +84,7 @@ export function PaymentDischargeDialog({
       const restante = isInstallmentMode ? installment!.valorParcela : (valorTotal - valorPago);
       setValor(String(restante));
       setObservacoes("");
-      setFormaPagamento("pix");
+      setFormaPagamento("");
       setDataPagamento(getLocalDateISO());
       loadHistory();
     }
@@ -102,6 +102,7 @@ export function PaymentDischargeDialog({
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor");
+    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (!dataPagamento) return toast.error("Informe a data do pagamento");
 
     // Calculate interest: any amount above the remaining balance is interest
@@ -223,7 +224,7 @@ export function PaymentDischargeDialog({
             <div>
               <Label>Forma de Pagamento</Label>
               <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
