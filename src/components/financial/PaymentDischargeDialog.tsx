@@ -84,7 +84,7 @@ export function PaymentDischargeDialog({
       const restante = isInstallmentMode ? installment!.valorParcela : (valorTotal - valorPago);
       setValor(String(restante));
       setObservacoes("");
-      setFormaPagamento("pix");
+      setFormaPagamento("");
       setDataPagamento(getLocalDateISO());
       loadHistory();
     }
