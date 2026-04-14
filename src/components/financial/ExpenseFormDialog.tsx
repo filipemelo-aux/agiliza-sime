@@ -1082,7 +1082,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                         <option value="dias">dia(s)</option>
                       </select>
                     </div>
-                    </div>
                     <div className="flex gap-1">
                       <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => {
                         const val = Number(valorTotal) || 0;
