@@ -62,3 +62,19 @@ export const formatDateBR = (input?: Date | string | null, pattern = "dd/MM/yyyy
 export const safeParseDateISO = (input?: string | null): Date | null => {
   return parseDateInput(input);
 };
+
+/**
+ * Add N months to a date, preserving the original day-of-month.
+ * If the target month doesn't have the original day (e.g. Jan 31 → Feb),
+ * it clamps to the last day of the target month.
+ */
+export const addMonthsPreserveDay = (base: Date, months: number): Date => {
+  const targetDay = base.getDate();
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + months);
+  // If JS overflowed the month (e.g. Jan 31 + 1 month → Mar 3), clamp
+  if (d.getDate() !== targetDay) {
+    d.setDate(0); // last day of previous month
+  }
+  return d;
+};
