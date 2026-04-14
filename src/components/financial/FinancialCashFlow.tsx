@@ -44,6 +44,7 @@ export function FinancialCashFlow() {
   const isMobile = useIsMobile();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
