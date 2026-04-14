@@ -224,7 +224,7 @@ export function PaymentDischargeDialog({
             <div>
               <Label>Forma de Pagamento</Label>
               <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {FORMA_PAGAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
