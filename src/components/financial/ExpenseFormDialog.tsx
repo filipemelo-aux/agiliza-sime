@@ -1524,8 +1524,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                 const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
                                 const newP: NfseParcela[] = [];
                                 for (let i = 0; i < newCount; i++) {
-                                  const d = new Date(base);
-                                  d.setDate(d.getDate() + 30 * i);
+                                  const d = addMonthsPreserveDay(base, i);
                                   newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                                 }
                                 const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
@@ -1544,8 +1543,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                                   const base = nfseDataVencimento ? new Date(nfseDataVencimento + "T12:00:00") : new Date();
                                   const newP: NfseParcela[] = [];
                                   for (let i = 0; i < newCount; i++) {
-                                    const d = new Date(base);
-                                    d.setDate(d.getDate() + 30 * i);
+                                    const d = addMonthsPreserveDay(base, i);
                                     newP.push({ numero: i + 1, valor: parcelaVal, data_vencimento: getLocalDateISO(d) });
                                   }
                                   const diff = val - newP.reduce((s, p) => s + Number(p.valor), 0);
