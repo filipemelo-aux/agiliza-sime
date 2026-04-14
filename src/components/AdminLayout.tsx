@@ -23,6 +23,20 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   {
+    title: "Financeiro",
+    icon: DollarSign,
+    children: [
+      { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
+      { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
+      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
+      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
+      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
+      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
+      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
+    ],
+  },
+  {
     title: "Transporte",
     icon: Car,
     children: [
@@ -43,20 +57,6 @@ const menuItems = [
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
-    ],
-  },
-  {
-    title: "Financeiro",
-    icon: DollarSign,
-    children: [
-      { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
-      { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
-      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
-      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
-      { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
-      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
-      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
-      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },
