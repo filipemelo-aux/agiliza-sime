@@ -230,12 +230,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const selectedAccount = chartAccounts.find(c => c.id === planoContasId);
   const isCategoryMaintenance = selectedAccount?.tipo_operacional === "manutencao";
 
-  // Auto-activate maintenance when category has tipo_operacional = manutencao
+  // When maintenance switch is toggled ON, auto-select the maintenance chart account
   useEffect(() => {
-    if (isCategoryMaintenance) {
-      setIsManutencao(true);
+    if (isManutencao && !planoContasId) {
+      const manutencaoAccount = despesaChartAccounts.find(a => a.tipo_operacional === "manutencao");
+      if (manutencaoAccount) {
+        setPlanoContasId(manutencaoAccount.id);
+      }
     }
-  }, [isCategoryMaintenance]);
+  }, [isManutencao]);
 
   // Filtered chart accounts for expense form (only despesa type)
   const despesaChartAccounts = useMemo(() => {
@@ -394,7 +397,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNfseDataVencimento(""); setNfseFormaPagamento(""); setNfseFornecedorNome(""); setNfseFornecedorId(null);
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
-    setShowDocFiscal(false); setShowHistory(false);
+    setShowDocFiscal(true); setShowHistory(false);
     setParcelas([]); setUseParcelas(false); setIntervaloDias(30);
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
@@ -422,6 +425,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
+        // Auto-enable items display for XML imports (non-maintenance)
+        if (parsed.itens.length > 0) {
+          setManualItemsEnabled(true);
+        }
         setShowDocFiscal(true);
         // Parse duplicatas/parcelas from XML
         if (parsed.duplicatas.length > 0) {
