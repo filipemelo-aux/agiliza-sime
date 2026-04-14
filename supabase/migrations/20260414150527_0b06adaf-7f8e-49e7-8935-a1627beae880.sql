@@ -1,0 +1,2 @@
+ALTER TABLE public.movimentacoes_bancarias DROP CONSTRAINT movimentacoes_bancarias_origem_check;
+ALTER TABLE public.movimentacoes_bancarias ADD CONSTRAINT movimentacoes_bancarias_origem_check CHECK (origem = ANY (ARRAY['contas_pagar'::text, 'contas_receber'::text, 'despesas'::text, 'colheitas'::text, 'pagamento_despesa'::text, 'manual'::text]));
