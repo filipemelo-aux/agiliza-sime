@@ -59,9 +59,10 @@ export function FinancialCashFlow() {
     let query = supabase
       .from("movimentacoes_bancarias")
       .select("*")
-      .gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"))
-      .lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"))
       .order("data_movimentacao", { ascending: false });
+
+    if (filters.dataInicio) query = query.gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"));
+    if (filters.dataFim) query = query.lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"));
 
     if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
     if (filters.origem === "despesas") {
