@@ -425,6 +425,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         setXmlOriginal(parsed.xml_original);
         setDocumentoImportado(true);
         setItensNota(parsed.itens);
+        // Auto-enable items display for XML imports (non-maintenance)
+        if (parsed.itens.length > 0) {
+          setManualItemsEnabled(true);
+        }
         setShowDocFiscal(true);
         // Parse duplicatas/parcelas from XML
         if (parsed.duplicatas.length > 0) {
