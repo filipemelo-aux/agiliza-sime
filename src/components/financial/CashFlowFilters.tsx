@@ -40,7 +40,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
     format(filters.dataInicio, "yyyy-MM-dd") !== format(defaultStart, "yyyy-MM-dd") ||
     format(filters.dataFim, "yyyy-MM-dd") !== format(defaultEnd, "yyyy-MM-dd");
 
-  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || hasDateFilter;
+  const hasAnyFilter = true;
 
   const clearAll = () => {
     onChange({
