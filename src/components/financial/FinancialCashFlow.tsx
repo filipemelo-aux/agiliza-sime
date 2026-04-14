@@ -8,8 +8,9 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
+import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -185,13 +186,21 @@ export function FinancialCashFlow() {
     if (o === "contas_receber") return "Conta a Receber";
     if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "colheitas") return "Colheita";
+    if (o === "manual") return "Manual";
     return o;
   };
+
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
+          <Button size="sm" className="gap-1" onClick={() => setManualDialogOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Nova Movimentação
+          </Button>
+        </div>
         <CashFlowFilters filters={filters} onChange={setFilters} />
       </div>
 
@@ -336,6 +345,12 @@ export function FinancialCashFlow() {
           )}
         </CardContent>
       </Card>
+
+      <ManualCashFlowDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        onSaved={loadMovimentacoes}
+      />
     </div>
   );
 }

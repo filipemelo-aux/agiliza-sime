@@ -131,6 +131,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
               <SelectItem value="contas_receber">Contas a Receber</SelectItem>
               <SelectItem value="despesas">Despesas</SelectItem>
               <SelectItem value="colheitas">Colheitas</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
             </SelectContent>
           </Select>
         </div>
