@@ -20,7 +20,7 @@ import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -152,6 +152,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [useParcelas, setUseParcelas] = useState(false);
   const [intervaloDias, setIntervaloDias] = useState(30);
+  const [intervaloTipo, setIntervaloTipo] = useState<"meses" | "dias">("meses");
   const [boletoPdfFile, setBoletoPdfFile] = useState<File | null>(null);
   const [boletoPdfExistingUrl, setBoletoPdfExistingUrl] = useState<string | null>(null);
   const boletoInputRef = useRef<HTMLInputElement>(null);
@@ -398,7 +399,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setNfseObservacoes(""); setNfseUseParcelas(false); setNfseParcelas([]); setNfseBoletoPdfFile(null);
     setPaymentHistory([]); setUnfueledRecords([]); setShowFuelSuggestion(false);
     setShowDocFiscal(true); setShowHistory(false);
-    setParcelas([]); setUseParcelas(false); setIntervaloDias(30);
+    setParcelas([]); setUseParcelas(false); setIntervaloDias(1); setIntervaloTipo("meses");
     setBoletoPdfFile(null); setBoletoPdfExistingUrl(null);
     
   };
