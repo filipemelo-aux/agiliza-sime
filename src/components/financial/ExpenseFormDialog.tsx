@@ -230,12 +230,15 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const selectedAccount = chartAccounts.find(c => c.id === planoContasId);
   const isCategoryMaintenance = selectedAccount?.tipo_operacional === "manutencao";
 
-  // Auto-activate maintenance when category has tipo_operacional = manutencao
+  // When maintenance switch is toggled ON, auto-select the maintenance chart account
   useEffect(() => {
-    if (isCategoryMaintenance) {
-      setIsManutencao(true);
+    if (isManutencao && !planoContasId) {
+      const manutencaoAccount = despesaChartAccounts.find(a => a.tipo_operacional === "manutencao");
+      if (manutencaoAccount) {
+        setPlanoContasId(manutencaoAccount.id);
+      }
     }
-  }, [isCategoryMaintenance]);
+  }, [isManutencao]);
 
   // Filtered chart accounts for expense form (only despesa type)
   const despesaChartAccounts = useMemo(() => {
