@@ -64,13 +64,13 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-3 w-3" />
-                {format(filters.dataInicio, "dd/MM/yyyy")}
+                {filters.dataInicio ? format(filters.dataInicio, "dd/MM/yyyy") : "Sem limite"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={filters.dataInicio}
+                selected={filters.dataInicio ?? undefined}
                 onSelect={(d) => d && update({ dataInicio: d })}
                 locale={ptBR}
                 className="pointer-events-auto"
@@ -84,13 +84,13 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-3 w-3" />
-                {format(filters.dataFim, "dd/MM/yyyy")}
+                {filters.dataFim ? format(filters.dataFim, "dd/MM/yyyy") : "Sem limite"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={filters.dataFim}
+                selected={filters.dataFim ?? undefined}
                 onSelect={(d) => d && update({ dataFim: d })}
                 locale={ptBR}
                 className="pointer-events-auto"
