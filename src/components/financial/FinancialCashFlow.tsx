@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
@@ -46,8 +46,8 @@ export function FinancialCashFlow() {
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
-    dataInicio: startOfMonth(new Date()),
-    dataFim: endOfMonth(new Date()),
+    dataInicio: null,
+    dataFim: null,
     tipo: "todos",
     origem: "todos",
     valorMin: "",
@@ -59,9 +59,10 @@ export function FinancialCashFlow() {
     let query = supabase
       .from("movimentacoes_bancarias")
       .select("*")
-      .gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"))
-      .lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"))
       .order("data_movimentacao", { ascending: false });
+
+    if (filters.dataInicio) query = query.gte("data_movimentacao", format(filters.dataInicio, "yyyy-MM-dd"));
+    if (filters.dataFim) query = query.lte("data_movimentacao", format(filters.dataFim, "yyyy-MM-dd"));
 
     if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
     if (filters.origem === "despesas") {
