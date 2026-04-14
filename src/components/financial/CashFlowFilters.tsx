@@ -12,10 +12,10 @@ import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface CashFlowFilterValues {
-  dataInicio: Date;
-  dataFim: Date;
+  dataInicio: Date | null;
+  dataFim: Date | null;
   tipo: "todos" | "entrada" | "saida";
-  origem: "todos" | "contas_pagar" | "contas_receber" | "despesas" | "colheitas" | "pagamento_despesa";
+  origem: "todos" | "contas_pagar" | "contas_receber" | "despesas" | "colheitas" | "pagamento_despesa" | "manual";
   valorMin: string;
   valorMax: string;
 }
@@ -34,18 +34,14 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
 
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
 
-  const defaultStart = startOfMonth(new Date());
-  const defaultEnd = endOfMonth(new Date());
-  const hasDateFilter =
-    format(filters.dataInicio, "yyyy-MM-dd") !== format(defaultStart, "yyyy-MM-dd") ||
-    format(filters.dataFim, "yyyy-MM-dd") !== format(defaultEnd, "yyyy-MM-dd");
+  const hasDateFilter = filters.dataInicio !== null || filters.dataFim !== null;
 
-  const hasAnyFilter = true;
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || hasDateFilter;
 
   const clearAll = () => {
     onChange({
-      dataInicio: startOfMonth(new Date()),
-      dataFim: endOfMonth(new Date()),
+      dataInicio: null,
+      dataFim: null,
       tipo: "todos",
       origem: "todos",
       valorMin: "",
