@@ -56,6 +56,9 @@ interface MatchCandidate {
   origem: string;
   isPayable?: boolean;
   payableDueDate?: string;
+  expenseId?: string;
+  isInstallment?: boolean;
+  installmentId?: string;
 }
 
 interface ReconciliationSummary {
@@ -568,15 +571,50 @@ export function BankReconciliation() {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
     try {
-      if (confirmMatch.isPayable) {
-        await supabase
-          .from("accounts_payable")
-          .update({
-            status: "pago",
-            paid_amount: confirmMatch.valor,
-            paid_at: `${confirmItem.date}T12:00:00`,
-          })
-          .eq("id", confirmMatch.id);
+      if (confirmMatch.isPayable && confirmMatch.expenseId) {
+        const dataPagISO = confirmItem.date;
+        const valorPag = confirmMatch.valor;
+
+        // Insert expense_payment record
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: confirmMatch.expenseId,
+          valor: valorPag,
+          forma_pagamento: "transferencia",
+          data_pagamento: dataPagISO,
+          observacoes: "Pagamento via conciliação bancária (OFX)",
+          created_by: user?.id,
+          juros: 0,
+        } as any);
+
+        if (confirmMatch.isInstallment && confirmMatch.installmentId) {
+          // Update installment status
+          await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
+
+          // Recalculate expense totals
+          const { data: allInst } = await supabase.from("expense_installments").select("valor, status").eq("expense_id", confirmMatch.expenseId);
+          const totalPagoNow = ((allInst as any) || []).filter((i: any) => i.status === "pago").reduce((s: number, i: any) => s + Number(i.valor), 0);
+          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
+
+          await supabase.from("expenses").update({
+            valor_pago: totalPagoNow,
+            status: allPaid ? "pago" : "parcial",
+            forma_pagamento: "transferencia",
+            data_pagamento: dataPagISO,
+          } as any).eq("id", confirmMatch.expenseId);
+        } else {
+          // Regular expense: update directly
+          const { data: expData } = await supabase.from("expenses").select("valor_total, valor_pago").eq("id", confirmMatch.expenseId).single();
+          const novoValorPago = Number(expData?.valor_pago || 0) + valorPag;
+          const valorTotal = Number(expData?.valor_total || 0);
+          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+
+          await supabase.from("expenses").update({
+            valor_pago: novoValorPago,
+            status: novoStatus,
+            forma_pagamento: "transferencia",
+            data_pagamento: dataPagISO,
+          } as any).eq("id", confirmMatch.expenseId);
+        }
       }
 
       const updateFilter = confirmItem.dbItemId
