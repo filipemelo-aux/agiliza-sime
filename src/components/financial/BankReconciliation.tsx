@@ -730,6 +730,7 @@ export function BankReconciliation() {
                   <ItemActions
                     item={item}
                     onConfirmMatch={() => openConfirm(item)}
+                    onConfirmPayable={() => openConfirmPayable(item)}
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
                   />
@@ -759,6 +760,7 @@ export function BankReconciliation() {
                       <ItemActions
                         item={item}
                         onConfirmMatch={() => openConfirm(item)}
+                        onConfirmPayable={() => openConfirmPayable(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
                       />
