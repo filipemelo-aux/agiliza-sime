@@ -87,6 +87,8 @@ export function BankReconciliation() {
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [history, setHistory] = useState<ReconciliationSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado" | "registrado">("todos");
 
   // Load chart of accounts
   useEffect(() => {
