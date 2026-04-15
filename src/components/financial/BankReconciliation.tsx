@@ -441,6 +441,22 @@ export function BankReconciliation() {
     return { total, conciliados, registrados, pendentes };
   }, [items]);
 
+  const filteredItems = useMemo(() => {
+    let list = items;
+    if (statusFilter !== "todos") {
+      list = list.filter((i) => i.status === statusFilter);
+    }
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      list = list.filter((i) =>
+        i.description.toLowerCase().includes(q) ||
+        formatCurrency(Math.abs(i.amount)).includes(q) ||
+        i.date.includes(q)
+      );
+    }
+    return list;
+  }, [items, statusFilter, searchText]);
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
