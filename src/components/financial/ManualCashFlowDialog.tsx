@@ -50,9 +50,10 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
 
   // Filter leaf accounts (no children) matching tipo
   const leafAccounts = useMemo(() => {
-    const parentIds = new Set(chartAccounts.filter(a => a.conta_pai_id).map(a => a.conta_pai_id));
-    const operType = tipo === "entrada" ? "receita" : "despesa";
-    return chartAccounts.filter(a => !parentIds.has(a.id) && (!a.tipo_operacional || a.tipo_operacional === operType));
+    const tipoContabil = tipo === "entrada" ? "receita" : "despesa";
+    const filtered = chartAccounts.filter(a => a.tipo === tipoContabil);
+    const parentIds = new Set(filtered.filter(a => a.conta_pai_id).map(a => a.conta_pai_id));
+    return filtered.filter(a => !parentIds.has(a.id));
   }, [chartAccounts, tipo]);
 
   // Apply initialValues when dialog opens
