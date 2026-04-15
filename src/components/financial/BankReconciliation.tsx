@@ -178,13 +178,77 @@ export function BankReconciliation() {
         });
       }
 
+      // ── Two-pass optimal matching ──
+      // 1) Build raw items with basic info
+      const rawItems = dbItems.map((dbItem) => ({
+        dbItem,
+        absVal: Math.abs(Number(dbItem.amount)),
+        tipo: dbItem.tipo as "entrada" | "saida",
+        status: dbItem.status as "pendente" | "conciliado" | "registrado",
+        txDate: dbItem.transaction_date,
+      }));
+
+      // 2) For pending items, find ALL candidate matches and assign optimally (closest date wins)
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
 
-      const ofxItems: OfxItem[] = dbItems.map((dbItem) => {
-        const absVal = Math.abs(Number(dbItem.amount));
-        const tipo = dbItem.tipo as "entrada" | "saida";
-        const status = dbItem.status as "pendente" | "conciliado" | "registrado";
+      // Helper: build pairs [itemIndex, candidateId, daysDiff] then greedily assign closest first
+      type Pair = { idx: number; candId: string; dist: number };
+
+      // ── Assign cash flow matches ──
+      const movPairs: Pair[] = [];
+      rawItems.forEach((raw, idx) => {
+        if (raw.status !== "pendente") return;
+        const candidates = movs.filter(
+          (m) =>
+            Math.abs(Number(m.valor) - raw.absVal) < 0.01 &&
+            daysDiff(raw.txDate, m.data_movimentacao) <= 5 &&
+            ((raw.tipo === "saida" && m.origem !== "contas_receber") ||
+             (raw.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
+        );
+        for (const c of candidates) {
+          movPairs.push({ idx, candId: c.id, dist: daysDiff(raw.txDate, c.data_movimentacao) });
+        }
+      });
+      movPairs.sort((a, b) => a.dist - b.dist);
+
+      const assignedMovByIdx = new Map<number, string>();
+      const usedMovCands = new Set<string>();
+      const usedItemForMov = new Set<number>();
+      for (const p of movPairs) {
+        if (usedItemForMov.has(p.idx) || usedMovCands.has(p.candId)) continue;
+        assignedMovByIdx.set(p.idx, p.candId);
+        usedMovCands.add(p.candId);
+        usedItemForMov.add(p.idx);
+      }
+
+      // ── Assign payable matches (saída only) ──
+      const payPairs: Pair[] = [];
+      rawItems.forEach((raw, idx) => {
+        if (raw.status !== "pendente" || raw.tipo !== "saida") return;
+        for (const p of payables) {
+          if (Math.abs(p.amount - raw.absVal) >= 0.01) continue;
+          const dist = p.referenceDate ? daysDiff(raw.txDate, p.referenceDate) : 9999;
+          if (dist <= 5 || !p.referenceDate) {
+            payPairs.push({ idx, candId: p.id, dist });
+          }
+        }
+      });
+      payPairs.sort((a, b) => a.dist - b.dist);
+
+      const assignedPayByIdx = new Map<number, string>();
+      const usedPayCands = new Set<string>();
+      const usedItemForPay = new Set<number>();
+      for (const p of payPairs) {
+        if (usedItemForPay.has(p.idx) || usedPayCands.has(p.candId)) continue;
+        assignedPayByIdx.set(p.idx, p.candId);
+        usedPayCands.add(p.candId);
+        usedItemForPay.add(p.idx);
+      }
+
+      // 3) Build final OfxItem list
+      const ofxItems: OfxItem[] = rawItems.map((raw, idx) => {
+        const { dbItem, absVal, tipo, status, txDate } = raw;
 
         let matchedMovId: string | null = dbItem.matched_movimentacao_id || null;
         let matchedMovDesc: string | null = null;
@@ -200,23 +264,12 @@ export function BankReconciliation() {
         let matchedPayableIsInstallment = false;
         let matchedPayableInstallmentId: string | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
-        const txDate = dbItem.transaction_date;
 
         if (status === "pendente") {
-          // Buscar no fluxo de caixa (entrada e saída) — valor idêntico + data idêntica ou próxima (±5 dias)
-          const candidates = movs.filter(
-            (m) =>
-              !usedMovIds.has(m.id) &&
-              Math.abs(Number(m.valor) - absVal) < 0.01 &&
-              daysDiff(txDate, m.data_movimentacao) <= 5 &&
-              ((tipo === "saida" && m.origem !== "contas_receber") ||
-               (tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
-          );
-          // Prefer exact date, then closest
-          const exact = candidates.find((m) => m.data_movimentacao === txDate);
-          const match = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
-          if (match) {
-            usedMovIds.add(match.id);
+          // Cash flow match
+          const movCandId = assignedMovByIdx.get(idx);
+          if (movCandId) {
+            const match = movs.find((m) => m.id === movCandId)!;
             matchedMovId = match.id;
             matchedMovDesc = match.descricao;
             matchedMovDate = match.data_movimentacao;
@@ -225,31 +278,18 @@ export function BankReconciliation() {
             matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // Saída: buscar também em contas a pagar pendentes — valor idêntico + data referência idêntica ou próxima
-          if (tipo === "saida") {
-            // First try with date constraint
-            let pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5
-            );
-            // If no date match, try value-only match
-            if (pCandidates.length === 0) {
-              pCandidates = payables.filter(
-                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01
-              );
-            }
-            const pExact = pCandidates.find((p) => p.referenceDate === txDate);
-            const pm = pExact || (pCandidates.length > 0 ? (pCandidates[0].referenceDate ? pCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : pCandidates[0]) : undefined);
-            if (pm) {
-              usedPayableIds.add(pm.id);
-              matchedPayableId = pm.id;
-              matchedPayableDesc = pm.description;
-              matchedPayableDue = pm.referenceDate;
-              matchedPayableValor = pm.amount;
-              matchedPayableExpenseId = pm.expenseId;
-              matchedPayableIsInstallment = pm.isInstallment;
-              matchedPayableInstallmentId = pm.installmentId || null;
-              matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
-            }
+          // Payable match
+          const payCandId = assignedPayByIdx.get(idx);
+          if (payCandId) {
+            const pm = payables.find((p) => p.id === payCandId)!;
+            matchedPayableId = pm.id;
+            matchedPayableDesc = pm.description;
+            matchedPayableDue = pm.referenceDate;
+            matchedPayableValor = pm.amount;
+            matchedPayableExpenseId = pm.expenseId;
+            matchedPayableIsInstallment = pm.isInstallment;
+            matchedPayableInstallmentId = pm.installmentId || null;
+            matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
           const mov = movs.find((m) => m.id === matchedMovId);
