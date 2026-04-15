@@ -5,7 +5,6 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SummaryCard } from "@/components/SummaryCard";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
@@ -14,7 +13,7 @@ import { formatDateBR } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2, CheckSquare,
+  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2, CheckSquare, History, Trash2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,13 +25,13 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
 interface OfxItem extends OfxTransaction {
   id: string;
+  dbItemId?: string;
   status: "pendente" | "conciliado" | "registrado";
   matchedMovId: string | null;
   matchedMovDesc: string | null;
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
-  // Conta a pagar match (not yet paid)
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableDue: string | null;
@@ -45,9 +44,17 @@ interface MatchCandidate {
   data_movimentacao: string;
   valor: number;
   origem: string;
-  // For payable matches
   isPayable?: boolean;
   payableDueDate?: string;
+}
+
+interface ReconciliationSummary {
+  id: string;
+  file_name: string;
+  bank_name: string | null;
+  created_at: string;
+  total_items: number;
+  reconciled_items: number;
 }
 
 export function BankReconciliation() {
@@ -59,12 +66,169 @@ export function BankReconciliation() {
   const [loading, setLoading] = useState(false);
   const [reconciliationId, setReconciliationId] = useState<string | null>(null);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
+  const [history, setHistory] = useState<ReconciliationSummary[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
+  // Load chart of accounts
   useEffect(() => {
     if (matrizId) {
       supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("empresa_id", matrizId).eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
     }
   }, [matrizId]);
+
+  // Load reconciliation history
+  const loadHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from("bank_reconciliations")
+      .select("id, file_name, bank_name, created_at, total_items, reconciled_items")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setHistory((data as ReconciliationSummary[]) || []);
+    setLoadingHistory(false);
+  }, []);
+
+  useEffect(() => { loadHistory(); }, [loadHistory]);
+
+  // Resume a saved reconciliation
+  const resumeReconciliation = useCallback(async (rec: ReconciliationSummary) => {
+    setLoading(true);
+    try {
+      const { data: dbItems } = await supabase
+        .from("bank_reconciliation_items")
+        .select("*")
+        .eq("reconciliation_id", rec.id)
+        .order("transaction_date");
+
+      if (!dbItems || dbItems.length === 0) {
+        toast.error("Nenhum item encontrado para esta conciliação");
+        setLoading(false);
+        return;
+      }
+
+      // Re-run matching for pending items
+      const dates = dbItems.map((i) => i.transaction_date).sort();
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
+        supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem")
+          .gte("data_movimentacao", minDate)
+          .lte("data_movimentacao", maxDate),
+        supabase
+          .from("accounts_payable")
+          .select("id, amount, description, due_date, status")
+          .in("status", ["pendente", "atrasado"]),
+      ]);
+
+      const movs = existingMovs || [];
+      const payables = pendingPayables || [];
+
+      const usedMovIds = new Set<string>();
+      const usedPayableIds = new Set<string>();
+
+      const ofxItems: OfxItem[] = dbItems.map((dbItem) => {
+        const absVal = Math.abs(Number(dbItem.amount));
+        const tipo = dbItem.tipo as "entrada" | "saida";
+        const status = dbItem.status as "pendente" | "conciliado" | "registrado";
+
+        let matchedMovId: string | null = dbItem.matched_movimentacao_id || null;
+        let matchedMovDesc: string | null = null;
+        let matchedMovDate: string | null = null;
+        let matchedMovOrigem: string | null = null;
+        let matchedMovValor: number | null = null;
+        let matchedPayableId: string | null = null;
+        let matchedPayableDesc: string | null = null;
+        let matchedPayableDue: string | null = null;
+        let matchedPayableValor: number | null = null;
+
+        if (status === "pendente") {
+          // Try matching against movements
+          const match = movs.find(
+            (m) =>
+              !usedMovIds.has(m.id) &&
+              Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              ((tipo === "saida" && m.origem !== "contas_receber") ||
+               (tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
+          );
+          if (match) {
+            usedMovIds.add(match.id);
+            matchedMovId = match.id;
+            matchedMovDesc = match.descricao;
+            matchedMovDate = match.data_movimentacao;
+            matchedMovOrigem = match.origem;
+            matchedMovValor = Math.abs(Number(match.valor));
+          }
+
+          // Try payables if no movement match and debit
+          if (!match && tipo === "saida") {
+            const pm = payables.find(
+              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+            );
+            if (pm) {
+              usedPayableIds.add(pm.id);
+              matchedPayableId = pm.id;
+              matchedPayableDesc = pm.description;
+              matchedPayableDue = pm.due_date;
+              matchedPayableValor = Number(pm.amount);
+            }
+          }
+        } else if (matchedMovId) {
+          // Already conciliated – find the movement details for display
+          const mov = movs.find((m) => m.id === matchedMovId);
+          if (mov) {
+            matchedMovDesc = mov.descricao;
+            matchedMovDate = mov.data_movimentacao;
+            matchedMovOrigem = mov.origem;
+            matchedMovValor = Math.abs(Number(mov.valor));
+          }
+        }
+
+        return {
+          fitid: dbItem.fitid || "",
+          date: dbItem.transaction_date,
+          amount: tipo === "saida" ? -absVal : absVal,
+          description: dbItem.description || "",
+          tipo,
+          id: crypto.randomUUID(),
+          dbItemId: dbItem.id,
+          status,
+          matchedMovId,
+          matchedMovDesc,
+          matchedMovDate,
+          matchedMovOrigem,
+          matchedMovValor,
+          matchedPayableId,
+          matchedPayableDesc,
+          matchedPayableDue,
+          matchedPayableValor,
+        };
+      });
+
+      setReconciliationId(rec.id);
+      setItems(ofxItems);
+      setFileName(rec.file_name);
+    } catch (err: any) {
+      toast.error("Erro ao carregar conciliação: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Delete a reconciliation
+  const deleteReconciliation = useCallback(async (id: string) => {
+    await supabase.from("bank_reconciliation_items").delete().eq("reconciliation_id", id);
+    await supabase.from("bank_reconciliations").delete().eq("id", id);
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+    if (reconciliationId === id) {
+      setItems([]);
+      setReconciliationId(null);
+      setFileName("");
+    }
+    toast.success("Conciliação removida");
+  }, [reconciliationId]);
 
   // Confirm match dialog
   const [confirmItem, setConfirmItem] = useState<OfxItem | null>(null);
@@ -99,6 +263,15 @@ export function BankReconciliation() {
     }
   }, [selectedIds.size, selectableItems]);
 
+  const updateReconciliationCount = useCallback(async () => {
+    if (!reconciliationId) return;
+    const conciliados = items.filter((i) => i.status === "conciliado" || i.status === "registrado").length;
+    await supabase
+      .from("bank_reconciliations")
+      .update({ reconciled_items: conciliados })
+      .eq("id", reconciliationId);
+  }, [reconciliationId, items]);
+
   const handleBatchConciliate = useCallback(async () => {
     if (selectedIds.size === 0 || !reconciliationId) return;
     setLoading(true);
@@ -111,24 +284,23 @@ export function BankReconciliation() {
             .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
         }
-        await supabase
-          .from("bank_reconciliation_items")
-          .update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null })
-          .eq("reconciliation_id", reconciliationId)
-          .eq("fitid", item.fitid || "")
-          .eq("status", "pendente");
+        const updateFilter = item.dbItemId
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null }).eq("id", item.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "").eq("status", "pendente");
+        await updateFilter;
       }
       setItems((prev) =>
         prev.map((i) => selectedIds.has(i.id) ? { ...i, status: "conciliado" } : i)
       );
       toast.success(`${selectedIds.size} transação(ões) conciliada(s)`);
       setSelectedIds(new Set());
+      setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
       toast.error("Erro na conciliação em lote: " + (err.message || ""));
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
 
   const totals = useMemo(() => {
     const total = items.length;
@@ -168,7 +340,7 @@ export function BankReconciliation() {
 
       if (recErr) throw recErr;
 
-      // Fetch existing movimentações for matching (date range from OFX)
+      // Fetch existing movimentações for matching
       const dates = parsed.transactions.map((t) => t.date).sort();
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
@@ -188,12 +360,10 @@ export function BankReconciliation() {
       const movs = (existingMovs || []) as MatchCandidate[];
       const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
 
-      // Build items with auto-matching by value
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        // 1) Match against existing cash flow movements
         const match = movs.find(
           (m) =>
             !usedMovIds.has(m.id) &&
@@ -203,7 +373,6 @@ export function BankReconciliation() {
         );
         if (match) usedMovIds.add(match.id);
 
-        // 2) If no movement match and it's a debit, match against pending payables
         let payableMatch: typeof payables[0] | null = null;
         if (!match && tx.tipo === "saida") {
           const pm = payables.find(
@@ -232,39 +401,44 @@ export function BankReconciliation() {
       });
 
       // Save items to DB
-      const itemsToInsert = ofxItems.map((item) => ({
-        reconciliation_id: rec.id,
-        transaction_date: item.date,
-        description: item.description,
-        amount: Math.abs(item.amount),
-        tipo: item.tipo,
-        fitid: item.fitid || null,
-        status: "pendente",
-        matched_movimentacao_id: null, // not confirmed yet
-      }));
+      const { data: insertedItems } = await supabase.from("bank_reconciliation_items").insert(
+        ofxItems.map((item) => ({
+          reconciliation_id: rec.id,
+          transaction_date: item.date,
+          description: item.description,
+          amount: Math.abs(item.amount),
+          tipo: item.tipo,
+          fitid: item.fitid || null,
+          status: "pendente",
+          matched_movimentacao_id: null,
+        }))
+      ).select("id");
 
-      await supabase.from("bank_reconciliation_items").insert(itemsToInsert);
+      // Assign DB ids to items
+      if (insertedItems) {
+        ofxItems.forEach((item, i) => {
+          if (insertedItems[i]) item.dbItemId = insertedItems[i].id;
+        });
+      }
 
       setReconciliationId(rec.id);
       setItems(ofxItems);
       setFileName(file.name);
+      loadHistory();
       toast.success(`${ofxItems.length} transações importadas`);
     } catch (err: any) {
       toast.error("Erro ao importar OFX: " + (err.message || ""));
     } finally {
       setLoading(false);
-      // Reset file input
       e.target.value = "";
     }
-  }, [user]);
+  }, [user, loadHistory]);
 
   const handleConfirmMatch = useCallback(async () => {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
     try {
       if (confirmMatch.isPayable) {
-        // Pay the accounts_payable record using the OFX transaction date
-        const now = new Date().toISOString();
         await supabase
           .from("accounts_payable")
           .update({
@@ -275,13 +449,10 @@ export function BankReconciliation() {
           .eq("id", confirmMatch.id);
       }
 
-      // Update reconciliation item status in DB
-      await supabase
-        .from("bank_reconciliation_items")
-        .update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id })
-        .eq("reconciliation_id", reconciliationId)
-        .eq("fitid", confirmItem.fitid || "")
-        .eq("status", "pendente");
+      const updateFilter = confirmItem.dbItemId
+        ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id }).eq("id", confirmItem.dbItemId)
+        : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
+      await updateFilter;
 
       setItems((prev) =>
         prev.map((i) =>
@@ -289,12 +460,13 @@ export function BankReconciliation() {
         )
       );
       toast.success(confirmMatch.isPayable ? "Conta paga e conciliada com sucesso" : "Transação conciliada com sucesso");
+      setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
       toast.error("Erro ao conciliar: " + (err.message || ""));
     }
     setConfirmItem(null);
     setConfirmMatch(null);
-  }, [confirmItem, confirmMatch, reconciliationId]);
+  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount]);
 
   const openConfirm = useCallback((item: OfxItem) => {
     if (item.matchedMovId) {
@@ -333,19 +505,20 @@ export function BankReconciliation() {
   const markAsRegistered = useCallback(
     (itemId: string) => {
       setItems((prev) =>
-        prev.map((i) => (i.id === itemId ? { ...i, status: "registrado" } : i))
+        prev.map((i) => {
+          if (i.id !== itemId) return i;
+          // Update in DB
+          if (i.dbItemId) {
+            supabase.from("bank_reconciliation_items").update({ status: "registrado" }).eq("id", i.dbItemId).then();
+          } else if (reconciliationId) {
+            supabase.from("bank_reconciliation_items").update({ status: "registrado" }).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
+          }
+          return { ...i, status: "registrado" as const };
+        })
       );
-      if (reconciliationId) {
-        // Best-effort DB update
-        supabase
-          .from("bank_reconciliation_items")
-          .update({ status: "registrado" })
-          .eq("reconciliation_id", reconciliationId)
-          .eq("status", "pendente")
-          .then();
-      }
+      setTimeout(updateReconciliationCount, 500);
     },
-    [reconciliationId]
+    [reconciliationId, updateReconciliationCount]
   );
 
   const onExpenseSaved = () => {
@@ -362,13 +535,21 @@ export function BankReconciliation() {
     toast.success("Movimentação registrada e transação marcada");
   };
 
-  // Empty state
+  const goBack = () => {
+    setItems([]);
+    setReconciliationId(null);
+    setFileName("");
+    setSelectedIds(new Set());
+    loadHistory();
+  };
+
+  // Empty state: show history + upload
   if (items.length === 0) {
     return (
       <div className="space-y-4">
         <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
             <FileSpreadsheet className="h-12 w-12 text-muted-foreground/40" />
             <div className="text-center space-y-1">
               <p className="text-sm font-medium text-foreground">Importar Extrato OFX</p>
@@ -393,6 +574,51 @@ export function BankReconciliation() {
             </label>
           </CardContent>
         </Card>
+
+        {/* History */}
+        {!loadingHistory && history.length > 0 && (
+          <Card>
+            <CardContent className="p-0">
+              <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5" /> Importações Anteriores
+              </p>
+              <div className="divide-y divide-border">
+                {history.map((rec) => {
+                  const pending = rec.total_items - rec.reconciled_items;
+                  return (
+                    <div key={rec.id} className="px-4 py-2.5 flex items-center gap-3 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{rec.file_name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDateBR(rec.created_at.slice(0, 10))} · {rec.bank_name || "Banco"} · {rec.total_items} transações
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {pending > 0 ? (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">{pending} pendente(s)</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] border-green-500 text-green-600">Completa</Badge>
+                        )}
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={() => resumeReconciliation(rec)} disabled={loading}>
+                          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSpreadsheet className="h-3 w-3" />}
+                          {pending > 0 ? "Continuar" : "Visualizar"}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-destructive" onClick={() => deleteReconciliation(rec.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {loadingHistory && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </div>
     );
   }
@@ -404,20 +630,25 @@ export function BankReconciliation() {
           <h1 className="text-lg font-bold text-foreground">Conciliação Bancária</h1>
           <p className="text-xs text-muted-foreground">{fileName}</p>
         </div>
-        <label>
-          <input
-            type="file"
-            accept=".ofx,.qfx"
-            className="hidden"
-            onChange={handleFileUpload}
-            disabled={loading}
-          />
-          <Button asChild variant="outline" size="sm" disabled={loading} className="gap-1 cursor-pointer">
-            <span>
-              <Upload className="h-3.5 w-3.5" /> Novo Extrato
-            </span>
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={goBack}>
+            <History className="h-3.5 w-3.5" /> Histórico
           </Button>
-        </label>
+          <label>
+            <input
+              type="file"
+              accept=".ofx,.qfx"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={loading}
+            />
+            <Button asChild variant="outline" size="sm" disabled={loading} className="gap-1 cursor-pointer">
+              <span>
+                <Upload className="h-3.5 w-3.5" /> Novo Extrato
+              </span>
+            </Button>
+          </label>
+        </div>
       </div>
 
       {/* Summary */}
@@ -509,7 +740,6 @@ export function BankReconciliation() {
             <div className="divide-y divide-border">
               {items.map((item) => (
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
-                  {/* Row 1: date, type badge, value, status, actions */}
                   <div className="flex items-center gap-2 flex-wrap">
                     {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
                       <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
