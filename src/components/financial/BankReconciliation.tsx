@@ -88,7 +88,7 @@ export function BankReconciliation() {
   const [history, setHistory] = useState<ReconciliationSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado" | "registrado">("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado">("todos");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
 
   // Load chart of accounts
