@@ -261,6 +261,7 @@ export function BankReconciliation() {
         let matchedMovPrecision: MatchPrecision | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
+        let matchedPayableFornecedor: string | null = null;
         let matchedPayableDue: string | null = null;
         let matchedPayableValor: number | null = null;
         let matchedPayableExpenseId: string | null = null;
@@ -322,6 +323,7 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId,
           matchedPayableDesc,
+          matchedPayableFornecedor,
           matchedPayableDue,
           matchedPayableValor,
           matchedPayablePrecision,
@@ -584,6 +586,7 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
+          matchedPayableFornecedor: payableMatch?.fornecedor || null,
           matchedPayableDue: payableMatch?.referenceDate || null,
           matchedPayableValor: payableMatch ? payableMatch.amount : null,
           matchedPayablePrecision,
