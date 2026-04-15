@@ -23,6 +23,14 @@ import {
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
+type MatchPrecision = "exato" | "proximo";
+
+function daysDiff(a: string, b: string): number {
+  const da = new Date(a + "T00:00:00");
+  const db = new Date(b + "T00:00:00");
+  return Math.abs(Math.round((da.getTime() - db.getTime()) / 86400000));
+}
+
 interface OfxItem extends OfxTransaction {
   id: string;
   dbItemId?: string;
@@ -32,10 +40,12 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  matchedMovPrecision: MatchPrecision | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
+  matchedPayablePrecision: MatchPrecision | null;
 }
 
 interface MatchCandidate {
