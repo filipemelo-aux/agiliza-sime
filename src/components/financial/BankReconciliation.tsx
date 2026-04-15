@@ -524,8 +524,8 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
-          matchedPayableDue: payableMatch?.due_date || null,
-          matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
+          matchedPayableDue: payableMatch?.referenceDate || null,
+          matchedPayableValor: payableMatch ? payableMatch.amount : null,
           matchedPayablePrecision,
         };
       });
