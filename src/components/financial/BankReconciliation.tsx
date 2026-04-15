@@ -452,9 +452,17 @@ export function BankReconciliation() {
             <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>O sistema encontrou uma movimentação com o mesmo valor:</p>
-              <div className="bg-muted rounded-md p-3 space-y-1 text-sm">
-                <p><strong>Extrato:</strong> {confirmItem?.description} — {confirmItem && formatCurrency(Math.abs(confirmItem.amount))} em {confirmItem && formatDateBR(confirmItem.date)}</p>
-                <p><strong>Sistema:</strong> {confirmMatch?.descricao || "Sem descrição"} — {confirmMatch && formatCurrency(confirmMatch.valor)} em {confirmMatch && formatDateBR(confirmMatch.data_movimentacao)}</p>
+              <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
+                  <p>{confirmItem?.description}</p>
+                  <p className="text-xs text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+                </div>
+                <div className="border-t pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Movimentação no Sistema</p>
+                  <p>{confirmMatch?.descricao || "Sem descrição"}</p>
+                  <p className="text-xs text-muted-foreground">{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)} · {translateOrigem(confirmMatch?.origem || null)}</p>
+                </div>
               </div>
               <p>Deseja confirmar que se trata da mesma transação?</p>
             </AlertDialogDescription>
