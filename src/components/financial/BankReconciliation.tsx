@@ -240,6 +240,30 @@ export function BankReconciliation() {
     setConfirmMatch(null);
   }, [confirmItem, confirmMatch, reconciliationId]);
 
+  const openConfirm = useCallback((item: OfxItem) => {
+    if (item.matchedMovId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedMovId,
+        descricao: item.matchedMovDesc,
+        data_movimentacao: item.matchedMovDate || item.date,
+        valor: Math.abs(item.amount),
+        origem: item.matchedMovOrigem || "",
+      });
+    } else if (item.matchedPayableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedPayableId,
+        descricao: item.matchedPayableDesc,
+        data_movimentacao: item.matchedPayableDue || item.date,
+        valor: item.matchedPayableValor || Math.abs(item.amount),
+        origem: "contas_pagar_pendente",
+        isPayable: true,
+        payableDueDate: item.matchedPayableDue || undefined,
+      });
+    }
+  }, []);
+
   const handleNewExpense = (item: OfxItem) => {
     setActiveItem(item);
     setExpenseDialogOpen(true);
