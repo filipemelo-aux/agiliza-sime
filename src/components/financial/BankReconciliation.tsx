@@ -192,7 +192,7 @@ export function BankReconciliation() {
         dbItem,
         absVal: Math.abs(Number(dbItem.amount)),
         tipo: dbItem.tipo as "entrada" | "saida",
-        status: dbItem.status as "pendente" | "conciliado" | "registrado",
+        status: (dbItem.status === "registrado" ? "conciliado" : dbItem.status) as "pendente" | "conciliado",
         txDate: dbItem.transaction_date,
       }));
 
