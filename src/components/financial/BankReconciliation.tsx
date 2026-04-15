@@ -118,8 +118,10 @@ export function BankReconciliation() {
 
       // Re-run matching for pending items
       const dates = dbItems.map((i) => i.transaction_date).sort();
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
+      const d0 = new Date(dates[0] + "T00:00:00"); d0.setDate(d0.getDate() - 5);
+      const d1 = new Date(dates[dates.length - 1] + "T00:00:00"); d1.setDate(d1.getDate() + 5);
+      const minDate = d0.toISOString().slice(0, 10);
+      const maxDate = d1.toISOString().slice(0, 10);
 
       const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
         supabase
@@ -365,8 +367,10 @@ export function BankReconciliation() {
 
       // Fetch existing movimentações for matching
       const dates = parsed.transactions.map((t) => t.date).sort();
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
+      const d0 = new Date(dates[0] + "T00:00:00"); d0.setDate(d0.getDate() - 5);
+      const d1 = new Date(dates[dates.length - 1] + "T00:00:00"); d1.setDate(d1.getDate() + 5);
+      const minDate = d0.toISOString().slice(0, 10);
+      const maxDate = d1.toISOString().slice(0, 10);
 
       const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
         supabase
@@ -777,6 +781,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      precision={item.matchedMovPrecision}
                     />
                   )}
                   {item.matchedPayableId && item.status === "pendente" && (
@@ -787,6 +792,7 @@ export function BankReconciliation() {
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
                       label="Conta a Pagar encontrada"
+                      precision={item.matchedPayablePrecision}
                     />
                   )}
                   <ItemActions
