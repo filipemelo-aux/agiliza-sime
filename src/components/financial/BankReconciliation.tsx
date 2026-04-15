@@ -1062,22 +1062,22 @@ export function BankReconciliation() {
 
       {/* Confirm match dialog */}
       <AlertDialog open={!!confirmItem} onOpenChange={(o) => { if (!o) { setConfirmItem(null); setConfirmMatch(null); } }}>
-        <AlertDialogContent className="max-w-sm">
+        <AlertDialogContent className="max-w-sm overflow-hidden">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Confirmar Conciliação</AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="text-sm space-y-1">
-            <p><span className="text-muted-foreground">Extrato:</span> {confirmItem?.description}</p>
+          <div className="text-sm space-y-1 min-w-0 overflow-hidden">
+            <p className="truncate"><span className="text-muted-foreground">Extrato:</span> {confirmItem?.description}</p>
             <p>{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
             <hr className="my-2" />
             {confirmMatch?.isPayable && confirmMatch.fornecedor && (
-              <p className="font-medium">{confirmMatch.fornecedor}</p>
+              <p className="font-medium break-words">{confirmMatch.fornecedor}</p>
             )}
             {confirmMatch?.descricao && (
               <p className="text-muted-foreground text-xs truncate">{confirmMatch.descricao}</p>
             )}
             {!confirmMatch?.isPayable && !confirmMatch?.fornecedor && (
-              <p>{confirmMatch?.descricao || "—"}</p>
+              <p className="truncate">{confirmMatch?.descricao || "—"}</p>
             )}
             <p className="text-muted-foreground text-xs">{confirmMatch?.isPayable ? "Venc:" : "Data:"} {confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}</p>
           </div>
