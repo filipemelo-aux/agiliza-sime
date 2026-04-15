@@ -108,9 +108,11 @@ export function BankReconciliation() {
       const selected = items.filter((i) => selectedIds.has(i.id));
       for (const item of selected) {
         if (item.matchedPayableId && !item.matchedMovId) {
+          // For approximate matches, use OFX amount and date
+          const payAmount = item.matchPayableExact ? (item.matchedPayableValor || Math.abs(item.amount)) : Math.abs(item.amount);
           await supabase
             .from("accounts_payable")
-            .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
+            .update({ status: "pago", paid_amount: payAmount, paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
         }
         await supabase
