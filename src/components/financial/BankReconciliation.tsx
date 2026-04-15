@@ -145,8 +145,25 @@ export function BankReconciliation() {
         let matchedPayableValor: number | null = null;
 
         if (status === "pendente") {
+          // Buscar no fluxo de caixa (entrada e saída)
+          const match = movs.find(
+            (m) =>
+              !usedMovIds.has(m.id) &&
+              Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              ((tipo === "saida" && m.origem !== "contas_receber") ||
+               (tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
+          );
+          if (match) {
+            usedMovIds.add(match.id);
+            matchedMovId = match.id;
+            matchedMovDesc = match.descricao;
+            matchedMovDate = match.data_movimentacao;
+            matchedMovOrigem = match.origem;
+            matchedMovValor = Math.abs(Number(match.valor));
+          }
+
+          // Saída: buscar também em contas a pagar pendentes
           if (tipo === "saida") {
-            // Débito: buscar apenas em contas a pagar pendentes
             const pm = payables.find(
               (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
             );
@@ -156,22 +173,6 @@ export function BankReconciliation() {
               matchedPayableDesc = pm.description;
               matchedPayableDue = pm.due_date;
               matchedPayableValor = Number(pm.amount);
-            }
-          } else {
-            // Crédito: buscar no fluxo de caixa
-            const match = movs.find(
-              (m) =>
-                !usedMovIds.has(m.id) &&
-                Math.abs(Number(m.valor) - absVal) < 0.01 &&
-                m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
-            );
-            if (match) {
-              usedMovIds.add(match.id);
-              matchedMovId = match.id;
-              matchedMovDesc = match.descricao;
-              matchedMovDate = match.data_movimentacao;
-              matchedMovOrigem = match.origem;
-              matchedMovValor = Math.abs(Number(match.valor));
             }
           }
         } else if (matchedMovId) {
@@ -367,7 +368,16 @@ export function BankReconciliation() {
         let payableMatch: typeof payables[0] | null = null;
 
         if (tx.tipo === "saida") {
-          // Débito: buscar apenas em contas a pagar pendentes
+          // Débito: buscar no fluxo de caixa
+          match = movs.find(
+            (m) =>
+              !usedMovIds.has(m.id) &&
+              Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              m.origem !== "contas_receber"
+          );
+          if (match) usedMovIds.add(match.id);
+
+          // E também em contas a pagar pendentes
           const pm = payables.find(
             (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
           );
