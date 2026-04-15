@@ -336,13 +336,14 @@ export function BankReconciliation() {
 
     try {
       if (confirmMatch.isPayable) {
-        // Pay the accounts_payable record using the OFX transaction date
-        const now = new Date().toISOString();
+        // For approx matches, use OFX amount; for exact, use payable amount
+        const isApprox = confirmItem && !confirmItem.matchPayableExact;
+        const payAmount = isApprox ? Math.abs(confirmItem!.amount) : confirmMatch.valor;
         await supabase
           .from("accounts_payable")
           .update({
             status: "pago",
-            paid_amount: confirmMatch.valor,
+            paid_amount: payAmount,
             paid_at: `${confirmItem.date}T12:00:00`,
           })
           .eq("id", confirmMatch.id);
