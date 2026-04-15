@@ -75,6 +75,61 @@ export function BankReconciliation() {
   const [manualMovDialogOpen, setManualMovDialogOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<OfxItem | null>(null);
 
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const selectableItems = useMemo(() =>
+    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
+    [items]
+  );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === selectableItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableItems.map((i) => i.id)));
+    }
+  }, [selectedIds.size, selectableItems]);
+
+  const handleBatchConciliate = useCallback(async () => {
+    if (selectedIds.size === 0 || !reconciliationId) return;
+    setLoading(true);
+    try {
+      const selected = items.filter((i) => selectedIds.has(i.id));
+      for (const item of selected) {
+        if (item.matchedPayableId && !item.matchedMovId) {
+          await supabase
+            .from("accounts_payable")
+            .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
+            .eq("id", item.matchedPayableId);
+        }
+        await supabase
+          .from("bank_reconciliation_items")
+          .update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null })
+          .eq("reconciliation_id", reconciliationId)
+          .eq("fitid", item.fitid || "")
+          .eq("status", "pendente");
+      }
+      setItems((prev) =>
+        prev.map((i) => selectedIds.has(i.id) ? { ...i, status: "conciliado" } : i)
+      );
+      toast.success(`${selectedIds.size} transação(ões) conciliada(s)`);
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      toast.error("Erro na conciliação em lote: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedIds, items, reconciliationId]);
+
   const totals = useMemo(() => {
     const total = items.length;
     const conciliados = items.filter((i) => i.status === "conciliado").length;
