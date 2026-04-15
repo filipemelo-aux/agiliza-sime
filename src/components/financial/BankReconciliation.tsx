@@ -195,7 +195,9 @@ export function BankReconciliation() {
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableDue: string | null = null;
-        let matchedPayableValor: number | null = null;
+        let matchedPayableExpenseId: string | null = null;
+        let matchedPayableIsInstallment = false;
+        let matchedPayableInstallmentId: string | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
         const txDate = dbItem.transaction_date;
 
@@ -242,6 +244,9 @@ export function BankReconciliation() {
               matchedPayableDesc = pm.description;
               matchedPayableDue = pm.referenceDate;
               matchedPayableValor = pm.amount;
+              matchedPayableExpenseId = pm.expenseId;
+              matchedPayableIsInstallment = pm.isInstallment;
+              matchedPayableInstallmentId = pm.installmentId || null;
               matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
             }
           }
