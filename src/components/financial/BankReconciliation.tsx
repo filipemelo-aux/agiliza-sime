@@ -971,7 +971,7 @@ export function BankReconciliation() {
                       precision={item.matchedMovPrecision}
                     />
                   )}
-                  {item.matchedPayableId && item.status === "pendente" && (
+                   {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
@@ -980,6 +980,7 @@ export function BankReconciliation() {
                       variant="blue"
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
+                      fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
                   <ItemActions
@@ -1040,6 +1041,7 @@ export function BankReconciliation() {
                       variant="blue"
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
+                      fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
                   {item.status === "conciliado" && (
