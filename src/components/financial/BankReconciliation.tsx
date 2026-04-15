@@ -35,7 +35,7 @@ function daysDiff(a: string, b: string): number {
 interface OfxItem extends OfxTransaction {
   id: string;
   dbItemId?: string;
-  status: "pendente" | "conciliado" | "registrado";
+  status: "pendente" | "conciliado";
   matchedMovId: string | null;
   matchedMovDesc: string | null;
   matchedMovDate: string | null;
@@ -88,7 +88,7 @@ export function BankReconciliation() {
   const [history, setHistory] = useState<ReconciliationSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado" | "registrado">("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado">("todos");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
 
   // Load chart of accounts
@@ -192,7 +192,7 @@ export function BankReconciliation() {
         dbItem,
         absVal: Math.abs(Number(dbItem.amount)),
         tipo: dbItem.tipo as "entrada" | "saida",
-        status: dbItem.status as "pendente" | "conciliado" | "registrado",
+        status: (dbItem.status === "registrado" ? "conciliado" : dbItem.status) as "pendente" | "conciliado",
         txDate: dbItem.transaction_date,
       }));
 
@@ -397,7 +397,7 @@ export function BankReconciliation() {
 
   const updateReconciliationCount = useCallback(async () => {
     if (!reconciliationId) return;
-    const conciliados = items.filter((i) => i.status === "conciliado" || i.status === "registrado").length;
+    const conciliados = items.filter((i) => i.status === "conciliado").length;
     await supabase
       .from("bank_reconciliations")
       .update({ reconciled_items: conciliados })
@@ -437,9 +437,8 @@ export function BankReconciliation() {
   const totals = useMemo(() => {
     const total = items.length;
     const conciliados = items.filter((i) => i.status === "conciliado").length;
-    const registrados = items.filter((i) => i.status === "registrado").length;
     const pendentes = items.filter((i) => i.status === "pendente").length;
-    return { total, conciliados, registrados, pendentes };
+    return { total, conciliados, pendentes };
   }, [items]);
 
   const filteredItems = useMemo(() => {
@@ -793,18 +792,17 @@ export function BankReconciliation() {
     setManualMovDialogOpen(true);
   };
 
-  const markAsRegistered = useCallback(
+  const markAsConciliated = useCallback(
     (itemId: string) => {
       setItems((prev) =>
         prev.map((i) => {
           if (i.id !== itemId) return i;
-          // Update in DB
           if (i.dbItemId) {
-            supabase.from("bank_reconciliation_items").update({ status: "registrado" }).eq("id", i.dbItemId).then();
+            supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("id", i.dbItemId).then();
           } else if (reconciliationId) {
-            supabase.from("bank_reconciliation_items").update({ status: "registrado" }).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
+            supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
           }
-          return { ...i, status: "registrado" as const };
+          return { ...i, status: "conciliado" as const };
         })
       );
       setTimeout(updateReconciliationCount, 500);
@@ -842,17 +840,17 @@ export function BankReconciliation() {
       }
     }
 
-    if (activeItem) markAsRegistered(activeItem.id);
+    if (activeItem) markAsConciliated(activeItem.id);
     setExpenseDialogOpen(false);
     setActiveItem(null);
-    toast.success("Despesa registrada, quitada e transação marcada");
+    toast.success("Despesa registrada, quitada e conciliada");
   };
 
   const onMovementSaved = () => {
-    if (activeItem) markAsRegistered(activeItem.id);
+    if (activeItem) markAsConciliated(activeItem.id);
     setManualMovDialogOpen(false);
     setActiveItem(null);
-    toast.success("Movimentação registrada e transação marcada");
+    toast.success("Movimentação registrada e conciliada");
   };
 
   const goBack = () => {
@@ -972,10 +970,9 @@ export function BankReconciliation() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <SummaryCard icon={FileSpreadsheet} label="Total" value={totals.total} />
         <SummaryCard icon={CheckCircle2} label="Conciliados" value={totals.conciliados} valueColor="green" />
-        <SummaryCard icon={Plus} label="Registrados" value={totals.registrados} valueColor="primary" />
         <SummaryCard icon={AlertCircle} label="Pendentes" value={totals.pendentes} valueColor={totals.pendentes > 0 ? "red" : "green"} />
       </div>
 
@@ -1011,8 +1008,8 @@ export function BankReconciliation() {
           />
         </div>
         <div className="flex gap-1">
-          {(["todos", "pendente", "conciliado", "registrado"] as const).map((tab) => {
-            const labels: Record<string, string> = { todos: "Todos", pendente: "Pendentes", conciliado: "Conciliados", registrado: "Registrados" };
+          {(["todos", "pendente", "conciliado"] as const).map((tab) => {
+            const labels: Record<string, string> = { todos: "Todos", pendente: "Pendentes", conciliado: "Conciliados" };
             const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
             return (
               <Button
@@ -1161,9 +1158,6 @@ export function BankReconciliation() {
                   {item.status === "conciliado" && (
                     <span className="text-green-600 text-[11px]">✓ Conciliado</span>
                   )}
-                  {item.status === "registrado" && (
-                    <span className="text-blue-600 text-[11px]">✓ Registrado</span>
-                  )}
                 </div>
               ))}
             </div>
@@ -1273,8 +1267,6 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
 function StatusBadge({ status }: { status: string }) {
   if (status === "conciliado")
     return <Badge variant="outline" className="text-[10px] border-green-500 text-green-600">Conciliado</Badge>;
-  if (status === "registrado")
-    return <Badge variant="outline" className="text-[10px] border-blue-500 text-blue-600">Registrado</Badge>;
   return <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">Pendente</Badge>;
 }
 
