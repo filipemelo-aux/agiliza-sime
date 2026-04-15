@@ -547,6 +547,7 @@ function translateOrigem(origem: string | null): string {
     pagamento_despesa: "Pagamento de Despesa",
     despesas: "Despesa",
     contas_pagar: "Contas a Pagar",
+    contas_pagar_pendente: "Conta a Pagar (pendente)",
     contas_receber: "Contas a Receber",
     manual: "Lançamento Manual",
     colheita: "Colheita",
@@ -554,6 +555,26 @@ function translateOrigem(origem: string | null): string {
     faturamento: "Faturamento",
   };
   return map[origem || ""] || origem || "Outro";
+}
+
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+  desc: string | null; date: string | null; valor: number | null; origem: string;
+  variant?: "amber" | "blue"; label?: string;
+}) {
+  const colors = variant === "blue"
+    ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
+    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  return (
+    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
+      <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
+        <Link2 className="h-3 w-3 shrink-0" /> {label}
+      </span>
+      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+        <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
+        <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
+      </div>
+    </div>
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
