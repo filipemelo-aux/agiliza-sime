@@ -63,6 +63,7 @@ interface MatchCandidate {
   expenseId?: string;
   isInstallment?: boolean;
   installmentId?: string;
+  fornecedor?: string | null;
 }
 
 interface ReconciliationSummary {
@@ -723,6 +724,7 @@ export function BankReconciliation() {
         expenseId: item.matchedPayableExpenseId || undefined,
         isInstallment: item.matchedPayableIsInstallment,
         installmentId: item.matchedPayableInstallmentId || undefined,
+        fornecedor: item.matchedPayableFornecedor || null,
       });
     }
   }, []);
@@ -741,6 +743,7 @@ export function BankReconciliation() {
         expenseId: item.matchedPayableExpenseId || undefined,
         isInstallment: item.matchedPayableIsInstallment,
         installmentId: item.matchedPayableInstallmentId || undefined,
+        fornecedor: item.matchedPayableFornecedor || null,
       });
     }
   }, []);
@@ -1065,10 +1068,18 @@ export function BankReconciliation() {
           </AlertDialogHeader>
           <div className="text-sm space-y-1">
             <p><span className="text-muted-foreground">Extrato:</span> {confirmItem?.description}</p>
-            <p><span className="text-muted-foreground">Data:</span> {confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+            <p>{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
             <hr className="my-2" />
-            <p><span className="text-muted-foreground">{confirmMatch?.isPayable ? "Favorecido:" : "Movimento:"}</span> {confirmMatch?.descricao || "—"}</p>
-            <p><span className="text-muted-foreground">{confirmMatch?.isPayable ? "Venc:" : "Data:"}</span> {confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}</p>
+            {confirmMatch?.isPayable && confirmMatch.fornecedor && (
+              <p className="font-medium">{confirmMatch.fornecedor}</p>
+            )}
+            {confirmMatch?.descricao && (
+              <p className="text-muted-foreground text-xs truncate">{confirmMatch.descricao}</p>
+            )}
+            {!confirmMatch?.isPayable && !confirmMatch?.fornecedor && (
+              <p>{confirmMatch?.descricao || "—"}</p>
+            )}
+            <p className="text-muted-foreground text-xs">{confirmMatch?.isPayable ? "Venc:" : "Data:"} {confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}</p>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
