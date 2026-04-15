@@ -7,6 +7,7 @@ import { RevenueForecasts } from "@/components/financial/RevenueForecasts";
 import { FinancialCashFlow } from "@/components/financial/FinancialCashFlow";
 import { FinancialInvoicing } from "@/components/financial/FinancialInvoicing";
 import { FinancialPaid } from "@/components/financial/FinancialPaid";
+import { BankReconciliation } from "@/components/financial/BankReconciliation";
 
 export default function AdminFinancial({ section = "payables" }: { section?: string }) {
   return (
@@ -30,6 +31,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
           </>
         )}
         {section === "cashflow" && <FinancialCashFlow />}
+        {section === "reconciliation" && <BankReconciliation />}
       </div>
     </AdminLayout>
   );
