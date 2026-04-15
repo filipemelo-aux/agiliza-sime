@@ -386,7 +386,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   };
 
   const resetForm = () => {
-    setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("operacional");
+    setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("");
     setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
@@ -545,6 +545,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (!planoContasId) return toast.error("Selecione a conta contábil");
     if (!descricao.trim()) return toast.error("Informe a descrição");
     if (!valorTotal || Number(valorTotal) <= 0) return toast.error("Informe o valor");
+    if (!centroCusto) return toast.error("Selecione o centro de custo");
+    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
     if (isMaintenanceType) {
       if (!veiculoId) return toast.error("Selecione o veículo para manutenção");
       if (!kmAtual || Number(kmAtual) <= 0) return toast.error("Informe o KM atual");
@@ -1287,7 +1289,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             <div>
               <Label className="text-xs">Centro de Custo</Label>
               <Select value={centroCusto} onValueChange={setCentroCusto}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
                   {CENTRO_CUSTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
