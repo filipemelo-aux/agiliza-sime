@@ -422,36 +422,30 @@ export function BankReconciliation() {
                     <div className="ml-auto">
                       <ItemActions
                         item={item}
-                        onConfirmMatch={() => {
-                          if (item.matchedMovId) {
-                            setConfirmItem(item);
-                            setConfirmMatch({
-                              id: item.matchedMovId,
-                              descricao: item.matchedMovDesc,
-                              data_movimentacao: item.matchedMovDate || item.date,
-                              valor: Math.abs(item.amount),
-                              origem: item.matchedMovOrigem || "",
-                            });
-                          }
-                        }}
+                        onConfirmMatch={() => openConfirm(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
                       />
                     </div>
                   </div>
-                  {/* Row 2: full description */}
                   <p className="text-xs text-foreground">{item.description}</p>
-                  {/* Row 3: match details */}
                   {item.matchedMovId && item.status === "pendente" && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5 space-y-0.5">
-                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
-                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
-                      </span>
-                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                        <p><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
-                        <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"} · <span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
-                      </div>
-                    </div>
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                    />
+                  )}
+                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={item.matchedPayableDesc}
+                      date={item.matchedPayableDue}
+                      valor={item.matchedPayableValor}
+                      origem="Conta a Pagar (pendente)"
+                      variant="blue"
+                      label="Conta a Pagar encontrada"
+                    />
                   )}
                   {item.status === "conciliado" && (
                     <span className="text-green-600 text-[11px]">✓ Conciliado</span>
