@@ -31,6 +31,11 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  // Conta a pagar match (not yet paid)
+  matchedPayableId: string | null;
+  matchedPayableDesc: string | null;
+  matchedPayableDue: string | null;
+  matchedPayableValor: number | null;
 }
 
 interface MatchCandidate {
@@ -39,6 +44,9 @@ interface MatchCandidate {
   data_movimentacao: string;
   valor: number;
   origem: string;
+  // For payable matches
+  isPayable?: boolean;
+  payableDueDate?: string;
 }
 
 export function BankReconciliation() {
