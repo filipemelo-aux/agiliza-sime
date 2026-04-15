@@ -1027,6 +1027,23 @@ export function BankReconciliation() {
             );
           })}
         </div>
+        <div className="flex gap-1">
+          {(["todos", "debito", "credito"] as const).map((tab) => {
+            const labels: Record<string, string> = { todos: "Todos", debito: "Débitos", credito: "Créditos" };
+            const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
+            return (
+              <Button
+                key={tab}
+                size="sm"
+                variant={tipoFilter === tab ? "default" : "outline"}
+                className="h-7 text-[10px] px-2 gap-1"
+                onClick={() => setTipoFilter(tab)}
+              >
+                {labels[tab]} <span className="opacity-70">({count})</span>
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Items */}
