@@ -46,6 +46,9 @@ interface OfxItem extends OfxTransaction {
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
   matchedPayablePrecision: MatchPrecision | null;
+  matchedPayableExpenseId: string | null;
+  matchedPayableIsInstallment: boolean;
+  matchedPayableInstallmentId: string | null;
 }
 
 interface MatchCandidate {
