@@ -376,31 +376,26 @@ export function BankReconciliation() {
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
                   {item.matchedMovId && item.status === "pendente" && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 space-y-0.5">
-                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
-                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
-                      </span>
-                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                        <p className="truncate">Desc: {item.matchedMovDesc || "Sem descrição"}</p>
-                        <p>Data: {formatDateBR(item.matchedMovDate || "")} · Valor: {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
-                        <p>Origem: {translateOrigem(item.matchedMovOrigem)}</p>
-                      </div>
-                    </div>
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                    />
+                  )}
+                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={item.matchedPayableDesc}
+                      date={item.matchedPayableDue}
+                      valor={item.matchedPayableValor}
+                      origem="Conta a Pagar (pendente)"
+                      variant="blue"
+                      label="Conta a Pagar encontrada"
+                    />
                   )}
                   <ItemActions
                     item={item}
-                    onConfirmMatch={() => {
-                      if (item.matchedMovId) {
-                        setConfirmItem(item);
-                        setConfirmMatch({
-                          id: item.matchedMovId,
-                          descricao: item.matchedMovDesc,
-                          data_movimentacao: item.matchedMovDate || item.date,
-                          valor: Math.abs(item.amount),
-                          origem: item.matchedMovOrigem || "",
-                        });
-                      }
-                    }}
+                    onConfirmMatch={() => openConfirm(item)}
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
                   />
