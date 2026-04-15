@@ -110,9 +110,10 @@ interface Props {
   empresaId: string;
   chartAccounts: ChartAccount[];
   onSaved: () => void;
+  initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string } | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
@@ -385,8 +386,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   };
 
   const resetForm = () => {
-    setDescricao(""); setPlanoContasId(""); setCentroCusto("operacional");
-    setValorTotal(""); setDataEmissao(getLocalDateISO()); setDataVencimento("");
+    setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("operacional");
+    setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);

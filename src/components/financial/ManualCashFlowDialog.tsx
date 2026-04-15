@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,14 @@ interface ManualCashFlowDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  initialValues?: { valor?: string; data?: Date; tipo?: "entrada" | "saida"; descricao?: string } | null;
 }
 
-export function ManualCashFlowDialog({ open, onOpenChange, onSaved }: ManualCashFlowDialogProps) {
-  const [tipo, setTipo] = useState<"entrada" | "saida">("entrada");
-  const [valor, setValor] = useState("");
-  const [data, setData] = useState<Date>(new Date());
-  const [descricao, setDescricao] = useState("");
+export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValues }: ManualCashFlowDialogProps) {
+  const [tipo, setTipo] = useState<"entrada" | "saida">(initialValues?.tipo || "entrada");
+  const [valor, setValor] = useState(initialValues?.valor || "");
+  const [data, setData] = useState<Date>(initialValues?.data || new Date());
+  const [descricao, setDescricao] = useState(initialValues?.descricao || "");
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -33,6 +34,16 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved }: ManualCash
     setData(new Date());
     setDescricao("");
   };
+
+  // Apply initialValues when dialog opens
+  useEffect(() => {
+    if (open && initialValues) {
+      if (initialValues.tipo) setTipo(initialValues.tipo);
+      if (initialValues.valor) setValor(initialValues.valor);
+      if (initialValues.data) setData(initialValues.data);
+      if (initialValues.descricao) setDescricao(initialValues.descricao);
+    }
+  }, [open]);
 
   const handleSave = async () => {
     const valorNum = Number(unmaskCurrency(valor));

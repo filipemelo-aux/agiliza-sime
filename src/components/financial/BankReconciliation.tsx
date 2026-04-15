@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SummaryCard } from "@/components/SummaryCard";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1093,6 +1093,12 @@ export function BankReconciliation() {
         open={manualMovDialogOpen}
         onOpenChange={(o) => { setManualMovDialogOpen(o); if (!o) setActiveItem(null); }}
         onSaved={onMovementSaved}
+        initialValues={activeItem ? {
+          valor: maskCurrency(String(Math.abs(activeItem.amount).toFixed(2))),
+          data: new Date(activeItem.date + "T12:00:00"),
+          tipo: activeItem.tipo,
+          descricao: activeItem.description,
+        } : null}
       />
 
       {/* Expense dialog */}
@@ -1103,6 +1109,12 @@ export function BankReconciliation() {
         expense={null}
         empresaId={matrizId}
         chartAccounts={chartAccounts}
+        initialValues={activeItem ? {
+          valorTotal: String(Math.abs(activeItem.amount)),
+          dataEmissao: activeItem.date,
+          dataVencimento: activeItem.date,
+          descricao: activeItem.description,
+        } : null}
       />
     </div>
   );
