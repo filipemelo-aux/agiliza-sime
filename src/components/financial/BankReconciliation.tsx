@@ -428,7 +428,7 @@ export function BankReconciliation() {
                                 descricao: item.matchedMovDesc,
                                 data_movimentacao: item.matchedMovDate || item.date,
                                 valor: Math.abs(item.amount),
-                                origem: "",
+                                origem: item.matchedMovOrigem || "",
                               });
                             }
                           }}
