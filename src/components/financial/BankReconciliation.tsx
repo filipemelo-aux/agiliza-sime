@@ -617,6 +617,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      approximate={!item.matchExact}
                     />
                   )}
                   {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
@@ -626,7 +627,8 @@ export function BankReconciliation() {
                       valor={item.matchedPayableValor}
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
-                      label="Conta a Pagar encontrada"
+                      label={item.matchPayableExact ? "Conta a Pagar encontrada" : "Conta a Pagar (aprox.)"}
+                      approximate={!item.matchPayableExact}
                     />
                   )}
                   {item.status === "conciliado" && (
