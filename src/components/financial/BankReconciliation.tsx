@@ -212,9 +212,9 @@ export function BankReconciliation() {
         // Try exact first, then approx
         type MovMatch = { m: typeof movs[0]; exact: boolean } | null;
         let movMatch: MovMatch = null;
-        const isMovDirectionOk = (m: typeof movs[0]) =>
-          (tx.tipo === "saida" && m.origen !== "contas_receber") ||
-          (tx.tipo === "entrada" && m.origen !== "pagamento_despesa" && m.origen !== "despesas" && m.origen !== "contas_pagar");
+        const dirOk = (mOrigen: string) =>
+          (tx.tipo === "saida" && mOrigen !== "contas_receber") ||
+          (tx.tipo === "entrada" && mOrigen !== "pagamento_despesa" && mOrigen !== "despesas" && mOrigen !== "contas_pagar");
 
         // Exact value match
         for (const m of movs) {
