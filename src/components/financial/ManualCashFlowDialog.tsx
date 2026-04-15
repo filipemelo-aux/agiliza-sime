@@ -18,6 +18,7 @@ interface ManualCashFlowDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  initialValues?: { valor?: string; data?: Date; tipo?: "entrada" | "saida"; descricao?: string } | null;
 }
 
 export function ManualCashFlowDialog({ open, onOpenChange, onSaved }: ManualCashFlowDialogProps) {

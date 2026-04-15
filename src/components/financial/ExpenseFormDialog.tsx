@@ -113,7 +113,7 @@ interface Props {
   initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string } | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, chartAccounts: externalChartAccounts, onSaved, initialValues }: Props) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!expense;
