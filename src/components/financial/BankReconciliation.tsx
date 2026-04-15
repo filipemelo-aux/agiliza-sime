@@ -29,6 +29,8 @@ interface OfxItem extends OfxTransaction {
   matchedMovId: string | null;
   matchedMovDesc: string | null;
   matchedMovDate: string | null;
+  matchedMovOrigem: string | null;
+  matchedMovValor: number | null;
 }
 
 interface MatchCandidate {
@@ -136,6 +138,8 @@ export function BankReconciliation() {
           matchedMovId: match?.id || null,
           matchedMovDesc: match?.descricao || null,
           matchedMovDate: match?.data_movimentacao || null,
+          matchedMovOrigem: match?.origem || null,
+          matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
         };
       });
 
@@ -322,6 +326,18 @@ export function BankReconciliation() {
                     <StatusBadge status={item.status} />
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
+                  {item.matchedMovId && item.status === "pendente" && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 space-y-0.5">
+                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
+                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
+                      </span>
+                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                        <p className="truncate">Desc: {item.matchedMovDesc || "Sem descrição"}</p>
+                        <p>Data: {formatDateBR(item.matchedMovDate || "")} · Valor: {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
+                        <p>Origem: {translateOrigem(item.matchedMovOrigem)}</p>
+                      </div>
+                    </div>
+                  )}
                   <ItemActions
                     item={item}
                     onConfirmMatch={() => {
@@ -332,7 +348,7 @@ export function BankReconciliation() {
                           descricao: item.matchedMovDesc,
                           data_movimentacao: item.matchedMovDate || item.date,
                           valor: Math.abs(item.amount),
-                          origem: "",
+                          origem: item.matchedMovOrigem || "",
                         });
                       }
                     }}
@@ -380,12 +396,19 @@ export function BankReconciliation() {
                       <TableCell className="py-2">
                         <StatusBadge status={item.status} />
                       </TableCell>
-                      <TableCell className="text-xs py-2 max-w-[180px] truncate">
+                      <TableCell className="text-xs py-2 max-w-[260px]">
                         {item.matchedMovId && item.status === "pendente" ? (
-                          <span className="flex items-center gap-1 text-amber-600">
-                            <Link2 className="h-3 w-3" />
-                            {item.matchedMovDesc || "Movimentação encontrada"}
-                          </span>
+                          <div className="space-y-0.5">
+                            <span className="flex items-center gap-1 text-amber-600 font-medium">
+                              <Link2 className="h-3 w-3 shrink-0" />
+                              Correspondência encontrada
+                            </span>
+                            <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                              <p className="truncate"><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
+                              <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
+                              <p><span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
+                            </div>
+                          </div>
                         ) : item.status === "conciliado" ? (
                           <span className="text-green-600 text-xs">✓ Conciliado</span>
                         ) : item.status === "registrado" ? (
@@ -405,7 +428,7 @@ export function BankReconciliation() {
                                 descricao: item.matchedMovDesc,
                                 data_movimentacao: item.matchedMovDate || item.date,
                                 valor: Math.abs(item.amount),
-                                origem: "",
+                                origem: item.matchedMovOrigem || "",
                               });
                             }
                           }}
@@ -429,9 +452,17 @@ export function BankReconciliation() {
             <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>O sistema encontrou uma movimentação com o mesmo valor:</p>
-              <div className="bg-muted rounded-md p-3 space-y-1 text-sm">
-                <p><strong>Extrato:</strong> {confirmItem?.description} — {confirmItem && formatCurrency(Math.abs(confirmItem.amount))} em {confirmItem && formatDateBR(confirmItem.date)}</p>
-                <p><strong>Sistema:</strong> {confirmMatch?.descricao || "Sem descrição"} — {confirmMatch && formatCurrency(confirmMatch.valor)} em {confirmMatch && formatDateBR(confirmMatch.data_movimentacao)}</p>
+              <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
+                  <p>{confirmItem?.description}</p>
+                  <p className="text-xs text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+                </div>
+                <div className="border-t pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Movimentação no Sistema</p>
+                  <p>{confirmMatch?.descricao || "Sem descrição"}</p>
+                  <p className="text-xs text-muted-foreground">{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)} · {translateOrigem(confirmMatch?.origem || null)}</p>
+                </div>
               </div>
               <p>Deseja confirmar que se trata da mesma transação?</p>
             </AlertDialogDescription>
@@ -461,6 +492,20 @@ export function BankReconciliation() {
       />
     </div>
   );
+}
+
+function translateOrigem(origem: string | null): string {
+  const map: Record<string, string> = {
+    pagamento_despesa: "Pagamento de Despesa",
+    despesas: "Despesa",
+    contas_pagar: "Contas a Pagar",
+    contas_receber: "Contas a Receber",
+    manual: "Lançamento Manual",
+    colheita: "Colheita",
+    abastecimento: "Abastecimento",
+    faturamento: "Faturamento",
+  };
+  return map[origem || ""] || origem || "Outro";
 }
 
 function StatusBadge({ status }: { status: string }) {
