@@ -42,10 +42,18 @@ interface MatchCandidate {
 export function BankReconciliation() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { matrizId } = useUnifiedCompany();
   const [items, setItems] = useState<OfxItem[]>([]);
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [reconciliationId, setReconciliationId] = useState<string | null>(null);
+  const [chartAccounts, setChartAccounts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (matrizId) {
+      supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("empresa_id", matrizId).eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
+    }
+  }, [matrizId]);
 
   // Confirm match dialog
   const [confirmItem, setConfirmItem] = useState<OfxItem | null>(null);
@@ -283,7 +291,7 @@ export function BankReconciliation() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <SummaryCard icon={FileSpreadsheet} label="Total" value={totals.total} />
         <SummaryCard icon={CheckCircle2} label="Conciliados" value={totals.conciliados} valueColor="green" />
-        <SummaryCard icon={Plus} label="Registrados" value={totals.registrados} valueColor="blue" />
+        <SummaryCard icon={Plus} label="Registrados" value={totals.registrados} valueColor="primary" />
         <SummaryCard icon={AlertCircle} label="Pendentes" value={totals.pendentes} valueColor={totals.pendentes > 0 ? "red" : "green"} />
       </div>
 
@@ -448,6 +456,8 @@ export function BankReconciliation() {
         onOpenChange={(o) => { setExpenseDialogOpen(o); if (!o) setActiveItem(null); }}
         onSaved={onExpenseSaved}
         expense={null}
+        empresaId={matrizId}
+        chartAccounts={chartAccounts}
       />
     </div>
   );
