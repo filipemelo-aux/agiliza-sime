@@ -671,6 +671,9 @@ export function BankReconciliation() {
         origem: "contas_pagar_pendente",
         isPayable: true,
         payableDueDate: item.matchedPayableDue || undefined,
+        expenseId: item.matchedPayableExpenseId || undefined,
+        isInstallment: item.matchedPayableIsInstallment,
+        installmentId: item.matchedPayableInstallmentId || undefined,
       });
     }
   }, []);
@@ -686,6 +689,9 @@ export function BankReconciliation() {
         origem: "contas_pagar_pendente",
         isPayable: true,
         payableDueDate: item.matchedPayableDue || undefined,
+        expenseId: item.matchedPayableExpenseId || undefined,
+        isInstallment: item.matchedPayableIsInstallment,
+        installmentId: item.matchedPayableInstallmentId || undefined,
       });
     }
   }, []);
