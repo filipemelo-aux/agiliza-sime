@@ -841,6 +841,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      precision={item.matchedMovPrecision}
                     />
                   )}
                   {item.matchedPayableId && item.status === "pendente" && (
@@ -851,6 +852,7 @@ export function BankReconciliation() {
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
                       label="Conta a Pagar encontrada"
+                      precision={item.matchedPayablePrecision}
                     />
                   )}
                   {item.status === "conciliado" && (
@@ -939,17 +941,19 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string;
+  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null;
 }) {
+  const isProximo = precision === "proximo";
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
     : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  const finalLabel = isProximo ? `${label} (data próxima)` : label;
   return (
-    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
+    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
-        <Link2 className="h-3 w-3 shrink-0" /> {label}
+        <Link2 className="h-3 w-3 shrink-0" /> {finalLabel}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
