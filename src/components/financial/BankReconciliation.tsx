@@ -511,6 +511,9 @@ export function BankReconciliation() {
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
                   {/* Row 1: date, type badge, value, status, actions */}
                   <div className="flex items-center gap-2 flex-wrap">
+                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
+                    )}
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
                     <Badge
                       variant={item.tipo === "entrada" ? "default" : "destructive"}
