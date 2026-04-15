@@ -359,87 +359,64 @@ export function BankReconciliation() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Data</TableHead>
-                    <TableHead className="text-xs">Tipo</TableHead>
-                    <TableHead className="text-xs">Descrição</TableHead>
-                    <TableHead className="text-xs text-right">Valor</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Correspondência</TableHead>
-                    <TableHead className="text-xs text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(item.date)}</TableCell>
-                      <TableCell className="py-2">
-                        <Badge
-                          variant={item.tipo === "entrada" ? "default" : "destructive"}
-                          className={cn("text-[10px]", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
-                        >
-                          {item.tipo === "entrada" ? "Crédito" : "Débito"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs max-w-[200px] truncate py-2">{item.description}</TableCell>
-                      <TableCell
-                        className={cn(
-                          "text-right font-mono text-xs font-semibold whitespace-nowrap py-2",
-                          item.tipo === "entrada" ? "text-green-600" : "text-red-600"
-                        )}
-                      >
-                        {formatCurrency(Math.abs(item.amount))}
-                      </TableCell>
-                      <TableCell className="py-2">
-                        <StatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="text-xs py-2 max-w-[260px]">
-                        {item.matchedMovId && item.status === "pendente" ? (
-                          <div className="space-y-0.5">
-                            <span className="flex items-center gap-1 text-amber-600 font-medium">
-                              <Link2 className="h-3 w-3 shrink-0" />
-                              Correspondência encontrada
-                            </span>
-                            <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                              <p className="truncate"><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
-                              <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
-                              <p><span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
-                            </div>
-                          </div>
-                        ) : item.status === "conciliado" ? (
-                          <span className="text-green-600 text-xs">✓ Conciliado</span>
-                        ) : item.status === "registrado" ? (
-                          <span className="text-blue-600 text-xs">✓ Registrado</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-2 text-right">
-                        <ItemActions
-                          item={item}
-                          onConfirmMatch={() => {
-                            if (item.matchedMovId) {
-                              setConfirmItem(item);
-                              setConfirmMatch({
-                                id: item.matchedMovId,
-                                descricao: item.matchedMovDesc,
-                                data_movimentacao: item.matchedMovDate || item.date,
-                                valor: Math.abs(item.amount),
-                                origem: item.matchedMovOrigem || "",
-                              });
-                            }
-                          }}
-                          onNewExpense={() => handleNewExpense(item)}
-                          onNewMovement={() => handleNewMovement(item)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="divide-y divide-border">
+              {items.map((item) => (
+                <div key={item.id} className="px-4 py-2.5 space-y-1">
+                  {/* Row 1: date, type badge, value, status, actions */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
+                    <Badge
+                      variant={item.tipo === "entrada" ? "default" : "destructive"}
+                      className={cn("text-[10px] h-5", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+                    >
+                      {item.tipo === "entrada" ? "Crédito" : "Débito"}
+                    </Badge>
+                    <span className={cn("text-xs font-mono font-bold", item.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                      {formatCurrency(Math.abs(item.amount))}
+                    </span>
+                    <StatusBadge status={item.status} />
+                    <div className="ml-auto">
+                      <ItemActions
+                        item={item}
+                        onConfirmMatch={() => {
+                          if (item.matchedMovId) {
+                            setConfirmItem(item);
+                            setConfirmMatch({
+                              id: item.matchedMovId,
+                              descricao: item.matchedMovDesc,
+                              data_movimentacao: item.matchedMovDate || item.date,
+                              valor: Math.abs(item.amount),
+                              origem: item.matchedMovOrigem || "",
+                            });
+                          }
+                        }}
+                        onNewExpense={() => handleNewExpense(item)}
+                        onNewMovement={() => handleNewMovement(item)}
+                      />
+                    </div>
+                  </div>
+                  {/* Row 2: full description */}
+                  <p className="text-xs text-foreground">{item.description}</p>
+                  {/* Row 3: match details */}
+                  {item.matchedMovId && item.status === "pendente" && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5 space-y-0.5">
+                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
+                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
+                      </span>
+                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                        <p><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
+                        <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"} · <span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {item.status === "conciliado" && (
+                    <span className="text-green-600 text-[11px]">✓ Conciliado</span>
+                  )}
+                  {item.status === "registrado" && (
+                    <span className="text-blue-600 text-[11px]">✓ Registrado</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
