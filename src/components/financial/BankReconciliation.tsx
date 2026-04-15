@@ -205,20 +205,37 @@ export function BankReconciliation() {
   const handleConfirmMatch = useCallback(async () => {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
-    // Update item status in DB
-    await supabase
-      .from("bank_reconciliation_items")
-      .update({ status: "conciliado", matched_movimentacao_id: confirmMatch.id })
-      .eq("reconciliation_id", reconciliationId)
-      .eq("fitid", confirmItem.fitid || "")
-      .eq("status", "pendente");
+    try {
+      if (confirmMatch.isPayable) {
+        // Pay the accounts_payable record using the OFX transaction date
+        const now = new Date().toISOString();
+        await supabase
+          .from("accounts_payable")
+          .update({
+            status: "pago",
+            paid_amount: confirmMatch.valor,
+            paid_at: `${confirmItem.date}T12:00:00`,
+          })
+          .eq("id", confirmMatch.id);
+      }
 
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
-      )
-    );
-    toast.success("Transação conciliada com sucesso");
+      // Update reconciliation item status in DB
+      await supabase
+        .from("bank_reconciliation_items")
+        .update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id })
+        .eq("reconciliation_id", reconciliationId)
+        .eq("fitid", confirmItem.fitid || "")
+        .eq("status", "pendente");
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
+        )
+      );
+      toast.success(confirmMatch.isPayable ? "Conta paga e conciliada com sucesso" : "Transação conciliada com sucesso");
+    } catch (err: any) {
+      toast.error("Erro ao conciliar: " + (err.message || ""));
+    }
     setConfirmItem(null);
     setConfirmMatch(null);
   }, [confirmItem, confirmMatch, reconciliationId]);
