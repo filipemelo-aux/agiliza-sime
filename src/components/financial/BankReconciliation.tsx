@@ -900,11 +900,13 @@ function StatusBadge({ status }: { status: string }) {
 function ItemActions({
   item,
   onConfirmMatch,
+  onConfirmPayable,
   onNewExpense,
   onNewMovement,
 }: {
   item: OfxItem;
   onConfirmMatch: () => void;
+  onConfirmPayable?: () => void;
   onNewExpense: () => void;
   onNewMovement: () => void;
 }) {
@@ -912,17 +914,26 @@ function ItemActions({
 
   return (
     <div className="flex items-center gap-1 justify-end flex-wrap">
-      {(item.matchedMovId || item.matchedPayableId) && (
+      {item.matchedMovId && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onConfirmMatch}>
-          <CheckCircle2 className="h-3 w-3" /> {item.matchedPayableId && !item.matchedMovId ? "Pagar e Conciliar" : "Conciliar"}
+          <CheckCircle2 className="h-3 w-3" /> Conciliar
         </Button>
       )}
-      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
-        <Plus className="h-3 w-3" /> Despesa
-      </Button>
-      <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
-        <ArrowDownCircle className="h-3 w-3" /> Movimentação
-      </Button>
+      {item.matchedPayableId && (
+        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-blue-300 text-blue-600 hover:bg-blue-50" onClick={onConfirmPayable || onConfirmMatch}>
+          <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
+        </Button>
+      )}
+      {!item.matchedMovId && !item.matchedPayableId && (
+        <>
+          <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
+            <Plus className="h-3 w-3" /> Despesa
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
+            <ArrowDownCircle className="h-3 w-3" /> Movimentação
+          </Button>
+        </>
+      )}
     </div>
   );
 }
