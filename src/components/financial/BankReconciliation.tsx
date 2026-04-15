@@ -428,6 +428,26 @@ export function BankReconciliation() {
         <SummaryCard icon={AlertCircle} label="Pendentes" value={totals.pendentes} valueColor={totals.pendentes > 0 ? "red" : "green"} />
       </div>
 
+      {/* Batch action bar */}
+      {selectableItems.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Checkbox
+            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+            onCheckedChange={toggleSelectAll}
+            className="h-4 w-4"
+          />
+          <span className="text-xs text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
+          </span>
+          {selectedIds.size > 0 && (
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1 ml-auto" onClick={handleBatchConciliate} disabled={loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
+              Conciliar {selectedIds.size} em lote
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Items */}
       <Card>
         <CardContent className="p-0">
