@@ -138,6 +138,8 @@ export function BankReconciliation() {
           matchedMovId: match?.id || null,
           matchedMovDesc: match?.descricao || null,
           matchedMovDate: match?.data_movimentacao || null,
+          matchedMovOrigem: match?.origem || null,
+          matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
         };
       });
 
