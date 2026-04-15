@@ -83,6 +83,99 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliation_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          fitid: string | null
+          id: string
+          matched_movimentacao_id: string | null
+          reconciliation_id: string
+          status: string
+          tipo: string
+          transaction_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          fitid?: string | null
+          id?: string
+          matched_movimentacao_id?: string | null
+          reconciliation_id: string
+          status?: string
+          tipo: string
+          transaction_date: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          fitid?: string | null
+          id?: string
+          matched_movimentacao_id?: string | null
+          reconciliation_id?: string
+          status?: string
+          tipo?: string
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_items_matched_movimentacao_id_fkey"
+            columns: ["matched_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          account_id: string | null
+          bank_name: string | null
+          created_at: string
+          created_by: string
+          file_name: string
+          id: string
+          period_end: string | null
+          period_start: string | null
+          reconciled_items: number
+          total_items: number
+        }
+        Insert: {
+          account_id?: string | null
+          bank_name?: string | null
+          created_at?: string
+          created_by: string
+          file_name: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          reconciled_items?: number
+          total_items?: number
+        }
+        Update: {
+          account_id?: string | null
+          bank_name?: string | null
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          reconciled_items?: number
+          total_items?: number
+        }
+        Relationships: []
+      }
       cargas: {
         Row: {
           ativo: boolean
