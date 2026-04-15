@@ -444,7 +444,19 @@ export function BankReconciliation() {
     setLoading(true);
 
     try {
-      const text = await file.text();
+      // OFX files from Brazilian banks are often encoded in ISO-8859-1 / Windows-1252
+      // Try to detect encoding from OFX header, fallback to latin1
+      let text: string;
+      const rawBytes = await file.arrayBuffer();
+      const latin1Text = new TextDecoder("iso-8859-1").decode(rawBytes);
+      const charsetMatch = latin1Text.match(/CHARSET:\s*(\d+|[A-Za-z0-9_-]+)/i);
+      const charset = charsetMatch?.[1];
+      if (charset === "UTF-8" || charset === "65001") {
+        text = new TextDecoder("utf-8").decode(rawBytes);
+      } else {
+        // Default to latin1 for Brazilian banks (CHARSET:1252, CHARSET:ISO-8859-1, or unspecified)
+        text = latin1Text;
+      }
       const parsed = parseOfx(text);
 
       if (parsed.transactions.length === 0) {
