@@ -358,6 +358,7 @@ export function FinancialCashFlow() {
         open={manualDialogOpen}
         onOpenChange={setManualDialogOpen}
         onSaved={loadMovimentacoes}
+        chartAccounts={chartAccounts}
       />
     </div>
   );
