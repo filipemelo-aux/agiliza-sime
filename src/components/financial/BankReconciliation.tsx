@@ -187,6 +187,9 @@ export function BankReconciliation() {
           .in("status", ["pendente", "atrasado"]),
       ]);
 
+      const movs = (existingMovs || []) as MatchCandidate[];
+      const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
+
       // Helper: date diff in days
       const daysDiff = (a: string, b: string) => {
         const da = new Date(a), db = new Date(b);
