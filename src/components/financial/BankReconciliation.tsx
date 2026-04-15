@@ -384,12 +384,19 @@ export function BankReconciliation() {
                       <TableCell className="py-2">
                         <StatusBadge status={item.status} />
                       </TableCell>
-                      <TableCell className="text-xs py-2 max-w-[180px] truncate">
+                      <TableCell className="text-xs py-2 max-w-[260px]">
                         {item.matchedMovId && item.status === "pendente" ? (
-                          <span className="flex items-center gap-1 text-amber-600">
-                            <Link2 className="h-3 w-3" />
-                            {item.matchedMovDesc || "Movimentação encontrada"}
-                          </span>
+                          <div className="space-y-0.5">
+                            <span className="flex items-center gap-1 text-amber-600 font-medium">
+                              <Link2 className="h-3 w-3 shrink-0" />
+                              Correspondência encontrada
+                            </span>
+                            <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+                              <p className="truncate"><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
+                              <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
+                              <p><span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
+                            </div>
+                          </div>
                         ) : item.status === "conciliado" ? (
                           <span className="text-green-600 text-xs">✓ Conciliado</span>
                         ) : item.status === "registrado" ? (
