@@ -14,8 +14,9 @@ import { formatDateBR } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2,
+  Upload, CheckCircle2, AlertCircle, FileSpreadsheet, Link2, Plus, ArrowDownCircle, Loader2, CheckSquare,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -73,6 +74,61 @@ export function BankReconciliation() {
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [manualMovDialogOpen, setManualMovDialogOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<OfxItem | null>(null);
+
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const selectableItems = useMemo(() =>
+    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
+    [items]
+  );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === selectableItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableItems.map((i) => i.id)));
+    }
+  }, [selectedIds.size, selectableItems]);
+
+  const handleBatchConciliate = useCallback(async () => {
+    if (selectedIds.size === 0 || !reconciliationId) return;
+    setLoading(true);
+    try {
+      const selected = items.filter((i) => selectedIds.has(i.id));
+      for (const item of selected) {
+        if (item.matchedPayableId && !item.matchedMovId) {
+          await supabase
+            .from("accounts_payable")
+            .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
+            .eq("id", item.matchedPayableId);
+        }
+        await supabase
+          .from("bank_reconciliation_items")
+          .update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null })
+          .eq("reconciliation_id", reconciliationId)
+          .eq("fitid", item.fitid || "")
+          .eq("status", "pendente");
+      }
+      setItems((prev) =>
+        prev.map((i) => selectedIds.has(i.id) ? { ...i, status: "conciliado" } : i)
+      );
+      toast.success(`${selectedIds.size} transação(ões) conciliada(s)`);
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      toast.error("Erro na conciliação em lote: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedIds, items, reconciliationId]);
 
   const totals = useMemo(() => {
     const total = items.length;
@@ -372,6 +428,26 @@ export function BankReconciliation() {
         <SummaryCard icon={AlertCircle} label="Pendentes" value={totals.pendentes} valueColor={totals.pendentes > 0 ? "red" : "green"} />
       </div>
 
+      {/* Batch action bar */}
+      {selectableItems.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Checkbox
+            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+            onCheckedChange={toggleSelectAll}
+            className="h-4 w-4"
+          />
+          <span className="text-xs text-muted-foreground">
+            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
+          </span>
+          {selectedIds.size > 0 && (
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1 ml-auto" onClick={handleBatchConciliate} disabled={loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
+              Conciliar {selectedIds.size} em lote
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Items */}
       <Card>
         <CardContent className="p-0">
@@ -384,6 +460,9 @@ export function BankReconciliation() {
               {items.map((item) => (
                 <div key={item.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
+                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
+                    )}
                     <Badge
                       variant={item.tipo === "entrada" ? "default" : "destructive"}
                       className={cn("text-[10px] shrink-0", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
@@ -432,6 +511,9 @@ export function BankReconciliation() {
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
                   {/* Row 1: date, type badge, value, status, actions */}
                   <div className="flex items-center gap-2 flex-wrap">
+                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
+                    )}
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
                     <Badge
                       variant={item.tipo === "entrada" ? "default" : "destructive"}
