@@ -43,6 +43,7 @@ interface OfxItem extends OfxTransaction {
   matchedMovPrecision: MatchPrecision | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
+  matchedPayableFornecedor: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
   matchedPayablePrecision: MatchPrecision | null;
@@ -137,7 +138,7 @@ export function BankReconciliation() {
           .lte("data_movimentacao", maxDate),
         supabase
           .from("expenses")
-          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
           .in("status", ["pendente", "atrasado"])
           .is("deleted_at", null),
         supabase
@@ -151,7 +152,7 @@ export function BankReconciliation() {
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
       const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
-      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
         const exp = expRows.find((e: any) => e.id === inst.expense_id);
         payables.push({
@@ -159,6 +160,7 @@ export function BankReconciliation() {
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
           description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
           installmentId: inst.id,
@@ -173,6 +175,7 @@ export function BankReconciliation() {
           expenseId: exp.id,
           amount: saldo,
           description: exp.descricao,
+          fornecedor: exp.favorecido_nome || null,
           referenceDate: exp.data_vencimento || exp.data_emissao || null,
           isInstallment: false,
         });
@@ -258,6 +261,7 @@ export function BankReconciliation() {
         let matchedMovPrecision: MatchPrecision | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
+        let matchedPayableFornecedor: string | null = null;
         let matchedPayableDue: string | null = null;
         let matchedPayableValor: number | null = null;
         let matchedPayableExpenseId: string | null = null;
@@ -284,6 +288,7 @@ export function BankReconciliation() {
             const pm = payables.find((p) => p.id === payCandId)!;
             matchedPayableId = pm.id;
             matchedPayableDesc = pm.description;
+            matchedPayableFornecedor = pm.fornecedor || null;
             matchedPayableDue = pm.referenceDate;
             matchedPayableValor = pm.amount;
             matchedPayableExpenseId = pm.expenseId;
@@ -319,6 +324,7 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId,
           matchedPayableDesc,
+          matchedPayableFornecedor,
           matchedPayableDue,
           matchedPayableValor,
           matchedPayablePrecision,
@@ -476,7 +482,7 @@ export function BankReconciliation() {
           .lte("data_movimentacao", maxDate),
         supabase
           .from("expenses")
-          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
           .in("status", ["pendente", "atrasado"])
           .is("deleted_at", null),
         supabase
@@ -489,7 +495,7 @@ export function BankReconciliation() {
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
-      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows2) {
         const exp = expRows2.find((e: any) => e.id === inst.expense_id);
         payables.push({
@@ -497,6 +503,7 @@ export function BankReconciliation() {
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
           description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
           installmentId: inst.id,
@@ -511,6 +518,7 @@ export function BankReconciliation() {
           expenseId: exp.id,
           amount: saldo,
           description: exp.descricao,
+          fornecedor: exp.favorecido_nome || null,
           referenceDate: exp.data_vencimento || exp.data_emissao || null,
           isInstallment: false,
         });
@@ -579,6 +587,7 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
+          matchedPayableFornecedor: payableMatch?.fornecedor || null,
           matchedPayableDue: payableMatch?.referenceDate || null,
           matchedPayableValor: payableMatch ? payableMatch.amount : null,
           matchedPayablePrecision,
@@ -962,7 +971,7 @@ export function BankReconciliation() {
                       precision={item.matchedMovPrecision}
                     />
                   )}
-                  {item.matchedPayableId && item.status === "pendente" && (
+                   {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
@@ -971,6 +980,7 @@ export function BankReconciliation() {
                       variant="blue"
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
+                      fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
                   <ItemActions
@@ -1031,6 +1041,7 @@ export function BankReconciliation() {
                       variant="blue"
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
+                      fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
                   {item.status === "conciliado" && (
@@ -1119,22 +1130,24 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null;
+  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
 }) {
   const isProximo = precision === "proximo";
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
     : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
   const finalLabel = isProximo ? `${label} (data próxima)` : label;
+  const truncDesc = desc && desc.length > 40 ? desc.slice(0, 40) + "…" : desc;
   return (
     <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
         <Link2 className="h-3 w-3 shrink-0" /> {finalLabel}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-        <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
+        {fornecedor && <p><span className="font-medium">Fornecedor:</span> {fornecedor}</p>}
+        <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
     </div>
