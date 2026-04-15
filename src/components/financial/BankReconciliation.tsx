@@ -717,9 +717,9 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", approximate = false }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string;
+  variant?: "amber" | "blue"; label?: string; approximate?: boolean;
 }) {
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
@@ -727,7 +727,8 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
   return (
     <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
-        <Link2 className="h-3 w-3 shrink-0" /> {label}
+        <Link2 className="h-3 w-3 shrink-0" /> {approximate ? `≈ ${label}` : label}
+        {approximate && <Badge variant="outline" className="text-[9px] h-4 border-orange-400 text-orange-500 ml-1">Aproximada</Badge>}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
