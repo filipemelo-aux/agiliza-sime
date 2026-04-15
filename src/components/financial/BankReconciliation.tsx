@@ -1005,7 +1005,7 @@ export function BankReconciliation() {
 
           {isMobile ? (
             <div className="divide-y divide-border">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <div key={item.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
@@ -1059,7 +1059,7 @@ export function BankReconciliation() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
