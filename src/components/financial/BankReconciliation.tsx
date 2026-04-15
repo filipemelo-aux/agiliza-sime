@@ -966,11 +966,41 @@ export function BankReconciliation() {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por descrição ou valor..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="h-8 pl-8 text-xs"
+          />
+        </div>
+        <div className="flex gap-1">
+          {(["todos", "pendente", "conciliado", "registrado"] as const).map((tab) => {
+            const labels: Record<string, string> = { todos: "Todos", pendente: "Pendentes", conciliado: "Conciliados", registrado: "Registrados" };
+            const count = tab === "todos" ? items.length : items.filter((i) => i.status === tab).length;
+            return (
+              <Button
+                key={tab}
+                size="sm"
+                variant={statusFilter === tab ? "default" : "outline"}
+                className="h-7 text-[10px] px-2 gap-1"
+                onClick={() => setStatusFilter(tab)}
+              >
+                {labels[tab]} <span className="opacity-70">({count})</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Items */}
       <Card>
         <CardContent className="p-0">
           <p className="text-xs font-semibold text-muted-foreground px-4 pt-3 pb-2 uppercase tracking-wider">
-            Transações do Extrato ({items.length})
+            Transações do Extrato ({filteredItems.length})
           </p>
 
           {isMobile ? (
