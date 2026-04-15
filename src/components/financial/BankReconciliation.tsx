@@ -808,11 +808,40 @@ export function BankReconciliation() {
     [reconciliationId, updateReconciliationCount]
   );
 
-  const onExpenseSaved = () => {
+  const onExpenseSaved = async (savedExpenseId?: string) => {
+    // Auto-pay the expense so it flows into cash flow
+    if (savedExpenseId && activeItem) {
+      const valorPag = Math.abs(activeItem.amount);
+      const dataPag = activeItem.date;
+
+      // Insert payment record (triggers bank movement via DB trigger)
+      const { error: payErr } = await supabase.from("expense_payments" as any).insert({
+        expense_id: savedExpenseId,
+        valor: valorPag,
+        forma_pagamento: "transferencia",
+        data_pagamento: dataPag,
+        observacoes: "Quitação automática via conciliação bancária",
+        created_by: user?.id,
+        juros: 0,
+      } as any);
+
+      if (!payErr) {
+        // Update expense status to paid
+        await supabase.from("expenses").update({
+          status: "pago" as any,
+          valor_pago: valorPag,
+          data_pagamento: dataPag,
+        }).eq("id", savedExpenseId);
+      } else {
+        console.error("Erro ao quitar despesa automaticamente:", payErr);
+        toast.warning("Despesa criada, mas não foi possível quitá-la automaticamente.");
+      }
+    }
+
     if (activeItem) markAsRegistered(activeItem.id);
     setExpenseDialogOpen(false);
     setActiveItem(null);
-    toast.success("Despesa registrada e transação marcada");
+    toast.success("Despesa registrada, quitada e transação marcada");
   };
 
   const onMovementSaved = () => {
