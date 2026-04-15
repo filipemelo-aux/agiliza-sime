@@ -162,8 +162,8 @@ export function BankReconciliation() {
             matchedMovValor = Math.abs(Number(match.valor));
           }
 
-          // Try payables if no movement match and debit
-          if (!match && tipo === "saida") {
+          // Always try payables for debit items (independent of movement match)
+          if (tipo === "saida") {
             const pm = payables.find(
               (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
             );
@@ -374,7 +374,7 @@ export function BankReconciliation() {
         if (match) usedMovIds.add(match.id);
 
         let payableMatch: typeof payables[0] | null = null;
-        if (!match && tx.tipo === "saida") {
+        if (tx.tipo === "saida") {
           const pm = payables.find(
             (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
           );
@@ -479,6 +479,21 @@ export function BankReconciliation() {
         origem: item.matchedMovOrigem || "",
       });
     } else if (item.matchedPayableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedPayableId,
+        descricao: item.matchedPayableDesc,
+        data_movimentacao: item.matchedPayableDue || item.date,
+        valor: item.matchedPayableValor || Math.abs(item.amount),
+        origem: "contas_pagar_pendente",
+        isPayable: true,
+        payableDueDate: item.matchedPayableDue || undefined,
+      });
+    }
+  }, []);
+
+  const openConfirmPayable = useCallback((item: OfxItem) => {
+    if (item.matchedPayableId) {
       setConfirmItem(item);
       setConfirmMatch({
         id: item.matchedPayableId,
@@ -717,7 +732,7 @@ export function BankReconciliation() {
                       origem={translateOrigem(item.matchedMovOrigem)}
                     />
                   )}
-                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                  {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
@@ -730,6 +745,7 @@ export function BankReconciliation() {
                   <ItemActions
                     item={item}
                     onConfirmMatch={() => openConfirm(item)}
+                    onConfirmPayable={() => openConfirmPayable(item)}
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
                   />
@@ -759,6 +775,7 @@ export function BankReconciliation() {
                       <ItemActions
                         item={item}
                         onConfirmMatch={() => openConfirm(item)}
+                        onConfirmPayable={() => openConfirmPayable(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
                       />
@@ -773,7 +790,7 @@ export function BankReconciliation() {
                       origem={translateOrigem(item.matchedMovOrigem)}
                     />
                   )}
-                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                  {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
@@ -900,11 +917,13 @@ function StatusBadge({ status }: { status: string }) {
 function ItemActions({
   item,
   onConfirmMatch,
+  onConfirmPayable,
   onNewExpense,
   onNewMovement,
 }: {
   item: OfxItem;
   onConfirmMatch: () => void;
+  onConfirmPayable?: () => void;
   onNewExpense: () => void;
   onNewMovement: () => void;
 }) {
@@ -912,17 +931,26 @@ function ItemActions({
 
   return (
     <div className="flex items-center gap-1 justify-end flex-wrap">
-      {(item.matchedMovId || item.matchedPayableId) && (
+      {item.matchedMovId && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onConfirmMatch}>
-          <CheckCircle2 className="h-3 w-3" /> {item.matchedPayableId && !item.matchedMovId ? "Pagar e Conciliar" : "Conciliar"}
+          <CheckCircle2 className="h-3 w-3" /> Conciliar
         </Button>
       )}
-      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
-        <Plus className="h-3 w-3" /> Despesa
-      </Button>
-      <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
-        <ArrowDownCircle className="h-3 w-3" /> Movimentação
-      </Button>
+      {item.matchedPayableId && (
+        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-blue-300 text-blue-600 hover:bg-blue-50" onClick={onConfirmPayable || onConfirmMatch}>
+          <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
+        </Button>
+      )}
+      {!item.matchedMovId && !item.matchedPayableId && (
+        <>
+          <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
+            <Plus className="h-3 w-3" /> Despesa
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
+            <ArrowDownCircle className="h-3 w-3" /> Movimentação
+          </Button>
+        </>
+      )}
     </div>
   );
 }
