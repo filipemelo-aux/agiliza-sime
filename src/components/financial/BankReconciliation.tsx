@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SummaryCard } from "@/components/SummaryCard";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
