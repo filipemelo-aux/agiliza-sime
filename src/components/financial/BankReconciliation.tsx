@@ -492,6 +492,21 @@ export function BankReconciliation() {
     }
   }, []);
 
+  const openConfirmPayable = useCallback((item: OfxItem) => {
+    if (item.matchedPayableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedPayableId,
+        descricao: item.matchedPayableDesc,
+        data_movimentacao: item.matchedPayableDue || item.date,
+        valor: item.matchedPayableValor || Math.abs(item.amount),
+        origem: "contas_pagar_pendente",
+        isPayable: true,
+        payableDueDate: item.matchedPayableDue || undefined,
+      });
+    }
+  }, []);
+
   const handleNewExpense = (item: OfxItem) => {
     setActiveItem(item);
     setExpenseDialogOpen(true);
