@@ -23,6 +23,14 @@ import {
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
+type MatchPrecision = "exato" | "proximo";
+
+function daysDiff(a: string, b: string): number {
+  const da = new Date(a + "T00:00:00");
+  const db = new Date(b + "T00:00:00");
+  return Math.abs(Math.round((da.getTime() - db.getTime()) / 86400000));
+}
+
 interface OfxItem extends OfxTransaction {
   id: string;
   dbItemId?: string;
@@ -32,10 +40,12 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  matchedMovPrecision: MatchPrecision | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
+  matchedPayablePrecision: MatchPrecision | null;
 }
 
 interface MatchCandidate {
@@ -108,8 +118,10 @@ export function BankReconciliation() {
 
       // Re-run matching for pending items
       const dates = dbItems.map((i) => i.transaction_date).sort();
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
+      const d0 = new Date(dates[0] + "T00:00:00"); d0.setDate(d0.getDate() - 5);
+      const d1 = new Date(dates[dates.length - 1] + "T00:00:00"); d1.setDate(d1.getDate() + 5);
+      const minDate = d0.toISOString().slice(0, 10);
+      const maxDate = d1.toISOString().slice(0, 10);
 
       const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
         supabase
@@ -139,20 +151,27 @@ export function BankReconciliation() {
         let matchedMovDate: string | null = null;
         let matchedMovOrigem: string | null = null;
         let matchedMovValor: number | null = null;
+        let matchedMovPrecision: MatchPrecision | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableDue: string | null = null;
         let matchedPayableValor: number | null = null;
+        let matchedPayablePrecision: MatchPrecision | null = null;
+        const txDate = dbItem.transaction_date;
 
         if (status === "pendente") {
-          // Buscar no fluxo de caixa (entrada e saída)
-          const match = movs.find(
+          // Buscar no fluxo de caixa (entrada e saída) — valor idêntico + data idêntica ou próxima (±5 dias)
+          const candidates = movs.filter(
             (m) =>
               !usedMovIds.has(m.id) &&
               Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              daysDiff(txDate, m.data_movimentacao) <= 5 &&
               ((tipo === "saida" && m.origem !== "contas_receber") ||
                (tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
           );
+          // Prefer exact date, then closest
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          const match = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
           if (match) {
             usedMovIds.add(match.id);
             matchedMovId = match.id;
@@ -160,35 +179,39 @@ export function BankReconciliation() {
             matchedMovDate = match.data_movimentacao;
             matchedMovOrigem = match.origem;
             matchedMovValor = Math.abs(Number(match.valor));
+            matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // Saída: buscar também em contas a pagar pendentes
+          // Saída: buscar também em contas a pagar pendentes — valor idêntico + vencimento idêntico ou próximo
           if (tipo === "saida") {
-            const pm = payables.find(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+            const pCandidates = payables.filter(
+              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
             );
+            const pExact = pCandidates.find((p) => p.due_date === txDate);
+            const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
             if (pm) {
               usedPayableIds.add(pm.id);
               matchedPayableId = pm.id;
               matchedPayableDesc = pm.description;
               matchedPayableDue = pm.due_date;
               matchedPayableValor = Number(pm.amount);
+              matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
             }
           }
         } else if (matchedMovId) {
-          // Already conciliated – find the movement details for display
           const mov = movs.find((m) => m.id === matchedMovId);
           if (mov) {
             matchedMovDesc = mov.descricao;
             matchedMovDate = mov.data_movimentacao;
             matchedMovOrigem = mov.origem;
             matchedMovValor = Math.abs(Number(mov.valor));
+            matchedMovPrecision = mov.data_movimentacao === txDate ? "exato" : "proximo";
           }
         }
 
         return {
           fitid: dbItem.fitid || "",
-          date: dbItem.transaction_date,
+          date: txDate,
           amount: tipo === "saida" ? -absVal : absVal,
           description: dbItem.description || "",
           tipo,
@@ -200,10 +223,12 @@ export function BankReconciliation() {
           matchedMovDate,
           matchedMovOrigem,
           matchedMovValor,
+          matchedMovPrecision,
           matchedPayableId,
           matchedPayableDesc,
           matchedPayableDue,
           matchedPayableValor,
+          matchedPayablePrecision,
         };
       });
 
@@ -342,8 +367,10 @@ export function BankReconciliation() {
 
       // Fetch existing movimentações for matching
       const dates = parsed.transactions.map((t) => t.date).sort();
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
+      const d0 = new Date(dates[0] + "T00:00:00"); d0.setDate(d0.getDate() - 5);
+      const d1 = new Date(dates[dates.length - 1] + "T00:00:00"); d1.setDate(d1.getDate() + 5);
+      const minDate = d0.toISOString().slice(0, 10);
+      const maxDate = d1.toISOString().slice(0, 10);
 
       const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
         supabase
@@ -364,51 +391,63 @@ export function BankReconciliation() {
       const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        let match: typeof movs[0] | undefined;
+        const txDate = tx.date;
+        let matchedMov: typeof movs[0] | undefined;
+        let matchedMovPrecision: MatchPrecision | null = null;
         let payableMatch: typeof payables[0] | null = null;
+        let matchedPayablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
-          // Débito: buscar no fluxo de caixa
-          match = movs.find(
-            (m) =>
-              !usedMovIds.has(m.id) &&
-              Math.abs(Number(m.valor) - absVal) < 0.01 &&
-              m.origem !== "contas_receber"
+          // Débito: buscar no fluxo de caixa — valor idêntico + data ±5 dias
+          const candidates = movs.filter(
+            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "contas_receber"
           );
-          if (match) usedMovIds.add(match.id);
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
+          if (matchedMov) {
+            usedMovIds.add(matchedMov.id);
+            matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
+          }
 
-          // E também em contas a pagar pendentes
-          const pm = payables.find(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+          // E também em contas a pagar pendentes — valor idêntico + vencimento ±5 dias
+          const pCandidates = payables.filter(
+            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
           );
+          const pExact = pCandidates.find((p) => p.due_date === txDate);
+          const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
           if (pm) {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
+            matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
           }
         } else {
           // Crédito: buscar no fluxo de caixa
-          match = movs.find(
-            (m) =>
-              !usedMovIds.has(m.id) &&
-              Math.abs(Number(m.valor) - absVal) < 0.01 &&
-              m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
+          const candidates = movs.filter(
+            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
           );
-          if (match) usedMovIds.add(match.id);
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
+          if (matchedMov) {
+            usedMovIds.add(matchedMov.id);
+            matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
+          }
         }
 
         return {
           ...tx,
           id: crypto.randomUUID(),
           status: "pendente" as const,
-          matchedMovId: match?.id || null,
-          matchedMovDesc: match?.descricao || null,
-          matchedMovDate: match?.data_movimentacao || null,
-          matchedMovOrigem: match?.origem || null,
-          matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
+          matchedMovId: matchedMov?.id || null,
+          matchedMovDesc: matchedMov?.descricao || null,
+          matchedMovDate: matchedMov?.data_movimentacao || null,
+          matchedMovOrigem: matchedMov?.origem || null,
+          matchedMovValor: matchedMov ? Math.abs(Number(matchedMov.valor)) : null,
+          matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
           matchedPayableDue: payableMatch?.due_date || null,
           matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
+          matchedPayablePrecision,
         };
       });
 
@@ -742,6 +781,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      precision={item.matchedMovPrecision}
                     />
                   )}
                   {item.matchedPayableId && item.status === "pendente" && (
@@ -752,6 +792,7 @@ export function BankReconciliation() {
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
                       label="Conta a Pagar encontrada"
+                      precision={item.matchedPayablePrecision}
                     />
                   )}
                   <ItemActions
@@ -800,6 +841,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      precision={item.matchedMovPrecision}
                     />
                   )}
                   {item.matchedPayableId && item.status === "pendente" && (
@@ -810,6 +852,7 @@ export function BankReconciliation() {
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
                       label="Conta a Pagar encontrada"
+                      precision={item.matchedPayablePrecision}
                     />
                   )}
                   {item.status === "conciliado" && (
@@ -898,17 +941,19 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string;
+  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null;
 }) {
+  const isProximo = precision === "proximo";
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
     : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  const finalLabel = isProximo ? `${label} (data próxima)` : label;
   return (
-    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
+    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
-        <Link2 className="h-3 w-3 shrink-0" /> {label}
+        <Link2 className="h-3 w-3 shrink-0" /> {finalLabel}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
