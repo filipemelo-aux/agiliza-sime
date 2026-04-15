@@ -474,6 +474,20 @@ export function BankReconciliation() {
   );
 }
 
+function translateOrigem(origem: string | null): string {
+  const map: Record<string, string> = {
+    pagamento_despesa: "Pagamento de Despesa",
+    despesas: "Despesa",
+    contas_pagar: "Contas a Pagar",
+    contas_receber: "Contas a Receber",
+    manual: "Lançamento Manual",
+    colheita: "Colheita",
+    abastecimento: "Abastecimento",
+    faturamento: "Faturamento",
+  };
+  return map[origem || ""] || origem || "Outro";
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === "conciliado")
     return <Badge variant="outline" className="text-[10px] border-green-500 text-green-600">Conciliado</Badge>;
