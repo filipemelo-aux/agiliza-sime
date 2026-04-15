@@ -650,9 +650,29 @@ export function BankReconciliation() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>{confirmMatch?.isPayable
-                ? "O sistema encontrou uma conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
-                : "O sistema encontrou uma movimentação com o mesmo valor:"}</p>
+              {(() => {
+                const isApprox = confirmItem && (
+                  (confirmItem.matchedMovId && !confirmItem.matchExact) ||
+                  (confirmItem.matchedPayableId && !confirmItem.matchPayableExact)
+                );
+                const valDiff = confirmMatch && confirmItem
+                  ? Math.abs(Math.abs(confirmItem.amount) - confirmMatch.valor)
+                  : 0;
+                return (
+                  <>
+                    <p>
+                      {isApprox
+                        ? `Correspondência aproximada encontrada (diferença de ${formatCurrency(valDiff)}). ${confirmMatch?.isPayable ? "A conta será quitada com o valor e data do extrato." : "Verifique se é a mesma transação."}`
+                        : confirmMatch?.isPayable
+                          ? "Conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
+                          : "Movimentação com o mesmo valor encontrada:"}
+                    </p>
+                    {isApprox && (
+                      <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-500">⚠ Correspondência Aproximada</Badge>
+                    )}
+                  </>
+                );
+              })()}
               <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
