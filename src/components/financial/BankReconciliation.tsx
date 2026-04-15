@@ -117,19 +117,27 @@ export function BankReconciliation() {
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
 
-      const { data: existingMovs } = await supabase
-        .from("movimentacoes_bancarias")
-        .select("id, valor, data_movimentacao, tipo, descricao, origem")
-        .gte("data_movimentacao", minDate)
-        .lte("data_movimentacao", maxDate);
+      const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
+        supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem")
+          .gte("data_movimentacao", minDate)
+          .lte("data_movimentacao", maxDate),
+        supabase
+          .from("accounts_payable")
+          .select("id, amount, description, due_date, status")
+          .in("status", ["pendente", "atrasado"]),
+      ]);
 
       const movs = (existingMovs || []) as MatchCandidate[];
+      const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
 
       // Build items with auto-matching by value
       const usedMovIds = new Set<string>();
+      const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        // Find a matching movement with same absolute value and same type
+        // 1) Match against existing cash flow movements
         const match = movs.find(
           (m) =>
             !usedMovIds.has(m.id) &&
@@ -138,6 +146,18 @@ export function BankReconciliation() {
              (tx.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
         );
         if (match) usedMovIds.add(match.id);
+
+        // 2) If no movement match and it's a debit, match against pending payables
+        let payableMatch: typeof payables[0] | null = null;
+        if (!match && tx.tipo === "saida") {
+          const pm = payables.find(
+            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+          );
+          if (pm) {
+            payableMatch = pm;
+            usedPayableIds.add(pm.id);
+          }
+        }
 
         return {
           ...tx,
@@ -148,6 +168,10 @@ export function BankReconciliation() {
           matchedMovDate: match?.data_movimentacao || null,
           matchedMovOrigem: match?.origem || null,
           matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
+          matchedPayableId: payableMatch?.id || null,
+          matchedPayableDesc: payableMatch?.description || null,
+          matchedPayableDue: payableMatch?.due_date || null,
+          matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
         };
       });
 
