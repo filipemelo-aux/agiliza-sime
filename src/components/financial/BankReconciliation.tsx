@@ -32,11 +32,13 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  matchExact: boolean;
   // Conta a pagar match (not yet paid)
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
+  matchPayableExact: boolean;
 }
 
 interface MatchCandidate {
