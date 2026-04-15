@@ -460,6 +460,9 @@ export function BankReconciliation() {
               {items.map((item) => (
                 <div key={item.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
+                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                      <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
+                    )}
                     <Badge
                       variant={item.tipo === "entrada" ? "default" : "destructive"}
                       className={cn("text-[10px] shrink-0", item.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
