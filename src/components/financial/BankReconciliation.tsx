@@ -288,6 +288,7 @@ export function BankReconciliation() {
             const pm = payables.find((p) => p.id === payCandId)!;
             matchedPayableId = pm.id;
             matchedPayableDesc = pm.description;
+            matchedPayableFornecedor = pm.fornecedor || null;
             matchedPayableDue = pm.referenceDate;
             matchedPayableValor = pm.amount;
             matchedPayableExpenseId = pm.expenseId;
@@ -1127,22 +1128,24 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null;
+  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
 }) {
   const isProximo = precision === "proximo";
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
     : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
   const finalLabel = isProximo ? `${label} (data próxima)` : label;
+  const truncDesc = desc && desc.length > 40 ? desc.slice(0, 40) + "…" : desc;
   return (
     <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "), isProximo && "border-dashed")}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
         <Link2 className="h-3 w-3 shrink-0" /> {finalLabel}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-        <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
+        {fornecedor && <p><span className="font-medium">Fornecedor:</span> {fornecedor}</p>}
+        <p><span className="font-medium">Desc:</span> {truncDesc || "Sem descrição"}</p>
         <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
       </div>
     </div>
