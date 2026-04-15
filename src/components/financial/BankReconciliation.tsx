@@ -46,6 +46,9 @@ interface OfxItem extends OfxTransaction {
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
   matchedPayablePrecision: MatchPrecision | null;
+  matchedPayableExpenseId: string | null;
+  matchedPayableIsInstallment: boolean;
+  matchedPayableInstallmentId: string | null;
 }
 
 interface MatchCandidate {
@@ -56,6 +59,9 @@ interface MatchCandidate {
   origem: string;
   isPayable?: boolean;
   payableDueDate?: string;
+  expenseId?: string;
+  isInstallment?: boolean;
+  installmentId?: string;
 }
 
 interface ReconciliationSummary {
@@ -123,20 +129,54 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
           .gte("data_movimentacao", minDate)
           .lte("data_movimentacao", maxDate),
         supabase
-          .from("accounts_payable")
-          .select("id, amount, description, due_date, status")
-          .in("status", ["pendente", "atrasado"]),
+          .from("expenses")
+          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .in("status", ["pendente", "atrasado"])
+          .is("deleted_at", null),
+        supabase
+          .from("expense_installments")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+          .eq("status", "pendente"),
       ]);
 
       const movs = existingMovs || [];
-      const payables = pendingPayables || [];
+      // Build unified payables list: installments first, then expenses without installments
+      const instRows = (pendingInstallments || []) as any[];
+      const expRows = (pendingExpenses || []) as any[];
+      const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
+      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      for (const inst of instRows) {
+        const exp = expRows.find((e: any) => e.id === inst.expense_id);
+        payables.push({
+          id: `inst_${inst.id}`,
+          expenseId: inst.expense_id,
+          amount: Number(inst.valor),
+          description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          referenceDate: inst.data_vencimento || null,
+          isInstallment: true,
+          installmentId: inst.id,
+          numeroParcela: inst.numero_parcela,
+        });
+      }
+      for (const exp of expRows) {
+        if (expWithInst.has(exp.id)) continue;
+        const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
+        payables.push({
+          id: `exp_${exp.id}`,
+          expenseId: exp.id,
+          amount: saldo,
+          description: exp.descricao,
+          referenceDate: exp.data_vencimento || exp.data_emissao || null,
+          isInstallment: false,
+        });
+      }
 
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
@@ -156,6 +196,9 @@ export function BankReconciliation() {
         let matchedPayableDesc: string | null = null;
         let matchedPayableDue: string | null = null;
         let matchedPayableValor: number | null = null;
+        let matchedPayableExpenseId: string | null = null;
+        let matchedPayableIsInstallment = false;
+        let matchedPayableInstallmentId: string | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
         const txDate = dbItem.transaction_date;
 
@@ -182,20 +225,30 @@ export function BankReconciliation() {
             matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // Saída: buscar também em contas a pagar pendentes — valor idêntico + vencimento idêntico ou próximo
+          // Saída: buscar também em contas a pagar pendentes — valor idêntico + data referência idêntica ou próxima
           if (tipo === "saida") {
-            const pCandidates = payables.filter(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
+            // First try with date constraint
+            let pCandidates = payables.filter(
+              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5
             );
-            const pExact = pCandidates.find((p) => p.due_date === txDate);
-            const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
+            // If no date match, try value-only match
+            if (pCandidates.length === 0) {
+              pCandidates = payables.filter(
+                (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01
+              );
+            }
+            const pExact = pCandidates.find((p) => p.referenceDate === txDate);
+            const pm = pExact || (pCandidates.length > 0 ? (pCandidates[0].referenceDate ? pCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : pCandidates[0]) : undefined);
             if (pm) {
               usedPayableIds.add(pm.id);
               matchedPayableId = pm.id;
               matchedPayableDesc = pm.description;
-              matchedPayableDue = pm.due_date;
-              matchedPayableValor = Number(pm.amount);
-              matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
+              matchedPayableDue = pm.referenceDate;
+              matchedPayableValor = pm.amount;
+              matchedPayableExpenseId = pm.expenseId;
+              matchedPayableIsInstallment = pm.isInstallment;
+              matchedPayableInstallmentId = pm.installmentId || null;
+              matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
             }
           }
         } else if (matchedMovId) {
@@ -229,6 +282,9 @@ export function BankReconciliation() {
           matchedPayableDue,
           matchedPayableValor,
           matchedPayablePrecision,
+          matchedPayableExpenseId,
+          matchedPayableIsInstallment,
+          matchedPayableInstallmentId,
         };
       });
 
@@ -372,20 +428,53 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
           .gte("data_movimentacao", minDate)
           .lte("data_movimentacao", maxDate),
         supabase
-          .from("accounts_payable")
-          .select("id, amount, description, due_date, status")
-          .in("status", ["pendente", "atrasado"]),
+          .from("expenses")
+          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .in("status", ["pendente", "atrasado"])
+          .is("deleted_at", null),
+        supabase
+          .from("expense_installments")
+          .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
+          .eq("status", "pendente"),
       ]);
 
       const movs = (existingMovs || []) as MatchCandidate[];
-      const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
+      const instRows2 = (pendingInstallments2 || []) as any[];
+      const expRows2 = (pendingExpenses2 || []) as any[];
+      const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
+      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      for (const inst of instRows2) {
+        const exp = expRows2.find((e: any) => e.id === inst.expense_id);
+        payables.push({
+          id: `inst_${inst.id}`,
+          expenseId: inst.expense_id,
+          amount: Number(inst.valor),
+          description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          referenceDate: inst.data_vencimento || null,
+          isInstallment: true,
+          installmentId: inst.id,
+          numeroParcela: inst.numero_parcela,
+        });
+      }
+      for (const exp of expRows2) {
+        if (expWithInst2.has(exp.id)) continue;
+        const saldo = Number(exp.valor_total) - Number(exp.valor_pago || 0);
+        payables.push({
+          id: `exp_${exp.id}`,
+          expenseId: exp.id,
+          amount: saldo,
+          description: exp.descricao,
+          referenceDate: exp.data_vencimento || exp.data_emissao || null,
+          isInstallment: false,
+        });
+      }
 
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
@@ -409,16 +498,21 @@ export function BankReconciliation() {
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // E também em contas a pagar pendentes — valor idêntico + vencimento ±5 dias
-          const pCandidates = payables.filter(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
+          // E também em contas a pagar pendentes — valor idêntico + data referência ±5 dias ou só valor
+          let pCandidates = payables.filter(
+            (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01 && p.referenceDate && daysDiff(txDate, p.referenceDate) <= 5
           );
-          const pExact = pCandidates.find((p) => p.due_date === txDate);
-          const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
+          if (pCandidates.length === 0) {
+            pCandidates = payables.filter(
+              (p) => !usedPayableIds.has(p.id) && Math.abs(p.amount - absVal) < 0.01
+            );
+          }
+          const pExact = pCandidates.find((p) => p.referenceDate === txDate);
+          const pm = pExact || (pCandidates.length > 0 ? (pCandidates[0].referenceDate ? pCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : pCandidates[0]) : undefined);
           if (pm) {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
-            matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
+            matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else {
           // Crédito: buscar no fluxo de caixa
@@ -445,9 +539,12 @@ export function BankReconciliation() {
           matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
-          matchedPayableDue: payableMatch?.due_date || null,
-          matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
+          matchedPayableDue: payableMatch?.referenceDate || null,
+          matchedPayableValor: payableMatch ? payableMatch.amount : null,
           matchedPayablePrecision,
+          matchedPayableExpenseId: payableMatch?.expenseId || null,
+          matchedPayableIsInstallment: payableMatch?.isInstallment || false,
+          matchedPayableInstallmentId: payableMatch?.installmentId || null,
         };
       });
 
@@ -489,15 +586,50 @@ export function BankReconciliation() {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
     try {
-      if (confirmMatch.isPayable) {
-        await supabase
-          .from("accounts_payable")
-          .update({
-            status: "pago",
-            paid_amount: confirmMatch.valor,
-            paid_at: `${confirmItem.date}T12:00:00`,
-          })
-          .eq("id", confirmMatch.id);
+      if (confirmMatch.isPayable && confirmMatch.expenseId) {
+        const dataPagISO = confirmItem.date;
+        const valorPag = confirmMatch.valor;
+
+        // Insert expense_payment record
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: confirmMatch.expenseId,
+          valor: valorPag,
+          forma_pagamento: "transferencia",
+          data_pagamento: dataPagISO,
+          observacoes: "Pagamento via conciliação bancária (OFX)",
+          created_by: user?.id,
+          juros: 0,
+        } as any);
+
+        if (confirmMatch.isInstallment && confirmMatch.installmentId) {
+          // Update installment status
+          await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
+
+          // Recalculate expense totals
+          const { data: allInst } = await supabase.from("expense_installments").select("valor, status").eq("expense_id", confirmMatch.expenseId);
+          const totalPagoNow = ((allInst as any) || []).filter((i: any) => i.status === "pago").reduce((s: number, i: any) => s + Number(i.valor), 0);
+          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
+
+          await supabase.from("expenses").update({
+            valor_pago: totalPagoNow,
+            status: allPaid ? "pago" : "parcial",
+            forma_pagamento: "transferencia",
+            data_pagamento: dataPagISO,
+          } as any).eq("id", confirmMatch.expenseId);
+        } else {
+          // Regular expense: update directly
+          const { data: expData } = await supabase.from("expenses").select("valor_total, valor_pago").eq("id", confirmMatch.expenseId).single();
+          const novoValorPago = Number(expData?.valor_pago || 0) + valorPag;
+          const valorTotal = Number(expData?.valor_total || 0);
+          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+
+          await supabase.from("expenses").update({
+            valor_pago: novoValorPago,
+            status: novoStatus,
+            forma_pagamento: "transferencia",
+            data_pagamento: dataPagISO,
+          } as any).eq("id", confirmMatch.expenseId);
+        }
       }
 
       const updateFilter = confirmItem.dbItemId
@@ -517,7 +649,7 @@ export function BankReconciliation() {
     }
     setConfirmItem(null);
     setConfirmMatch(null);
-  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount]);
+  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user]);
 
   const openConfirm = useCallback((item: OfxItem) => {
     if (item.matchedMovId) {
@@ -539,6 +671,9 @@ export function BankReconciliation() {
         origem: "contas_pagar_pendente",
         isPayable: true,
         payableDueDate: item.matchedPayableDue || undefined,
+        expenseId: item.matchedPayableExpenseId || undefined,
+        isInstallment: item.matchedPayableIsInstallment,
+        installmentId: item.matchedPayableInstallmentId || undefined,
       });
     }
   }, []);
@@ -554,6 +689,9 @@ export function BankReconciliation() {
         origem: "contas_pagar_pendente",
         isPayable: true,
         payableDueDate: item.matchedPayableDue || undefined,
+        expenseId: item.matchedPayableExpenseId || undefined,
+        isInstallment: item.matchedPayableIsInstallment,
+        installmentId: item.matchedPayableInstallmentId || undefined,
       });
     }
   }, []);
