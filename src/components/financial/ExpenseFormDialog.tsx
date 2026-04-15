@@ -109,7 +109,7 @@ interface Props {
   expense?: Expense | null;
   empresaId: string;
   chartAccounts: ChartAccount[];
-  onSaved: () => void;
+  onSaved: (savedExpenseId?: string) => void;
   initialValues?: { valorTotal?: string; dataEmissao?: string; dataVencimento?: string; descricao?: string } | null;
 }
 
@@ -824,7 +824,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     toast.success(expense ? "Despesa atualizada" : hasNfse ? "Duas despesas criadas com sucesso" : "Despesa criada");
     setSaving(false);
     onOpenChange(false);
-    onSaved();
+    onSaved(expenseId);
   };
 
   const isCategoryWithVehicle = selectedAccount?.tipo_operacional === "combustivel";
