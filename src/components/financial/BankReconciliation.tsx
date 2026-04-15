@@ -162,8 +162,8 @@ export function BankReconciliation() {
             matchedMovValor = Math.abs(Number(match.valor));
           }
 
-          // Try payables if no movement match and debit
-          if (!match && tipo === "saida") {
+          // Always try payables for debit items (independent of movement match)
+          if (tipo === "saida") {
             const pm = payables.find(
               (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
             );
@@ -374,7 +374,7 @@ export function BankReconciliation() {
         if (match) usedMovIds.add(match.id);
 
         let payableMatch: typeof payables[0] | null = null;
-        if (!match && tx.tipo === "saida") {
+        if (tx.tipo === "saida") {
           const pm = payables.find(
             (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
           );
