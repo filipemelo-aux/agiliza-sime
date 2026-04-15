@@ -43,6 +43,7 @@ interface OfxItem extends OfxTransaction {
   matchedMovPrecision: MatchPrecision | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
+  matchedPayableFornecedor: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
   matchedPayablePrecision: MatchPrecision | null;
@@ -137,7 +138,7 @@ export function BankReconciliation() {
           .lte("data_movimentacao", maxDate),
         supabase
           .from("expenses")
-          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
           .in("status", ["pendente", "atrasado"])
           .is("deleted_at", null),
         supabase
@@ -151,7 +152,7 @@ export function BankReconciliation() {
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
       const expWithInst = new Set(instRows.map((i: any) => i.expense_id));
-      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows) {
         const exp = expRows.find((e: any) => e.id === inst.expense_id);
         payables.push({
@@ -159,6 +160,7 @@ export function BankReconciliation() {
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
           description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
           installmentId: inst.id,
@@ -173,6 +175,7 @@ export function BankReconciliation() {
           expenseId: exp.id,
           amount: saldo,
           description: exp.descricao,
+          fornecedor: exp.favorecido_nome || null,
           referenceDate: exp.data_vencimento || exp.data_emissao || null,
           isInstallment: false,
         });
@@ -476,7 +479,7 @@ export function BankReconciliation() {
           .lte("data_movimentacao", maxDate),
         supabase
           .from("expenses")
-          .select("id, valor_total, valor_pago, descricao, data_vencimento, data_emissao, status")
+          .select("id, valor_total, valor_pago, descricao, favorecido_nome, data_vencimento, data_emissao, status")
           .in("status", ["pendente", "atrasado"])
           .is("deleted_at", null),
         supabase
@@ -489,7 +492,7 @@ export function BankReconciliation() {
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
-      const payables: { id: string; expenseId: string; amount: number; description: string; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
+      const payables: { id: string; expenseId: string; amount: number; description: string; fornecedor: string | null; referenceDate: string | null; isInstallment: boolean; installmentId?: string; numeroParcela?: number }[] = [];
       for (const inst of instRows2) {
         const exp = expRows2.find((e: any) => e.id === inst.expense_id);
         payables.push({
@@ -497,6 +500,7 @@ export function BankReconciliation() {
           expenseId: inst.expense_id,
           amount: Number(inst.valor),
           description: exp ? `${exp.descricao} (parcela ${inst.numero_parcela})` : `Parcela ${inst.numero_parcela}`,
+          fornecedor: exp?.favorecido_nome || null,
           referenceDate: inst.data_vencimento || null,
           isInstallment: true,
           installmentId: inst.id,
@@ -511,6 +515,7 @@ export function BankReconciliation() {
           expenseId: exp.id,
           amount: saldo,
           description: exp.descricao,
+          fornecedor: exp.favorecido_nome || null,
           referenceDate: exp.data_vencimento || exp.data_emissao || null,
           isInstallment: false,
         });
