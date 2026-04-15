@@ -600,9 +600,9 @@ function ItemActions({
 
   return (
     <div className="flex items-center gap-1 justify-end flex-wrap">
-      {item.matchedMovId && (
+      {(item.matchedMovId || item.matchedPayableId) && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onConfirmMatch}>
-          <CheckCircle2 className="h-3 w-3" /> Conciliar
+          <CheckCircle2 className="h-3 w-3" /> {item.matchedPayableId && !item.matchedMovId ? "Pagar e Conciliar" : "Conciliar"}
         </Button>
       )}
       <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
