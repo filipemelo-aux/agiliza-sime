@@ -2361,6 +2361,7 @@ export type Database = {
           id: string
           origem: string
           origem_id: string
+          plano_contas_id: string | null
           tipo: string
           valor: number
         }
@@ -2372,6 +2373,7 @@ export type Database = {
           id?: string
           origem: string
           origem_id: string
+          plano_contas_id?: string | null
           tipo: string
           valor: number
         }
@@ -2383,10 +2385,19 @@ export type Database = {
           id?: string
           origem?: string
           origem_id?: string
+          plano_contas_id?: string | null
           tipo?: string
           valor?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_bancarias_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
