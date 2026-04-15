@@ -195,6 +195,7 @@ export function BankReconciliation() {
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableDue: string | null = null;
+        let matchedPayableValor: number | null = null;
         let matchedPayableExpenseId: string | null = null;
         let matchedPayableIsInstallment = false;
         let matchedPayableInstallmentId: string | null = null;
