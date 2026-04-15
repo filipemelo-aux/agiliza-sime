@@ -282,6 +282,9 @@ export function BankReconciliation() {
           matchedPayableDue,
           matchedPayableValor,
           matchedPayablePrecision,
+          matchedPayableExpenseId,
+          matchedPayableIsInstallment,
+          matchedPayableInstallmentId,
         };
       });
 
@@ -539,6 +542,9 @@ export function BankReconciliation() {
           matchedPayableDue: payableMatch?.referenceDate || null,
           matchedPayableValor: payableMatch ? payableMatch.amount : null,
           matchedPayablePrecision,
+          matchedPayableExpenseId: payableMatch?.expenseId || null,
+          matchedPayableIsInstallment: payableMatch?.isInstallment || false,
+          matchedPayableInstallmentId: payableMatch?.installmentId || null,
         };
       });
 
