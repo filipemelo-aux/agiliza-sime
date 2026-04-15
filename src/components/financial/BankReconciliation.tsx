@@ -717,7 +717,7 @@ export function BankReconciliation() {
                       origem={translateOrigem(item.matchedMovOrigem)}
                     />
                   )}
-                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                  {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
@@ -773,7 +773,7 @@ export function BankReconciliation() {
                       origem={translateOrigem(item.matchedMovOrigem)}
                     />
                   )}
-                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                  {item.matchedPayableId && item.status === "pendente" && (
                     <MatchBox
                       desc={item.matchedPayableDesc}
                       date={item.matchedPayableDue}
