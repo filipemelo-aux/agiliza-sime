@@ -29,6 +29,8 @@ interface OfxItem extends OfxTransaction {
   matchedMovId: string | null;
   matchedMovDesc: string | null;
   matchedMovDate: string | null;
+  matchedMovOrigem: string | null;
+  matchedMovValor: number | null;
 }
 
 interface MatchCandidate {
