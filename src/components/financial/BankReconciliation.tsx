@@ -364,17 +364,11 @@ export function BankReconciliation() {
       const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        const match = movs.find(
-          (m) =>
-            !usedMovIds.has(m.id) &&
-            Math.abs(Number(m.valor) - absVal) < 0.01 &&
-            ((tx.tipo === "saida" && (m.origem !== "contas_receber")) ||
-             (tx.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
-        );
-        if (match) usedMovIds.add(match.id);
-
+        let match: typeof movs[0] | undefined;
         let payableMatch: typeof payables[0] | null = null;
+
         if (tx.tipo === "saida") {
+          // Débito: buscar apenas em contas a pagar pendentes
           const pm = payables.find(
             (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
           );
@@ -382,6 +376,15 @@ export function BankReconciliation() {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
           }
+        } else {
+          // Crédito: buscar no fluxo de caixa
+          match = movs.find(
+            (m) =>
+              !usedMovIds.has(m.id) &&
+              Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
+          );
+          if (match) usedMovIds.add(match.id);
         }
 
         return {
