@@ -1059,33 +1059,35 @@ export function BankReconciliation() {
 
       {/* Confirm match dialog */}
       <AlertDialog open={!!confirmItem} onOpenChange={(o) => { if (!o) { setConfirmItem(null); setConfirmMatch(null); } }}>
-        <AlertDialogContent className="max-w-[420px]">
+        <AlertDialogContent className="max-w-[420px] overflow-hidden">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Confirmar Conciliação</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 text-xs">
-              <p>{confirmMatch?.isPayable
-                ? "Conta a pagar encontrada. Ao confirmar, será quitada com a data do extrato."
-                : "Movimentação encontrada com o mesmo valor:"}</p>
-              <div className="bg-muted rounded-md p-2.5 space-y-2 text-xs overflow-hidden">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Extrato Bancário</p>
-                  <p className="truncate">{confirmItem?.description}</p>
-                  <p className="text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>{confirmMatch?.isPayable
+                  ? "Conta a pagar encontrada. Ao confirmar, será quitada com a data do extrato."
+                  : "Movimentação encontrada com o mesmo valor:"}</p>
+                <div className="bg-muted rounded-md p-2.5 space-y-2 text-xs w-full overflow-hidden">
+                  <div className="min-w-0 overflow-hidden">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Extrato Bancário</p>
+                    <p className="truncate max-w-full">{confirmItem?.description}</p>
+                    <p className="text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+                  </div>
+                  <div className="border-t pt-2 min-w-0 overflow-hidden">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">
+                      {confirmMatch?.isPayable ? "Conta a Pagar" : "Movimentação"}
+                    </p>
+                    <p className="truncate max-w-full">{confirmMatch?.descricao || "Sem descrição"}</p>
+                    <p className="text-muted-foreground">
+                      {confirmMatch?.isPayable ? "Venc: " : ""}{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}
+                      {!confirmMatch?.isPayable && <> · {translateOrigem(confirmMatch?.origem || null)}</>}
+                    </p>
+                  </div>
                 </div>
-                <div className="border-t pt-2 min-w-0">
-                  <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">
-                    {confirmMatch?.isPayable ? "Conta a Pagar" : "Movimentação"}
-                  </p>
-                  <p className="truncate">{confirmMatch?.descricao || "Sem descrição"}</p>
-                  <p className="text-muted-foreground">
-                    {confirmMatch?.isPayable ? "Venc: " : ""}{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}
-                    {!confirmMatch?.isPayable && <> · {translateOrigem(confirmMatch?.origem || null)}</>}
-                  </p>
-                </div>
+                <p>{confirmMatch?.isPayable
+                  ? "Confirmar pagamento e conciliar?"
+                  : "Confirmar que é a mesma transação?"}</p>
               </div>
-              <p>{confirmMatch?.isPayable
-                ? "Confirmar pagamento e conciliar?"
-                : "Confirmar que é a mesma transação?"}</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
