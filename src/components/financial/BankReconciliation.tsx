@@ -32,11 +32,13 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  matchExact: boolean;
   // Conta a pagar match (not yet paid)
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableDue: string | null;
   matchedPayableValor: number | null;
+  matchPayableExact: boolean;
 }
 
 interface MatchCandidate {
@@ -106,9 +108,11 @@ export function BankReconciliation() {
       const selected = items.filter((i) => selectedIds.has(i.id));
       for (const item of selected) {
         if (item.matchedPayableId && !item.matchedMovId) {
+          // For approximate matches, use OFX amount and date
+          const payAmount = item.matchPayableExact ? (item.matchedPayableValor || Math.abs(item.amount)) : Math.abs(item.amount);
           await supabase
             .from("accounts_payable")
-            .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
+            .update({ status: "pago", paid_amount: payAmount, paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
         }
         await supabase
@@ -188,46 +192,115 @@ export function BankReconciliation() {
       const movs = (existingMovs || []) as MatchCandidate[];
       const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
 
-      // Build items with auto-matching by value
+      // Helper: date diff in days
+      const daysDiff = (a: string, b: string) => {
+        const da = new Date(a), db = new Date(b);
+        return Math.abs((da.getTime() - db.getTime()) / 86400000);
+      };
+      // Helper: value tolerance (5% or R$5, whichever is greater)
+      const isApproxValue = (v1: number, v2: number) => {
+        const diff = Math.abs(v1 - v2);
+        return diff < 0.01 ? "exact" : (diff <= Math.max(v1 * 0.05, 5)) ? "approx" : "none";
+      };
+
+      // Build items with auto-matching by value (exact first, then approximate)
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
+        const txDate = tx.date;
+
         // 1) Match against existing cash flow movements
-        const match = movs.find(
-          (m) =>
-            !usedMovIds.has(m.id) &&
-            Math.abs(Number(m.valor) - absVal) < 0.01 &&
-            ((tx.tipo === "saida" && (m.origem !== "contas_receber")) ||
-             (tx.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
-        );
-        if (match) usedMovIds.add(match.id);
+        // Try exact first, then approx
+        type MovMatch = { m: typeof movs[0]; exact: boolean } | null;
+        let movMatch: MovMatch = null;
+        const dirOk = (mOrigen: string) =>
+          (tx.tipo === "saida" && mOrigen !== "contas_receber") ||
+          (tx.tipo === "entrada" && mOrigen !== "pagamento_despesa" && mOrigen !== "despesas" && mOrigen !== "contas_pagar");
+
+        // Exact value match
+        for (const m of movs) {
+          if (usedMovIds.has(m.id)) continue;
+          const mVal = Math.abs(Number(m.valor));
+          const mOrigen = (m as any).origem || "";
+          if (Math.abs(mVal - absVal) < 0.01 && (
+            (tx.tipo === "saida" && mOrigen !== "contas_receber") ||
+            (tx.tipo === "entrada" && mOrigen !== "pagamento_despesa" && mOrigen !== "despesas" && mOrigen !== "contas_pagar")
+          )) {
+            movMatch = { m, exact: true };
+            break;
+          }
+        }
+        // Approx value+date match
+        if (!movMatch) {
+          let bestScore = Infinity;
+          for (const m of movs) {
+            if (usedMovIds.has(m.id)) continue;
+            const mVal = Math.abs(Number(m.valor));
+            const mOrigen = (m as any).origem || "";
+            const valMatch = isApproxValue(mVal, absVal);
+            if (valMatch === "none") continue;
+            const dDiff = daysDiff(m.data_movimentacao, txDate);
+            if (dDiff > 7) continue; // max 7 days proximity
+            if (!(
+              (tx.tipo === "saida" && mOrigen !== "contas_receber") ||
+              (tx.tipo === "entrada" && mOrigen !== "pagamento_despesa" && mOrigen !== "despesas" && mOrigen !== "contas_pagar")
+            )) continue;
+            const score = dDiff + Math.abs(mVal - absVal);
+            if (score < bestScore) {
+              bestScore = score;
+              movMatch = { m, exact: false };
+            }
+          }
+        }
+        if (movMatch) usedMovIds.add(movMatch.m.id);
 
         // 2) If no movement match and it's a debit, match against pending payables
-        let payableMatch: typeof payables[0] | null = null;
-        if (!match && tx.tipo === "saida") {
-          const pm = payables.find(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
-          );
-          if (pm) {
-            payableMatch = pm;
-            usedPayableIds.add(pm.id);
+        let payableMatch: { p: typeof payables[0]; exact: boolean } | null = null;
+        if (!movMatch && tx.tipo === "saida") {
+          // Exact first
+          for (const p of payables) {
+            if (usedPayableIds.has(p.id)) continue;
+            if (Math.abs(Number(p.amount) - absVal) < 0.01) {
+              payableMatch = { p, exact: true };
+              break;
+            }
           }
+          // Approx
+          if (!payableMatch) {
+            let bestScore = Infinity;
+            for (const p of payables) {
+              if (usedPayableIds.has(p.id)) continue;
+              const pVal = Number(p.amount);
+              const valMatch = isApproxValue(pVal, absVal);
+              if (valMatch === "none") continue;
+              const dDiff = p.due_date ? daysDiff(p.due_date, txDate) : 999;
+              if (dDiff > 15) continue; // wider window for payables
+              const score = dDiff + Math.abs(pVal - absVal);
+              if (score < bestScore) {
+                bestScore = score;
+                payableMatch = { p, exact: false };
+              }
+            }
+          }
+          if (payableMatch) usedPayableIds.add(payableMatch.p.id);
         }
 
         return {
           ...tx,
           id: crypto.randomUUID(),
           status: "pendente" as const,
-          matchedMovId: match?.id || null,
-          matchedMovDesc: match?.descricao || null,
-          matchedMovDate: match?.data_movimentacao || null,
-          matchedMovOrigem: match?.origem || null,
-          matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
-          matchedPayableId: payableMatch?.id || null,
-          matchedPayableDesc: payableMatch?.description || null,
-          matchedPayableDue: payableMatch?.due_date || null,
-          matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
+          matchedMovId: movMatch?.m.id || null,
+          matchedMovDesc: movMatch?.m.descricao || null,
+          matchedMovDate: movMatch?.m.data_movimentacao || null,
+          matchedMovOrigem: (movMatch?.m as any)?.origem || null,
+          matchedMovValor: movMatch ? Math.abs(Number(movMatch.m.valor)) : null,
+          matchExact: movMatch?.exact ?? true,
+          matchedPayableId: payableMatch?.p.id || null,
+          matchedPayableDesc: payableMatch?.p.description || null,
+          matchedPayableDue: payableMatch?.p.due_date || null,
+          matchedPayableValor: payableMatch ? Number(payableMatch.p.amount) : null,
+          matchPayableExact: payableMatch?.exact ?? true,
         };
       });
 
@@ -263,13 +336,14 @@ export function BankReconciliation() {
 
     try {
       if (confirmMatch.isPayable) {
-        // Pay the accounts_payable record using the OFX transaction date
-        const now = new Date().toISOString();
+        // For approx matches, use OFX amount; for exact, use payable amount
+        const isApprox = confirmItem && !confirmItem.matchPayableExact;
+        const payAmount = isApprox ? Math.abs(confirmItem!.amount) : confirmMatch.valor;
         await supabase
           .from("accounts_payable")
           .update({
             status: "pago",
-            paid_amount: confirmMatch.valor,
+            paid_amount: payAmount,
             paid_at: `${confirmItem.date}T12:00:00`,
           })
           .eq("id", confirmMatch.id);
@@ -484,6 +558,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      approximate={!item.matchExact}
                     />
                   )}
                   {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
@@ -493,7 +568,8 @@ export function BankReconciliation() {
                       valor={item.matchedPayableValor}
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
-                      label="Conta a Pagar encontrada"
+                      label={item.matchPayableExact ? "Conta a Pagar encontrada" : "Conta a Pagar (aprox.)"}
+                      approximate={!item.matchPayableExact}
                     />
                   )}
                   <ItemActions
@@ -541,6 +617,7 @@ export function BankReconciliation() {
                       date={item.matchedMovDate}
                       valor={item.matchedMovValor}
                       origem={translateOrigem(item.matchedMovOrigem)}
+                      approximate={!item.matchExact}
                     />
                   )}
                   {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
@@ -550,7 +627,8 @@ export function BankReconciliation() {
                       valor={item.matchedPayableValor}
                       origem="Conta a Pagar (pendente)"
                       variant="blue"
-                      label="Conta a Pagar encontrada"
+                      label={item.matchPayableExact ? "Conta a Pagar encontrada" : "Conta a Pagar (aprox.)"}
+                      approximate={!item.matchPayableExact}
                     />
                   )}
                   {item.status === "conciliado" && (
@@ -572,9 +650,29 @@ export function BankReconciliation() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>{confirmMatch?.isPayable
-                ? "O sistema encontrou uma conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
-                : "O sistema encontrou uma movimentação com o mesmo valor:"}</p>
+              {(() => {
+                const isApprox = confirmItem && (
+                  (confirmItem.matchedMovId && !confirmItem.matchExact) ||
+                  (confirmItem.matchedPayableId && !confirmItem.matchPayableExact)
+                );
+                const valDiff = confirmMatch && confirmItem
+                  ? Math.abs(Math.abs(confirmItem.amount) - confirmMatch.valor)
+                  : 0;
+                return (
+                  <>
+                    <p>
+                      {isApprox
+                        ? `Correspondência aproximada encontrada (diferença de ${formatCurrency(valDiff)}). ${confirmMatch?.isPayable ? "A conta será quitada com o valor e data do extrato." : "Verifique se é a mesma transação."}`
+                        : confirmMatch?.isPayable
+                          ? "Conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
+                          : "Movimentação com o mesmo valor encontrada:"}
+                    </p>
+                    {isApprox && (
+                      <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-500">⚠ Correspondência Aproximada</Badge>
+                    )}
+                  </>
+                );
+              })()}
               <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
@@ -639,9 +737,9 @@ function translateOrigem(origem: string | null): string {
   return map[origem || ""] || origem || "Outro";
 }
 
-function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", approximate = false }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string;
+  variant?: "amber" | "blue"; label?: string; approximate?: boolean;
 }) {
   const colors = variant === "blue"
     ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
@@ -649,7 +747,8 @@ function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Corre
   return (
     <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
       <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
-        <Link2 className="h-3 w-3 shrink-0" /> {label}
+        <Link2 className="h-3 w-3 shrink-0" /> {approximate ? `≈ ${label}` : label}
+        {approximate && <Badge variant="outline" className="text-[9px] h-4 border-orange-400 text-orange-500 ml-1">Aproximada</Badge>}
       </span>
       <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
         <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
