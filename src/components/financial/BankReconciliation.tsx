@@ -1198,6 +1198,7 @@ export function BankReconciliation() {
         open={manualMovDialogOpen}
         onOpenChange={(o) => { setManualMovDialogOpen(o); if (!o) setActiveItem(null); }}
         onSaved={onMovementSaved}
+        chartAccounts={chartAccounts}
         initialValues={activeItem ? {
           valor: maskCurrency(String(Math.abs(activeItem.amount).toFixed(2))),
           data: new Date(activeItem.date + "T12:00:00"),

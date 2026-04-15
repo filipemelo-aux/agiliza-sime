@@ -45,6 +45,7 @@ export function FinancialCashFlow() {
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
@@ -54,6 +55,10 @@ export function FinancialCashFlow() {
     valorMax: "",
     quickPeriod: "mes_atual",
   });
+
+  useEffect(() => {
+    supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
+  }, []);
 
   const loadMovimentacoes = useCallback(async () => {
     setLoading(true);
@@ -353,6 +358,7 @@ export function FinancialCashFlow() {
         open={manualDialogOpen}
         onOpenChange={setManualDialogOpen}
         onSaved={loadMovimentacoes}
+        chartAccounts={chartAccounts}
       />
     </div>
   );
