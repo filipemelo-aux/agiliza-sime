@@ -387,51 +387,63 @@ export function BankReconciliation() {
       const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        let match: typeof movs[0] | undefined;
+        const txDate = tx.date;
+        let matchedMov: typeof movs[0] | undefined;
+        let matchedMovPrecision: MatchPrecision | null = null;
         let payableMatch: typeof payables[0] | null = null;
+        let matchedPayablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
-          // Débito: buscar no fluxo de caixa
-          match = movs.find(
-            (m) =>
-              !usedMovIds.has(m.id) &&
-              Math.abs(Number(m.valor) - absVal) < 0.01 &&
-              m.origem !== "contas_receber"
+          // Débito: buscar no fluxo de caixa — valor idêntico + data ±5 dias
+          const candidates = movs.filter(
+            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "contas_receber"
           );
-          if (match) usedMovIds.add(match.id);
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
+          if (matchedMov) {
+            usedMovIds.add(matchedMov.id);
+            matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
+          }
 
-          // E também em contas a pagar pendentes
-          const pm = payables.find(
-            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+          // E também em contas a pagar pendentes — valor idêntico + vencimento ±5 dias
+          const pCandidates = payables.filter(
+            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
           );
+          const pExact = pCandidates.find((p) => p.due_date === txDate);
+          const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
           if (pm) {
             payableMatch = pm;
             usedPayableIds.add(pm.id);
+            matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
           }
         } else {
           // Crédito: buscar no fluxo de caixa
-          match = movs.find(
-            (m) =>
-              !usedMovIds.has(m.id) &&
-              Math.abs(Number(m.valor) - absVal) < 0.01 &&
-              m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
+          const candidates = movs.filter(
+            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
           );
-          if (match) usedMovIds.add(match.id);
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
+          if (matchedMov) {
+            usedMovIds.add(matchedMov.id);
+            matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
+          }
         }
 
         return {
           ...tx,
           id: crypto.randomUUID(),
           status: "pendente" as const,
-          matchedMovId: match?.id || null,
-          matchedMovDesc: match?.descricao || null,
-          matchedMovDate: match?.data_movimentacao || null,
-          matchedMovOrigem: match?.origem || null,
-          matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
+          matchedMovId: matchedMov?.id || null,
+          matchedMovDesc: matchedMov?.descricao || null,
+          matchedMovDate: matchedMov?.data_movimentacao || null,
+          matchedMovOrigem: matchedMov?.origem || null,
+          matchedMovValor: matchedMov ? Math.abs(Number(matchedMov.valor)) : null,
+          matchedMovPrecision,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
           matchedPayableDue: payableMatch?.due_date || null,
           matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
+          matchedPayablePrecision,
         };
       });
 
