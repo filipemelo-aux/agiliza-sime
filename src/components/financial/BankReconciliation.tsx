@@ -1059,38 +1059,38 @@ export function BankReconciliation() {
 
       {/* Confirm match dialog */}
       <AlertDialog open={!!confirmItem} onOpenChange={(o) => { if (!o) { setConfirmItem(null); setConfirmMatch(null); } }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[420px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
+            <AlertDialogTitle className="text-base">Confirmar Conciliação</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-xs">
               <p>{confirmMatch?.isPayable
-                ? "O sistema encontrou uma conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
-                : "O sistema encontrou uma movimentação com o mesmo valor:"}</p>
-              <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
-                  <p>{confirmItem?.description}</p>
-                  <p className="text-xs text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
+                ? "Conta a pagar encontrada. Ao confirmar, será quitada com a data do extrato."
+                : "Movimentação encontrada com o mesmo valor:"}</p>
+              <div className="bg-muted rounded-md p-2.5 space-y-2 text-xs overflow-hidden">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">Extrato Bancário</p>
+                  <p className="truncate">{confirmItem?.description}</p>
+                  <p className="text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
                 </div>
-                <div className="border-t pt-2">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">
-                    {confirmMatch?.isPayable ? "Conta a Pagar Pendente" : "Movimentação no Sistema"}
+                <div className="border-t pt-2 min-w-0">
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">
+                    {confirmMatch?.isPayable ? "Conta a Pagar" : "Movimentação"}
                   </p>
-                  <p>{confirmMatch?.descricao || "Sem descrição"}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="truncate">{confirmMatch?.descricao || "Sem descrição"}</p>
+                  <p className="text-muted-foreground">
                     {confirmMatch?.isPayable ? "Venc: " : ""}{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}
                     {!confirmMatch?.isPayable && <> · {translateOrigem(confirmMatch?.origem || null)}</>}
                   </p>
                 </div>
               </div>
               <p>{confirmMatch?.isPayable
-                ? "Deseja confirmar o pagamento e conciliar esta transação?"
-                : "Deseja confirmar que se trata da mesma transação?"}</p>
+                ? "Confirmar pagamento e conciliar?"
+                : "Confirmar que é a mesma transação?"}</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmMatch}>Confirmar Conciliação</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmMatch}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
