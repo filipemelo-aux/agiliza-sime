@@ -149,20 +149,27 @@ export function BankReconciliation() {
         let matchedMovDate: string | null = null;
         let matchedMovOrigem: string | null = null;
         let matchedMovValor: number | null = null;
+        let matchedMovPrecision: MatchPrecision | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableDue: string | null = null;
         let matchedPayableValor: number | null = null;
+        let matchedPayablePrecision: MatchPrecision | null = null;
+        const txDate = dbItem.transaction_date;
 
         if (status === "pendente") {
-          // Buscar no fluxo de caixa (entrada e saída)
-          const match = movs.find(
+          // Buscar no fluxo de caixa (entrada e saída) — valor idêntico + data idêntica ou próxima (±5 dias)
+          const candidates = movs.filter(
             (m) =>
               !usedMovIds.has(m.id) &&
               Math.abs(Number(m.valor) - absVal) < 0.01 &&
+              daysDiff(txDate, m.data_movimentacao) <= 5 &&
               ((tipo === "saida" && m.origem !== "contas_receber") ||
                (tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
           );
+          // Prefer exact date, then closest
+          const exact = candidates.find((m) => m.data_movimentacao === txDate);
+          const match = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
           if (match) {
             usedMovIds.add(match.id);
             matchedMovId = match.id;
@@ -170,35 +177,39 @@ export function BankReconciliation() {
             matchedMovDate = match.data_movimentacao;
             matchedMovOrigem = match.origem;
             matchedMovValor = Math.abs(Number(match.valor));
+            matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
           }
 
-          // Saída: buscar também em contas a pagar pendentes
+          // Saída: buscar também em contas a pagar pendentes — valor idêntico + vencimento idêntico ou próximo
           if (tipo === "saida") {
-            const pm = payables.find(
-              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+            const pCandidates = payables.filter(
+              (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01 && p.due_date && daysDiff(txDate, p.due_date) <= 5
             );
+            const pExact = pCandidates.find((p) => p.due_date === txDate);
+            const pm = pExact || pCandidates.sort((a, b) => daysDiff(txDate, a.due_date!) - daysDiff(txDate, b.due_date!))[0];
             if (pm) {
               usedPayableIds.add(pm.id);
               matchedPayableId = pm.id;
               matchedPayableDesc = pm.description;
               matchedPayableDue = pm.due_date;
               matchedPayableValor = Number(pm.amount);
+              matchedPayablePrecision = pm.due_date === txDate ? "exato" : "proximo";
             }
           }
         } else if (matchedMovId) {
-          // Already conciliated – find the movement details for display
           const mov = movs.find((m) => m.id === matchedMovId);
           if (mov) {
             matchedMovDesc = mov.descricao;
             matchedMovDate = mov.data_movimentacao;
             matchedMovOrigem = mov.origem;
             matchedMovValor = Math.abs(Number(mov.valor));
+            matchedMovPrecision = mov.data_movimentacao === txDate ? "exato" : "proximo";
           }
         }
 
         return {
           fitid: dbItem.fitid || "",
-          date: dbItem.transaction_date,
+          date: txDate,
           amount: tipo === "saida" ? -absVal : absVal,
           description: dbItem.description || "",
           tipo,
@@ -210,10 +221,12 @@ export function BankReconciliation() {
           matchedMovDate,
           matchedMovOrigem,
           matchedMovValor,
+          matchedMovPrecision,
           matchedPayableId,
           matchedPayableDesc,
           matchedPayableDue,
           matchedPayableValor,
+          matchedPayablePrecision,
         };
       });
 
