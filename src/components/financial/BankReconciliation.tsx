@@ -31,6 +31,11 @@ interface OfxItem extends OfxTransaction {
   matchedMovDate: string | null;
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
+  // Conta a pagar match (not yet paid)
+  matchedPayableId: string | null;
+  matchedPayableDesc: string | null;
+  matchedPayableDue: string | null;
+  matchedPayableValor: number | null;
 }
 
 interface MatchCandidate {
@@ -39,6 +44,9 @@ interface MatchCandidate {
   data_movimentacao: string;
   valor: number;
   origem: string;
+  // For payable matches
+  isPayable?: boolean;
+  payableDueDate?: string;
 }
 
 export function BankReconciliation() {
@@ -109,19 +117,27 @@ export function BankReconciliation() {
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
 
-      const { data: existingMovs } = await supabase
-        .from("movimentacoes_bancarias")
-        .select("id, valor, data_movimentacao, tipo, descricao, origem")
-        .gte("data_movimentacao", minDate)
-        .lte("data_movimentacao", maxDate);
+      const [{ data: existingMovs }, { data: pendingPayables }] = await Promise.all([
+        supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem")
+          .gte("data_movimentacao", minDate)
+          .lte("data_movimentacao", maxDate),
+        supabase
+          .from("accounts_payable")
+          .select("id, amount, description, due_date, status")
+          .in("status", ["pendente", "atrasado"]),
+      ]);
 
       const movs = (existingMovs || []) as MatchCandidate[];
+      const payables = (pendingPayables || []) as { id: string; amount: number; description: string; due_date: string | null; status: string }[];
 
       // Build items with auto-matching by value
       const usedMovIds = new Set<string>();
+      const usedPayableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
-        // Find a matching movement with same absolute value and same type
+        // 1) Match against existing cash flow movements
         const match = movs.find(
           (m) =>
             !usedMovIds.has(m.id) &&
@@ -130,6 +146,18 @@ export function BankReconciliation() {
              (tx.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
         );
         if (match) usedMovIds.add(match.id);
+
+        // 2) If no movement match and it's a debit, match against pending payables
+        let payableMatch: typeof payables[0] | null = null;
+        if (!match && tx.tipo === "saida") {
+          const pm = payables.find(
+            (p) => !usedPayableIds.has(p.id) && Math.abs(Number(p.amount) - absVal) < 0.01
+          );
+          if (pm) {
+            payableMatch = pm;
+            usedPayableIds.add(pm.id);
+          }
+        }
 
         return {
           ...tx,
@@ -140,6 +168,10 @@ export function BankReconciliation() {
           matchedMovDate: match?.data_movimentacao || null,
           matchedMovOrigem: match?.origem || null,
           matchedMovValor: match ? Math.abs(Number(match.valor)) : null,
+          matchedPayableId: payableMatch?.id || null,
+          matchedPayableDesc: payableMatch?.description || null,
+          matchedPayableDue: payableMatch?.due_date || null,
+          matchedPayableValor: payableMatch ? Number(payableMatch.amount) : null,
         };
       });
 
@@ -173,23 +205,64 @@ export function BankReconciliation() {
   const handleConfirmMatch = useCallback(async () => {
     if (!confirmItem || !confirmMatch || !reconciliationId) return;
 
-    // Update item status in DB
-    await supabase
-      .from("bank_reconciliation_items")
-      .update({ status: "conciliado", matched_movimentacao_id: confirmMatch.id })
-      .eq("reconciliation_id", reconciliationId)
-      .eq("fitid", confirmItem.fitid || "")
-      .eq("status", "pendente");
+    try {
+      if (confirmMatch.isPayable) {
+        // Pay the accounts_payable record using the OFX transaction date
+        const now = new Date().toISOString();
+        await supabase
+          .from("accounts_payable")
+          .update({
+            status: "pago",
+            paid_amount: confirmMatch.valor,
+            paid_at: `${confirmItem.date}T12:00:00`,
+          })
+          .eq("id", confirmMatch.id);
+      }
 
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
-      )
-    );
-    toast.success("Transação conciliada com sucesso");
+      // Update reconciliation item status in DB
+      await supabase
+        .from("bank_reconciliation_items")
+        .update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id })
+        .eq("reconciliation_id", reconciliationId)
+        .eq("fitid", confirmItem.fitid || "")
+        .eq("status", "pendente");
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
+        )
+      );
+      toast.success(confirmMatch.isPayable ? "Conta paga e conciliada com sucesso" : "Transação conciliada com sucesso");
+    } catch (err: any) {
+      toast.error("Erro ao conciliar: " + (err.message || ""));
+    }
     setConfirmItem(null);
     setConfirmMatch(null);
   }, [confirmItem, confirmMatch, reconciliationId]);
+
+  const openConfirm = useCallback((item: OfxItem) => {
+    if (item.matchedMovId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedMovId,
+        descricao: item.matchedMovDesc,
+        data_movimentacao: item.matchedMovDate || item.date,
+        valor: Math.abs(item.amount),
+        origem: item.matchedMovOrigem || "",
+      });
+    } else if (item.matchedPayableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedPayableId,
+        descricao: item.matchedPayableDesc,
+        data_movimentacao: item.matchedPayableDue || item.date,
+        valor: item.matchedPayableValor || Math.abs(item.amount),
+        origem: "contas_pagar_pendente",
+        isPayable: true,
+        payableDueDate: item.matchedPayableDue || undefined,
+      });
+    }
+  }, []);
 
   const handleNewExpense = (item: OfxItem) => {
     setActiveItem(item);
@@ -327,31 +400,26 @@ export function BankReconciliation() {
                   </div>
                   <p className="text-xs text-foreground truncate">{item.description}</p>
                   {item.matchedMovId && item.status === "pendente" && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 space-y-0.5">
-                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
-                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
-                      </span>
-                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                        <p className="truncate">Desc: {item.matchedMovDesc || "Sem descrição"}</p>
-                        <p>Data: {formatDateBR(item.matchedMovDate || "")} · Valor: {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"}</p>
-                        <p>Origem: {translateOrigem(item.matchedMovOrigem)}</p>
-                      </div>
-                    </div>
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                    />
+                  )}
+                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={item.matchedPayableDesc}
+                      date={item.matchedPayableDue}
+                      valor={item.matchedPayableValor}
+                      origem="Conta a Pagar (pendente)"
+                      variant="blue"
+                      label="Conta a Pagar encontrada"
+                    />
                   )}
                   <ItemActions
                     item={item}
-                    onConfirmMatch={() => {
-                      if (item.matchedMovId) {
-                        setConfirmItem(item);
-                        setConfirmMatch({
-                          id: item.matchedMovId,
-                          descricao: item.matchedMovDesc,
-                          data_movimentacao: item.matchedMovDate || item.date,
-                          valor: Math.abs(item.amount),
-                          origem: item.matchedMovOrigem || "",
-                        });
-                      }
-                    }}
+                    onConfirmMatch={() => openConfirm(item)}
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
                   />
@@ -378,36 +446,30 @@ export function BankReconciliation() {
                     <div className="ml-auto">
                       <ItemActions
                         item={item}
-                        onConfirmMatch={() => {
-                          if (item.matchedMovId) {
-                            setConfirmItem(item);
-                            setConfirmMatch({
-                              id: item.matchedMovId,
-                              descricao: item.matchedMovDesc,
-                              data_movimentacao: item.matchedMovDate || item.date,
-                              valor: Math.abs(item.amount),
-                              origem: item.matchedMovOrigem || "",
-                            });
-                          }
-                        }}
+                        onConfirmMatch={() => openConfirm(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
                       />
                     </div>
                   </div>
-                  {/* Row 2: full description */}
                   <p className="text-xs text-foreground">{item.description}</p>
-                  {/* Row 3: match details */}
                   {item.matchedMovId && item.status === "pendente" && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5 space-y-0.5">
-                      <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
-                        <Link2 className="h-3 w-3 shrink-0" /> Correspondência encontrada
-                      </span>
-                      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
-                        <p><span className="font-medium">Desc:</span> {item.matchedMovDesc || "Sem descrição"}</p>
-                        <p><span className="font-medium">Data:</span> {formatDateBR(item.matchedMovDate || "")} · <span className="font-medium">Valor:</span> {item.matchedMovValor != null ? formatCurrency(item.matchedMovValor) : "—"} · <span className="font-medium">Origem:</span> {translateOrigem(item.matchedMovOrigem)}</p>
-                      </div>
-                    </div>
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                    />
+                  )}
+                  {!item.matchedMovId && item.matchedPayableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={item.matchedPayableDesc}
+                      date={item.matchedPayableDue}
+                      valor={item.matchedPayableValor}
+                      origem="Conta a Pagar (pendente)"
+                      variant="blue"
+                      label="Conta a Pagar encontrada"
+                    />
                   )}
                   {item.status === "conciliado" && (
                     <span className="text-green-600 text-[11px]">✓ Conciliado</span>
@@ -428,7 +490,9 @@ export function BankReconciliation() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Conciliação</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>O sistema encontrou uma movimentação com o mesmo valor:</p>
+              <p>{confirmMatch?.isPayable
+                ? "O sistema encontrou uma conta a pagar pendente com o mesmo valor. Ao confirmar, a conta será quitada com a data do extrato."
+                : "O sistema encontrou uma movimentação com o mesmo valor:"}</p>
               <div className="bg-muted rounded-md p-3 space-y-2 text-sm">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1">Extrato Bancário</p>
@@ -436,12 +500,19 @@ export function BankReconciliation() {
                   <p className="text-xs text-muted-foreground">{confirmItem && formatDateBR(confirmItem.date)} · {confirmItem && formatCurrency(Math.abs(confirmItem.amount))}</p>
                 </div>
                 <div className="border-t pt-2">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">Movimentação no Sistema</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
+                    {confirmMatch?.isPayable ? "Conta a Pagar Pendente" : "Movimentação no Sistema"}
+                  </p>
                   <p>{confirmMatch?.descricao || "Sem descrição"}</p>
-                  <p className="text-xs text-muted-foreground">{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)} · {translateOrigem(confirmMatch?.origem || null)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {confirmMatch?.isPayable ? "Venc: " : ""}{confirmMatch && formatDateBR(confirmMatch.data_movimentacao)} · {confirmMatch && formatCurrency(confirmMatch.valor)}
+                    {!confirmMatch?.isPayable && <> · {translateOrigem(confirmMatch?.origem || null)}</>}
+                  </p>
                 </div>
               </div>
-              <p>Deseja confirmar que se trata da mesma transação?</p>
+              <p>{confirmMatch?.isPayable
+                ? "Deseja confirmar o pagamento e conciliar esta transação?"
+                : "Deseja confirmar que se trata da mesma transação?"}</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -476,6 +547,7 @@ function translateOrigem(origem: string | null): string {
     pagamento_despesa: "Pagamento de Despesa",
     despesas: "Despesa",
     contas_pagar: "Contas a Pagar",
+    contas_pagar_pendente: "Conta a Pagar (pendente)",
     contas_receber: "Contas a Receber",
     manual: "Lançamento Manual",
     colheita: "Colheita",
@@ -483,6 +555,26 @@ function translateOrigem(origem: string | null): string {
     faturamento: "Faturamento",
   };
   return map[origem || ""] || origem || "Outro";
+}
+
+function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada" }: {
+  desc: string | null; date: string | null; valor: number | null; origem: string;
+  variant?: "amber" | "blue"; label?: string;
+}) {
+  const colors = variant === "blue"
+    ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
+    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  return (
+    <div className={cn("border rounded px-2 py-1.5 space-y-0.5", colors.split(" ").slice(0, 4).join(" "))}>
+      <span className={cn("flex items-center gap-1 font-medium text-[11px]", colors.split(" ").slice(4).join(" "))}>
+        <Link2 className="h-3 w-3 shrink-0" /> {label}
+      </span>
+      <div className="text-[10px] text-muted-foreground pl-4 space-y-0.5">
+        <p><span className="font-medium">Desc:</span> {desc || "Sem descrição"}</p>
+        <p><span className="font-medium">{variant === "blue" ? "Venc:" : "Data:"}</span> {formatDateBR(date || "")} · <span className="font-medium">Valor:</span> {valor != null ? formatCurrency(valor) : "—"} · <span className="font-medium">Origem:</span> {origem}</p>
+      </div>
+    </div>
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -508,9 +600,9 @@ function ItemActions({
 
   return (
     <div className="flex items-center gap-1 justify-end flex-wrap">
-      {item.matchedMovId && (
+      {(item.matchedMovId || item.matchedPayableId) && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onConfirmMatch}>
-          <CheckCircle2 className="h-3 w-3" /> Conciliar
+          <CheckCircle2 className="h-3 w-3" /> {item.matchedPayableId && !item.matchedMovId ? "Pagar e Conciliar" : "Conciliar"}
         </Button>
       )}
       <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
