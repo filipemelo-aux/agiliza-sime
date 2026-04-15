@@ -89,6 +89,7 @@ export function BankReconciliation() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado" | "registrado">("todos");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
 
   // Load chart of accounts
   useEffect(() => {
@@ -446,6 +447,9 @@ export function BankReconciliation() {
     if (statusFilter !== "todos") {
       list = list.filter((i) => i.status === statusFilter);
     }
+    if (tipoFilter !== "todos") {
+      list = list.filter((i) => tipoFilter === "debito" ? i.tipo === "saida" : i.tipo === "entrada");
+    }
     if (searchText.trim()) {
       const q = searchText.trim().toLowerCase();
       list = list.filter((i) =>
@@ -455,7 +459,7 @@ export function BankReconciliation() {
       );
     }
     return list;
-  }, [items, statusFilter, searchText]);
+  }, [items, statusFilter, tipoFilter, searchText]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
