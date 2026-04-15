@@ -975,8 +975,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             <div>
               <Label className="text-xs">Favorecido</Label>
               <PersonSearchInput
-                categories={["fornecedor"]}
-                placeholder="Buscar fornecedor..."
+                categories={["fornecedor", "cliente", "proprietario", "motorista"]}
+                placeholder="Buscar pessoa..."
                 selectedName={favorecidoNome || undefined}
                 onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
                 onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
