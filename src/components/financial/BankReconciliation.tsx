@@ -89,6 +89,7 @@ export function BankReconciliation() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado" | "registrado">("todos");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
 
   // Load chart of accounts
   useEffect(() => {
@@ -446,6 +447,9 @@ export function BankReconciliation() {
     if (statusFilter !== "todos") {
       list = list.filter((i) => i.status === statusFilter);
     }
+    if (tipoFilter !== "todos") {
+      list = list.filter((i) => tipoFilter === "debito" ? i.tipo === "saida" : i.tipo === "entrada");
+    }
     if (searchText.trim()) {
       const q = searchText.trim().toLowerCase();
       list = list.filter((i) =>
@@ -455,7 +459,7 @@ export function BankReconciliation() {
       );
     }
     return list;
-  }, [items, statusFilter, searchText]);
+  }, [items, statusFilter, tipoFilter, searchText]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1023,6 +1027,23 @@ export function BankReconciliation() {
             );
           })}
         </div>
+        <div className="flex gap-1">
+          {(["todos", "debito", "credito"] as const).map((tab) => {
+            const labels: Record<string, string> = { todos: "Todos", debito: "Débitos", credito: "Créditos" };
+            const count = tab === "todos" ? items.length : items.filter((i) => tab === "debito" ? i.tipo === "saida" : i.tipo === "entrada").length;
+            return (
+              <Button
+                key={tab}
+                size="sm"
+                variant={tipoFilter === tab ? "default" : "outline"}
+                className="h-7 text-[10px] px-2 gap-1"
+                onClick={() => setTipoFilter(tab)}
+              >
+                {labels[tab]} <span className="opacity-70">({count})</span>
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Items */}
@@ -1286,9 +1307,11 @@ function ItemActions({
       )}
       {!item.matchedMovId && !item.matchedPayableId && (
         <>
-          <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
-            <Plus className="h-3 w-3" /> Despesa
-          </Button>
+          {item.tipo === "saida" && (
+            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
+              <Plus className="h-3 w-3" /> Despesa
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
             <ArrowDownCircle className="h-3 w-3" /> Movimentação
           </Button>
