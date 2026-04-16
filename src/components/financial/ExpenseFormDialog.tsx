@@ -756,10 +756,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     if (hasNfse && nfseValorTotal > 0) {
       const nfseDescStr = nfseItens.map(i => i.descricao).join(", ");
       const nfsePayload: any = {
-        empresa_id: empresaId,
+        empresa_id: empresaId || null,
         descricao: nfseDescStr || `NFSe ${nfseNumero} - Serviço`,
         tipo_despesa: isMaintenanceType ? "manutencao" : (selectedAccount?.tipo_operacional || "outros"),
-        plano_contas_id: planoContasId,
+        plano_contas_id: planoContasId || null,
         centro_custo: centroCusto,
         valor_total: nfseValorTotal,
         data_emissao: nfseDataEmissao || dataEmissao,
@@ -770,7 +770,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         documento_fiscal_numero: nfseNumero.trim() || null,
         origem: "manual",
         observacoes: nfseObservacoes.trim() || (isMaintenanceType ? `Vinculado à manutenção - ${descricaoServico.trim() || descricao.trim()}` : `NFSe ${nfseNumero} - ${descricao.trim()}`),
-        veiculo_id: isMaintenanceType ? veiculoId : null,
+        veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
         tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
         km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
         fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
