@@ -583,8 +583,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     setSaving(true);
     const payload: any = {
-      empresa_id: empresaId, unidade_id: empresaId, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
-      plano_contas_id: planoContasId, centro_custo: centroCusto,
+      empresa_id: empresaId || null, unidade_id: empresaId || null, descricao: descricao.trim(), tipo_despesa: derivedTipoDespesa,
+      plano_contas_id: planoContasId || null, centro_custo: centroCusto,
       valor_total: Number(valorTotal), data_emissao: dataEmissao,
       data_vencimento: dataVencimento || null, forma_pagamento: formaPagamento || null,
       favorecido_nome: favorecidoNome.trim() || null, favorecido_id: favorecidoId || null,
@@ -594,13 +594,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       litros: litros ? Number(litros) : null, km_odometro: kmOdometro ? Number(kmOdometro) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: isMaintenanceType ? veiculoId : null,
+      veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
       tempo_parado: isMaintenanceType ? (tempoParado.trim() || null) : null,
       proxima_manutencao_km: isMaintenanceType && proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
-      
     };
 
     let expenseId = expense?.id;
