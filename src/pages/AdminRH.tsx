@@ -469,6 +469,26 @@ export default function AdminRH() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="folha_mensal" className="mt-4">
+            <FolhaMensalTab
+              colaboradores={colaboradores}
+              month={month}
+              expenses={expenses}
+              folhaAccountId={settings.folhaAccountId}
+              adiantamentoAccountId={settings.adiantamentoAccountId}
+              salaryOverrides={settings.salaryOverrides || {}}
+              payDay={settings.payDay}
+              onSalaryOverride={(id, value) => {
+                setSettings((s) => {
+                  const next = { ...s, salaryOverrides: { ...(s.salaryOverrides || {}), [id]: value } };
+                  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+                  return next;
+                });
+              }}
+              onGenerated={bumpRefresh}
+            />
+          </TabsContent>
+
           <TabsContent value="folha" className="mt-4">
             <Card>
               <CardContent className="p-4">
