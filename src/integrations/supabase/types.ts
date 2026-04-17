@@ -2575,6 +2575,9 @@ export type Database = {
           razao_social: string | null
           salario: number | null
           signature_data: string | null
+          tipo_colaborador_rh:
+            | Database["public"]["Enums"]["tipo_colaborador_rh"]
+            | null
           updated_at: string
           user_id: string
         }
@@ -2612,6 +2615,9 @@ export type Database = {
           razao_social?: string | null
           salario?: number | null
           signature_data?: string | null
+          tipo_colaborador_rh?:
+            | Database["public"]["Enums"]["tipo_colaborador_rh"]
+            | null
           updated_at?: string
           user_id: string
         }
@@ -2649,6 +2655,9 @@ export type Database = {
           razao_social?: string | null
           salario?: number | null
           signature_data?: string | null
+          tipo_colaborador_rh?:
+            | Database["public"]["Enums"]["tipo_colaborador_rh"]
+            | null
           updated_at?: string
           user_id?: string
         }
@@ -3117,6 +3126,7 @@ export type Database = {
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       previsao_origem_tipo: "cte" | "colheita"
       previsao_status: "pendente" | "faturado"
+      tipo_colaborador_rh: "clt" | "pj" | "freelancer"
       vehicle_type:
         | "truck"
         | "bitruck"
@@ -3286,6 +3296,7 @@ export const Constants = {
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       previsao_origem_tipo: ["cte", "colheita"],
       previsao_status: ["pendente", "faturado"],
+      tipo_colaborador_rh: ["clt", "pj", "freelancer"],
       vehicle_type: [
         "truck",
         "bitruck",
