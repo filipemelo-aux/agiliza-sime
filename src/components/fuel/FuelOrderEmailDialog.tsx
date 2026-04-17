@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,19 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
   const [to, setTo] = useState("");
   const [cc, setCc] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (!open || !order?.supplier_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", order.supplier_id)
+        .maybeSingle();
+      const email = (data as any)?.email?.trim().toLowerCase();
+      if (email) setTo(email);
+    })();
+  }, [open, order?.supplier_id]);
 
   const handleSend = async () => {
     if (!to) {
