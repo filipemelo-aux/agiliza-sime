@@ -361,9 +361,9 @@ function formToPayload(form: FormState) {
     data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
     salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
     is_employee: isColaborador,
-    // Flag explícito do RH — desacoplado da categoria/frota.
-    // Categoria "colaborador" sempre marca como RH; demais categorias usam o checkbox.
-    is_colaborador_rh: isColaborador ? true : form.is_colaborador_rh,
+    // Flag GLOBAL e independente — fonte única para definir colaborador
+    // em todos os módulos (RH, Financeiro, Cadastros, Relatórios).
+    is_colaborador_rh: form.is_colaborador_rh,
   };
 }
 
@@ -813,28 +813,27 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
-      {/* Flag explícito de Colaborador RH — disponível para qualquer categoria
-          exceto "colaborador" (que já é RH por definição). */}
-      {!isColaborador && (
-        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
-          <input
-            id="is_colaborador_rh"
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
-            checked={form.is_colaborador_rh}
-            onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
-          />
-          <div className="space-y-0.5">
-            <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
-              Incluir no módulo RH como colaborador
-            </Label>
-            <p className="text-[10px] text-muted-foreground">
-              Marque para que esta pessoa apareça no módulo de Recursos Humanos
-              (folha de pagamento, adiantamentos, etc.).
-            </p>
-          </div>
+      {/* Flag GLOBAL de Colaborador RH — fonte única da verdade.
+          Disponível para QUALQUER categoria (motorista, cliente, fornecedor,
+          proprietário, colaborador). Independente do módulo de Frota. */}
+      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+        <input
+          id="is_colaborador_rh"
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+          checked={form.is_colaborador_rh}
+          onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
+        />
+        <div className="space-y-0.5">
+          <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
+            É colaborador (RH)
+          </Label>
+          <p className="text-[10px] text-muted-foreground">
+            Define globalmente se esta pessoa é tratada como colaborador
+            (folha, adiantamentos, relatórios). Independe da categoria e da frota.
+          </p>
         </div>
-      )}
+      </div>
 
       {/* Vehicle management note - motorista edit only */}
       {isMotorista && onAddVehicle && (

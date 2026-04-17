@@ -175,9 +175,9 @@ export default function AdminPeople() {
 
   const filterByTab = (d: PersonProfile, tab: string) => {
     if (tab === "__all__") return true;
-    // Aba "Colaboradores" agora reflete apenas o flag explícito do RH.
-    // Removida a regra antiga "motorista de frota própria = colaborador".
-    if (tab === "colaborador") return d.category === "colaborador" || !!(d as any).is_colaborador_rh;
+    // Regra GLOBAL: colaborador é definido EXCLUSIVAMENTE pelo flag is_colaborador_rh.
+    // Independe da categoria e de qualquer vínculo com frota/veículos.
+    if (tab === "colaborador") return !!(d as any).is_colaborador_rh;
     return d.category === tab;
   };
 
