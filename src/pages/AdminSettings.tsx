@@ -90,7 +90,7 @@ export default function AdminSettings() {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, email, user_id")
-        .eq("category", "colaborador")
+        .eq("is_colaborador_rh", true)
         .order("full_name");
 
       // Only show colaboradores without an auth account
