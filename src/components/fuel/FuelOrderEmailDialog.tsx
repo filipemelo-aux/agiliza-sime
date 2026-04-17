@@ -56,17 +56,32 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (!open || !order?.supplier_id) return;
+    if (!open || !order) return;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", order.supplier_id)
-        .maybeSingle();
-      const email = (data as any)?.email?.trim().toLowerCase();
+      let email: string | undefined;
+
+      if (order.supplier_id) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", order.supplier_id)
+          .maybeSingle();
+        email = (data as any)?.email?.trim().toLowerCase();
+      }
+
+      if (!email && order.supplier_name) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("email")
+          .ilike("full_name", `%${order.supplier_name}%`)
+          .not("email", "is", null)
+          .limit(1);
+        email = (data?.[0] as any)?.email?.trim().toLowerCase();
+      }
+
       if (email) setTo(email);
     })();
-  }, [open, order?.supplier_id]);
+  }, [open, order?.supplier_id, order?.supplier_name]);
 
   const handleSend = async () => {
     if (!to) {
