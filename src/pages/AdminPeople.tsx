@@ -235,14 +235,24 @@ export default function AdminPeople() {
           </TabsList>
         </Tabs>
 
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {/* Filtro de PAPEL — independente do tipo (categoria) */}
+          <Tabs value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+            <TabsList className="h-9">
+              <TabsTrigger value="all" className="text-xs">Todos os papéis</TabsTrigger>
+              <TabsTrigger value="rh" className="text-xs">Apenas RH</TabsTrigger>
+              <TabsTrigger value="non_rh" className="text-xs">Sem RH</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {loading ? (
