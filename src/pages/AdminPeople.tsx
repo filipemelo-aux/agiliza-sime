@@ -185,12 +185,15 @@ export default function AdminPeople() {
 
   const filteredDrivers = drivers.filter((d) => {
     const matchCategory = filterByTab(d, activeTab);
+    // Filtro de papel RH (cruza com tipo): permite combinações Motorista+Colaborador.
+    const isRH = !!(d as any).is_colaborador_rh;
+    const matchRole = roleFilter === "all" || (roleFilter === "rh" ? isRH : !isRH);
     const matchSearch =
       d.full_name.toLowerCase().includes(search.toLowerCase()) ||
       (d.cnpj && d.cnpj.includes(search)) ||
       (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())) ||
       (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
-    return matchCategory && matchSearch;
+    return matchCategory && matchRole && matchSearch;
   });
 
   const countByTab = (tab: string) => {
