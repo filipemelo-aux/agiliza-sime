@@ -2564,6 +2564,7 @@ export type Database = {
           full_name: string
           id: string
           inscricao_estadual: string | null
+          is_colaborador_rh: boolean
           is_employee: boolean
           nome_fantasia: string | null
           notes: string | null
@@ -2600,6 +2601,7 @@ export type Database = {
           full_name: string
           id?: string
           inscricao_estadual?: string | null
+          is_colaborador_rh?: boolean
           is_employee?: boolean
           nome_fantasia?: string | null
           notes?: string | null
@@ -2636,6 +2638,7 @@ export type Database = {
           full_name?: string
           id?: string
           inscricao_estadual?: string | null
+          is_colaborador_rh?: boolean
           is_employee?: boolean
           nome_fantasia?: string | null
           notes?: string | null

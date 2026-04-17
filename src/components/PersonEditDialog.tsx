@@ -59,6 +59,7 @@ export interface PersonProfile {
   data_admissao?: string | null;
   salario?: number | null;
   is_employee?: boolean;
+  is_colaborador_rh?: boolean;
   services: string[];
 }
 
@@ -94,6 +95,7 @@ interface FormState {
   departamento: string;
   data_admissao: string;
   salario: string;
+  is_colaborador_rh: boolean;
 }
 
 const emptyForm: FormState = {
@@ -128,6 +130,7 @@ const emptyForm: FormState = {
   departamento: "",
   data_admissao: "",
   salario: "",
+  is_colaborador_rh: false,
 };
 
 function AddressFields({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
@@ -322,6 +325,7 @@ function personToForm(person: PersonProfile): FormState {
     departamento: (person as any).departamento || "",
     data_admissao: (person as any).data_admissao || "",
     salario: (person as any).salario ? String((person as any).salario) : "",
+    is_colaborador_rh: !!(person as any).is_colaborador_rh,
   };
 }
 
@@ -357,6 +361,9 @@ function formToPayload(form: FormState) {
     data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
     salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
     is_employee: isColaborador,
+    // Flag explícito do RH — desacoplado da categoria/frota.
+    // Categoria "colaborador" sempre marca como RH; demais categorias usam o checkbox.
+    is_colaborador_rh: isColaborador ? true : form.is_colaborador_rh,
   };
 }
 
@@ -805,6 +812,29 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
 
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
+
+      {/* Flag explícito de Colaborador RH — disponível para qualquer categoria
+          exceto "colaborador" (que já é RH por definição). */}
+      {!isColaborador && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+          <input
+            id="is_colaborador_rh"
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            checked={form.is_colaborador_rh}
+            onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
+          />
+          <div className="space-y-0.5">
+            <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
+              Incluir no módulo RH como colaborador
+            </Label>
+            <p className="text-[10px] text-muted-foreground">
+              Marque para que esta pessoa apareça no módulo de Recursos Humanos
+              (folha de pagamento, adiantamentos, etc.).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Vehicle management note - motorista edit only */}
       {isMotorista && onAddVehicle && (

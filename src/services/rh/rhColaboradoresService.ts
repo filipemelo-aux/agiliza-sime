@@ -1,7 +1,12 @@
 /**
  * RH Colaboradores Service
- * Camada derivada (view model) que une duas fontes existentes — profiles (categoria
- * 'colaborador') e vehicles (frota própria) — sem criar nova tabela e sem duplicar dados.
+ *
+ * Fonte única: tabela `profiles` filtrada por `is_colaborador_rh = true`.
+ *
+ * Importante: o RH NÃO depende mais do módulo de Frota. A antiga regra
+ * "motorista vinculado a veículo de Frota Própria = colaborador" foi removida.
+ * Para que uma pessoa apareça aqui, ela precisa ter o flag explícito
+ * `is_colaborador_rh` ativo no cadastro (independente da categoria).
  */
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,26 +19,21 @@ export type ColaboradorRH = {
   departamento: string | null;
   data_admissao: string | null;
   salario: number | null;
-  tipo: "colaborador" | "motorista_frota_propria";
+  /** Categoria original do cadastro (motorista, colaborador, etc.) — apenas informativo. */
+  tipo: "colaborador" | "motorista" | "outro";
   ativo: boolean;
-  vehicle_plates?: string[];
 };
 
 export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
-  const [colabRes, vehRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, phone, cargo, departamento, data_admissao, salario")
-      .eq("category", "colaborador")
-      .order("full_name"),
-    supabase
-      .from("vehicles")
-      .select("plate, driver_id, is_active, fleet_type")
-      .eq("fleet_type", "propria")
-      .not("driver_id", "is", null),
-  ]);
+  const { data } = await supabase
+    .from("profiles")
+    .select(
+      "id, full_name, email, phone, cargo, departamento, data_admissao, salario, category"
+    )
+    .eq("is_colaborador_rh", true)
+    .order("full_name");
 
-  const colaboradoresList: ColaboradorRH[] = ((colabRes.data as any[]) || []).map((p) => ({
+  return ((data as any[]) || []).map((p) => ({
     id: p.id,
     full_name: p.full_name,
     email: p.email,
@@ -42,48 +42,14 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
     departamento: p.departamento,
     data_admissao: p.data_admissao,
     salario: p.salario,
-    tipo: "colaborador",
+    tipo:
+      p.category === "colaborador"
+        ? "colaborador"
+        : p.category === "motorista"
+          ? "motorista"
+          : "outro",
     ativo: true,
   }));
-
-  const driverVehicles = new Map<string, { plates: string[]; anyActive: boolean }>();
-  ((vehRes.data as any[]) || []).forEach((v) => {
-    const entry = driverVehicles.get(v.driver_id) || { plates: [], anyActive: false };
-    entry.plates.push(v.plate);
-    if (v.is_active) entry.anyActive = true;
-    driverVehicles.set(v.driver_id, entry);
-  });
-
-  let motoristasList: ColaboradorRH[] = [];
-  const driverIds = Array.from(driverVehicles.keys());
-  if (driverIds.length > 0) {
-    const { data: drivers } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, phone, cargo, departamento, data_admissao, salario")
-      .in("id", driverIds);
-    motoristasList = ((drivers as any[]) || [])
-      .filter((d) => !colaboradoresList.some((c) => c.id === d.id))
-      .map((d) => {
-        const info = driverVehicles.get(d.id)!;
-        return {
-          id: d.id,
-          full_name: d.full_name,
-          email: d.email,
-          phone: d.phone,
-          cargo: d.cargo || "Motorista",
-          departamento: d.departamento || "Frota Própria",
-          data_admissao: d.data_admissao,
-          salario: d.salario,
-          tipo: "motorista_frota_propria" as const,
-          ativo: info.anyActive,
-          vehicle_plates: info.plates,
-        };
-      });
-  }
-
-  return [...colaboradoresList, ...motoristasList].sort((a, b) =>
-    a.full_name.localeCompare(b.full_name)
-  );
 }
 
 export type ChartAccount = { id: string; codigo: string; nome: string; tipo: string };
