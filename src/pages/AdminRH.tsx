@@ -144,38 +144,45 @@ export default function AdminRH() {
         </div>
 
         <Tabs defaultValue="colaboradores" className="w-full">
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
-            <TabsTrigger value="folha_mensal">Folha Mensal</TabsTrigger>
-            <TabsTrigger value="folha">Lançamentos Folha</TabsTrigger>
-            <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
-            <TabsTrigger value="config">Configurações</TabsTrigger>
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/60 rounded-lg">
+            <TabsTrigger value="colaboradores" className="h-7 px-3 text-xs rounded-md">Colaboradores</TabsTrigger>
+            <TabsTrigger value="folha_mensal" className="h-7 px-3 text-xs rounded-md">Folha Mensal</TabsTrigger>
+            <TabsTrigger value="folha" className="h-7 px-3 text-xs rounded-md">Lançamentos Folha</TabsTrigger>
+            <TabsTrigger value="adiantamentos" className="h-7 px-3 text-xs rounded-md">Adiantamentos</TabsTrigger>
+            <TabsTrigger value="config" className="h-7 px-3 text-xs rounded-md">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="colaboradores" className="mt-4">
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative max-w-sm flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="Buscar por nome, cargo ou departamento..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="pl-9 h-9"
+                      className="pl-9 h-8 text-xs"
                     />
                   </div>
-                  <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
-                    <SelectTrigger className="h-9 w-[240px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos (Colaborador + Motorista)</SelectItem>
-                      <SelectItem value="colaborador">Apenas Colaborador</SelectItem>
-                      <SelectItem value="motorista">Apenas Motorista</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60">
+                    {([
+                      { v: "all", label: "Todos" },
+                      { v: "colaborador", label: "Colaboradores" },
+                      { v: "motorista", label: "Motoristas" },
+                    ] as const).map((opt) => (
+                      <Button
+                        key={opt.v}
+                        size="sm"
+                        variant={tipoFilter === opt.v ? "default" : "ghost"}
+                        className="h-7 px-2.5 text-xs rounded-sm"
+                        onClick={() => setTipoFilter(opt.v as typeof tipoFilter)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground ml-auto">
                     {filteredColabs.length} de {colaboradores.length}
                   </span>
                 </div>
