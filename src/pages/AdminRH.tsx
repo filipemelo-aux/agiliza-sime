@@ -656,58 +656,14 @@ function FolhaMensalTab({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
-  const baseSalary = (c: ColaboradorRH) => {
-    const ov = salaryOverrides[c.id];
-    if (typeof ov === "number" && !isNaN(ov)) return ov;
-    return Number(c.salario || 0);
-  };
+  // Pure-function view-model from services (no duplicated business logic)
+  const dueDate = useMemo(() => computeDueDate(month, payDay), [month, payDay]);
+  const emissionDate = useMemo(() => computeEmissionDate(month), [month]);
 
-  const folhaThisMonthByColab = useMemo(() => {
-    const map = new Map<string, Expense>();
-    if (!folhaAccountId) return map;
-    expenses
-      .filter((e) => e.plano_contas_id === folhaAccountId && e.favorecido_id)
-      .forEach((e) => {
-        if (!map.has(e.favorecido_id!)) map.set(e.favorecido_id!, e);
-      });
-    return map;
-  }, [expenses, folhaAccountId]);
-
-  const adiantByColab = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!adiantamentoAccountId) return map;
-    expenses
-      .filter((e) => e.plano_contas_id === adiantamentoAccountId && e.favorecido_id)
-      .forEach((e) => {
-        map.set(e.favorecido_id!, (map.get(e.favorecido_id!) || 0) + Number(e.valor_total || 0));
-      });
-    return map;
-  }, [expenses, adiantamentoAccountId]);
-
-  const dueDate = useMemo(() => {
-    const [y, m] = month.split("-").map(Number);
-    const day = Math.min(Math.max(parseInt(payDay || "5", 10) || 5, 1), 28);
-    const next = new Date(y, m, day);
-    return next.toISOString().slice(0, 10);
-  }, [month, payDay]);
-
-  const emissionDate = useMemo(() => {
-    const [y, m] = month.split("-").map(Number);
-    return new Date(y, m, 0).toISOString().slice(0, 10);
-  }, [month]);
-
-  const rows = useMemo(() => {
-    return colaboradores
-      .filter((c) => c.ativo)
-      .map((c) => {
-        const salary = baseSalary(c);
-        const adiant = adiantByColab.get(c.id) || 0;
-        const liquido = Math.max(0, salary - adiant);
-        const existing = folhaThisMonthByColab.get(c.id);
-        return { c, salary, adiant, liquido, existing };
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colaboradores, salaryOverrides, adiantByColab, folhaThisMonthByColab]);
+  const rows = useMemo(
+    () => computePayrollRows(colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides),
+    [colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides]
+  );
 
   const totalSalarios = rows.reduce((s, r) => s + r.salary, 0);
   const totalAdiant = rows.reduce((s, r) => s + r.adiant, 0);
@@ -739,22 +695,20 @@ function FolhaMensalTab({
     if (!ok) return;
 
     setGenerating(row.c.id);
-    const { error } = await supabase.from("expenses").insert({
+    // Delegate to financial service — RH never writes its own movements
+    const { error } = await createPayrollExpense({
       empresa_id: matrizId,
       created_by: user.id,
-      descricao: `Folha de pagamento ${month} — ${row.c.full_name}`,
-      valor_total: row.liquido,
-      data_emissao: emissionDate,
-      data_vencimento: dueDate,
-      favorecido_id: row.c.id,
-      favorecido_nome: row.c.full_name,
-      plano_contas_id: folhaAccountId,
-      tipo_despesa: "outros",
-      centro_custo: "administrativo",
-      origem: "manual",
-      status: "pendente",
-      observacoes: `Gerado pelo módulo RH. Salário base: ${formatBRL(row.salary)}. Adiantamentos descontados: ${formatBRL(row.adiant)}.`,
-    } as any);
+      colaboradorId: row.c.id,
+      colaboradorNome: row.c.full_name,
+      month,
+      liquido: row.liquido,
+      salarioBase: row.salary,
+      adiantamentos: row.adiant,
+      emissionDate,
+      dueDate,
+      folhaAccountId,
+    });
     setGenerating(null);
 
     if (error) {
