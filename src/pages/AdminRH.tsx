@@ -565,11 +565,18 @@ export default function AdminRH() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="config" className="mt-4">
+          <TabsContent value="config" className="mt-4 space-y-4">
             <Card>
-              <CardContent className="p-4 space-y-4 max-w-xl">
+              <CardContent className="p-4 space-y-4 max-w-2xl">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Categorias contábeis</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Vincule o módulo RH às contas do Plano de Contas. Alterar a categoria não afeta lançamentos
+                    históricos: apenas novos cálculos e filtros usarão a nova conta.
+                  </p>
+                </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Conta contábil — Folha de Pagamento (Salários)</Label>
+                  <Label className="text-xs">Categoria — Salários (Folha de Pagamento)</Label>
                   <Select
                     value={settings.folhaAccountId || ""}
                     onValueChange={(v) => setSettings((s) => ({ ...s, folhaAccountId: v }))}
@@ -587,9 +594,14 @@ export default function AdminRH() {
                         ))}
                     </SelectContent>
                   </Select>
+                  {settings.folhaAccountId && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Despesas nesta categoria serão classificadas como <span className="font-medium">Folha</span> no histórico do colaborador.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Conta contábil — Adiantamentos / Vales</Label>
+                  <Label className="text-xs">Categoria — Adiantamentos / Vales</Label>
                   <Select
                     value={settings.adiantamentoAccountId || ""}
                     onValueChange={(v) => setSettings((s) => ({ ...s, adiantamentoAccountId: v }))}
@@ -607,6 +619,11 @@ export default function AdminRH() {
                         ))}
                     </SelectContent>
                   </Select>
+                  {settings.adiantamentoAccountId && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Despesas nesta categoria serão descontadas do líquido da folha mensal.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Dia padrão de pagamento da folha</Label>
@@ -624,11 +641,23 @@ export default function AdminRH() {
                   <Save className="h-4 w-4" /> Salvar configurações
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
-                  As contas padrão são detectadas automaticamente pelos nomes "Salários" e
-                  "Adiantamentos / Vales". Você pode sobrescrever a seleção aqui.
+                  As contas padrão são detectadas automaticamente pelos nomes "Salários" e "Adiantamentos / Vales".
+                  Alterar a seleção mantém a integração com o financeiro — nenhum dado é duplicado ou alterado retroativamente.
                 </p>
               </CardContent>
             </Card>
+
+            <SalaryOverridesCard
+              colaboradores={colaboradores}
+              overrides={settings.salaryOverrides || {}}
+              onChange={(map) => {
+                setSettings((s) => {
+                  const next = { ...s, salaryOverrides: map };
+                  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
