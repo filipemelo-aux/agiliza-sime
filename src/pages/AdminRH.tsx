@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -56,6 +57,21 @@ const monthRange = (ym: string) => {
   return { start: iso(start), end: iso(end) };
 };
 
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+const isFolhaAccount = (a: ChartAccount) => {
+  const n = norm(a.nome);
+  return n.includes("salario") || n.includes("folha");
+};
+const isAdiantAccount = (a: ChartAccount) => {
+  const n = norm(a.nome);
+  return n.includes("adiantamento") || n.includes("vale");
+};
+
 export default function AdminRH() {
   const [loading, setLoading] = useState(true);
   const [colaboradores, setColaboradores] = useState<ColaboradorRH[]>([]);
@@ -73,7 +89,12 @@ export default function AdminRH() {
       return {};
     }
   });
+  const [historyFor, setHistoryFor] = useState<ColaboradorRH | null>(null);
+  const [realtimeActive, setRealtimeActive] = useState(false);
+  const [, setRefreshTick] = useState(0);
+  const bumpRefresh = useCallback(() => setRefreshTick((n) => n + 1), []);
 
+  // Initial load: colaboradores + motoristas frota própria + plano de contas
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -108,7 +129,6 @@ export default function AdminRH() {
         ativo: true,
       }));
 
-      // Group own-fleet vehicles by driver
       const driverVehicles = new Map<string, { plates: string[]; anyActive: boolean }>();
       ((vehRes.data as any[]) || []).forEach((v) => {
         const entry = driverVehicles.get(v.driver_id) || { plates: [], anyActive: false };
@@ -149,11 +169,30 @@ export default function AdminRH() {
       );
 
       setColaboradores(merged);
-      setAccounts((accRes.data as any) || []);
+      const accs = (accRes.data as any[]) || [];
+      setAccounts(accs);
+
+      // Auto-detect default accounts if not set yet
+      setSettings((prev) => {
+        const next = { ...prev };
+        if (!next.folhaAccountId) {
+          const found = accs.find((a) => a.tipo === "despesa" && isFolhaAccount(a));
+          if (found) next.folhaAccountId = found.id;
+        }
+        if (!next.adiantamentoAccountId) {
+          const found = accs.find((a) => a.tipo === "despesa" && isAdiantAccount(a));
+          if (found) next.adiantamentoAccountId = found.id;
+        }
+        if (next.folhaAccountId !== prev.folhaAccountId || next.adiantamentoAccountId !== prev.adiantamentoAccountId) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+        }
+        return next;
+      });
       setLoading(false);
     })();
   }, []);
 
+  // Load expenses for current colaboradores + month (re-runs on refreshTick)
   useEffect(() => {
     (async () => {
       const colabIds = colaboradores.map((c) => c.id);
@@ -162,7 +201,6 @@ export default function AdminRH() {
         return;
       }
       const { start, end } = monthRange(month);
-      // Pull a wide window (current month +/- to allow vencimento/pagamento spans)
       const { data } = await supabase
         .from("expenses")
         .select(
@@ -176,6 +214,75 @@ export default function AdminRH() {
       setExpenses((data as any) || []);
     })();
   }, [colaboradores, month]);
+
+  // Realtime listeners: refresh whenever a relevant expense or payment changes
+  useEffect(() => {
+    if (colaboradores.length === 0) return;
+    const colabSet = new Set(colaboradores.map((c) => c.id));
+    const folhaId = settings.folhaAccountId;
+    const adiantId = settings.adiantamentoAccountId;
+
+    const isRelevant = (row: any) => {
+      if (!row) return false;
+      if (row.favorecido_id && colabSet.has(row.favorecido_id)) {
+        if (!folhaId && !adiantId) return true;
+        return row.plano_contas_id === folhaId || row.plano_contas_id === adiantId;
+      }
+      return false;
+    };
+
+    const channel = supabase
+      .channel("rh-financial-listener")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expenses" },
+        (payload) => {
+          if (isRelevant(payload.new) || isRelevant(payload.old)) {
+            bumpRefresh();
+            // Force re-fetch by toggling month dependency indirectly:
+            setExpenses((prev) => [...prev]);
+            // Re-run loader
+            (async () => {
+              const colabIds = colaboradores.map((c) => c.id);
+              const { start, end } = monthRange(month);
+              const { data } = await supabase
+                .from("expenses")
+                .select(
+                  "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
+                )
+                .in("favorecido_id", colabIds)
+                .is("deleted_at", null)
+                .gte("data_emissao", start)
+                .lt("data_emissao", end)
+                .order("data_emissao", { ascending: false });
+              setExpenses((data as any) || []);
+            })();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expense_payments" },
+        () => {
+          // Payments don't carry favorecido directly — refresh defensively
+          bumpRefresh();
+        }
+      )
+      .subscribe((status) => {
+        setRealtimeActive(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      setRealtimeActive(false);
+    };
+  }, [colaboradores, month, settings.folhaAccountId, settings.adiantamentoAccountId, bumpRefresh]);
+
+  const colabById = useMemo(() => {
+    const m = new Map<string, ColaboradorRH>();
+    colaboradores.forEach((c) => m.set(c.id, c));
+    return m;
+  }, [colaboradores]);
 
   const folhaExpenses = useMemo(
     () =>
@@ -213,14 +320,22 @@ export default function AdminRH() {
     toast.success("Configurações salvas");
   };
 
+  const enrichName = (e: Expense) =>
+    (e.favorecido_id && colabById.get(e.favorecido_id)?.full_name) || e.favorecido_nome || "—";
+
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-foreground">Recursos Humanos</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
               Visão consolidada da folha, adiantamentos e colaboradores
+              {realtimeActive && (
+                <span className="inline-flex items-center gap-1 text-green-600">
+                  <Radio className="h-3 w-3 animate-pulse" /> em tempo real
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -309,6 +424,16 @@ export default function AdminRH() {
                             )}
                             {c.email && <div className="truncate">{c.email}</div>}
                           </div>
+                          <div className="pt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => setHistoryFor(c)}
+                            >
+                              <History className="h-3 w-3" /> Histórico financeiro
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -323,10 +448,11 @@ export default function AdminRH() {
               <CardContent className="p-4">
                 <ExpenseList
                   items={folhaExpenses}
+                  enrichName={enrichName}
                   emptyHint={
                     settings.folhaAccountId
                       ? "Nenhum lançamento de folha neste mês."
-                      : "Defina a conta contábil de Folha em Configurações para ativar esta visão."
+                      : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
                   }
                 />
               </CardContent>
@@ -338,10 +464,11 @@ export default function AdminRH() {
               <CardContent className="p-4">
                 <ExpenseList
                   items={adiantExpenses}
+                  enrichName={enrichName}
                   emptyHint={
                     settings.adiantamentoAccountId
                       ? "Nenhum adiantamento neste mês."
-                      : "Defina a conta contábil de Adiantamentos em Configurações para ativar esta visão."
+                      : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
                   }
                 />
               </CardContent>
@@ -352,7 +479,7 @@ export default function AdminRH() {
             <Card>
               <CardContent className="p-4 space-y-4 max-w-xl">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Conta contábil padrão — Folha de Pagamento</Label>
+                  <Label className="text-xs">Conta contábil — Folha de Pagamento (Salários)</Label>
                   <Select
                     value={settings.folhaAccountId || ""}
                     onValueChange={(v) => setSettings((s) => ({ ...s, folhaAccountId: v }))}
@@ -372,7 +499,7 @@ export default function AdminRH() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Conta contábil padrão — Adiantamentos / Vales</Label>
+                  <Label className="text-xs">Conta contábil — Adiantamentos / Vales</Label>
                   <Select
                     value={settings.adiantamentoAccountId || ""}
                     onValueChange={(v) => setSettings((s) => ({ ...s, adiantamentoAccountId: v }))}
@@ -407,13 +534,21 @@ export default function AdminRH() {
                   <Save className="h-4 w-4" /> Salvar configurações
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
-                  As configurações são armazenadas localmente neste dispositivo.
+                  As contas padrão são detectadas automaticamente pelos nomes "Salários" e
+                  "Adiantamentos / Vales". Você pode sobrescrever a seleção aqui.
                 </p>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      <ColaboradorHistorySheet
+        colaborador={historyFor}
+        onClose={() => setHistoryFor(null)}
+        folhaAccountId={settings.folhaAccountId}
+        adiantamentoAccountId={settings.adiantamentoAccountId}
+      />
     </AdminLayout>
   );
 }
@@ -430,7 +565,15 @@ function statusBadge(s: string) {
   return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${v.cls}`}>{v.label}</span>;
 }
 
-function ExpenseList({ items, emptyHint }: { items: Expense[]; emptyHint: string }) {
+function ExpenseList({
+  items,
+  emptyHint,
+  enrichName,
+}: {
+  items: Expense[];
+  emptyHint: string;
+  enrichName?: (e: Expense) => string;
+}) {
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyHint}</p>;
   }
@@ -447,7 +590,8 @@ function ExpenseList({ items, emptyHint }: { items: Expense[]; emptyHint: string
             <div className="min-w-0">
               <p className="font-medium truncate">{e.descricao}</p>
               <p className="text-[11px] text-muted-foreground truncate">
-                {e.favorecido_nome || "—"} · Emissão {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
+                {(enrichName ? enrichName(e) : e.favorecido_nome) || "—"} · Emissão{" "}
+                {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
                 {e.data_vencimento ? ` · Venc. ${new Date(e.data_vencimento).toLocaleDateString("pt-BR")}` : ""}
               </p>
             </div>
@@ -459,5 +603,115 @@ function ExpenseList({ items, emptyHint }: { items: Expense[]; emptyHint: string
         ))}
       </div>
     </div>
+  );
+}
+
+function ColaboradorHistorySheet({
+  colaborador,
+  onClose,
+  folhaAccountId,
+  adiantamentoAccountId,
+}: {
+  colaborador: ColaboradorRH | null;
+  onClose: () => void;
+  folhaAccountId?: string;
+  adiantamentoAccountId?: string;
+}) {
+  const [items, setItems] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!colaborador) {
+      setItems([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const accountIds = [folhaAccountId, adiantamentoAccountId].filter(Boolean) as string[];
+      let q = supabase
+        .from("expenses")
+        .select(
+          "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
+        )
+        .eq("favorecido_id", colaborador.id)
+        .is("deleted_at", null)
+        .order("data_emissao", { ascending: false })
+        .limit(100);
+      if (accountIds.length > 0) q = q.in("plano_contas_id", accountIds);
+      const { data } = await q;
+      if (!cancelled) {
+        setItems((data as any) || []);
+        setLoading(false);
+      }
+    };
+    load();
+
+    // Realtime per-colaborador
+    const channel = supabase
+      .channel(`rh-history-${colaborador.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expenses", filter: `favorecido_id=eq.${colaborador.id}` },
+        () => load()
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [colaborador, folhaAccountId, adiantamentoAccountId]);
+
+  const total = items.reduce((s, e) => s + Number(e.valor_total || 0), 0);
+  const totalPago = items.reduce((s, e) => s + Number(e.valor_pago || 0), 0);
+
+  return (
+    <Sheet open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Histórico financeiro</SheetTitle>
+          <SheetDescription>
+            {colaborador?.full_name} — Salários e Adiantamentos vinculados
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border border-border p-3">
+              <p className="text-[10px] uppercase text-muted-foreground">Total lançado</p>
+              <p className="text-base font-semibold">{formatBRL(total)}</p>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <p className="text-[10px] uppercase text-muted-foreground">Total pago</p>
+              <p className="text-base font-semibold text-green-600">{formatBRL(totalPago)}</p>
+            </div>
+          </div>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem lançamentos para este colaborador.</p>
+          ) : (
+            <div className="divide-y divide-border rounded-md border border-border">
+              {items.map((e) => (
+                <div key={e.id} className="px-3 py-2.5 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium truncate">{e.descricao}</p>
+                    <span className="font-semibold tabular-nums">{formatBRL(Number(e.valor_total))}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
+                      {e.data_vencimento ? ` · Venc. ${new Date(e.data_vencimento).toLocaleDateString("pt-BR")}` : ""}
+                      {e.data_pagamento ? ` · Pago ${new Date(e.data_pagamento).toLocaleDateString("pt-BR")}` : ""}
+                    </p>
+                    {statusBadge(e.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
