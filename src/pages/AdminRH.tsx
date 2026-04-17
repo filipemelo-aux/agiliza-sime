@@ -946,7 +946,7 @@ function FolhaMensalTab({
     const ok = await confirm({
       title: "Gerar pagamento de folha?",
       description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).`,
-      confirmText: "Gerar",
+      confirmLabel: "Gerar",
     });
     if (!ok) return;
 
