@@ -426,7 +426,7 @@ export default function HarvestDetail() {
       const totTerc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
       const totDesc = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
       const totFat = activeAssignments.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
-      lines.push(["", "", "", "TOTAIS", formatCurrency(totFatDiariasCSV), formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
+      lines.push(["", "", "", "TOTAIS", "", formatCurrency(totBruto), formatCurrency(totTerc), formatCurrency(totDesc), formatCurrency(totFat)].join(sep));
     }
 
     if (type === "cliente" || type === "ambos") {
@@ -782,7 +782,7 @@ export default function HarvestDetail() {
         const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
         const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
-        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
+        html += `<tr class="total-row"><td colspan="5" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
       } else {
         html += `<table><thead><tr><th>Motorista</th><th>Proprietário</th><th>Placa</th><th>Início</th><th class="center">Dias</th><th>Diária Emp.</th><th>Bruto</th><th>Líq. Terc.</th><th>Desc. Emp.</th><th>Fat. Líquido</th></tr></thead><tbody>`;
         activeAssignments.forEach(a => {
@@ -794,7 +794,7 @@ export default function HarvestDetail() {
         const totTerc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).liquidoTerceiros, 0);
         const totDesc = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).descontosEmpresa, 0);
         const totFat = activeAssignments.reduce((s, a) => s + pdfGetFaturamentoData(a).faturamentoLiquido, 0);
-        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td colspan="1"></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
+        html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totFatDias}</td><td></td><td class="right">${formatCurrency(totBruto)}</td><td class="right">${formatCurrency(totTerc)}</td><td class="right">${formatCurrency(totDesc)}</td><td class="right">${formatCurrency(totFat)}</td></tr></tbody></table></div>`;
       }
     }
     if (type === "cliente" || type === "ambos") {
@@ -2377,7 +2377,7 @@ export default function HarvestDetail() {
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
                       <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
                       <TableCell className="text-center">{sortedAgregados.reduce((s, a) => s + getAgregadoData(a).days, 0)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).dv, 0))}</TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalDescontos, 0))}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(sortedAgregados.reduce((s, a) => s + getAgregadoData(a).totalLiquido, 0) + (Math.abs(accumulatedPastBalance) > 0.01 ? accumulatedPastBalance : 0))}</TableCell>
                       <TableCell></TableCell>
@@ -2508,7 +2508,7 @@ export default function HarvestDetail() {
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
                       <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
                       <TableCell className="text-center">{sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).days, 0)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).dvEmpresa, 0))}</TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
                       <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
@@ -2617,7 +2617,7 @@ export default function HarvestDetail() {
                     <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
                       <TableCell colSpan={4} className="text-right text-xs">TOTAIS</TableCell>
                       <TableCell className="text-center">{sortedCliente.reduce((s, a) => s + getClienteData(a).days, 0)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).dvCliente, 0))}</TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalBruto, 0))}</TableCell>
                       <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalDescontos, 0))}</TableCell>
                       <TableCell className="text-primary whitespace-nowrap">{formatCurrency(sortedCliente.reduce((s, a) => s + getClienteData(a).totalLiquido, 0))}</TableCell>
