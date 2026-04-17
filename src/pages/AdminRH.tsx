@@ -17,6 +17,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
+import { MonthPicker } from "@/components/MonthPicker";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -132,12 +133,7 @@ export default function AdminRH() {
           </div>
           <div className="flex items-center gap-2">
             <Label className="text-xs text-muted-foreground">Mês</Label>
-            <Input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="h-9 w-[160px]"
-            />
+            <MonthPicker value={month} onChange={setMonth} className="w-[180px]" />
           </div>
         </div>
 
