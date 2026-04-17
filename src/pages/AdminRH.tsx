@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check } from "lucide-react";
+import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus } from "lucide-react";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -41,6 +41,7 @@ export default function AdminRH() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const { confirm: confirmDesligar, ConfirmDialog: DesligarDialog } = useConfirmDialog();
 
   // Observer-based data layer (colaboradores + expenses + realtime listener)
   const { loading, colaboradores, accounts, expenses, realtimeActive, reload } = useRHData(month);
@@ -48,6 +49,25 @@ export default function AdminRH() {
   const { settings, patch, setSalaryOverride } = useRHSettings();
 
   const [historyFor, setHistoryFor] = useState<ColaboradorRH | null>(null);
+
+  const handleDesligar = async (c: ColaboradorRH) => {
+    const ok = await confirmDesligar({
+      title: "Desligar colaborador?",
+      description: `${c.full_name} será removido(a) da listagem de RH (folha, adiantamentos, relatórios). O cadastro permanece intacto e a flag "É colaborador (RH)" será desmarcada. Você pode religar a qualquer momento no cadastro da pessoa.`,
+      confirmLabel: "Desligar",
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_colaborador_rh: false })
+      .eq("id", c.id);
+    if (error) {
+      toast.error("Erro ao desligar: " + error.message);
+      return;
+    }
+    toast.success(`${c.full_name} desligado(a) do RH`);
+    reload();
+  };
 
   const colabById = useMemo(() => {
     const m = new Map<string, ColaboradorRH>();
