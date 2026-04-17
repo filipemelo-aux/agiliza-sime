@@ -836,3 +836,281 @@ function ColaboradorHistorySheet({
     </Sheet>
   );
 }
+
+// ===========================
+// Folha Mensal — generation
+// ===========================
+function FolhaMensalTab({
+  colaboradores,
+  month,
+  expenses,
+  folhaAccountId,
+  adiantamentoAccountId,
+  salaryOverrides,
+  payDay,
+  onSalaryOverride,
+  onGenerated,
+}: {
+  colaboradores: ColaboradorRH[];
+  month: string;
+  expenses: Expense[];
+  folhaAccountId?: string;
+  adiantamentoAccountId?: string;
+  salaryOverrides: Record<string, number>;
+  payDay?: string;
+  onSalaryOverride: (id: string, value: number) => void;
+  onGenerated: () => void;
+}) {
+  const { matrizId } = useUnifiedCompany();
+  const { user } = useAuth();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+
+  const baseSalary = (c: ColaboradorRH) => {
+    const ov = salaryOverrides[c.id];
+    if (typeof ov === "number" && !isNaN(ov)) return ov;
+    return Number(c.salario || 0);
+  };
+
+  const folhaThisMonthByColab = useMemo(() => {
+    const map = new Map<string, Expense>();
+    if (!folhaAccountId) return map;
+    expenses
+      .filter((e) => e.plano_contas_id === folhaAccountId && e.favorecido_id)
+      .forEach((e) => {
+        if (!map.has(e.favorecido_id!)) map.set(e.favorecido_id!, e);
+      });
+    return map;
+  }, [expenses, folhaAccountId]);
+
+  const adiantByColab = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!adiantamentoAccountId) return map;
+    expenses
+      .filter((e) => e.plano_contas_id === adiantamentoAccountId && e.favorecido_id)
+      .forEach((e) => {
+        map.set(e.favorecido_id!, (map.get(e.favorecido_id!) || 0) + Number(e.valor_total || 0));
+      });
+    return map;
+  }, [expenses, adiantamentoAccountId]);
+
+  const dueDate = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    const day = Math.min(Math.max(parseInt(payDay || "5", 10) || 5, 1), 28);
+    const next = new Date(y, m, day);
+    return next.toISOString().slice(0, 10);
+  }, [month, payDay]);
+
+  const emissionDate = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    return new Date(y, m, 0).toISOString().slice(0, 10);
+  }, [month]);
+
+  const rows = useMemo(() => {
+    return colaboradores
+      .filter((c) => c.ativo)
+      .map((c) => {
+        const salary = baseSalary(c);
+        const adiant = adiantByColab.get(c.id) || 0;
+        const liquido = Math.max(0, salary - adiant);
+        const existing = folhaThisMonthByColab.get(c.id);
+        return { c, salary, adiant, liquido, existing };
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colaboradores, salaryOverrides, adiantByColab, folhaThisMonthByColab]);
+
+  const totalSalarios = rows.reduce((s, r) => s + r.salary, 0);
+  const totalAdiant = rows.reduce((s, r) => s + r.adiant, 0);
+  const totalLiquido = rows.reduce((s, r) => s + r.liquido, 0);
+
+  const handleGenerate = async (row: (typeof rows)[number]) => {
+    if (!folhaAccountId) {
+      toast.error("Configure a conta 'Salários' em Configurações antes de gerar a folha.");
+      return;
+    }
+    if (!matrizId) {
+      toast.error("Empresa não identificada.");
+      return;
+    }
+    if (!user?.id) {
+      toast.error("Usuário não autenticado.");
+      return;
+    }
+    if (row.liquido <= 0) {
+      toast.error("Valor líquido deve ser maior que zero.");
+      return;
+    }
+
+    const ok = await confirm({
+      title: "Gerar pagamento de folha?",
+      description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).`,
+      confirmText: "Gerar",
+    });
+    if (!ok) return;
+
+    setGenerating(row.c.id);
+    const { error } = await supabase.from("expenses").insert({
+      empresa_id: matrizId,
+      created_by: user.id,
+      descricao: `Folha de pagamento ${month} — ${row.c.full_name}`,
+      valor_total: row.liquido,
+      data_emissao: emissionDate,
+      data_vencimento: dueDate,
+      favorecido_id: row.c.id,
+      favorecido_nome: row.c.full_name,
+      plano_contas_id: folhaAccountId,
+      tipo_despesa: "outros",
+      centro_custo: "administrativo",
+      origem: "manual",
+      status: "pendente",
+      observacoes: `Gerado pelo módulo RH. Salário base: ${formatBRL(row.salary)}. Adiantamentos descontados: ${formatBRL(row.adiant)}.`,
+    } as any);
+    setGenerating(null);
+
+    if (error) {
+      toast.error("Erro ao gerar pagamento: " + error.message);
+      return;
+    }
+    toast.success(`Folha gerada para ${row.c.full_name}`);
+    onGenerated();
+  };
+
+  const startEdit = (id: string, current: number) => {
+    setEditingId(id);
+    setEditValue(String(current));
+  };
+  const commitEdit = (id: string) => {
+    const n = parseFloat(editValue.replace(",", "."));
+    if (!isNaN(n) && n >= 0) onSalaryOverride(id, n);
+    setEditingId(null);
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <div>
+            Mês de referência: <span className="font-semibold text-foreground">{month}</span> · Vencimento padrão:{" "}
+            <span className="font-semibold text-foreground">
+              {new Date(dueDate).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span>Salários: <span className="font-semibold text-foreground">{formatBRL(totalSalarios)}</span></span>
+            <span>Adiant.: <span className="font-semibold text-amber-600">{formatBRL(totalAdiant)}</span></span>
+            <span>Líquido: <span className="font-semibold text-primary">{formatBRL(totalLiquido)}</span></span>
+          </div>
+        </div>
+
+        {!folhaAccountId && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+            Configure a conta "Salários" em Configurações para habilitar a geração de pagamentos.
+          </div>
+        )}
+
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum colaborador ativo.</p>
+        ) : (
+          <div className="rounded-md border border-border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-right px-3 py-2">Salário base</th>
+                  <th className="text-right px-3 py-2">Adiantamentos</th>
+                  <th className="text-right px-3 py-2">Líquido</th>
+                  <th className="text-right px-3 py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((r) => (
+                  <tr key={r.c.id}>
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{r.c.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {r.c.tipo === "colaborador" ? "Colaborador" : "Motorista"}
+                        {r.c.cargo ? ` · ${r.c.cargo}` : ""}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {editingId === r.c.id ? (
+                        <div className="inline-flex items-center gap-1">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="h-7 w-28 text-right"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") commitEdit(r.c.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                          />
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => commitEdit(r.c.id)}>
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <button
+                          className="inline-flex items-center gap-1 hover:text-primary"
+                          onClick={() => startEdit(r.c.id, r.salary)}
+                          title="Editar salário base"
+                        >
+                          {formatBRL(r.salary)}
+                          <Pencil className="h-3 w-3 opacity-60" />
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-amber-600">
+                      {r.adiant > 0 ? `- ${formatBRL(r.adiant)}` : formatBRL(0)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">
+                      {formatBRL(r.liquido)}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {r.existing ? (
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[10px]">
+                          Gerado · {statusLabel(r.existing.status)}
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="h-7 gap-1"
+                          onClick={() => handleGenerate(r)}
+                          disabled={!folhaAccountId || generating === r.c.id || r.liquido <= 0}
+                        >
+                          <Play className="h-3 w-3" />
+                          {generating === r.c.id ? "Gerando..." : "Gerar pagamento"}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <p className="text-[11px] text-muted-foreground">
+          A geração cria uma despesa em <span className="font-medium">Contas a Pagar</span> na categoria "Salários".
+          A quitação e a movimentação de caixa seguem o fluxo financeiro existente.
+        </p>
+      </CardContent>
+      <ConfirmDialog />
+    </Card>
+  );
+}
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    pago: "Pago",
+    pendente: "Pendente",
+    parcial: "Parcial",
+    atrasado: "Atrasado",
+    cancelado: "Cancelado",
+  };
+  return map[s] || s;
+}
