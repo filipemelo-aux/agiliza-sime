@@ -368,14 +368,29 @@ export default function AdminRH() {
           <TabsContent value="colaboradores" className="mt-4">
             <Card>
               <CardContent className="p-4 space-y-3">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, cargo ou departamento..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 h-9"
-                  />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative max-w-sm flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome, cargo ou departamento..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+                    <SelectTrigger className="h-9 w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="colaborador">Colaborador</SelectItem>
+                      <SelectItem value="motorista_frota_propria">Motorista (Frota Própria)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {filteredColabs.length} de {colaboradores.length}
+                  </span>
                 </div>
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Carregando...</p>
