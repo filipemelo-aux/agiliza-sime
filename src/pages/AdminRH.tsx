@@ -1099,7 +1099,7 @@ function FolhaMensalTab({
           A quitação e a movimentação de caixa seguem o fluxo financeiro existente.
         </p>
       </CardContent>
-      <ConfirmDialog />
+      {ConfirmDialog}
     </Card>
   );
 }
