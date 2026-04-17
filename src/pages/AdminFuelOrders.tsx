@@ -43,7 +43,7 @@ export default function AdminFuelOrders() {
     const ok = await confirm({
       title: "Excluir ordem",
       description: `Tem certeza que deseja excluir a ordem #${order.order_number}? Essa ação não pode ser desfeita.`,
-      confirmText: "Excluir",
+      confirmLabel: "Excluir",
       variant: "destructive",
     });
     if (!ok) return;
@@ -188,6 +188,17 @@ export default function AdminFuelOrders() {
                     >
                       <Mail className="h-4 w-4 mr-1" /> E-mail
                     </Button>
+                    {canDelete && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(o)}
+                        title="Excluir ordem"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
