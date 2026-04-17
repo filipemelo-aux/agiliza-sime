@@ -66,6 +66,8 @@ export default function AdminPeople() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("__all__");
+  // Filtro de PAPEL (independente do tipo): all | rh | non_rh
+  const [roleFilter, setRoleFilter] = useState<"all" | "rh" | "non_rh">("all");
 
   const [editPerson, setEditPerson] = useState<PersonProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
