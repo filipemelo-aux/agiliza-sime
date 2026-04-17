@@ -34,35 +34,38 @@ export function useRHData(month: string) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [realtimeActive, setRealtimeActive] = useState(false);
 
+  const reloadColaboradores = useCallback(async () => {
+    const [colabs, accs] = await Promise.all([fetchColaboradoresRH(), fetchChartAccounts()]);
+    setColaboradores(colabs);
+    setAccounts(accs);
+
+    // Auto-detect contas padrão se ainda não configuradas (sem sobrescrever escolha do usuário)
+    const cur = rhSettings.get();
+    const patch: Partial<typeof cur> = {};
+    if (!cur.folhaAccountId) {
+      const found = accs.find((a) => a.tipo === "despesa" && isFolhaAccountName(a.nome));
+      if (found) patch.folhaAccountId = found.id;
+    }
+    if (!cur.adiantamentoAccountId) {
+      const found = accs.find((a) => a.tipo === "despesa" && isAdiantAccountName(a.nome));
+      if (found) patch.adiantamentoAccountId = found.id;
+    }
+    if (Object.keys(patch).length > 0) rhSettings.patch(patch);
+  }, []);
+
   // Initial load
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [colabs, accs] = await Promise.all([fetchColaboradoresRH(), fetchChartAccounts()]);
+      await reloadColaboradores();
       if (cancelled) return;
-      setColaboradores(colabs);
-      setAccounts(accs);
-
-      // Auto-detect contas padrão se ainda não configuradas (sem sobrescrever escolha do usuário)
-      const cur = rhSettings.get();
-      const patch: Partial<typeof cur> = {};
-      if (!cur.folhaAccountId) {
-        const found = accs.find((a) => a.tipo === "despesa" && isFolhaAccountName(a.nome));
-        if (found) patch.folhaAccountId = found.id;
-      }
-      if (!cur.adiantamentoAccountId) {
-        const found = accs.find((a) => a.tipo === "despesa" && isAdiantAccountName(a.nome));
-        if (found) patch.adiantamentoAccountId = found.id;
-      }
-      if (Object.keys(patch).length > 0) rhSettings.patch(patch);
-
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadColaboradores]);
 
   // Reload expenses when colaboradores or month change
   const reloadExpenses = useCallback(async () => {
@@ -105,12 +108,18 @@ export function useRHData(month: string) {
     };
   }, [colaboradores, reloadExpenses]);
 
+  const reload = useCallback(async () => {
+    await reloadColaboradores();
+    await reloadExpenses();
+  }, [reloadColaboradores, reloadExpenses]);
+
   return {
     loading,
     colaboradores,
     accounts,
     expenses,
     realtimeActive,
-    reload: reloadExpenses,
+    reload,
+    reloadExpenses,
   };
 }
