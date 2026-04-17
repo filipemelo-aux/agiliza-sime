@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio } from "lucide-react";
+import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
+import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 
 type ColaboradorRH = {
