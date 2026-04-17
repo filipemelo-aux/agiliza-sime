@@ -410,8 +410,7 @@ export default function AdminRH() {
 
             <SalaryOverridesCard
               colaboradores={colaboradores}
-              overrides={settings.salaryOverrides || {}}
-              onChange={(map) => patch({ salaryOverrides: map })}
+              onSaved={reload}
             />
           </TabsContent>
         </Tabs>
@@ -423,6 +422,7 @@ export default function AdminRH() {
         folhaAccountId={settings.folhaAccountId}
         adiantamentoAccountId={settings.adiantamentoAccountId}
       />
+      {DesligarDialog}
     </AdminLayout>
   );
 }
