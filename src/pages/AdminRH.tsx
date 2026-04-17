@@ -1187,3 +1187,160 @@ function statusLabel(s: string) {
   };
   return map[s] || s;
 }
+
+// ===========================
+// Salário base por colaborador (overrides locais)
+// ===========================
+function SalaryOverridesCard({
+  colaboradores,
+  overrides,
+  onChange,
+}: {
+  colaboradores: ColaboradorRH[];
+  overrides: Record<string, number>;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = colaboradores.filter((c) => c.ativo);
+    if (!q) return list;
+    return list.filter(
+      (c) => c.full_name?.toLowerCase().includes(q) || c.cargo?.toLowerCase().includes(q)
+    );
+  }, [colaboradores, search]);
+
+  const startEdit = (id: string, current: number) => {
+    setEditingId(id);
+    setEditValue(String(current || ""));
+  };
+  const commit = (id: string) => {
+    const n = parseFloat(editValue.replace(",", "."));
+    const next = { ...overrides };
+    if (!isNaN(n) && n >= 0) {
+      next[id] = n;
+    } else {
+      delete next[id];
+    }
+    onChange(next);
+    setEditingId(null);
+    toast.success("Salário base atualizado");
+  };
+  const clear = (id: string) => {
+    const next = { ...overrides };
+    delete next[id];
+    onChange(next);
+    toast.success("Override removido — usando salário do cadastro");
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Salário base por colaborador (opcional)</h3>
+          <p className="text-[11px] text-muted-foreground">
+            Sobrescreva o salário base de cada colaborador apenas para o cálculo da Folha Mensal. Os valores
+            originais cadastrados em Pessoas não são alterados — quando o override é removido, o sistema
+            volta a usar o salário do cadastro.
+          </p>
+        </div>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar colaborador..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        {filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum colaborador.</p>
+        ) : (
+          <div className="rounded-md border border-border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-right px-3 py-2">Cadastro</th>
+                  <th className="text-right px-3 py-2">Override (Folha)</th>
+                  <th className="text-right px-3 py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((c) => {
+                  const ov = overrides[c.id];
+                  const hasOv = typeof ov === "number" && !isNaN(ov);
+                  return (
+                    <tr key={c.id}>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{c.full_name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {c.tipo === "colaborador" ? "Colaborador" : "Motorista"}
+                          {c.cargo ? ` · ${c.cargo}` : ""}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {formatBRL(Number(c.salario || 0))}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {editingId === c.id ? (
+                          <div className="inline-flex items-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-7 w-32 text-right"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commit(c.id);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                            />
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => commit(c.id)}>
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : hasOv ? (
+                          <button
+                            className="inline-flex items-center gap-1 hover:text-primary font-semibold"
+                            onClick={() => startEdit(c.id, ov)}
+                          >
+                            {formatBRL(ov)}
+                            <Pencil className="h-3 w-3 opacity-60" />
+                          </button>
+                        ) : (
+                          <button
+                            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+                            onClick={() => startEdit(c.id, Number(c.salario || 0))}
+                          >
+                            Definir <Pencil className="h-3 w-3 opacity-60" />
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {hasOv && editingId !== c.id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-[11px]"
+                            onClick={() => clear(c.id)}
+                          >
+                            Remover
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
