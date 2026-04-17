@@ -332,6 +332,10 @@ function personToForm(person: PersonProfile): FormState {
 function formToPayload(form: FormState) {
   const isMotorista = form.category === "motorista";
   const isColaborador = form.category === "colaborador";
+  // Dados funcionais (cargo/depto/admissão/salário) são habilitados para
+  // QUALQUER pessoa marcada como Colaborador RH — inclusive motoristas,
+  // que não possuem esses campos no fluxo de Frota.
+  const hasFuncionaisData = isColaborador || form.is_colaborador_rh;
   return {
     full_name: form.full_name.trim(),
     phone: unmaskPhone(form.phone) || null,
@@ -356,10 +360,10 @@ function formToPayload(form: FormState) {
     bank_account_type: form.bank_account_type || null,
     pix_key_type: form.pix_key_type || null,
     pix_key: form.pix_key.trim() || null,
-    cargo: isColaborador ? form.cargo.trim() || null : null,
-    departamento: isColaborador ? form.departamento.trim() || null : null,
-    data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
-    salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
+    cargo: hasFuncionaisData ? form.cargo.trim() || null : null,
+    departamento: hasFuncionaisData ? form.departamento.trim() || null : null,
+    data_admissao: hasFuncionaisData && form.data_admissao ? form.data_admissao : null,
+    salario: hasFuncionaisData && form.salario ? parseFloat(form.salario) : null,
     is_employee: isColaborador,
     // Flag GLOBAL e independente — fonte única para definir colaborador
     // em todos os módulos (RH, Financeiro, Cadastros, Relatórios).
@@ -770,15 +774,16 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </div>
       </div>
 
-      {/* Employee fields - colaborador only */}
-      {isColaborador && (
+      {/* Employee fields — colaborador OR qualquer pessoa marcada como Colaborador RH
+          (ex: motoristas, que precisam ter salário/admissão para a folha de pagamento). */}
+      {(isColaborador || form.is_colaborador_rh) && (
         <>
           <Separator />
-          <p className="text-sm font-medium text-muted-foreground">Dados Funcionais</p>
+          <p className="text-sm font-medium text-muted-foreground">Dados Funcionais (RH)</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Cargo *</Label>
-              <Input value={form.cargo} onChange={(e) => setForm((p) => ({ ...p, cargo: maskName(e.target.value) }))} placeholder="Ex: Auxiliar Administrativo" />
+              <Label className="text-xs">Cargo{isColaborador ? " *" : ""}</Label>
+              <Input value={form.cargo} onChange={(e) => setForm((p) => ({ ...p, cargo: maskName(e.target.value) }))} placeholder="Ex: Motorista, Auxiliar..." />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Departamento</Label>
