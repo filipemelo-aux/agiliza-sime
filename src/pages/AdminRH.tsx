@@ -885,17 +885,183 @@ function statusLabel(s: string) {
 }
 
 // ===========================
-// Salário base por colaborador (overrides locais)
+// Salário base por colaborador — grava DIRETO em profiles.salario
+// (fonte única; reflete imediatamente no cadastro da pessoa)
 // ===========================
 function SalaryOverridesCard({
   colaboradores,
-  overrides,
-  onChange,
+  onSaved,
 }: {
   colaboradores: ColaboradorRH[];
-  overrides: Record<string, number>;
-  onChange: (next: Record<string, number>) => void;
+  onSaved: () => void | Promise<void>;
 }) {
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = colaboradores.filter((c) => c.ativo);
+    if (!q) return list;
+    return list.filter(
+      (c) => c.full_name?.toLowerCase().includes(q) || c.cargo?.toLowerCase().includes(q)
+    );
+  }, [colaboradores, search]);
+
+  const startEdit = (id: string, current: number) => {
+    setEditingId(id);
+    setEditValue(String(current || ""));
+  };
+  const commit = async (id: string) => {
+    const raw = editValue.replace(",", ".").trim();
+    const n = raw === "" ? null : parseFloat(raw);
+    const valueToSave = n != null && !isNaN(n) && n >= 0 ? n : null;
+
+    setSavingId(id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ salario: valueToSave })
+      .eq("id", id);
+    setSavingId(null);
+    setEditingId(null);
+
+    if (error) {
+      toast.error("Erro ao atualizar salário: " + error.message);
+      return;
+    }
+    toast.success(
+      valueToSave == null
+        ? "Salário removido do cadastro"
+        : "Salário base atualizado no cadastro"
+    );
+    await onSaved();
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Salário base por colaborador</h3>
+          <p className="text-[11px] text-muted-foreground">
+            A edição altera <span className="font-medium">diretamente o cadastro da pessoa</span> (campo
+            "Salário"). Funciona inclusive para motoristas — que não têm esse campo no fluxo de Frota — e o
+            valor é usado imediatamente no cálculo da Folha Mensal.
+          </p>
+        </div>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar colaborador..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        {filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum colaborador.</p>
+        ) : (
+          <div className="rounded-md border border-border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Colaborador</th>
+                  <th className="text-right px-3 py-2">Salário base (cadastro)</th>
+                  <th className="text-right px-3 py-2">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((c) => {
+                  const current = Number(c.salario || 0);
+                  const has = current > 0;
+                  return (
+                    <tr key={c.id}>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{c.full_name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {c.tipo === "colaborador" ? "Colaborador" : "Motorista"}
+                          {c.cargo ? ` · ${c.cargo}` : ""}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {editingId === c.id ? (
+                          <div className="inline-flex items-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="h-7 w-32 text-right"
+                              autoFocus
+                              disabled={savingId === c.id}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") commit(c.id);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              disabled={savingId === c.id}
+                              onClick={() => commit(c.id)}
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : has ? (
+                          <button
+                            className="inline-flex items-center gap-1 hover:text-primary font-semibold"
+                            onClick={() => startEdit(c.id, current)}
+                          >
+                            {formatBRL(current)}
+                            <Pencil className="h-3 w-3 opacity-60" />
+                          </button>
+                        ) : (
+                          <button
+                            className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+                            onClick={() => startEdit(c.id, 0)}
+                          >
+                            Definir <Pencil className="h-3 w-3 opacity-60" />
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {has && editingId !== c.id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-[11px]"
+                            onClick={async () => {
+                              setSavingId(c.id);
+                              const { error } = await supabase
+                                .from("profiles")
+                                .update({ salario: null })
+                                .eq("id", c.id);
+                              setSavingId(null);
+                              if (error) {
+                                toast.error("Erro: " + error.message);
+                                return;
+                              }
+                              toast.success("Salário removido do cadastro");
+                              await onSaved();
+                            }}
+                          >
+                            Limpar
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
