@@ -78,6 +78,7 @@ export default function AdminRH() {
   const [accounts, setAccounts] = useState<ChartAccount[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
+  const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista_frota_propria">("all");
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
