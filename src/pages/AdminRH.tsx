@@ -472,25 +472,15 @@ function ColaboradorHistorySheet({
     const load = async () => {
       setLoading(true);
       const accountIds = [folhaAccountId, adiantamentoAccountId].filter(Boolean) as string[];
-      let q = supabase
-        .from("expenses")
-        .select(
-          "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-        )
-        .eq("favorecido_id", colaborador.id)
-        .is("deleted_at", null)
-        .order("data_emissao", { ascending: false })
-        .limit(100);
-      if (accountIds.length > 0) q = q.in("plano_contas_id", accountIds);
-      const { data } = await q;
+      const data = await fetchExpensesByColaborador(colaborador.id, accountIds);
       if (!cancelled) {
-        setItems((data as any) || []);
+        setItems(data);
         setLoading(false);
       }
     };
     load();
 
-    // Realtime per-colaborador
+    // Realtime listener for this colaborador (observer pattern)
     const channel = supabase
       .channel(`rh-history-${colaborador.id}`)
       .on(
