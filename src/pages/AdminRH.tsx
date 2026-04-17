@@ -258,14 +258,8 @@ export default function AdminRH() {
               adiantamentoAccountId={settings.adiantamentoAccountId}
               salaryOverrides={settings.salaryOverrides || {}}
               payDay={settings.payDay}
-              onSalaryOverride={(id, value) => {
-                setSettings((s) => {
-                  const next = { ...s, salaryOverrides: { ...(s.salaryOverrides || {}), [id]: value } };
-                  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-                  return next;
-                });
-              }}
-              onGenerated={bumpRefresh}
+              onSalaryOverride={(id, value) => setSalaryOverride(id, value)}
+              onGenerated={reload}
             />
           </TabsContent>
 
@@ -315,7 +309,7 @@ export default function AdminRH() {
                   <Label className="text-xs">Categoria — Salários (Folha de Pagamento)</Label>
                   <Select
                     value={settings.folhaAccountId || ""}
-                    onValueChange={(v) => setSettings((s) => ({ ...s, folhaAccountId: v }))}
+                    onValueChange={(v) => patch({ folhaAccountId: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma conta" />
@@ -340,7 +334,7 @@ export default function AdminRH() {
                   <Label className="text-xs">Categoria — Adiantamentos / Vales</Label>
                   <Select
                     value={settings.adiantamentoAccountId || ""}
-                    onValueChange={(v) => setSettings((s) => ({ ...s, adiantamentoAccountId: v }))}
+                    onValueChange={(v) => patch({ adiantamentoAccountId: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma conta" />
@@ -368,7 +362,7 @@ export default function AdminRH() {
                     min={1}
                     max={31}
                     value={settings.payDay || ""}
-                    onChange={(e) => setSettings((s) => ({ ...s, payDay: e.target.value }))}
+                    onChange={(e) => patch({ payDay: e.target.value })}
                     className="h-9 w-32"
                     placeholder="Ex: 5"
                   />
@@ -386,13 +380,7 @@ export default function AdminRH() {
             <SalaryOverridesCard
               colaboradores={colaboradores}
               overrides={settings.salaryOverrides || {}}
-              onChange={(map) => {
-                setSettings((s) => {
-                  const next = { ...s, salaryOverrides: map };
-                  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-                  return next;
-                });
-              }}
+              onChange={(map) => patch({ salaryOverrides: map })}
             />
           </TabsContent>
         </Tabs>
