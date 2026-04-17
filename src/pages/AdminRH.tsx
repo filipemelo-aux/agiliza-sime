@@ -47,7 +47,12 @@ type Expense = {
 };
 
 const SETTINGS_KEY = "rh:settings:v1";
-type RHSettings = { folhaAccountId?: string; adiantamentoAccountId?: string; payDay?: string };
+type RHSettings = {
+  folhaAccountId?: string;
+  adiantamentoAccountId?: string;
+  payDay?: string;
+  salaryOverrides?: Record<string, number>;
+};
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
