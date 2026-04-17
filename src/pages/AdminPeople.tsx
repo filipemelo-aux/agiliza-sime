@@ -278,6 +278,11 @@ export default function AdminPeople() {
                         <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                           {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                         </Badge>
+                        {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
+                          <Badge variant="outline" className="text-xs shrink-0 border-teal-500/40 text-teal-400">
+                            RH
+                          </Badge>
+                        )}
                       </div>
                       {driver.person_type === "cnpj" && driver.razao_social && (
                         <p className="text-sm text-muted-foreground">{driver.razao_social}</p>
