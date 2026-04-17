@@ -366,9 +366,10 @@ export default function AdminRH() {
         </div>
 
         <Tabs defaultValue="colaboradores" className="w-full">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
-            <TabsTrigger value="folha">Folha de Pagamento</TabsTrigger>
+            <TabsTrigger value="folha_mensal">Folha Mensal</TabsTrigger>
+            <TabsTrigger value="folha">Lançamentos Folha</TabsTrigger>
             <TabsTrigger value="adiantamentos">Adiantamentos</TabsTrigger>
             <TabsTrigger value="config">Configurações</TabsTrigger>
           </TabsList>
