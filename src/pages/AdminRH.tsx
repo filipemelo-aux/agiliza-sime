@@ -17,6 +17,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
 import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
+import { MonthPicker } from "@/components/MonthPicker";
 import {
   buildMetricsByColab,
   computeDueDate,
