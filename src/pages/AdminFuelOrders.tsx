@@ -3,11 +3,12 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Printer, Loader2, Mail } from "lucide-react";
+import { Plus, Fuel, Printer, Loader2, Mail, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { format } from "date-fns";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
 import { FuelOrderEmailDialog } from "@/components/fuel/FuelOrderEmailDialog";
@@ -27,14 +28,33 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AdminFuelOrders() {
-  const { user } = useUserRole();
+  const { user, isAdmin, isModerator } = useUserRole();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const { matrizId, unifiedLabel, unifiedCnpjs, establishments } = useUnifiedCompany();
   const [orders, setOrders] = useState<any[]>([]);
   const [driverMap, setDriverMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [emailOrder, setEmailOrder] = useState<any | null>(null);
+  const canDelete = isAdmin || isModerator;
+
+  const handleDelete = async (order: any) => {
+    const ok = await confirm({
+      title: "Excluir ordem",
+      description: `Tem certeza que deseja excluir a ordem #${order.order_number}? Essa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("fuel_orders").delete().eq("id", order.id);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
+    setOrders((prev) => prev.filter((o) => o.id !== order.id));
+    toast({ title: "Ordem excluída", description: `Ordem #${order.order_number} removida.` });
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -168,6 +188,17 @@ export default function AdminFuelOrders() {
                     >
                       <Mail className="h-4 w-4 mr-1" /> E-mail
                     </Button>
+                    {canDelete && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(o)}
+                        title="Excluir ordem"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -197,6 +228,7 @@ export default function AdminFuelOrders() {
             }}
           />
         )}
+        {ConfirmDialog}
       </main>
     </AdminLayout>
   );
