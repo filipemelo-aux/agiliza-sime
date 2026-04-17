@@ -252,14 +252,23 @@ export default function AdminRH() {
                               </div>
                             );
                           })()}
-                          <div className="pt-1">
+                          <div className="pt-1 flex items-center gap-1.5">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 text-xs gap-1"
+                              className="h-7 text-xs gap-1 flex-1"
                               onClick={() => setHistoryFor(c)}
                             >
-                              <History className="h-3 w-3" /> Histórico financeiro
+                              <History className="h-3 w-3" /> Histórico
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                              onClick={() => handleDesligar(c)}
+                              title="Desliga o colaborador do RH (mantém o cadastro)"
+                            >
+                              <UserMinus className="h-3 w-3" /> Desligar
                             </Button>
                           </div>
                         </CardContent>
