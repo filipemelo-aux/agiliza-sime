@@ -25,6 +25,51 @@ export type ColaboradorRH = {
 };
 
 export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
+  // [DEBUG RH] Carrega TODOS os profiles para diagnosticar inclusões/exclusões
+  const { data: allProfiles, error: allErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, category, is_colaborador_rh")
+    .order("full_name");
+
+  if (allErr) {
+    console.error("[DEBUG RH] Erro ao carregar profiles:", allErr);
+  } else {
+    console.groupCollapsed(
+      `[DEBUG RH] Diagnóstico de ${allProfiles?.length ?? 0} pessoa(s) cadastrada(s)`
+    );
+    console.table(
+      (allProfiles ?? []).map((p: any) => {
+        const isRH = p.is_colaborador_rh === true;
+        const isMotorista = p.category === "motorista";
+        return {
+          id: p.id,
+          nome: p.full_name,
+          categoria: p.category ?? "—",
+          isMotorista,
+          isColaboradorRH: isRH,
+          incluido: isRH ? "✅ SIM" : "❌ NÃO",
+          motivo: isRH
+            ? "is_colaborador_rh = true (regra global)"
+            : "is_colaborador_rh = false/null — marque o checkbox no cadastro",
+        };
+      })
+    );
+    const motoristasRH = (allProfiles ?? []).filter(
+      (p: any) => p.category === "motorista" && p.is_colaborador_rh === true
+    );
+    const motoristasNaoRH = (allProfiles ?? []).filter(
+      (p: any) => p.category === "motorista" && p.is_colaborador_rh !== true
+    );
+    console.log(
+      `[DEBUG RH] Motoristas com is_colaborador_rh = true: ${motoristasRH.length}`
+    );
+    console.log(
+      `[DEBUG RH] Motoristas SEM is_colaborador_rh: ${motoristasNaoRH.length}`,
+      motoristasNaoRH.map((m: any) => m.full_name)
+    );
+    console.groupEnd();
+  }
+
   const { data } = await supabase
     .from("profiles")
     .select(
@@ -32,6 +77,10 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
     )
     .eq("is_colaborador_rh", true)
     .order("full_name");
+
+  console.log(
+    `[DEBUG RH] Resultado final da query (is_colaborador_rh=true): ${data?.length ?? 0} registro(s)`
+  );
 
   return ((data as any[]) || []).map((p) => ({
     id: p.id,
