@@ -59,6 +59,7 @@ export interface PersonProfile {
   data_admissao?: string | null;
   salario?: number | null;
   is_employee?: boolean;
+  is_colaborador_rh?: boolean;
   services: string[];
 }
 
@@ -94,6 +95,7 @@ interface FormState {
   departamento: string;
   data_admissao: string;
   salario: string;
+  is_colaborador_rh: boolean;
 }
 
 const emptyForm: FormState = {
@@ -128,6 +130,7 @@ const emptyForm: FormState = {
   departamento: "",
   data_admissao: "",
   salario: "",
+  is_colaborador_rh: false,
 };
 
 function AddressFields({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
@@ -322,6 +325,7 @@ function personToForm(person: PersonProfile): FormState {
     departamento: (person as any).departamento || "",
     data_admissao: (person as any).data_admissao || "",
     salario: (person as any).salario ? String((person as any).salario) : "",
+    is_colaborador_rh: !!(person as any).is_colaborador_rh,
   };
 }
 
@@ -357,6 +361,9 @@ function formToPayload(form: FormState) {
     data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
     salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
     is_employee: isColaborador,
+    // Flag explícito do RH — desacoplado da categoria/frota.
+    // Categoria "colaborador" sempre marca como RH; demais categorias usam o checkbox.
+    is_colaborador_rh: isColaborador ? true : form.is_colaborador_rh,
   };
 }
 
