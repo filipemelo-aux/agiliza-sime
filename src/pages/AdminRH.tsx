@@ -150,13 +150,13 @@ export default function AdminRH() {
                     />
                   </div>
                   <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
-                    <SelectTrigger className="h-9 w-[200px]">
+                    <SelectTrigger className="h-9 w-[240px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os tipos</SelectItem>
-                      <SelectItem value="colaborador">Colaborador</SelectItem>
-                      <SelectItem value="motorista">Motorista</SelectItem>
+                      <SelectItem value="all">Todos (Colaborador + Motorista)</SelectItem>
+                      <SelectItem value="colaborador">Apenas Colaborador</SelectItem>
+                      <SelectItem value="motorista">Apenas Motorista</SelectItem>
                     </SelectContent>
                   </Select>
                   <span className="text-xs text-muted-foreground ml-auto">
@@ -166,7 +166,11 @@ export default function AdminRH() {
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Carregando...</p>
                 ) : filteredColabs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum colaborador encontrado.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {colaboradores.length === 0
+                      ? "Nenhuma pessoa marcada como colaborador (RH). Marque a opção “É colaborador (RH)” no cadastro da pessoa para que apareça aqui — funciona para qualquer tipo (motorista, fornecedor, etc.)."
+                      : "Nenhum colaborador corresponde ao filtro atual."}
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredColabs.map((c) => (
