@@ -70,6 +70,9 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
     console.groupEnd();
   }
 
+  // ÚNICA fonte de verdade: is_colaborador_rh = true.
+  // SEM filtro de category — motoristas, fornecedores, clientes ou qualquer outra
+  // categoria com a flag ativa DEVEM aparecer aqui (regra global, sem exceções).
   const { data } = await supabase
     .from("profiles")
     .select(
@@ -78,9 +81,17 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
     .eq("is_colaborador_rh", true)
     .order("full_name");
 
+  // Asserção de segurança: garante que motoristas com a flag NUNCA são filtrados
+  const motoristasIncluidos = (data ?? []).filter((p: any) => p.category === "motorista");
   console.log(
-    `[DEBUG RH] Resultado final da query (is_colaborador_rh=true): ${data?.length ?? 0} registro(s)`
+    `[DEBUG RH] Resultado final: ${data?.length ?? 0} registro(s) | Motoristas incluídos: ${motoristasIncluidos.length}`
   );
+  if (motoristasIncluidos.length > 0) {
+    console.log(
+      "[DEBUG RH] ✅ Motoristas-colaboradores presentes:",
+      motoristasIncluidos.map((m: any) => m.full_name)
+    );
+  }
 
   return ((data as any[]) || []).map((p) => ({
     id: p.id,
