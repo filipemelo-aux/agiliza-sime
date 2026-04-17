@@ -66,6 +66,8 @@ export default function AdminPeople() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("__all__");
+  // Filtro de PAPEL (independente do tipo): all | rh | non_rh
+  const [roleFilter, setRoleFilter] = useState<"all" | "rh" | "non_rh">("all");
 
   const [editPerson, setEditPerson] = useState<PersonProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -183,12 +185,15 @@ export default function AdminPeople() {
 
   const filteredDrivers = drivers.filter((d) => {
     const matchCategory = filterByTab(d, activeTab);
+    // Filtro de papel RH (cruza com tipo): permite combinações Motorista+Colaborador.
+    const isRH = !!(d as any).is_colaborador_rh;
+    const matchRole = roleFilter === "all" || (roleFilter === "rh" ? isRH : !isRH);
     const matchSearch =
       d.full_name.toLowerCase().includes(search.toLowerCase()) ||
       (d.cnpj && d.cnpj.includes(search)) ||
       (d.razao_social && d.razao_social.toLowerCase().includes(search.toLowerCase())) ||
       (d.email && d.email.toLowerCase().includes(search.toLowerCase()));
-    return matchCategory && matchSearch;
+    return matchCategory && matchRole && matchSearch;
   });
 
   const countByTab = (tab: string) => {
@@ -230,14 +235,24 @@ export default function AdminPeople() {
           </TabsList>
         </Tabs>
 
-        <div className="relative mb-6 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CNPJ, razão social ou e-mail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {/* Filtro de PAPEL — independente do tipo (categoria) */}
+          <Tabs value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+            <TabsList className="h-9">
+              <TabsTrigger value="all" className="text-xs">Todos os papéis</TabsTrigger>
+              <TabsTrigger value="rh" className="text-xs">Apenas RH</TabsTrigger>
+              <TabsTrigger value="non_rh" className="text-xs">Sem RH</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {loading ? (
@@ -263,6 +278,11 @@ export default function AdminPeople() {
                         <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                           {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                         </Badge>
+                        {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
+                          <Badge variant="outline" className="text-xs shrink-0 border-teal-500/40 text-teal-400">
+                            RH
+                          </Badge>
+                        )}
                       </div>
                       {driver.person_type === "cnpj" && driver.razao_social && (
                         <p className="text-sm text-muted-foreground">{driver.razao_social}</p>
