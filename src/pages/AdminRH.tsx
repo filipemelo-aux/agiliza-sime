@@ -307,6 +307,7 @@ export default function AdminRH() {
   const totalAtivos = colaboradores.filter((c) => c.ativo).length;
 
   const filteredColabs = colaboradores.filter((c) => {
+    if (tipoFilter !== "all" && c.tipo !== tipoFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
