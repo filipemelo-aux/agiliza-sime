@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +57,7 @@ const menuItems = [
       { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
+      { title: "Recursos Humanos", url: "/admin/rh", icon: UserCog },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
     ],
   },
