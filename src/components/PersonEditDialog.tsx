@@ -813,6 +813,29 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {/* CNH - motorista only */}
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
+      {/* Flag explícito de Colaborador RH — disponível para qualquer categoria
+          exceto "colaborador" (que já é RH por definição). */}
+      {!isColaborador && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+          <input
+            id="is_colaborador_rh"
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            checked={form.is_colaborador_rh}
+            onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
+          />
+          <div className="space-y-0.5">
+            <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
+              Incluir no módulo RH como colaborador
+            </Label>
+            <p className="text-[10px] text-muted-foreground">
+              Marque para que esta pessoa apareça no módulo de Recursos Humanos
+              (folha de pagamento, adiantamentos, etc.).
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Vehicle management note - motorista edit only */}
       {isMotorista && onAddVehicle && (
         <div className="pt-1">
