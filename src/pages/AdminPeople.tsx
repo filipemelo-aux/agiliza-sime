@@ -280,7 +280,7 @@ export default function AdminPeople() {
                         </Badge>
                         {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
                           <Badge variant="outline" className="text-xs shrink-0 border-teal-500/40 text-teal-400">
-                            RH
+                            Colaborador
                           </Badge>
                         )}
                       </div>
