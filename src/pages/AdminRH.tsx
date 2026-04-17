@@ -36,7 +36,7 @@ const formatBRL = (n: number) =>
 
 export default function AdminRH() {
   const [search, setSearch] = useState("");
-  const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista_frota_propria">("all");
+  const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -156,7 +156,7 @@ export default function AdminRH() {
                     <SelectContent>
                       <SelectItem value="all">Todos os tipos</SelectItem>
                       <SelectItem value="colaborador">Colaborador</SelectItem>
-                      <SelectItem value="motorista_frota_propria">Motorista (Frota Própria)</SelectItem>
+                      <SelectItem value="motorista">Motorista</SelectItem>
                     </SelectContent>
                   </Select>
                   <span className="text-xs text-muted-foreground ml-auto">
@@ -203,9 +203,6 @@ export default function AdminRH() {
                                 <Briefcase className="h-3 w-3" />
                                 <span>{c.departamento}</span>
                               </div>
-                            )}
-                            {c.vehicle_plates && c.vehicle_plates.length > 0 && (
-                              <div className="truncate">Veículo(s): {c.vehicle_plates.join(", ")}</div>
                             )}
                             {c.data_admissao && (
                               <div>Admissão: {new Date(c.data_admissao).toLocaleDateString("pt-BR")}</div>
@@ -548,9 +545,6 @@ function ColaboradorHistorySheet({
                 {colaborador.phone && <div><span className="text-foreground font-medium">Tel:</span> {colaborador.phone}</div>}
                 {colaborador.data_admissao && <div><span className="text-foreground font-medium">Admissão:</span> {new Date(colaborador.data_admissao).toLocaleDateString("pt-BR")}</div>}
                 {colaborador.salario != null && <div><span className="text-foreground font-medium">Salário:</span> {formatBRL(Number(colaborador.salario))}</div>}
-                {colaborador.vehicle_plates && colaborador.vehicle_plates.length > 0 && (
-                  <div className="col-span-2"><span className="text-foreground font-medium">Veículos:</span> {colaborador.vehicle_plates.join(", ")}</div>
-                )}
               </div>
             </div>
 
