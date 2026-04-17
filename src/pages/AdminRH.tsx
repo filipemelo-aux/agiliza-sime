@@ -475,6 +475,25 @@ export default function AdminRH() {
                             )}
                             {c.email && <div className="truncate">{c.email}</div>}
                           </div>
+                          {(() => {
+                            const mtr = metricsByColab.get(c.id) || { recebido: 0, adiantamentos: 0, saldoDevedor: 0, folhaTotal: 0, folhaPago: 0 };
+                            return (
+                              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-border/60">
+                                <div className="text-center">
+                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Recebido</p>
+                                  <p className="text-[11px] font-semibold text-green-600 tabular-nums truncate">{formatBRL(mtr.recebido)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Adiant.</p>
+                                  <p className="text-[11px] font-semibold text-amber-600 tabular-nums truncate">{formatBRL(mtr.adiantamentos)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Saldo</p>
+                                  <p className={`text-[11px] font-semibold tabular-nums truncate ${mtr.saldoDevedor > 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(mtr.saldoDevedor)}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div className="pt-1">
                             <Button
                               variant="outline"
