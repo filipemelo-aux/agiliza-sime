@@ -196,7 +196,7 @@ export default function AdminRH() {
 
   const totalFolha = folhaExpenses.reduce((s, e) => s + Number(e.valor_total || 0), 0);
   const totalAdiant = adiantExpenses.reduce((s, e) => s + Number(e.valor_total || 0), 0);
-  const totalAtivos = colaboradores.length;
+  const totalAtivos = colaboradores.filter((c) => c.ativo).length;
 
   const filteredColabs = colaboradores.filter((c) => {
     const q = search.trim().toLowerCase();
@@ -267,7 +267,7 @@ export default function AdminRH() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredColabs.map((c) => (
-                      <Card key={c.id} className="hover:shadow-md transition-shadow">
+                      <Card key={`${c.tipo}-${c.id}`} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-3.5 space-y-1.5">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -280,12 +280,29 @@ export default function AdminRH() {
                               </Badge>
                             )}
                           </div>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {c.tipo === "colaborador" ? "Colaborador" : "Motorista (Frota Própria)"}
+                            </Badge>
+                            <Badge
+                              className={`text-[10px] px-1.5 py-0 ${
+                                c.ativo
+                                  ? "bg-green-100 text-green-700 hover:bg-green-100"
+                                  : "bg-muted text-muted-foreground hover:bg-muted"
+                              }`}
+                            >
+                              {c.ativo ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </div>
                           <div className="text-[11px] text-muted-foreground space-y-0.5">
                             {c.departamento && (
                               <div className="flex items-center gap-1">
                                 <Briefcase className="h-3 w-3" />
                                 <span>{c.departamento}</span>
                               </div>
+                            )}
+                            {c.vehicle_plates && c.vehicle_plates.length > 0 && (
+                              <div className="truncate">Veículo(s): {c.vehicle_plates.join(", ")}</div>
                             )}
                             {c.data_admissao && (
                               <div>Admissão: {new Date(c.data_admissao).toLocaleDateString("pt-BR")}</div>
