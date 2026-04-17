@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,282 +10,43 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { toast } from "sonner";
-
-type ColaboradorRH = {
-  id: string;
-  full_name: string;
-  email: string | null;
-  phone: string | null;
-  cargo: string | null;
-  departamento: string | null;
-  data_admissao: string | null;
-  salario: number | null;
-  tipo: "colaborador" | "motorista_frota_propria";
-  ativo: boolean;
-  vehicle_plates?: string[];
-};
-
-type ChartAccount = { id: string; codigo: string; nome: string; tipo: string };
-
-type Expense = {
-  id: string;
-  descricao: string;
-  valor_total: number;
-  valor_pago: number;
-  status: string;
-  data_emissao: string;
-  data_vencimento: string | null;
-  data_pagamento: string | null;
-  favorecido_id: string | null;
-  favorecido_nome: string | null;
-  plano_contas_id: string | null;
-};
-
-const SETTINGS_KEY = "rh:settings:v1";
-type RHSettings = {
-  folhaAccountId?: string;
-  adiantamentoAccountId?: string;
-  payDay?: string;
-  salaryOverrides?: Record<string, number>;
-};
+import { useRHData } from "@/hooks/useRHData";
+import { useRHSettings } from "@/hooks/useRHSettings";
+import {
+  buildMetricsByColab,
+  computeDueDate,
+  computeEmissionDate,
+  computePayrollRows,
+  createPayrollExpense,
+  fetchExpensesByColaborador,
+  filterByAccount,
+  resolveBaseSalary,
+  totalsForMonth,
+  type ColaboradorRH,
+  type Expense,
+} from "@/services/rh";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-const monthRange = (ym: string) => {
-  const [y, m] = ym.split("-").map(Number);
-  const start = new Date(y, m - 1, 1);
-  const end = new Date(y, m, 1);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return { start: iso(start), end: iso(end) };
-};
-
-const norm = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-const isFolhaAccount = (a: ChartAccount) => {
-  const n = norm(a.nome);
-  return n.includes("salario") || n.includes("folha");
-};
-const isAdiantAccount = (a: ChartAccount) => {
-  const n = norm(a.nome);
-  return n.includes("adiantamento") || n.includes("vale");
-};
-
 export default function AdminRH() {
-  const [loading, setLoading] = useState(true);
-  const [colaboradores, setColaboradores] = useState<ColaboradorRH[]>([]);
-  const [accounts, setAccounts] = useState<ChartAccount[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista_frota_propria">("all");
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [settings, setSettings] = useState<RHSettings>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-    } catch {
-      return {};
-    }
-  });
+
+  // Observer-based data layer (colaboradores + expenses + realtime listener)
+  const { loading, colaboradores, accounts, expenses, realtimeActive, reload } = useRHData(month);
+  // Reactive settings layer (single source of truth)
+  const { settings, patch, setSalaryOverride } = useRHSettings();
+
   const [historyFor, setHistoryFor] = useState<ColaboradorRH | null>(null);
-  const [realtimeActive, setRealtimeActive] = useState(false);
-  const [, setRefreshTick] = useState(0);
-  const bumpRefresh = useCallback(() => setRefreshTick((n) => n + 1), []);
-
-  // Initial load: colaboradores + motoristas frota própria + plano de contas
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [colabRes, vehRes, accRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, full_name, email, phone, cargo, departamento, data_admissao, salario")
-          .eq("category", "colaborador")
-          .order("full_name"),
-        supabase
-          .from("vehicles")
-          .select("plate, driver_id, is_active, fleet_type")
-          .eq("fleet_type", "propria")
-          .not("driver_id", "is", null),
-        supabase
-          .from("chart_of_accounts")
-          .select("id, codigo, nome, tipo")
-          .eq("ativo", true)
-          .order("codigo"),
-      ]);
-
-      const colaboradoresList: ColaboradorRH[] = ((colabRes.data as any[]) || []).map((p) => ({
-        id: p.id,
-        full_name: p.full_name,
-        email: p.email,
-        phone: p.phone,
-        cargo: p.cargo,
-        departamento: p.departamento,
-        data_admissao: p.data_admissao,
-        salario: p.salario,
-        tipo: "colaborador",
-        ativo: true,
-      }));
-
-      const driverVehicles = new Map<string, { plates: string[]; anyActive: boolean }>();
-      ((vehRes.data as any[]) || []).forEach((v) => {
-        const entry = driverVehicles.get(v.driver_id) || { plates: [], anyActive: false };
-        entry.plates.push(v.plate);
-        if (v.is_active) entry.anyActive = true;
-        driverVehicles.set(v.driver_id, entry);
-      });
-
-      let motoristasList: ColaboradorRH[] = [];
-      const driverIds = Array.from(driverVehicles.keys());
-      if (driverIds.length > 0) {
-        const { data: drivers } = await supabase
-          .from("profiles")
-          .select("id, full_name, email, phone, cargo, departamento, data_admissao, salario")
-          .in("id", driverIds);
-        motoristasList = ((drivers as any[]) || [])
-          .filter((d) => !colaboradoresList.some((c) => c.id === d.id))
-          .map((d) => {
-            const info = driverVehicles.get(d.id)!;
-            return {
-              id: d.id,
-              full_name: d.full_name,
-              email: d.email,
-              phone: d.phone,
-              cargo: d.cargo || "Motorista",
-              departamento: d.departamento || "Frota Própria",
-              data_admissao: d.data_admissao,
-              salario: d.salario,
-              tipo: "motorista_frota_propria" as const,
-              ativo: info.anyActive,
-              vehicle_plates: info.plates,
-            };
-          });
-      }
-
-      const merged = [...colaboradoresList, ...motoristasList].sort((a, b) =>
-        a.full_name.localeCompare(b.full_name)
-      );
-
-      setColaboradores(merged);
-      const accs = (accRes.data as any[]) || [];
-      setAccounts(accs);
-
-      // Auto-detect default accounts if not set yet
-      setSettings((prev) => {
-        const next = { ...prev };
-        if (!next.folhaAccountId) {
-          const found = accs.find((a) => a.tipo === "despesa" && isFolhaAccount(a));
-          if (found) next.folhaAccountId = found.id;
-        }
-        if (!next.adiantamentoAccountId) {
-          const found = accs.find((a) => a.tipo === "despesa" && isAdiantAccount(a));
-          if (found) next.adiantamentoAccountId = found.id;
-        }
-        if (next.folhaAccountId !== prev.folhaAccountId || next.adiantamentoAccountId !== prev.adiantamentoAccountId) {
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-        }
-        return next;
-      });
-      setLoading(false);
-    })();
-  }, []);
-
-  // Load expenses for current colaboradores + month (re-runs on refreshTick)
-  useEffect(() => {
-    (async () => {
-      const colabIds = colaboradores.map((c) => c.id);
-      if (colabIds.length === 0) {
-        setExpenses([]);
-        return;
-      }
-      const { start, end } = monthRange(month);
-      const { data } = await supabase
-        .from("expenses")
-        .select(
-          "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-        )
-        .in("favorecido_id", colabIds)
-        .is("deleted_at", null)
-        .gte("data_emissao", start)
-        .lt("data_emissao", end)
-        .order("data_emissao", { ascending: false });
-      setExpenses((data as any) || []);
-    })();
-  }, [colaboradores, month]);
-
-  // Realtime listeners: refresh whenever a relevant expense or payment changes
-  useEffect(() => {
-    if (colaboradores.length === 0) return;
-    const colabSet = new Set(colaboradores.map((c) => c.id));
-    const folhaId = settings.folhaAccountId;
-    const adiantId = settings.adiantamentoAccountId;
-
-    const isRelevant = (row: any) => {
-      if (!row) return false;
-      if (row.favorecido_id && colabSet.has(row.favorecido_id)) {
-        if (!folhaId && !adiantId) return true;
-        return row.plano_contas_id === folhaId || row.plano_contas_id === adiantId;
-      }
-      return false;
-    };
-
-    const channel = supabase
-      .channel("rh-financial-listener")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expenses" },
-        (payload) => {
-          if (isRelevant(payload.new) || isRelevant(payload.old)) {
-            bumpRefresh();
-            // Force re-fetch by toggling month dependency indirectly:
-            setExpenses((prev) => [...prev]);
-            // Re-run loader
-            (async () => {
-              const colabIds = colaboradores.map((c) => c.id);
-              const { start, end } = monthRange(month);
-              const { data } = await supabase
-                .from("expenses")
-                .select(
-                  "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-                )
-                .in("favorecido_id", colabIds)
-                .is("deleted_at", null)
-                .gte("data_emissao", start)
-                .lt("data_emissao", end)
-                .order("data_emissao", { ascending: false });
-              setExpenses((data as any) || []);
-            })();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expense_payments" },
-        () => {
-          // Payments don't carry favorecido directly — refresh defensively
-          bumpRefresh();
-        }
-      )
-      .subscribe((status) => {
-        setRealtimeActive(status === "SUBSCRIBED");
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-      setRealtimeActive(false);
-    };
-  }, [colaboradores, month, settings.folhaAccountId, settings.adiantamentoAccountId, bumpRefresh]);
 
   const colabById = useMemo(() => {
     const m = new Map<string, ColaboradorRH>();
@@ -293,51 +54,29 @@ export default function AdminRH() {
     return m;
   }, [colaboradores]);
 
+  // ==== Derived view models (pure transforms — no business logic) ====
   const folhaExpenses = useMemo(
-    () =>
-      expenses.filter((e) =>
-        settings.folhaAccountId ? e.plano_contas_id === settings.folhaAccountId : false
-      ),
+    () => filterByAccount(expenses, settings.folhaAccountId),
     [expenses, settings.folhaAccountId]
   );
   const adiantExpenses = useMemo(
-    () =>
-      expenses.filter((e) =>
-        settings.adiantamentoAccountId
-          ? e.plano_contas_id === settings.adiantamentoAccountId
-          : false
-      ),
+    () => filterByAccount(expenses, settings.adiantamentoAccountId),
     [expenses, settings.adiantamentoAccountId]
   );
-
-  const totalFolha = folhaExpenses.reduce((s, e) => s + Number(e.valor_total || 0), 0);
-  const totalAdiant = adiantExpenses.reduce((s, e) => s + Number(e.valor_total || 0), 0);
+  const totalFolha = totalsForMonth(folhaExpenses);
+  const totalAdiant = totalsForMonth(adiantExpenses);
   const totalAtivos = colaboradores.filter((c) => c.ativo).length;
 
-  // Per-colaborador derived metrics for the selected month — 100% from financeiro
-  const metricsByColab = useMemo(() => {
-    const m = new Map<string, { recebido: number; adiantamentos: number; folhaTotal: number; folhaPago: number; saldoDevedor: number }>();
-    colaboradores.forEach((c) => m.set(c.id, { recebido: 0, adiantamentos: 0, folhaTotal: 0, folhaPago: 0, saldoDevedor: 0 }));
-    folhaExpenses.forEach((e) => {
-      if (!e.favorecido_id) return;
-      const r = m.get(e.favorecido_id);
-      if (!r) return;
-      r.folhaTotal += Number(e.valor_total || 0);
-      r.folhaPago += Number(e.valor_pago || 0);
-      r.recebido += Number(e.valor_pago || 0);
-    });
-    adiantExpenses.forEach((e) => {
-      if (!e.favorecido_id) return;
-      const r = m.get(e.favorecido_id);
-      if (!r) return;
-      r.adiantamentos += Number(e.valor_total || 0);
-    });
-    // Saldo devedor: o que ainda falta receber da folha do mês (lançado - já pago)
-    m.forEach((r) => {
-      r.saldoDevedor = Math.max(0, r.folhaTotal - r.folhaPago);
-    });
-    return m;
-  }, [colaboradores, folhaExpenses, adiantExpenses]);
+  const metricsByColab = useMemo(
+    () =>
+      buildMetricsByColab(
+        colaboradores,
+        expenses,
+        settings.folhaAccountId,
+        settings.adiantamentoAccountId
+      ),
+    [colaboradores, expenses, settings.folhaAccountId, settings.adiantamentoAccountId]
+  );
 
   const filteredColabs = colaboradores.filter((c) => {
     if (tipoFilter !== "all" && c.tipo !== tipoFilter) return false;
@@ -350,10 +89,7 @@ export default function AdminRH() {
     );
   });
 
-  const saveSettings = () => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    toast.success("Configurações salvas");
-  };
+  const saveSettings = () => toast.success("Configurações salvas");
 
   const enrichName = (e: Expense) =>
     (e.favorecido_id && colabById.get(e.favorecido_id)?.full_name) || e.favorecido_nome || "—";
