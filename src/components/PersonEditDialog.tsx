@@ -361,9 +361,9 @@ function formToPayload(form: FormState) {
     data_admissao: isColaborador && form.data_admissao ? form.data_admissao : null,
     salario: isColaborador && form.salario ? parseFloat(form.salario) : null,
     is_employee: isColaborador,
-    // Flag explícito do RH — desacoplado da categoria/frota.
-    // Categoria "colaborador" sempre marca como RH; demais categorias usam o checkbox.
-    is_colaborador_rh: isColaborador ? true : form.is_colaborador_rh,
+    // Flag GLOBAL e independente — fonte única para definir colaborador
+    // em todos os módulos (RH, Financeiro, Cadastros, Relatórios).
+    is_colaborador_rh: form.is_colaborador_rh,
   };
 }
 
