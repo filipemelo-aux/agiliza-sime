@@ -683,51 +683,126 @@ function ColaboradorHistorySheet({
   const total = items.reduce((s, e) => s + Number(e.valor_total || 0), 0);
   const totalPago = items.reduce((s, e) => s + Number(e.valor_pago || 0), 0);
 
+  const now = new Date();
+  const ymCurrent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const inCurrentMonth = (d: string | null) => !!d && d.slice(0, 7) === ymCurrent;
+
+  const folhaItems = items.filter((e) => folhaAccountId && e.plano_contas_id === folhaAccountId);
+  const adiantItems = items.filter((e) => adiantamentoAccountId && e.plano_contas_id === adiantamentoAccountId);
+
+  const totalRecebidoMes = folhaItems
+    .filter((e) => inCurrentMonth(e.data_pagamento))
+    .reduce((s, e) => s + Number(e.valor_pago || 0), 0);
+  const totalAdiantMes = adiantItems
+    .filter((e) => inCurrentMonth(e.data_pagamento) || inCurrentMonth(e.data_emissao))
+    .reduce((s, e) => s + Number(e.valor_total || 0), 0);
+  const saldoAtual = totalRecebidoMes - totalAdiantMes;
+
   return (
     <Sheet open={!!colaborador} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Histórico financeiro</SheetTitle>
-          <SheetDescription>
-            {colaborador?.full_name} — Salários e Adiantamentos vinculados
-          </SheetDescription>
+          <SheetTitle>Detalhes do colaborador</SheetTitle>
+          <SheetDescription>{colaborador?.full_name}</SheetDescription>
         </SheetHeader>
-        <div className="mt-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border border-border p-3">
-              <p className="text-[10px] uppercase text-muted-foreground">Total lançado</p>
-              <p className="text-base font-semibold">{formatBRL(total)}</p>
+
+        {colaborador && (
+          <div className="mt-4 space-y-4">
+            {/* Dados básicos */}
+            <div className="rounded-md border border-border p-3 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px]">
+                  {colaborador.tipo === "colaborador" ? "Colaborador" : "Motorista (Frota Própria)"}
+                </Badge>
+                <Badge
+                  className={`text-[10px] ${
+                    colaborador.ativo
+                      ? "bg-green-100 text-green-700 hover:bg-green-100"
+                      : "bg-muted text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {colaborador.ativo ? "Ativo" : "Inativo"}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground pt-1">
+                {colaborador.cargo && <div><span className="text-foreground font-medium">Cargo:</span> {colaborador.cargo}</div>}
+                {colaborador.departamento && <div><span className="text-foreground font-medium">Depto:</span> {colaborador.departamento}</div>}
+                {colaborador.email && <div className="col-span-2 truncate"><span className="text-foreground font-medium">Email:</span> {colaborador.email}</div>}
+                {colaborador.phone && <div><span className="text-foreground font-medium">Tel:</span> {colaborador.phone}</div>}
+                {colaborador.data_admissao && <div><span className="text-foreground font-medium">Admissão:</span> {new Date(colaborador.data_admissao).toLocaleDateString("pt-BR")}</div>}
+                {colaborador.salario != null && <div><span className="text-foreground font-medium">Salário:</span> {formatBRL(Number(colaborador.salario))}</div>}
+                {colaborador.vehicle_plates && colaborador.vehicle_plates.length > 0 && (
+                  <div className="col-span-2"><span className="text-foreground font-medium">Veículos:</span> {colaborador.vehicle_plates.join(", ")}</div>
+                )}
+              </div>
             </div>
-            <div className="rounded-md border border-border p-3">
-              <p className="text-[10px] uppercase text-muted-foreground">Total pago</p>
-              <p className="text-base font-semibold text-green-600">{formatBRL(totalPago)}</p>
+
+            {/* Resumo do mês */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-md border border-border p-2.5">
+                <p className="text-[10px] uppercase text-muted-foreground">Recebido no mês</p>
+                <p className="text-sm font-semibold text-green-600">{formatBRL(totalRecebidoMes)}</p>
+              </div>
+              <div className="rounded-md border border-border p-2.5">
+                <p className="text-[10px] uppercase text-muted-foreground">Adiantamentos</p>
+                <p className="text-sm font-semibold text-amber-600">{formatBRL(totalAdiantMes)}</p>
+              </div>
+              <div className="rounded-md border border-border p-2.5">
+                <p className="text-[10px] uppercase text-muted-foreground">Saldo atual</p>
+                <p className={`text-sm font-semibold ${saldoAtual >= 0 ? "text-foreground" : "text-destructive"}`}>
+                  {formatBRL(saldoAtual)}
+                </p>
+              </div>
+            </div>
+
+            {/* Totais gerais */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border p-3">
+                <p className="text-[10px] uppercase text-muted-foreground">Total lançado (geral)</p>
+                <p className="text-base font-semibold">{formatBRL(total)}</p>
+              </div>
+              <div className="rounded-md border border-border p-3">
+                <p className="text-[10px] uppercase text-muted-foreground">Total pago (geral)</p>
+                <p className="text-base font-semibold text-green-600">{formatBRL(totalPago)}</p>
+              </div>
+            </div>
+
+            {/* Histórico financeiro */}
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2">Histórico financeiro (somente leitura)</p>
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : items.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem lançamentos para este colaborador.</p>
+              ) : (
+                <div className="divide-y divide-border rounded-md border border-border">
+                  {items.map((e) => {
+                    const isAdiant = adiantamentoAccountId && e.plano_contas_id === adiantamentoAccountId;
+                    return (
+                      <div key={e.id} className="px-3 py-2.5 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium truncate">{e.descricao}</p>
+                          <span className="font-semibold tabular-nums">{formatBRL(Number(e.valor_total))}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <p className="text-[11px] text-muted-foreground">
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 mr-1">
+                              {isAdiant ? "Adiantamento" : "Folha"}
+                            </Badge>
+                            {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
+                            {e.data_vencimento ? ` · Venc. ${new Date(e.data_vencimento).toLocaleDateString("pt-BR")}` : ""}
+                            {e.data_pagamento ? ` · Pago ${new Date(e.data_pagamento).toLocaleDateString("pt-BR")}` : ""}
+                          </p>
+                          {statusBadge(e.status)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-          {loading ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem lançamentos para este colaborador.</p>
-          ) : (
-            <div className="divide-y divide-border rounded-md border border-border">
-              {items.map((e) => (
-                <div key={e.id} className="px-3 py-2.5 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium truncate">{e.descricao}</p>
-                    <span className="font-semibold tabular-nums">{formatBRL(Number(e.valor_total))}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <p className="text-[11px] text-muted-foreground">
-                      {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
-                      {e.data_vencimento ? ` · Venc. ${new Date(e.data_vencimento).toLocaleDateString("pt-BR")}` : ""}
-                      {e.data_pagamento ? ` · Pago ${new Date(e.data_pagamento).toLocaleDateString("pt-BR")}` : ""}
-                    </p>
-                    {statusBadge(e.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </SheetContent>
     </Sheet>
   );
