@@ -55,6 +55,13 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
 
+  // Colheita
+  const [colheitaInicio, setColheitaInicio] = useState<string>("");
+  const [colheitaFim, setColheitaFim] = useState<string>("");
+  const [agregados, setAgregados] = useState<AgregadoColheitaRow[]>([]);
+  const [loadingAgregados, setLoadingAgregados] = useState(false);
+  const [agregadosSelecionados, setAgregadosSelecionados] = useState<Set<string>>(new Set());
+
   // Colaboradores elegíveis conforme o tipo
   const elegiveis = useMemo(() => {
     if (tipo === "motorista") {
