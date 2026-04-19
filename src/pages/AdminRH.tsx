@@ -21,6 +21,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
+import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -533,20 +534,14 @@ function RHWorkspace(props: any) {
               </Button>
             </div>
 
-            {folhaSubTab === "em_aberto" && (
-              <Card>
-                <CardContent className="p-4">
-                  <ExpenseList
-                    items={folhaEmAberto}
-                    enrichName={enrichName}
-                    emptyHint={
-                      settings.folhaAccountId
-                        ? "Nenhuma folha em aberto neste mês. Use 'Gerar nova folha' para iniciar."
-                        : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
-                    }
-                  />
-                </CardContent>
-              </Card>
+            {folhaSubTab === "em_aberto" && matrizId && user?.id && (
+              <FolhasEmAbertoList
+                month={month}
+                empresaId={matrizId}
+                userId={user.id}
+                folhaAccountId={settings.folhaAccountId}
+                onChanged={reload}
+              />
             )}
 
             {folhaSubTab === "previa" && (
