@@ -53,6 +53,7 @@ const menuItems = [
     icon: UserCog,
     children: [
       { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
       { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
       { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
     ],
