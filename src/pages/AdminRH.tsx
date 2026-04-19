@@ -829,6 +829,7 @@ function FolhaMensalTab({
                 <tr>
                   <th className="text-left px-3 py-2">Colaborador</th>
                   <th className="text-right px-3 py-2">Salário base</th>
+                  <th className="text-right px-3 py-2">Comissões</th>
                   <th className="text-right px-3 py-2">Adiantamentos</th>
                   <th className="text-right px-3 py-2">Líquido</th>
                   <th className="text-right px-3 py-2">Ação</th>
@@ -872,6 +873,14 @@ function FolhaMensalTab({
                           {formatBRL(r.salary)}
                           <Pencil className="h-3 w-3 opacity-60" />
                         </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-emerald-600">
+                      {r.comissoes > 0 ? `+ ${formatBRL(r.comissoes)}` : formatBRL(0)}
+                      {r.comissoes > 0 && (
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {r.comissaoIds.length} pend.
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-amber-600">
