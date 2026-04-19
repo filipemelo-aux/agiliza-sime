@@ -1,14 +1,14 @@
 /**
- * GerarFolhaWizard — Modal multi-etapas para revisar e gerar a folha do mês.
+ * GerarFolhaWizard — Assistente para gerar a Folha de Pagamento.
  *
- * Fluxo (somente revisão dos lançamentos já existentes — NÃO duplica regras):
- *   1. Adiantamentos pendentes do mês (somados ao líquido como dedução).
- *   2. Comissões pendentes do mês (somadas ao líquido).
- *   3. Descontos pendentes do mês (deduzidos do líquido).
- *   4. Confirmação: tabela de líquidos por colaborador + botão "Gerar todas".
+ * 🎯 FLUXO PROFISSIONAL OBRIGATÓRIO
+ *   ETAPA 1 — Criar nova folha como rascunho (status: em_aberto). NÃO gera financeiro.
+ *   ETAPA 2 — Carregar automaticamente: salário base, adiantamentos, descontos, comissões.
+ *   ETAPA 3 — ORDEM DE CÁLCULO (CRÍTICA, não alterar):
+ *               Líquido = Base − Adiantamentos − Descontos + Comissões
+ *   ETAPA 4 — Confirmar: gera as despesas em Contas a Pagar e muda status para "confirmada".
  *
- * Os cálculos vêm de `computePayrollRows` (única fonte de verdade) e a criação
- * delega para `createPayrollExpense` — exatamente como o fluxo individual.
+ * Toda a lógica de cálculo vive em rhViewModel.computeLiquido (única fonte de verdade).
  */
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -22,14 +22,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, ChevronLeft, ChevronRight, HandCoins, Percent, MinusCircle, PlayCircle, Loader2 } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  HandCoins,
+  Percent,
+  MinusCircle,
+  PlayCircle,
+  Loader2,
+  FilePlus2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   computeDueDate,
   computeEmissionDate,
   computePayrollRows,
-  createPayrollExpense,
+  criarFolhaEmAberto,
+  confirmarFolha,
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   type ColaboradorRH,
@@ -40,7 +51,7 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-type Step = 0 | 1 | 2 | 3;
+type Step = 0 | 1 | 2 | 3 | 4;
 
 interface Props {
   open: boolean;
@@ -58,10 +69,11 @@ interface Props {
 }
 
 const STEPS: { title: string; description: string; icon: typeof HandCoins }[] = [
-  { title: "Adiantamentos", description: "Vales descontados do líquido", icon: HandCoins },
-  { title: "Comissões", description: "Pendentes somadas ao salário", icon: Percent },
-  { title: "Descontos", description: "INSS, faltas e outros", icon: MinusCircle },
-  { title: "Confirmação", description: "Gerar pagamentos", icon: PlayCircle },
+  { title: "Iniciar", description: "Criar folha em aberto", icon: FilePlus2 },
+  { title: "Adiantamentos", description: "− deduzidos do salário", icon: HandCoins },
+  { title: "Descontos", description: "− INSS, faltas e outros", icon: MinusCircle },
+  { title: "Comissões", description: "+ somadas no fim", icon: Percent },
+  { title: "Confirmar", description: "Gerar Contas a Pagar", icon: PlayCircle },
 ];
 
 export function GerarFolhaWizard({
@@ -82,12 +94,15 @@ export function GerarFolhaWizard({
   const [comissoesPend, setComissoesPend] = useState<Comissao[]>([]);
   const [descontosPend, setDescontosPend] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  const [draftFolhaId, setDraftFolhaId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   // Reset ao abrir
   useEffect(() => {
     if (!open) return;
     setStep(0);
+    setDraftFolhaId(null);
   }, [open]);
 
   // Carrega comissões e descontos pendentes
@@ -144,64 +159,93 @@ export function GerarFolhaWizard({
   const totalAdiant = rows.reduce((s, r) => s + r.adiant, 0);
   const totalComissoes = rows.reduce((s, r) => s + r.comissoes, 0);
   const totalDescontos = rows.reduce((s, r) => s + r.descontos, 0);
+  const totalBase = pendingRows.reduce((s, r) => s + r.salary, 0);
   const totalLiquido = pendingRows.reduce((s, r) => s + r.liquido, 0);
 
   const emissionDate = computeEmissionDate(month);
   const dueDate = computeDueDate(month, payDay);
 
-  const handleGenerateAll = async () => {
-    if (!folhaAccountId) {
-      toast.error("Configure a conta 'Salários' em Configurações antes de gerar a folha.");
-      return;
-    }
+  // ETAPA 1 — Criar folha em aberto
+  const handleCreateDraft = async () => {
     if (pendingRows.length === 0) {
-      toast.info("Nenhuma folha pendente para gerar.");
+      toast.info("Nenhum colaborador elegível para esta folha.");
       return;
     }
-    setGenerating(true);
-    let ok = 0;
-    let fail = 0;
-    for (const r of pendingRows) {
-      const { error } = await createPayrollExpense({
+    setCreatingDraft(true);
+    try {
+      const { folha } = await criarFolhaEmAberto({
         empresa_id: empresaId,
         created_by: userId,
-        colaboradorId: r.c.id,
-        colaboradorNome: r.c.full_name,
-        month,
-        liquido: r.liquido,
-        salarioBase: r.salary,
-        adiantamentos: r.adiant,
-        comissoes: r.comissoes,
-        comissaoIds: r.comissaoIds,
-        descontos: r.descontos,
-        descontoIds: r.descontoIds,
-        emissionDate,
-        dueDate,
-        folhaAccountId,
+        mes_referencia: month,
+        data_emissao: emissionDate,
+        data_vencimento: dueDate,
+        itens: pendingRows.map((r) => ({
+          colaborador_id: r.c.id,
+          colaborador_nome: r.c.full_name,
+          salario_base: r.salary,
+          adiantamentos: r.adiant,
+          descontos: r.descontos,
+          comissoes: r.comissoes,
+          liquido: r.liquido,
+          comissao_ids: r.comissaoIds || [],
+          desconto_ids: r.descontoIds || [],
+        })),
       });
-      if (error) fail++;
-      else ok++;
+      setDraftFolhaId(folha.id);
+      toast.success("Folha criada em aberto. Revise as etapas.");
+      setStep(1);
+      onGenerated();
+    } catch (e: any) {
+      toast.error("Falha ao criar folha: " + (e?.message || String(e)));
+    } finally {
+      setCreatingDraft(false);
     }
-    setGenerating(false);
-    if (fail === 0) {
-      toast.success(`${ok} folha(s) gerada(s) com sucesso`);
-    } else {
-      toast.warning(`${ok} gerada(s), ${fail} falha(s)`);
-    }
-    onGenerated();
-    onClose();
   };
 
-  const next = () => setStep((s) => (Math.min(3, s + 1) as Step));
+  // ETAPA FINAL — Confirmar (gera financeiro)
+  const handleConfirm = async () => {
+    if (!folhaAccountId) {
+      toast.error("Configure a conta 'Salários' em Configurações.");
+      return;
+    }
+    if (!draftFolhaId) {
+      toast.error("Folha em aberto não encontrada.");
+      return;
+    }
+    setConfirming(true);
+    try {
+      const { ok, fail, errors } = await confirmarFolha({
+        folhaId: draftFolhaId,
+        empresa_id: empresaId,
+        user_id: userId,
+        folhaAccountId,
+      });
+      if (fail === 0) {
+        toast.success(`Folha confirmada — ${ok} pagamento(s) gerado(s).`);
+      } else {
+        toast.warning(`${ok} ok, ${fail} falha(s): ${errors[0] || ""}`);
+      }
+      onGenerated();
+      onClose();
+    } catch (e: any) {
+      toast.error("Falha ao confirmar: " + (e?.message || String(e)));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const next = () => setStep((s) => (Math.min(4, s + 1) as Step));
   const prev = () => setStep((s) => (Math.max(0, s - 1) as Step));
 
+  const busy = creatingDraft || confirming;
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !generating && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle>Gerar folha — {month}</DialogTitle>
           <DialogDescription>
-            Revise os lançamentos do mês antes de gerar os pagamentos em Contas a Pagar.
+            Fluxo: criar em aberto → revisar adiantamentos / descontos / comissões → confirmar.
           </DialogDescription>
         </DialogHeader>
 
@@ -216,7 +260,11 @@ export function GerarFolhaWizard({
                 <div key={s.title} className="flex items-center flex-1 min-w-0">
                   <button
                     type="button"
-                    onClick={() => setStep(idx as Step)}
+                    onClick={() => {
+                      // Não deixa pular para frente sem ter criado o draft
+                      if (idx > 0 && !draftFolhaId) return;
+                      setStep(idx as Step);
+                    }}
                     className={cn(
                       "flex items-center gap-1.5 text-[11px] font-medium transition-colors min-w-0",
                       active ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"
@@ -256,9 +304,22 @@ export function GerarFolhaWizard({
           ) : (
             <>
               {step === 0 && (
+                <StartStep
+                  count={pendingRows.length}
+                  totalBase={totalBase}
+                  totalAdiant={totalAdiant}
+                  totalDescontos={totalDescontos}
+                  totalComissoes={totalComissoes}
+                  totalLiquido={totalLiquido}
+                  draftCreated={!!draftFolhaId}
+                  emission={emissionDate}
+                  due={dueDate}
+                />
+              )}
+              {step === 1 && (
                 <StepList
-                  title="Adiantamentos pendentes do mês"
-                  emptyText="Nenhum adiantamento pendente neste mês."
+                  title="Adiantamentos do mês"
+                  emptyText="Nenhum adiantamento neste mês."
                   total={totalAdiant}
                   totalColor="text-amber-600"
                   totalLabel="Total a deduzir"
@@ -271,32 +332,13 @@ export function GerarFolhaWizard({
                       value: r.adiant,
                       sign: "-" as const,
                     }))}
-                  hint="Adiantamentos lançados em Contas a Pagar (categoria configurada) são automaticamente descontados."
-                />
-              )}
-              {step === 1 && (
-                <StepList
-                  title="Comissões pendentes do mês"
-                  emptyText="Nenhuma comissão pendente neste mês."
-                  total={totalComissoes}
-                  totalColor="text-emerald-600"
-                  totalLabel="Total a somar"
-                  rows={rows
-                    .filter((r) => r.comissoes > 0)
-                    .map((r) => ({
-                      key: r.c.id,
-                      name: r.c.full_name,
-                      sub: `${r.comissaoIds.length} comissão(ões)`,
-                      value: r.comissoes,
-                      sign: "+" as const,
-                    }))}
-                  hint="Comissões com status 'pendente' geradas em Lançamentos > Comissões serão marcadas como 'enviadas para folha'."
+                  hint="Subtraídos do salário base ANTES dos descontos."
                 />
               )}
               {step === 2 && (
                 <StepList
-                  title="Descontos pendentes do mês"
-                  emptyText="Nenhum desconto pendente neste mês."
+                  title="Descontos do mês"
+                  emptyText="Nenhum desconto neste mês."
                   total={totalDescontos}
                   totalColor="text-rose-600"
                   totalLabel="Total a deduzir"
@@ -309,10 +351,29 @@ export function GerarFolhaWizard({
                       value: r.descontos,
                       sign: "-" as const,
                     }))}
-                  hint="Inclui INSS, IRRF, faltas, multas e outros lançamentos manuais ainda não vinculados a uma folha."
+                  hint="Subtraídos APÓS os adiantamentos. INSS, IRRF, faltas, multas etc."
                 />
               )}
               {step === 3 && (
+                <StepList
+                  title="Comissões do mês"
+                  emptyText="Nenhuma comissão pendente."
+                  total={totalComissoes}
+                  totalColor="text-emerald-600"
+                  totalLabel="Total a somar"
+                  rows={rows
+                    .filter((r) => r.comissoes > 0)
+                    .map((r) => ({
+                      key: r.c.id,
+                      name: r.c.full_name,
+                      sub: `${r.comissaoIds.length} comissão(ões)`,
+                      value: r.comissoes,
+                      sign: "+" as const,
+                    }))}
+                  hint="Somadas SOMENTE no fim, após adiantamentos e descontos. Nunca antes."
+                />
+              )}
+              {step === 4 && (
                 <ConfirmStep
                   rows={rows}
                   pendingRows={pendingRows}
@@ -326,37 +387,119 @@ export function GerarFolhaWizard({
         </ScrollArea>
 
         <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row items-center justify-between gap-2 sm:justify-between">
-          <Button variant="ghost" size="sm" onClick={prev} disabled={step === 0 || generating} className="gap-1">
+          <Button variant="ghost" size="sm" onClick={prev} disabled={step === 0 || busy} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Voltar
           </Button>
           <div className="text-[11px] text-muted-foreground hidden sm:block">
             Etapa {step + 1} de {STEPS.length}
+            {draftFolhaId && (
+              <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-[9px]">em aberto</Badge>
+            )}
           </div>
-          {step < 3 ? (
+          {step === 0 ? (
+            <Button
+              size="sm"
+              onClick={draftFolhaId ? next : handleCreateDraft}
+              disabled={busy || pendingRows.length === 0}
+              className="gap-1"
+            >
+              {creatingDraft ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Criando...</>
+              ) : draftFolhaId ? (
+                <>Próximo <ChevronRight className="h-4 w-4" /></>
+              ) : (
+                <><FilePlus2 className="h-4 w-4" /> Criar folha em aberto</>
+              )}
+            </Button>
+          ) : step < 4 ? (
             <Button size="sm" onClick={next} className="gap-1">
               Próximo <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
             <Button
               size="sm"
-              onClick={handleGenerateAll}
-              disabled={generating || pendingRows.length === 0 || !folhaAccountId}
+              onClick={handleConfirm}
+              disabled={busy || !folhaAccountId || !draftFolhaId}
               className="gap-1"
             >
-              {generating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Gerando...
-                </>
+              {confirming ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Confirmando...</>
               ) : (
-                <>
-                  <PlayCircle className="h-4 w-4" /> Gerar {pendingRows.length} folha(s)
-                </>
+                <><PlayCircle className="h-4 w-4" /> Confirmar e gerar pagamentos</>
               )}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StartStep({
+  count,
+  totalBase,
+  totalAdiant,
+  totalDescontos,
+  totalComissoes,
+  totalLiquido,
+  draftCreated,
+  emission,
+  due,
+}: {
+  count: number;
+  totalBase: number;
+  totalAdiant: number;
+  totalDescontos: number;
+  totalComissoes: number;
+  totalLiquido: number;
+  draftCreated: boolean;
+  emission: string;
+  due: string;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-border bg-muted/30 p-4 space-y-2">
+        <h3 className="text-sm font-semibold text-foreground">Pré-visualização da folha</h3>
+        <p className="text-[11px] text-muted-foreground">
+          Os valores abaixo são um snapshot. A folha será criada como <span className="font-semibold">EM ABERTO</span> e
+          <span className="font-semibold"> não gera financeiro</span> até a confirmação.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+          <Mini label="Colaboradores" value={String(count)} />
+          <Mini label="Salário base" value={formatBRL(totalBase)} />
+          <Mini label="− Adiantamentos" value={formatBRL(totalAdiant)} color="text-amber-600" />
+          <Mini label="− Descontos" value={formatBRL(totalDescontos)} color="text-rose-600" />
+          <Mini label="+ Comissões" value={formatBRL(totalComissoes)} color="text-emerald-600" />
+          <Mini label="= Líquido" value={formatBRL(totalLiquido)} color="text-primary" strong />
+        </div>
+        <div className="text-[11px] text-muted-foreground pt-2 flex flex-wrap gap-x-4 gap-y-1">
+          <span>Emissão: <span className="font-semibold text-foreground">{new Date(emission).toLocaleDateString("pt-BR")}</span></span>
+          <span>Vencimento: <span className="font-semibold text-foreground">{new Date(due).toLocaleDateString("pt-BR")}</span></span>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] text-foreground">
+        <p className="font-semibold mb-1">Ordem de cálculo (não alterar):</p>
+        <code className="block text-[11px] font-mono bg-background/60 p-2 rounded border">
+          Líquido = Salário base − Adiantamentos − Descontos + Comissões
+        </code>
+      </div>
+
+      {draftCreated && (
+        <div className="rounded-md border border-green-300 bg-green-50 text-green-800 p-2.5 text-xs">
+          ✓ Folha em aberto criada. Avance para revisar adiantamentos, descontos e comissões antes de confirmar.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Mini({ label, value, color, strong }: { label: string; value: string; color?: string; strong?: boolean }) {
+  return (
+    <div className="bg-background rounded border border-border p-2">
+      <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className={cn("text-sm tabular-nums", color || "text-foreground", strong && "font-bold")}>{value}</div>
+    </div>
   );
 }
 
@@ -434,7 +577,7 @@ function ConfirmStep({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Resumo da folha</h3>
+        <h3 className="text-sm font-semibold text-foreground">Resumo final</h3>
         <div className="text-right">
           <div className="text-[10px] uppercase text-muted-foreground">Total líquido a gerar</div>
           <div className="text-base font-bold text-primary tabular-nums">{formatBRL(totalLiquido)}</div>
@@ -443,7 +586,7 @@ function ConfirmStep({
 
       {!hasFolhaAccount && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800">
-          Configure a conta "Salários" em Configurações para habilitar a geração.
+          Configure a conta "Salários" em Configurações para habilitar a confirmação.
         </div>
       )}
 
@@ -465,10 +608,10 @@ function ConfirmStep({
               <tr>
                 <th className="text-left px-3 py-2">Colaborador</th>
                 <th className="text-right px-3 py-2">Base</th>
-                <th className="text-right px-3 py-2 text-emerald-600">Com.</th>
-                <th className="text-right px-3 py-2 text-amber-600">Adiant.</th>
-                <th className="text-right px-3 py-2 text-rose-600">Desc.</th>
-                <th className="text-right px-3 py-2">Líquido</th>
+                <th className="text-right px-3 py-2 text-amber-600">− Adiant.</th>
+                <th className="text-right px-3 py-2 text-rose-600">− Desc.</th>
+                <th className="text-right px-3 py-2 text-emerald-600">+ Com.</th>
+                <th className="text-right px-3 py-2">= Líquido</th>
                 <th className="text-right px-3 py-2">Status</th>
               </tr>
             </thead>
@@ -479,14 +622,14 @@ function ConfirmStep({
                     <div className="font-medium truncate">{r.c.full_name}</div>
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(r.salary)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-emerald-600">
-                    {r.comissoes > 0 ? formatBRL(r.comissoes) : "—"}
-                  </td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-amber-600">
                     {r.adiant > 0 ? formatBRL(r.adiant) : "—"}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">
                     {r.descontos > 0 ? formatBRL(r.descontos) : "—"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-emerald-600">
+                    {r.comissoes > 0 ? formatBRL(r.comissoes) : "—"}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums font-semibold">
                     {formatBRL(r.liquido)}
@@ -514,9 +657,9 @@ function ConfirmStep({
       )}
 
       <p className="text-[11px] text-muted-foreground">
-        Será criada <span className="font-medium">{pendingRows.length}</span> despesa(s) em{" "}
-        <span className="font-medium">Contas a Pagar</span> na categoria "Salários". A quitação segue
-        o fluxo financeiro existente.
+        Confirmar irá criar <span className="font-medium">{pendingRows.length}</span> despesa(s) em{" "}
+        <span className="font-medium">Contas a Pagar</span> (categoria "Salários") e marcar a folha como
+        <span className="font-semibold text-foreground"> confirmada</span>.
       </p>
     </div>
   );

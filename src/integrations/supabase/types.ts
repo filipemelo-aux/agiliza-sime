@@ -1761,6 +1761,125 @@ export type Database = {
         }
         Relationships: []
       }
+      folhas_pagamento: {
+        Row: {
+          confirmada_em: string | null
+          confirmada_por: string | null
+          created_at: string
+          created_by: string
+          data_emissao: string
+          data_vencimento: string
+          empresa_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["folha_status"]
+          total_adiantamentos: number
+          total_base: number
+          total_comissoes: number
+          total_descontos: number
+          total_liquido: number
+          updated_at: string
+        }
+        Insert: {
+          confirmada_em?: string | null
+          confirmada_por?: string | null
+          created_at?: string
+          created_by: string
+          data_emissao: string
+          data_vencimento: string
+          empresa_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["folha_status"]
+          total_adiantamentos?: number
+          total_base?: number
+          total_comissoes?: number
+          total_descontos?: number
+          total_liquido?: number
+          updated_at?: string
+        }
+        Update: {
+          confirmada_em?: string | null
+          confirmada_por?: string | null
+          created_at?: string
+          created_by?: string
+          data_emissao?: string
+          data_vencimento?: string
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["folha_status"]
+          total_adiantamentos?: number
+          total_base?: number
+          total_comissoes?: number
+          total_descontos?: number
+          total_liquido?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      folhas_pagamento_itens: {
+        Row: {
+          adiantamentos: number
+          colaborador_id: string
+          colaborador_nome: string
+          comissao_ids: string[]
+          comissoes: number
+          created_at: string
+          desconto_ids: string[]
+          descontos: number
+          expense_id: string | null
+          folha_id: string
+          id: string
+          liquido: number
+          salario_base: number
+          updated_at: string
+        }
+        Insert: {
+          adiantamentos?: number
+          colaborador_id: string
+          colaborador_nome: string
+          comissao_ids?: string[]
+          comissoes?: number
+          created_at?: string
+          desconto_ids?: string[]
+          descontos?: number
+          expense_id?: string | null
+          folha_id: string
+          id?: string
+          liquido?: number
+          salario_base?: number
+          updated_at?: string
+        }
+        Update: {
+          adiantamentos?: number
+          colaborador_id?: string
+          colaborador_nome?: string
+          comissao_ids?: string[]
+          comissoes?: number
+          created_at?: string
+          desconto_ids?: string[]
+          descontos?: number
+          expense_id?: string | null
+          folha_id?: string
+          id?: string
+          liquido?: number
+          salario_base?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folhas_pagamento_itens_folha_id_fkey"
+            columns: ["folha_id"]
+            isOneToOne: false
+            referencedRelation: "folhas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_applications: {
         Row: {
           applied_at: string
@@ -3243,6 +3362,7 @@ export type Database = {
         | "imposto"
         | "outros"
       fatura_status: "aberta" | "faturada" | "cancelada"
+      folha_status: "em_aberto" | "confirmada" | "cancelada"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       previsao_origem_tipo: "cte" | "colheita"
       previsao_status: "pendente" | "faturado"
@@ -3425,6 +3545,7 @@ export const Constants = {
         "outros",
       ],
       fatura_status: ["aberta", "faturada", "cancelada"],
+      folha_status: ["em_aberto", "confirmada", "cancelada"],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       previsao_origem_tipo: ["cte", "colheita"],
       previsao_status: ["pendente", "faturado"],

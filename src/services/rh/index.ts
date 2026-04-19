@@ -6,3 +6,4 @@ export * from "./comissoesService";
 export * from "./comissoesElegiveisService";
 export * from "./colheitaAgregadosService";
 export * from "./descontosFolhaService";
+export * from "./folhasPagamentoService";
