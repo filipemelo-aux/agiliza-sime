@@ -122,7 +122,12 @@ export function computePayrollRows(
       const comissaoIds = com.ids;
       const descontos = desc.total;
       const descontoIds = desc.ids;
-      const liquido = Math.max(0, salary + comissoes - adiant - descontos);
+      // ⚠️ ORDEM OBRIGATÓRIA (não alterar):
+      //   1) Salário base
+      //   2) − Adiantamentos
+      //   3) − Descontos
+      //   4) + Comissões
+      const liquido = computeLiquido({ salary, adiant, descontos, comissoes });
       const existing = folhaByColab.get(c.id);
       return {
         c,
@@ -136,6 +141,26 @@ export function computePayrollRows(
         existing,
       };
     });
+}
+
+/**
+ * Cálculo do líquido seguindo a ordem profissional obrigatória:
+ *   Líquido = Base − Adiantamentos − Descontos + Comissões
+ *
+ * Nunca somar comissão antes dos descontos. Nunca alterar a ordem.
+ * Resultado nunca negativo (clamp em 0).
+ */
+export function computeLiquido(input: {
+  salary: number;
+  adiant: number;
+  descontos: number;
+  comissoes: number;
+}): number {
+  const base = Number(input.salary || 0);
+  const aposAdiant = base - Number(input.adiant || 0);
+  const aposDesc = aposAdiant - Number(input.descontos || 0);
+  const liquido = aposDesc + Number(input.comissoes || 0);
+  return Math.max(0, liquido);
 }
 
 export function computeDueDate(month: string, payDay?: string): string {
