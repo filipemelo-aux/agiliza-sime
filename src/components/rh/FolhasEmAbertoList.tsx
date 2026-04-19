@@ -1,0 +1,259 @@
+/**
+ * FolhasEmAbertoList — Lista de folhas com status `em_aberto` ou `cancelada`.
+ *
+ * Permite:
+ *   - Ver itens de uma folha (drawer/sheet)
+ *   - Confirmar (gera as despesas em Contas a Pagar)
+ *   - Excluir folha em aberto (sem efeito financeiro)
+ */
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Loader2, FileCheck2, Trash2, Eye, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import {
+  listarFolhas,
+  buscarFolhaComItens,
+  confirmarFolha,
+  excluirFolhaEmAberto,
+  type FolhaPagamento,
+  type FolhaItem,
+} from "@/services/rh";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+
+const formatBRL = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+interface Props {
+  month: string;
+  empresaId: string;
+  userId: string;
+  folhaAccountId?: string;
+  onChanged: () => void;
+}
+
+export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged }: Props) {
+  const [folhas, setFolhas] = useState<FolhaPagamento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<FolhaPagamento | null>(null);
+  const [viewItems, setViewItems] = useState<FolhaItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await listarFolhas({ status: "em_aberto", mes: month });
+      setFolhas(data);
+    } catch (e: any) {
+      toast.error("Erro ao carregar folhas: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [month]);
+
+  const openItems = async (f: FolhaPagamento) => {
+    setViewing(f);
+    setLoadingItems(true);
+    try {
+      const { itens } = await buscarFolhaComItens(f.id);
+      setViewItems(itens);
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
+  const handleConfirm = async (f: FolhaPagamento) => {
+    if (!folhaAccountId) {
+      toast.error("Configure a conta 'Salários' em Configurações.");
+      return;
+    }
+    const ok = await confirm({
+      title: "Confirmar folha?",
+      description: `Serão criadas despesas em Contas a Pagar para ${formatBRL(Number(f.total_liquido))}. Esta ação não pode ser desfeita por aqui.`,
+      confirmLabel: "Confirmar e gerar",
+    });
+    if (!ok) return;
+    setActing(f.id);
+    try {
+      const r = await confirmarFolha({
+        folhaId: f.id,
+        empresa_id: empresaId,
+        user_id: userId,
+        folhaAccountId,
+      });
+      if (r.fail === 0) toast.success(`Folha confirmada — ${r.ok} pagamento(s) gerado(s).`);
+      else toast.warning(`${r.ok} ok, ${r.fail} falha(s)`);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleDelete = async (f: FolhaPagamento) => {
+    const ok = await confirm({
+      title: "Excluir folha em aberto?",
+      description: "A folha será removida. Comissões e descontos vinculados voltam para 'pendente'. Nenhum lançamento financeiro será afetado.",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setActing(f.id);
+    try {
+      await excluirFolhaEmAberto(f.id);
+      toast.success("Folha excluída.");
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card><CardContent className="p-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando folhas em aberto...
+      </CardContent></Card>
+    );
+  }
+
+  if (folhas.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Nenhuma folha em aberto neste mês. Use <span className="font-medium">Gerar nova folha</span> para iniciar.
+          </p>
+          <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Recarregar
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-2">
+        {folhas.map((f) => (
+          <Card key={f.id}>
+            <CardContent className="p-3 flex flex-wrap items-center gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold">Folha {f.mes_referencia}</p>
+                  <Badge variant="outline" className="text-[10px] text-primary border-primary/40">em aberto</Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Vencimento {new Date(f.data_vencimento).toLocaleDateString("pt-BR")} ·
+                  Criada em {new Date(f.created_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 text-[11px]">
+                <Mini label="Base" v={formatBRL(Number(f.total_base))} />
+                <Mini label="Adiant." v={formatBRL(Number(f.total_adiantamentos))} c="text-amber-600" />
+                <Mini label="Desc." v={formatBRL(Number(f.total_descontos))} c="text-rose-600" />
+                <Mini label="Com." v={formatBRL(Number(f.total_comissoes))} c="text-emerald-600" />
+                <Mini label="Líquido" v={formatBRL(Number(f.total_liquido))} c="text-primary font-bold" />
+              </div>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openItems(f)}>
+                  <Eye className="h-3.5 w-3.5" /> Ver
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={acting === f.id || !folhaAccountId}
+                  onClick={() => handleConfirm(f)}
+                >
+                  {acting === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck2 className="h-3.5 w-3.5" />}
+                  Confirmar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                  disabled={acting === f.id}
+                  onClick={() => handleDelete(f)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Sheet open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Folha {viewing?.mes_referencia}</SheetTitle>
+            <SheetDescription>
+              Itens snapshot. Os pagamentos em Contas a Pagar só serão criados ao confirmar.
+            </SheetDescription>
+          </SheetHeader>
+
+          {loadingItems ? (
+            <div className="py-8 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {viewItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem itens.</p>
+              ) : (
+                <div className="rounded-md border border-border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-3 py-2">Colaborador</th>
+                        <th className="text-right px-3 py-2">Base</th>
+                        <th className="text-right px-3 py-2">−A</th>
+                        <th className="text-right px-3 py-2">−D</th>
+                        <th className="text-right px-3 py-2">+C</th>
+                        <th className="text-right px-3 py-2">Líq.</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {viewItems.map((i) => (
+                        <tr key={i.id}>
+                          <td className="px-3 py-1.5 truncate">{i.colaborador_nome}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(Number(i.salario_base))}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-amber-600">{formatBRL(Number(i.adiantamentos))}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">{formatBRL(Number(i.descontos))}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-emerald-600">{formatBRL(Number(i.comissoes))}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{formatBRL(Number(i.liquido))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {ConfirmDialog}
+    </>
+  );
+}
+
+function Mini({ label, v, c }: { label: string; v: string; c?: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className={`text-xs tabular-nums ${c || ""}`}>{v}</div>
+    </div>
+  );
+}
