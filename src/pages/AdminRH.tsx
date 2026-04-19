@@ -173,6 +173,7 @@ export default function AdminRH() {
           enrichName={enrichName}
           saveSettings={saveSettings}
         />
+      </div>
 
       <ColaboradorHistorySheet
         colaborador={historyFor}
