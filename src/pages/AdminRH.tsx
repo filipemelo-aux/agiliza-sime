@@ -456,7 +456,7 @@ function RHWorkspace(props: any) {
             adiantamentoAccountId={settings.adiantamentoAccountId}
             salaryOverrides={settings.salaryOverrides || {}}
             payDay={settings.payDay}
-            onSalaryOverride={(id: string, value: string) => setSalaryOverride(id, value)}
+            onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
             onGenerated={reload}
           />
         )}
