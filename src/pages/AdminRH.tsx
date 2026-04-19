@@ -39,7 +39,9 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-export default function AdminRH() {
+type RHSectionProp = "colaboradores" | "folha_lancamentos" | "adiantamentos" | "comissoes" | "config";
+
+export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
   const [month, setMonth] = useState(() => {
@@ -172,6 +174,7 @@ export default function AdminRH() {
           adiantExpenses={adiantExpenses}
           enrichName={enrichName}
           saveSettings={saveSettings}
+          forcedSection={forcedSection}
         />
       </div>
 
@@ -191,7 +194,6 @@ export default function AdminRH() {
 // ============================================================
 type RHSection =
   | "colaboradores"
-  | "folha_mensal"
   | "folha_lancamentos"
   | "adiantamentos"
   | "comissoes"
@@ -217,97 +219,76 @@ function RHWorkspace(props: any) {
     filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
+    forcedSection,
   } = props;
 
-  const [section, setSection] = useState<RHSection>("colaboradores");
+  const [internalSection, setInternalSection] = useState<RHSection>("colaboradores");
+  const section: RHSection = forcedSection ?? internalSection;
+  const setSection = setInternalSection;
 
-  const groups: NavGroup[] = [
-    {
-      label: "Pessoas",
-      items: [
-        { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e métricas", badge: totalAtivos },
-      ],
-    },
-    {
-      label: "Folha de Pagamento",
-      items: [
-        { id: "folha_mensal", label: "Folha Mensal", icon: CalendarDays, description: "Gerar e revisar folha" },
-        { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
-        { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
-      ],
-    },
-    {
-      label: "Variáveis",
-      items: [
-        { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
-      ],
-    },
-    {
-      label: "Sistema",
-      items: [
-        { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
-      ],
-    },
+  // Sub-tab interna dentro de "Colaboradores": Lista vs Folha Mensal
+  const [colabSubTab, setColabSubTab] = useState<"lista" | "folha_mensal">("lista");
+
+  const allItems: NavItem[] = [
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e folha mensal", badge: totalAtivos },
+    { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
+    { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
+    { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
+    { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
   ];
 
-  const activeItem = groups.flatMap((g) => g.items).find((i) => i.id === section);
+  const activeItem = allItems.find((i) => i.id === section);
+  const showInternalNav = !forcedSection;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
-      {/* Sidebar lateral */}
-      <aside className="lg:sticky lg:top-4 lg:self-start">
-        <Card className="overflow-hidden">
-          <CardContent className="p-2">
-            <nav className="flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-visible">
-              {groups.map((group) => (
-                <div key={group.label} className="flex lg:flex-col lg:gap-0.5 shrink-0">
-                  <div className="hidden lg:block px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    {group.label}
-                  </div>
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = section === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSection(item.id)}
-                        className={cn(
-                          "group flex items-center gap-2.5 px-3 py-2 rounded-md text-xs transition-all shrink-0 w-full text-left",
-                          isActive
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+    <div className={cn("grid grid-cols-1 gap-4", showInternalNav && "lg:grid-cols-[240px_1fr]")}>
+      {showInternalNav && (
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <Card className="overflow-hidden">
+            <CardContent className="p-2">
+              <nav className="flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-visible">
+                {allItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = section === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSection(item.id)}
+                      className={cn(
+                        "group flex items-center gap-2.5 px-3 py-2 rounded-md text-xs transition-all shrink-0 w-full text-left",
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
+                      <div className="flex-1 min-w-0 hidden lg:block">
+                        <div className="truncate">{item.label}</div>
+                        {item.description && (
+                          <div className="text-[10px] text-muted-foreground/80 truncate font-normal">
+                            {item.description}
+                          </div>
                         )}
-                      >
-                        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
-                        <div className="flex-1 min-w-0 hidden lg:block">
-                          <div className="truncate">{item.label}</div>
-                          {item.description && (
-                            <div className="text-[10px] text-muted-foreground/80 truncate font-normal">
-                              {item.description}
-                            </div>
-                          )}
-                        </div>
-                        <span className="lg:hidden whitespace-nowrap">{item.label}</span>
-                        {item.badge != null && (
-                          <Badge variant="secondary" className="h-4 px-1.5 text-[9px] hidden lg:inline-flex">
-                            {item.badge}
-                          </Badge>
-                        )}
-                        {isActive && (
-                          <ChevronRight className="h-3 w-3 hidden lg:block opacity-60" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </nav>
-          </CardContent>
-        </Card>
-      </aside>
+                      </div>
+                      <span className="lg:hidden whitespace-nowrap">{item.label}</span>
+                      {item.badge != null && (
+                        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] hidden lg:inline-flex">
+                          {item.badge}
+                        </Badge>
+                      )}
+                      {isActive && (
+                        <ChevronRight className="h-3 w-3 hidden lg:block opacity-60" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </CardContent>
+          </Card>
+        </aside>
+      )}
 
-      {/* Conteúdo */}
       <section className="min-w-0 space-y-3">
         {activeItem && (
           <div className="flex items-center gap-2">
@@ -320,6 +301,32 @@ function RHWorkspace(props: any) {
         )}
 
         {section === "colaboradores" && (
+          <>
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
+              {([
+                { v: "lista", label: "Lista", icon: Users },
+                { v: "folha_mensal", label: "Folha Mensal", icon: CalendarDays },
+              ] as const).map((opt) => {
+                const Icon = opt.icon;
+                const active = colabSubTab === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setColabSubTab(opt.v)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
+                      active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {colabSubTab === "lista" && (
           <Card>
             <CardContent className="p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -445,20 +452,22 @@ function RHWorkspace(props: any) {
               )}
             </CardContent>
           </Card>
-        )}
+            )}
 
-        {section === "folha_mensal" && (
-          <FolhaMensalTab
-            colaboradores={colaboradores}
-            month={month}
-            expenses={expenses}
-            folhaAccountId={settings.folhaAccountId}
-            adiantamentoAccountId={settings.adiantamentoAccountId}
-            salaryOverrides={settings.salaryOverrides || {}}
-            payDay={settings.payDay}
-            onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
-            onGenerated={reload}
-          />
+            {colabSubTab === "folha_mensal" && (
+              <FolhaMensalTab
+                colaboradores={colaboradores}
+                month={month}
+                expenses={expenses}
+                folhaAccountId={settings.folhaAccountId}
+                adiantamentoAccountId={settings.adiantamentoAccountId}
+                salaryOverrides={settings.salaryOverrides || {}}
+                payDay={settings.payDay}
+                onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
+                onGenerated={reload}
+              />
+            )}
+          </>
         )}
 
         {section === "folha_lancamentos" && (

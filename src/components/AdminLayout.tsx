@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +52,11 @@ const menuItems = [
     title: "Recursos Humanos",
     icon: UserCog,
     children: [
-      { title: "Colaboradores", url: "/admin/rh", icon: UserCog },
+      { title: "Adiantamentos", url: "/admin/rh/adiantamentos", icon: HandCoins },
+      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Comissões", url: "/admin/rh/comissoes", icon: Percent },
+      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
+      { title: "Lançamentos Folha", url: "/admin/rh/lancamentos", icon: ListChecks },
     ],
   },
   {
