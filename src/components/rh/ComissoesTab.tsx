@@ -17,7 +17,9 @@ import { toast } from "sonner";
 import {
   calcularComissao,
   createComissao,
+  fetchAgregadosColheitaPorMotorista,
   fetchCtesElegiveisComissao,
+  type AgregadoColheitaRow,
   type ColaboradorRH,
   type CteElegivel,
 } from "@/services/rh";
@@ -52,6 +54,13 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   const [loadingCtes, setLoadingCtes] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
+
+  // Colheita
+  const [colheitaInicio, setColheitaInicio] = useState<string>("");
+  const [colheitaFim, setColheitaFim] = useState<string>("");
+  const [agregados, setAgregados] = useState<AgregadoColheitaRow[]>([]);
+  const [loadingAgregados, setLoadingAgregados] = useState(false);
+  const [agregadosSelecionados, setAgregadosSelecionados] = useState<Set<string>>(new Set());
 
   // Colaboradores elegíveis conforme o tipo
   const elegiveis = useMemo(() => {
@@ -94,6 +103,37 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       cancelled = true;
     };
   }, [tipo, operacao, colaboradorId]);
+
+  // Carrega agregados de colheita (Motorista + Colheita + colaborador)
+  useEffect(() => {
+    if (tipo !== "motorista" || operacao !== "colheita" || !colaboradorId) {
+      setAgregados([]);
+      setAgregadosSelecionados(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingAgregados(true);
+      try {
+        const data = await fetchAgregadosColheitaPorMotorista(
+          colaboradorId,
+          colheitaInicio || null,
+          colheitaFim || null
+        );
+        if (!cancelled) {
+          setAgregados(data);
+          setAgregadosSelecionados(new Set());
+        }
+      } catch (err: any) {
+        if (!cancelled) toast.error("Erro ao carregar colheitas: " + err.message);
+      } finally {
+        if (!cancelled) setLoadingAgregados(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim]);
 
   const pctNum = Math.max(0, Math.min(100, Number(percentual.replace(",", ".")) || 0));
   const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id));
@@ -154,6 +194,66 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     }
   };
 
+  // === Colheita ===
+  const agregadosSel = agregados.filter((a) => agregadosSelecionados.has(a.assignmentId));
+  const totalAgregadosBase = agregadosSel.reduce((s, a) => s + a.valorTotal, 0);
+  const totalAgregadosComissao = agregadosSel.reduce(
+    (s, a) => s + calcularComissao(a.valorTotal, pctNum),
+    0
+  );
+  const toggleAgr = (id: string) =>
+    setAgregadosSelecionados((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const toggleAgrAll = () => {
+    if (agregadosSelecionados.size === agregados.length) setAgregadosSelecionados(new Set());
+    else setAgregadosSelecionados(new Set(agregados.map((a) => a.assignmentId)));
+  };
+
+  const handleGerarColheita = async () => {
+    if (agregadosSel.length === 0) {
+      toast.error("Selecione ao menos uma colheita");
+      return;
+    }
+    if (pctNum <= 0) {
+      toast.error("Informe um percentual maior que zero");
+      return;
+    }
+    setSalvando(true);
+    try {
+      let ok = 0;
+      for (const a of agregadosSel) {
+        await createComissao({
+          colaborador_id: colaboradorId,
+          tipo: "motorista",
+          origem: "colheita",
+          referencia_id: a.assignmentId,
+          valor_base: a.valorTotal,
+          percentual: pctNum,
+          valor_calculado: calcularComissao(a.valorTotal, pctNum),
+          data_referencia: a.endDate || a.startDate,
+          observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
+        });
+        ok++;
+      }
+      toast.success(`${ok} comissão(ões) de colheita gerada(s) — pendentes para folha`);
+      const data = await fetchAgregadosColheitaPorMotorista(
+        colaboradorId,
+        colheitaInicio || null,
+        colheitaFim || null
+      );
+      setAgregados(data);
+      setAgregadosSelecionados(new Set());
+    } catch (err: any) {
+      toast.error("Erro ao gerar comissões: " + err.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
@@ -206,17 +306,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="frete">Frete (CT-e)</SelectItem>
-                <SelectItem value="colheita" disabled>
-                  <span className="flex items-center gap-2">
-                    Colheita
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] px-1.5 py-0 gap-1 text-muted-foreground"
-                    >
-                      <Wrench className="h-2.5 w-2.5" /> Em breve
-                    </Badge>
-                  </span>
-                </SelectItem>
+                <SelectItem value="colheita">Colheita (Diária)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -360,6 +450,161 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               </div>
             )}
           </div>
+        )}
+
+        {/* === Bloco Colheita === */}
+        {tipo === "motorista" && operacao === "colheita" && colaboradorId && (
+          <>
+            {/* Filtros de período + percentual */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_160px_1fr] gap-3 items-end max-w-4xl">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Início</Label>
+                <Input
+                  type="date"
+                  value={colheitaInicio}
+                  onChange={(e) => setColheitaInicio(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fim</Label>
+                <Input
+                  type="date"
+                  value={colheitaFim}
+                  onChange={(e) => setColheitaFim(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Percentual (%)</Label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={percentual}
+                  onChange={(e) => setPercentual(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Mesmo cálculo da aba <span className="font-medium">Agregados</span> dos relatórios:
+                dias × diária. Comissão = total × percentual.
+              </p>
+            </div>
+
+            {/* Lista de colheitas */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Colheitas do motorista</p>
+                {agregados.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={toggleAgrAll}
+                  >
+                    {agregadosSelecionados.size === agregados.length
+                      ? "Limpar"
+                      : "Selecionar todas"}
+                  </Button>
+                )}
+              </div>
+
+              {loadingAgregados ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando colheitas...
+                </div>
+              ) : agregados.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-6 text-center border border-dashed border-border rounded-md">
+                  Nenhuma colheita encontrada para este motorista no período selecionado.
+                </p>
+              ) : (
+                <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
+                  {agregados.map((a) => {
+                    const checked = agregadosSelecionados.has(a.assignmentId);
+                    const comissaoCalc = calcularComissao(a.valorTotal, pctNum);
+                    return (
+                      <label
+                        key={a.assignmentId}
+                        className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-muted/40 ${
+                          checked ? "bg-primary/5" : ""
+                        }`}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleAgr(a.assignmentId)}
+                        />
+                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{a.farmName}</p>
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {a.vehiclePlate ? `${a.vehiclePlate} · ` : ""}
+                              {new Date(a.startDate).toLocaleDateString("pt-BR")}
+                              {a.endDate
+                                ? ` → ${new Date(a.endDate).toLocaleDateString("pt-BR")}`
+                                : " → atual"}
+                            </p>
+                          </div>
+                          <div className="text-right tabular-nums">
+                            <p className="text-[10px] text-muted-foreground">Dias × Diária</p>
+                            <p className="font-medium">
+                              {a.diasTrabalhados} × {formatBRL(a.valorDiaria)}
+                            </p>
+                          </div>
+                          <div className="text-right tabular-nums min-w-[110px]">
+                            <p className="font-semibold">{formatBRL(a.valorTotal)}</p>
+                            <p className="text-[10px] text-primary">
+                              Comissão: {formatBRL(comissaoCalc)}
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {agregadosSelecionados.size > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-md bg-muted/40 border border-border">
+                  <div className="flex flex-wrap gap-4 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Selecionadas:</span>{" "}
+                      <span className="font-semibold">{agregadosSelecionados.size}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Base total:</span>{" "}
+                      <span className="font-semibold tabular-nums">
+                        {formatBRL(totalAgregadosBase)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Total comissão ({pctNum}%):
+                      </span>{" "}
+                      <span className="font-semibold text-primary tabular-nums">
+                        {formatBRL(totalAgregadosComissao)}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={handleGerarColheita}
+                    disabled={salvando}
+                  >
+                    {salvando ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    Gerar comissões
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
