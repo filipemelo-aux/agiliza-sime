@@ -211,22 +211,29 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   };
 
   // === Colheita ===
-  const agregadosSel = agregados.filter((a) => agregadosSelecionados.has(a.assignmentId));
+  const agregadosElegiveis = agregados.filter((a) => !a.jaComissionado);
+  const agregadosSel = agregados.filter(
+    (a) => agregadosSelecionados.has(a.assignmentId) && !a.jaComissionado
+  );
   const totalAgregadosBase = agregadosSel.reduce((s, a) => s + a.valorTotal, 0);
   const totalAgregadosComissao = agregadosSel.reduce(
     (s, a) => s + calcularComissao(a.valorTotal, pctNum),
     0
   );
-  const toggleAgr = (id: string) =>
+  const toggleAgr = (id: string) => {
+    const a = agregados.find((x) => x.assignmentId === id);
+    if (a?.jaComissionado) return;
     setAgregadosSelecionados((p) => {
       const n = new Set(p);
       if (n.has(id)) n.delete(id);
       else n.add(id);
       return n;
     });
+  };
   const toggleAgrAll = () => {
-    if (agregadosSelecionados.size === agregados.length) setAgregadosSelecionados(new Set());
-    else setAgregadosSelecionados(new Set(agregados.map((a) => a.assignmentId)));
+    if (agregadosSelecionados.size === agregadosElegiveis.length)
+      setAgregadosSelecionados(new Set());
+    else setAgregadosSelecionados(new Set(agregadosElegiveis.map((a) => a.assignmentId)));
   };
 
   const handleGerarColheita = async () => {
@@ -238,9 +245,17 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       toast.error("Informe um percentual maior que zero");
       return;
     }
+    const ok = await confirm({
+      title: "Gerar comissões",
+      description: `Serão geradas ${agregadosSel.length} comissão(ões) de colheita com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
+        totalAgregadosBase
+      )}\nTotal de comissões: ${formatBRL(totalAgregadosComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
+      confirmLabel: "Gerar",
+    });
+    if (!ok) return;
     setSalvando(true);
     try {
-      let ok = 0;
+      let okCount = 0;
       for (const a of agregadosSel) {
         await createComissao({
           colaborador_id: colaboradorId,
@@ -253,9 +268,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           data_referencia: a.endDate || a.startDate,
           observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
         });
-        ok++;
+        okCount++;
       }
-      toast.success(`${ok} comissão(ões) de colheita gerada(s) — pendentes para folha`);
+      toast.success(`${okCount} comissão(ões) de colheita gerada(s) — pendentes para folha`);
       const data = await fetchAgregadosColheitaPorMotorista(
         colaboradorId,
         colheitaInicio || null,
