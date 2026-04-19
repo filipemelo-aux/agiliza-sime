@@ -19,6 +19,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
+import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import {
   buildMetricsByColab,
@@ -40,7 +41,7 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-type RHSectionProp = "colaboradores" | "folha_pagamento" | "config";
+type RHSectionProp = "colaboradores" | "movimentacoes" | "folha_pagamento" | "config";
 
 export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
@@ -195,10 +196,12 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // ============================================================
 type RHSection =
   | "colaboradores"
+  | "movimentacoes"
   | "folha_pagamento"
   | "config";
 
-type FolhaSubTab = "folha_mensal" | "folha_lancamentos" | "adiantamentos" | "comissoes";
+type MovSubTab = "adiantamentos" | "comissoes" | "descontos";
+type FolhaSubTab = "em_aberto" | "previa" | "historico";
 
 interface NavItem {
   id: RHSection;
@@ -206,11 +209,6 @@ interface NavItem {
   icon: typeof Users;
   description?: string;
   badge?: string | number;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
 }
 
 function RHWorkspace(props: any) {
@@ -227,17 +225,27 @@ function RHWorkspace(props: any) {
   const section: RHSection = forcedSection ?? internalSection;
   const setSection = setInternalSection;
 
-  // Sub-tab dentro de "Folha de Pagamento"
-  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("folha_mensal");
-  // Modal wizard de geração da folha
+  const [movSubTab, setMovSubTab] = useState<MovSubTab>("adiantamentos");
+  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("em_aberto");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
   const { user } = useAuth();
 
+  // Folha em aberto = despesas folha ainda pendentes/parciais/atrasadas
+  const folhaEmAberto = useMemo(
+    () => folhaExpenses.filter((e: Expense) => e.status !== "pago" && e.status !== "cancelado"),
+    [folhaExpenses]
+  );
+  const folhaHistorico = useMemo(
+    () => folhaExpenses.filter((e: Expense) => e.status === "pago" || e.status === "cancelado"),
+    [folhaExpenses]
+  );
+
   const allItems: NavItem[] = [
-    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro do RH", badge: totalAtivos },
-    { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Folha mensal, adiantamentos, comissões e descontos" },
-    { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
+    { id: "movimentacoes", label: "Movimentações", icon: HandCoins, description: "Adiantamentos, comissões e descontos" },
+    { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Em aberto, prévia e histórico" },
+    { id: "config", label: "Configurações", icon: Settings2, description: "Salários, contas e regras" },
   ];
 
   const activeItem = allItems.find((i) => i.id === section);
@@ -431,16 +439,67 @@ function RHWorkspace(props: any) {
           </Card>
         )}
 
+        {section === "movimentacoes" && (
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
+              {([
+                { v: "adiantamentos", label: "Adiantamentos / Vales", icon: HandCoins },
+                { v: "comissoes", label: "Comissões", icon: Percent },
+                { v: "descontos", label: "Descontos", icon: UserMinus },
+              ] as const).map((opt) => {
+                const Icon = opt.icon;
+                const active = movSubTab === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setMovSubTab(opt.v)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
+                      active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {movSubTab === "adiantamentos" && (
+              <Card>
+                <CardContent className="p-4">
+                  <ExpenseList
+                    items={adiantExpenses}
+                    enrichName={enrichName}
+                    emptyHint={
+                      settings.adiantamentoAccountId
+                        ? "Nenhum adiantamento neste mês. Lance via Contas a Pagar usando a categoria configurada."
+                        : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
+                    }
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {movSubTab === "comissoes" && (
+              <ComissoesTab colaboradores={colaboradores} />
+            )}
+
+            {movSubTab === "descontos" && (
+              <DescontosTab colaboradores={colaboradores} />
+            )}
+          </div>
+        )}
+
         {section === "folha_pagamento" && (
           <div className="space-y-3">
-            {/* Toolbar: sub-tabs + Gerar nova folha */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
                 {([
-                  { v: "folha_mensal", label: "Folha Mensal", icon: CalendarDays },
-                  { v: "folha_lancamentos", label: "Folha gerada", icon: ListChecks },
-                  { v: "adiantamentos", label: "Adiantamentos", icon: HandCoins },
-                  { v: "comissoes", label: "Comissões", icon: Percent },
+                  { v: "em_aberto", label: "Em aberto", icon: ListChecks, count: folhaEmAberto.length },
+                  { v: "previa", label: "Prévia", icon: CalendarDays, count: undefined as number | undefined },
+                  { v: "historico", label: "Histórico", icon: History, count: folhaHistorico.length },
                 ] as const).map((opt) => {
                   const Icon = opt.icon;
                   const active = folhaSubTab === opt.v;
@@ -456,6 +515,9 @@ function RHWorkspace(props: any) {
                     >
                       <Icon className="h-3.5 w-3.5" />
                       {opt.label}
+                      {opt.count != null && opt.count > 0 && (
+                        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] ml-0.5">{opt.count}</Badge>
+                      )}
                     </button>
                   );
                 })}
@@ -471,7 +533,23 @@ function RHWorkspace(props: any) {
               </Button>
             </div>
 
-            {folhaSubTab === "folha_mensal" && (
+            {folhaSubTab === "em_aberto" && (
+              <Card>
+                <CardContent className="p-4">
+                  <ExpenseList
+                    items={folhaEmAberto}
+                    enrichName={enrichName}
+                    emptyHint={
+                      settings.folhaAccountId
+                        ? "Nenhuma folha em aberto neste mês. Use 'Gerar nova folha' para iniciar."
+                        : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
+                    }
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {folhaSubTab === "previa" && (
               <FolhaMensalTab
                 colaboradores={colaboradores}
                 month={month}
@@ -485,43 +563,18 @@ function RHWorkspace(props: any) {
               />
             )}
 
-            {folhaSubTab === "folha_lancamentos" && (
+            {folhaSubTab === "historico" && (
               <Card>
                 <CardContent className="p-4">
                   <ExpenseList
-                    items={folhaExpenses}
+                    items={folhaHistorico}
                     enrichName={enrichName}
-                    emptyHint={
-                      settings.folhaAccountId
-                        ? "Nenhum lançamento de folha neste mês."
-                        : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
-                    }
+                    emptyHint="Nenhuma folha quitada neste mês."
                   />
                 </CardContent>
               </Card>
             )}
 
-            {folhaSubTab === "adiantamentos" && (
-              <Card>
-                <CardContent className="p-4">
-                  <ExpenseList
-                    items={adiantExpenses}
-                    enrichName={enrichName}
-                    emptyHint={
-                      settings.adiantamentoAccountId
-                        ? "Nenhum adiantamento neste mês."
-                        : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
-                    }
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {folhaSubTab === "comissoes" && (
-              <ComissoesTab colaboradores={colaboradores} />
-            )}
-
-            {/* Wizard modal de geração da folha mensal */}
             {matrizId && user?.id && (
               <GerarFolhaWizard
                 open={wizardOpen}
@@ -540,6 +593,7 @@ function RHWorkspace(props: any) {
             )}
           </div>
         )}
+
 
         {section === "config" && (
           <div className="space-y-4">
