@@ -263,93 +263,72 @@ export function FolhaPreviaTab({
         </CardContent>
       </Card>
 
-      {/* Linhas por colaborador */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando lançamentos...
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum colaborador ativo.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
-                  <tr>
-                    <th className="text-left px-3 py-2">Colaborador</th>
-                    <th className="text-right px-3 py-2">Salário base</th>
-                    <th className="text-right px-3 py-2 text-amber-600">− Adiantamentos</th>
-                    <th className="text-right px-3 py-2 text-rose-600">− Descontos</th>
-                    <th className="text-right px-3 py-2 text-emerald-600">+ Comissões</th>
-                    <th className="text-right px-3 py-2">= Líquido</th>
-                    <th className="text-right px-3 py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {rows.map((r) => (
-                    <tr key={r.c.id} className="hover:bg-muted/20">
-                      <td className="px-3 py-2">
-                        <div className="font-medium truncate">{r.c.full_name}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {r.c.tipo === "motorista" ? "Motorista" : r.c.cargo || "Colaborador"}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{formatBRL(r.salary)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-amber-600">
-                        {r.adiant > 0 ? formatBRL(r.adiant) : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-rose-600">
-                        {r.descontos > 0 ? formatBRL(r.descontos) : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-emerald-600">
-                        {r.comissoes > 0 ? formatBRL(r.comissoes) : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums font-semibold">
-                        {formatBRL(r.liquido)}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {r.existing ? (
-                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[9px]">
-                            Já gerada
-                          </Badge>
-                        ) : r.liquido <= 0 ? (
-                          <Badge variant="outline" className="text-[9px]">Sem líquido</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] text-primary border-primary/40">
-                            Pendente
-                          </Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-muted/30 text-[11px] font-semibold">
-                  <tr>
-                    <td className="px-3 py-2 text-right">Totais</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatBRL(totals.base)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-amber-600">
-                      {formatBRL(totals.adiant)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-rose-600">
-                      {formatBRL(totals.desc)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-emerald-600">
-                      {formatBRL(totals.com)}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-primary">
-                      {formatBRL(totals.liq)}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Cards responsivos por colaborador */}
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando lançamentos...
+          </CardContent>
+        </Card>
+      ) : rows.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-sm text-muted-foreground">
+            Nenhum colaborador ativo.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {rows.map((r) => (
+            <Card key={r.c.id} className="overflow-hidden">
+              <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {r.c.tipo === "motorista" ? "Motorista" : r.c.cargo || "Colaborador"}
+                  </p>
+                </div>
+                {r.existing ? (
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[9px] shrink-0">
+                    Já gerada
+                  </Badge>
+                ) : r.liquido <= 0 ? (
+                  <Badge variant="outline" className="text-[9px] shrink-0">Sem líquido</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[9px] text-primary border-primary/40 shrink-0">
+                    Pendente
+                  </Badge>
+                )}
+              </div>
+              <CardContent className="p-3 grid grid-cols-2 gap-2">
+                <Linha label="Salário base" value={formatBRL(r.salary)} />
+                <Linha
+                  label="− Adiantamentos"
+                  value={r.adiant > 0 ? formatBRL(r.adiant) : "—"}
+                  color="text-amber-600"
+                />
+                <Linha
+                  label="− Descontos"
+                  value={r.descontos > 0 ? formatBRL(r.descontos) : "—"}
+                  color="text-rose-600"
+                />
+                <Linha
+                  label="+ Comissões"
+                  value={r.comissoes > 0 ? formatBRL(r.comissoes) : "—"}
+                  color="text-emerald-600"
+                />
+                <div className="col-span-2 mt-1 pt-2 border-t border-border flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    = Líquido
+                  </span>
+                  <span className="text-base font-bold text-primary tabular-nums">
+                    {formatBRL(r.liquido)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] text-foreground">
         <p className="font-semibold mb-1">Ordem de cálculo (não alterar):</p>
@@ -380,6 +359,17 @@ function Total({
       <div className={`text-sm tabular-nums ${color || "text-foreground"} ${strong ? "font-bold" : ""}`}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function Linha({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[9px] uppercase text-muted-foreground tracking-wide">{label}</p>
+      <p className={`text-xs font-medium tabular-nums truncate ${color || "text-foreground"}`}>
+        {value}
+      </p>
     </div>
   );
 }

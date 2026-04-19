@@ -232,31 +232,38 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
               {viewItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem itens.</p>
               ) : (
-                <div className="rounded-md border border-border overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/40 text-[10px] uppercase text-muted-foreground">
-                      <tr>
-                        <th className="text-left px-3 py-2">Colaborador</th>
-                        <th className="text-right px-3 py-2">Base</th>
-                        <th className="text-right px-3 py-2">−A</th>
-                        <th className="text-right px-3 py-2">−D</th>
-                        <th className="text-right px-3 py-2">+C</th>
-                        <th className="text-right px-3 py-2">Líq.</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {viewItems.map((i) => (
-                        <tr key={i.id}>
-                          <td className="px-3 py-1.5 truncate">{i.colaborador_nome}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">{formatBRL(Number(i.salario_base))}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums text-amber-600">{formatBRL(Number(i.adiantamentos))}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">{formatBRL(Number(i.descontos))}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums text-emerald-600">{formatBRL(Number(i.comissoes))}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{formatBRL(Number(i.liquido))}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {viewItems.map((i) => (
+                    <Card key={i.id}>
+                      <CardContent className="p-3 space-y-1.5">
+                        <p className="text-sm font-semibold truncate">{i.colaborador_nome}</p>
+                        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                          <div>
+                            <span className="text-muted-foreground">Base: </span>
+                            <span className="tabular-nums font-medium">{formatBRL(Number(i.salario_base))}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">−A: </span>
+                            <span className="tabular-nums text-amber-600">{formatBRL(Number(i.adiantamentos))}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">−D: </span>
+                            <span className="tabular-nums text-rose-600">{formatBRL(Number(i.descontos))}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">+C: </span>
+                            <span className="tabular-nums text-emerald-600">{formatBRL(Number(i.comissoes))}</span>
+                          </div>
+                        </div>
+                        <div className="pt-1.5 border-t border-border flex items-center justify-between">
+                          <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Líquido</span>
+                          <span className="text-sm font-bold text-primary tabular-nums">
+                            {formatBRL(Number(i.liquido))}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>

@@ -184,23 +184,41 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
         ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum desconto pendente para este mês.</p>
         ) : (
-          <div className="rounded-md border border-border divide-y divide-border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {items.map((d) => (
-              <div key={d.id} className="px-3 py-2.5 flex items-center justify-between gap-2 text-sm">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate">{colabName(d.colaborador_id)}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    <Badge variant="outline" className="text-[9px] mr-1 px-1 py-0">
+              <Card key={d.id} className="hover:shadow-sm transition-shadow border-rose-200/60">
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium truncate flex-1 min-w-0">
+                      {colabName(d.colaborador_id)}
+                    </p>
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0">
                       {TIPOS.find((t) => t.v === d.tipo)?.label || d.tipo}
                     </Badge>
-                    {d.descricao || "Sem descrição"} · {new Date(d.data_referencia).toLocaleDateString("pt-BR")}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {d.descricao || "Sem descrição"}
                   </p>
-                </div>
-                <span className="font-semibold tabular-nums text-rose-600">- {formatBRL(Number(d.valor))}</span>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(d)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
+                      {new Date(d.data_referencia).toLocaleDateString("pt-BR")}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold tabular-nums text-rose-600 text-sm">
+                        - {formatBRL(Number(d.valor))}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive"
+                        onClick={() => handleDelete(d)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

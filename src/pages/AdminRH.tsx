@@ -692,27 +692,33 @@ function ExpenseList({
   }
   const total = items.reduce((s, e) => s + Number(e.valor_total || 0), 0);
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{items.length} lançamento(s)</span>
         <span className="font-semibold text-foreground">Total: {formatBRL(total)}</span>
       </div>
-      <div className="divide-y divide-border rounded-md border border-border">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
         {items.map((e) => (
-          <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-            <div className="min-w-0">
-              <p className="font-medium truncate">{e.descricao}</p>
+          <Card key={e.id} className="hover:shadow-sm transition-shadow">
+            <CardContent className="p-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-medium text-sm truncate flex-1 min-w-0">{e.descricao}</p>
+                {statusBadge(e.status)}
+              </div>
               <p className="text-[11px] text-muted-foreground truncate">
-                {(enrichName ? enrichName(e) : e.favorecido_nome) || "—"} · Emissão{" "}
-                {new Date(e.data_emissao).toLocaleDateString("pt-BR")}
-                {e.data_vencimento ? ` · Venc. ${new Date(e.data_vencimento).toLocaleDateString("pt-BR")}` : ""}
+                {(enrichName ? enrichName(e) : e.favorecido_nome) || "—"}
               </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {statusBadge(e.status)}
-              <span className="font-semibold tabular-nums">{formatBRL(Number(e.valor_total))}</span>
-            </div>
-          </div>
+              <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                <div className="text-[10px] text-muted-foreground space-y-0.5">
+                  <div>Emissão: {new Date(e.data_emissao).toLocaleDateString("pt-BR")}</div>
+                  {e.data_vencimento && (
+                    <div>Venc.: {new Date(e.data_vencimento).toLocaleDateString("pt-BR")}</div>
+                  )}
+                </div>
+                <span className="font-semibold tabular-nums text-sm">{formatBRL(Number(e.valor_total))}</span>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
