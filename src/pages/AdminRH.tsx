@@ -695,18 +695,39 @@ function FolhaMensalTab({
   const [generating, setGenerating] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [comissoesPend, setComissoesPend] = useState<Comissao[]>([]);
+
+  // Carrega comissões pendentes do mês para os colaboradores ativos
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = colaboradores.filter((c) => c.ativo).map((c) => c.id);
+      if (ids.length === 0) {
+        setComissoesPend([]);
+        return;
+      }
+      try {
+        const data = await fetchComissoesPendentesForMonth(ids, month);
+        if (!cancelled) setComissoesPend(data);
+      } catch (e: any) {
+        if (!cancelled) setComissoesPend([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [colaboradores, month]);
 
   // Pure-function view-model from services (no duplicated business logic)
   const dueDate = useMemo(() => computeDueDate(month, payDay), [month, payDay]);
   const emissionDate = useMemo(() => computeEmissionDate(month), [month]);
 
   const rows = useMemo(
-    () => computePayrollRows(colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides),
-    [colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides]
+    () => computePayrollRows(colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides, comissoesPend),
+    [colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides, comissoesPend]
   );
 
   const totalSalarios = rows.reduce((s, r) => s + r.salary, 0);
   const totalAdiant = rows.reduce((s, r) => s + r.adiant, 0);
+  const totalComissoes = rows.reduce((s, r) => s + r.comissoes, 0);
   const totalLiquido = rows.reduce((s, r) => s + r.liquido, 0);
 
   const handleGenerate = async (row: (typeof rows)[number]) => {
