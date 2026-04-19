@@ -12,8 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { HandCoins, Wrench, Loader2, Save } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HandCoins, Wrench, Loader2, Save, CheckCircle2, History, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { HistoricoComissoesTab } from "./HistoricoComissoesTab";
 import {
   calcularComissao,
   createComissao,
