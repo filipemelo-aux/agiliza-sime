@@ -208,17 +208,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="frete">Frete (CT-e)</SelectItem>
-                <SelectItem value="colheita" disabled>
-                  <span className="flex items-center gap-2">
-                    Colheita
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] px-1.5 py-0 gap-1 text-muted-foreground"
-                    >
-                      <Wrench className="h-2.5 w-2.5" /> Em breve
-                    </Badge>
-                  </span>
-                </SelectItem>
+                <SelectItem value="colheita">Colheita (Diária)</SelectItem>
               </SelectContent>
             </Select>
           </div>
