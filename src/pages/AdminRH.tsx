@@ -567,7 +567,7 @@ function RHWorkspace(props: any) {
   );
 }
 
-
+function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string }> = {
     pago: { label: "Pago", cls: "bg-green-100 text-green-700" },
     pendente: { label: "Pendente", cls: "bg-amber-100 text-amber-700" },
