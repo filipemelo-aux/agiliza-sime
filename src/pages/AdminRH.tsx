@@ -22,6 +22,7 @@ import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
+import { FolhaPreviaTab } from "@/components/rh/FolhaPreviaTab";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -545,16 +546,21 @@ function RHWorkspace(props: any) {
             )}
 
             {folhaSubTab === "previa" && (
-              <FolhaMensalTab
+              <FolhaPreviaTab
                 colaboradores={colaboradores}
-                month={month}
                 expenses={expenses}
+                month={month}
                 folhaAccountId={settings.folhaAccountId}
                 adiantamentoAccountId={settings.adiantamentoAccountId}
                 salaryOverrides={settings.salaryOverrides || {}}
                 payDay={settings.payDay}
-                onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
-                onGenerated={reload}
+                empresaId={matrizId || undefined}
+                userId={user?.id}
+                onConfirmed={() => {
+                  reload();
+                  setFolhaSubTab("em_aberto");
+                }}
+                onBack={() => setFolhaSubTab("em_aberto")}
               />
             )}
 
