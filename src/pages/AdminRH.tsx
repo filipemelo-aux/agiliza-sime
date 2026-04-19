@@ -304,32 +304,6 @@ function RHWorkspace(props: any) {
         )}
 
         {section === "colaboradores" && (
-          <>
-            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-              {([
-                { v: "lista", label: "Lista", icon: Users },
-                { v: "folha_mensal", label: "Folha Mensal", icon: CalendarDays },
-              ] as const).map((opt) => {
-                const Icon = opt.icon;
-                const active = colabSubTab === opt.v;
-                return (
-                  <button
-                    key={opt.v}
-                    type="button"
-                    onClick={() => setColabSubTab(opt.v)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                      active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {colabSubTab === "lista" && (
           <Card>
             <CardContent className="p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -455,9 +429,49 @@ function RHWorkspace(props: any) {
               )}
             </CardContent>
           </Card>
-            )}
+        )}
 
-            {colabSubTab === "folha_mensal" && (
+        {section === "folha_pagamento" && (
+          <div className="space-y-3">
+            {/* Toolbar: sub-tabs + Gerar nova folha */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
+                {([
+                  { v: "folha_mensal", label: "Folha Mensal", icon: CalendarDays },
+                  { v: "folha_lancamentos", label: "Folha gerada", icon: ListChecks },
+                  { v: "adiantamentos", label: "Adiantamentos", icon: HandCoins },
+                  { v: "comissoes", label: "Comissões", icon: Percent },
+                ] as const).map((opt) => {
+                  const Icon = opt.icon;
+                  const active = folhaSubTab === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setFolhaSubTab(opt.v)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
+                        active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => setWizardOpen(true)}
+                disabled={!settings.folhaAccountId}
+                title={!settings.folhaAccountId ? "Configure a conta 'Salários' em Configurações" : "Abrir assistente de geração da folha"}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Gerar nova folha
+              </Button>
+            </div>
+
+            {folhaSubTab === "folha_mensal" && (
               <FolhaMensalTab
                 colaboradores={colaboradores}
                 month={month}
@@ -470,37 +484,8 @@ function RHWorkspace(props: any) {
                 onGenerated={reload}
               />
             )}
-          </>
-        )}
 
-        {section === "lancamentos" && (
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-              {([
-                { v: "folha_lancamentos", label: "Folha", icon: ListChecks },
-                { v: "adiantamentos", label: "Adiantamentos", icon: HandCoins },
-                { v: "comissoes", label: "Comissões", icon: Percent },
-              ] as const).map((opt) => {
-                const Icon = opt.icon;
-                const active = lancSubTab === opt.v;
-                return (
-                  <button
-                    key={opt.v}
-                    type="button"
-                    onClick={() => setLancSubTab(opt.v)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                      active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {lancSubTab === "folha_lancamentos" && (
+            {folhaSubTab === "folha_lancamentos" && (
               <Card>
                 <CardContent className="p-4">
                   <ExpenseList
@@ -516,7 +501,7 @@ function RHWorkspace(props: any) {
               </Card>
             )}
 
-            {lancSubTab === "adiantamentos" && (
+            {folhaSubTab === "adiantamentos" && (
               <Card>
                 <CardContent className="p-4">
                   <ExpenseList
@@ -532,8 +517,26 @@ function RHWorkspace(props: any) {
               </Card>
             )}
 
-            {lancSubTab === "comissoes" && (
+            {folhaSubTab === "comissoes" && (
               <ComissoesTab colaboradores={colaboradores} />
+            )}
+
+            {/* Wizard modal de geração da folha mensal */}
+            {matrizId && user?.id && (
+              <GerarFolhaWizard
+                open={wizardOpen}
+                onClose={() => setWizardOpen(false)}
+                colaboradores={colaboradores}
+                expenses={expenses}
+                month={month}
+                folhaAccountId={settings.folhaAccountId}
+                adiantamentoAccountId={settings.adiantamentoAccountId}
+                salaryOverrides={settings.salaryOverrides || {}}
+                payDay={settings.payDay}
+                empresaId={matrizId}
+                userId={user.id}
+                onGenerated={reload}
+              />
             )}
           </div>
         )}
