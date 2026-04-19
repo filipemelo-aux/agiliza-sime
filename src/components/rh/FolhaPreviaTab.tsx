@@ -362,3 +362,14 @@ function Total({
     </div>
   );
 }
+
+function Linha({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[9px] uppercase text-muted-foreground tracking-wide">{label}</p>
+      <p className={`text-xs font-medium tabular-nums truncate ${color || "text-foreground"}`}>
+        {value}
+      </p>
+    </div>
+  );
+}

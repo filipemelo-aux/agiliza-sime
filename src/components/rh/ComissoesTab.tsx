@@ -425,7 +425,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                 aparecem aqui.
               </p>
             ) : (
-              <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[520px] overflow-auto pr-1">
                 {ctes.map((c) => {
                   const checked = selecionados.has(c.id);
                   const comissaoCalc = calcularComissao(c.valor_frete, pctNum);
@@ -433,46 +433,51 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                   return (
                     <label
                       key={c.id}
-                      className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                      className={`block rounded-md border p-3 text-xs transition-colors ${
                         isDone
-                          ? "opacity-60 cursor-not-allowed bg-muted/20"
-                          : "cursor-pointer"
-                      } ${checked && !isDone ? "bg-primary/5" : ""}`}
+                          ? "opacity-60 cursor-not-allowed bg-muted/20 border-border"
+                          : "cursor-pointer hover:border-primary/40 hover:shadow-sm border-border"
+                      } ${checked && !isDone ? "bg-primary/5 border-primary/40" : "bg-background"}`}
                     >
-                      <Checkbox
-                        checked={checked && !isDone}
-                        disabled={isDone}
-                        onCheckedChange={() => toggle(c.id)}
-                      />
-                      <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
-                        <div className="font-mono text-[11px] text-muted-foreground">
-                          CT-e {c.numero ?? "—"}/{c.serie}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium flex items-center gap-1.5">
-                            {c.motorista_nome}
+                      <div className="flex items-start gap-2">
+                        <Checkbox
+                          checked={checked && !isDone}
+                          disabled={isDone}
+                          onCheckedChange={() => toggle(c.id)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-mono text-[10px] text-muted-foreground">
+                              CT-e {c.numero ?? "—"}/{c.serie}
+                            </p>
                             {isDone && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
-                              >
-                                <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-1 shrink-0">
+                                <CheckCircle2 className="h-2.5 w-2.5" /> Gerada
                               </Badge>
                             )}
-                          </p>
+                          </div>
+                          <p className="font-medium truncate">{c.motorista_nome}</p>
                           <p className="truncate text-[10px] text-muted-foreground">
                             {c.remetente_nome} → {c.destinatario_nome}
-                            {c.data_emissao &&
-                              ` · ${new Date(c.data_emissao).toLocaleDateString("pt-BR")}`}
                           </p>
-                        </div>
-                        <div className="text-right tabular-nums">
-                          <p className="font-semibold">{formatBRL(c.valor_frete)}</p>
-                          {!isDone && (
-                            <p className="text-[10px] text-primary">
-                              Comissão: {formatBRL(comissaoCalc)}
+                          {c.data_emissao && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(c.data_emissao).toLocaleDateString("pt-BR")}
                             </p>
                           )}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                            <div>
+                              <p className="text-[9px] uppercase text-muted-foreground tracking-wide">Frete</p>
+                              <p className="font-semibold tabular-nums">{formatBRL(c.valor_frete)}</p>
+                            </div>
+                            {!isDone && (
+                              <div className="text-right">
+                                <p className="text-[9px] uppercase text-muted-foreground tracking-wide">Comissão</p>
+                                <p className="font-semibold text-primary tabular-nums">{formatBRL(comissaoCalc)}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </label>
@@ -570,56 +575,58 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                   Nenhuma colheita encontrada para este motorista no período selecionado.
                 </p>
               ) : (
-                <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[520px] overflow-auto pr-1">
                   {agregados.map((a) => {
                     const checked = agregadosSelecionados.has(a.assignmentId);
                     const isDone = a.jaComissionado;
                     return (
                       <label
                         key={a.assignmentId}
-                        className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                        className={`block rounded-md border p-3 text-xs transition-colors ${
                           isDone
-                            ? "opacity-60 cursor-not-allowed bg-muted/20"
-                            : "cursor-pointer"
-                        } ${checked && !isDone ? "bg-primary/5" : ""}`}
+                            ? "opacity-60 cursor-not-allowed bg-muted/20 border-border"
+                            : "cursor-pointer hover:border-primary/40 hover:shadow-sm border-border"
+                        } ${checked && !isDone ? "bg-primary/5 border-primary/40" : "bg-background"}`}
                       >
-                        <Checkbox
-                          checked={checked && !isDone}
-                          disabled={isDone}
-                          onCheckedChange={() => toggleAgr(a.assignmentId)}
-                        />
-                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium flex items-center gap-1.5">
-                              {a.farmName}
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            checked={checked && !isDone}
+                            disabled={isDone}
+                            onCheckedChange={() => toggleAgr(a.assignmentId)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium truncate">{a.farmName}</p>
                               {isDone && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
-                                >
-                                  <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-1 shrink-0">
+                                  <CheckCircle2 className="h-2.5 w-2.5" /> Gerada
                                 </Badge>
                               )}
-                            </p>
-                            <p className="truncate text-[10px] text-muted-foreground">
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate">
                               {a.vehiclePlate ? `${a.vehiclePlate} · ` : ""}
                               {new Date(a.startDate).toLocaleDateString("pt-BR")}
                               {a.endDate
                                 ? ` → ${new Date(a.endDate).toLocaleDateString("pt-BR")}`
                                 : " → atual"}
                             </p>
-                          </div>
-                          <div className="text-right tabular-nums">
-                            <p className="text-[10px] text-muted-foreground">Dias × Diária</p>
-                            <p className="font-medium">
-                              {a.diasTrabalhados} × {formatBRL(a.valorDiaria)}
-                            </p>
-                          </div>
-                          <div className="text-right tabular-nums min-w-[110px]">
-                            <p className="font-semibold">{formatBRL(a.valorTotal)}</p>
-                            {!isDone && (
-                              <p className="text-[10px] text-primary">Comissão integral</p>
-                            )}
+                            <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                              <div>
+                                <p className="text-[9px] uppercase text-muted-foreground tracking-wide">
+                                  Dias × Diária
+                                </p>
+                                <p className="font-medium tabular-nums">
+                                  {a.diasTrabalhados} × {formatBRL(a.valorDiaria)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[9px] uppercase text-muted-foreground tracking-wide">Total</p>
+                                <p className="font-semibold text-primary tabular-nums">
+                                  {formatBRL(a.valorTotal)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </label>
