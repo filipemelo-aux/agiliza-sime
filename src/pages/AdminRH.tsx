@@ -25,11 +25,13 @@ import {
   computeEmissionDate,
   computePayrollRows,
   createPayrollExpense,
+  fetchComissoesPendentesForMonth,
   fetchExpensesByColaborador,
   filterByAccount,
   resolveBaseSalary,
   totalsForMonth,
   type ColaboradorRH,
+  type Comissao,
   type Expense,
 } from "@/services/rh";
 
@@ -693,18 +695,39 @@ function FolhaMensalTab({
   const [generating, setGenerating] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [comissoesPend, setComissoesPend] = useState<Comissao[]>([]);
+
+  // Carrega comissões pendentes do mês para os colaboradores ativos
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = colaboradores.filter((c) => c.ativo).map((c) => c.id);
+      if (ids.length === 0) {
+        setComissoesPend([]);
+        return;
+      }
+      try {
+        const data = await fetchComissoesPendentesForMonth(ids, month);
+        if (!cancelled) setComissoesPend(data);
+      } catch (e: any) {
+        if (!cancelled) setComissoesPend([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [colaboradores, month]);
 
   // Pure-function view-model from services (no duplicated business logic)
   const dueDate = useMemo(() => computeDueDate(month, payDay), [month, payDay]);
   const emissionDate = useMemo(() => computeEmissionDate(month), [month]);
 
   const rows = useMemo(
-    () => computePayrollRows(colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides),
-    [colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides]
+    () => computePayrollRows(colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides, comissoesPend),
+    [colaboradores, expenses, folhaAccountId, adiantamentoAccountId, salaryOverrides, comissoesPend]
   );
 
   const totalSalarios = rows.reduce((s, r) => s + r.salary, 0);
   const totalAdiant = rows.reduce((s, r) => s + r.adiant, 0);
+  const totalComissoes = rows.reduce((s, r) => s + r.comissoes, 0);
   const totalLiquido = rows.reduce((s, r) => s + r.liquido, 0);
 
   const handleGenerate = async (row: (typeof rows)[number]) => {
@@ -725,9 +748,13 @@ function FolhaMensalTab({
       return;
     }
 
+    const comissoesTxt = row.comissoes > 0
+      ? `\n\nInclui ${formatBRL(row.comissoes)} em comissões pendentes (${row.comissaoIds.length} item${row.comissaoIds.length === 1 ? "" : "s"}), que serão marcadas como "enviadas para folha".`
+      : "";
+
     const ok = await confirm({
       title: "Gerar pagamento de folha?",
-      description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).`,
+      description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).${comissoesTxt}`,
       confirmLabel: "Gerar",
     });
     if (!ok) return;
@@ -743,6 +770,8 @@ function FolhaMensalTab({
       liquido: row.liquido,
       salarioBase: row.salary,
       adiantamentos: row.adiant,
+      comissoes: row.comissoes,
+      comissaoIds: row.comissaoIds,
       emissionDate,
       dueDate,
       folhaAccountId,
@@ -777,8 +806,9 @@ function FolhaMensalTab({
               {new Date(dueDate).toLocaleDateString("pt-BR")}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span>Salários: <span className="font-semibold text-foreground">{formatBRL(totalSalarios)}</span></span>
+            <span>Comissões: <span className="font-semibold text-emerald-600">{formatBRL(totalComissoes)}</span></span>
             <span>Adiant.: <span className="font-semibold text-amber-600">{formatBRL(totalAdiant)}</span></span>
             <span>Líquido: <span className="font-semibold text-primary">{formatBRL(totalLiquido)}</span></span>
           </div>
@@ -799,6 +829,7 @@ function FolhaMensalTab({
                 <tr>
                   <th className="text-left px-3 py-2">Colaborador</th>
                   <th className="text-right px-3 py-2">Salário base</th>
+                  <th className="text-right px-3 py-2">Comissões</th>
                   <th className="text-right px-3 py-2">Adiantamentos</th>
                   <th className="text-right px-3 py-2">Líquido</th>
                   <th className="text-right px-3 py-2">Ação</th>
@@ -842,6 +873,14 @@ function FolhaMensalTab({
                           {formatBRL(r.salary)}
                           <Pencil className="h-3 w-3 opacity-60" />
                         </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-emerald-600">
+                      {r.comissoes > 0 ? `+ ${formatBRL(r.comissoes)}` : formatBRL(0)}
+                      {r.comissoes > 0 && (
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {r.comissaoIds.length} pend.
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-amber-600">
