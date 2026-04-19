@@ -39,7 +39,9 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-export default function AdminRH() {
+type RHSectionProp = "colaboradores" | "folha_lancamentos" | "adiantamentos" | "comissoes" | "config";
+
+export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"all" | "colaborador" | "motorista">("all");
   const [month, setMonth] = useState(() => {
