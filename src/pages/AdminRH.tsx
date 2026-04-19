@@ -748,9 +748,13 @@ function FolhaMensalTab({
       return;
     }
 
+    const comissoesTxt = row.comissoes > 0
+      ? `\n\nInclui ${formatBRL(row.comissoes)} em comissões pendentes (${row.comissaoIds.length} item${row.comissaoIds.length === 1 ? "" : "s"}), que serão marcadas como "enviadas para folha".`
+      : "";
+
     const ok = await confirm({
       title: "Gerar pagamento de folha?",
-      description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).`,
+      description: `Será criada uma despesa em Contas a Pagar para ${row.c.full_name} no valor de ${formatBRL(row.liquido)} (vencimento ${new Date(dueDate).toLocaleDateString("pt-BR")}).${comissoesTxt}`,
       confirmLabel: "Gerar",
     });
     if (!ok) return;
@@ -766,6 +770,8 @@ function FolhaMensalTab({
       liquido: row.liquido,
       salarioBase: row.salary,
       adiantamentos: row.adiant,
+      comissoes: row.comissoes,
+      comissaoIds: row.comissaoIds,
       emissionDate,
       dueDate,
       folhaAccountId,
@@ -800,8 +806,9 @@ function FolhaMensalTab({
               {new Date(dueDate).toLocaleDateString("pt-BR")}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span>Salários: <span className="font-semibold text-foreground">{formatBRL(totalSalarios)}</span></span>
+            <span>Comissões: <span className="font-semibold text-emerald-600">{formatBRL(totalComissoes)}</span></span>
             <span>Adiant.: <span className="font-semibold text-amber-600">{formatBRL(totalAdiant)}</span></span>
             <span>Líquido: <span className="font-semibold text-primary">{formatBRL(totalLiquido)}</span></span>
           </div>
