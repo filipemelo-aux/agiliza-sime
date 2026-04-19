@@ -33,6 +33,7 @@ export type AgregadoColheitaRow = {
   diasTrabalhados: number;
   valorDiaria: number;
   valorTotal: number;
+  jaComissionado: boolean;
 };
 
 function getLocalDateISO(): string {
@@ -115,7 +116,17 @@ export async function fetchAgregadosColheitaPorMotorista(
     : { data: [] as any[] };
   const vehMap = new Map<string, string>((vehicles || []).map((v: any) => [v.id, v.plate]));
 
-  // 5. Calcula linhas
+  // 5. Verifica quais assignments já foram comissionados
+  const assignIds = assigns.map((a: any) => a.id);
+  const { data: jaComissionados } = assignIds.length
+    ? await (supabase.from("comissoes" as any) as any)
+        .select("referencia_id")
+        .eq("origem", "colheita")
+        .in("referencia_id", assignIds)
+    : { data: [] as any[] };
+  const blocked = new Set<string>((jaComissionados || []).map((r: any) => r.referencia_id));
+
+  // 6. Calcula linhas
   const rows: AgregadoColheitaRow[] = assigns.map((a: any) => {
     const job = jobMap.get(a.harvest_job_id);
     const fallbackDaily = job ? (job.payment_value || job.monthly_value || 0) / 30 : 0;
@@ -135,6 +146,7 @@ export async function fetchAgregadosColheitaPorMotorista(
       diasTrabalhados: dias,
       valorDiaria: dailyValue,
       valorTotal: total,
+      jaComissionado: blocked.has(a.id),
     };
   });
 

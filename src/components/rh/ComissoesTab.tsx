@@ -12,8 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { HandCoins, Wrench, Loader2, Save } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HandCoins, Wrench, Loader2, Save, CheckCircle2, History, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { HistoricoComissoesTab } from "./HistoricoComissoesTab";
 import {
   calcularComissao,
   createComissao,
@@ -45,6 +48,7 @@ const formatBRL = (n: number) =>
  * Tipo "Por Embarque": desabilitado ("Em manutenção").
  */
 export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
+  const [tab, setTab] = useState<"gerar" | "historico">("gerar");
   const [tipo, setTipo] = useState<TipoComissao>("motorista");
   const [operacao, setOperacao] = useState<OperacaoMotorista>("frete");
   const [colaboradorId, setColaboradorId] = useState<string>("");
@@ -54,6 +58,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   const [loadingCtes, setLoadingCtes] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // Colheita
   const [colheitaInicio, setColheitaInicio] = useState<string>("");
@@ -136,7 +141,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim]);
 
   const pctNum = Math.max(0, Math.min(100, Number(percentual.replace(",", ".")) || 0));
-  const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id));
+  const ctesElegiveis = ctes.filter((c) => !c.jaComissionado);
+  const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id) && !c.jaComissionado);
   const totalBase = ctesSelecionados.reduce((s, c) => s + c.valor_frete, 0);
   const totalComissao = ctesSelecionados.reduce(
     (s, c) => s + calcularComissao(c.valor_frete, pctNum),
@@ -144,6 +150,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   );
 
   const toggle = (id: string) => {
+    const cte = ctes.find((c) => c.id === id);
+    if (cte?.jaComissionado) return;
     setSelecionados((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -152,8 +160,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     });
   };
   const toggleAll = () => {
-    if (selecionados.size === ctes.length) setSelecionados(new Set());
-    else setSelecionados(new Set(ctes.map((c) => c.id)));
+    if (selecionados.size === ctesElegiveis.length) setSelecionados(new Set());
+    else setSelecionados(new Set(ctesElegiveis.map((c) => c.id)));
   };
 
   const handleGerar = async () => {
@@ -165,9 +173,17 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       toast.error("Informe um percentual maior que zero");
       return;
     }
+    const ok = await confirm({
+      title: "Gerar comissões",
+      description: `Serão geradas ${ctesSelecionados.length} comissão(ões) com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
+        totalBase
+      )}\nTotal de comissões: ${formatBRL(totalComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
+      confirmLabel: "Gerar",
+    });
+    if (!ok) return;
     setSalvando(true);
     try {
-      let ok = 0;
+      let okCount = 0;
       for (const cte of ctesSelecionados) {
         await createComissao({
           colaborador_id: colaboradorId,
@@ -180,10 +196,10 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           data_referencia: cte.data_emissao || new Date().toISOString().slice(0, 10),
           observacoes: `CT-e ${cte.numero ?? "—"}/${cte.serie}`,
         });
-        ok++;
+        okCount++;
       }
-      toast.success(`${ok} comissão(ões) gerada(s) — pendentes para folha`);
-      // Recarrega lista (CT-es processados saem da lista)
+      toast.success(`${okCount} comissão(ões) gerada(s) — pendentes para folha`);
+      // Recarrega lista (CT-es processados ficam marcados como já comissionados)
       const data = await fetchCtesElegiveisComissao(colaboradorId);
       setCtes(data);
       setSelecionados(new Set());
@@ -195,22 +211,29 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   };
 
   // === Colheita ===
-  const agregadosSel = agregados.filter((a) => agregadosSelecionados.has(a.assignmentId));
+  const agregadosElegiveis = agregados.filter((a) => !a.jaComissionado);
+  const agregadosSel = agregados.filter(
+    (a) => agregadosSelecionados.has(a.assignmentId) && !a.jaComissionado
+  );
   const totalAgregadosBase = agregadosSel.reduce((s, a) => s + a.valorTotal, 0);
   const totalAgregadosComissao = agregadosSel.reduce(
     (s, a) => s + calcularComissao(a.valorTotal, pctNum),
     0
   );
-  const toggleAgr = (id: string) =>
+  const toggleAgr = (id: string) => {
+    const a = agregados.find((x) => x.assignmentId === id);
+    if (a?.jaComissionado) return;
     setAgregadosSelecionados((p) => {
       const n = new Set(p);
       if (n.has(id)) n.delete(id);
       else n.add(id);
       return n;
     });
+  };
   const toggleAgrAll = () => {
-    if (agregadosSelecionados.size === agregados.length) setAgregadosSelecionados(new Set());
-    else setAgregadosSelecionados(new Set(agregados.map((a) => a.assignmentId)));
+    if (agregadosSelecionados.size === agregadosElegiveis.length)
+      setAgregadosSelecionados(new Set());
+    else setAgregadosSelecionados(new Set(agregadosElegiveis.map((a) => a.assignmentId)));
   };
 
   const handleGerarColheita = async () => {
@@ -222,9 +245,17 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       toast.error("Informe um percentual maior que zero");
       return;
     }
+    const ok = await confirm({
+      title: "Gerar comissões",
+      description: `Serão geradas ${agregadosSel.length} comissão(ões) de colheita com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
+        totalAgregadosBase
+      )}\nTotal de comissões: ${formatBRL(totalAgregadosComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
+      confirmLabel: "Gerar",
+    });
+    if (!ok) return;
     setSalvando(true);
     try {
-      let ok = 0;
+      let okCount = 0;
       for (const a of agregadosSel) {
         await createComissao({
           colaborador_id: colaboradorId,
@@ -237,9 +268,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           data_referencia: a.endDate || a.startDate,
           observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
         });
-        ok++;
+        okCount++;
       }
-      toast.success(`${ok} comissão(ões) de colheita gerada(s) — pendentes para folha`);
+      toast.success(`${okCount} comissão(ões) de colheita gerada(s) — pendentes para folha`);
       const data = await fetchAgregadosColheitaPorMotorista(
         colaboradorId,
         colheitaInicio || null,
@@ -255,18 +286,34 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <HandCoins className="h-4 w-4 text-primary" />
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Comissões</h3>
-            <p className="text-[11px] text-muted-foreground">
-              Gere comissões a partir de CT-es autorizados — ficam pendentes até serem enviadas
-              para a folha.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "gerar" | "historico")}>
+        <TabsList>
+          <TabsTrigger value="gerar" className="text-xs gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Gerar
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="text-xs gap-1.5">
+            <History className="h-3.5 w-3.5" /> Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="historico" className="mt-4">
+          <HistoricoComissoesTab colaboradores={colaboradores} />
+        </TabsContent>
+
+        <TabsContent value="gerar" className="mt-4">
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <HandCoins className="h-4 w-4 text-primary" />
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Comissões</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Gere comissões a partir de CT-es autorizados — ficam pendentes até serem
+                    enviadas para a folha.
+                  </p>
+                </div>
+              </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl">
           {/* Tipo de Comissão */}
@@ -366,9 +413,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">CT-es elegíveis</p>
-              {ctes.length > 0 && (
+              {ctesElegiveis.length > 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={toggleAll}>
-                  {selecionados.size === ctes.length ? "Limpar" : "Selecionar todos"}
+                  {selecionados.size === ctesElegiveis.length ? "Limpar" : "Selecionar todos"}
                 </Button>
               )}
             </div>
@@ -379,28 +426,45 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               </div>
             ) : ctes.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center border border-dashed border-border rounded-md">
-                Nenhum CT-e elegível para este motorista no momento. Apenas CT-es autorizados pela
-                SEFAZ e ainda sem comissão são listados.
+                Nenhum CT-e encontrado para este motorista. Apenas CT-es autorizados pela SEFAZ
+                aparecem aqui.
               </p>
             ) : (
               <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
                 {ctes.map((c) => {
                   const checked = selecionados.has(c.id);
                   const comissaoCalc = calcularComissao(c.valor_frete, pctNum);
+                  const isDone = c.jaComissionado;
                   return (
                     <label
                       key={c.id}
-                      className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-muted/40 ${
-                        checked ? "bg-primary/5" : ""
-                      }`}
+                      className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                        isDone
+                          ? "opacity-60 cursor-not-allowed bg-muted/20"
+                          : "cursor-pointer"
+                      } ${checked && !isDone ? "bg-primary/5" : ""}`}
                     >
-                      <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
+                      <Checkbox
+                        checked={checked && !isDone}
+                        disabled={isDone}
+                        onCheckedChange={() => toggle(c.id)}
+                      />
                       <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
                         <div className="font-mono text-[11px] text-muted-foreground">
                           CT-e {c.numero ?? "—"}/{c.serie}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{c.motorista_nome}</p>
+                          <p className="truncate font-medium flex items-center gap-1.5">
+                            {c.motorista_nome}
+                            {isDone && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                              </Badge>
+                            )}
+                          </p>
                           <p className="truncate text-[10px] text-muted-foreground">
                             {c.remetente_nome} → {c.destinatario_nome}
                             {c.data_emissao &&
@@ -409,9 +473,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                         </div>
                         <div className="text-right tabular-nums">
                           <p className="font-semibold">{formatBRL(c.valor_frete)}</p>
-                          <p className="text-[10px] text-primary">
-                            Comissão: {formatBRL(comissaoCalc)}
-                          </p>
+                          {!isDone && (
+                            <p className="text-[10px] text-primary">
+                              Comissão: {formatBRL(comissaoCalc)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </label>
@@ -498,14 +564,14 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-foreground">Colheitas do motorista</p>
-                {agregados.length > 0 && (
+                {agregadosElegiveis.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
                     onClick={toggleAgrAll}
                   >
-                    {agregadosSelecionados.size === agregados.length
+                    {agregadosSelecionados.size === agregadosElegiveis.length
                       ? "Limpar"
                       : "Selecionar todas"}
                   </Button>
@@ -525,20 +591,34 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                   {agregados.map((a) => {
                     const checked = agregadosSelecionados.has(a.assignmentId);
                     const comissaoCalc = calcularComissao(a.valorTotal, pctNum);
+                    const isDone = a.jaComissionado;
                     return (
                       <label
                         key={a.assignmentId}
-                        className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-muted/40 ${
-                          checked ? "bg-primary/5" : ""
-                        }`}
+                        className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                          isDone
+                            ? "opacity-60 cursor-not-allowed bg-muted/20"
+                            : "cursor-pointer"
+                        } ${checked && !isDone ? "bg-primary/5" : ""}`}
                       >
                         <Checkbox
-                          checked={checked}
+                          checked={checked && !isDone}
+                          disabled={isDone}
                           onCheckedChange={() => toggleAgr(a.assignmentId)}
                         />
                         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
                           <div className="min-w-0">
-                            <p className="truncate font-medium">{a.farmName}</p>
+                            <p className="truncate font-medium flex items-center gap-1.5">
+                              {a.farmName}
+                              {isDone && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                                </Badge>
+                              )}
+                            </p>
                             <p className="truncate text-[10px] text-muted-foreground">
                               {a.vehiclePlate ? `${a.vehiclePlate} · ` : ""}
                               {new Date(a.startDate).toLocaleDateString("pt-BR")}
@@ -555,9 +635,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                           </div>
                           <div className="text-right tabular-nums min-w-[110px]">
                             <p className="font-semibold">{formatBRL(a.valorTotal)}</p>
-                            <p className="text-[10px] text-primary">
-                              Comissão: {formatBRL(comissaoCalc)}
-                            </p>
+                            {!isDone && (
+                              <p className="text-[10px] text-primary">
+                                Comissão: {formatBRL(comissaoCalc)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </label>
@@ -608,5 +690,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
         )}
       </CardContent>
     </Card>
+        </TabsContent>
+      </Tabs>
+      {ConfirmDialog}
+    </div>
   );
 }

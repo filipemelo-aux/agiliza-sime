@@ -19,6 +19,7 @@ export type CteElegivel = {
   motorista_nome: string;
   destinatario_nome: string | null;
   remetente_nome: string | null;
+  jaComissionado: boolean;
 };
 
 export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<CteElegivel[]> {
@@ -60,7 +61,7 @@ export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<
   const blocked = new Set<string>((jaComissionados || []).map((r: any) => r.referencia_id));
 
   return ctes
-    .filter((c) => colabMap.has(c.motorista_id as string) && !blocked.has(c.id))
+    .filter((c) => colabMap.has(c.motorista_id as string))
     .map((c) => ({
       id: c.id,
       numero: c.numero,
@@ -71,5 +72,6 @@ export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<
       motorista_nome: colabMap.get(c.motorista_id as string)!,
       destinatario_nome: c.destinatario_nome,
       remetente_nome: c.remetente_nome,
+      jaComissionado: blocked.has(c.id),
     }));
 }
