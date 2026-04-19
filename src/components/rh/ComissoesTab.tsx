@@ -655,5 +655,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
         )}
       </CardContent>
     </Card>
+        </TabsContent>
+      </Tabs>
+      {ConfirmDialog}
+    </div>
   );
 }
