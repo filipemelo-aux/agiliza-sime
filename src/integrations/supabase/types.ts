@@ -320,6 +320,68 @@ export type Database = {
           },
         ]
       }
+      comissoes: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          created_by: string
+          data_referencia: string
+          folha_pagamento_id: string | null
+          id: string
+          observacoes: string | null
+          origem: Database["public"]["Enums"]["comissao_origem"]
+          percentual: number | null
+          referencia_id: string
+          status: Database["public"]["Enums"]["comissao_status"]
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at: string
+          valor_base: number
+          valor_calculado: number
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          created_by: string
+          data_referencia: string
+          folha_pagamento_id?: string | null
+          id?: string
+          observacoes?: string | null
+          origem: Database["public"]["Enums"]["comissao_origem"]
+          percentual?: number | null
+          referencia_id: string
+          status?: Database["public"]["Enums"]["comissao_status"]
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          valor_base?: number
+          valor_calculado?: number
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          created_by?: string
+          data_referencia?: string
+          folha_pagamento_id?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["comissao_origem"]
+          percentual?: number | null
+          referencia_id?: string
+          status?: Database["public"]["Enums"]["comissao_status"]
+          tipo?: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          valor_base?: number
+          valor_calculado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_receber: {
         Row: {
           cliente_id: string
@@ -3098,6 +3160,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "operador"
+      comissao_origem: "cte" | "colheita"
+      comissao_status: "pendente" | "enviado_folha"
+      comissao_tipo: "motorista" | "embarque"
       conta_receber_status: "aberto" | "recebido" | "atrasado"
       cost_center:
         | "frota_propria"
@@ -3265,6 +3330,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "operador"],
+      comissao_origem: ["cte", "colheita"],
+      comissao_status: ["pendente", "enviado_folha"],
+      comissao_tipo: ["motorista", "embarque"],
       conta_receber_status: ["aberto", "recebido", "atrasado"],
       cost_center: [
         "frota_propria",
