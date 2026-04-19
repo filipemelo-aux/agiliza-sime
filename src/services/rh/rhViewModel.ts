@@ -6,6 +6,7 @@
 import type { ColaboradorRH } from "./rhColaboradoresService";
 import type { Expense } from "./rhFinancialService";
 import type { Comissao } from "./comissoesService";
+import type { DescontoFolha } from "./descontosFolhaService";
 
 export type ColabMetrics = {
   recebido: number;
@@ -75,11 +76,13 @@ export function computePayrollRows(
   folhaAccountId: string | undefined,
   adiantamentoAccountId: string | undefined,
   salaryOverrides: Record<string, number>,
-  comissoesPendentes: Comissao[] = []
+  comissoesPendentes: Comissao[] = [],
+  descontosPendentes: DescontoFolha[] = []
 ) {
   const adiantByColab = new Map<string, number>();
   const folhaByColab = new Map<string, Expense>();
   const comissoesByColab = new Map<string, { total: number; ids: string[] }>();
+  const descontosByColab = new Map<string, { total: number; ids: string[] }>();
 
   expenses.forEach((e) => {
     if (!e.favorecido_id) return;
@@ -101,17 +104,37 @@ export function computePayrollRows(
     comissoesByColab.set(c.colaborador_id, cur);
   });
 
+  descontosPendentes.forEach((d) => {
+    const cur = descontosByColab.get(d.colaborador_id) || { total: 0, ids: [] };
+    cur.total += Number(d.valor || 0);
+    cur.ids.push(d.id);
+    descontosByColab.set(d.colaborador_id, cur);
+  });
+
   return colaboradores
     .filter((c) => c.ativo)
     .map((c) => {
       const salary = resolveBaseSalary(c, salaryOverrides);
       const adiant = adiantByColab.get(c.id) || 0;
       const com = comissoesByColab.get(c.id) || { total: 0, ids: [] };
+      const desc = descontosByColab.get(c.id) || { total: 0, ids: [] };
       const comissoes = com.total;
       const comissaoIds = com.ids;
-      const liquido = Math.max(0, salary + comissoes - adiant);
+      const descontos = desc.total;
+      const descontoIds = desc.ids;
+      const liquido = Math.max(0, salary + comissoes - adiant - descontos);
       const existing = folhaByColab.get(c.id);
-      return { c, salary, adiant, comissoes, comissaoIds, liquido, existing };
+      return {
+        c,
+        salary,
+        adiant,
+        comissoes,
+        comissaoIds,
+        descontos,
+        descontoIds,
+        liquido,
+        existing,
+      };
     });
 }
 
