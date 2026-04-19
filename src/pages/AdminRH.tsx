@@ -194,7 +194,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // ============================================================
 type RHSection =
   | "colaboradores"
-  | "folha_mensal"
   | "folha_lancamentos"
   | "adiantamentos"
   | "comissoes"
