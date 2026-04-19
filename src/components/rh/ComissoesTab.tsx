@@ -141,7 +141,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim]);
 
   const pctNum = Math.max(0, Math.min(100, Number(percentual.replace(",", ".")) || 0));
-  const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id));
+  const ctesElegiveis = ctes.filter((c) => !c.jaComissionado);
+  const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id) && !c.jaComissionado);
   const totalBase = ctesSelecionados.reduce((s, c) => s + c.valor_frete, 0);
   const totalComissao = ctesSelecionados.reduce(
     (s, c) => s + calcularComissao(c.valor_frete, pctNum),
@@ -149,6 +150,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   );
 
   const toggle = (id: string) => {
+    const cte = ctes.find((c) => c.id === id);
+    if (cte?.jaComissionado) return;
     setSelecionados((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -157,8 +160,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     });
   };
   const toggleAll = () => {
-    if (selecionados.size === ctes.length) setSelecionados(new Set());
-    else setSelecionados(new Set(ctes.map((c) => c.id)));
+    if (selecionados.size === ctesElegiveis.length) setSelecionados(new Set());
+    else setSelecionados(new Set(ctesElegiveis.map((c) => c.id)));
   };
 
   const handleGerar = async () => {
@@ -170,9 +173,17 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       toast.error("Informe um percentual maior que zero");
       return;
     }
+    const ok = await confirm({
+      title: "Gerar comissões",
+      description: `Serão geradas ${ctesSelecionados.length} comissão(ões) com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
+        totalBase
+      )}\nTotal de comissões: ${formatBRL(totalComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
+      confirmLabel: "Gerar",
+    });
+    if (!ok) return;
     setSalvando(true);
     try {
-      let ok = 0;
+      let okCount = 0;
       for (const cte of ctesSelecionados) {
         await createComissao({
           colaborador_id: colaboradorId,
@@ -185,10 +196,10 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           data_referencia: cte.data_emissao || new Date().toISOString().slice(0, 10),
           observacoes: `CT-e ${cte.numero ?? "—"}/${cte.serie}`,
         });
-        ok++;
+        okCount++;
       }
-      toast.success(`${ok} comissão(ões) gerada(s) — pendentes para folha`);
-      // Recarrega lista (CT-es processados saem da lista)
+      toast.success(`${okCount} comissão(ões) gerada(s) — pendentes para folha`);
+      // Recarrega lista (CT-es processados ficam marcados como já comissionados)
       const data = await fetchCtesElegiveisComissao(colaboradorId);
       setCtes(data);
       setSelecionados(new Set());
