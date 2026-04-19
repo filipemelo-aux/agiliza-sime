@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { marcarComoEnviadasFolha, type Comissao } from "./comissoesService";
+import { vincularDescontosAFolha } from "./descontosFolhaService";
 
 export type Expense = {
   id: string;
@@ -106,16 +107,20 @@ export async function createPayrollExpense(input: {
   adiantamentos: number;
   comissoes?: number;
   comissaoIds?: string[];
+  descontos?: number;
+  descontoIds?: string[];
   emissionDate: string;
   dueDate: string;
   folhaAccountId: string;
 }): Promise<{ error: Error | null; expenseId?: string }> {
   const comissoes = input.comissoes || 0;
+  const descontos = input.descontos || 0;
   const obsParts = [
     `Salário base: ${input.salarioBase}`,
     `Adiantamentos descontados: ${input.adiantamentos}`,
   ];
   if (comissoes > 0) obsParts.push(`Comissões somadas: ${comissoes}`);
+  if (descontos > 0) obsParts.push(`Descontos aplicados: ${descontos}`);
 
   const { data, error } = await supabase
     .from("expenses")
@@ -147,8 +152,16 @@ export async function createPayrollExpense(input: {
     try {
       await marcarComoEnviadasFolha(input.comissaoIds, expenseId);
     } catch (e: any) {
-      // Não falha a folha se o vínculo falhar — apenas avisa via console
       console.error("Falha ao vincular comissões à folha:", e);
+    }
+  }
+
+  // Vincular descontos à folha gerada
+  if (expenseId && input.descontoIds && input.descontoIds.length > 0) {
+    try {
+      await vincularDescontosAFolha(input.descontoIds, expenseId);
+    } catch (e: any) {
+      console.error("Falha ao vincular descontos à folha:", e);
     }
   }
 
