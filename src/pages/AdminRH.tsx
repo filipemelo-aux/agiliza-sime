@@ -332,6 +332,10 @@ export default function AdminRH() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="comissoes" className="mt-4">
+            <ComissoesTab colaboradores={colaboradores} />
+          </TabsContent>
+
           <TabsContent value="config" className="mt-4 space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4 max-w-2xl">
