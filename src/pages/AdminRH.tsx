@@ -470,40 +470,69 @@ function RHWorkspace(props: any) {
           </>
         )}
 
-        {section === "folha_lancamentos" && (
-          <Card>
-            <CardContent className="p-4">
-              <ExpenseList
-                items={folhaExpenses}
-                enrichName={enrichName}
-                emptyHint={
-                  settings.folhaAccountId
-                    ? "Nenhum lançamento de folha neste mês."
-                    : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
-                }
-              />
-            </CardContent>
-          </Card>
-        )}
+        {section === "lancamentos" && (
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
+              {([
+                { v: "folha_lancamentos", label: "Folha", icon: ListChecks },
+                { v: "adiantamentos", label: "Adiantamentos", icon: HandCoins },
+                { v: "comissoes", label: "Comissões", icon: Percent },
+              ] as const).map((opt) => {
+                const Icon = opt.icon;
+                const active = lancSubTab === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setLancSubTab(opt.v)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
+                      active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
 
-        {section === "adiantamentos" && (
-          <Card>
-            <CardContent className="p-4">
-              <ExpenseList
-                items={adiantExpenses}
-                enrichName={enrichName}
-                emptyHint={
-                  settings.adiantamentoAccountId
-                    ? "Nenhum adiantamento neste mês."
-                    : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
-                }
-              />
-            </CardContent>
-          </Card>
-        )}
+            {lancSubTab === "folha_lancamentos" && (
+              <Card>
+                <CardContent className="p-4">
+                  <ExpenseList
+                    items={folhaExpenses}
+                    enrichName={enrichName}
+                    emptyHint={
+                      settings.folhaAccountId
+                        ? "Nenhum lançamento de folha neste mês."
+                        : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
+                    }
+                  />
+                </CardContent>
+              </Card>
+            )}
 
-        {section === "comissoes" && (
-          <ComissoesTab colaboradores={colaboradores} />
+            {lancSubTab === "adiantamentos" && (
+              <Card>
+                <CardContent className="p-4">
+                  <ExpenseList
+                    items={adiantExpenses}
+                    enrichName={enrichName}
+                    emptyHint={
+                      settings.adiantamentoAccountId
+                        ? "Nenhum adiantamento neste mês."
+                        : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
+                    }
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {lancSubTab === "comissoes" && (
+              <ComissoesTab colaboradores={colaboradores} />
+            )}
+          </div>
         )}
 
         {section === "config" && (

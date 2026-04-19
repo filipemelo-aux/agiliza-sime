@@ -49,14 +49,14 @@ const menuItems = [
     ],
   },
   {
-      title: "Recursos Humanos",
-      icon: UserCog,
-      children: [
-        { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
-        { title: "Lançamentos", url: "/admin/rh/lancamentos", icon: ListChecks },
-        { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
-      ],
-    },
+    title: "Recursos Humanos",
+    icon: UserCog,
+    children: [
+      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Lançamentos", url: "/admin/rh/lancamentos", icon: ListChecks },
+      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
+    ],
+  },
   {
     title: "Transporte",
     icon: Car,

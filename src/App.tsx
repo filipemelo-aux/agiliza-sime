@@ -74,9 +74,9 @@ const App = () => (
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/rh" element={<Navigate to="/admin/rh/colaboradores" replace />} />
             <Route path="/admin/rh/colaboradores" element={<AdminRH section="colaboradores" />} />
-            <Route path="/admin/rh/lancamentos" element={<AdminRH section="folha_lancamentos" />} />
-            <Route path="/admin/rh/adiantamentos" element={<AdminRH section="adiantamentos" />} />
-            <Route path="/admin/rh/comissoes" element={<AdminRH section="comissoes" />} />
+            <Route path="/admin/rh/lancamentos" element={<AdminRH section="lancamentos" />} />
+            <Route path="/admin/rh/adiantamentos" element={<Navigate to="/admin/rh/lancamentos" replace />} />
+            <Route path="/admin/rh/comissoes" element={<Navigate to="/admin/rh/lancamentos" replace />} />
             <Route path="/admin/rh/configuracoes" element={<AdminRH section="config" />} />
             <Route path="/admin/quotations" element={<AdminQuotations />} />
             <Route path="/admin/financial" element={<Navigate to="/admin/financial/invoicing" replace />} />
