@@ -174,6 +174,7 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           adiantExpenses={adiantExpenses}
           enrichName={enrichName}
           saveSettings={saveSettings}
+          forcedSection={forcedSection}
         />
       </div>
 
