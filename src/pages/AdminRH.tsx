@@ -195,10 +195,10 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // ============================================================
 type RHSection =
   | "colaboradores"
-  | "lancamentos"
+  | "folha_pagamento"
   | "config";
 
-type LancamentoSubTab = "folha_lancamentos" | "adiantamentos" | "comissoes";
+type FolhaSubTab = "folha_mensal" | "folha_lancamentos" | "adiantamentos" | "comissoes";
 
 interface NavItem {
   id: RHSection;
@@ -227,14 +227,16 @@ function RHWorkspace(props: any) {
   const section: RHSection = forcedSection ?? internalSection;
   const setSection = setInternalSection;
 
-  // Sub-tab interna dentro de "Colaboradores": Lista vs Folha Mensal
-  const [colabSubTab, setColabSubTab] = useState<"lista" | "folha_mensal">("lista");
-  // Sub-tab interna dentro de "Lançamentos"
-  const [lancSubTab, setLancSubTab] = useState<LancamentoSubTab>("folha_lancamentos");
+  // Sub-tab dentro de "Folha de Pagamento"
+  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("folha_mensal");
+  // Modal wizard de geração da folha
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const { matrizId } = useUnifiedCompany();
+  const { user } = useAuth();
 
   const allItems: NavItem[] = [
-    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e folha mensal", badge: totalAtivos },
-    { id: "lancamentos", label: "Lançamentos", icon: ListChecks, description: "Folha, adiantamentos e comissões" },
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro do RH", badge: totalAtivos },
+    { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Folha mensal, adiantamentos, comissões e descontos" },
     { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
   ];
 
