@@ -413,9 +413,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">CT-es elegíveis</p>
-              {ctes.length > 0 && (
+              {ctesElegiveis.length > 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={toggleAll}>
-                  {selecionados.size === ctes.length ? "Limpar" : "Selecionar todos"}
+                  {selecionados.size === ctesElegiveis.length ? "Limpar" : "Selecionar todos"}
                 </Button>
               )}
             </div>
@@ -426,28 +426,45 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
               </div>
             ) : ctes.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center border border-dashed border-border rounded-md">
-                Nenhum CT-e elegível para este motorista no momento. Apenas CT-es autorizados pela
-                SEFAZ e ainda sem comissão são listados.
+                Nenhum CT-e encontrado para este motorista. Apenas CT-es autorizados pela SEFAZ
+                aparecem aqui.
               </p>
             ) : (
               <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
                 {ctes.map((c) => {
                   const checked = selecionados.has(c.id);
                   const comissaoCalc = calcularComissao(c.valor_frete, pctNum);
+                  const isDone = c.jaComissionado;
                   return (
                     <label
                       key={c.id}
-                      className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-muted/40 ${
-                        checked ? "bg-primary/5" : ""
-                      }`}
+                      className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                        isDone
+                          ? "opacity-60 cursor-not-allowed bg-muted/20"
+                          : "cursor-pointer"
+                      } ${checked && !isDone ? "bg-primary/5" : ""}`}
                     >
-                      <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
+                      <Checkbox
+                        checked={checked && !isDone}
+                        disabled={isDone}
+                        onCheckedChange={() => toggle(c.id)}
+                      />
                       <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[100px_1fr_auto] gap-2 items-center">
                         <div className="font-mono text-[11px] text-muted-foreground">
                           CT-e {c.numero ?? "—"}/{c.serie}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{c.motorista_nome}</p>
+                          <p className="truncate font-medium flex items-center gap-1.5">
+                            {c.motorista_nome}
+                            {isDone && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                              </Badge>
+                            )}
+                          </p>
                           <p className="truncate text-[10px] text-muted-foreground">
                             {c.remetente_nome} → {c.destinatario_nome}
                             {c.data_emissao &&
@@ -456,9 +473,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                         </div>
                         <div className="text-right tabular-nums">
                           <p className="font-semibold">{formatBRL(c.valor_frete)}</p>
-                          <p className="text-[10px] text-primary">
-                            Comissão: {formatBRL(comissaoCalc)}
-                          </p>
+                          {!isDone && (
+                            <p className="text-[10px] text-primary">
+                              Comissão: {formatBRL(comissaoCalc)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </label>
