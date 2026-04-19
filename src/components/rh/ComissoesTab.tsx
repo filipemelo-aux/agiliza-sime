@@ -104,6 +104,37 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     };
   }, [tipo, operacao, colaboradorId]);
 
+  // Carrega agregados de colheita (Motorista + Colheita + colaborador)
+  useEffect(() => {
+    if (tipo !== "motorista" || operacao !== "colheita" || !colaboradorId) {
+      setAgregados([]);
+      setAgregadosSelecionados(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingAgregados(true);
+      try {
+        const data = await fetchAgregadosColheitaPorMotorista(
+          colaboradorId,
+          colheitaInicio || null,
+          colheitaFim || null
+        );
+        if (!cancelled) {
+          setAgregados(data);
+          setAgregadosSelecionados(new Set());
+        }
+      } catch (err: any) {
+        if (!cancelled) toast.error("Erro ao carregar colheitas: " + err.message);
+      } finally {
+        if (!cancelled) setLoadingAgregados(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tipo, operacao, colaboradorId, colheitaInicio, colheitaFim]);
+
   const pctNum = Math.max(0, Math.min(100, Number(percentual.replace(",", ".")) || 0));
   const ctesSelecionados = ctes.filter((c) => selecionados.has(c.id));
   const totalBase = ctesSelecionados.reduce((s, c) => s + c.valor_frete, 0);
