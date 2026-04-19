@@ -5,6 +5,7 @@
  */
 import type { ColaboradorRH } from "./rhColaboradoresService";
 import type { Expense } from "./rhFinancialService";
+import type { Comissao } from "./comissoesService";
 
 export type ColabMetrics = {
   recebido: number;
@@ -73,10 +74,12 @@ export function computePayrollRows(
   expenses: Expense[],
   folhaAccountId: string | undefined,
   adiantamentoAccountId: string | undefined,
-  salaryOverrides: Record<string, number>
+  salaryOverrides: Record<string, number>,
+  comissoesPendentes: Comissao[] = []
 ) {
   const adiantByColab = new Map<string, number>();
   const folhaByColab = new Map<string, Expense>();
+  const comissoesByColab = new Map<string, { total: number; ids: string[] }>();
 
   expenses.forEach((e) => {
     if (!e.favorecido_id) return;
@@ -91,14 +94,24 @@ export function computePayrollRows(
     }
   });
 
+  comissoesPendentes.forEach((c) => {
+    const cur = comissoesByColab.get(c.colaborador_id) || { total: 0, ids: [] };
+    cur.total += Number(c.valor_calculado || 0);
+    cur.ids.push(c.id);
+    comissoesByColab.set(c.colaborador_id, cur);
+  });
+
   return colaboradores
     .filter((c) => c.ativo)
     .map((c) => {
       const salary = resolveBaseSalary(c, salaryOverrides);
       const adiant = adiantByColab.get(c.id) || 0;
-      const liquido = Math.max(0, salary - adiant);
+      const com = comissoesByColab.get(c.id) || { total: 0, ids: [] };
+      const comissoes = com.total;
+      const comissaoIds = com.ids;
+      const liquido = Math.max(0, salary + comissoes - adiant);
       const existing = folhaByColab.get(c.id);
-      return { c, salary, adiant, liquido, existing };
+      return { c, salary, adiant, comissoes, comissaoIds, liquido, existing };
     });
 }
 
