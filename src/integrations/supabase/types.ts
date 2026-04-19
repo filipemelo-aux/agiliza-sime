@@ -776,6 +776,53 @@ export type Database = {
           },
         ]
       }
+      descontos_folha: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          created_by: string
+          data_referencia: string
+          descricao: string | null
+          folha_pagamento_id: string | null
+          id: string
+          tipo: Database["public"]["Enums"]["desconto_folha_tipo"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          created_by: string
+          data_referencia: string
+          descricao?: string | null
+          folha_pagamento_id?: string | null
+          id?: string
+          tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          created_by?: string
+          data_referencia?: string
+          descricao?: string | null
+          folha_pagamento_id?: string | null
+          id?: string
+          tipo?: Database["public"]["Enums"]["desconto_folha_tipo"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descontos_folha_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       driver_documents: {
         Row: {
           cnh_category: string | null
@@ -3169,6 +3216,14 @@ export type Database = {
         | "frota_terceiros"
         | "administrativo"
         | "operacional"
+      desconto_folha_tipo:
+        | "adiantamento"
+        | "vale"
+        | "inss"
+        | "irrf"
+        | "faltas"
+        | "multas"
+        | "outros"
       document_status: "pending" | "approved" | "rejected" | "expired"
       establishment_type: "matriz" | "filial"
       expense_origin:
@@ -3339,6 +3394,15 @@ export const Constants = {
         "frota_terceiros",
         "administrativo",
         "operacional",
+      ],
+      desconto_folha_tipo: [
+        "adiantamento",
+        "vale",
+        "inss",
+        "irrf",
+        "faltas",
+        "multas",
+        "outros",
       ],
       document_status: ["pending", "approved", "rejected", "expired"],
       establishment_type: ["matriz", "filial"],
