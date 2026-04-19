@@ -194,7 +194,66 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     }
   };
 
-  return (
+  // === Colheita ===
+  const agregadosSel = agregados.filter((a) => agregadosSelecionados.has(a.assignmentId));
+  const totalAgregadosBase = agregadosSel.reduce((s, a) => s + a.valorTotal, 0);
+  const totalAgregadosComissao = agregadosSel.reduce(
+    (s, a) => s + calcularComissao(a.valorTotal, pctNum),
+    0
+  );
+  const toggleAgr = (id: string) =>
+    setAgregadosSelecionados((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const toggleAgrAll = () => {
+    if (agregadosSelecionados.size === agregados.length) setAgregadosSelecionados(new Set());
+    else setAgregadosSelecionados(new Set(agregados.map((a) => a.assignmentId)));
+  };
+
+  const handleGerarColheita = async () => {
+    if (agregadosSel.length === 0) {
+      toast.error("Selecione ao menos uma colheita");
+      return;
+    }
+    if (pctNum <= 0) {
+      toast.error("Informe um percentual maior que zero");
+      return;
+    }
+    setSalvando(true);
+    try {
+      let ok = 0;
+      for (const a of agregadosSel) {
+        await createComissao({
+          colaborador_id: colaboradorId,
+          tipo: "motorista",
+          origem: "colheita",
+          referencia_id: a.assignmentId,
+          valor_base: a.valorTotal,
+          percentual: pctNum,
+          valor_calculado: calcularComissao(a.valorTotal, pctNum),
+          data_referencia: a.endDate || a.startDate,
+          observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
+        });
+        ok++;
+      }
+      toast.success(`${ok} comissão(ões) de colheita gerada(s) — pendentes para folha`);
+      const data = await fetchAgregadosColheitaPorMotorista(
+        colaboradorId,
+        colheitaInicio || null,
+        colheitaFim || null
+      );
+      setAgregados(data);
+      setAgregadosSelecionados(new Set());
+    } catch (err: any) {
+      toast.error("Erro ao gerar comissões: " + err.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
     <Card>
       <CardContent className="p-4 space-y-4">
         <div className="flex items-center gap-2">
