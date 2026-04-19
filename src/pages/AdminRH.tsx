@@ -25,11 +25,13 @@ import {
   computeEmissionDate,
   computePayrollRows,
   createPayrollExpense,
+  fetchComissoesPendentesForMonth,
   fetchExpensesByColaborador,
   filterByAccount,
   resolveBaseSalary,
   totalsForMonth,
   type ColaboradorRH,
+  type Comissao,
   type Expense,
 } from "@/services/rh";
 
