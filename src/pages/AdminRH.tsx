@@ -149,6 +149,7 @@ export default function AdminRH() {
             <TabsTrigger value="folha_mensal" className="h-7 px-3 text-xs rounded-md">Folha Mensal</TabsTrigger>
             <TabsTrigger value="folha" className="h-7 px-3 text-xs rounded-md">Lançamentos Folha</TabsTrigger>
             <TabsTrigger value="adiantamentos" className="h-7 px-3 text-xs rounded-md">Adiantamentos</TabsTrigger>
+            <TabsTrigger value="comissoes" className="h-7 px-3 text-xs rounded-md">Comissões</TabsTrigger>
             <TabsTrigger value="config" className="h-7 px-3 text-xs rounded-md">Configurações</TabsTrigger>
           </TabsList>
 
