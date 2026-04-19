@@ -39,7 +39,7 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-type RHSectionProp = "colaboradores" | "folha_lancamentos" | "adiantamentos" | "comissoes" | "config";
+type RHSectionProp = "colaboradores" | "lancamentos" | "config";
 
 export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
@@ -194,10 +194,10 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // ============================================================
 type RHSection =
   | "colaboradores"
-  | "folha_lancamentos"
-  | "adiantamentos"
-  | "comissoes"
+  | "lancamentos"
   | "config";
+
+type LancamentoSubTab = "folha_lancamentos" | "adiantamentos" | "comissoes";
 
 interface NavItem {
   id: RHSection;
@@ -228,12 +228,12 @@ function RHWorkspace(props: any) {
 
   // Sub-tab interna dentro de "Colaboradores": Lista vs Folha Mensal
   const [colabSubTab, setColabSubTab] = useState<"lista" | "folha_mensal">("lista");
+  // Sub-tab interna dentro de "Lançamentos"
+  const [lancSubTab, setLancSubTab] = useState<LancamentoSubTab>("folha_lancamentos");
 
   const allItems: NavItem[] = [
     { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e folha mensal", badge: totalAtivos },
-    { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
-    { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
-    { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
+    { id: "lancamentos", label: "Lançamentos", icon: ListChecks, description: "Folha, adiantamentos e comissões" },
     { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
   ];
 
