@@ -3,14 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/AdminLayout";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus } from "lucide-react";
+import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -147,200 +147,358 @@ export default function AdminRH() {
           <SummaryCard icon={Users} label="Colaboradores ativos" value={totalAtivos} valueColor="green" />
         </div>
 
-        <Tabs defaultValue="colaboradores" className="w-full">
-          <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/60 rounded-lg">
-            <TabsTrigger value="colaboradores" className="h-7 px-3 text-xs rounded-md">Colaboradores</TabsTrigger>
-            <TabsTrigger value="folha_mensal" className="h-7 px-3 text-xs rounded-md">Folha Mensal</TabsTrigger>
-            <TabsTrigger value="folha" className="h-7 px-3 text-xs rounded-md">Lançamentos Folha</TabsTrigger>
-            <TabsTrigger value="adiantamentos" className="h-7 px-3 text-xs rounded-md">Adiantamentos</TabsTrigger>
-            <TabsTrigger value="comissoes" className="h-7 px-3 text-xs rounded-md">Comissões</TabsTrigger>
-            <TabsTrigger value="config" className="h-7 px-3 text-xs rounded-md">Configurações</TabsTrigger>
-          </TabsList>
+        <RHWorkspace
+          colaboradores={colaboradores}
+          totalAtivos={totalAtivos}
+          totalFolha={totalFolha}
+          totalAdiant={totalAdiant}
+          loading={loading}
+          search={search}
+          setSearch={setSearch}
+          tipoFilter={tipoFilter}
+          setTipoFilter={setTipoFilter}
+          filteredColabs={filteredColabs}
+          metricsByColab={metricsByColab}
+          setHistoryFor={setHistoryFor}
+          handleDesligar={handleDesligar}
+          month={month}
+          expenses={expenses}
+          settings={settings}
+          patch={patch}
+          setSalaryOverride={setSalaryOverride}
+          reload={reload}
+          accounts={accounts}
+          folhaExpenses={folhaExpenses}
+          adiantExpenses={adiantExpenses}
+          enrichName={enrichName}
+          saveSettings={saveSettings}
+        />
+      </div>
 
-          <TabsContent value="colaboradores" className="mt-4">
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por nome, cargo ou departamento..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-9 h-8 text-xs"
-                    />
+      <ColaboradorHistorySheet
+        colaborador={historyFor}
+        onClose={() => setHistoryFor(null)}
+        folhaAccountId={settings.folhaAccountId}
+        adiantamentoAccountId={settings.adiantamentoAccountId}
+      />
+      {DesligarDialog}
+    </AdminLayout>
+  );
+}
+
+// ============================================================
+// RH Workspace — SaaS-style sidebar navigation (Stripe/Linear)
+// ============================================================
+type RHSection =
+  | "colaboradores"
+  | "folha_mensal"
+  | "folha_lancamentos"
+  | "adiantamentos"
+  | "comissoes"
+  | "config";
+
+interface NavItem {
+  id: RHSection;
+  label: string;
+  icon: typeof Users;
+  description?: string;
+  badge?: string | number;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+function RHWorkspace(props: any) {
+  const {
+    colaboradores, totalAtivos, totalFolha, totalAdiant,
+    loading, search, setSearch, tipoFilter, setTipoFilter,
+    filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
+    month, expenses, settings, patch, setSalaryOverride, reload,
+    accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
+  } = props;
+
+  const [section, setSection] = useState<RHSection>("colaboradores");
+
+  const groups: NavGroup[] = [
+    {
+      label: "Pessoas",
+      items: [
+        { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e métricas", badge: totalAtivos },
+      ],
+    },
+    {
+      label: "Folha de Pagamento",
+      items: [
+        { id: "folha_mensal", label: "Folha Mensal", icon: CalendarDays, description: "Gerar e revisar folha" },
+        { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
+        { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
+      ],
+    },
+    {
+      label: "Variáveis",
+      items: [
+        { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
+      ],
+    },
+    {
+      label: "Sistema",
+      items: [
+        { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
+      ],
+    },
+  ];
+
+  const activeItem = groups.flatMap((g) => g.items).find((i) => i.id === section);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
+      {/* Sidebar lateral */}
+      <aside className="lg:sticky lg:top-4 lg:self-start">
+        <Card className="overflow-hidden">
+          <CardContent className="p-2">
+            <nav className="flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-visible">
+              {groups.map((group) => (
+                <div key={group.label} className="flex lg:flex-col lg:gap-0.5 shrink-0">
+                  <div className="hidden lg:block px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {group.label}
                   </div>
-                  <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60">
-                    {([
-                      { v: "all", label: "Todos" },
-                      { v: "colaborador", label: "Colaboradores" },
-                      { v: "motorista", label: "Motoristas" },
-                    ] as const).map((opt) => (
-                      <Button
-                        key={opt.v}
-                        size="sm"
-                        variant={tipoFilter === opt.v ? "default" : "ghost"}
-                        className="h-7 px-2.5 text-xs rounded-sm"
-                        onClick={() => setTipoFilter(opt.v as typeof tipoFilter)}
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = section === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSection(item.id)}
+                        className={cn(
+                          "group flex items-center gap-2.5 px-3 py-2 rounded-md text-xs transition-all shrink-0 w-full text-left",
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        )}
                       >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                  <span className="text-[11px] text-muted-foreground ml-auto">
-                    {filteredColabs.length} de {colaboradores.length}
-                  </span>
-                </div>
-                {loading ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : filteredColabs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {colaboradores.length === 0
-                      ? "Nenhuma pessoa marcada como colaborador (RH). Marque a opção “É colaborador (RH)” no cadastro da pessoa para que apareça aqui — funciona para qualquer tipo (motorista, fornecedor, etc.)."
-                      : "Nenhum colaborador corresponde ao filtro atual."}
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredColabs.map((c) => (
-                      <Card key={`${c.tipo}-${c.id}`} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-3.5 space-y-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-semibold text-sm truncate">{c.full_name}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {c.tipo === "motorista" ? "Motorista" : (c.cargo || "—")}
-                              </p>
+                        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "")} />
+                        <div className="flex-1 min-w-0 hidden lg:block">
+                          <div className="truncate">{item.label}</div>
+                          {item.description && (
+                            <div className="text-[10px] text-muted-foreground/80 truncate font-normal">
+                              {item.description}
                             </div>
-                            {c.salario != null && (
-                              <Badge variant="secondary" className="shrink-0">
-                                {formatBRL(Number(c.salario))}
-                              </Badge>
-                            )}
+                          )}
+                        </div>
+                        <span className="lg:hidden whitespace-nowrap">{item.label}</span>
+                        {item.badge != null && (
+                          <Badge variant="secondary" className="h-4 px-1.5 text-[9px] hidden lg:inline-flex">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {isActive && (
+                          <ChevronRight className="h-3 w-3 hidden lg:block opacity-60" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+          </CardContent>
+        </Card>
+      </aside>
+
+      {/* Conteúdo */}
+      <section className="min-w-0 space-y-3">
+        {activeItem && (
+          <div className="flex items-center gap-2">
+            <activeItem.icon className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">{activeItem.label}</h2>
+            {activeItem.description && (
+              <span className="text-[11px] text-muted-foreground">· {activeItem.description}</span>
+            )}
+          </div>
+        )}
+
+        {section === "colaboradores" && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, cargo ou departamento..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 h-8 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted/60">
+                  {([
+                    { v: "all", label: "Todos" },
+                    { v: "colaborador", label: "Colaboradores" },
+                    { v: "motorista", label: "Motoristas" },
+                  ] as const).map((opt) => (
+                    <Button
+                      key={opt.v}
+                      size="sm"
+                      variant={tipoFilter === opt.v ? "default" : "ghost"}
+                      className="h-7 px-2.5 text-xs rounded-sm"
+                      onClick={() => setTipoFilter(opt.v as typeof tipoFilter)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  {filteredColabs.length} de {colaboradores.length}
+                </span>
+              </div>
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : filteredColabs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {colaboradores.length === 0
+                    ? "Nenhuma pessoa marcada como colaborador (RH). Marque a opção \u201CÉ colaborador (RH)\u201D no cadastro da pessoa para que apareça aqui — funciona para qualquer tipo (motorista, fornecedor, etc.)."
+                    : "Nenhum colaborador corresponde ao filtro atual."}
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filteredColabs.map((c: ColaboradorRH) => (
+                    <Card key={`${c.tipo}-${c.id}`} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-3.5 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">{c.full_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {c.tipo === "motorista" ? "Motorista" : (c.cargo || "—")}
+                            </p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-1">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {c.tipo === "colaborador" ? "Colaborador" : "Motorista (Frota Própria)"}
+                          {c.salario != null && (
+                            <Badge variant="secondary" className="shrink-0">
+                              {formatBRL(Number(c.salario))}
                             </Badge>
-                            <Badge
-                              className={`text-[10px] px-1.5 py-0 ${
-                                c.ativo
-                                  ? "bg-green-100 text-green-700 hover:bg-green-100"
-                                  : "bg-muted text-muted-foreground hover:bg-muted"
-                              }`}
-                            >
-                              {c.ativo ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </div>
-                          <div className="text-[11px] text-muted-foreground space-y-0.5">
-                            {c.departamento && (
-                              <div className="flex items-center gap-1">
-                                <Briefcase className="h-3 w-3" />
-                                <span>{c.departamento}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {c.tipo === "colaborador" ? "Colaborador" : "Motorista (Frota Própria)"}
+                          </Badge>
+                          <Badge
+                            className={`text-[10px] px-1.5 py-0 ${
+                              c.ativo
+                                ? "bg-green-100 text-green-700 hover:bg-green-100"
+                                : "bg-muted text-muted-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {c.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground space-y-0.5">
+                          {c.departamento && (
+                            <div className="flex items-center gap-1">
+                              <Briefcase className="h-3 w-3" />
+                              <span>{c.departamento}</span>
+                            </div>
+                          )}
+                          {c.data_admissao && (
+                            <div>Admissão: {new Date(c.data_admissao).toLocaleDateString("pt-BR")}</div>
+                          )}
+                          {c.email && <div className="truncate">{c.email}</div>}
+                        </div>
+                        {(() => {
+                          const mtr = metricsByColab.get(c.id) || { recebido: 0, adiantamentos: 0, saldoDevedor: 0, folhaTotal: 0, folhaPago: 0 };
+                          return (
+                            <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-border/60">
+                              <div className="text-center">
+                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Recebido</p>
+                                <p className="text-[11px] font-semibold text-green-600 tabular-nums truncate">{formatBRL(mtr.recebido)}</p>
                               </div>
-                            )}
-                            {c.data_admissao && (
-                              <div>Admissão: {new Date(c.data_admissao).toLocaleDateString("pt-BR")}</div>
-                            )}
-                            {c.email && <div className="truncate">{c.email}</div>}
-                          </div>
-                          {(() => {
-                            const mtr = metricsByColab.get(c.id) || { recebido: 0, adiantamentos: 0, saldoDevedor: 0, folhaTotal: 0, folhaPago: 0 };
-                            return (
-                              <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-border/60">
-                                <div className="text-center">
-                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Recebido</p>
-                                  <p className="text-[11px] font-semibold text-green-600 tabular-nums truncate">{formatBRL(mtr.recebido)}</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Adiant.</p>
-                                  <p className="text-[11px] font-semibold text-amber-600 tabular-nums truncate">{formatBRL(mtr.adiantamentos)}</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-[9px] uppercase text-muted-foreground leading-tight">Saldo</p>
-                                  <p className={`text-[11px] font-semibold tabular-nums truncate ${mtr.saldoDevedor > 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(mtr.saldoDevedor)}</p>
-                                </div>
+                              <div className="text-center">
+                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Adiant.</p>
+                                <p className="text-[11px] font-semibold text-amber-600 tabular-nums truncate">{formatBRL(mtr.adiantamentos)}</p>
                               </div>
-                            );
-                          })()}
-                          <div className="pt-1 flex items-center gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 flex-1"
-                              onClick={() => setHistoryFor(c)}
-                            >
-                              <History className="h-3 w-3" /> Histórico
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                              onClick={() => handleDesligar(c)}
-                              title="Desliga o colaborador do RH (mantém o cadastro)"
-                            >
-                              <UserMinus className="h-3 w-3" /> Desligar
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                              <div className="text-center">
+                                <p className="text-[9px] uppercase text-muted-foreground leading-tight">Saldo</p>
+                                <p className={`text-[11px] font-semibold tabular-nums truncate ${mtr.saldoDevedor > 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(mtr.saldoDevedor)}</p>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <div className="pt-1 flex items-center gap-1.5">
+                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 flex-1" onClick={() => setHistoryFor(c)}>
+                            <History className="h-3 w-3" /> Histórico
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                            onClick={() => handleDesligar(c)}
+                            title="Desliga o colaborador do RH (mantém o cadastro)"
+                          >
+                            <UserMinus className="h-3 w-3" /> Desligar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="folha_mensal" className="mt-4">
-            <FolhaMensalTab
-              colaboradores={colaboradores}
-              month={month}
-              expenses={expenses}
-              folhaAccountId={settings.folhaAccountId}
-              adiantamentoAccountId={settings.adiantamentoAccountId}
-              salaryOverrides={settings.salaryOverrides || {}}
-              payDay={settings.payDay}
-              onSalaryOverride={(id, value) => setSalaryOverride(id, value)}
-              onGenerated={reload}
-            />
-          </TabsContent>
+        {section === "folha_mensal" && (
+          <FolhaMensalTab
+            colaboradores={colaboradores}
+            month={month}
+            expenses={expenses}
+            folhaAccountId={settings.folhaAccountId}
+            adiantamentoAccountId={settings.adiantamentoAccountId}
+            salaryOverrides={settings.salaryOverrides || {}}
+            payDay={settings.payDay}
+            onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
+            onGenerated={reload}
+          />
+        )}
 
-          <TabsContent value="folha" className="mt-4">
-            <Card>
-              <CardContent className="p-4">
-                <ExpenseList
-                  items={folhaExpenses}
-                  enrichName={enrichName}
-                  emptyHint={
-                    settings.folhaAccountId
-                      ? "Nenhum lançamento de folha neste mês."
-                      : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
-                  }
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
+        {section === "folha_lancamentos" && (
+          <Card>
+            <CardContent className="p-4">
+              <ExpenseList
+                items={folhaExpenses}
+                enrichName={enrichName}
+                emptyHint={
+                  settings.folhaAccountId
+                    ? "Nenhum lançamento de folha neste mês."
+                    : "Nenhuma conta 'Salários' detectada. Defina em Configurações."
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="adiantamentos" className="mt-4">
-            <Card>
-              <CardContent className="p-4">
-                <ExpenseList
-                  items={adiantExpenses}
-                  enrichName={enrichName}
-                  emptyHint={
-                    settings.adiantamentoAccountId
-                      ? "Nenhum adiantamento neste mês."
-                      : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
-                  }
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
+        {section === "adiantamentos" && (
+          <Card>
+            <CardContent className="p-4">
+              <ExpenseList
+                items={adiantExpenses}
+                enrichName={enrichName}
+                emptyHint={
+                  settings.adiantamentoAccountId
+                    ? "Nenhum adiantamento neste mês."
+                    : "Nenhuma conta 'Adiantamentos / Vales' detectada. Defina em Configurações."
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="comissoes" className="mt-4">
-            <ComissoesTab colaboradores={colaboradores} />
-          </TabsContent>
+        {section === "comissoes" && (
+          <ComissoesTab colaboradores={colaboradores} />
+        )}
 
-          <TabsContent value="config" className="mt-4 space-y-4">
+        {section === "config" && (
+          <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4 max-w-2xl">
                 <div>
@@ -352,21 +510,12 @@ export default function AdminRH() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Categoria — Salários (Folha de Pagamento)</Label>
-                  <Select
-                    value={settings.folhaAccountId || ""}
-                    onValueChange={(v) => patch({ folhaAccountId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma conta" />
-                    </SelectTrigger>
+                  <Select value={settings.folhaAccountId || ""} onValueChange={(v) => patch({ folhaAccountId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione uma conta" /></SelectTrigger>
                     <SelectContent>
-                      {accounts
-                        .filter((a) => a.tipo === "despesa")
-                        .map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.codigo} — {a.nome}
-                          </SelectItem>
-                        ))}
+                      {accounts.filter((a: any) => a.tipo === "despesa").map((a: any) => (
+                        <SelectItem key={a.id} value={a.id}>{a.codigo} — {a.nome}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {settings.folhaAccountId && (
@@ -377,21 +526,12 @@ export default function AdminRH() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Categoria — Adiantamentos / Vales</Label>
-                  <Select
-                    value={settings.adiantamentoAccountId || ""}
-                    onValueChange={(v) => patch({ adiantamentoAccountId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma conta" />
-                    </SelectTrigger>
+                  <Select value={settings.adiantamentoAccountId || ""} onValueChange={(v) => patch({ adiantamentoAccountId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione uma conta" /></SelectTrigger>
                     <SelectContent>
-                      {accounts
-                        .filter((a) => a.tipo === "despesa")
-                        .map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.codigo} — {a.nome}
-                          </SelectItem>
-                        ))}
+                      {accounts.filter((a: any) => a.tipo === "despesa").map((a: any) => (
+                        <SelectItem key={a.id} value={a.id}>{a.codigo} — {a.nome}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {settings.adiantamentoAccountId && (
@@ -403,13 +543,10 @@ export default function AdminRH() {
                 <div className="space-y-1.5">
                   <Label className="text-xs">Dia padrão de pagamento da folha</Label>
                   <Input
-                    type="number"
-                    min={1}
-                    max={31}
+                    type="number" min={1} max={31}
                     value={settings.payDay || ""}
                     onChange={(e) => patch({ payDay: e.target.value })}
-                    className="h-9 w-32"
-                    placeholder="Ex: 5"
+                    className="h-9 w-32" placeholder="Ex: 5"
                   />
                 </div>
                 <Button onClick={saveSettings} className="gap-2">
@@ -422,22 +559,11 @@ export default function AdminRH() {
               </CardContent>
             </Card>
 
-            <SalaryOverridesCard
-              colaboradores={colaboradores}
-              onSaved={reload}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <ColaboradorHistorySheet
-        colaborador={historyFor}
-        onClose={() => setHistoryFor(null)}
-        folhaAccountId={settings.folhaAccountId}
-        adiantamentoAccountId={settings.adiantamentoAccountId}
-      />
-      {DesligarDialog}
-    </AdminLayout>
+            <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
