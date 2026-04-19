@@ -564,14 +564,14 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-foreground">Colheitas do motorista</p>
-                {agregados.length > 0 && (
+                {agregadosElegiveis.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
                     onClick={toggleAgrAll}
                   >
-                    {agregadosSelecionados.size === agregados.length
+                    {agregadosSelecionados.size === agregadosElegiveis.length
                       ? "Limpar"
                       : "Selecionar todas"}
                   </Button>
@@ -591,20 +591,34 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                   {agregados.map((a) => {
                     const checked = agregadosSelecionados.has(a.assignmentId);
                     const comissaoCalc = calcularComissao(a.valorTotal, pctNum);
+                    const isDone = a.jaComissionado;
                     return (
                       <label
                         key={a.assignmentId}
-                        className={`flex items-center gap-3 p-2.5 text-xs cursor-pointer hover:bg-muted/40 ${
-                          checked ? "bg-primary/5" : ""
-                        }`}
+                        className={`flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40 ${
+                          isDone
+                            ? "opacity-60 cursor-not-allowed bg-muted/20"
+                            : "cursor-pointer"
+                        } ${checked && !isDone ? "bg-primary/5" : ""}`}
                       >
                         <Checkbox
-                          checked={checked}
+                          checked={checked && !isDone}
+                          disabled={isDone}
                           onCheckedChange={() => toggleAgr(a.assignmentId)}
                         />
                         <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
                           <div className="min-w-0">
-                            <p className="truncate font-medium">{a.farmName}</p>
+                            <p className="truncate font-medium flex items-center gap-1.5">
+                              {a.farmName}
+                              {isDone && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] px-1.5 py-0 gap-1 shrink-0"
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5" /> Comissão gerada
+                                </Badge>
+                              )}
+                            </p>
                             <p className="truncate text-[10px] text-muted-foreground">
                               {a.vehiclePlate ? `${a.vehiclePlate} · ` : ""}
                               {new Date(a.startDate).toLocaleDateString("pt-BR")}
@@ -621,9 +635,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                           </div>
                           <div className="text-right tabular-nums min-w-[110px]">
                             <p className="font-semibold">{formatBRL(a.valorTotal)}</p>
-                            <p className="text-[10px] text-primary">
-                              Comissão: {formatBRL(comissaoCalc)}
-                            </p>
+                            {!isDone && (
+                              <p className="text-[10px] text-primary">
+                                Comissão: {formatBRL(comissaoCalc)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </label>
