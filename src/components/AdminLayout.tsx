@@ -52,7 +52,11 @@ const menuItems = [
     title: "Recursos Humanos",
     icon: UserCog,
     children: [
-      { title: "Colaboradores", url: "/admin/rh", icon: UserCog },
+      { title: "Adiantamentos", url: "/admin/rh/adiantamentos", icon: HandCoins },
+      { title: "Colaboradores", url: "/admin/rh/colaboradores", icon: UserCog },
+      { title: "Comissões", url: "/admin/rh/comissoes", icon: Percent },
+      { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
+      { title: "Lançamentos Folha", url: "/admin/rh/lancamentos", icon: ListChecks },
     ],
   },
   {
