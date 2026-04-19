@@ -220,40 +220,26 @@ function RHWorkspace(props: any) {
     filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
     month, expenses, settings, patch, setSalaryOverride, reload,
     accounts, folhaExpenses, adiantExpenses, enrichName, saveSettings,
+    forcedSection,
   } = props;
 
-  const [section, setSection] = useState<RHSection>("colaboradores");
+  const [internalSection, setInternalSection] = useState<RHSection>("colaboradores");
+  const section: RHSection = forcedSection ?? internalSection;
+  const setSection = setInternalSection;
 
-  const groups: NavGroup[] = [
-    {
-      label: "Pessoas",
-      items: [
-        { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e métricas", badge: totalAtivos },
-      ],
-    },
-    {
-      label: "Folha de Pagamento",
-      items: [
-        { id: "folha_mensal", label: "Folha Mensal", icon: CalendarDays, description: "Gerar e revisar folha" },
-        { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
-        { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
-      ],
-    },
-    {
-      label: "Variáveis",
-      items: [
-        { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
-      ],
-    },
-    {
-      label: "Sistema",
-      items: [
-        { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
-      ],
-    },
+  // Sub-tab interna dentro de "Colaboradores": Lista vs Folha Mensal
+  const [colabSubTab, setColabSubTab] = useState<"lista" | "folha_mensal">("lista");
+
+  const allItems: NavItem[] = [
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e folha mensal", badge: totalAtivos },
+    { id: "folha_lancamentos", label: "Lançamentos", icon: ListChecks, description: "Histórico de salários" },
+    { id: "adiantamentos", label: "Adiantamentos", icon: HandCoins, description: "Vales e antecipações" },
+    { id: "comissoes", label: "Comissões", icon: Percent, description: "CT-e e Colheita" },
+    { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
   ];
 
-  const activeItem = groups.flatMap((g) => g.items).find((i) => i.id === section);
+  const activeItem = allItems.find((i) => i.id === section);
+  const showInternalNav = !forcedSection;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
