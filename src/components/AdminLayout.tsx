@@ -23,41 +23,29 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   {
-    title: "Financeiro",
-    icon: DollarSign,
-    children: [
-      { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
-      { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
-      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
-      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
-      { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
-      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
-      { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
-      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
-      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
-    ],
-  },
-  {
-    title: "Transporte",
-    icon: Car,
-    children: [
-      { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
-      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
-      { title: "Colheita", url: "/admin/harvest", icon: Sprout },
-      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
-      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
-      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
-    ],
-  },
-  {
     title: "Cadastros",
     icon: Users,
     children: [
-      { title: "Pessoas", url: "/admin/people", icon: Users },
-      { title: "Veículos", url: "/admin/vehicles", icon: Car },
       { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
+      { title: "Pessoas", url: "/admin/people", icon: Users },
       { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
       { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
+      { title: "Veículos", url: "/admin/vehicles", icon: Car },
+    ],
+  },
+  {
+    title: "Financeiro",
+    icon: DollarSign,
+    children: [
+      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
+      { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
+      { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
+      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
+      { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
+      { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
+      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
+      { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
+      { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
     ],
   },
   {
@@ -65,6 +53,18 @@ const menuItems = [
     icon: UserCog,
     children: [
       { title: "Colaboradores", url: "/admin/rh", icon: UserCog },
+    ],
+  },
+  {
+    title: "Transporte",
+    icon: Car,
+    children: [
+      { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
+      { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
+      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
+      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
+      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },
