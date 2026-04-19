@@ -19,6 +19,7 @@ import { useRHData } from "@/hooks/useRHData";
 import { useRHSettings } from "@/hooks/useRHSettings";
 import { MonthPicker } from "@/components/MonthPicker";
 import { ComissoesTab } from "@/components/rh/ComissoesTab";
+import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import {
   buildMetricsByColab,
@@ -40,7 +41,7 @@ import {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
-type RHSectionProp = "colaboradores" | "folha_pagamento" | "config";
+type RHSectionProp = "colaboradores" | "movimentacoes" | "folha_pagamento" | "config";
 
 export default function AdminRH({ section: forcedSection }: { section?: RHSectionProp } = {}) {
   const [search, setSearch] = useState("");
@@ -195,10 +196,12 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
 // ============================================================
 type RHSection =
   | "colaboradores"
+  | "movimentacoes"
   | "folha_pagamento"
   | "config";
 
-type FolhaSubTab = "folha_mensal" | "folha_lancamentos" | "adiantamentos" | "comissoes";
+type MovSubTab = "adiantamentos" | "comissoes" | "descontos";
+type FolhaSubTab = "em_aberto" | "previa" | "historico";
 
 interface NavItem {
   id: RHSection;
@@ -206,11 +209,6 @@ interface NavItem {
   icon: typeof Users;
   description?: string;
   badge?: string | number;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
 }
 
 function RHWorkspace(props: any) {
@@ -227,17 +225,27 @@ function RHWorkspace(props: any) {
   const section: RHSection = forcedSection ?? internalSection;
   const setSection = setInternalSection;
 
-  // Sub-tab dentro de "Folha de Pagamento"
-  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("folha_mensal");
-  // Modal wizard de geração da folha
+  const [movSubTab, setMovSubTab] = useState<MovSubTab>("adiantamentos");
+  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("em_aberto");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
   const { user } = useAuth();
 
+  // Folha em aberto = despesas folha ainda pendentes/parciais/atrasadas
+  const folhaEmAberto = useMemo(
+    () => folhaExpenses.filter((e: Expense) => e.status !== "pago" && e.status !== "cancelado"),
+    [folhaExpenses]
+  );
+  const folhaHistorico = useMemo(
+    () => folhaExpenses.filter((e: Expense) => e.status === "pago" || e.status === "cancelado"),
+    [folhaExpenses]
+  );
+
   const allItems: NavItem[] = [
-    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro do RH", badge: totalAtivos },
-    { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Folha mensal, adiantamentos, comissões e descontos" },
-    { id: "config", label: "Configurações", icon: Settings2, description: "Contas e parâmetros" },
+    { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
+    { id: "movimentacoes", label: "Movimentações", icon: HandCoins, description: "Adiantamentos, comissões e descontos" },
+    { id: "folha_pagamento", label: "Folha de Pagamento", icon: ListChecks, description: "Em aberto, prévia e histórico" },
+    { id: "config", label: "Configurações", icon: Settings2, description: "Salários, contas e regras" },
   ];
 
   const activeItem = allItems.find((i) => i.id === section);
