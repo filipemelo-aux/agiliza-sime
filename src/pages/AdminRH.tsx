@@ -741,6 +741,9 @@ function FolhaMensalTab({
   const totalDescontos = rows.reduce((s, r) => s + r.descontos, 0);
   const totalLiquido = rows.reduce((s, r) => s + r.liquido, 0);
 
+  const emissionDate = computeEmissionDate(month);
+  const dueDate = computeDueDate(month, payDay);
+
   const handleGenerate = async (row: (typeof rows)[number]) => {
     if (!folhaAccountId) {
       toast.error("Configure a conta 'Salários' em Configurações antes de gerar a folha.");
