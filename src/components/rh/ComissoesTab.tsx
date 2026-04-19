@@ -216,10 +216,9 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
     (a) => agregadosSelecionados.has(a.assignmentId) && !a.jaComissionado
   );
   const totalAgregadosBase = agregadosSel.reduce((s, a) => s + a.valorTotal, 0);
-  const totalAgregadosComissao = agregadosSel.reduce(
-    (s, a) => s + calcularComissao(a.valorTotal, pctNum),
-    0
-  );
+  // Colheita: a comissão é o próprio valor da diária calculada (dias × valor diária).
+  // Não há percentual aplicável — o motorista recebe exatamente o total apurado no filtro.
+  const totalAgregadosComissao = totalAgregadosBase;
   const toggleAgr = (id: string) => {
     const a = agregados.find((x) => x.assignmentId === id);
     if (a?.jaComissionado) return;
@@ -241,15 +240,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
       toast.error("Selecione ao menos uma colheita");
       return;
     }
-    if (pctNum <= 0) {
-      toast.error("Informe um percentual maior que zero");
-      return;
-    }
     const ok = await confirm({
       title: "Gerar comissões",
-      description: `Serão geradas ${agregadosSel.length} comissão(ões) de colheita com percentual de ${pctNum}%.\n\nBase total: ${formatBRL(
-        totalAgregadosBase
-      )}\nTotal de comissões: ${formatBRL(totalAgregadosComissao)}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
+      description: `Serão geradas ${agregadosSel.length} comissão(ões) de colheita.\n\nValor total (dias × diária): ${formatBRL(
+        totalAgregadosComissao
+      )}\n\nOs registros ficarão como “pendente” até serem enviados para a folha.`,
       confirmLabel: "Gerar",
     });
     if (!ok) return;
@@ -263,8 +258,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
           origem: "colheita",
           referencia_id: a.assignmentId,
           valor_base: a.valorTotal,
-          percentual: pctNum,
-          valor_calculado: calcularComissao(a.valorTotal, pctNum),
+          percentual: null,
+          valor_calculado: a.valorTotal,
           data_referencia: a.endDate || a.startDate,
           observacoes: `${a.farmName} · ${a.diasTrabalhados} dia(s) × ${formatBRL(a.valorDiaria)}`,
         });
@@ -521,8 +516,8 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
         {/* === Bloco Colheita === */}
         {tipo === "motorista" && operacao === "colheita" && colaboradorId && (
           <>
-            {/* Filtros de período + percentual */}
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_160px_1fr] gap-3 items-end max-w-4xl">
+            {/* Filtros de período (sem percentual — comissão = valor da diária) */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr] gap-3 items-end max-w-4xl">
               <div className="space-y-1.5">
                 <Label className="text-xs">Início</Label>
                 <Input
@@ -541,22 +536,10 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                   className="h-9 text-xs"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Percentual (%)</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={percentual}
-                  onChange={(e) => setPercentual(e.target.value)}
-                  className="h-9 text-xs"
-                />
-              </div>
               <p className="text-[11px] text-muted-foreground">
                 Mesmo cálculo da aba <span className="font-medium">Agregados</span> dos relatórios:
-                dias × diária. Comissão = total × percentual.
+                <span className="font-medium"> dias × diária</span>. A comissão é o próprio valor
+                apurado — não se aplica percentual.
               </p>
             </div>
 
@@ -590,7 +573,6 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                 <div className="border border-border rounded-md divide-y divide-border max-h-[420px] overflow-auto">
                   {agregados.map((a) => {
                     const checked = agregadosSelecionados.has(a.assignmentId);
-                    const comissaoCalc = calcularComissao(a.valorTotal, pctNum);
                     const isDone = a.jaComissionado;
                     return (
                       <label
@@ -636,9 +618,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                           <div className="text-right tabular-nums min-w-[110px]">
                             <p className="font-semibold">{formatBRL(a.valorTotal)}</p>
                             {!isDone && (
-                              <p className="text-[10px] text-primary">
-                                Comissão: {formatBRL(comissaoCalc)}
-                              </p>
+                              <p className="text-[10px] text-primary">Comissão integral</p>
                             )}
                           </div>
                         </div>
@@ -656,15 +636,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                       <span className="font-semibold">{agregadosSelecionados.size}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Base total:</span>{" "}
-                      <span className="font-semibold tabular-nums">
-                        {formatBRL(totalAgregadosBase)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        Total comissão ({pctNum}%):
-                      </span>{" "}
+                      <span className="text-muted-foreground">Total comissão:</span>{" "}
                       <span className="font-semibold text-primary tabular-nums">
                         {formatBRL(totalAgregadosComissao)}
                       </span>
