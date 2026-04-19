@@ -145,30 +145,21 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {folhas.map((f) => (
-          <Card key={f.id}>
-            <CardContent className="p-3 flex flex-wrap items-center gap-3">
-              <div className="flex-1 min-w-[200px]">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold">Folha {f.mes_referencia}</p>
-                  <Badge variant="outline" className="text-[10px] text-primary border-primary/40">em aberto</Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Vencimento {new Date(f.data_vencimento).toLocaleDateString("pt-BR")} ·
-                  Criada em {new Date(f.created_at).toLocaleDateString("pt-BR")}
-                </p>
+          <Card key={f.id} className="overflow-hidden">
+            {/* Cabeçalho */}
+            <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold">Folha {f.mes_referencia}</p>
+                <Badge variant="outline" className="text-[10px] text-primary border-primary/40">em aberto</Badge>
+                <span className="text-[11px] text-muted-foreground">
+                  Vence {new Date(f.data_vencimento).toLocaleDateString("pt-BR")}
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 text-[11px]">
-                <Mini label="Base" v={formatBRL(Number(f.total_base))} />
-                <Mini label="Adiant." v={formatBRL(Number(f.total_adiantamentos))} c="text-amber-600" />
-                <Mini label="Desc." v={formatBRL(Number(f.total_descontos))} c="text-rose-600" />
-                <Mini label="Com." v={formatBRL(Number(f.total_comissoes))} c="text-emerald-600" />
-                <Mini label="Líquido" v={formatBRL(Number(f.total_liquido))} c="text-primary font-bold" />
-              </div>
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="flex items-center gap-1.5">
                 <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openItems(f)}>
-                  <Eye className="h-3.5 w-3.5" /> Ver
+                  <Eye className="h-3.5 w-3.5" /> Ver itens
                 </Button>
                 <Button
                   size="sm"
@@ -189,10 +180,39 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
+            </div>
+
+            {/* Blocos visuais separados: Base • Descontos • Comissões • Total */}
+            <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Bloco
+                tom="neutral"
+                titulo="Base"
+                principal={formatBRL(Number(f.total_base))}
+              />
+              <Bloco
+                tom="negativo"
+                titulo="Descontos"
+                principal={formatBRL(Number(f.total_adiantamentos) + Number(f.total_descontos))}
+                detalhes={[
+                  { label: "Adiantamentos", value: formatBRL(Number(f.total_adiantamentos)) },
+                  { label: "Outros descontos", value: formatBRL(Number(f.total_descontos)) },
+                ]}
+              />
+              <Bloco
+                tom="positivo"
+                titulo="Comissões"
+                principal={formatBRL(Number(f.total_comissoes))}
+              />
+              <Bloco
+                tom="destaque"
+                titulo="Total líquido"
+                principal={formatBRL(Number(f.total_liquido))}
+              />
             </CardContent>
           </Card>
         ))}
       </div>
+
 
       <Sheet open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
         <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
@@ -254,6 +274,60 @@ function Mini({ label, v, c }: { label: string; v: string; c?: string }) {
     <div className="text-center">
       <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{label}</div>
       <div className={`text-xs tabular-nums ${c || ""}`}>{v}</div>
+    </div>
+  );
+}
+
+type Tom = "neutral" | "negativo" | "positivo" | "destaque";
+
+function Bloco({
+  tom,
+  titulo,
+  principal,
+  detalhes,
+}: {
+  tom: Tom;
+  titulo: string;
+  principal: string;
+  detalhes?: { label: string; value: string }[];
+}) {
+  const styles: Record<Tom, { wrap: string; title: string; value: string }> = {
+    neutral: {
+      wrap: "border-border bg-background",
+      title: "text-muted-foreground",
+      value: "text-foreground",
+    },
+    negativo: {
+      wrap: "border-rose-200 bg-rose-50/60",
+      title: "text-rose-700",
+      value: "text-rose-700",
+    },
+    positivo: {
+      wrap: "border-emerald-200 bg-emerald-50/60",
+      title: "text-emerald-700",
+      value: "text-emerald-700",
+    },
+    destaque: {
+      wrap: "border-primary/40 bg-primary/5 ring-1 ring-primary/20",
+      title: "text-primary",
+      value: "text-primary font-bold",
+    },
+  };
+  const s = styles[tom];
+  return (
+    <div className={`rounded-md border p-2.5 ${s.wrap}`}>
+      <div className={`text-[9px] uppercase tracking-wide font-semibold ${s.title}`}>{titulo}</div>
+      <div className={`text-sm tabular-nums mt-0.5 ${s.value}`}>{principal}</div>
+      {detalhes && detalhes.length > 0 && (
+        <div className="mt-1.5 space-y-0.5">
+          {detalhes.map((d) => (
+            <div key={d.label} className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className="truncate">{d.label}</span>
+              <span className="tabular-nums">{d.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
