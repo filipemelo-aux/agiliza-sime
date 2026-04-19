@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { History, Loader2, Trash2, Truck, Sprout } from "lucide-react";
+import { History, Loader2, Trash2, Truck, Sprout, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { MonthPicker } from "@/components/MonthPicker";
 import {
   fetchComissoes,
   deleteComissao,
@@ -29,9 +29,22 @@ interface HistoricoComissoesTabProps {
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+const monthBounds = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  const ini = new Date(y, m - 1, 1);
+  const fim = new Date(y, m, 0); // último dia do mês
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { ini: fmt(ini), fim: fmt(fim) };
+};
+
 export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabProps) {
   const [colaboradorId, setColaboradorId] = useState<string>("all");
   const [status, setStatus] = useState<"all" | ComissaoStatus>("all");
+  const [periodMode, setPeriodMode] = useState<"mes" | "custom">("mes");
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [dataInicio, setDataInicio] = useState<string>("");
   const [dataFim, setDataFim] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -48,11 +61,21 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
   const carregar = async () => {
     setLoading(true);
     try {
+      let ini: string | undefined;
+      let fim: string | undefined;
+      if (periodMode === "mes") {
+        const b = monthBounds(month);
+        ini = b.ini;
+        fim = b.fim;
+      } else {
+        ini = dataInicio || undefined;
+        fim = dataFim || undefined;
+      }
       const data = await fetchComissoes({
         colaboradorId: colaboradorId !== "all" ? colaboradorId : undefined,
         status: status !== "all" ? status : undefined,
-        dataInicio: dataInicio || undefined,
-        dataFim: dataFim || undefined,
+        dataInicio: ini,
+        dataFim: fim,
       });
       setComissoes(data);
     } catch (err: any) {
@@ -65,7 +88,7 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colaboradorId, status, dataInicio, dataFim]);
+  }, [colaboradorId, status, periodMode, month, dataInicio, dataFim]);
 
   const totais = useMemo(() => {
     const totalBase = comissoes.reduce((s, c) => s + Number(c.valor_base || 0), 0);
@@ -113,7 +136,7 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Colaborador</Label>
             <Select value={colaboradorId} onValueChange={setColaboradorId}>
@@ -144,26 +167,49 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">De</Label>
-            <Input
-              type="date"
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-              className="h-9 text-xs"
-            />
+            <Label className="text-xs">Período</Label>
+            <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mes">Mês a mês</SelectItem>
+                <SelectItem value="custom">Intervalo personalizado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Até</Label>
-            <Input
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="h-9 text-xs"
-            />
-          </div>
+          {periodMode === "mes" ? (
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" /> Mês
+              </Label>
+              <MonthPicker value={month} onChange={setMonth} className="h-9 text-xs" />
+            </div>
+          ) : (
+            <div className="space-y-1.5 grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">De</Label>
+                <input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Até</Label>
+                <input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="h-9 text-xs w-full rounded-md border border-input bg-background px-2"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Lista */}
+        {/* Lista em cards responsivos */}
         {loading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando...
@@ -174,58 +220,63 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
           </p>
         ) : (
           <>
-            <div className="border border-border rounded-md divide-y divide-border max-h-[460px] overflow-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
               {comissoes.map((c) => {
                 const isCte = c.origem === "cte";
                 const isPendente = c.status === "pendente";
                 return (
-                  <div
-                    key={c.id}
-                    className="flex items-center gap-3 p-2.5 text-xs hover:bg-muted/40"
-                  >
-                    <div className="shrink-0 h-7 w-7 rounded-md bg-muted flex items-center justify-center">
-                      {isCte ? (
-                        <Truck className="h-3.5 w-3.5 text-muted-foreground" />
-                      ) : (
-                        <Sprout className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {colabMap.get(c.colaborador_id) || "—"}
-                        </p>
-                        <p className="truncate text-[10px] text-muted-foreground">
-                          {c.observacoes ||
-                            `${isCte ? "CT-e" : "Colheita"} · ${c.referencia_id.slice(0, 8)}`}
-                        </p>
-                      </div>
-                      <div className="text-right tabular-nums">
-                        <p className="text-[10px] text-muted-foreground">Base</p>
-                        <p className="font-medium">{formatBRL(Number(c.valor_base))}</p>
-                      </div>
-                      <div className="text-right tabular-nums min-w-[110px]">
-                        <p className="text-[10px] text-muted-foreground">
-                          Comissão{c.percentual ? ` (${c.percentual}%)` : ""}
-                        </p>
-                        <p className="font-semibold text-primary">
-                          {formatBRL(Number(c.valor_calculado))}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 justify-end">
+                  <Card key={c.id} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="shrink-0 h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+                          {isCte ? (
+                            <Truck className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Sprout className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {colabMap.get(c.colaborador_id) || "—"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {c.observacoes ||
+                              `${isCte ? "CT-e" : "Colheita"} · ${c.referencia_id.slice(0, 8)}`}
+                          </p>
+                        </div>
                         <Badge
                           variant={isPendente ? "outline" : "secondary"}
-                          className="text-[9px] px-1.5 py-0"
+                          className="text-[9px] px-1.5 py-0 shrink-0"
                         >
                           {isPendente ? "pendente" : "enviado folha"}
                         </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-border/60">
+                        <div>
+                          <p className="text-[9px] uppercase text-muted-foreground tracking-wide">Base</p>
+                          <p className="text-xs font-medium tabular-nums truncate">
+                            {formatBRL(Number(c.valor_base))}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] uppercase text-muted-foreground tracking-wide">
+                            Comissão{c.percentual ? ` (${c.percentual}%)` : ""}
+                          </p>
+                          <p className="text-xs font-semibold text-primary tabular-nums truncate">
+                            {formatBRL(Number(c.valor_calculado))}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
                         <span className="text-[10px] text-muted-foreground tabular-nums">
                           {new Date(c.data_referencia).toLocaleDateString("pt-BR")}
                         </span>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
                           disabled={!isPendente || removendo === c.id}
                           title={
                             isPendente
@@ -237,12 +288,15 @@ export function HistoricoComissoesTab({ colaboradores }: HistoricoComissoesTabPr
                           {removendo === c.id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            <>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive mr-1" />
+                              <span className="text-destructive">Remover</span>
+                            </>
                           )}
                         </Button>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
