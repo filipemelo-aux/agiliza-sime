@@ -48,6 +48,7 @@ const formatBRL = (n: number) =>
  * Tipo "Por Embarque": desabilitado ("Em manutenção").
  */
 export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
+  const [tab, setTab] = useState<"gerar" | "historico">("gerar");
   const [tipo, setTipo] = useState<TipoComissao>("motorista");
   const [operacao, setOperacao] = useState<OperacaoMotorista>("frete");
   const [colaboradorId, setColaboradorId] = useState<string>("");
@@ -57,6 +58,7 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   const [loadingCtes, setLoadingCtes] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [salvando, setSalvando] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // Colheita
   const [colheitaInicio, setColheitaInicio] = useState<string>("");
