@@ -286,18 +286,34 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <HandCoins className="h-4 w-4 text-primary" />
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Comissões</h3>
-            <p className="text-[11px] text-muted-foreground">
-              Gere comissões a partir de CT-es autorizados — ficam pendentes até serem enviadas
-              para a folha.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "gerar" | "historico")}>
+        <TabsList>
+          <TabsTrigger value="gerar" className="text-xs gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Gerar
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="text-xs gap-1.5">
+            <History className="h-3.5 w-3.5" /> Histórico
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="historico" className="mt-4">
+          <HistoricoComissoesTab colaboradores={colaboradores} />
+        </TabsContent>
+
+        <TabsContent value="gerar" className="mt-4">
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <HandCoins className="h-4 w-4 text-primary" />
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Comissões</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Gere comissões a partir de CT-es autorizados — ficam pendentes até serem
+                    enviadas para a folha.
+                  </p>
+                </div>
+              </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl">
           {/* Tipo de Comissão */}
