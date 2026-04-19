@@ -453,20 +453,22 @@ function RHWorkspace(props: any) {
               )}
             </CardContent>
           </Card>
-        )}
+            )}
 
-        {section === "folha_mensal" && (
-          <FolhaMensalTab
-            colaboradores={colaboradores}
-            month={month}
-            expenses={expenses}
-            folhaAccountId={settings.folhaAccountId}
-            adiantamentoAccountId={settings.adiantamentoAccountId}
-            salaryOverrides={settings.salaryOverrides || {}}
-            payDay={settings.payDay}
-            onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
-            onGenerated={reload}
-          />
+            {colabSubTab === "folha_mensal" && (
+              <FolhaMensalTab
+                colaboradores={colaboradores}
+                month={month}
+                expenses={expenses}
+                folhaAccountId={settings.folhaAccountId}
+                adiantamentoAccountId={settings.adiantamentoAccountId}
+                salaryOverrides={settings.salaryOverrides || {}}
+                payDay={settings.payDay}
+                onSalaryOverride={(id: string, value: number) => setSalaryOverride(id, value)}
+                onGenerated={reload}
+              />
+            )}
+          </>
         )}
 
         {section === "folha_lancamentos" && (
