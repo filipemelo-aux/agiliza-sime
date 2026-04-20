@@ -2,11 +2,16 @@
  * RH Financial Service
  * Camada de leitura desacoplada do financeiro. Apenas CONSOME `expenses` —
  * nenhuma escrita financeira nem regra de cálculo de pagamento é duplicada aqui.
- * A criação de despesas (folha) reusa o fluxo padrão de Contas a Pagar.
+ *
+ * 🔁 NOVA REGRA (folha quinzenal):
+ *   A folha NÃO gera mais despesas automaticamente.
+ *   Ela CONSUME despesas já existentes em Contas a Pagar:
+ *     - Categoria "Salários" (folhaAccountId)
+ *     - Categoria "Adiantamentos / Vales" (adiantamentoAccountId), filtradas
+ *       por `data_pagamento` dentro da janela do período da folha.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { marcarComoEnviadasFolha, type Comissao } from "./comissoesService";
-import { vincularDescontosAFolha } from "./descontosFolhaService";
+import { type Comissao } from "./comissoesService";
 
 export type Expense = {
   id: string;
@@ -68,9 +73,82 @@ export async function fetchExpensesByColaborador(
 }
 
 /**
- * Busca todas as comissões PENDENTES dos colaboradores cuja `data_referencia`
- * cai dentro do mês informado. Usado pela Folha Mensal para somar comissões
- * ao salário base de cada colaborador.
+ * Busca SALÁRIOS (despesas na categoria folha) cuja `data_emissao` cai
+ * dentro da janela [inicio, fim] do período da folha. Estas são as despesas
+ * que serão CONSUMIDAS pela folha (não criadas).
+ */
+export async function fetchSalariosNoPeriodo(
+  colabIds: string[],
+  folhaAccountId: string,
+  inicio: string,
+  fim: string
+): Promise<Expense[]> {
+  if (colabIds.length === 0 || !folhaAccountId) return [];
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(
+      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
+    )
+    .in("favorecido_id", colabIds)
+    .eq("plano_contas_id", folhaAccountId)
+    .is("deleted_at", null)
+    .gte("data_emissao", inicio)
+    .lte("data_emissao", fim)
+    .order("data_emissao", { ascending: false });
+  if (error) throw error;
+  return (data as any) || [];
+}
+
+/**
+ * Busca ADIANTAMENTOS já PAGOS dentro da janela [inicio, fim] do período
+ * da folha (por `data_pagamento`). Adiantamentos não pagos não entram na
+ * folha — ficam aguardando o ciclo seguinte.
+ */
+export async function fetchAdiantamentosPagosNoPeriodo(
+  colabIds: string[],
+  adiantamentoAccountId: string,
+  inicio: string,
+  fim: string
+): Promise<Expense[]> {
+  if (colabIds.length === 0 || !adiantamentoAccountId) return [];
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(
+      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
+    )
+    .in("favorecido_id", colabIds)
+    .eq("plano_contas_id", adiantamentoAccountId)
+    .is("deleted_at", null)
+    .not("data_pagamento", "is", null)
+    .gte("data_pagamento", inicio)
+    .lte("data_pagamento", fim)
+    .order("data_pagamento", { ascending: false });
+  if (error) throw error;
+  return (data as any) || [];
+}
+
+/**
+ * Comissões PENDENTES por janela de período (data_referencia entre inicio e fim).
+ */
+export async function fetchComissoesPendentesNoPeriodo(
+  colabIds: string[],
+  inicio: string,
+  fim: string
+): Promise<Comissao[]> {
+  if (colabIds.length === 0) return [];
+  const { data, error } = await (supabase.from("comissoes" as any) as any)
+    .select("*")
+    .in("colaborador_id", colabIds)
+    .eq("status", "pendente")
+    .gte("data_referencia", inicio)
+    .lte("data_referencia", fim);
+  if (error) throw error;
+  return (data as Comissao[]) || [];
+}
+
+/**
+ * @deprecated Mantido apenas para compatibilidade de leitura mensal.
+ * Para folha quinzenal use `fetchComissoesPendentesNoPeriodo`.
  */
 export async function fetchComissoesPendentesForMonth(
   colabIds: string[],
@@ -86,84 +164,4 @@ export async function fetchComissoesPendentesForMonth(
     .lt("data_referencia", end);
   if (error) throw error;
   return (data as Comissao[]) || [];
-}
-
-/**
- * Cria uma despesa de Folha consumindo o fluxo padrão de Contas a Pagar.
- * Não cria movimentação bancária (isso é feito pelos triggers do financeiro
- * quando o pagamento é registrado via expense_payments).
- *
- * Se houver `comissaoIds`, após criar a despesa marca essas comissões como
- * `enviado_folha` e vincula ao `folha_pagamento_id` (id da despesa criada).
- */
-export async function createPayrollExpense(input: {
-  empresa_id: string;
-  created_by: string;
-  colaboradorId: string;
-  colaboradorNome: string;
-  month: string;
-  liquido: number;
-  salarioBase: number;
-  adiantamentos: number;
-  comissoes?: number;
-  comissaoIds?: string[];
-  descontos?: number;
-  descontoIds?: string[];
-  emissionDate: string;
-  dueDate: string;
-  folhaAccountId: string;
-}): Promise<{ error: Error | null; expenseId?: string }> {
-  const comissoes = input.comissoes || 0;
-  const descontos = input.descontos || 0;
-  const obsParts = [
-    `Salário base: ${input.salarioBase}`,
-    `Adiantamentos descontados: ${input.adiantamentos}`,
-  ];
-  if (comissoes > 0) obsParts.push(`Comissões somadas: ${comissoes}`);
-  if (descontos > 0) obsParts.push(`Descontos aplicados: ${descontos}`);
-
-  const { data, error } = await supabase
-    .from("expenses")
-    .insert({
-      empresa_id: input.empresa_id,
-      created_by: input.created_by,
-      descricao: `Folha de pagamento ${input.month} — ${input.colaboradorNome}`,
-      valor_total: input.liquido,
-      data_emissao: input.emissionDate,
-      data_vencimento: input.dueDate,
-      favorecido_id: input.colaboradorId,
-      favorecido_nome: input.colaboradorNome,
-      plano_contas_id: input.folhaAccountId,
-      tipo_despesa: "outros",
-      centro_custo: "administrativo",
-      origem: "manual",
-      status: "pendente",
-      observacoes: `Gerado pelo módulo RH. ${obsParts.join(". ")}.`,
-    } as any)
-    .select("id")
-    .single();
-
-  if (error) return { error: error as any };
-
-  const expenseId = (data as any)?.id as string | undefined;
-
-  // Vincular comissões à folha gerada
-  if (expenseId && input.comissaoIds && input.comissaoIds.length > 0) {
-    try {
-      await marcarComoEnviadasFolha(input.comissaoIds, expenseId);
-    } catch (e: any) {
-      console.error("Falha ao vincular comissões à folha:", e);
-    }
-  }
-
-  // Vincular descontos à folha gerada
-  if (expenseId && input.descontoIds && input.descontoIds.length > 0) {
-    try {
-      await vincularDescontosAFolha(input.descontoIds, expenseId);
-    } catch (e: any) {
-      console.error("Falha ao vincular descontos à folha:", e);
-    }
-  }
-
-  return { error: null, expenseId };
 }

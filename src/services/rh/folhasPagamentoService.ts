@@ -1,17 +1,21 @@
 /**
  * Folhas de Pagamento — serviço de gestão da folha como entidade própria.
  *
- * Fluxo profissional:
- *   1. Criar folha (status: em_aberto) — apenas snapshot dos cálculos, NÃO gera financeiro.
- *   2. Editar/revisar itens enquanto está em_aberto.
- *   3. Confirmar — gera despesas em Contas a Pagar (1 por item) e marca como confirmada.
- *   4. Cancelar — apaga a folha em_aberto (sem efeito financeiro).
- *
- * Ordem de cálculo (CRÍTICA, ver rhViewModel.computeLiquido):
- *   Líquido = Salário base − Adiantamentos − Descontos + Comissões
+ * 🔁 FLUXO QUINZENAL (NOVO)
+ *   1. Criar folha (status: em_aberto) → snapshot consolidado:
+ *        • Período (data_inicio, data_fim, data_pagamento, tipo_periodo)
+ *        • Por colaborador: IDs das despesas de Salário + Adiantamento consumidas
+ *          + comissões/descontos pendentes selecionados
+ *      Não toca em `expenses` — apenas LISTA o que já existe.
+ *   2. Confirmar → marca status `confirmada` + vincula comissões/descontos à folha.
+ *      Não cria despesas (elas já existem em Contas a Pagar).
+ *   3. Cancelar/Excluir folha em aberto — devolve comissões/descontos para
+ *      "pendente" e remove o snapshot.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { createPayrollExpense } from "./rhFinancialService";
+import { marcarComoEnviadasFolha, marcarComoPendentes } from "./comissoesService";
+import { vincularDescontosAFolha, desvincularDescontosDaFolha } from "./descontosFolhaService";
+import type { TipoPeriodo } from "./rhViewModel";
 
 export type FolhaStatus = "em_aberto" | "confirmada" | "cancelada";
 
@@ -19,6 +23,9 @@ export type FolhaPagamento = {
   id: string;
   empresa_id: string;
   mes_referencia: string;
+  data_inicio: string | null;
+  data_fim: string | null;
+  tipo_periodo: TipoPeriodo;
   status: FolhaStatus;
   data_emissao: string;
   data_vencimento: string;
@@ -47,6 +54,8 @@ export type FolhaItem = {
   liquido: number;
   comissao_ids: string[];
   desconto_ids: string[];
+  salario_expense_ids: string[];
+  adiantamento_expense_ids: string[];
   expense_id: string | null;
   created_at: string;
   updated_at: string;
@@ -64,6 +73,9 @@ export async function criarFolhaEmAberto(input: {
   empresa_id: string;
   created_by: string;
   mes_referencia: string;
+  data_inicio: string;
+  data_fim: string;
+  tipo_periodo: TipoPeriodo;
   data_emissao: string;
   data_vencimento: string;
   observacoes?: string;
@@ -86,6 +98,9 @@ export async function criarFolhaEmAberto(input: {
       empresa_id: input.empresa_id,
       created_by: input.created_by,
       mes_referencia: input.mes_referencia,
+      data_inicio: input.data_inicio,
+      data_fim: input.data_fim,
+      tipo_periodo: input.tipo_periodo,
       status: "em_aberto",
       data_emissao: input.data_emissao,
       data_vencimento: input.data_vencimento,
@@ -101,7 +116,6 @@ export async function criarFolhaEmAberto(input: {
   if (folhaErr) throw folhaErr;
 
   const folha = folhaData as FolhaPagamento;
-
   if (input.itens.length === 0) return { folha, itens: [] };
 
   const rows = input.itens.map((i) => ({ ...i, folha_id: folha.id }));
@@ -110,7 +124,6 @@ export async function criarFolhaEmAberto(input: {
     .insert(rows)
     .select("*");
   if (itensErr) {
-    // Rollback do header se itens falharem
     await (supabase.from("folhas_pagamento" as any) as any).delete().eq("id", folha.id);
     throw itensErr;
   }
@@ -121,12 +134,17 @@ export async function criarFolhaEmAberto(input: {
 export async function listarFolhas(filtros?: {
   status?: FolhaStatus;
   mes?: string;
+  inicio?: string;
+  fim?: string;
 }): Promise<FolhaPagamento[]> {
   let q = (supabase.from("folhas_pagamento" as any) as any)
     .select("*")
+    .order("data_inicio", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (filtros?.status) q = q.eq("status", filtros.status);
   if (filtros?.mes) q = q.eq("mes_referencia", filtros.mes);
+  if (filtros?.inicio) q = q.gte("data_inicio", filtros.inicio);
+  if (filtros?.fim) q = q.lte("data_fim", filtros.fim);
   const { data, error } = await q;
   if (error) throw error;
   return (data as FolhaPagamento[]) || [];
@@ -149,14 +167,13 @@ export async function buscarFolhaComItens(
 }
 
 /**
- * Confirma a folha: gera uma despesa em Contas a Pagar para cada item e
- * vincula comissões/descontos. Atualiza a folha para status `confirmada`.
+ * Confirma a folha SEM gerar despesas — apenas vincula comissões/descontos
+ * e troca status para `confirmada`. As despesas (Salário/Adiantamento) já
+ * existem em Contas a Pagar e foram apenas referenciadas no snapshot.
  */
 export async function confirmarFolha(input: {
   folhaId: string;
-  empresa_id: string;
   user_id: string;
-  folhaAccountId: string;
 }): Promise<{ ok: number; fail: number; errors: string[] }> {
   const { folha, itens } = await buscarFolhaComItens(input.folhaId);
   if (folha.status !== "em_aberto") {
@@ -168,45 +185,20 @@ export async function confirmarFolha(input: {
   const errors: string[] = [];
 
   for (const item of itens) {
-    if (item.expense_id) {
-      ok++;
-      continue;
-    }
-    if (Number(item.liquido) <= 0) {
-      // Pula líquidos zerados/negativos
-      continue;
-    }
-    const { error, expenseId } = await createPayrollExpense({
-      empresa_id: input.empresa_id,
-      created_by: input.user_id,
-      colaboradorId: item.colaborador_id,
-      colaboradorNome: item.colaborador_nome,
-      month: folha.mes_referencia,
-      liquido: Number(item.liquido),
-      salarioBase: Number(item.salario_base),
-      adiantamentos: Number(item.adiantamentos),
-      comissoes: Number(item.comissoes),
-      comissaoIds: item.comissao_ids || [],
-      descontos: Number(item.descontos),
-      descontoIds: item.desconto_ids || [],
-      emissionDate: folha.data_emissao,
-      dueDate: folha.data_vencimento,
-      folhaAccountId: input.folhaAccountId,
-    });
-    if (error) {
-      fail++;
-      errors.push(`${item.colaborador_nome}: ${error.message}`);
-    } else {
-      ok++;
-      if (expenseId) {
-        await (supabase.from("folhas_pagamento_itens" as any) as any)
-          .update({ expense_id: expenseId })
-          .eq("id", item.id);
+    try {
+      if ((item.comissao_ids || []).length > 0) {
+        await marcarComoEnviadasFolha(item.comissao_ids, folha.id);
       }
+      if ((item.desconto_ids || []).length > 0) {
+        await vincularDescontosAFolha(item.desconto_ids, folha.id);
+      }
+      ok++;
+    } catch (e: any) {
+      fail++;
+      errors.push(`${item.colaborador_nome}: ${e?.message || String(e)}`);
     }
   }
 
-  // Marca folha como confirmada se ao menos um item foi processado
   if (fail === 0) {
     await (supabase.from("folhas_pagamento" as any) as any)
       .update({
@@ -221,14 +213,13 @@ export async function confirmarFolha(input: {
 }
 
 export async function cancelarFolha(folhaId: string): Promise<void> {
-  // Apenas cancela; não permite excluir folhas confirmadas
   const { data: folha, error } = await (supabase.from("folhas_pagamento" as any) as any)
     .select("status")
     .eq("id", folhaId)
     .single();
   if (error) throw error;
   if ((folha as any).status === "confirmada") {
-    throw new Error("Folha já confirmada não pode ser cancelada por aqui. Estorne os pagamentos no Contas a Pagar.");
+    throw new Error("Folha confirmada não pode ser cancelada por aqui.");
   }
   await (supabase.from("folhas_pagamento" as any) as any)
     .update({ status: "cancelada" })
@@ -236,13 +227,18 @@ export async function cancelarFolha(folhaId: string): Promise<void> {
 }
 
 export async function excluirFolhaEmAberto(folhaId: string): Promise<void> {
-  const { data: folha, error } = await (supabase.from("folhas_pagamento" as any) as any)
-    .select("status")
-    .eq("id", folhaId)
-    .single();
-  if (error) throw error;
-  if ((folha as any).status !== "em_aberto") {
+  const { folha, itens } = await buscarFolhaComItens(folhaId);
+  if (folha.status !== "em_aberto") {
     throw new Error("Apenas folhas em aberto podem ser excluídas.");
+  }
+  // Devolver comissões/descontos vinculados (segurança extra)
+  for (const item of itens) {
+    if ((item.comissao_ids || []).length > 0) {
+      try { await marcarComoPendentes(item.comissao_ids); } catch {}
+    }
+    if ((item.desconto_ids || []).length > 0) {
+      try { await desvincularDescontosDaFolha(item.desconto_ids); } catch {}
+    }
   }
   await (supabase.from("folhas_pagamento" as any) as any).delete().eq("id", folhaId);
 }

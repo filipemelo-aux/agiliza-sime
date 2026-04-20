@@ -1,7 +1,17 @@
 /**
  * RH View Model — camada derivada
- * Funções puras que transformam Expenses + Colaboradores + Settings em métricas.
- * Garantem zero duplicação: a "verdade" continua sendo a tabela `expenses`.
+ * Funções puras que transformam Expenses + Colaboradores em métricas.
+ *
+ * 🔁 NOVA LÓGICA (folha quinzenal):
+ *   A folha consolida despesas JÁ EXISTENTES (salários e adiantamentos pagos)
+ *   no período. Não recria despesas. Comissões e descontos pendentes são
+ *   adicionados sobre o snapshot.
+ *
+ *   Líquido por colaborador =
+ *     Σ(salários do período)
+ *     − Σ(adiantamentos pagos no período)
+ *     − Σ(descontos pendentes no período)
+ *     + Σ(comissões pendentes no período)
  */
 import type { ColaboradorRH } from "./rhColaboradoresService";
 import type { Expense } from "./rhFinancialService";
@@ -61,6 +71,207 @@ export function totalsForMonth(expenses: Expense[]) {
   return expenses.reduce((s, e) => s + Number(e.valor_total || 0), 0);
 }
 
+// =============================================================
+// PERÍODO (folha quinzenal)
+// =============================================================
+
+export type TipoPeriodo = "primeira_quinzena" | "segunda_quinzena" | "personalizado" | "mensal";
+
+export type PeriodoFolha = {
+  tipo: TipoPeriodo;
+  data_inicio: string; // YYYY-MM-DD
+  data_fim: string;    // YYYY-MM-DD
+  data_pagamento: string; // YYYY-MM-DD
+};
+
+const iso = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const lastDayOfMonth = (year: number, monthZeroIdx: number) =>
+  new Date(year, monthZeroIdx + 1, 0).getDate();
+
+/**
+ * Constrói preset de quinzena para o mês informado (YYYY-MM).
+ *  - 1ª quinzena: 01 → 15  | pagamento dia 20 do mesmo mês
+ *  - 2ª quinzena: 16 → fim | pagamento dia 05 do mês seguinte
+ */
+export function buildPeriodoQuinzenal(
+  month: string,
+  qual: "primeira_quinzena" | "segunda_quinzena"
+): PeriodoFolha {
+  const [y, m] = month.split("-").map(Number);
+  const monthIdx = m - 1;
+  if (qual === "primeira_quinzena") {
+    return {
+      tipo: "primeira_quinzena",
+      data_inicio: iso(new Date(y, monthIdx, 1)),
+      data_fim: iso(new Date(y, monthIdx, 15)),
+      data_pagamento: iso(new Date(y, monthIdx, 20)),
+    };
+  }
+  const ultimo = lastDayOfMonth(y, monthIdx);
+  return {
+    tipo: "segunda_quinzena",
+    data_inicio: iso(new Date(y, monthIdx, 16)),
+    data_fim: iso(new Date(y, monthIdx, ultimo)),
+    data_pagamento: iso(new Date(y, monthIdx + 1, 5)),
+  };
+}
+
+/** Mês de referência derivado do período (usa início como âncora). */
+export function periodoToMesReferencia(p: { data_inicio: string }): string {
+  return p.data_inicio.slice(0, 7);
+}
+
+// =============================================================
+// LINHAS DA PRÉVIA — agora consumindo despesas existentes
+// =============================================================
+
+export type PayrollRow = {
+  c: ColaboradorRH;
+  /** Soma de salários (despesas existentes na categoria folha do período). */
+  salario_base: number;
+  /** IDs das despesas de salário consumidas. */
+  salarioExpenseIds: string[];
+  /** Soma de adiantamentos pagos no período. */
+  adiantamentos: number;
+  /** IDs dos adiantamentos consumidos. */
+  adiantamentoExpenseIds: string[];
+  /** Comissões pendentes do período. */
+  comissoes: number;
+  comissaoIds: string[];
+  /** Descontos pendentes do período. */
+  descontos: number;
+  descontoIds: string[];
+  /** Líquido = base − adiant − descontos + comissões. */
+  liquido: number;
+};
+
+export function computePayrollRowsFromPeriodo(input: {
+  colaboradores: ColaboradorRH[];
+  salarios: Expense[];
+  adiantamentos: Expense[];
+  comissoes: Comissao[];
+  descontos: DescontoFolha[];
+  /** IDs SELECIONADOS pelo usuário (subset). Se omitido, usa todos. */
+  selectedSalarioIds?: Set<string>;
+  selectedAdiantamentoIds?: Set<string>;
+  selectedComissaoIds?: Set<string>;
+  selectedDescontoIds?: Set<string>;
+}): PayrollRow[] {
+  const {
+    colaboradores,
+    salarios,
+    adiantamentos,
+    comissoes,
+    descontos,
+    selectedSalarioIds,
+    selectedAdiantamentoIds,
+    selectedComissaoIds,
+    selectedDescontoIds,
+  } = input;
+
+  const salByColab = new Map<string, { total: number; ids: string[] }>();
+  salarios.forEach((e) => {
+    if (!e.favorecido_id) return;
+    if (selectedSalarioIds && !selectedSalarioIds.has(e.id)) return;
+    const cur = salByColab.get(e.favorecido_id) || { total: 0, ids: [] };
+    cur.total += Number(e.valor_total || 0);
+    cur.ids.push(e.id);
+    salByColab.set(e.favorecido_id, cur);
+  });
+
+  const advByColab = new Map<string, { total: number; ids: string[] }>();
+  adiantamentos.forEach((e) => {
+    if (!e.favorecido_id) return;
+    if (selectedAdiantamentoIds && !selectedAdiantamentoIds.has(e.id)) return;
+    const cur = advByColab.get(e.favorecido_id) || { total: 0, ids: [] };
+    // Adiantamento desconta pelo valor PAGO (já saiu do caixa).
+    cur.total += Number(e.valor_pago || e.valor_total || 0);
+    cur.ids.push(e.id);
+    advByColab.set(e.favorecido_id, cur);
+  });
+
+  const comByColab = new Map<string, { total: number; ids: string[] }>();
+  comissoes.forEach((c) => {
+    if (selectedComissaoIds && !selectedComissaoIds.has(c.id)) return;
+    const cur = comByColab.get(c.colaborador_id) || { total: 0, ids: [] };
+    cur.total += Number(c.valor_calculado || 0);
+    cur.ids.push(c.id);
+    comByColab.set(c.colaborador_id, cur);
+  });
+
+  const descByColab = new Map<string, { total: number; ids: string[] }>();
+  descontos.forEach((d) => {
+    if (selectedDescontoIds && !selectedDescontoIds.has(d.id)) return;
+    const cur = descByColab.get(d.colaborador_id) || { total: 0, ids: [] };
+    cur.total += Number(d.valor || 0);
+    cur.ids.push(d.id);
+    descByColab.set(d.colaborador_id, cur);
+  });
+
+  // Inclui somente colaboradores ativos com qualquer movimento no período
+  return colaboradores
+    .filter((c) => c.ativo)
+    .map((c) => {
+      const sal = salByColab.get(c.id) || { total: 0, ids: [] };
+      const adv = advByColab.get(c.id) || { total: 0, ids: [] };
+      const com = comByColab.get(c.id) || { total: 0, ids: [] };
+      const desc = descByColab.get(c.id) || { total: 0, ids: [] };
+      const liquido = computeLiquido({
+        salary: sal.total,
+        adiant: adv.total,
+        descontos: desc.total,
+        comissoes: com.total,
+      });
+      return {
+        c,
+        salario_base: sal.total,
+        salarioExpenseIds: sal.ids,
+        adiantamentos: adv.total,
+        adiantamentoExpenseIds: adv.ids,
+        comissoes: com.total,
+        comissaoIds: com.ids,
+        descontos: desc.total,
+        descontoIds: desc.ids,
+        liquido,
+      };
+    })
+    .filter(
+      (r) =>
+        r.salario_base > 0 ||
+        r.adiantamentos > 0 ||
+        r.comissoes > 0 ||
+        r.descontos > 0
+    );
+}
+
+/**
+ * Cálculo do líquido seguindo a ordem profissional obrigatória:
+ *   Líquido = Base − Adiantamentos − Descontos + Comissões
+ * Resultado nunca negativo (clamp em 0).
+ */
+export function computeLiquido(input: {
+  salary: number;
+  adiant: number;
+  descontos: number;
+  comissoes: number;
+}): number {
+  const base = Number(input.salary || 0);
+  const aposAdiant = base - Number(input.adiant || 0);
+  const aposDesc = aposAdiant - Number(input.descontos || 0);
+  const liquido = aposDesc + Number(input.comissoes || 0);
+  return Math.max(0, liquido);
+}
+
+// =============================================================
+// LEGADO (mantido para o histórico mensal, sem uso no novo wizard)
+// =============================================================
+
 export function resolveBaseSalary(
   c: ColaboradorRH,
   salaryOverrides: Record<string, number>
@@ -118,49 +329,25 @@ export function computePayrollRows(
       const adiant = adiantByColab.get(c.id) || 0;
       const com = comissoesByColab.get(c.id) || { total: 0, ids: [] };
       const desc = descontosByColab.get(c.id) || { total: 0, ids: [] };
-      const comissoes = com.total;
-      const comissaoIds = com.ids;
-      const descontos = desc.total;
-      const descontoIds = desc.ids;
-      // ⚠️ ORDEM OBRIGATÓRIA (não alterar):
-      //   1) Salário base
-      //   2) − Adiantamentos
-      //   3) − Descontos
-      //   4) + Comissões
-      const liquido = computeLiquido({ salary, adiant, descontos, comissoes });
+      const liquido = computeLiquido({
+        salary,
+        adiant,
+        descontos: desc.total,
+        comissoes: com.total,
+      });
       const existing = folhaByColab.get(c.id);
       return {
         c,
         salary,
         adiant,
-        comissoes,
-        comissaoIds,
-        descontos,
-        descontoIds,
+        comissoes: com.total,
+        comissaoIds: com.ids,
+        descontos: desc.total,
+        descontoIds: desc.ids,
         liquido,
         existing,
       };
     });
-}
-
-/**
- * Cálculo do líquido seguindo a ordem profissional obrigatória:
- *   Líquido = Base − Adiantamentos − Descontos + Comissões
- *
- * Nunca somar comissão antes dos descontos. Nunca alterar a ordem.
- * Resultado nunca negativo (clamp em 0).
- */
-export function computeLiquido(input: {
-  salary: number;
-  adiant: number;
-  descontos: number;
-  comissoes: number;
-}): number {
-  const base = Number(input.salary || 0);
-  const aposAdiant = base - Number(input.adiant || 0);
-  const aposDesc = aposAdiant - Number(input.descontos || 0);
-  const liquido = aposDesc + Number(input.comissoes || 0);
-  return Math.max(0, liquido);
 }
 
 export function computeDueDate(month: string, payDay?: string): string {
