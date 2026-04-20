@@ -252,7 +252,7 @@ export async function confirmarFolha(input: {
       .eq("id", input.folhaId);
   }
 
-  return { ok, fail, errors };
+  return { ok, fail, errors, complementosGerados };
 }
 
 export async function cancelarFolha(folhaId: string): Promise<void> {
