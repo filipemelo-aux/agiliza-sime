@@ -135,7 +135,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -150,9 +150,20 @@ export function BankReconciliation() {
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
           .eq("status", "pendente"),
+        // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
+        supabase
+          .from("bank_reconciliation_items")
+          .select("matched_movimentacao_id, reconciliation_id")
+          .not("matched_movimentacao_id", "is", null),
       ]);
 
-      const movs = existingMovs || [];
+      const alreadyMatchedIds = new Set(
+        (alreadyMatched || [])
+          .filter((r: any) => r.reconciliation_id !== rec.id)
+          .map((r: any) => r.matched_movimentacao_id)
+          .filter(Boolean)
+      );
+      const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
       // Build unified payables list: installments first, then expenses without installments
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
