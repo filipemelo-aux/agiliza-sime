@@ -635,6 +635,8 @@ function RHWorkspace(props: any) {
               </CardContent>
             </Card>
 
+            <JanelaSalarioConfigCard />
+
             <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
           </div>
         )}
