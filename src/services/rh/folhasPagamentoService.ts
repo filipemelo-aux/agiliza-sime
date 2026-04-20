@@ -221,7 +221,7 @@ export async function confirmarFolha(input: {
             favorecido_id: item.colaborador_id,
             favorecido_nome: item.colaborador_nome,
             plano_contas_id: input.folhaAccountId,
-            origem: "folha_pagamento" as any,
+            origem: "manual",
             observacoes: `Gerado automaticamente para garantir o piso salarial da folha ${folha.id}.`,
           })
           .select("id")
