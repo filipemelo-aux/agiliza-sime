@@ -1849,7 +1849,6 @@ export type Database = {
           id: string
           liquido: number
           salario_base: number
-          salario_expense_ids: string[]
           updated_at: string
         }
         Insert: {
@@ -1867,7 +1866,6 @@ export type Database = {
           id?: string
           liquido?: number
           salario_base?: number
-          salario_expense_ids?: string[]
           updated_at?: string
         }
         Update: {
@@ -1885,7 +1883,6 @@ export type Database = {
           id?: string
           liquido?: number
           salario_base?: number
-          salario_expense_ids?: string[]
           updated_at?: string
         }
         Relationships: [
