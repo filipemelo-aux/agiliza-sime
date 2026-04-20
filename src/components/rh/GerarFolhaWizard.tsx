@@ -45,6 +45,7 @@ import {
   criarFolhaEmAberto,
   confirmarFolha,
   fetchSalariosNoPeriodo,
+  fetchSalariosDoMes,
   fetchAdiantamentosPagosNoPeriodo,
   fetchComissoesPendentesNoPeriodo,
   fetchDescontosPendentesNoPeriodo,
@@ -99,6 +100,7 @@ export function GerarFolhaWizard({
 
   // Dados do período
   const [salarios, setSalarios] = useState<Expense[]>([]);
+  const [salariosMes, setSalariosMes] = useState<Expense[]>([]);
   const [adiantamentos, setAdiantamentos] = useState<Expense[]>([]);
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [descontos, setDescontos] = useState<DescontoFolha[]>([]);
@@ -131,8 +133,10 @@ export function GerarFolhaWizard({
     }
     setLoadingData(true);
     try {
-      const [sal, adv, com, desc] = await Promise.all([
+      const mesRef = periodoToMesReferencia(periodo);
+      const [sal, salMes, adv, com, desc] = await Promise.all([
         fetchSalariosNoPeriodo(colabIds, folhaAccountId, periodo.data_inicio, periodo.data_fim),
+        fetchSalariosDoMes(colabIds, folhaAccountId, mesRef),
         adiantamentoAccountId
           ? fetchAdiantamentosPagosNoPeriodo(colabIds, adiantamentoAccountId, periodo.data_inicio, periodo.data_fim)
           : Promise.resolve([]),
@@ -140,10 +144,10 @@ export function GerarFolhaWizard({
         fetchDescontosPendentesNoPeriodo(colabIds, periodo.data_inicio, periodo.data_fim),
       ]);
       setSalarios(sal);
+      setSalariosMes(salMes);
       setAdiantamentos(adv);
       setComissoes(com);
       setDescontos(desc);
-      // Pré-seleciona tudo
       setSelSalarios(new Set(sal.map((e) => e.id)));
       setSelAdiant(new Set(adv.map((e) => e.id)));
       setSelComissoes(new Set(com.map((c) => c.id)));
@@ -169,8 +173,9 @@ export function GerarFolhaWizard({
         selectedAdiantamentoIds: selAdiant,
         selectedComissaoIds: selComissoes,
         selectedDescontoIds: selDescontos,
+        salariosDoMes: salariosMes,
       }),
-    [colaboradores, salarios, adiantamentos, comissoes, descontos, selSalarios, selAdiant, selComissoes, selDescontos]
+    [colaboradores, salarios, salariosMes, adiantamentos, comissoes, descontos, selSalarios, selAdiant, selComissoes, selDescontos]
   );
 
   const totals = rows.reduce(
@@ -179,9 +184,10 @@ export function GerarFolhaWizard({
       adv: acc.adv + r.adiantamentos,
       desc: acc.desc + r.descontos,
       com: acc.com + r.comissoes,
+      comp: acc.comp + r.complemento,
       liq: acc.liq + r.liquido,
     }),
-    { base: 0, adv: 0, desc: 0, com: 0, liq: 0 }
+    { base: 0, adv: 0, desc: 0, com: 0, comp: 0, liq: 0 }
   );
 
   const colabName = (id: string) =>
@@ -615,8 +621,9 @@ function PreviaStep({ rows, totals, periodo }: any) {
       </p>
 
       <Card>
-        <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
           <Mini label="Salários" value={formatBRL(totals.base)} />
+          <Mini label="+ Complemento" value={formatBRL(totals.comp)} color="text-sky-600" />
           <Mini label="− Adiantamentos" value={formatBRL(totals.adv)} color="text-amber-600" />
           <Mini label="− Descontos" value={formatBRL(totals.desc)} color="text-rose-600" />
           <Mini label="+ Comissões" value={formatBRL(totals.com)} color="text-emerald-600" />
@@ -633,9 +640,19 @@ function PreviaStep({ rows, totals, periodo }: any) {
           {rows.map((r: any) => (
             <Card key={r.c.id}>
               <CardContent className="p-3 space-y-1.5">
-                <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
+                  {r.complemento > 0 && (
+                    <Badge variant="outline" className="text-[9px] border-sky-300 text-sky-700 bg-sky-50 shrink-0">
+                      Piso garantido
+                    </Badge>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <Cell label="Base" value={formatBRL(r.salario_base)} />
+                  <Cell label="Base (período)" value={formatBRL(r.salario_base)} />
+                  {r.complemento > 0 && (
+                    <Cell label="+ Complemento salarial" value={formatBRL(r.complemento)} c="text-sky-600" />
+                  )}
                   <Cell label="− Adiant." value={formatBRL(r.adiantamentos)} c="text-amber-600" />
                   <Cell label="− Desc." value={formatBRL(r.descontos)} c="text-rose-600" />
                   <Cell label="+ Comissões" value={formatBRL(r.comissoes)} c="text-emerald-600" />
@@ -650,11 +667,15 @@ function PreviaStep({ rows, totals, periodo }: any) {
         </div>
       )}
 
-      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px]">
-        <p className="font-semibold mb-1">Ordem de cálculo:</p>
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] space-y-1.5">
+        <p className="font-semibold">Ordem de cálculo:</p>
         <code className="block text-[11px] font-mono bg-background/60 p-2 rounded border">
-          Líquido = Salários − Adiantamentos − Descontos + Comissões
+          Líquido = (Salários + Complemento) − Adiantamentos − Descontos + Comissões
         </code>
+        <p className="text-muted-foreground">
+          🛡️ <strong>Complemento salarial</strong> é gerado automaticamente quando o total recebido
+          no mês fica abaixo do salário base cadastrado do colaborador, garantindo o piso.
+        </p>
       </div>
     </div>
   );

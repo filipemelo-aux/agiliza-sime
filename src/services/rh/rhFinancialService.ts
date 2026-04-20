@@ -73,6 +73,33 @@ export async function fetchExpensesByColaborador(
 }
 
 /**
+ * Busca SALÁRIOS do MÊS inteiro (referência) — usado para verificar se o
+ * colaborador já atingiu o salário mínimo garantido no mês corrente.
+ * Considera todos os salários PAGOS ou EM ABERTO emitidos no mês de referência
+ * do período da folha (mes_referencia = data_inicio.slice(0,7)).
+ */
+export async function fetchSalariosDoMes(
+  colabIds: string[],
+  folhaAccountId: string,
+  month: string
+): Promise<Expense[]> {
+  if (colabIds.length === 0 || !folhaAccountId) return [];
+  const { start, end } = monthRange(month);
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(
+      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
+    )
+    .in("favorecido_id", colabIds)
+    .eq("plano_contas_id", folhaAccountId)
+    .is("deleted_at", null)
+    .gte("data_emissao", start)
+    .lt("data_emissao", end);
+  if (error) throw error;
+  return (data as any) || [];
+}
+
+/**
  * Busca SALÁRIOS (despesas na categoria folha) cuja `data_emissao` cai
  * dentro da janela [inicio, fim] do período da folha. Estas são as despesas
  * que serão CONSUMIDAS pela folha (não criadas).
