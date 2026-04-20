@@ -542,24 +542,7 @@ function RHWorkspace(props: any) {
               />
             )}
 
-            {folhaSubTab === "previa" && (
-              <FolhaPreviaTab
-                colaboradores={colaboradores}
-                expenses={expenses}
-                month={month}
-                folhaAccountId={settings.folhaAccountId}
-                adiantamentoAccountId={settings.adiantamentoAccountId}
-                salaryOverrides={settings.salaryOverrides || {}}
-                payDay={settings.payDay}
-                empresaId={matrizId || undefined}
-                userId={user?.id}
-                onConfirmed={() => {
-                  reload();
-                  setFolhaSubTab("em_aberto");
-                }}
-                onBack={() => setFolhaSubTab("em_aberto")}
-              />
-            )}
+            {/* Aba "Prévia" removida — substituída pelo wizard quinzenal */}
 
             {folhaSubTab === "historico" && (
               <Card>
