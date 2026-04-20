@@ -20,12 +20,16 @@ export type Expense = {
   valor_pago: number;
   status: string;
   data_emissao: string;
+  data_competencia: string | null;
   data_vencimento: string | null;
   data_pagamento: string | null;
   favorecido_id: string | null;
   favorecido_nome: string | null;
   plano_contas_id: string | null;
 };
+
+const EXPENSE_COLS =
+  "id, descricao, valor_total, valor_pago, status, data_emissao, data_competencia, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id";
 
 export const monthRange = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
