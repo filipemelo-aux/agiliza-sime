@@ -621,8 +621,9 @@ function PreviaStep({ rows, totals, periodo }: any) {
       </p>
 
       <Card>
-        <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
           <Mini label="Salários" value={formatBRL(totals.base)} />
+          <Mini label="+ Complemento" value={formatBRL(totals.comp)} color="text-sky-600" />
           <Mini label="− Adiantamentos" value={formatBRL(totals.adv)} color="text-amber-600" />
           <Mini label="− Descontos" value={formatBRL(totals.desc)} color="text-rose-600" />
           <Mini label="+ Comissões" value={formatBRL(totals.com)} color="text-emerald-600" />
@@ -639,9 +640,19 @@ function PreviaStep({ rows, totals, periodo }: any) {
           {rows.map((r: any) => (
             <Card key={r.c.id}>
               <CardContent className="p-3 space-y-1.5">
-                <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
+                  {r.complemento > 0 && (
+                    <Badge variant="outline" className="text-[9px] border-sky-300 text-sky-700 bg-sky-50 shrink-0">
+                      Piso garantido
+                    </Badge>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <Cell label="Base" value={formatBRL(r.salario_base)} />
+                  <Cell label="Base (período)" value={formatBRL(r.salario_base)} />
+                  {r.complemento > 0 && (
+                    <Cell label="+ Complemento salarial" value={formatBRL(r.complemento)} c="text-sky-600" />
+                  )}
                   <Cell label="− Adiant." value={formatBRL(r.adiantamentos)} c="text-amber-600" />
                   <Cell label="− Desc." value={formatBRL(r.descontos)} c="text-rose-600" />
                   <Cell label="+ Comissões" value={formatBRL(r.comissoes)} c="text-emerald-600" />
@@ -656,11 +667,15 @@ function PreviaStep({ rows, totals, periodo }: any) {
         </div>
       )}
 
-      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px]">
-        <p className="font-semibold mb-1">Ordem de cálculo:</p>
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] space-y-1.5">
+        <p className="font-semibold">Ordem de cálculo:</p>
         <code className="block text-[11px] font-mono bg-background/60 p-2 rounded border">
-          Líquido = Salários − Adiantamentos − Descontos + Comissões
+          Líquido = (Salários + Complemento) − Adiantamentos − Descontos + Comissões
         </code>
+        <p className="text-muted-foreground">
+          🛡️ <strong>Complemento salarial</strong> é gerado automaticamente quando o total recebido
+          no mês fica abaixo do salário base cadastrado do colaborador, garantindo o piso.
+        </p>
       </div>
     </div>
   );
