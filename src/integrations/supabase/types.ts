@@ -3060,6 +3060,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           created_at: string
@@ -3313,6 +3334,15 @@ export type Database = {
         }
       }
       cleanup_rate_limit_entries: { Args: never; Returns: number }
+      fn_infer_salario_competencia: {
+        Args: { _data_emissao: string }
+        Returns: string
+      }
+      fn_is_salario_account: {
+        Args: { _plano_contas_id: string }
+        Returns: boolean
+      }
+      fn_strip_accents: { Args: { _t: string }; Returns: string }
       get_my_masked_documents: {
         Args: never
         Returns: {
