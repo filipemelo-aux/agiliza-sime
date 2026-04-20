@@ -120,9 +120,8 @@ export async function fetchSalariosNoPeriodo(
 }
 
 /**
- * Busca ADIANTAMENTOS pela DATA DE EMISSÃO dentro da janela [inicio, fim].
- * 🔁 Prompt 3: adiantamentos NÃO usam lógica de competência — vínculo direto
- * com o período da folha pela data exata da despesa.
+ * Busca ADIANTAMENTOS por COMPETÊNCIA dentro da janela [inicio, fim] da folha.
+ * Adiantamentos seguem a PRODUÇÃO do período (competência), não a data financeira.
  */
 export async function fetchAdiantamentosPagosNoPeriodo(
   colabIds: string[],
@@ -137,9 +136,9 @@ export async function fetchAdiantamentosPagosNoPeriodo(
     .in("favorecido_id", colabIds)
     .eq("plano_contas_id", adiantamentoAccountId)
     .is("deleted_at", null)
-    .gte("data_emissao", inicio)
-    .lte("data_emissao", fim)
-    .order("data_emissao", { ascending: false });
+    .gte("data_competencia", inicio)
+    .lte("data_competencia", fim)
+    .order("data_competencia", { ascending: false });
   if (error) throw error;
   return (data as any) || [];
 }
