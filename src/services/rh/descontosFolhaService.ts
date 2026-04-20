@@ -94,3 +94,29 @@ export async function vincularDescontosAFolha(
     .in("id", ids);
   if (error) throw error;
 }
+
+/** Desvincula descontos de uma folha (volta a status pendente). */
+export async function desvincularDescontosDaFolha(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await (supabase.from("descontos_folha" as any) as any)
+    .update({ folha_pagamento_id: null })
+    .in("id", ids);
+  if (error) throw error;
+}
+
+/** Busca descontos pendentes por janela de datas (folha quinzenal). */
+export async function fetchDescontosPendentesNoPeriodo(
+  colabIds: string[],
+  inicio: string,
+  fim: string
+): Promise<DescontoFolha[]> {
+  if (colabIds.length === 0) return [];
+  const { data, error } = await (supabase.from("descontos_folha" as any) as any)
+    .select("*")
+    .in("colaborador_id", colabIds)
+    .is("folha_pagamento_id", null)
+    .gte("data_referencia", inicio)
+    .lte("data_referencia", fim);
+  if (error) throw error;
+  return (data as DescontoFolha[]) || [];
+}

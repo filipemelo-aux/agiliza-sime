@@ -1768,12 +1768,15 @@ export type Database = {
           created_at: string
           created_by: string
           data_emissao: string
+          data_fim: string | null
+          data_inicio: string | null
           data_vencimento: string
           empresa_id: string
           id: string
           mes_referencia: string
           observacoes: string | null
           status: Database["public"]["Enums"]["folha_status"]
+          tipo_periodo: string
           total_adiantamentos: number
           total_base: number
           total_comissoes: number
@@ -1787,12 +1790,15 @@ export type Database = {
           created_at?: string
           created_by: string
           data_emissao: string
+          data_fim?: string | null
+          data_inicio?: string | null
           data_vencimento: string
           empresa_id: string
           id?: string
           mes_referencia: string
           observacoes?: string | null
           status?: Database["public"]["Enums"]["folha_status"]
+          tipo_periodo?: string
           total_adiantamentos?: number
           total_base?: number
           total_comissoes?: number
@@ -1806,12 +1812,15 @@ export type Database = {
           created_at?: string
           created_by?: string
           data_emissao?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           data_vencimento?: string
           empresa_id?: string
           id?: string
           mes_referencia?: string
           observacoes?: string | null
           status?: Database["public"]["Enums"]["folha_status"]
+          tipo_periodo?: string
           total_adiantamentos?: number
           total_base?: number
           total_comissoes?: number
@@ -1823,6 +1832,7 @@ export type Database = {
       }
       folhas_pagamento_itens: {
         Row: {
+          adiantamento_expense_ids: string[]
           adiantamentos: number
           colaborador_id: string
           colaborador_nome: string
@@ -1836,9 +1846,11 @@ export type Database = {
           id: string
           liquido: number
           salario_base: number
+          salario_expense_ids: string[]
           updated_at: string
         }
         Insert: {
+          adiantamento_expense_ids?: string[]
           adiantamentos?: number
           colaborador_id: string
           colaborador_nome: string
@@ -1852,9 +1864,11 @@ export type Database = {
           id?: string
           liquido?: number
           salario_base?: number
+          salario_expense_ids?: string[]
           updated_at?: string
         }
         Update: {
+          adiantamento_expense_ids?: string[]
           adiantamentos?: number
           colaborador_id?: string
           colaborador_nome?: string
@@ -1868,6 +1882,7 @@ export type Database = {
           id?: string
           liquido?: number
           salario_base?: number
+          salario_expense_ids?: string[]
           updated_at?: string
         }
         Relationships: [

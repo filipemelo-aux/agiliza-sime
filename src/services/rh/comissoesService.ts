@@ -116,3 +116,12 @@ export async function marcarComoEnviadasFolha(
     .in("id", comissaoIds);
   if (error) throw error;
 }
+
+/** Reverte comissões para o estado pendente (usado ao excluir folha em aberto). */
+export async function marcarComoPendentes(comissaoIds: string[]): Promise<void> {
+  if (comissaoIds.length === 0) return;
+  const { error } = await (supabase.from("comissoes" as any) as any)
+    .update({ status: "pendente" as ComissaoStatus, folha_pagamento_id: null })
+    .in("id", comissaoIds);
+  if (error) throw error;
+}
