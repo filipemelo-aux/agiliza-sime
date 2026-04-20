@@ -561,12 +561,9 @@ function RHWorkspace(props: any) {
                 open={wizardOpen}
                 onClose={() => setWizardOpen(false)}
                 colaboradores={colaboradores}
-                expenses={expenses}
                 month={month}
                 folhaAccountId={settings.folhaAccountId}
                 adiantamentoAccountId={settings.adiantamentoAccountId}
-                salaryOverrides={settings.salaryOverrides || {}}
-                payDay={settings.payDay}
                 empresaId={matrizId}
                 userId={user.id}
                 onGenerated={reload}
