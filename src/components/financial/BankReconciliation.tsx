@@ -59,6 +59,7 @@ interface MatchCandidate {
   data_movimentacao: string;
   valor: number;
   origem: string;
+  tipo?: "entrada" | "saida";
   isPayable?: boolean;
   payableDueDate?: string;
   expenseId?: string;
