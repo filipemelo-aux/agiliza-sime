@@ -22,6 +22,7 @@ import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
+import { JanelaSalarioConfigCard } from "@/components/rh/JanelaSalarioConfigCard";
 import {
   buildMetricsByColab,
   computeDueDate,
@@ -634,6 +635,8 @@ function RHWorkspace(props: any) {
                 </p>
               </CardContent>
             </Card>
+
+            <JanelaSalarioConfigCard />
 
             <SalaryOverridesCard colaboradores={colaboradores} onSaved={reload} />
           </div>
