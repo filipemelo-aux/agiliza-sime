@@ -645,6 +645,14 @@ function Bucket({
 }
 
 function PreviaStep({ rows, totals, periodo }: any) {
+  // Texto contextual sobre origem dos salários (competência anterior)
+  const salarioContexto =
+    periodo.tipo === "primeira_quinzena"
+      ? "2ª quinzena do mês anterior"
+      : periodo.tipo === "segunda_quinzena"
+      ? "1ª quinzena do mês corrente"
+      : "competência anterior ao período de pagamento";
+
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-muted-foreground">
@@ -652,14 +660,30 @@ function PreviaStep({ rows, totals, periodo }: any) {
         <strong>{formatDate(periodo.data_pagamento)}</strong>
       </p>
 
+      {/* 📌 Explicações OBRIGATÓRIAS (Prompt 6) */}
+      <div className="rounded-md border border-sky-300 bg-sky-50 p-3 text-[11px] text-sky-900 space-y-1">
+        <p className="flex items-start gap-1.5">
+          <span className="font-semibold shrink-0">📅 Salários:</span>
+          <span>referem-se à produção da <strong>{salarioContexto}</strong>.</span>
+        </p>
+        <p className="flex items-start gap-1.5">
+          <span className="font-semibold shrink-0">💸 Adiantamentos:</span>
+          <span>são descontados da <strong>produção atual</strong> (vales pagos no período).</span>
+        </p>
+        <p className="flex items-start gap-1.5">
+          <span className="font-semibold shrink-0">🎯 Comissões:</span>
+          <span>baseadas na <strong>produção do período atual</strong>, valor bruto.</span>
+        </p>
+      </div>
+
       <Card>
         <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
           <Mini label="Salários" value={formatBRL(totals.base)} />
           <Mini label="+ Complemento" value={formatBRL(totals.comp)} color="text-sky-600" />
+          <Mini label="+ Comissões" value={formatBRL(totals.com)} color="text-emerald-600" />
           <Mini label="− Adiantamentos" value={formatBRL(totals.adv)} color="text-amber-600" />
           <Mini label="− Descontos" value={formatBRL(totals.desc)} color="text-rose-600" />
-          <Mini label="+ Comissões" value={formatBRL(totals.com)} color="text-emerald-600" />
-          <Mini label="= Líquido" value={formatBRL(totals.liq)} color="text-primary" strong />
+          <Mini label="= Total líquido" value={formatBRL(totals.liq)} color="text-primary" strong />
         </CardContent>
       </Card>
 
@@ -671,7 +695,7 @@ function PreviaStep({ rows, totals, periodo }: any) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {rows.map((r: any) => (
             <Card key={r.c.id}>
-              <CardContent className="p-3 space-y-1.5">
+              <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold truncate">{r.c.full_name}</p>
                   {r.complemento > 0 && (
@@ -680,18 +704,53 @@ function PreviaStep({ rows, totals, periodo }: any) {
                     </Badge>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <Cell label="Base (período)" value={formatBRL(r.salario_base)} />
+
+                {/* Bloco: SALÁRIOS (competência anterior) */}
+                <div className="rounded border border-border/60 bg-muted/20 p-2 space-y-1">
+                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    Salários · {salarioContexto}
+                  </p>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Base do período</span>
+                    <span className="font-medium tabular-nums">{formatBRL(r.salario_base)}</span>
+                  </div>
                   {r.complemento > 0 && (
-                    <Cell label="+ Complemento salarial" value={formatBRL(r.complemento)} c="text-sky-600" />
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-sky-700">+ Complemento salarial</span>
+                      <span className="font-medium tabular-nums text-sky-600">{formatBRL(r.complemento)}</span>
+                    </div>
                   )}
-                  <Cell label="− Adiant." value={formatBRL(r.adiantamentos)} c="text-amber-600" />
-                  <Cell label="− Desc." value={formatBRL(r.descontos)} c="text-rose-600" />
-                  <Cell label="+ Comissões" value={formatBRL(r.comissoes)} c="text-emerald-600" />
                 </div>
+
+                {/* Bloco: COMISSÕES (produção atual) */}
+                <div className="rounded border border-emerald-200 bg-emerald-50/40 p-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[9px] uppercase tracking-wide text-emerald-700 font-semibold">
+                      + Comissões · produção atual
+                    </span>
+                    <span className="font-semibold tabular-nums text-emerald-600">{formatBRL(r.comissoes)}</span>
+                  </div>
+                </div>
+
+                {/* Bloco: ADIANTAMENTOS + DESCONTOS (período atual) */}
+                <div className="rounded border border-amber-200 bg-amber-50/40 p-2 space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[9px] uppercase tracking-wide text-amber-700 font-semibold">
+                      − Adiantamentos · período atual
+                    </span>
+                    <span className="font-semibold tabular-nums text-amber-600">{formatBRL(r.adiantamentos)}</span>
+                  </div>
+                  {r.descontos > 0 && (
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-rose-700">− Outros descontos</span>
+                      <span className="font-medium tabular-nums text-rose-600">{formatBRL(r.descontos)}</span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="pt-1.5 border-t flex items-center justify-between">
-                  <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Líquido</span>
-                  <span className="text-sm font-bold text-primary tabular-nums">{formatBRL(r.liquido)}</span>
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Total a pagar</span>
+                  <span className="text-base font-bold text-primary tabular-nums">{formatBRL(r.liquido)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -700,13 +759,13 @@ function PreviaStep({ rows, totals, periodo }: any) {
       )}
 
       <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] space-y-1.5">
-        <p className="font-semibold">Ordem de cálculo:</p>
+        <p className="font-semibold">📊 Fórmula final:</p>
         <code className="block text-[11px] font-mono bg-background/60 p-2 rounded border">
-          Líquido = (Salários + Complemento) − Adiantamentos − Descontos + Comissões
+          Total = Salários + Comissões − Adiantamentos − Descontos
         </code>
         <p className="text-muted-foreground">
           🛡️ <strong>Complemento salarial</strong> é gerado automaticamente quando o total recebido
-          no mês fica abaixo do salário base cadastrado do colaborador, garantindo o piso.
+          no mês fica abaixo do salário base cadastrado, garantindo o piso.
         </p>
       </div>
     </div>
