@@ -22,13 +22,11 @@ import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
-import { FolhaPreviaTab } from "@/components/rh/FolhaPreviaTab";
 import {
   buildMetricsByColab,
   computeDueDate,
   computeEmissionDate,
   computePayrollRows,
-  createPayrollExpense,
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   fetchExpensesByColaborador,
