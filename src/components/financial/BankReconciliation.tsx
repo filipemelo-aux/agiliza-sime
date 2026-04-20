@@ -617,9 +617,9 @@ export function BankReconciliation() {
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else {
-          // Crédito: buscar no fluxo de caixa
+          // Crédito: buscar no fluxo de caixa — mesmo tipo (entrada) + valor + data ±5 dias
           const candidates = movs.filter(
-            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
+            (m) => m.tipo === "entrada" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
