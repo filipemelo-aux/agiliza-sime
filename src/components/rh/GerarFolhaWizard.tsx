@@ -233,9 +233,22 @@ export function GerarFolhaWizard({
           adiantamento_expense_ids: r.adiantamentoExpenseIds,
         })),
       });
-      const c = await confirmarFolha({ folhaId: folha.id, user_id: userId });
-      if (c.fail === 0) toast.success(`Folha confirmada — ${rows.length} colaborador(es).`);
-      else toast.warning(`${c.ok} ok, ${c.fail} falha(s): ${c.errors[0] || ""}`);
+      const complementosMap: Record<string, number> = {};
+      rows.forEach((r) => {
+        if (r.complemento > 0) complementosMap[r.c.id] = r.complemento;
+      });
+      const c = await confirmarFolha({
+        folhaId: folha.id,
+        user_id: userId,
+        folhaAccountId,
+        complementos: complementosMap,
+      });
+      if (c.fail === 0) {
+        const extra = c.complementosGerados > 0
+          ? ` (+${c.complementosGerados} complemento${c.complementosGerados > 1 ? "s" : ""} salarial${c.complementosGerados > 1 ? "is" : ""})`
+          : "";
+        toast.success(`Folha confirmada — ${rows.length} colaborador(es)${extra}.`);
+      } else toast.warning(`${c.ok} ok, ${c.fail} falha(s): ${c.errors[0] || ""}`);
       onGenerated();
       onClose();
     } catch (e: any) {
