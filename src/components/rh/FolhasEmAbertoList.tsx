@@ -71,25 +71,16 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   };
 
   const handleConfirm = async (f: FolhaPagamento) => {
-    if (!folhaAccountId) {
-      toast.error("Configure a conta 'Salários' em Configurações.");
-      return;
-    }
     const ok = await confirm({
       title: "Confirmar folha?",
-      description: `Serão criadas despesas em Contas a Pagar para ${formatBRL(Number(f.total_liquido))}. Esta ação não pode ser desfeita por aqui.`,
-      confirmLabel: "Confirmar e gerar",
+      description: `A folha de ${formatBRL(Number(f.total_liquido))} será fechada e não poderá ser alterada. Comissões e descontos vinculados serão marcados.`,
+      confirmLabel: "Confirmar",
     });
     if (!ok) return;
     setActing(f.id);
     try {
-      const r = await confirmarFolha({
-        folhaId: f.id,
-        empresa_id: empresaId,
-        user_id: userId,
-        folhaAccountId,
-      });
-      if (r.fail === 0) toast.success(`Folha confirmada — ${r.ok} pagamento(s) gerado(s).`);
+      const r = await confirmarFolha({ folhaId: f.id, user_id: userId });
+      if (r.fail === 0) toast.success("Folha confirmada.");
       else toast.warning(`${r.ok} ok, ${r.fail} falha(s)`);
       await load();
       onChanged();
