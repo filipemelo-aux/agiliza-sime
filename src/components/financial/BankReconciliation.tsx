@@ -220,10 +220,9 @@ export function BankReconciliation() {
         if (raw.status !== "pendente") return;
         const candidates = movs.filter(
           (m) =>
+            m.tipo === raw.tipo &&
             Math.abs(Number(m.valor) - raw.absVal) < 0.01 &&
-            daysDiff(raw.txDate, m.data_movimentacao) <= 5 &&
-            ((raw.tipo === "saida" && m.origem !== "contas_receber") ||
-             (raw.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
+            daysDiff(raw.txDate, m.data_movimentacao) <= 5
         );
         for (const c of candidates) {
           movPairs.push({ idx, candId: c.id, dist: daysDiff(raw.txDate, c.data_movimentacao) });
