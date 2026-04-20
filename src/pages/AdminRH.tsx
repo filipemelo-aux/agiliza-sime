@@ -22,13 +22,11 @@ import { ComissoesTab } from "@/components/rh/ComissoesTab";
 import { DescontosTab } from "@/components/rh/DescontosTab";
 import { GerarFolhaWizard } from "@/components/rh/GerarFolhaWizard";
 import { FolhasEmAbertoList } from "@/components/rh/FolhasEmAbertoList";
-import { FolhaPreviaTab } from "@/components/rh/FolhaPreviaTab";
 import {
   buildMetricsByColab,
   computeDueDate,
   computeEmissionDate,
   computePayrollRows,
-  createPayrollExpense,
   fetchComissoesPendentesForMonth,
   fetchDescontosPendentesForMonth,
   fetchExpensesByColaborador,
@@ -500,7 +498,6 @@ function RHWorkspace(props: any) {
               <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
                 {([
                   { v: "em_aberto", label: "Em aberto", icon: ListChecks, count: folhaEmAberto.length },
-                  { v: "previa", label: "Prévia", icon: CalendarDays, count: undefined as number | undefined },
                   { v: "historico", label: "Histórico", icon: History, count: folhaHistorico.length },
                 ] as const).map((opt) => {
                   const Icon = opt.icon;
@@ -545,24 +542,7 @@ function RHWorkspace(props: any) {
               />
             )}
 
-            {folhaSubTab === "previa" && (
-              <FolhaPreviaTab
-                colaboradores={colaboradores}
-                expenses={expenses}
-                month={month}
-                folhaAccountId={settings.folhaAccountId}
-                adiantamentoAccountId={settings.adiantamentoAccountId}
-                salaryOverrides={settings.salaryOverrides || {}}
-                payDay={settings.payDay}
-                empresaId={matrizId || undefined}
-                userId={user?.id}
-                onConfirmed={() => {
-                  reload();
-                  setFolhaSubTab("em_aberto");
-                }}
-                onBack={() => setFolhaSubTab("em_aberto")}
-              />
-            )}
+            {/* Aba "Prévia" removida — substituída pelo wizard quinzenal */}
 
             {folhaSubTab === "historico" && (
               <Card>
@@ -581,12 +561,9 @@ function RHWorkspace(props: any) {
                 open={wizardOpen}
                 onClose={() => setWizardOpen(false)}
                 colaboradores={colaboradores}
-                expenses={expenses}
                 month={month}
                 folhaAccountId={settings.folhaAccountId}
                 adiantamentoAccountId={settings.adiantamentoAccountId}
-                salaryOverrides={settings.salaryOverrides || {}}
-                payDay={settings.payDay}
                 empresaId={matrizId}
                 userId={user.id}
                 onGenerated={reload}
@@ -1005,32 +982,8 @@ function FolhaMensalTab({
     if (!ok) return;
 
     setGenerating(row.c.id);
-    // Delegate to financial service — RH never writes its own movements
-    const { error } = await createPayrollExpense({
-      empresa_id: matrizId,
-      created_by: user.id,
-      colaboradorId: row.c.id,
-      colaboradorNome: row.c.full_name,
-      month,
-      liquido: row.liquido,
-      salarioBase: row.salary,
-      adiantamentos: row.adiant,
-      comissoes: row.comissoes,
-      comissaoIds: row.comissaoIds,
-      descontos: row.descontos,
-      descontoIds: row.descontoIds,
-      emissionDate,
-      dueDate,
-      folhaAccountId,
-    });
     setGenerating(null);
-
-    if (error) {
-      toast.error("Erro ao gerar pagamento: " + error.message);
-      return;
-    }
-    toast.success(`Folha gerada para ${row.c.full_name}`);
-    onGenerated();
+    toast.info("Use o assistente \"Gerar nova folha\" (botão acima) para gerar pagamentos no novo fluxo quinzenal.");
   };
 
   const startEdit = (id: string, current: number) => {
