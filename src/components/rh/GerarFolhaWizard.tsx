@@ -45,6 +45,7 @@ import {
   criarFolhaEmAberto,
   confirmarFolha,
   fetchSalariosNoPeriodo,
+  fetchSalariosDoMes,
   fetchAdiantamentosPagosNoPeriodo,
   fetchComissoesPendentesNoPeriodo,
   fetchDescontosPendentesNoPeriodo,
