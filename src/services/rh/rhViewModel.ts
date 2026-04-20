@@ -2,16 +2,18 @@
  * RH View Model — camada derivada
  * Funções puras que transformam Expenses + Colaboradores em métricas.
  *
- * 🔁 NOVA LÓGICA (folha quinzenal):
- *   A folha consolida despesas JÁ EXISTENTES (salários e adiantamentos pagos)
- *   no período. Não recria despesas. Comissões e descontos pendentes são
- *   adicionados sobre o snapshot.
+ * 🔁 NOVA LÓGICA (folha GERA Contas a Pagar):
+ *   • Salário base = `profiles.salario` (cadastro), prorrateado por quinzena (50%).
+ *   • A folha NÃO consome despesas de salário existentes.
+ *   • Adiantamentos e descontos do período abatem o líquido.
+ *   • Comissões pendentes do período somam ao líquido.
+ *   • Ao confirmar, a folha cria UMA despesa líquida em Contas a Pagar.
  *
  *   Líquido por colaborador =
- *     Σ(salários do período)
- *     − Σ(adiantamentos pagos no período)
- *     − Σ(descontos pendentes no período)
- *     + Σ(comissões pendentes no período)
+ *       (salário cadastrado / 2 se quinzenal, ou cheio se mensal)
+ *     + Σ(comissões pendentes do período)
+ *     − Σ(adiantamentos do período)
+ *     − Σ(descontos pendentes do período)
  */
 import type { ColaboradorRH } from "./rhColaboradoresService";
 import type { Expense } from "./rhFinancialService";
@@ -128,18 +130,15 @@ export function periodoToMesReferencia(p: { data_inicio: string }): string {
 }
 
 // =============================================================
-// LINHAS DA PRÉVIA — agora consumindo despesas existentes
+// LINHAS DA PRÉVIA — salário base do CADASTRO
 // =============================================================
 
 export type PayrollRow = {
   c: ColaboradorRH;
-  /** Soma de salários (despesas existentes na categoria folha do período). */
+  /** Salário base proporcional ao período (cadastro, não despesa). */
   salario_base: number;
-  /** IDs das despesas de salário consumidas. */
-  salarioExpenseIds: string[];
-  /** Soma de adiantamentos pagos no período. */
+  /** Soma de adiantamentos do período. */
   adiantamentos: number;
-  /** IDs dos adiantamentos consumidos. */
   adiantamentoExpenseIds: string[];
   /** Comissões pendentes do período. */
   comissoes: number;
@@ -147,50 +146,40 @@ export type PayrollRow = {
   /** Descontos pendentes do período. */
   descontos: number;
   descontoIds: string[];
-  /** Complemento salarial automático (garantia de piso = salário base do mês). */
-  complemento: number;
-  /** Líquido = base − adiant − descontos + comissões + complemento. */
+  /** Líquido = base + comissões − adiantamentos − descontos. */
   liquido: number;
 };
 
+/**
+ * Retorna a fração do salário base aplicada ao período.
+ * - Quinzenal (primeira/segunda): 50%
+ * - Mensal: 100%
+ * - Personalizado: 100% (usuário define o que faz sentido)
+ */
+function fatorSalarioPorPeriodo(tipo: TipoPeriodo): number {
+  if (tipo === "primeira_quinzena" || tipo === "segunda_quinzena") return 0.5;
+  return 1;
+}
+
 export function computePayrollRowsFromPeriodo(input: {
   colaboradores: ColaboradorRH[];
-  salarios: Expense[];
+  periodo: PeriodoFolha;
   adiantamentos: Expense[];
   comissoes: Comissao[];
   descontos: DescontoFolha[];
-  selectedSalarioIds?: Set<string>;
   selectedAdiantamentoIds?: Set<string>;
   selectedComissaoIds?: Set<string>;
   selectedDescontoIds?: Set<string>;
-  /** Salários do MÊS inteiro (todos os lançamentos), para checagem de piso. */
-  salariosDoMes?: Expense[];
+  /** Filtra por colaboradores explicitamente selecionados (opcional). */
+  selectedColaboradorIds?: Set<string>;
 }): PayrollRow[] {
   const {
-    colaboradores, salarios, adiantamentos, comissoes, descontos,
-    selectedSalarioIds, selectedAdiantamentoIds, selectedComissaoIds, selectedDescontoIds,
-    salariosDoMes,
+    colaboradores, periodo, adiantamentos, comissoes, descontos,
+    selectedAdiantamentoIds, selectedComissaoIds, selectedDescontoIds,
+    selectedColaboradorIds,
   } = input;
 
-  const salByColab = new Map<string, { total: number; ids: string[] }>();
-  salarios.forEach((e) => {
-    if (!e.favorecido_id) return;
-    if (selectedSalarioIds && !selectedSalarioIds.has(e.id)) return;
-    const cur = salByColab.get(e.favorecido_id) || { total: 0, ids: [] };
-    cur.total += Number(e.valor_total || 0);
-    cur.ids.push(e.id);
-    salByColab.set(e.favorecido_id, cur);
-  });
-
-  // Total de salários no MÊS inteiro (para verificar piso)
-  const totalMesByColab = new Map<string, number>();
-  (salariosDoMes || []).forEach((e) => {
-    if (!e.favorecido_id) return;
-    totalMesByColab.set(
-      e.favorecido_id,
-      (totalMesByColab.get(e.favorecido_id) || 0) + Number(e.valor_total || 0)
-    );
-  });
+  const fator = fatorSalarioPorPeriodo(periodo.tipo);
 
   const advByColab = new Map<string, { total: number; ids: string[] }>();
   adiantamentos.forEach((e) => {
@@ -222,38 +211,29 @@ export function computePayrollRowsFromPeriodo(input: {
 
   return colaboradores
     .filter((c) => c.ativo)
+    .filter((c) => !selectedColaboradorIds || selectedColaboradorIds.has(c.id))
     .map((c) => {
-      const sal = salByColab.get(c.id) || { total: 0, ids: [] };
+      const baseCadastro = Number(c.salario || 0);
+      const salario_base = Math.round(baseCadastro * fator * 100) / 100;
       const adv = advByColab.get(c.id) || { total: 0, ids: [] };
       const com = comByColab.get(c.id) || { total: 0, ids: [] };
       const desc = descByColab.get(c.id) || { total: 0, ids: [] };
 
-      // 🛡️ GARANTIA DE SALÁRIO MÍNIMO (piso = salário base cadastrado)
-      // Complemento = max(0, salario_base_cadastrado − total recebido no mês)
-      const baseCadastrada = Number(c.salario || 0);
-      const recebidoMes = totalMesByColab.get(c.id) || 0;
-      const complemento =
-        baseCadastrada > 0 && recebidoMes < baseCadastrada
-          ? Math.round((baseCadastrada - recebidoMes) * 100) / 100
-          : 0;
-
       const liquido = computeLiquido({
-        salary: sal.total + complemento,
+        salary: salario_base,
         adiant: adv.total,
         descontos: desc.total,
         comissoes: com.total,
       });
       return {
         c,
-        salario_base: sal.total,
-        salarioExpenseIds: sal.ids,
+        salario_base,
         adiantamentos: adv.total,
         adiantamentoExpenseIds: adv.ids,
         comissoes: com.total,
         comissaoIds: com.ids,
         descontos: desc.total,
         descontoIds: desc.ids,
-        complemento,
         liquido,
       };
     })
@@ -262,14 +242,13 @@ export function computePayrollRowsFromPeriodo(input: {
         r.salario_base > 0 ||
         r.adiantamentos > 0 ||
         r.comissoes > 0 ||
-        r.descontos > 0 ||
-        r.complemento > 0
+        r.descontos > 0
     );
 }
 
 /**
  * Cálculo do líquido seguindo a ordem profissional obrigatória:
- *   Líquido = Base − Adiantamentos − Descontos + Comissões
+ *   Líquido = Base + Comissões − Adiantamentos − Descontos
  * Resultado nunca negativo (clamp em 0).
  */
 export function computeLiquido(input: {
@@ -279,9 +258,7 @@ export function computeLiquido(input: {
   comissoes: number;
 }): number {
   const base = Number(input.salary || 0);
-  const aposAdiant = base - Number(input.adiant || 0);
-  const aposDesc = aposAdiant - Number(input.descontos || 0);
-  const liquido = aposDesc + Number(input.comissoes || 0);
+  const liquido = base + Number(input.comissoes || 0) - Number(input.adiant || 0) - Number(input.descontos || 0);
   return Math.max(0, liquido);
 }
 
