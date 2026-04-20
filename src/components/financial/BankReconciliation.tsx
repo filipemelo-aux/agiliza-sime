@@ -588,9 +588,9 @@ export function BankReconciliation() {
         let matchedPayablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
-          // Débito: buscar no fluxo de caixa — valor idêntico + data ±5 dias
+          // Débito: buscar no fluxo de caixa — mesmo tipo (saída) + valor idêntico + data ±5 dias
           const candidates = movs.filter(
-            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "contas_receber"
+            (m) => m.tipo === "saida" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
