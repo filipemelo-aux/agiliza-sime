@@ -982,32 +982,8 @@ function FolhaMensalTab({
     if (!ok) return;
 
     setGenerating(row.c.id);
-    // Delegate to financial service — RH never writes its own movements
-    const { error } = await createPayrollExpense({
-      empresa_id: matrizId,
-      created_by: user.id,
-      colaboradorId: row.c.id,
-      colaboradorNome: row.c.full_name,
-      month,
-      liquido: row.liquido,
-      salarioBase: row.salary,
-      adiantamentos: row.adiant,
-      comissoes: row.comissoes,
-      comissaoIds: row.comissaoIds,
-      descontos: row.descontos,
-      descontoIds: row.descontoIds,
-      emissionDate,
-      dueDate,
-      folhaAccountId,
-    });
     setGenerating(null);
-
-    if (error) {
-      toast.error("Erro ao gerar pagamento: " + error.message);
-      return;
-    }
-    toast.success(`Folha gerada para ${row.c.full_name}`);
-    onGenerated();
+    toast.info("Use o assistente \"Gerar nova folha\" (botão acima) para gerar pagamentos no novo fluxo quinzenal.");
   };
 
   const startEdit = (id: string, current: number) => {
