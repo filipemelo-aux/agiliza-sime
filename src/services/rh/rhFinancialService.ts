@@ -1,14 +1,15 @@
 /**
  * RH Financial Service
- * Camada de leitura desacoplada do financeiro. Apenas CONSOME `expenses` —
- * nenhuma escrita financeira nem regra de cálculo de pagamento é duplicada aqui.
+ * Camada de leitura desacoplada do financeiro.
  *
- * 🔁 NOVA REGRA (folha quinzenal):
- *   A folha NÃO gera mais despesas automaticamente.
- *   Ela CONSUME despesas já existentes em Contas a Pagar:
- *     - Categoria "Salários" (folhaAccountId)
- *     - Categoria "Adiantamentos / Vales" (adiantamentoAccountId), filtradas
- *       por `data_pagamento` dentro da janela do período da folha.
+ * 🔁 NOVO FLUXO (folha GERA Contas a Pagar)
+ *   A folha NÃO consome mais despesas de salário. Salário base agora vem
+ *   do CADASTRO do colaborador (`profiles.salario`). A folha apenas:
+ *     • Lista ADIANTAMENTOS (despesas pendentes/pagas) do período → para abater
+ *     • Lista COMISSÕES pendentes do período → para somar
+ *     • Lista DESCONTOS pendentes do período → para abater
+ *   Ao confirmar, a folha CRIA uma despesa líquida em Contas a Pagar
+ *   (categoria Salários) por colaborador.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { type Comissao } from "./comissoesService";
@@ -73,53 +74,6 @@ export async function fetchExpensesByColaborador(
 }
 
 /**
- * Busca SALÁRIOS do MÊS inteiro por COMPETÊNCIA — usado para verificar se o
- * colaborador já atingiu o salário mínimo garantido no mês de competência.
- */
-export async function fetchSalariosDoMes(
-  colabIds: string[],
-  folhaAccountId: string,
-  month: string
-): Promise<Expense[]> {
-  if (colabIds.length === 0 || !folhaAccountId) return [];
-  const { start, end } = monthRange(month);
-  const { data, error } = await supabase
-    .from("expenses")
-    .select(EXPENSE_COLS)
-    .in("favorecido_id", colabIds)
-    .eq("plano_contas_id", folhaAccountId)
-    .is("deleted_at", null)
-    .gte("data_competencia", start)
-    .lt("data_competencia", end);
-  if (error) throw error;
-  return (data as any) || [];
-}
-
-/**
- * Busca SALÁRIOS cuja COMPETÊNCIA cai dentro da janela [inicio, fim] do
- * período da folha. Estas são as despesas consumidas pela folha.
- */
-export async function fetchSalariosNoPeriodo(
-  colabIds: string[],
-  folhaAccountId: string,
-  inicio: string,
-  fim: string
-): Promise<Expense[]> {
-  if (colabIds.length === 0 || !folhaAccountId) return [];
-  const { data, error } = await supabase
-    .from("expenses")
-    .select(EXPENSE_COLS)
-    .in("favorecido_id", colabIds)
-    .eq("plano_contas_id", folhaAccountId)
-    .is("deleted_at", null)
-    .gte("data_competencia", inicio)
-    .lte("data_competencia", fim)
-    .order("data_competencia", { ascending: false });
-  if (error) throw error;
-  return (data as any) || [];
-}
-
-/**
  * Busca ADIANTAMENTOS por COMPETÊNCIA dentro da janela [inicio, fim] da folha.
  * Adiantamentos seguem a PRODUÇÃO do período (competência), não a data financeira.
  */
@@ -164,7 +118,6 @@ export async function fetchComissoesPendentesNoPeriodo(
 
 /**
  * @deprecated Mantido apenas para compatibilidade de leitura mensal.
- * Para folha quinzenal use `fetchComissoesPendentesNoPeriodo`.
  */
 export async function fetchComissoesPendentesForMonth(
   colabIds: string[],
