@@ -148,10 +148,11 @@ export function GerarFolhaWizard({
       setAdiantamentos(adv);
       setComissoes(com);
       setDescontos(desc);
-      setSelSalarios(new Set(sal.map((e) => e.id)));
-      setSelAdiant(new Set(adv.map((e) => e.id)));
-      setSelComissoes(new Set(com.map((c) => c.id)));
-      setSelDescontos(new Set(desc.map((d) => d.id)));
+      // 🔒 Prompt 5: usuário deve ter CONTROLE TOTAL — nada vem pré-marcado.
+      setSelSalarios(new Set());
+      setSelAdiant(new Set());
+      setSelComissoes(new Set());
+      setSelDescontos(new Set());
       return true;
     } catch (e: any) {
       toast.error("Erro ao carregar dados: " + (e?.message || e));
@@ -487,41 +488,52 @@ function SelecaoStep({
     setter(next);
   };
 
+  // Label dinâmico de salários conforme tipo de período
+  const salarioHint =
+    periodo.tipo === "primeira_quinzena"
+      ? "Referente à 2ª quinzena do mês anterior"
+      : periodo.tipo === "segunda_quinzena"
+      ? "Referente à 1ª quinzena do mês corrente"
+      : "Salários cuja COMPETÊNCIA cai no período selecionado";
+
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-muted-foreground">
         Período: <strong>{formatDate(periodo.data_inicio)} – {formatDate(periodo.data_fim)}</strong>.
-        Marque os lançamentos que devem entrar nesta folha.
+        Marque manualmente os lançamentos que devem entrar nesta folha.
       </p>
 
       <Bucket
-        title="Salários (despesas existentes)" tom="neutral"
+        title="Salários (competência)" tom="neutral"
+        hint={salarioHint}
         items={salarios.map((e: Expense) => ({
           id: e.id,
           name: e.favorecido_nome || colabName(e.favorecido_id),
           desc: e.descricao,
-          info: `Emissão ${formatDate(e.data_emissao)}`,
+          info: `Competência ${formatDate(e.data_competencia || e.data_emissao)}`,
           value: Number(e.valor_total || 0),
         }))}
         selected={selSalarios} onToggle={(id) => toggle(selSalarios, setSelSalarios, id)}
-        emptyText="Nenhum salário lançado neste período. Lance via Contas a Pagar."
+        emptyText="Nenhum salário com competência neste período. Lance via Contas a Pagar."
       />
 
       <Bucket
-        title="Adiantamentos PAGOS" tom="negative"
+        title="Adiantamentos do período" tom="negative"
+        hint="Adiantamentos cuja COMPETÊNCIA cai no período selecionado"
         items={adiantamentos.map((e: Expense) => ({
           id: e.id,
           name: e.favorecido_nome || colabName(e.favorecido_id),
           desc: e.descricao,
-          info: `Pago ${e.data_pagamento ? formatDate(e.data_pagamento) : "—"}`,
+          info: `Competência ${formatDate(e.data_competencia || e.data_emissao)}`,
           value: Number(e.valor_pago || e.valor_total || 0),
         }))}
         selected={selAdiant} onToggle={(id) => toggle(selAdiant, setSelAdiant, id)}
-        emptyText="Nenhum adiantamento pago neste período."
+        emptyText="Nenhum adiantamento com competência neste período."
       />
 
       <Bucket
-        title="Comissões pendentes" tom="positive"
+        title="Comissões do período" tom="positive"
+        hint="Comissões pendentes com data_referencia dentro do período"
         items={comissoes.map((c: Comissao) => ({
           id: c.id,
           name: colabName(c.colaborador_id),
@@ -530,11 +542,12 @@ function SelecaoStep({
           value: Number(c.valor_calculado || 0),
         }))}
         selected={selComissoes} onToggle={(id) => toggle(selComissoes, setSelComissoes, id)}
-        emptyText="Sem comissões pendentes."
+        emptyText="Sem comissões pendentes neste período."
       />
 
       <Bucket
-        title="Descontos pendentes" tom="negative"
+        title="Descontos do período" tom="negative"
+        hint="Descontos pendentes com data_referencia dentro do período"
         items={descontos.map((d: DescontoFolha) => ({
           id: d.id,
           name: colabName(d.colaborador_id),
@@ -543,18 +556,19 @@ function SelecaoStep({
           value: Number(d.valor || 0),
         }))}
         selected={selDescontos} onToggle={(id) => toggle(selDescontos, setSelDescontos, id)}
-        emptyText="Sem descontos pendentes."
+        emptyText="Sem descontos pendentes neste período."
       />
     </div>
   );
 }
 
 function Bucket({
-  title, tom, items, selected, onToggle, emptyText,
+  title, tom, items, selected, onToggle, emptyText, hint,
 }: {
   title: string; tom: "neutral" | "positive" | "negative";
   items: { id: string; name: string; desc: string; info: string; value: number }[];
   selected: Set<string>; onToggle: (id: string) => void; emptyText: string;
+  hint?: string;
 }) {
   const total = items
     .filter((i) => selected.has(i.id))
@@ -566,9 +580,14 @@ function Bucket({
 
   return (
     <Card className="overflow-hidden">
-      <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">{title}</p>
-        <div className="flex items-center gap-2">
+      <div className="px-3 py-2 border-b bg-muted/30 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-tight">{title}</p>
+          {hint && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{hint}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <span className={cn("text-xs font-bold tabular-nums", toneTotal)}>
             {formatBRL(total)}
           </span>
