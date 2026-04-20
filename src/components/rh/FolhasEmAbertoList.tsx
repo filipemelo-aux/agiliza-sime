@@ -77,9 +77,13 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       confirmLabel: "Confirmar",
     });
     if (!ok) return;
+    if (!folhaAccountId) {
+      toast.error("Configure a conta de Folha em Configurações do RH.");
+      return;
+    }
     setActing(f.id);
     try {
-      const r = await confirmarFolha({ folhaId: f.id, user_id: userId });
+      const r = await confirmarFolha({ folhaId: f.id, user_id: userId, folhaAccountId });
       if (r.fail === 0) toast.success("Folha confirmada.");
       else toast.warning(`${r.ok} ok, ${r.fail} falha(s)`);
       await load();
