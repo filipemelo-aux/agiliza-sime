@@ -59,6 +59,7 @@ interface MatchCandidate {
   data_movimentacao: string;
   valor: number;
   origem: string;
+  tipo?: "entrada" | "saida";
   isPayable?: boolean;
   payableDueDate?: string;
   expenseId?: string;
@@ -135,7 +136,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -150,9 +151,20 @@ export function BankReconciliation() {
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
           .eq("status", "pendente"),
+        // Movimentações já vinculadas a outras conciliações (não devem ser candidatas)
+        supabase
+          .from("bank_reconciliation_items")
+          .select("matched_movimentacao_id, reconciliation_id")
+          .not("matched_movimentacao_id", "is", null),
       ]);
 
-      const movs = existingMovs || [];
+      const alreadyMatchedIds = new Set(
+        (alreadyMatched || [])
+          .filter((r: any) => r.reconciliation_id !== rec.id)
+          .map((r: any) => r.matched_movimentacao_id)
+          .filter(Boolean)
+      );
+      const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
       // Build unified payables list: installments first, then expenses without installments
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
@@ -209,10 +221,9 @@ export function BankReconciliation() {
         if (raw.status !== "pendente") return;
         const candidates = movs.filter(
           (m) =>
+            m.tipo === raw.tipo &&
             Math.abs(Number(m.valor) - raw.absVal) < 0.01 &&
-            daysDiff(raw.txDate, m.data_movimentacao) <= 5 &&
-            ((raw.tipo === "saida" && m.origem !== "contas_receber") ||
-             (raw.tipo === "entrada" && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"))
+            daysDiff(raw.txDate, m.data_movimentacao) <= 5
         );
         for (const c of candidates) {
           movPairs.push({ idx, candId: c.id, dist: daysDiff(raw.txDate, c.data_movimentacao) });
@@ -509,7 +520,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -524,9 +535,17 @@ export function BankReconciliation() {
           .from("expense_installments")
           .select("id, expense_id, valor, data_vencimento, status, numero_parcela")
           .eq("status", "pendente"),
+        // Movimentações já vinculadas a outras conciliações
+        supabase
+          .from("bank_reconciliation_items")
+          .select("matched_movimentacao_id")
+          .not("matched_movimentacao_id", "is", null),
       ]);
 
-      const movs = (existingMovs || []) as MatchCandidate[];
+      const alreadyMatchedIds2 = new Set(
+        (alreadyMatched2 || []).map((r: any) => r.matched_movimentacao_id).filter(Boolean)
+      );
+      const movs = ((existingMovs || []) as MatchCandidate[]).filter((m) => !alreadyMatchedIds2.has(m.id));
       const instRows2 = (pendingInstallments2 || []) as any[];
       const expRows2 = (pendingExpenses2 || []) as any[];
       const expWithInst2 = new Set(instRows2.map((i: any) => i.expense_id));
@@ -570,9 +589,9 @@ export function BankReconciliation() {
         let matchedPayablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
-          // Débito: buscar no fluxo de caixa — valor idêntico + data ±5 dias
+          // Débito: buscar no fluxo de caixa — mesmo tipo (saída) + valor idêntico + data ±5 dias
           const candidates = movs.filter(
-            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "contas_receber"
+            (m) => m.tipo === "saida" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
@@ -598,9 +617,9 @@ export function BankReconciliation() {
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else {
-          // Crédito: buscar no fluxo de caixa
+          // Crédito: buscar no fluxo de caixa — mesmo tipo (entrada) + valor + data ±5 dias
           const candidates = movs.filter(
-            (m) => !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5 && m.origem !== "pagamento_despesa" && m.origem !== "despesas" && m.origem !== "contas_pagar"
+            (m) => m.tipo === "entrada" && !usedMovIds.has(m.id) && Math.abs(Number(m.valor) - absVal) < 0.01 && daysDiff(txDate, m.data_movimentacao) <= 5
           );
           const exact = candidates.find((m) => m.data_movimentacao === txDate);
           matchedMov = exact || candidates.sort((a, b) => daysDiff(txDate, a.data_movimentacao) - daysDiff(txDate, b.data_movimentacao))[0];
