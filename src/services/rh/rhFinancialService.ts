@@ -20,12 +20,16 @@ export type Expense = {
   valor_pago: number;
   status: string;
   data_emissao: string;
+  data_competencia: string | null;
   data_vencimento: string | null;
   data_pagamento: string | null;
   favorecido_id: string | null;
   favorecido_nome: string | null;
   plano_contas_id: string | null;
 };
+
+const EXPENSE_COLS =
+  "id, descricao, valor_total, valor_pago, status, data_emissao, data_competencia, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id";
 
 export const monthRange = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
@@ -43,9 +47,7 @@ export async function fetchExpensesForColaboradores(
   const { start, end } = monthRange(month);
   const { data } = await supabase
     .from("expenses")
-    .select(
-      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-    )
+    .select(EXPENSE_COLS)
     .in("favorecido_id", colabIds)
     .is("deleted_at", null)
     .gte("data_emissao", start)
@@ -60,9 +62,7 @@ export async function fetchExpensesByColaborador(
 ): Promise<Expense[]> {
   let q = supabase
     .from("expenses")
-    .select(
-      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-    )
+    .select(EXPENSE_COLS)
     .eq("favorecido_id", colaboradorId)
     .is("deleted_at", null)
     .order("data_emissao", { ascending: false })
@@ -73,10 +73,8 @@ export async function fetchExpensesByColaborador(
 }
 
 /**
- * Busca SALÁRIOS do MÊS inteiro (referência) — usado para verificar se o
- * colaborador já atingiu o salário mínimo garantido no mês corrente.
- * Considera todos os salários PAGOS ou EM ABERTO emitidos no mês de referência
- * do período da folha (mes_referencia = data_inicio.slice(0,7)).
+ * Busca SALÁRIOS do MÊS inteiro por COMPETÊNCIA — usado para verificar se o
+ * colaborador já atingiu o salário mínimo garantido no mês de competência.
  */
 export async function fetchSalariosDoMes(
   colabIds: string[],
@@ -87,22 +85,19 @@ export async function fetchSalariosDoMes(
   const { start, end } = monthRange(month);
   const { data, error } = await supabase
     .from("expenses")
-    .select(
-      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-    )
+    .select(EXPENSE_COLS)
     .in("favorecido_id", colabIds)
     .eq("plano_contas_id", folhaAccountId)
     .is("deleted_at", null)
-    .gte("data_emissao", start)
-    .lt("data_emissao", end);
+    .gte("data_competencia", start)
+    .lt("data_competencia", end);
   if (error) throw error;
   return (data as any) || [];
 }
 
 /**
- * Busca SALÁRIOS (despesas na categoria folha) cuja `data_emissao` cai
- * dentro da janela [inicio, fim] do período da folha. Estas são as despesas
- * que serão CONSUMIDAS pela folha (não criadas).
+ * Busca SALÁRIOS cuja COMPETÊNCIA cai dentro da janela [inicio, fim] do
+ * período da folha. Estas são as despesas consumidas pela folha.
  */
 export async function fetchSalariosNoPeriodo(
   colabIds: string[],
@@ -113,23 +108,20 @@ export async function fetchSalariosNoPeriodo(
   if (colabIds.length === 0 || !folhaAccountId) return [];
   const { data, error } = await supabase
     .from("expenses")
-    .select(
-      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-    )
+    .select(EXPENSE_COLS)
     .in("favorecido_id", colabIds)
     .eq("plano_contas_id", folhaAccountId)
     .is("deleted_at", null)
-    .gte("data_emissao", inicio)
-    .lte("data_emissao", fim)
-    .order("data_emissao", { ascending: false });
+    .gte("data_competencia", inicio)
+    .lte("data_competencia", fim)
+    .order("data_competencia", { ascending: false });
   if (error) throw error;
   return (data as any) || [];
 }
 
 /**
- * Busca ADIANTAMENTOS já PAGOS dentro da janela [inicio, fim] do período
- * da folha (por `data_pagamento`). Adiantamentos não pagos não entram na
- * folha — ficam aguardando o ciclo seguinte.
+ * Busca ADIANTAMENTOS por COMPETÊNCIA dentro da janela [inicio, fim] do
+ * período da folha. (Antes filtrava por data_pagamento.)
  */
 export async function fetchAdiantamentosPagosNoPeriodo(
   colabIds: string[],
@@ -140,16 +132,13 @@ export async function fetchAdiantamentosPagosNoPeriodo(
   if (colabIds.length === 0 || !adiantamentoAccountId) return [];
   const { data, error } = await supabase
     .from("expenses")
-    .select(
-      "id, descricao, valor_total, valor_pago, status, data_emissao, data_vencimento, data_pagamento, favorecido_id, favorecido_nome, plano_contas_id"
-    )
+    .select(EXPENSE_COLS)
     .in("favorecido_id", colabIds)
     .eq("plano_contas_id", adiantamentoAccountId)
     .is("deleted_at", null)
-    .not("data_pagamento", "is", null)
-    .gte("data_pagamento", inicio)
-    .lte("data_pagamento", fim)
-    .order("data_pagamento", { ascending: false });
+    .gte("data_competencia", inicio)
+    .lte("data_competencia", fim)
+    .order("data_competencia", { ascending: false });
   if (error) throw error;
   return (data as any) || [];
 }

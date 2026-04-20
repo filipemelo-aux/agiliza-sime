@@ -1100,6 +1100,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           created_by: string
+          data_competencia: string | null
           data_emissao: string
           data_pagamento: string | null
           data_vencimento: string | null
@@ -1147,6 +1148,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           created_by: string
+          data_competencia?: string | null
           data_emissao?: string
           data_pagamento?: string | null
           data_vencimento?: string | null
@@ -1194,6 +1196,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           created_by?: string
+          data_competencia?: string | null
           data_emissao?: string
           data_pagamento?: string | null
           data_vencimento?: string | null
