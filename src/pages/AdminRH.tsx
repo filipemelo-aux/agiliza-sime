@@ -498,7 +498,6 @@ function RHWorkspace(props: any) {
               <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
                 {([
                   { v: "em_aberto", label: "Em aberto", icon: ListChecks, count: folhaEmAberto.length },
-                  { v: "previa", label: "Prévia", icon: CalendarDays, count: undefined as number | undefined },
                   { v: "historico", label: "Histórico", icon: History, count: folhaHistorico.length },
                 ] as const).map((opt) => {
                   const Icon = opt.icon;
