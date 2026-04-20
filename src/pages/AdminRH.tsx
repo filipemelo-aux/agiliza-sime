@@ -226,7 +226,7 @@ function RHWorkspace(props: any) {
   const section: RHSection = forcedSection ?? internalSection;
   const setSection = setInternalSection;
 
-  const [movSubTab, setMovSubTab] = useState<MovSubTab>("adiantamentos");
+  const [movSubTab, setMovSubTab] = useState<MovSubTab>("comissoes");
   const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("em_aberto");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
@@ -444,8 +444,8 @@ function RHWorkspace(props: any) {
           <div className="space-y-3">
             <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
               {([
-                { v: "adiantamentos", label: "Adiantamentos / Vales", icon: HandCoins },
                 { v: "comissoes", label: "Comissões", icon: Percent },
+                { v: "adiantamentos", label: "Adiantamentos / Vales", icon: HandCoins },
                 { v: "descontos", label: "Descontos", icon: UserMinus },
               ] as const).map((opt) => {
                 const Icon = opt.icon;
