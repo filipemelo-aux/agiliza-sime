@@ -167,14 +167,24 @@ export async function buscarFolhaComItens(
 }
 
 /**
- * Confirma a folha SEM gerar despesas — apenas vincula comissões/descontos
- * e troca status para `confirmada`. As despesas (Salário/Adiantamento) já
- * existem em Contas a Pagar e foram apenas referenciadas no snapshot.
+ * Confirma a folha:
+ *   • Vincula comissões/descontos selecionados à folha
+ *   • Gera despesa de COMPLEMENTO SALARIAL (piso garantido) quando informado,
+ *     na categoria de folha, status pendente, vencimento = data_pagamento da folha
+ *   • Marca status como `confirmada`
+ *
+ * As despesas de Salário e Adiantamento JÁ EXISTEM em Contas a Pagar e foram
+ * apenas referenciadas no snapshot do item (salario_expense_ids /
+ * adiantamento_expense_ids). Não são recriadas aqui.
  */
 export async function confirmarFolha(input: {
   folhaId: string;
   user_id: string;
-}): Promise<{ ok: number; fail: number; errors: string[] }> {
+  /** Categoria do plano de contas usada para "Salários" — necessária para gerar a despesa de complemento. */
+  folhaAccountId?: string;
+  /** Mapa colaborador_id → valor de complemento salarial (>0). */
+  complementos?: Record<string, number>;
+}): Promise<{ ok: number; fail: number; errors: string[]; complementosGerados: number }> {
   const { folha, itens } = await buscarFolhaComItens(input.folhaId);
   if (folha.status !== "em_aberto") {
     throw new Error(`Folha não está em aberto (status: ${folha.status}).`);
@@ -182,6 +192,7 @@ export async function confirmarFolha(input: {
 
   let ok = 0;
   let fail = 0;
+  let complementosGerados = 0;
   const errors: string[] = [];
 
   for (const item of itens) {
@@ -192,6 +203,38 @@ export async function confirmarFolha(input: {
       if ((item.desconto_ids || []).length > 0) {
         await vincularDescontosAFolha(item.desconto_ids, folha.id);
       }
+
+      // 🛡️ Gerar despesa de COMPLEMENTO SALARIAL (piso garantido)
+      const valorComp = Number(input.complementos?.[item.colaborador_id] || 0);
+      if (valorComp > 0 && input.folhaAccountId) {
+        const { data: exp, error: expErr } = await supabase
+          .from("expenses")
+          .insert({
+            empresa_id: folha.empresa_id,
+            created_by: input.user_id,
+            descricao: `Complemento salarial — ${item.colaborador_nome} (folha ${folha.data_inicio}–${folha.data_fim})`,
+            valor_total: valorComp,
+            valor_pago: 0,
+            status: "pendente",
+            data_emissao: folha.data_emissao,
+            data_vencimento: folha.data_vencimento,
+            favorecido_id: item.colaborador_id,
+            favorecido_nome: item.colaborador_nome,
+            plano_contas_id: input.folhaAccountId,
+            origem: "folha_pagamento" as any,
+            observacoes: `Gerado automaticamente para garantir o piso salarial da folha ${folha.id}.`,
+          })
+          .select("id")
+          .single();
+        if (expErr) throw expErr;
+        // Anexa o id no snapshot do item
+        const novosIds = [...(item.salario_expense_ids || []), (exp as any).id];
+        await (supabase.from("folhas_pagamento_itens" as any) as any)
+          .update({ salario_expense_ids: novosIds })
+          .eq("id", item.id);
+        complementosGerados++;
+      }
+
       ok++;
     } catch (e: any) {
       fail++;
