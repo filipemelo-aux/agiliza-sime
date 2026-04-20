@@ -100,6 +100,7 @@ export function GerarFolhaWizard({
 
   // Dados do período
   const [salarios, setSalarios] = useState<Expense[]>([]);
+  const [salariosMes, setSalariosMes] = useState<Expense[]>([]);
   const [adiantamentos, setAdiantamentos] = useState<Expense[]>([]);
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [descontos, setDescontos] = useState<DescontoFolha[]>([]);
@@ -132,8 +133,10 @@ export function GerarFolhaWizard({
     }
     setLoadingData(true);
     try {
-      const [sal, adv, com, desc] = await Promise.all([
+      const mesRef = periodoToMesReferencia(periodo);
+      const [sal, salMes, adv, com, desc] = await Promise.all([
         fetchSalariosNoPeriodo(colabIds, folhaAccountId, periodo.data_inicio, periodo.data_fim),
+        fetchSalariosDoMes(colabIds, folhaAccountId, mesRef),
         adiantamentoAccountId
           ? fetchAdiantamentosPagosNoPeriodo(colabIds, adiantamentoAccountId, periodo.data_inicio, periodo.data_fim)
           : Promise.resolve([]),
@@ -141,10 +144,10 @@ export function GerarFolhaWizard({
         fetchDescontosPendentesNoPeriodo(colabIds, periodo.data_inicio, periodo.data_fim),
       ]);
       setSalarios(sal);
+      setSalariosMes(salMes);
       setAdiantamentos(adv);
       setComissoes(com);
       setDescontos(desc);
-      // Pré-seleciona tudo
       setSelSalarios(new Set(sal.map((e) => e.id)));
       setSelAdiant(new Set(adv.map((e) => e.id)));
       setSelComissoes(new Set(com.map((c) => c.id)));
@@ -170,8 +173,9 @@ export function GerarFolhaWizard({
         selectedAdiantamentoIds: selAdiant,
         selectedComissaoIds: selComissoes,
         selectedDescontoIds: selDescontos,
+        salariosDoMes: salariosMes,
       }),
-    [colaboradores, salarios, adiantamentos, comissoes, descontos, selSalarios, selAdiant, selComissoes, selDescontos]
+    [colaboradores, salarios, salariosMes, adiantamentos, comissoes, descontos, selSalarios, selAdiant, selComissoes, selDescontos]
   );
 
   const totals = rows.reduce(
@@ -180,9 +184,10 @@ export function GerarFolhaWizard({
       adv: acc.adv + r.adiantamentos,
       desc: acc.desc + r.descontos,
       com: acc.com + r.comissoes,
+      comp: acc.comp + r.complemento,
       liq: acc.liq + r.liquido,
     }),
-    { base: 0, adv: 0, desc: 0, com: 0, liq: 0 }
+    { base: 0, adv: 0, desc: 0, com: 0, comp: 0, liq: 0 }
   );
 
   const colabName = (id: string) =>
