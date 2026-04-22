@@ -503,7 +503,8 @@ export default function HarvestDetail() {
       return { dv, days, totalBruto, totalDescontos, totalLiquido };
     };
     const pdfGetFaturamentoData = (a: Assignment) => {
-      const dvEmpresa = a.company_daily_value || companyDailyValue;
+      // Mesma regra do relatório de Cliente: usa a diária configurada atual no serviço
+      const dvEmpresa = companyDailyValue;
       const days = getFilteredDays(a);
       const totalBruto = days * dvEmpresa;
       const agregado = pdfGetAgregadoData(a);
@@ -1532,7 +1533,10 @@ export default function HarvestDetail() {
   };
 
   const getFaturamentoData = (a: Assignment) => {
-    const dvEmpresa = a.company_daily_value || companyDailyValue;
+    // Sempre usa a diária configurada no serviço (job.monthly_value / 30),
+    // igual ao relatório de Cliente. Snapshots antigos em a.company_daily_value
+    // são ignorados para manter consistência com a configuração atual da colheita.
+    const dvEmpresa = companyDailyValue;
     const days = getFilteredDays(a);
     const totalBruto = days * dvEmpresa;
     const agregado = getAgregadoData(a);
