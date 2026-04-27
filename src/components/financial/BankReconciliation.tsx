@@ -1572,18 +1572,14 @@ function ItemActions({
           <Link2 className="h-3 w-3" /> Vincular a conta
         </Button>
       )}
-      {!item.matchedMovId && !item.matchedPayableId && (
-        <>
-          {item.tipo === "saida" && (
-            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
-              <Plus className="h-3 w-3" /> Despesa
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
-            <ArrowDownCircle className="h-3 w-3" /> Movimentação
-          </Button>
-        </>
+      {item.tipo === "saida" && (
+        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={onNewExpense}>
+          <Plus className="h-3 w-3" /> Despesa
+        </Button>
       )}
+      <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
+        <ArrowDownCircle className="h-3 w-3" /> Movimentação
+      </Button>
     </div>
   );
 }
