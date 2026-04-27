@@ -1027,9 +1027,20 @@ export function BankReconciliation() {
         }
       }
 
+      // Resolver vínculo: se isPayable, buscar a movimentação criada pelo trigger
+      let movIdToLink: string | null = confirmMatch.isPayable ? null : confirmMatch.id;
+      if (confirmMatch.isPayable && confirmMatch.expenseId) {
+        movIdToLink = await findCreatedMovId({
+          expenseId: confirmMatch.expenseId,
+          amount: Math.abs(confirmItem.amount),
+          tipo: confirmItem.tipo,
+          referenceDate: confirmItem.date,
+        });
+      }
+
       const updateFilter = confirmItem.dbItemId
-        ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id }).eq("id", confirmItem.dbItemId)
-        : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: confirmMatch.isPayable ? null : confirmMatch.id }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
+        ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", confirmItem.dbItemId)
+        : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", confirmItem.fitid || "").eq("status", "pendente");
       await updateFilter;
 
       setItems((prev) =>
