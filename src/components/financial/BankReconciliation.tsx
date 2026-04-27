@@ -461,6 +461,33 @@ export function BankReconciliation() {
     }
   }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
 
+  // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
+  const handleUndoReconcile = useCallback(async (item: OfxItem) => {
+    if (!reconciliationId) return;
+    if (!window.confirm("Desfazer a conciliação deste lançamento?\n\nO item voltará para 'pendente' para que você possa vincular novamente a uma movimentação compatível.")) return;
+    setLoading(true);
+    try {
+      const filter = item.dbItemId
+        ? supabase.from("bank_reconciliation_items").update({ status: "pendente", matched_movimentacao_id: null }).eq("id", item.dbItemId)
+        : supabase.from("bank_reconciliation_items").update({ status: "pendente", matched_movimentacao_id: null }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "");
+      const { error } = await filter;
+      if (error) throw error;
+      // Re-resume to re-run auto-matching across all items
+      const rec = history.find((h) => h.id === reconciliationId);
+      if (rec) {
+        await resumeReconciliation(rec);
+      } else {
+        setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, status: "pendente" } : i));
+      }
+      toast.success("Conciliação desfeita.");
+      setTimeout(updateReconciliationCount, 500);
+    } catch (err: any) {
+      toast.error("Erro ao desfazer: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, [reconciliationId, history, resumeReconciliation, updateReconciliationCount]);
+
   // ── Manual link to account (paid or pending) ──
   const openLinkAccountDialog = useCallback((itemIds: string[]) => {
     if (itemIds.length === 0) {
@@ -1263,6 +1290,18 @@ export function BankReconciliation() {
                     onNewMovement={() => handleNewMovement(item)}
                     onLinkAccount={() => openLinkAccountDialog([item.id])}
                   />
+                  {item.status === "conciliado" && (
+                    <div className="flex items-center justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleUndoReconcile(item)}
+                      >
+                        Desfazer conciliação
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1319,7 +1358,19 @@ export function BankReconciliation() {
                     />
                   )}
                   {item.status === "conciliado" && (
-                    <span className="text-green-600 text-[11px]">✓ Conciliado</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-green-600 text-[11px]">
+                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleUndoReconcile(item)}
+                      >
+                        Desfazer
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}
