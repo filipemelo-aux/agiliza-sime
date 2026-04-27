@@ -1121,21 +1121,38 @@ export function BankReconciliation() {
       </div>
 
       {/* Batch action bar */}
-      {selectableItems.length > 0 && (
+      {(selectableItems.length > 0 || items.some((i) => i.status === "pendente")) && (
         <div className="flex items-center gap-2 flex-wrap">
-          <Checkbox
-            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
-            onCheckedChange={toggleSelectAll}
-            className="h-4 w-4"
-          />
-          <span className="text-xs text-muted-foreground">
-            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
-          </span>
+          {selectableItems.length > 0 && (
+            <>
+              <Checkbox
+                checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="h-4 w-4"
+              />
+              <span className="text-xs text-muted-foreground">
+                {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
+              </span>
+            </>
+          )}
           {selectedIds.size > 0 && (
-            <Button size="sm" variant="default" className="h-7 text-xs gap-1 ml-auto" onClick={handleBatchConciliate} disabled={loading}>
-              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
-              Conciliar {selectedIds.size} em lote
-            </Button>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1 border-blue-300 text-blue-600 hover:bg-blue-50"
+                onClick={() => openLinkAccountDialog(linkableSelectedItems.map((i) => i.id))}
+                disabled={loading || linkableSelectedItems.length === 0}
+              >
+                <Link2 className="h-3 w-3" /> Vincular a uma conta
+              </Button>
+              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId) && (
+                <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBatchConciliate} disabled={loading}>
+                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
+                  Conciliar {selectedIds.size} em lote
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
