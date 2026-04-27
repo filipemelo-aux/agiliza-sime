@@ -387,6 +387,69 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
   };
 
+  // Carrega categoria do favorecido (necessário para regras de auto-descrição em edição)
+  useEffect(() => {
+    if (!favorecidoId) { setFavorecidoCategory(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("category")
+        .eq("id", favorecidoId)
+        .maybeSingle();
+      if (!cancelled) setFavorecidoCategory((data as any)?.category || null);
+    })();
+    return () => { cancelled = true; };
+  }, [favorecidoId]);
+
+  // Regra: descrição automática quando conta = Salários
+  // - Motorista: emissão+vencimento entre dia 16-30 → "Comissão 01 a 15 (mês atual)."
+  //              emissão+vencimento entre dia 01-15 → "Comissão 16 a (último dia) (mês anterior)."
+  // - Colaborador (não motorista): emissão+vencimento entre 01-15 → "Folha (mês atual) ref (mês anterior)"
+  useEffect(() => {
+    if (!selectedAccount) return;
+    const accNameNorm = (selectedAccount.nome || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const isSalaryAccount = accNameNorm.includes("salario") || accNameNorm.includes("folha");
+    if (!isSalaryAccount) return;
+    if (!favorecidoCategory || !dataEmissao || !dataVencimento) return;
+
+    const parseISO = (s: string) => {
+      const [y, m, d] = s.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    };
+    const dE = parseISO(dataEmissao);
+    const dV = parseISO(dataVencimento);
+    const dayE = dE.getDate();
+    const dayV = dV.getDate();
+    const inFirstHalf = dayE >= 1 && dayE <= 15 && dayV >= 1 && dayV <= 15;
+    const inSecondHalf = dayE >= 16 && dayV >= 16;
+
+    const MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+    const currentMonthName = MONTHS[dE.getMonth()];
+    const prevDate = new Date(dE.getFullYear(), dE.getMonth() - 1, 1);
+    const prevMonthName = MONTHS[prevDate.getMonth()];
+    const prevLastDay = new Date(dE.getFullYear(), dE.getMonth(), 0).getDate();
+
+    let auto = "";
+    if (favorecidoCategory === "motorista") {
+      if (inSecondHalf) auto = `Comissão 01 a 15 (${currentMonthName}).`;
+      else if (inFirstHalf) auto = `Comissão 16 a ${prevLastDay} (${prevMonthName}).`;
+    } else if (favorecidoCategory === "colaborador") {
+      if (inFirstHalf) auto = `Folha ${currentMonthName} ref ${prevMonthName}`;
+    }
+    if (!auto) return;
+
+    // Só sobrescreve se descrição estiver vazia ou for igual à última auto-gerada
+    if (descricao.trim() === "" || descricao === lastAutoSalaryDescRef.current) {
+      lastAutoSalaryDescRef.current = auto;
+      setDescricao(auto);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount?.id, favorecidoCategory, dataEmissao, dataVencimento]);
+
+
   const resetForm = () => {
     setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("");
     setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
