@@ -408,7 +408,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   // Regra: descrição automática quando conta = Salários
   // - Motorista: emissão+vencimento entre dia 16-30 → "Comissão 01 a 15 (mês atual)."
   //              emissão+vencimento entre dia 01-15 → "Comissão 16 a (último dia) (mês anterior)."
-  // - Colaborador (não motorista): emissão+vencimento entre 01-15 → "Folha (mês atual) ref (mês anterior)"
+  // - Colaborador (não motorista): emissão+vencimento entre 01 e o último dia do mês → "Folha (mês atual) ref (mês anterior)"
   useEffect(() => {
     if (!selectedAccount) return;
     const accNameNorm = (selectedAccount.nome || "")
