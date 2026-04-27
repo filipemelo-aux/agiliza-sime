@@ -979,8 +979,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador"]}
                 placeholder="Buscar pessoa..."
                 selectedName={favorecidoNome || undefined}
-                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
-                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); }}
+                onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
+                onClear={() => { setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); }}
                 endAction={
                   <button
                     type="button"
