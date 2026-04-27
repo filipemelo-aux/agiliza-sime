@@ -461,7 +461,115 @@ export function BankReconciliation() {
     }
   }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
 
-  const totals = useMemo(() => {
+  // ── Manual link to account (paid or pending) ──
+  const openLinkAccountDialog = useCallback((itemIds: string[]) => {
+    if (itemIds.length === 0) {
+      toast.error("Selecione ao menos uma transação");
+      return;
+    }
+    setLinkTargetItemIds(itemIds);
+    setLinkSearchText("");
+    setLinkSearchResults([]);
+    setLinkSelectedAccount(null);
+    setLinkAccountDialogOpen(true);
+  }, []);
+
+  // Debounced search across expenses (any status, including paid)
+  useEffect(() => {
+    if (!linkAccountDialogOpen) return;
+    const q = linkSearchText.trim();
+    if (q.length < 2) {
+      setLinkSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setLinkSearching(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("expenses")
+        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao")
+        .is("deleted_at", null)
+        .or(`descricao.ilike.%${q}%,favorecido_nome.ilike.%${q}%`)
+        .order("data_vencimento", { ascending: false })
+        .limit(30);
+      if (!cancelled) {
+        setLinkSearchResults((data as any[]) || []);
+        setLinkSearching(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [linkSearchText, linkAccountDialogOpen]);
+
+  const handleLinkConfirm = useCallback(async () => {
+    if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
+    setLinkSubmitting(true);
+    try {
+      const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
+      const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
+      const minDate = targetItems.map((i) => i.date).sort()[0];
+
+      // If account is not fully paid yet, register a payment for the sum
+      const isPaid = linkSelectedAccount.status === "pago";
+      if (!isPaid) {
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: linkSelectedAccount.id,
+          valor: totalSel,
+          forma_pagamento: "transferencia",
+          data_pagamento: minDate,
+          observacoes: `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+          created_by: user?.id,
+          juros: 0,
+        } as any);
+
+        // Refresh totals on expense
+        const { data: expData } = await supabase
+          .from("expenses")
+          .select("valor_total, valor_pago")
+          .eq("id", linkSelectedAccount.id)
+          .single();
+        const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
+        const valorTotal = Number(expData?.valor_total || 0);
+        const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+        await supabase.from("expenses").update({
+          valor_pago: novoValorPago,
+          status: novoStatus,
+          forma_pagamento: "transferencia",
+          data_pagamento: minDate,
+        } as any).eq("id", linkSelectedAccount.id);
+      }
+
+      // Mark all selected OFX items as conciliado
+      for (const it of targetItems) {
+        const updateFilter = it.dbItemId
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("id", it.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+        await updateFilter;
+      }
+
+      setItems((prev) =>
+        prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+      );
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        linkTargetItemIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      toast.success(
+        isPaid
+          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
+          : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+      );
+      setLinkAccountDialogOpen(false);
+      setLinkSelectedAccount(null);
+      setLinkTargetItemIds([]);
+      setTimeout(updateReconciliationCount, 500);
+    } catch (err: any) {
+      toast.error("Erro ao vincular: " + (err.message || ""));
+    } finally {
+      setLinkSubmitting(false);
+    }
+  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount]);
+
     const total = items.length;
     const conciliados = items.filter((i) => i.status === "conciliado").length;
     const pendentes = items.filter((i) => i.status === "pendente").length;
