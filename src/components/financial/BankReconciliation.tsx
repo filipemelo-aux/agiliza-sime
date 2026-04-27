@@ -1336,8 +1336,23 @@ export function BankReconciliation() {
                     onNewMovement={() => handleNewMovement(item)}
                     onLinkAccount={() => openLinkAccountDialog([item.id])}
                   />
+                  {item.status === "conciliado" && item.matchedMovId && (
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                      variant="green"
+                      label="Vinculado a"
+                      precision={item.matchedMovPrecision}
+                      fornecedor={item.matchedMovFavorecido}
+                    />
+                  )}
                   {item.status === "conciliado" && (
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-green-600 text-[11px]">
+                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
+                      </span>
                       <Button
                         size="sm"
                         variant="ghost"
