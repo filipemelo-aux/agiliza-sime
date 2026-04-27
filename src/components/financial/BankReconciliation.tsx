@@ -592,7 +592,7 @@ export function BankReconciliation() {
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId]);
 
   // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
   const handleUndoReconcile = useCallback(async (item: OfxItem) => {
