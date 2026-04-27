@@ -1270,7 +1270,7 @@ export function BankReconciliation() {
               {filteredItems.map((item) => (
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                    {item.status === "pendente" && (
                       <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
                     )}
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
