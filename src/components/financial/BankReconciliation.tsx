@@ -836,6 +836,7 @@ export function BankReconciliation() {
           matchedMovOrigem: matchedMov?.origem || null,
           matchedMovValor: matchedMov ? Math.abs(Number(matchedMov.valor)) : null,
           matchedMovPrecision,
+          matchedMovFavorecido: null,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
           matchedPayableFornecedor: payableMatch?.fornecedor || null,
