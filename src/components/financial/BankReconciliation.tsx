@@ -698,11 +698,17 @@ export function BankReconciliation() {
         } as any).eq("id", linkSelectedAccount.id);
       }
 
-      // Mark all selected OFX items as conciliado
+      // Mark all selected OFX items as conciliado, gravando o vínculo com a movimentação criada
       for (const it of targetItems) {
+        const movIdToLink = await findCreatedMovId({
+          expenseId: linkSelectedAccount.id,
+          amount: Math.abs(it.amount),
+          tipo: it.tipo,
+          referenceDate: it.date,
+        });
         const updateFilter = it.dbItemId
-          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("id", it.dbItemId)
-          : supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
         await updateFilter;
       }
 
