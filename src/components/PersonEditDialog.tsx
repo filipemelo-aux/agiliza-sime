@@ -819,26 +819,28 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
       {isMotorista && <CNHFields form={form} setForm={setForm} />}
 
       {/* Flag GLOBAL de Colaborador RH — fonte única da verdade.
-          Disponível para QUALQUER categoria (motorista, cliente, fornecedor,
-          proprietário, colaborador). Independente do módulo de Frota. */}
-      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
-        <input
-          id="is_colaborador_rh"
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
-          checked={form.is_colaborador_rh}
-          onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
-        />
-        <div className="space-y-0.5">
-          <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
-            É colaborador (RH)
-          </Label>
-          <p className="text-[10px] text-muted-foreground">
-            Define globalmente se esta pessoa é tratada como colaborador
-            (folha, adiantamentos, relatórios). Independe da categoria e da frota.
-          </p>
+          Oculto quando a categoria já é "Colaborador" (nesse caso é sempre true automaticamente).
+          Disponível para outras categorias (motorista, cliente, fornecedor, proprietário). */}
+      {!isColaborador && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+          <input
+            id="is_colaborador_rh"
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            checked={form.is_colaborador_rh}
+            onChange={(e) => setForm((p) => ({ ...p, is_colaborador_rh: e.target.checked }))}
+          />
+          <div className="space-y-0.5">
+            <Label htmlFor="is_colaborador_rh" className="text-xs cursor-pointer">
+              É colaborador (RH)
+            </Label>
+            <p className="text-[10px] text-muted-foreground">
+              Define globalmente se esta pessoa é tratada como colaborador
+              (folha, adiantamentos, relatórios). Independe da categoria e da frota.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Vehicle management note - motorista edit only */}
       {isMotorista && onAddVehicle && (
