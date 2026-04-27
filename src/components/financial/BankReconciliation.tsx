@@ -570,6 +570,7 @@ export function BankReconciliation() {
     }
   }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount]);
 
+  const totals = useMemo(() => {
     const total = items.length;
     const conciliados = items.filter((i) => i.status === "conciliado").length;
     const pendentes = items.filter((i) => i.status === "pendente").length;
