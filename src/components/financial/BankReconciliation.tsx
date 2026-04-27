@@ -1164,7 +1164,16 @@ export function BankReconciliation() {
       }
     }
 
-    if (activeItem) markAsConciliated(activeItem.id);
+    let movIdToLink: string | null = null;
+    if (savedExpenseId && activeItem) {
+      movIdToLink = await findCreatedMovId({
+        expenseId: savedExpenseId,
+        amount: Math.abs(activeItem.amount),
+        tipo: activeItem.tipo,
+        referenceDate: activeItem.date,
+      });
+    }
+    if (activeItem) markAsConciliated(activeItem.id, movIdToLink);
     setExpenseDialogOpen(false);
     setActiveItem(null);
     toast.success("Despesa registrada, quitada e conciliada");
