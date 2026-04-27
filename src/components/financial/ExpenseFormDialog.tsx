@@ -390,7 +390,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const resetForm = () => {
     setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("");
     setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
-    setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setDocFiscal("");
+    setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); setDocFiscal("");
     setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
