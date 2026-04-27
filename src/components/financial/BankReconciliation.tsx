@@ -43,6 +43,7 @@ interface OfxItem extends OfxTransaction {
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
   matchedMovPrecision: MatchPrecision | null;
+  matchedMovFavorecido: string | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableFornecedor: string | null;
