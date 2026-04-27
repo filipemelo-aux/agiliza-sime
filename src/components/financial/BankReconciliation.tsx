@@ -317,6 +317,7 @@ export function BankReconciliation() {
         let matchedMovOrigem: string | null = null;
         let matchedMovValor: number | null = null;
         let matchedMovPrecision: MatchPrecision | null = null;
+        let matchedMovFavorecido: string | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableFornecedor: string | null = null;
@@ -338,6 +339,7 @@ export function BankReconciliation() {
             matchedMovOrigem = match.origem;
             matchedMovValor = Math.abs(Number(match.valor));
             matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
+            matchedMovFavorecido = movFavorecidoMap.get(match.id) || null;
           }
 
           // Payable match
@@ -355,13 +357,14 @@ export function BankReconciliation() {
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
-          const mov = movs.find((m) => m.id === matchedMovId);
+          const mov = (existingMovs || []).find((m: any) => m.id === matchedMovId);
           if (mov) {
             matchedMovDesc = mov.descricao;
             matchedMovDate = mov.data_movimentacao;
             matchedMovOrigem = mov.origem;
             matchedMovValor = Math.abs(Number(mov.valor));
             matchedMovPrecision = mov.data_movimentacao === txDate ? "exato" : "proximo";
+            matchedMovFavorecido = movFavorecidoMap.get(mov.id) || null;
           }
         }
 
@@ -380,6 +383,7 @@ export function BankReconciliation() {
           matchedMovOrigem,
           matchedMovValor,
           matchedMovPrecision,
+          matchedMovFavorecido,
           matchedPayableId,
           matchedPayableDesc,
           matchedPayableFornecedor,
