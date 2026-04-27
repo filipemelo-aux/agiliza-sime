@@ -1115,16 +1115,18 @@ export function BankReconciliation() {
   };
 
   const markAsConciliated = useCallback(
-    (itemId: string) => {
+    (itemId: string, movId?: string | null) => {
       setItems((prev) =>
         prev.map((i) => {
           if (i.id !== itemId) return i;
+          const payload: any = { status: "conciliado" };
+          if (movId !== undefined) payload.matched_movimentacao_id = movId;
           if (i.dbItemId) {
-            supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("id", i.dbItemId).then();
+            supabase.from("bank_reconciliation_items").update(payload).eq("id", i.dbItemId).then();
           } else if (reconciliationId) {
-            supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
+            supabase.from("bank_reconciliation_items").update(payload).eq("reconciliation_id", reconciliationId).eq("fitid", i.fitid || "").eq("status", "pendente").then();
           }
-          return { ...i, status: "conciliado" as const };
+          return { ...i, status: "conciliado" as const, matchedMovId: movId !== undefined ? movId : i.matchedMovId };
         })
       );
       setTimeout(updateReconciliationCount, 500);
