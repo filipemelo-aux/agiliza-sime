@@ -461,6 +461,28 @@ export function BankReconciliation() {
     }
   }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
 
+  // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
+  const handleUndoReconcile = useCallback(async (item: OfxItem) => {
+    if (!reconciliationId) return;
+    if (!window.confirm("Desfazer a conciliação deste lançamento?\n\nO item voltará para 'pendente' e o sistema tentará vincular novamente a uma movimentação compatível.")) return;
+    setLoading(true);
+    try {
+      const filter = item.dbItemId
+        ? supabase.from("bank_reconciliation_items").update({ status: "pendente", matched_movimentacao_id: null }).eq("id", item.dbItemId)
+        : supabase.from("bank_reconciliation_items").update({ status: "pendente", matched_movimentacao_id: null }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "");
+      const { error } = await filter;
+      if (error) throw error;
+      toast.success("Conciliação desfeita. Recarregando matches...");
+      // Reload reconciliation to re-run auto-matching
+      await loadReconciliation(reconciliationId);
+      setTimeout(updateReconciliationCount, 500);
+    } catch (err: any) {
+      toast.error("Erro ao desfazer: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, [reconciliationId, updateReconciliationCount]);
+
   // ── Manual link to account (paid or pending) ──
   const openLinkAccountDialog = useCallback((itemIds: string[]) => {
     if (itemIds.length === 0) {
