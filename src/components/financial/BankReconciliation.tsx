@@ -43,6 +43,7 @@ interface OfxItem extends OfxTransaction {
   matchedMovOrigem: string | null;
   matchedMovValor: number | null;
   matchedMovPrecision: MatchPrecision | null;
+  matchedMovFavorecido: string | null;
   matchedPayableId: string | null;
   matchedPayableDesc: string | null;
   matchedPayableFornecedor: string | null;
@@ -140,7 +141,7 @@ export function BankReconciliation() {
       const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
-          .select("id, valor, data_movimentacao, tipo, descricao, origem")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
           .gte("data_movimentacao", minDate)
           .lte("data_movimentacao", maxDate),
         supabase
@@ -166,6 +167,46 @@ export function BankReconciliation() {
           .filter(Boolean)
       );
       const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
+
+      // Fetch favorecido/conta for movements linked to expenses (for reconciled items display)
+      const expenseMovIds = (existingMovs || []).filter((m: any) =>
+        ["contas_pagar", "pagamento_despesa", "despesas"].includes(m.origem)
+      );
+      const payableIdsToFetch = expenseMovIds.filter((m: any) => m.origem === "contas_pagar").map((m: any) => m.origem_id);
+      const paymentIdsToFetch = expenseMovIds.filter((m: any) => m.origem === "pagamento_despesa").map((m: any) => m.origem_id);
+      const expenseDirectIds = expenseMovIds.filter((m: any) => m.origem === "despesas").map((m: any) => m.origem_id);
+
+      const movFavorecidoMap = new Map<string, string>();
+      if (paymentIdsToFetch.length > 0) {
+        const { data: payments } = await supabase
+          .from("expense_payments")
+          .select("id, expense_id, expenses(favorecido_nome, descricao)")
+          .in("id", paymentIdsToFetch);
+        (payments || []).forEach((p: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "pagamento_despesa" && m.origem_id === p.id);
+          if (mov && p.expenses?.favorecido_nome) movFavorecidoMap.set(mov.id, p.expenses.favorecido_nome);
+        });
+      }
+      if (expenseDirectIds.length > 0) {
+        const { data: exps } = await supabase
+          .from("expenses")
+          .select("id, favorecido_nome")
+          .in("id", expenseDirectIds);
+        (exps || []).forEach((e: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "despesas" && m.origem_id === e.id);
+          if (mov && e.favorecido_nome) movFavorecidoMap.set(mov.id, e.favorecido_nome);
+        });
+      }
+      if (payableIdsToFetch.length > 0) {
+        const { data: aps } = await supabase
+          .from("accounts_payable")
+          .select("id, supplier_name")
+          .in("id", payableIdsToFetch);
+        (aps || []).forEach((a: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "contas_pagar" && m.origem_id === a.id);
+          if (mov && a.supplier_name) movFavorecidoMap.set(mov.id, a.supplier_name);
+        });
+      }
       // Build unified payables list: installments first, then expenses without installments
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
@@ -276,6 +317,7 @@ export function BankReconciliation() {
         let matchedMovOrigem: string | null = null;
         let matchedMovValor: number | null = null;
         let matchedMovPrecision: MatchPrecision | null = null;
+        let matchedMovFavorecido: string | null = null;
         let matchedPayableId: string | null = null;
         let matchedPayableDesc: string | null = null;
         let matchedPayableFornecedor: string | null = null;
@@ -297,6 +339,7 @@ export function BankReconciliation() {
             matchedMovOrigem = match.origem;
             matchedMovValor = Math.abs(Number(match.valor));
             matchedMovPrecision = match.data_movimentacao === txDate ? "exato" : "proximo";
+            matchedMovFavorecido = movFavorecidoMap.get(match.id) || null;
           }
 
           // Payable match
@@ -314,13 +357,14 @@ export function BankReconciliation() {
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
-          const mov = movs.find((m) => m.id === matchedMovId);
+          const mov = (existingMovs || []).find((m: any) => m.id === matchedMovId);
           if (mov) {
             matchedMovDesc = mov.descricao;
             matchedMovDate = mov.data_movimentacao;
             matchedMovOrigem = mov.origem;
             matchedMovValor = Math.abs(Number(mov.valor));
             matchedMovPrecision = mov.data_movimentacao === txDate ? "exato" : "proximo";
+            matchedMovFavorecido = movFavorecidoMap.get(mov.id) || null;
           }
         }
 
@@ -339,6 +383,7 @@ export function BankReconciliation() {
           matchedMovOrigem,
           matchedMovValor,
           matchedMovPrecision,
+          matchedMovFavorecido,
           matchedPayableId,
           matchedPayableDesc,
           matchedPayableFornecedor,
@@ -791,6 +836,7 @@ export function BankReconciliation() {
           matchedMovOrigem: matchedMov?.origem || null,
           matchedMovValor: matchedMov ? Math.abs(Number(matchedMov.valor)) : null,
           matchedMovPrecision,
+          matchedMovFavorecido: null,
           matchedPayableId: payableMatch?.id || null,
           matchedPayableDesc: payableMatch?.description || null,
           matchedPayableFornecedor: payableMatch?.fornecedor || null,
@@ -1290,8 +1336,23 @@ export function BankReconciliation() {
                     onNewMovement={() => handleNewMovement(item)}
                     onLinkAccount={() => openLinkAccountDialog([item.id])}
                   />
+                  {item.status === "conciliado" && item.matchedMovId && (
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                      variant="green"
+                      label="Vinculado a"
+                      precision={item.matchedMovPrecision}
+                      fornecedor={item.matchedMovFavorecido}
+                    />
+                  )}
                   {item.status === "conciliado" && (
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-green-600 text-[11px]">
+                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
+                      </span>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1355,6 +1416,18 @@ export function BankReconciliation() {
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
                       fornecedor={item.matchedPayableFornecedor}
+                    />
+                  )}
+                  {item.status === "conciliado" && item.matchedMovId && (
+                    <MatchBox
+                      desc={item.matchedMovDesc}
+                      date={item.matchedMovDate}
+                      valor={item.matchedMovValor}
+                      origem={translateOrigem(item.matchedMovOrigem)}
+                      variant="green"
+                      label="Vinculado a"
+                      precision={item.matchedMovPrecision}
+                      fornecedor={item.matchedMovFavorecido}
                     />
                   )}
                   {item.status === "conciliado" && (
@@ -1561,12 +1634,15 @@ function translateOrigem(origem: string | null): string {
 
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
+  variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
 }) {
   const isProximo = precision === "proximo";
-  const colors = variant === "blue"
-    ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
-    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  const colors =
+    variant === "blue"
+      ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
+      : variant === "green"
+      ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-600"
+      : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
   const finalLabel = isProximo ? `${label} (data próxima)` : label;
   const truncDesc = desc && desc.length > 40 ? desc.slice(0, 40) + "…" : desc;
   return (
