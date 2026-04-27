@@ -1607,12 +1607,15 @@ function translateOrigem(origem: string | null): string {
 
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
-  variant?: "amber" | "blue"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
+  variant?: "amber" | "blue" | "green"; label?: string; precision?: MatchPrecision | null; fornecedor?: string | null;
 }) {
   const isProximo = precision === "proximo";
-  const colors = variant === "blue"
-    ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
-    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
+  const colors =
+    variant === "blue"
+      ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600"
+      : variant === "green"
+      ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-600"
+      : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600";
   const finalLabel = isProximo ? `${label} (data próxima)` : label;
   const truncDesc = desc && desc.length > 40 ? desc.slice(0, 40) + "…" : desc;
   return (
