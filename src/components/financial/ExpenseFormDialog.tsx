@@ -428,6 +428,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     const dayV = dV.getDate();
     const inFirstHalf = dayE >= 1 && dayE <= 15 && dayV >= 1 && dayV <= 15;
     const inSecondHalf = dayE >= 16 && dayV >= 16;
+    const lastDayCurrent = new Date(dE.getFullYear(), dE.getMonth() + 1, 0).getDate();
+    const sameMonth = dE.getFullYear() === dV.getFullYear() && dE.getMonth() === dV.getMonth();
+    const inFullMonth = sameMonth && dayE >= 1 && dayV <= lastDayCurrent;
 
     const MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
     const currentMonthName = MONTHS[dE.getMonth()];
@@ -440,7 +443,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       if (inSecondHalf) auto = `Comissão 01 a 15 (${currentMonthName}).`;
       else if (inFirstHalf) auto = `Comissão 16 a ${prevLastDay} (${prevMonthName}).`;
     } else if (favorecidoCategory === "colaborador") {
-      if (inFirstHalf) auto = `Folha ${currentMonthName} ref ${prevMonthName}`;
+      if (inFullMonth) auto = `Folha ${currentMonthName} ref ${prevMonthName}`;
     }
     if (!auto) return;
 
