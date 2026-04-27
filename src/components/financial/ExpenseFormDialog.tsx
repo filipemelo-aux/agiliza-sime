@@ -131,6 +131,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [formaPagamento, setFormaPagamento] = useState("");
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
+  const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
+  const lastAutoSalaryDescRef = useRef<string>("");
   const [docFiscal, setDocFiscal] = useState("");
   const [chaveNfe, setChaveNfe] = useState("");
   const [observacoes, setObservacoes] = useState("");
