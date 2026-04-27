@@ -1055,7 +1055,7 @@ export function BankReconciliation() {
     }
     setConfirmItem(null);
     setConfirmMatch(null);
-  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user]);
+  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId]);
 
   const openConfirm = useCallback((item: OfxItem) => {
     if (item.matchedMovId) {
