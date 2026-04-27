@@ -166,6 +166,46 @@ export function BankReconciliation() {
           .filter(Boolean)
       );
       const movs = (existingMovs || []).filter((m: any) => !alreadyMatchedIds.has(m.id));
+
+      // Fetch favorecido/conta for movements linked to expenses (for reconciled items display)
+      const expenseMovIds = (existingMovs || []).filter((m: any) =>
+        ["contas_pagar", "pagamento_despesa", "despesas"].includes(m.origem)
+      );
+      const payableIdsToFetch = expenseMovIds.filter((m: any) => m.origem === "contas_pagar").map((m: any) => m.origem_id);
+      const paymentIdsToFetch = expenseMovIds.filter((m: any) => m.origem === "pagamento_despesa").map((m: any) => m.origem_id);
+      const expenseDirectIds = expenseMovIds.filter((m: any) => m.origem === "despesas").map((m: any) => m.origem_id);
+
+      const movFavorecidoMap = new Map<string, string>();
+      if (paymentIdsToFetch.length > 0) {
+        const { data: payments } = await supabase
+          .from("expense_payments")
+          .select("id, expense_id, expenses(favorecido_nome, descricao)")
+          .in("id", paymentIdsToFetch);
+        (payments || []).forEach((p: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "pagamento_despesa" && m.origem_id === p.id);
+          if (mov && p.expenses?.favorecido_nome) movFavorecidoMap.set(mov.id, p.expenses.favorecido_nome);
+        });
+      }
+      if (expenseDirectIds.length > 0) {
+        const { data: exps } = await supabase
+          .from("expenses")
+          .select("id, favorecido_nome")
+          .in("id", expenseDirectIds);
+        (exps || []).forEach((e: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "despesas" && m.origem_id === e.id);
+          if (mov && e.favorecido_nome) movFavorecidoMap.set(mov.id, e.favorecido_nome);
+        });
+      }
+      if (payableIdsToFetch.length > 0) {
+        const { data: aps } = await supabase
+          .from("accounts_payable")
+          .select("id, supplier_name")
+          .in("id", payableIdsToFetch);
+        (aps || []).forEach((a: any) => {
+          const mov = expenseMovIds.find((m: any) => m.origem === "contas_pagar" && m.origem_id === a.id);
+          if (mov && a.supplier_name) movFavorecidoMap.set(mov.id, a.supplier_name);
+        });
+      }
       // Build unified payables list: installments first, then expenses without installments
       const instRows = (pendingInstallments || []) as any[];
       const expRows = (pendingExpenses || []) as any[];
