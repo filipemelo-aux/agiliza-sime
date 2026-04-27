@@ -1292,6 +1292,7 @@ export function BankReconciliation() {
                         onConfirmPayable={() => openConfirmPayable(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
+                        onLinkAccount={() => openLinkAccountDialog([item.id])}
                       />
                     </div>
                   </div>
