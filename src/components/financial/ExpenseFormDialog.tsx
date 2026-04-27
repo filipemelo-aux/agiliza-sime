@@ -1974,9 +1974,18 @@ interface PlanoContasComboboxProps {
 
 function PlanoContasCombobox({ value, onChange, options }: PlanoContasComboboxProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const selected = options.find(o => o.id === value);
+
+  const filtered = search.trim().length > 0
+    ? options.filter(o => {
+        const haystack = `${o.codigo} ${o.nome}`.toLowerCase();
+        return haystack.includes(search.toLowerCase());
+      }).slice(0, 50)
+    : [];
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -1997,30 +2006,35 @@ function PlanoContasCombobox({ value, onChange, options }: PlanoContasComboboxPr
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]" align="start">
-        <Command
-          filter={(itemValue, search) => {
-            const opt = options.find(o => o.id === itemValue);
-            if (!opt) return 0;
-            const haystack = `${opt.codigo} ${opt.nome}`.toLowerCase();
-            return haystack.includes(search.toLowerCase()) ? 1 : 0;
-          }}
-        >
-          <CommandInput placeholder="Digite código ou nome..." className="h-9" />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Digite código ou nome..."
+            className="h-9"
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
-            <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-            <CommandGroup>
-              {options.map(o => (
-                <CommandItem
-                  key={o.id}
-                  value={o.id}
-                  onSelect={() => { onChange(o.id); setOpen(false); }}
-                >
-                  <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
-                  <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
-                  <span className="truncate">{o.nome}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {search.trim().length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                Digite para buscar contas...
+              </div>
+            ) : filtered.length === 0 ? (
+              <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+            ) : (
+              <CommandGroup>
+                {filtered.map(o => (
+                  <CommandItem
+                    key={o.id}
+                    value={o.id}
+                    onSelect={() => { onChange(o.id); setOpen(false); setSearch(""); }}
+                  >
+                    <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
+                    <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
+                    <span className="truncate">{o.nome}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
