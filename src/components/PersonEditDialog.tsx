@@ -367,7 +367,7 @@ function formToPayload(form: FormState) {
     is_employee: isColaborador,
     // Flag GLOBAL e independente — fonte única para definir colaborador
     // em todos os módulos (RH, Financeiro, Cadastros, Relatórios).
-    is_colaborador_rh: form.is_colaborador_rh,
+    is_colaborador_rh: isColaborador ? true : form.is_colaborador_rh,
   };
 }
 
