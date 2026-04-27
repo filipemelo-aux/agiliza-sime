@@ -1346,7 +1346,19 @@ export function BankReconciliation() {
                     />
                   )}
                   {item.status === "conciliado" && (
-                    <span className="text-green-600 text-[11px]">✓ Conciliado</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-green-600 text-[11px]">
+                        ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleUndoReconcile(item)}
+                      >
+                        Desfazer
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}
