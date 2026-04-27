@@ -441,11 +441,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     }
     if (!auto) return;
 
-    // Só sobrescreve se descrição estiver vazia ou for igual à última auto-gerada
-    if (descricao.trim() === "" || descricao === lastAutoSalaryDescRef.current) {
-      lastAutoSalaryDescRef.current = auto;
-      setDescricao(auto);
-    }
+    // Sempre sobrescreve quando os critérios são atendidos
+    lastAutoSalaryDescRef.current = auto;
+    if (descricao !== auto) setDescricao(auto);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccount?.id, favorecidoCategory, dataEmissao, dataVencimento]);
 
