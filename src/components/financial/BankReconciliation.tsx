@@ -1385,6 +1385,110 @@ export function BankReconciliation() {
           descricao: activeItem.description,
         } : null}
       />
+
+      {/* Link to existing account dialog */}
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Vincular lançamento(s) a uma conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
+              <p className="font-medium">{linkTargetItemIds.length} lançamento(s) selecionado(s)</p>
+              <p className="text-muted-foreground">
+                Total: <span className="font-mono font-semibold">
+                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
+                </span>
+              </p>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                autoFocus
+                placeholder="Digite descrição ou favorecido da conta..."
+                value={linkSearchText}
+                onChange={(e) => setLinkSearchText(e.target.value)}
+                className="h-9 pl-8 text-xs"
+              />
+            </div>
+
+            <div className="border rounded max-h-72 overflow-y-auto divide-y divide-border">
+              {linkSearching && (
+                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando...
+                </div>
+              )}
+              {!linkSearching && linkSearchText.trim().length < 2 && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  Digite ao menos 2 caracteres para buscar contas (pagas ou a pagar).
+                </div>
+              )}
+              {!linkSearching && linkSearchText.trim().length >= 2 && linkSearchResults.length === 0 && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  Nenhuma conta encontrada.
+                </div>
+              )}
+              {linkSearchResults.map((acc) => {
+                const saldo = Number(acc.valor_total || 0) - Number(acc.valor_pago || 0);
+                const isSelected = linkSelectedAccount?.id === acc.id;
+                const statusLabel: Record<string, { label: string; cls: string }> = {
+                  pago: { label: "Pago", cls: "border-green-500 text-green-600" },
+                  parcial: { label: "Parcial", cls: "border-amber-500 text-amber-600" },
+                  pendente: { label: "Pendente", cls: "border-blue-500 text-blue-600" },
+                  atrasado: { label: "Atrasado", cls: "border-red-500 text-red-600" },
+                };
+                const st = statusLabel[acc.status] || { label: acc.status, cls: "" };
+                return (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    onClick={() => setLinkSelectedAccount(acc)}
+                    className={cn(
+                      "w-full text-left px-3 py-2 hover:bg-accent/50 transition-colors flex items-start gap-2",
+                      isSelected && "bg-accent"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-medium truncate">{acc.descricao}</span>
+                        <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
+                        {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
+                        {acc.status !== "pago" && (
+                          <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>
+                        )}
+                      </p>
+                    </div>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {linkSelectedAccount && linkSelectedAccount.status !== "pago" && (
+              <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                Esta conta ainda não foi quitada. Ao confirmar, será registrado um pagamento de{" "}
+                <span className="font-mono font-semibold">
+                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
+                </span>{" "}para esta conta.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setLinkAccountDialogOpen(false)} disabled={linkSubmitting}>Cancelar</Button>
+            <Button size="sm" onClick={handleLinkConfirm} disabled={!linkSelectedAccount || linkSubmitting}>
+              {linkSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Link2 className="h-3.5 w-3.5 mr-1" />}
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
