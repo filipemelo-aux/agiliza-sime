@@ -1977,10 +1977,13 @@ function PlanoContasCombobox({ value, onChange, options }: PlanoContasComboboxPr
   const [search, setSearch] = useState("");
   const selected = options.find(o => o.id === value);
 
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   const filtered = search.trim().length > 0
     ? options.filter(o => {
-        const haystack = `${o.codigo} ${o.nome}`.toLowerCase();
-        return haystack.includes(search.toLowerCase());
+        const haystack = normalize(`${o.codigo} ${o.nome}`);
+        return haystack.includes(normalize(search));
       }).slice(0, 50)
     : [];
 
