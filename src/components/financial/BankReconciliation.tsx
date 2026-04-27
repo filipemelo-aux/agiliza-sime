@@ -1302,6 +1302,9 @@ export function BankReconciliation() {
                       </Button>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="divide-y divide-border">
               {filteredItems.map((item) => (
