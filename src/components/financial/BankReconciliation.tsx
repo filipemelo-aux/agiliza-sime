@@ -140,7 +140,7 @@ export function BankReconciliation() {
       const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
-          .select("id, valor, data_movimentacao, tipo, descricao, origem")
+          .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
           .gte("data_movimentacao", minDate)
           .lte("data_movimentacao", maxDate),
         supabase
