@@ -386,9 +386,24 @@ export function BankReconciliation() {
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Manual link-to-account dialog
+  const [linkAccountDialogOpen, setLinkAccountDialogOpen] = useState(false);
+  const [linkSearchText, setLinkSearchText] = useState("");
+  const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
+  const [linkSearching, setLinkSearching] = useState(false);
+  const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
+  const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+
   const selectableItems = useMemo(() =>
     items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
     [items]
+  );
+
+  // Items that can be manually linked (any pending)
+  const linkableSelectedItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.id) && i.status === "pendente"),
+    [items, selectedIds]
   );
 
   const toggleSelect = useCallback((id: string) => {
