@@ -1179,8 +1179,16 @@ export function BankReconciliation() {
     toast.success("Despesa registrada, quitada e conciliada");
   };
 
-  const onMovementSaved = () => {
-    if (activeItem) markAsConciliated(activeItem.id);
+  const onMovementSaved = async () => {
+    let movIdToLink: string | null = null;
+    if (activeItem) {
+      movIdToLink = await findCreatedMovId({
+        amount: Math.abs(activeItem.amount),
+        tipo: activeItem.tipo,
+        referenceDate: activeItem.date,
+      });
+      markAsConciliated(activeItem.id, movIdToLink);
+    }
     setManualMovDialogOpen(false);
     setActiveItem(null);
     toast.success("Movimentação registrada e conciliada");
