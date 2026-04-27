@@ -15,7 +15,10 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, maskCNPJ } from "@/lib/masks";
 import { format } from "date-fns";
@@ -947,16 +950,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 <Label className="text-xs flex items-center gap-1">
                   <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
                 </Label>
-                <Select value={planoContasId} onValueChange={setPlanoContasId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {despesaChartAccounts.map(a => (
-                      <SelectItem key={a.id} value={a.id}>
-                        <span className="font-mono text-[10px] mr-1 text-muted-foreground">{a.codigo}</span> {a.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PlanoContasCombobox
+                  value={planoContasId}
+                  onChange={setPlanoContasId}
+                  options={despesaChartAccounts}
+                />
+
               </div>
               <div className="sm:col-span-2">
                 <Label className="text-xs">Descrição *</Label>
@@ -1964,5 +1963,67 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       defaultCategory="fornecedor"
     />
   </>
+  );
+}
+
+interface PlanoContasComboboxProps {
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; codigo: string; nome: string }[];
+}
+
+function PlanoContasCombobox({ value, onChange, options }: PlanoContasComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(o => o.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-9 w-full justify-between font-normal"
+        >
+          {selected ? (
+            <span className="truncate text-left">
+              <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
+              {selected.nome}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Buscar conta contábil...</span>
+          )}
+          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]" align="start">
+        <Command
+          filter={(itemValue, search) => {
+            const opt = options.find(o => o.id === itemValue);
+            if (!opt) return 0;
+            const haystack = `${opt.codigo} ${opt.nome}`.toLowerCase();
+            return haystack.includes(search.toLowerCase()) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder="Digite código ou nome..." className="h-9" />
+          <CommandList>
+            <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+            <CommandGroup>
+              {options.map(o => (
+                <CommandItem
+                  key={o.id}
+                  value={o.id}
+                  onSelect={() => { onChange(o.id); setOpen(false); }}
+                >
+                  <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
+                  <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
+                  <span className="truncate">{o.nome}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
