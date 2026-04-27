@@ -476,6 +476,85 @@ export function BankReconciliation() {
       .eq("id", reconciliationId);
   }, [reconciliationId, items]);
 
+  // Localiza a movimentação bancária criada para uma despesa/conta a pagar
+  // (após quitação, o trigger gera movimento via origem='pagamento_despesa' ou 'contas_pagar').
+  // Retorna a melhor candidata por proximidade de data.
+  const findCreatedMovId = useCallback(async (params: {
+    expenseId?: string;
+    accountsPayableId?: string;
+    amount: number;
+    tipo: "entrada" | "saida";
+    referenceDate: string;
+  }): Promise<string | null> => {
+    const { expenseId, accountsPayableId, amount, tipo, referenceDate } = params;
+    const d0 = new Date(referenceDate + "T00:00:00"); d0.setDate(d0.getDate() - 7);
+    const d1 = new Date(referenceDate + "T00:00:00"); d1.setDate(d1.getDate() + 7);
+    const minDate = d0.toISOString().slice(0, 10);
+    const maxDate = d1.toISOString().slice(0, 10);
+
+    // 1) Tenta via pagamento_despesa (precisa expandir via expense_payments)
+    if (expenseId) {
+      const { data: pays } = await supabase
+        .from("expense_payments" as any)
+        .select("id")
+        .eq("expense_id", expenseId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      const payIds = (pays || []).map((p: any) => p.id);
+      if (payIds.length > 0) {
+        const { data: movs } = await supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao")
+          .eq("origem", "pagamento_despesa")
+          .in("origem_id", payIds)
+          .eq("tipo", tipo);
+        const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+        if (cand.length > 0) {
+          cand.sort((a: any, b: any) =>
+            Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
+            Math.abs(new Date(b.data_movimentacao).getTime() - new Date(referenceDate).getTime())
+          );
+          return cand[0].id;
+        }
+      }
+    }
+
+    // 2) Tenta via contas_pagar
+    if (accountsPayableId) {
+      const { data: movs } = await supabase
+        .from("movimentacoes_bancarias")
+        .select("id, valor, data_movimentacao")
+        .eq("origem", "contas_pagar")
+        .eq("origem_id", accountsPayableId)
+        .eq("tipo", tipo);
+      const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+      if (cand.length > 0) return cand[0].id;
+    }
+
+    // 3) Fallback: busca por valor+tipo+data próxima sem vínculo prévio
+    const { data: movs } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id, valor, data_movimentacao")
+      .eq("tipo", tipo)
+      .gte("data_movimentacao", minDate)
+      .lte("data_movimentacao", maxDate);
+    const cand = (movs || []).filter((m: any) => Math.abs(Number(m.valor) - amount) < 0.01);
+    if (cand.length === 0) return null;
+    cand.sort((a: any, b: any) =>
+      Math.abs(new Date(a.data_movimentacao).getTime() - new Date(referenceDate).getTime()) -
+      Math.abs(new Date(b.data_movimentacao).getTime() - new Date(referenceDate).getTime())
+    );
+    // Verifica se já está vinculado a outro item
+    const ids = cand.map((c: any) => c.id);
+    const { data: used } = await supabase
+      .from("bank_reconciliation_items")
+      .select("matched_movimentacao_id")
+      .in("matched_movimentacao_id", ids);
+    const usedSet = new Set((used || []).map((u: any) => u.matched_movimentacao_id));
+    const free = cand.find((c: any) => !usedSet.has(c.id));
+    return free?.id || cand[0].id;
+  }, []);
+
   const handleBatchConciliate = useCallback(async () => {
     if (selectedIds.size === 0 || !reconciliationId) return;
     setLoading(true);
