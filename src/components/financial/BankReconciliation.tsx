@@ -21,6 +21,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
@@ -385,9 +386,24 @@ export function BankReconciliation() {
   // Batch selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Manual link-to-account dialog
+  const [linkAccountDialogOpen, setLinkAccountDialogOpen] = useState(false);
+  const [linkSearchText, setLinkSearchText] = useState("");
+  const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
+  const [linkSearching, setLinkSearching] = useState(false);
+  const [linkSelectedAccount, setLinkSelectedAccount] = useState<any | null>(null);
+  const [linkTargetItemIds, setLinkTargetItemIds] = useState<string[]>([]);
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+
   const selectableItems = useMemo(() =>
     items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
     [items]
+  );
+
+  // Items that can be manually linked (any pending)
+  const linkableSelectedItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.id) && i.status === "pendente"),
+    [items, selectedIds]
   );
 
   const toggleSelect = useCallback((id: string) => {
@@ -444,6 +460,115 @@ export function BankReconciliation() {
       setLoading(false);
     }
   }, [selectedIds, items, reconciliationId, updateReconciliationCount]);
+
+  // ── Manual link to account (paid or pending) ──
+  const openLinkAccountDialog = useCallback((itemIds: string[]) => {
+    if (itemIds.length === 0) {
+      toast.error("Selecione ao menos uma transação");
+      return;
+    }
+    setLinkTargetItemIds(itemIds);
+    setLinkSearchText("");
+    setLinkSearchResults([]);
+    setLinkSelectedAccount(null);
+    setLinkAccountDialogOpen(true);
+  }, []);
+
+  // Debounced search across expenses (any status, including paid)
+  useEffect(() => {
+    if (!linkAccountDialogOpen) return;
+    const q = linkSearchText.trim();
+    if (q.length < 2) {
+      setLinkSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setLinkSearching(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("expenses")
+        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao")
+        .is("deleted_at", null)
+        .or(`descricao.ilike.%${q}%,favorecido_nome.ilike.%${q}%`)
+        .order("data_vencimento", { ascending: false })
+        .limit(30);
+      if (!cancelled) {
+        setLinkSearchResults((data as any[]) || []);
+        setLinkSearching(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [linkSearchText, linkAccountDialogOpen]);
+
+  const handleLinkConfirm = useCallback(async () => {
+    if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
+    setLinkSubmitting(true);
+    try {
+      const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
+      const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
+      const minDate = targetItems.map((i) => i.date).sort()[0];
+
+      // If account is not fully paid yet, register a payment for the sum
+      const isPaid = linkSelectedAccount.status === "pago";
+      if (!isPaid) {
+        await supabase.from("expense_payments" as any).insert({
+          expense_id: linkSelectedAccount.id,
+          valor: totalSel,
+          forma_pagamento: "transferencia",
+          data_pagamento: minDate,
+          observacoes: `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+          created_by: user?.id,
+          juros: 0,
+        } as any);
+
+        // Refresh totals on expense
+        const { data: expData } = await supabase
+          .from("expenses")
+          .select("valor_total, valor_pago")
+          .eq("id", linkSelectedAccount.id)
+          .single();
+        const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
+        const valorTotal = Number(expData?.valor_total || 0);
+        const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+        await supabase.from("expenses").update({
+          valor_pago: novoValorPago,
+          status: novoStatus,
+          forma_pagamento: "transferencia",
+          data_pagamento: minDate,
+        } as any).eq("id", linkSelectedAccount.id);
+      }
+
+      // Mark all selected OFX items as conciliado
+      for (const it of targetItems) {
+        const updateFilter = it.dbItemId
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("id", it.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado" }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+        await updateFilter;
+      }
+
+      setItems((prev) =>
+        prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+      );
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        linkTargetItemIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      toast.success(
+        isPaid
+          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
+          : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+      );
+      setLinkAccountDialogOpen(false);
+      setLinkSelectedAccount(null);
+      setLinkTargetItemIds([]);
+      setTimeout(updateReconciliationCount, 500);
+    } catch (err: any) {
+      toast.error("Erro ao vincular: " + (err.message || ""));
+    } finally {
+      setLinkSubmitting(false);
+    }
+  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount]);
 
   const totals = useMemo(() => {
     const total = items.length;
@@ -996,21 +1121,38 @@ export function BankReconciliation() {
       </div>
 
       {/* Batch action bar */}
-      {selectableItems.length > 0 && (
+      {(selectableItems.length > 0 || items.some((i) => i.status === "pendente")) && (
         <div className="flex items-center gap-2 flex-wrap">
-          <Checkbox
-            checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
-            onCheckedChange={toggleSelectAll}
-            className="h-4 w-4"
-          />
-          <span className="text-xs text-muted-foreground">
-            {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
-          </span>
+          {selectableItems.length > 0 && (
+            <>
+              <Checkbox
+                checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="h-4 w-4"
+              />
+              <span className="text-xs text-muted-foreground">
+                {selectedIds.size > 0 ? `${selectedIds.size} selecionada(s)` : "Selecionar todas com correspondência"}
+              </span>
+            </>
+          )}
           {selectedIds.size > 0 && (
-            <Button size="sm" variant="default" className="h-7 text-xs gap-1 ml-auto" onClick={handleBatchConciliate} disabled={loading}>
-              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
-              Conciliar {selectedIds.size} em lote
-            </Button>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1 border-blue-300 text-blue-600 hover:bg-blue-50"
+                onClick={() => openLinkAccountDialog(linkableSelectedItems.map((i) => i.id))}
+                disabled={loading || linkableSelectedItems.length === 0}
+              >
+                <Link2 className="h-3 w-3" /> Vincular a uma conta
+              </Button>
+              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId) && (
+                <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBatchConciliate} disabled={loading}>
+                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
+                  Conciliar {selectedIds.size} em lote
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1074,7 +1216,7 @@ export function BankReconciliation() {
               {filteredItems.map((item) => (
                 <div key={item.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                    {item.status === "pendente" && (
                       <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
                     )}
                     <Badge
@@ -1119,6 +1261,7 @@ export function BankReconciliation() {
                     onConfirmPayable={() => openConfirmPayable(item)}
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
+                    onLinkAccount={() => openLinkAccountDialog([item.id])}
                   />
                 </div>
               ))}
@@ -1128,7 +1271,7 @@ export function BankReconciliation() {
               {filteredItems.map((item) => (
                 <div key={item.id} className="px-4 py-2.5 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {item.status === "pendente" && (item.matchedMovId || item.matchedPayableId) && (
+                    {item.status === "pendente" && (
                       <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} className="h-4 w-4 shrink-0" />
                     )}
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(item.date)}</span>
@@ -1149,6 +1292,7 @@ export function BankReconciliation() {
                         onConfirmPayable={() => openConfirmPayable(item)}
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
+                        onLinkAccount={() => openLinkAccountDialog([item.id])}
                       />
                     </div>
                   </div>
@@ -1241,6 +1385,110 @@ export function BankReconciliation() {
           descricao: activeItem.description,
         } : null}
       />
+
+      {/* Link to existing account dialog */}
+      <Dialog open={linkAccountDialogOpen} onOpenChange={(o) => { setLinkAccountDialogOpen(o); if (!o) { setLinkSelectedAccount(null); setLinkTargetItemIds([]); setLinkSearchText(""); setLinkSearchResults([]); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Vincular lançamento(s) a uma conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded border bg-muted/30 px-3 py-2 text-xs space-y-0.5">
+              <p className="font-medium">{linkTargetItemIds.length} lançamento(s) selecionado(s)</p>
+              <p className="text-muted-foreground">
+                Total: <span className="font-mono font-semibold">
+                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
+                </span>
+              </p>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                autoFocus
+                placeholder="Digite descrição ou favorecido da conta..."
+                value={linkSearchText}
+                onChange={(e) => setLinkSearchText(e.target.value)}
+                className="h-9 pl-8 text-xs"
+              />
+            </div>
+
+            <div className="border rounded max-h-72 overflow-y-auto divide-y divide-border">
+              {linkSearching && (
+                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando...
+                </div>
+              )}
+              {!linkSearching && linkSearchText.trim().length < 2 && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  Digite ao menos 2 caracteres para buscar contas (pagas ou a pagar).
+                </div>
+              )}
+              {!linkSearching && linkSearchText.trim().length >= 2 && linkSearchResults.length === 0 && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  Nenhuma conta encontrada.
+                </div>
+              )}
+              {linkSearchResults.map((acc) => {
+                const saldo = Number(acc.valor_total || 0) - Number(acc.valor_pago || 0);
+                const isSelected = linkSelectedAccount?.id === acc.id;
+                const statusLabel: Record<string, { label: string; cls: string }> = {
+                  pago: { label: "Pago", cls: "border-green-500 text-green-600" },
+                  parcial: { label: "Parcial", cls: "border-amber-500 text-amber-600" },
+                  pendente: { label: "Pendente", cls: "border-blue-500 text-blue-600" },
+                  atrasado: { label: "Atrasado", cls: "border-red-500 text-red-600" },
+                };
+                const st = statusLabel[acc.status] || { label: acc.status, cls: "" };
+                return (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    onClick={() => setLinkSelectedAccount(acc)}
+                    className={cn(
+                      "w-full text-left px-3 py-2 hover:bg-accent/50 transition-colors flex items-start gap-2",
+                      isSelected && "bg-accent"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-medium truncate">{acc.descricao}</span>
+                        <Badge variant="outline" className={cn("text-[10px]", st.cls)}>{st.label}</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
+                        {" · "}Pago: <span className="font-mono">{formatCurrency(Number(acc.valor_pago || 0))}</span>
+                        {acc.status !== "pago" && (
+                          <> {" · "}Saldo: <span className="font-mono font-semibold">{formatCurrency(saldo)}</span></>
+                        )}
+                      </p>
+                    </div>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {linkSelectedAccount && linkSelectedAccount.status !== "pago" && (
+              <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                Esta conta ainda não foi quitada. Ao confirmar, será registrado um pagamento de{" "}
+                <span className="font-mono font-semibold">
+                  {formatCurrency(items.filter((i) => linkTargetItemIds.includes(i.id)).reduce((s, i) => s + Math.abs(i.amount), 0))}
+                </span>{" "}para esta conta.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setLinkAccountDialogOpen(false)} disabled={linkSubmitting}>Cancelar</Button>
+            <Button size="sm" onClick={handleLinkConfirm} disabled={!linkSelectedAccount || linkSubmitting}>
+              {linkSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Link2 className="h-3.5 w-3.5 mr-1" />}
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1296,12 +1544,14 @@ function ItemActions({
   onConfirmPayable,
   onNewExpense,
   onNewMovement,
+  onLinkAccount,
 }: {
   item: OfxItem;
   onConfirmMatch: () => void;
   onConfirmPayable?: () => void;
   onNewExpense: () => void;
   onNewMovement: () => void;
+  onLinkAccount?: () => void;
 }) {
   if (item.status !== "pendente") return null;
 
@@ -1315,6 +1565,11 @@ function ItemActions({
       {item.matchedPayableId && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-blue-300 text-blue-600 hover:bg-blue-50" onClick={onConfirmPayable || onConfirmMatch}>
           <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
+        </Button>
+      )}
+      {onLinkAccount && (
+        <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 text-blue-600" onClick={onLinkAccount}>
+          <Link2 className="h-3 w-3" /> Vincular a conta
         </Button>
       )}
       {!item.matchedMovId && !item.matchedPayableId && (
