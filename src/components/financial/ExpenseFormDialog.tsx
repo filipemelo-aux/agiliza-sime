@@ -950,16 +950,12 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
                 <Label className="text-xs flex items-center gap-1">
                   <FolderTree className="h-3 w-3 text-primary" /> Conta Contábil *
                 </Label>
-                <Select value={planoContasId} onValueChange={setPlanoContasId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {despesaChartAccounts.map(a => (
-                      <SelectItem key={a.id} value={a.id}>
-                        <span className="font-mono text-[10px] mr-1 text-muted-foreground">{a.codigo}</span> {a.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PlanoContasCombobox
+                  value={planoContasId}
+                  onChange={setPlanoContasId}
+                  options={despesaChartAccounts}
+                />
+
               </div>
               <div className="sm:col-span-2">
                 <Label className="text-xs">Descrição *</Label>
