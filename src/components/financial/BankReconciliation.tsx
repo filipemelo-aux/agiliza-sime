@@ -1290,9 +1290,18 @@ export function BankReconciliation() {
                     onNewMovement={() => handleNewMovement(item)}
                     onLinkAccount={() => openLinkAccountDialog([item.id])}
                   />
-                </div>
-              ))}
-            </div>
+                  {item.status === "conciliado" && (
+                    <div className="flex items-center justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleUndoReconcile(item)}
+                      >
+                        Desfazer conciliação
+                      </Button>
+                    </div>
+                  )}
           ) : (
             <div className="divide-y divide-border">
               {filteredItems.map((item) => (
