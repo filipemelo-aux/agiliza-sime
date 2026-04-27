@@ -1438,12 +1438,14 @@ function ItemActions({
   onConfirmPayable,
   onNewExpense,
   onNewMovement,
+  onLinkAccount,
 }: {
   item: OfxItem;
   onConfirmMatch: () => void;
   onConfirmPayable?: () => void;
   onNewExpense: () => void;
   onNewMovement: () => void;
+  onLinkAccount?: () => void;
 }) {
   if (item.status !== "pendente") return null;
 
@@ -1457,6 +1459,11 @@ function ItemActions({
       {item.matchedPayableId && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-blue-300 text-blue-600 hover:bg-blue-50" onClick={onConfirmPayable || onConfirmMatch}>
           <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
+        </Button>
+      )}
+      {onLinkAccount && (
+        <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 text-blue-600" onClick={onLinkAccount}>
+          <Link2 className="h-3 w-3" /> Vincular a conta
         </Button>
       )}
       {!item.matchedMovId && !item.matchedPayableId && (
