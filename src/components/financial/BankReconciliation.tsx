@@ -734,7 +734,7 @@ export function BankReconciliation() {
     } finally {
       setLinkSubmitting(false);
     }
-  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount]);
+  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
 
   const totals = useMemo(() => {
     const total = items.length;
