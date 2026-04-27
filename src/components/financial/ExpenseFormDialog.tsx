@@ -440,8 +440,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
 
     let auto = "";
     if (favorecidoCategory === "motorista") {
-      if (inSecondHalf) auto = `Comissão 01 a 15 (${currentMonthName}).`;
-      else if (inFirstHalf) auto = `Comissão 16 a ${prevLastDay} (${prevMonthName}).`;
+      if (inSecondHalf) auto = `Comissão 01 a 15 ${currentMonthName}.`;
+      else if (inFirstHalf) auto = `Comissão 16 a ${prevLastDay} ${prevMonthName}.`;
     } else if (favorecidoCategory === "colaborador") {
       if (inFullMonth) auto = `Folha ${currentMonthName} ref ${prevMonthName}`;
     }
