@@ -536,6 +536,61 @@ export function PersonCreateDialog({ open, onOpenChange, onCreated, defaultCateg
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
+      // ---- Validação de duplicidade ----
+      const isMotorista = form.category === "motorista";
+      const isColaborador = form.category === "colaborador";
+      const rawCpf = unmaskCPF(form.cpf);
+      const rawCnpj = unmaskCNPJ(form.cnpj);
+      const trimmedName = form.full_name.trim();
+
+      // 1) CNPJ duplicado (PJ)
+      if (!isMotorista && !isColaborador && form.person_type === "cnpj" && rawCnpj.length === 14) {
+        const { data: dupCnpj } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("cnpj", rawCnpj)
+          .maybeSingle();
+        if (dupCnpj) {
+          toast({ title: "CNPJ já cadastrado", description: `Vinculado a "${dupCnpj.full_name}".`, variant: "destructive" });
+          setLoading(false);
+          return null;
+        }
+      }
+
+      // 2) CPF duplicado (motorista/colaborador/PF) — checa em driver_documents
+      if (rawCpf.length === 11) {
+        const { data: dupCpfDoc } = await supabase
+          .from("driver_documents")
+          .select("user_id")
+          .eq("cpf", rawCpf)
+          .maybeSingle();
+        if (dupCpfDoc) {
+          const { data: dupProfile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", dupCpfDoc.user_id)
+            .maybeSingle();
+          toast({ title: "CPF já cadastrado", description: `Vinculado a "${dupProfile?.full_name || "outro registro"}".`, variant: "destructive" });
+          setLoading(false);
+          return null;
+        }
+      }
+
+      // 3) Nome + categoria duplicados (fallback quando não há documento)
+      if (trimmedName) {
+        const { data: dupName } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("full_name", trimmedName)
+          .eq("category", form.category)
+          .maybeSingle();
+        if (dupName) {
+          toast({ title: "Pessoa já cadastrada", description: `Já existe um(a) ${form.category} com o nome "${trimmedName}".`, variant: "destructive" });
+          setLoading(false);
+          return null;
+        }
+      }
+
       const profileUserId = crypto.randomUUID();
 
       const payload = { ...formToPayload(form), user_id: profileUserId };
