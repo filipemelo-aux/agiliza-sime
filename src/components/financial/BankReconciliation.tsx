@@ -561,15 +561,24 @@ export function BankReconciliation() {
     try {
       const selected = items.filter((i) => selectedIds.has(i.id));
       for (const item of selected) {
+        let movIdToLink = item.matchedMovId || null;
         if (item.matchedPayableId && !item.matchedMovId) {
           await supabase
             .from("accounts_payable")
             .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
+          // Resolve movimento criado para gravar o vínculo
+          movIdToLink = await findCreatedMovId({
+            accountsPayableId: item.matchedPayableId,
+            expenseId: item.matchedPayableExpenseId || undefined,
+            amount: Math.abs(item.amount),
+            tipo: item.tipo,
+            referenceDate: item.date,
+          });
         }
         const updateFilter = item.dbItemId
-          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null }).eq("id", item.dbItemId)
-          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: item.matchedMovId || null }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "").eq("status", "pendente");
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", item.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", item.fitid || "").eq("status", "pendente");
         await updateFilter;
       }
       setItems((prev) =>
