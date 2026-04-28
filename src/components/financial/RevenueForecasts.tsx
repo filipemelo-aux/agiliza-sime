@@ -417,10 +417,24 @@ export function RevenueForecasts() {
                         )}
                         <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
                       </div>
-                      <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5 shrink-0">
-                        {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                        {isPendente ? "Pendente" : "Faturado"}
-                      </Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isPendente && p.origem_tipo === "manual" && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => openEditDialog(p)}
+                            title="Editar previsão"
+                          >
+                            <PencilLine className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                          {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                          {isPendente ? "Pendente" : "Faturado"}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground">
