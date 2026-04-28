@@ -331,13 +331,19 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
   const handleSave = async () => {
     if (!clienteId) return toast.error("Selecione o cliente");
 
-    // Build full list: lote + (current form item, if filled)
+    // Unified batch: include current form entry if user filled it without clicking "Add"
     const items: LoteItem[] = [...lote];
     const hasCurrentFilled = vehicleId || driverId || pesoKg || valorTon;
-    if (hasCurrentFilled || items.length === 0) {
+    if (hasCurrentFilled) {
       const current = buildCurrentItem();
       if (!current) return;
-      items.push(current);
+      if (editingLoteId) {
+        const idx = items.findIndex((i) => i.id === editingLoteId);
+        if (idx >= 0) items[idx] = { ...current, id: editingLoteId };
+        else items.push(current);
+      } else {
+        items.push(current);
+      }
     }
 
     if (items.length === 0) return toast.error("Adicione ao menos um serviço");
