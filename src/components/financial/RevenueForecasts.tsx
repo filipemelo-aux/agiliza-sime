@@ -55,9 +55,17 @@ export function RevenueForecasts() {
   const [saving, setSaving] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
+  const [editForecast, setEditForecast] = useState<Previsao | null>(null);
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
+    setEditForecast(null);
+    setManualDialogOpen(true);
+  };
+
+  const openEditDialog = (p: Previsao) => {
+    setAppendToLote(null);
+    setEditForecast(p);
     setManualDialogOpen(true);
   };
 
@@ -326,10 +334,14 @@ export function RevenueForecasts() {
         open={manualDialogOpen}
         onOpenChange={(o) => {
           setManualDialogOpen(o);
-          if (!o) setAppendToLote(null);
+          if (!o) {
+            setAppendToLote(null);
+            setEditForecast(null);
+          }
         }}
         onSaved={fetchPrevisoes}
         appendToLote={appendToLote}
+        editForecast={editForecast}
       />
 
       {/* Summary - compact */}
@@ -405,10 +417,24 @@ export function RevenueForecasts() {
                         )}
                         <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
                       </div>
-                      <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5 shrink-0">
-                        {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                        {isPendente ? "Pendente" : "Faturado"}
-                      </Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isPendente && p.origem_tipo === "manual" && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => openEditDialog(p)}
+                            title="Editar previsão"
+                          >
+                            <PencilLine className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                          {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                          {isPendente ? "Pendente" : "Faturado"}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground">
@@ -474,12 +500,26 @@ export function RevenueForecasts() {
                   {isOpen && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                       {g.items.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between text-[11px] pl-5">
-                          <span className="text-muted-foreground">
+                        <div key={p.id} className="flex items-center justify-between gap-2 text-[11px] pl-5">
+                          <span className="text-muted-foreground truncate">
                             {formatDateBR(p.data_prevista)}
                             {p.metadata?.placa ? ` · ${p.metadata.placa}` : ""}
                           </span>
-                          <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
+                            {p.status === "pendente" && p.origem_tipo === "manual" && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => openEditDialog(p)}
+                                title="Editar previsão"
+                              >
+                                <PencilLine className="h-2.5 w-2.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -537,10 +577,24 @@ export function RevenueForecasts() {
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
                           <TableCell>
-                            <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                              {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                              {isPendente ? "Pendente" : "Faturado"}
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                                {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                                {isPendente ? "Pendente" : "Faturado"}
+                              </Badge>
+                              {isPendente && p.origem_tipo === "manual" && (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => openEditDialog(p)}
+                                  title="Editar previsão"
+                                >
+                                  <PencilLine className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -638,7 +692,20 @@ export function RevenueForecasts() {
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
                             <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                            <TableCell></TableCell>
+                            <TableCell>
+                              {p.status === "pendente" && p.origem_tipo === "manual" && (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => openEditDialog(p)}
+                                  title="Editar previsão"
+                                >
+                                  <PencilLine className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </Fragment>

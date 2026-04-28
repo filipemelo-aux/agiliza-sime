@@ -17,11 +17,20 @@ import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 
+interface EditForecastInput {
+  id: string;
+  cliente_id: string;
+  data_prevista: string;
+  valor: number;
+  metadata?: Record<string, any> | null;
+}
+
 interface ManualForecastDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   appendToLote?: { loteId: string; clienteId: string } | null;
+  editForecast?: EditForecastInput | null;
 }
 
 interface OptionItem {
@@ -51,7 +60,7 @@ interface LoteItem {
   valorLiquido: number;
 }
 
-export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote }: ManualForecastDialogProps) {
+export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote, editForecast }: ManualForecastDialogProps) {
   const navigate = useNavigate();
 
   // Cliente
@@ -102,23 +111,65 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   // Reset form
   useEffect(() => {
     if (!open) return;
-    setClienteId(appendToLote?.clienteId || "");
-    setVehicleId("");
-    setDriverId("");
-    setDataServico(getLocalDateISO());
-    setPesoKg("");
-    setValorTon("");
-    setDescontoTipo("nenhum");
-    setLitros("");
-    setValorLitro("");
-    setOutrosDescricao("");
-    setOutrosValor("");
+    setLote([]);
+    setEditingLoteId(null);
+
+    if (editForecast) {
+      const md = editForecast.metadata || {};
+      setClienteId(editForecast.cliente_id);
+      setVehicleId(md.veiculo_id || "");
+      setDriverId(md.motorista_id || "");
+      setDataServico(editForecast.data_prevista);
+      setPesoKg(md.peso_kg != null ? String(md.peso_kg).replace(".", ",") : "");
+      setValorTon(
+        md.valor_por_ton != null
+          ? maskCurrency(String(Math.round(Number(md.valor_por_ton) * 100)))
+          : ""
+      );
+      const desc = md.desconto || {};
+      const dt: DescontoTipo = (desc.tipo as DescontoTipo) || "nenhum";
+      setDescontoTipo(dt);
+      if (dt === "diesel") {
+        setLitros(desc.litros != null ? String(desc.litros).replace(".", ",") : "");
+        setValorLitro(
+          desc.valor_litro != null
+            ? maskCurrency(String(Math.round(Number(desc.valor_litro) * 100)))
+            : ""
+        );
+        setOutrosDescricao("");
+        setOutrosValor("");
+      } else if (dt === "outros") {
+        setLitros("");
+        setValorLitro("");
+        setOutrosDescricao(desc.descricao || "");
+        setOutrosValor(
+          desc.valor != null
+            ? maskCurrency(String(Math.round(Number(desc.valor) * 100)))
+            : ""
+        );
+      } else {
+        setLitros("");
+        setValorLitro("");
+        setOutrosDescricao("");
+        setOutrosValor("");
+      }
+    } else {
+      setClienteId(appendToLote?.clienteId || "");
+      setVehicleId("");
+      setDriverId("");
+      setDataServico(getLocalDateISO());
+      setPesoKg("");
+      setValorTon("");
+      setDescontoTipo("nenhum");
+      setLitros("");
+      setValorLitro("");
+      setOutrosDescricao("");
+      setOutrosValor("");
+    }
     setClienteQuery("");
     setVehicleQuery("");
     setDriverQuery("");
-    setLote([]);
-    setEditingLoteId(null);
-  }, [open, appendToLote]);
+  }, [open, appendToLote, editForecast]);
 
   // Lote (batch) de serviços
   const [lote, setLote] = useState<LoteItem[]>([]);
@@ -331,6 +382,48 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   const handleSave = async () => {
     if (!clienteId) return toast.error("Selecione o cliente");
 
+    // Edit mode: update a single existing forecast row
+    if (editForecast) {
+      const current = buildCurrentItem();
+      if (!current) return;
+      setSaving(true);
+      try {
+        const prevMeta = editForecast.metadata || {};
+        const newMeta = {
+          ...prevMeta,
+          tipo: prevMeta.tipo || "manual",
+          placa: current.placa,
+          veiculo_id: current.vehicleId,
+          motorista: current.motorista,
+          motorista_id: current.driverId,
+          peso_kg: current.pesoKg,
+          peso_ton: current.pesoTon,
+          valor_por_ton: current.valorPorTon,
+          valor_bruto: current.valorBruto,
+          valor_desconto: current.valorDesconto,
+          desconto: current.descontoDetalhe,
+        };
+        const { error } = await supabase
+          .from("previsoes_recebimento")
+          .update({
+            cliente_id: clienteId,
+            valor: current.valorLiquido,
+            data_prevista: current.dataServico,
+            metadata: newMeta,
+          })
+          .eq("id", editForecast.id);
+        if (error) throw error;
+        toast.success("Previsão atualizada com sucesso!");
+        onOpenChange(false);
+        onSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao atualizar previsão");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     // Unified batch: include current form entry if user filled it without clicking "Add"
     const items: LoteItem[] = [...lote];
     const hasCurrentFilled = vehicleId || driverId || pesoKg || valorTon;
@@ -399,7 +492,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
         <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)] max-h-[92vh] p-0 overflow-hidden">
           <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle className="text-base">
-              {appendToLote ? "Adicionar serviços ao lote" : "Nova Previsão Manual"}
+              {editForecast
+                ? "Editar Previsão"
+                : appendToLote
+                ? "Adicionar serviços ao lote"
+                : "Nova Previsão Manual"}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh]">
@@ -407,7 +504,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
               {/* Cliente */}
               <div className="space-y-1">
                 <Label className="text-xs">Cliente</Label>
-                {appendToLote ? (
+                {appendToLote || editForecast ? (
                   <div className="h-9 px-2.5 flex items-center text-xs rounded-md border border-input bg-muted/40 text-foreground truncate">
                     {selectedCliente?.label || "Carregando..."}
                   </div>
@@ -791,23 +888,25 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
                 </span>
               </div>
 
-              {/* Botão adicionar/atualizar no lote */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 gap-2 border-dashed"
-                  onClick={handleAddToBatch}
-                >
-                  <ListPlus className="h-4 w-4" />
-                  {editingLoteId ? "Atualizar serviço no lote" : "Adicionar serviço ao lote"}
-                </Button>
-                {editingLoteId && (
-                  <Button type="button" variant="ghost" onClick={clearServiceFields}>
-                    Cancelar
+              {/* Botão adicionar/atualizar no lote (oculto em modo de edição) */}
+              {!editForecast && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 gap-2 border-dashed"
+                    onClick={handleAddToBatch}
+                  >
+                    <ListPlus className="h-4 w-4" />
+                    {editingLoteId ? "Atualizar serviço no lote" : "Adicionar serviço ao lote"}
                   </Button>
-                )}
-              </div>
+                  {editingLoteId && (
+                    <Button type="button" variant="ghost" onClick={clearServiceFields}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Lista do lote */}
               {lote.length > 0 && (
@@ -874,6 +973,8 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
               <Button className="w-full" onClick={handleSave} disabled={saving}>
                 {saving
                   ? "Salvando..."
+                  : editForecast
+                  ? "Salvar alterações"
                   : (() => {
                       const extra = (vehicleId || pesoKg) && !editingLoteId ? 1 : 0;
                       const total = lote.length + extra;
