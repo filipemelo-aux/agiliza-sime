@@ -55,9 +55,17 @@ export function RevenueForecasts() {
   const [saving, setSaving] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
+  const [editForecast, setEditForecast] = useState<Previsao | null>(null);
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
+    setEditForecast(null);
+    setManualDialogOpen(true);
+  };
+
+  const openEditDialog = (p: Previsao) => {
+    setAppendToLote(null);
+    setEditForecast(p);
     setManualDialogOpen(true);
   };
 
@@ -326,10 +334,14 @@ export function RevenueForecasts() {
         open={manualDialogOpen}
         onOpenChange={(o) => {
           setManualDialogOpen(o);
-          if (!o) setAppendToLote(null);
+          if (!o) {
+            setAppendToLote(null);
+            setEditForecast(null);
+          }
         }}
         onSaved={fetchPrevisoes}
         appendToLote={appendToLote}
+        editForecast={editForecast}
       />
 
       {/* Summary - compact */}
