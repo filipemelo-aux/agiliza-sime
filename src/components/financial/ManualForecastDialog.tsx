@@ -718,7 +718,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 )}
               </div>
 
-              {/* Valor líquido final */}
+              {/* Valor líquido do serviço atual */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">Valor Líquido</span>
                 <span className="font-mono text-lg font-bold text-primary">
@@ -726,8 +726,70 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 </span>
               </div>
 
+              {/* Botão adicionar ao lote */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 border-dashed"
+                onClick={handleAddToBatch}
+              >
+                <ListPlus className="h-4 w-4" />
+                Adicionar serviço ao lote
+              </Button>
+
+              {/* Lista do lote */}
+              {lote.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">
+                      Lote ({lote.length} {lote.length === 1 ? "serviço" : "serviços"})
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-primary">
+                      {formatCurrency(totalLote)}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                    {lote.map((it, idx) => (
+                      <div
+                        key={it.id}
+                        className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-2 py-1.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span className="font-mono">#{idx + 1}</span>
+                            <span>
+                              {new Date(it.dataServico + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                            <span className="font-mono">{it.placa}</span>
+                          </div>
+                          <div className="text-xs truncate">
+                            {it.motorista} · {it.pesoTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs font-semibold shrink-0">
+                          {formatCurrency(it.valorLiquido)}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveFromBatch(it.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Button className="w-full" onClick={handleSave} disabled={saving}>
-                {saving ? "Salvando..." : "Salvar Previsão"}
+                {saving
+                  ? "Salvando..."
+                  : lote.length > 0
+                    ? `Salvar ${lote.length + (vehicleId || pesoKg ? 1 : 0)} previsões`
+                    : "Salvar Previsão"}
               </Button>
             </div>
           </ScrollArea>
