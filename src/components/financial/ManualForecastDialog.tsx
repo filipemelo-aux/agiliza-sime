@@ -132,18 +132,20 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     return isNaN(kg) ? 0 : kg / 1000;
   }, [pesoKg]);
 
-  const valorPorTon = useMemo(() => unmaskCurrency(valorTon), [valorTon]);
+  const toNumber = (s: string) => Number(unmaskCurrency(s) || "0");
+
+  const valorPorTon = useMemo(() => toNumber(valorTon), [valorTon]);
 
   const valorBruto = useMemo(() => pesoTon * valorPorTon, [pesoTon, valorPorTon]);
 
   const valorDesconto = useMemo(() => {
     if (descontoTipo === "diesel") {
       const l = parseFloat(litros.replace(",", "."));
-      const vl = unmaskCurrency(valorLitro);
+      const vl = toNumber(valorLitro);
       return (isNaN(l) ? 0 : l) * vl;
     }
     if (descontoTipo === "outros") {
-      return unmaskCurrency(outrosValor);
+      return toNumber(outrosValor);
     }
     return 0;
   }, [descontoTipo, litros, valorLitro, outrosValor]);
