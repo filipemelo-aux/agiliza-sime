@@ -3409,7 +3409,7 @@ export type Database = {
       fatura_status: "aberta" | "faturada" | "cancelada"
       folha_status: "em_aberto" | "confirmada" | "cancelada"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
-      previsao_origem_tipo: "cte" | "colheita"
+      previsao_origem_tipo: "cte" | "colheita" | "manual"
       previsao_status: "pendente" | "faturado"
       tipo_colaborador_rh: "clt" | "pj" | "freelancer"
       vehicle_type:
@@ -3592,7 +3592,7 @@ export const Constants = {
       fatura_status: ["aberta", "faturada", "cancelada"],
       folha_status: ["em_aberto", "confirmada", "cancelada"],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
-      previsao_origem_tipo: ["cte", "colheita"],
+      previsao_origem_tipo: ["cte", "colheita", "manual"],
       previsao_status: ["pendente", "faturado"],
       tipo_colaborador_rh: ["clt", "pj", "freelancer"],
       vehicle_type: [

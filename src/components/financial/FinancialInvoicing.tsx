@@ -717,21 +717,30 @@ ${previsoes.length > 0 ? `
     <thead><tr><th>Origem</th><th>Descrição</th><th>Período Faturado</th><th class="text-right">Valor</th></tr></thead>
     <tbody>
       ${previsoes.map(p => {
-        const meta = p.metadata as Previsao["metadata"];
+        const meta = p.metadata as any;
         const hj = harvestJobs[p.origem_id];
         const fazenda = meta?.fazenda || hj?.farm_name || "";
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
-        const descricao = p.origem_tipo === "cte"
-          ? "Conhecimento de Transporte"
-          : fazenda
-            ? `Colheita — ${fazenda}`
-            : "Colheita";
+        let descricao: string;
+        let badgeText: string;
+        if (p.origem_tipo === "cte") {
+          descricao = "Conhecimento de Transporte";
+          badgeText = "CT-e";
+        } else if (p.origem_tipo === "manual") {
+          const placa = meta?.placa ? ` · ${meta.placa}` : "";
+          const motorista = meta?.motorista ? ` · ${meta.motorista}` : "";
+          descricao = `Frete Manual${placa}${motorista}`;
+          badgeText = "Manual";
+        } else {
+          descricao = fazenda ? `Colheita — ${fazenda}` : "Colheita";
+          badgeText = "Colheita";
+        }
         const periodoStr = periodoInicio && periodoFim
           ? `${formatDateBR(periodoInicio)} a ${formatDateBR(periodoFim)}`
           : formatDateBR(p.data_prevista);
         return `<tr>
-          <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</span></td>
+          <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${badgeText}</span></td>
           <td style="font-size:11px">${descricao}</td>
           <td>${periodoStr}</td>
           <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>

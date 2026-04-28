@@ -14,12 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2, Plus, PencilLine } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { ManualForecastDialog } from "./ManualForecastDialog";
 
 interface Previsao {
   id: string;
@@ -37,6 +38,7 @@ interface Previsao {
 const ORIGEM_ICON: Record<string, typeof Truck> = {
   cte: Truck,
   colheita: Sprout,
+  manual: PencilLine,
 };
 
 export function RevenueForecasts() {
@@ -51,6 +53,7 @@ export function RevenueForecasts() {
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
   const INTERVALO_PRESETS = [
     { value: "7", label: "7 dias" },
@@ -198,7 +201,19 @@ export function RevenueForecasts() {
   return (
     <div className="space-y-4">
       {ConfirmDialog}
-      <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
+        <Button onClick={() => setManualDialogOpen(true)} className="gap-1.5 shadow-sm">
+          <Plus className="h-4 w-4" />
+          Nova Previsão Manual
+        </Button>
+      </div>
+
+      <ManualForecastDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        onSaved={fetchPrevisoes}
+      />
 
       {/* Summary - compact */}
       <div className="grid grid-cols-2 gap-2">
@@ -233,7 +248,7 @@ export function RevenueForecasts() {
           <CardContent className="p-8 text-center">
             <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Nenhuma previsão de recebimento encontrada.</p>
-            <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita.</p>
+            <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita. Você também pode criar uma previsão manual no botão acima.</p>
           </CardContent>
         </Card>
       ) : isMobile ? (
