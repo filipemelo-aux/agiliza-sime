@@ -212,7 +212,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   }, [descontoTipo, litros, valorLitro, outrosValor]);
 
   const valorLiquido = useMemo(
-    () => Math.max(0, valorBruto - valorDesconto),
+    () => valorBruto - valorDesconto,
     [valorBruto, valorDesconto]
   );
 
@@ -251,7 +251,6 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
     if (pesoTon <= 0) { toast.error("Informe o peso em quilos"); return null; }
     if (valorPorTon <= 0) { toast.error("Informe o valor por tonelada"); return null; }
     if (descontoTipo === "outros" && !outrosDescricao.trim()) { toast.error("Descreva o desconto"); return null; }
-    if (valorLiquido <= 0) { toast.error("Valor líquido deve ser maior que zero"); return null; }
 
     const descontoDetalhe: Record<string, any> = { tipo: descontoTipo };
     if (descontoTipo === "diesel") {
