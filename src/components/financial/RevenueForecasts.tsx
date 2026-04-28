@@ -459,6 +459,18 @@ export function RevenueForecasts() {
                     <span className="text-muted-foreground">{dateRange}</span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(total)}</span>
                   </div>
+                  {allPendente && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px] gap-1 w-full"
+                      onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Adicionar serviço ao lote
+                    </Button>
+                  )}
                   {isOpen && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                       {g.items.map((p) => (
