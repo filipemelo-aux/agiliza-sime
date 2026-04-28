@@ -223,6 +223,64 @@ export function RevenueForecasts() {
     }
   };
 
+  const handleGroupSelected = async () => {
+    if (selectedItems.length < 2) return toast.error("Selecione ao menos 2 previsões para agrupar");
+    if (!sameClient) return toast.error("Todas as previsões devem ser do mesmo cliente");
+    const confirmed = await confirm({
+      description: `Agrupar ${selectedItems.length} previsão(ões) em um único lote?`,
+      confirmLabel: "Agrupar",
+    });
+    if (!confirmed) return;
+    try {
+      const loteId = crypto.randomUUID();
+      const total = selectedItems.length;
+      const updates = selectedItems.map((p) =>
+        supabase
+          .from("previsoes_recebimento")
+          .update({
+            metadata: { ...(p.metadata || {}), lote_id: loteId, lote_total: total },
+          })
+          .eq("id", p.id)
+      );
+      const results = await Promise.all(updates);
+      const firstError = results.find((r) => r.error);
+      if (firstError?.error) throw firstError.error;
+      toast.success(`${total} previsões agrupadas em lote`);
+      fetchPrevisoes();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao agrupar previsões");
+    }
+  };
+
+  const handleUngroupSelected = async () => {
+    // Find all selected items that have a lote_id
+    const itemsWithLote = selectedItems.filter((p) => p.metadata?.lote_id);
+    if (itemsWithLote.length === 0) return toast.error("Nenhuma previsão selecionada faz parte de um lote");
+    const confirmed = await confirm({
+      description: `Desagrupar ${itemsWithLote.length} previsão(ões)? Elas voltarão a aparecer individualmente.`,
+      confirmLabel: "Desagrupar",
+    });
+    if (!confirmed) return;
+    try {
+      const updates = itemsWithLote.map((p) => {
+        const { lote_id, lote_total, ...rest } = p.metadata || {};
+        return supabase
+          .from("previsoes_recebimento")
+          .update({ metadata: rest })
+          .eq("id", p.id);
+      });
+      const results = await Promise.all(updates);
+      const firstError = results.find((r) => r.error);
+      if (firstError?.error) throw firstError.error;
+      toast.success(`${itemsWithLote.length} previsões desagrupadas`);
+      fetchPrevisoes();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao desagrupar previsões");
+    }
+  };
+
+  const selectedHasLote = selectedItems.some((p) => p.metadata?.lote_id);
+
   const handleDeleteSelected = async () => {
     if (selectedItems.length === 0) return;
     const confirmed = await confirm({
@@ -276,6 +334,26 @@ export function RevenueForecasts() {
           <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1.5 shadow-sm">
             <Receipt className="h-4 w-4" />
             Gerar Fatura ({selected.size})
+          </Button>
+          <Button
+            onClick={handleGroupSelected}
+            disabled={selected.size < 2 || !sameClient}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Layers className="h-4 w-4" />
+            Agrupar em lote
+          </Button>
+          <Button
+            onClick={handleUngroupSelected}
+            disabled={!selectedHasLote}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <Layers className="h-4 w-4" />
+            Desagrupar
           </Button>
           <Button onClick={handleDeleteSelected} disabled={selected.size === 0} variant="destructive" size="sm" className="gap-1.5">
             <Trash2 className="h-4 w-4" />
