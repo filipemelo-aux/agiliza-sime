@@ -500,12 +500,26 @@ export function RevenueForecasts() {
                   {isOpen && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                       {g.items.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between text-[11px] pl-5">
-                          <span className="text-muted-foreground">
+                        <div key={p.id} className="flex items-center justify-between gap-2 text-[11px] pl-5">
+                          <span className="text-muted-foreground truncate">
                             {formatDateBR(p.data_prevista)}
                             {p.metadata?.placa ? ` · ${p.metadata.placa}` : ""}
                           </span>
-                          <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
+                            {p.status === "pendente" && p.origem_tipo === "manual" && (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => openEditDialog(p)}
+                                title="Editar previsão"
+                              >
+                                <PencilLine className="h-2.5 w-2.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -678,7 +692,20 @@ export function RevenueForecasts() {
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
                             <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                            <TableCell></TableCell>
+                            <TableCell>
+                              {p.status === "pendente" && p.origem_tipo === "manual" && (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => openEditDialog(p)}
+                                  title="Editar previsão"
+                                >
+                                  <PencilLine className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </Fragment>
