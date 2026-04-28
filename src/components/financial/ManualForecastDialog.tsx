@@ -320,6 +320,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 <Label className="text-xs">Data do Serviço</Label>
                 <Input
                   type="date"
+                  className="h-9 text-xs"
                   value={dataServico}
                   onChange={(e) => setDataServico(e.target.value)}
                 />
