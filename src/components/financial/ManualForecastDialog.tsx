@@ -111,23 +111,65 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   // Reset form
   useEffect(() => {
     if (!open) return;
-    setClienteId(appendToLote?.clienteId || "");
-    setVehicleId("");
-    setDriverId("");
-    setDataServico(getLocalDateISO());
-    setPesoKg("");
-    setValorTon("");
-    setDescontoTipo("nenhum");
-    setLitros("");
-    setValorLitro("");
-    setOutrosDescricao("");
-    setOutrosValor("");
+    setLote([]);
+    setEditingLoteId(null);
+
+    if (editForecast) {
+      const md = editForecast.metadata || {};
+      setClienteId(editForecast.cliente_id);
+      setVehicleId(md.veiculo_id || "");
+      setDriverId(md.motorista_id || "");
+      setDataServico(editForecast.data_prevista);
+      setPesoKg(md.peso_kg != null ? String(md.peso_kg).replace(".", ",") : "");
+      setValorTon(
+        md.valor_por_ton != null
+          ? maskCurrency(String(Math.round(Number(md.valor_por_ton) * 100)))
+          : ""
+      );
+      const desc = md.desconto || {};
+      const dt: DescontoTipo = (desc.tipo as DescontoTipo) || "nenhum";
+      setDescontoTipo(dt);
+      if (dt === "diesel") {
+        setLitros(desc.litros != null ? String(desc.litros).replace(".", ",") : "");
+        setValorLitro(
+          desc.valor_litro != null
+            ? maskCurrency(String(Math.round(Number(desc.valor_litro) * 100)))
+            : ""
+        );
+        setOutrosDescricao("");
+        setOutrosValor("");
+      } else if (dt === "outros") {
+        setLitros("");
+        setValorLitro("");
+        setOutrosDescricao(desc.descricao || "");
+        setOutrosValor(
+          desc.valor != null
+            ? maskCurrency(String(Math.round(Number(desc.valor) * 100)))
+            : ""
+        );
+      } else {
+        setLitros("");
+        setValorLitro("");
+        setOutrosDescricao("");
+        setOutrosValor("");
+      }
+    } else {
+      setClienteId(appendToLote?.clienteId || "");
+      setVehicleId("");
+      setDriverId("");
+      setDataServico(getLocalDateISO());
+      setPesoKg("");
+      setValorTon("");
+      setDescontoTipo("nenhum");
+      setLitros("");
+      setValorLitro("");
+      setOutrosDescricao("");
+      setOutrosValor("");
+    }
     setClienteQuery("");
     setVehicleQuery("");
     setDriverQuery("");
-    setLote([]);
-    setEditingLoteId(null);
-  }, [open, appendToLote]);
+  }, [open, appendToLote, editForecast]);
 
   // Lote (batch) de serviços
   const [lote, setLote] = useState<LoteItem[]>([]);
