@@ -582,10 +582,25 @@ export function RevenueForecasts() {
                           <TableCell className="text-xs">{dateRange}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
                           <TableCell>
-                            <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                              {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                              {allPendente ? "Pendente" : "Faturado"}
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                                {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                                {allPendente ? "Pendente" : "Faturado"}
+                              </Badge>
+                              {allPendente && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[10px] gap-1"
+                                  onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
+                                  title="Adicionar serviços ao lote"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  Adicionar
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                         {isOpen && g.items.map((p) => (
