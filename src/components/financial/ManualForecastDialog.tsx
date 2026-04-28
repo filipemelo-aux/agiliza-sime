@@ -467,42 +467,54 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Digite o nome..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Digite o nome..."
+                          value={driverQuery}
+                          onValueChange={setDriverQuery}
+                        />
                         <CommandList>
-                          <CommandEmpty>
-                            <div className="p-2 space-y-2">
-                              <p className="text-xs text-muted-foreground">Motorista não cadastrado.</p>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full gap-1"
-                                onClick={handleCadastrarMotorista}
-                              >
-                                <Plus className="h-3 w-3" /> Cadastrar motorista
-                              </Button>
+                          {driverQuery.trim().length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              Digite para buscar motoristas
                             </div>
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {drivers.map((d) => (
-                              <CommandItem
-                                key={d.id}
-                                value={d.label}
-                                onSelect={() => {
-                                  setDriverId(d.id);
-                                  setDriverPopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    driverId === d.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <span className="text-sm">{d.label}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                          ) : (
+                            <>
+                              <CommandEmpty>
+                                <div className="p-2 space-y-2">
+                                  <p className="text-xs text-muted-foreground">Motorista não cadastrado.</p>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full gap-1"
+                                    onClick={handleCadastrarMotorista}
+                                  >
+                                    <Plus className="h-3 w-3" /> Cadastrar motorista
+                                  </Button>
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {filterByQuery(drivers, driverQuery).map((d) => (
+                                  <CommandItem
+                                    key={d.id}
+                                    value={d.label}
+                                    onSelect={() => {
+                                      setDriverId(d.id);
+                                      setDriverPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        driverId === d.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <span className="text-sm">{d.label}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
                         </CommandList>
                       </Command>
                     </PopoverContent>
