@@ -23,17 +23,6 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
   {
-    title: "Cadastros",
-    icon: Users,
-    children: [
-      { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
-      { title: "Pessoas", url: "/admin/people", icon: Users },
-      { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
-      { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
-      { title: "Veículos", url: "/admin/vehicles", icon: Car },
-    ],
-  },
-  {
     title: "Financeiro",
     icon: DollarSign,
     children: [
@@ -49,6 +38,29 @@ const menuItems = [
     ],
   },
   {
+    title: "Transporte",
+    icon: Car,
+    children: [
+      { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
+      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
+      { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
+      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
+      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
+    ],
+  },
+  {
+    title: "Cadastros",
+    icon: Users,
+    children: [
+      { title: "Natureza de Cargas", url: "/admin/cargas", icon: Package },
+      { title: "Pessoas", url: "/admin/people", icon: Users },
+      { title: "Plano de Contas", url: "/admin/financial/chart", icon: FolderTree },
+      { title: "Relatórios", url: "/admin/reports", icon: FileSpreadsheet },
+      { title: "Veículos", url: "/admin/vehicles", icon: Car },
+    ],
+  },
+  {
     title: "Recursos Humanos",
     icon: UserCog,
     children: [
@@ -56,18 +68,6 @@ const menuItems = [
       { title: "Movimentações", url: "/admin/rh/movimentacoes", icon: HandCoins },
       { title: "Folha de Pagamento", url: "/admin/rh/folha", icon: ListChecks },
       { title: "Configurações RH", url: "/admin/rh/configuracoes", icon: Settings2 },
-    ],
-  },
-  {
-    title: "Transporte",
-    icon: Car,
-    children: [
-      { title: "Colheita", url: "/admin/harvest", icon: Sprout },
-      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
-      { title: "CT-e", url: "/admin/freight/cte", icon: FileText },
-      { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
-      { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
-      { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
     ],
   },
   { title: "_spacer", url: "", icon: Settings },
