@@ -13,7 +13,7 @@ import { Upload, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskName } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 const CENTRO_CUSTO_OPTIONS = [
