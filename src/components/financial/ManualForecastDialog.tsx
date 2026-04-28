@@ -31,6 +31,23 @@ interface OptionItem {
 
 type DescontoTipo = "nenhum" | "diesel" | "outros";
 
+interface LoteItem {
+  id: string; // local UUID
+  dataServico: string;
+  vehicleId: string;
+  placa: string;
+  driverId: string;
+  motorista: string;
+  pesoKg: number;
+  pesoTon: number;
+  valorPorTon: number;
+  valorBruto: number;
+  descontoTipo: DescontoTipo;
+  descontoDetalhe: Record<string, any>;
+  valorDesconto: number;
+  valorLiquido: number;
+}
+
 export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualForecastDialogProps) {
   const navigate = useNavigate();
 
