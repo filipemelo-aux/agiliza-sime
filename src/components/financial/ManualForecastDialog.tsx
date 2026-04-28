@@ -211,11 +211,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
           tipo: descontoTipo,
           ...(descontoTipo === "diesel" && {
             litros: parseFloat(litros.replace(",", ".")) || 0,
-            valor_litro: unmaskCurrency(valorLitro),
+            valor_litro: toNumber(valorLitro),
           }),
           ...(descontoTipo === "outros" && {
             descricao: outrosDescricao.trim(),
-            valor: unmaskCurrency(outrosValor),
+            valor: toNumber(outrosValor),
           }),
         },
       };
