@@ -104,11 +104,60 @@ export function RevenueForecasts() {
   const selectedClientIds = [...new Set(selectedItems.map((p) => p.cliente_id))];
   const sameClient = selectedClientIds.length <= 1;
 
+  // Group rows by lote_id (only items that share a lote_id are grouped). Singletons remain individual.
+  type GroupRow =
+    | { kind: "single"; id: string; previsao: Previsao }
+    | { kind: "lote"; id: string; loteId: string; items: Previsao[] };
+
+  const buildGroups = (rows: Previsao[]): GroupRow[] => {
+    const buckets = new Map<string, Previsao[]>();
+    const order: string[] = [];
+    for (const p of rows) {
+      const lid = p.metadata?.lote_id as string | undefined;
+      const key = lid ? `lote:${lid}` : `single:${p.id}`;
+      if (!buckets.has(key)) {
+        buckets.set(key, []);
+        order.push(key);
+      }
+      buckets.get(key)!.push(p);
+    }
+    return order.map((key) => {
+      const items = buckets.get(key)!;
+      if (key.startsWith("lote:") && items.length > 1) {
+        return { kind: "lote" as const, id: key, loteId: key.slice(5), items };
+      }
+      return { kind: "single" as const, id: items[0].id, previsao: items[0] };
+    });
+  };
+
+  const pendentesGroups = useMemo(() => buildGroups(pendentes), [pendentes]);
+  const faturadasGroups = useMemo(() => buildGroups(faturadas), [faturadas]);
+
+  const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpandedLotes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectGroup = (ids: string[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allSelected = ids.every((id) => next.has(id));
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
       return next;
     });
   };
