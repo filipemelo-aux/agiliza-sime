@@ -301,7 +301,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                           ) : (
                             <>
                               <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(clientes, clienteQuery).map((c) => (
                                   <CommandItem
                                     key={c.id}
@@ -405,7 +405,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                   </Button>
                                 </div>
                               </CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(vehicles, vehicleQuery).map((v) => (
                                   <CommandItem
                                     key={v.id}
@@ -493,7 +493,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                   </Button>
                                 </div>
                               </CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(drivers, driverQuery).map((d) => (
                                   <CommandItem
                                     key={d.id}
