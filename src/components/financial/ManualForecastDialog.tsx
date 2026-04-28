@@ -17,11 +17,20 @@ import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCurrency, unmaskCurrency, maskName } from "@/lib/masks";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 
+interface EditForecastInput {
+  id: string;
+  cliente_id: string;
+  data_prevista: string;
+  valor: number;
+  metadata?: Record<string, any> | null;
+}
+
 interface ManualForecastDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   appendToLote?: { loteId: string; clienteId: string } | null;
+  editForecast?: EditForecastInput | null;
 }
 
 interface OptionItem {
@@ -51,7 +60,7 @@ interface LoteItem {
   valorLiquido: number;
 }
 
-export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote }: ManualForecastDialogProps) {
+export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote, editForecast }: ManualForecastDialogProps) {
   const navigate = useNavigate();
 
   // Cliente
