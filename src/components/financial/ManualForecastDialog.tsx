@@ -120,6 +120,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
 
   // Lote (batch) de serviços
   const [lote, setLote] = useState<LoteItem[]>([]);
+  const [editingLoteId, setEditingLoteId] = useState<string | null>(null);
 
   const clearServiceFields = () => {
     setVehicleId("");
@@ -133,6 +134,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setOutrosValor("");
     setVehicleQuery("");
     setDriverQuery("");
+    setEditingLoteId(null);
   };
 
   // Load options
