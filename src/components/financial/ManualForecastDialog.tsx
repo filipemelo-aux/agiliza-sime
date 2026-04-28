@@ -287,35 +287,47 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Digite para buscar..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Digite para buscar..."
+                          value={clienteQuery}
+                          onValueChange={setClienteQuery}
+                        />
                         <CommandList>
-                          <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {clientes.map((c) => (
-                              <CommandItem
-                                key={c.id}
-                                value={`${c.label} ${c.sublabel || ""}`}
-                                onSelect={() => {
-                                  setClienteId(c.id);
-                                  setClientePopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    clienteId === c.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex flex-col">
-                                  <span className="text-sm">{c.label}</span>
-                                  {c.sublabel && (
-                                    <span className="text-[10px] text-muted-foreground">{c.sublabel}</span>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                          {clienteQuery.trim().length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              Digite para buscar clientes
+                            </div>
+                          ) : (
+                            <>
+                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {filterByQuery(clientes, clienteQuery).map((c) => (
+                                  <CommandItem
+                                    key={c.id}
+                                    value={`${c.label} ${c.sublabel || ""}`}
+                                    onSelect={() => {
+                                      setClienteId(c.id);
+                                      setClientePopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        clienteId === c.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="text-sm">{c.label}</span>
+                                      {c.sublabel && (
+                                        <span className="text-[10px] text-muted-foreground">{c.sublabel}</span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
                         </CommandList>
                       </Command>
                     </PopoverContent>
