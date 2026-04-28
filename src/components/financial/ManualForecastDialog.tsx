@@ -27,6 +27,8 @@ interface OptionItem {
   id: string; // profile.id (cliente) | vehicle.id (placa) | profile.id (motorista)
   label: string;
   sublabel?: string;
+  driverUserId?: string; // for vehicles: vehicles.driver_id (auth user_id)
+  userId?: string; // for drivers: profiles.user_id
 }
 
 type DescontoTipo = "nenhum" | "diesel" | "outros";
