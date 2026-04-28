@@ -27,6 +27,8 @@ interface OptionItem {
   id: string; // profile.id (cliente) | vehicle.id (placa) | profile.id (motorista)
   label: string;
   sublabel?: string;
+  driverUserId?: string; // for vehicles: vehicles.driver_id (auth user_id)
+  userId?: string; // for drivers: profiles.user_id
 }
 
 type DescontoTipo = "nenhum" | "diesel" | "outros";
@@ -165,12 +167,14 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
         id: v.id,
         label: v.plate,
         sublabel: [v.brand, v.model].filter(Boolean).join(" "),
+        driverUserId: v.driver_id || undefined,
       }))
     );
     setDrivers(
       (drvData || []).map((d: any) => ({
         id: d.id,
         label: d.full_name,
+        userId: d.user_id || undefined,
       }))
     );
   };
@@ -499,6 +503,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                     onSelect={() => {
                                       setVehicleId(v.id);
                                       setVehiclePopoverOpen(false);
+                                      // Auto-link driver based on vehicle's driver_id (auth user_id)
+                                      if (v.driverUserId && !driverId) {
+                                        const matched = drivers.find((d) => d.userId === v.driverUserId);
+                                        if (matched) setDriverId(matched.id);
+                                      }
                                     }}
                                   >
                                     <Check
@@ -587,6 +596,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                     onSelect={() => {
                                       setDriverId(d.id);
                                       setDriverPopoverOpen(false);
+                                      // Auto-link vehicle based on driver's user_id
+                                      if (d.userId && !vehicleId) {
+                                        const matched = vehicles.find((v) => v.driverUserId === d.userId);
+                                        if (matched) setVehicleId(matched.id);
+                                      }
                                     }}
                                   >
                                     <Check
