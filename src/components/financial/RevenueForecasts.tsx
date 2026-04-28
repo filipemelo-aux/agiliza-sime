@@ -458,7 +458,7 @@ export function RevenueForecasts() {
                       : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
                     const Icon = ORIGEM_ICON[g.items[0].origem_tipo] || FileText;
                     return (
-                      <>
+                      <Fragment key={g.id}>
                         <TableRow
                           key={g.id}
                           className={cn(
