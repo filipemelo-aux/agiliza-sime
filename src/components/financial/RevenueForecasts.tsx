@@ -563,10 +563,24 @@ export function RevenueForecasts() {
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
                           <TableCell>
-                            <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                              {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                              {isPendente ? "Pendente" : "Faturado"}
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                                {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                                {isPendente ? "Pendente" : "Faturado"}
+                              </Badge>
+                              {isPendente && p.origem_tipo === "manual" && (
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => openEditDialog(p)}
+                                  title="Editar previsão"
+                                >
+                                  <PencilLine className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
