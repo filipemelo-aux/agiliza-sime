@@ -53,6 +53,7 @@ export function RevenueForecasts() {
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
 
   const INTERVALO_PRESETS = [
     { value: "7", label: "7 dias" },
@@ -200,7 +201,19 @@ export function RevenueForecasts() {
   return (
     <div className="space-y-4">
       {ConfirmDialog}
-      <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg font-bold text-foreground">Previsões de Recebimento</h1>
+        <Button onClick={() => setManualDialogOpen(true)} className="gap-1.5 shadow-sm">
+          <Plus className="h-4 w-4" />
+          Nova Previsão Manual
+        </Button>
+      </div>
+
+      <ManualForecastDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        onSaved={fetchPrevisoes}
+      />
 
       {/* Summary - compact */}
       <div className="grid grid-cols-2 gap-2">
