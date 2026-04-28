@@ -245,12 +245,12 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[92vh] p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>Nova Previsão Manual</DialogTitle>
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)] max-h-[92vh] p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="text-base">Nova Previsão Manual</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[72vh]">
-            <div className="px-6 pb-6 space-y-4">
+          <ScrollArea className="max-h-[75vh]">
+            <div className="px-4 pb-4 space-y-3">
               {/* Cliente */}
               <div className="space-y-1.5">
                 <Label className="text-xs">Cliente</Label>
