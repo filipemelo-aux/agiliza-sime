@@ -382,6 +382,48 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   const handleSave = async () => {
     if (!clienteId) return toast.error("Selecione o cliente");
 
+    // Edit mode: update a single existing forecast row
+    if (editForecast) {
+      const current = buildCurrentItem();
+      if (!current) return;
+      setSaving(true);
+      try {
+        const prevMeta = editForecast.metadata || {};
+        const newMeta = {
+          ...prevMeta,
+          tipo: prevMeta.tipo || "manual",
+          placa: current.placa,
+          veiculo_id: current.vehicleId,
+          motorista: current.motorista,
+          motorista_id: current.driverId,
+          peso_kg: current.pesoKg,
+          peso_ton: current.pesoTon,
+          valor_por_ton: current.valorPorTon,
+          valor_bruto: current.valorBruto,
+          valor_desconto: current.valorDesconto,
+          desconto: current.descontoDetalhe,
+        };
+        const { error } = await supabase
+          .from("previsoes_recebimento")
+          .update({
+            cliente_id: clienteId,
+            valor: current.valorLiquido,
+            data_prevista: current.dataServico,
+            metadata: newMeta,
+          })
+          .eq("id", editForecast.id);
+        if (error) throw error;
+        toast.success("Previsão atualizada com sucesso!");
+        onOpenChange(false);
+        onSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao atualizar previsão");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     // Unified batch: include current form entry if user filled it without clicking "Add"
     const items: LoteItem[] = [...lote];
     const hasCurrentFilled = vehicleId || driverId || pesoKg || valorTon;
