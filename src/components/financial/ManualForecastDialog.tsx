@@ -888,23 +888,25 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
                 </span>
               </div>
 
-              {/* Botão adicionar/atualizar no lote */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 gap-2 border-dashed"
-                  onClick={handleAddToBatch}
-                >
-                  <ListPlus className="h-4 w-4" />
-                  {editingLoteId ? "Atualizar serviço no lote" : "Adicionar serviço ao lote"}
-                </Button>
-                {editingLoteId && (
-                  <Button type="button" variant="ghost" onClick={clearServiceFields}>
-                    Cancelar
+              {/* Botão adicionar/atualizar no lote (oculto em modo de edição) */}
+              {!editForecast && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 gap-2 border-dashed"
+                    onClick={handleAddToBatch}
+                  >
+                    <ListPlus className="h-4 w-4" />
+                    {editingLoteId ? "Atualizar serviço no lote" : "Adicionar serviço ao lote"}
                   </Button>
-                )}
-              </div>
+                  {editingLoteId && (
+                    <Button type="button" variant="ghost" onClick={clearServiceFields}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Lista do lote */}
               {lote.length > 0 && (
@@ -971,6 +973,8 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
               <Button className="w-full" onClick={handleSave} disabled={saving}>
                 {saving
                   ? "Salvando..."
+                  : editForecast
+                  ? "Salvar alterações"
                   : (() => {
                       const extra = (vehicleId || pesoKg) && !editingLoteId ? 1 : 0;
                       const total = lote.length + extra;
