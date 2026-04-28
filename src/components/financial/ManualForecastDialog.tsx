@@ -93,6 +93,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setValorLitro("");
     setOutrosDescricao("");
     setOutrosValor("");
+    setClienteQuery("");
+    setVehicleQuery("");
+    setDriverQuery("");
   }, [open]);
 
   // Load options
