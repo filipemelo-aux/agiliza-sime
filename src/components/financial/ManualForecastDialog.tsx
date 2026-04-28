@@ -21,6 +21,7 @@ interface ManualForecastDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  appendToLote?: { loteId: string; clienteId: string } | null;
 }
 
 interface OptionItem {
