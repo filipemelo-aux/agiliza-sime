@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2 } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,14 +27,21 @@ const menuItems = [
     icon: DollarSign,
     children: [
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
-      { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
-      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
       { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "Bancos",
+    icon: Landmark,
+    children: [
+      { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
+      { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
+      { title: "Cartão de Crédito", url: "/admin/financial/credit-card", icon: CreditCard },
     ],
   },
   {
