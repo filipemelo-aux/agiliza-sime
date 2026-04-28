@@ -14,12 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2, Plus, PencilLine } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { ManualForecastDialog } from "./ManualForecastDialog";
 
 interface Previsao {
   id: string;
@@ -37,6 +38,7 @@ interface Previsao {
 const ORIGEM_ICON: Record<string, typeof Truck> = {
   cte: Truck,
   colheita: Sprout,
+  manual: PencilLine,
 };
 
 export function RevenueForecasts() {
