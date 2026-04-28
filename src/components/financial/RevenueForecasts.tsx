@@ -324,8 +324,12 @@ export function RevenueForecasts() {
 
       <ManualForecastDialog
         open={manualDialogOpen}
-        onOpenChange={setManualDialogOpen}
+        onOpenChange={(o) => {
+          setManualDialogOpen(o);
+          if (!o) setAppendToLote(null);
+        }}
         onSaved={fetchPrevisoes}
+        appendToLote={appendToLote}
       />
 
       {/* Summary - compact */}
