@@ -50,6 +50,21 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
   const [driverPopoverOpen, setDriverPopoverOpen] = useState(false);
   const [driverId, setDriverId] = useState<string>(""); // profile.id
 
+  // Search queries (only show results after typing)
+  const [clienteQuery, setClienteQuery] = useState("");
+  const [vehicleQuery, setVehicleQuery] = useState("");
+  const [driverQuery, setDriverQuery] = useState("");
+
+  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filterByQuery = <T extends OptionItem>(items: T[], q: string): T[] => {
+    const trimmed = q.trim();
+    if (trimmed.length < 1) return [];
+    const nq = norm(trimmed);
+    return items.filter(
+      (i) => norm(i.label).includes(nq) || (i.sublabel && norm(i.sublabel).includes(nq))
+    );
+  };
+
   // Campos do serviço
   const [dataServico, setDataServico] = useState<string>(getLocalDateISO());
   const [pesoKg, setPesoKg] = useState<string>("");
