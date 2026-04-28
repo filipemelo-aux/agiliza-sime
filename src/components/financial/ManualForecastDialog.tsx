@@ -113,7 +113,24 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setClienteQuery("");
     setVehicleQuery("");
     setDriverQuery("");
+    setLote([]);
   }, [open]);
+
+  // Lote (batch) de serviços
+  const [lote, setLote] = useState<LoteItem[]>([]);
+
+  const clearServiceFields = () => {
+    setVehicleId("");
+    setDriverId("");
+    setPesoKg("");
+    setValorTon("");
+    setDescontoTipo("nenhum");
+    setLitros("");
+    setValorLitro("");
+    setOutrosDescricao("");
+    setOutrosValor("");
+    setVehicleQuery("");
+    setDriverQuery("");
 
   // Load options
   const loadAll = async () => {
