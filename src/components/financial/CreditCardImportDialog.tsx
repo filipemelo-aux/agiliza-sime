@@ -13,7 +13,7 @@ import { Upload, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskName } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 
 const CENTRO_CUSTO_OPTIONS = [
@@ -158,24 +158,51 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (debits.length === 0) {
       toast.warning("Arquivo importado, mas não há lançamentos de débito.");
     }
-    const newRows: ItemRow[] = debits.map((t) => ({
-      fitid: t.fitid,
-      posted_date: t.date,
-      description: t.description || "Lançamento",
-      amount: Math.abs(t.amount),
-      plano_contas_id: null,
-      centro_custo: "operacional",
-      favorecido_id: null,
-      favorecido_nome: "",
-      observacoes: "",
-    }));
-    // Merge: avoid duplicates by fitid
+
+    // Check duplicates against ALL existing invoice items (any invoice) to avoid re-classifying
+    const fitids = debits.map((t) => t.fitid).filter(Boolean);
+    let alreadyImported = new Set<string>();
+    if (fitids.length > 0) {
+      const { data: dupes } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("fitid, invoice_id")
+        .in("fitid", fitids);
+      const currentInvoice = invoiceId || null;
+      ((dupes as any[]) || []).forEach((d) => {
+        // ignore matches that belong to the invoice currently being edited (those are already in `items`)
+        if (d.invoice_id !== currentInvoice && d.fitid) alreadyImported.add(d.fitid);
+      });
+    }
+
+    const newRows: ItemRow[] = debits
+      .filter((t) => !t.fitid || !alreadyImported.has(t.fitid))
+      .map((t) => ({
+        fitid: t.fitid,
+        posted_date: t.date,
+        description: t.description || "Lançamento",
+        amount: Math.abs(t.amount),
+        plano_contas_id: null,
+        centro_custo: "operacional",
+        favorecido_id: null,
+        favorecido_nome: "",
+        observacoes: "",
+      }));
+
+    // Merge: avoid duplicates by fitid against current dialog items as well
+    let addedCount = 0;
     setItems((prev) => {
       const existing = new Set(prev.map((p) => p.fitid).filter(Boolean));
-      const merged = [...prev, ...newRows.filter((r) => !r.fitid || !existing.has(r.fitid))];
+      const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
+      addedCount = filtered.length;
+      const merged = [...prev, ...filtered];
       return merged.sort((a, b) => a.posted_date.localeCompare(b.posted_date));
     });
-    toast.success(`${debits.length} lançamento(s) importado(s).`);
+
+    const skipped = debits.length - newRows.length;
+    if (skipped > 0) {
+      toast.info(`${skipped} lançamento(s) ignorado(s) por já estarem classificados em outra fatura.`);
+    }
+    toast.success(`${newRows.length} lançamento(s) importado(s).`);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -388,7 +415,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.fitid}-${idx}`}>
-                      <TableCell className="text-xs">{it.posted_date}</TableCell>
+                      <TableCell className="text-xs">{formatDateBR(it.posted_date)}</TableCell>
                       <TableCell>
                         <Input
                           className="h-8 text-xs"
