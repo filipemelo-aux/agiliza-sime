@@ -399,7 +399,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)] max-h-[92vh] p-0 overflow-hidden">
           <DialogHeader className="px-4 pt-4 pb-2">
-            <DialogTitle className="text-base">Nova Previsão Manual</DialogTitle>
+            <DialogTitle className="text-base">
+              {appendToLote ? "Adicionar serviços ao lote" : "Nova Previsão Manual"}
+            </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh]">
             <div className="px-4 pb-4 space-y-3">
