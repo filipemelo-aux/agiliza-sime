@@ -102,7 +102,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
   // Reset form
   useEffect(() => {
     if (!open) return;
-    setClienteId("");
+    setClienteId(appendToLote?.clienteId || "");
     setVehicleId("");
     setDriverId("");
     setDataServico(getLocalDateISO());
@@ -118,7 +118,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
     setDriverQuery("");
     setLote([]);
     setEditingLoteId(null);
-  }, [open]);
+  }, [open, appendToLote]);
 
   // Lote (batch) de serviços
   const [lote, setLote] = useState<LoteItem[]>([]);
