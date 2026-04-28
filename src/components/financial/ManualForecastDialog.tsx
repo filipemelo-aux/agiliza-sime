@@ -350,6 +350,8 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
 
     setSaving(true);
     try {
+      // Tag all rows with the same lote_id when there is more than one item
+      const loteId = items.length > 1 ? crypto.randomUUID() : null;
       const rows = items.map((it) => ({
         origem_tipo: "manual" as any,
         origem_id: crypto.randomUUID(),
