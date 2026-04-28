@@ -526,7 +526,7 @@ export function RevenueForecasts() {
                             <TableCell></TableCell>
                           </TableRow>
                         ))}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
