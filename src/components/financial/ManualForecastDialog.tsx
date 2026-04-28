@@ -51,7 +51,7 @@ interface LoteItem {
   valorLiquido: number;
 }
 
-export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualForecastDialogProps) {
+export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote }: ManualForecastDialogProps) {
   const navigate = useNavigate();
 
   // Cliente
