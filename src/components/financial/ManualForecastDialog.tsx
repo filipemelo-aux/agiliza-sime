@@ -278,7 +278,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedCliente && "text-muted-foreground")}>
                           {selectedCliente?.label || "Buscar cliente..."}
@@ -286,7 +286,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false}>
                         <CommandInput
                           placeholder="Digite para buscar..."
@@ -365,7 +365,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedVehicle && "text-muted-foreground")}>
                           {selectedVehicle?.label || "Buscar placa..."}
@@ -378,7 +378,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false}>
                         <CommandInput
                           placeholder="Digite a placa..."
@@ -458,7 +458,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedDriver && "text-muted-foreground")}>
                           {selectedDriver?.label || "Buscar motorista..."}
@@ -466,7 +466,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false}>
                         <CommandInput
                           placeholder="Digite o nome..."
