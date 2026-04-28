@@ -54,6 +54,12 @@ export function RevenueForecasts() {
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
+
+  const openAppendDialog = (loteId: string, clienteId: string) => {
+    setAppendToLote({ loteId, clienteId });
+    setManualDialogOpen(true);
+  };
 
   const INTERVALO_PRESETS = [
     { value: "7", label: "7 dias" },
