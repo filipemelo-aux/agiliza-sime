@@ -116,6 +116,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setVehicleQuery("");
     setDriverQuery("");
     setLote([]);
+    setEditingLoteId(null);
   }, [open]);
 
   // Lote (batch) de serviços
