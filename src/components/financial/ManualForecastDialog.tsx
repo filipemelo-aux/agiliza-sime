@@ -288,7 +288,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite para buscar..."
                           value={clienteQuery}
                           onValueChange={setClienteQuery}
@@ -380,7 +380,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite a placa..."
                           value={vehicleQuery}
                           onValueChange={setVehicleQuery}
@@ -468,7 +468,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite o nome..."
                           value={driverQuery}
                           onValueChange={setDriverQuery}
