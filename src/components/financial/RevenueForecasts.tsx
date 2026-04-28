@@ -138,7 +138,12 @@ export function RevenueForecasts() {
     return order.map((key) => {
       const items = buckets.get(key)!;
       if (key.startsWith("lote:") && items.length > 1) {
-        return { kind: "lote" as const, id: key, loteId: key.slice(5), items };
+        const sorted = [...items].sort((a, b) => {
+          const dateCmp = (a.data_prevista || "").localeCompare(b.data_prevista || "");
+          if (dateCmp !== 0) return dateCmp;
+          return (a.created_at || "").localeCompare(b.created_at || "");
+        });
+        return { kind: "lote" as const, id: key, loteId: key.slice(5), items: sorted };
       }
       return { kind: "single" as const, id: items[0].id, previsao: items[0] };
     });
