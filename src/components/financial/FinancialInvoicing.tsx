@@ -964,7 +964,7 @@ ${previsoes.length > 0 ? `
                       {detailPrevisoes.map((p) => (
                         <TableRow key={p.id}>
                           <TableCell className="text-xs">
-                            <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : "Colheita"}</Badge>
+                            <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : p.origem_tipo === "manual" ? "Manual" : "Colheita"}</Badge>
                           </TableCell>
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
