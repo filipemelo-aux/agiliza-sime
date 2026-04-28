@@ -438,11 +438,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       </TableCell>
                       <TableCell>
                         <PersonSearchInput
-                          value={it.favorecido_nome}
-                          onChange={(name, id) => updateItem(idx, { favorecido_nome: name, favorecido_id: id || null })}
+                          categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
                           placeholder="Opcional..."
-                          disabled={isClosed}
-                          className="h-8 text-xs"
+                          selectedName={it.favorecido_nome}
+                          onSelect={(p) => updateItem(idx, { favorecido_nome: p.full_name, favorecido_id: p.id })}
+                          onClear={() => updateItem(idx, { favorecido_nome: "", favorecido_id: null })}
                         />
                       </TableCell>
                       <TableCell>
