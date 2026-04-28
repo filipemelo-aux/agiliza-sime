@@ -379,47 +379,59 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Digite a placa..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Digite a placa..."
+                          value={vehicleQuery}
+                          onValueChange={setVehicleQuery}
+                        />
                         <CommandList>
-                          <CommandEmpty>
-                            <div className="p-2 space-y-2">
-                              <p className="text-xs text-muted-foreground">Placa não cadastrada.</p>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full gap-1"
-                                onClick={handleCadastrarPlaca}
-                              >
-                                <Plus className="h-3 w-3" /> Cadastrar veículo
-                              </Button>
+                          {vehicleQuery.trim().length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              Digite para buscar placas
                             </div>
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {vehicles.map((v) => (
-                              <CommandItem
-                                key={v.id}
-                                value={`${v.label} ${v.sublabel || ""}`}
-                                onSelect={() => {
-                                  setVehicleId(v.id);
-                                  setVehiclePopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    vehicleId === v.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-mono">{v.label}</span>
-                                  {v.sublabel && (
-                                    <span className="text-[10px] text-muted-foreground">{v.sublabel}</span>
-                                  )}
+                          ) : (
+                            <>
+                              <CommandEmpty>
+                                <div className="p-2 space-y-2">
+                                  <p className="text-xs text-muted-foreground">Placa não cadastrada.</p>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full gap-1"
+                                    onClick={handleCadastrarPlaca}
+                                  >
+                                    <Plus className="h-3 w-3" /> Cadastrar veículo
+                                  </Button>
                                 </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {filterByQuery(vehicles, vehicleQuery).map((v) => (
+                                  <CommandItem
+                                    key={v.id}
+                                    value={`${v.label} ${v.sublabel || ""}`}
+                                    onSelect={() => {
+                                      setVehicleId(v.id);
+                                      setVehiclePopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        vehicleId === v.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-mono">{v.label}</span>
+                                      {v.sublabel && (
+                                        <span className="text-[10px] text-muted-foreground">{v.sublabel}</span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
                         </CommandList>
                       </Command>
                     </PopoverContent>
