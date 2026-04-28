@@ -503,6 +503,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                     onSelect={() => {
                                       setVehicleId(v.id);
                                       setVehiclePopoverOpen(false);
+                                      // Auto-link driver based on vehicle's driver_id (auth user_id)
+                                      if (v.driverUserId && !driverId) {
+                                        const matched = drivers.find((d) => d.userId === v.driverUserId);
+                                        if (matched) setDriverId(matched.id);
+                                      }
                                     }}
                                   >
                                     <Check
