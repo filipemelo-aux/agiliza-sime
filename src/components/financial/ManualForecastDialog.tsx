@@ -278,7 +278,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedCliente && "text-muted-foreground")}>
                           {selectedCliente?.label || "Buscar cliente..."}
@@ -286,9 +286,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                      <Command shouldFilter={false} className="bg-popover">
+                        <CommandInput className="h-10 text-xs"
                           placeholder="Digite para buscar..."
                           value={clienteQuery}
                           onValueChange={setClienteQuery}
@@ -301,7 +301,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                           ) : (
                             <>
                               <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(clientes, clienteQuery).map((c) => (
                                   <CommandItem
                                     key={c.id}
@@ -365,7 +365,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedVehicle && "text-muted-foreground")}>
                           {selectedVehicle?.label || "Buscar placa..."}
@@ -378,9 +378,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                      <Command shouldFilter={false} className="bg-popover">
+                        <CommandInput className="h-10 text-xs"
                           placeholder="Digite a placa..."
                           value={vehicleQuery}
                           onValueChange={setVehicleQuery}
@@ -405,7 +405,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                   </Button>
                                 </div>
                               </CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(vehicles, vehicleQuery).map((v) => (
                                   <CommandItem
                                     key={v.id}
@@ -458,7 +458,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2"
+                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
                       >
                         <span className={cn("truncate", !selectedDriver && "text-muted-foreground")}>
                           {selectedDriver?.label || "Buscar motorista..."}
@@ -466,9 +466,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                      <Command shouldFilter={false} className="bg-popover">
+                        <CommandInput className="h-10 text-xs"
                           placeholder="Digite o nome..."
                           value={driverQuery}
                           onValueChange={setDriverQuery}
@@ -493,7 +493,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                                   </Button>
                                 </div>
                               </CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="p-1.5">
                                 {filterByQuery(drivers, driverQuery).map((d) => (
                                   <CommandItem
                                     key={d.id}
