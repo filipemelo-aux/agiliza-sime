@@ -302,32 +302,88 @@ export function RevenueForecasts() {
         </Card>
       ) : isMobile ? (
         <div className="grid grid-cols-1 gap-2">
-          {previsoes.map((p) => {
-            const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
-            const isPendente = p.status === "pendente";
+          {[...pendentesGroups, ...faturadasGroups].map((g) => {
+            if (g.kind === "single") {
+              const p = g.previsao;
+              const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
+              const isPendente = p.status === "pendente";
+              return (
+                <Card key={p.id}>
+                  <CardContent className="p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isPendente && (
+                          <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
+                        )}
+                        <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
+                      </div>
+                      <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5 shrink-0">
+                        {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                        {isPendente ? "Pendente" : "Faturado"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Icon className="h-3 w-3" />
+                        <span className="uppercase">{p.origem_tipo}</span>
+                        <span>· {formatDateBR(p.data_prevista)}</span>
+                      </div>
+                      <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
+            // Lote group (mobile)
+            const ids = g.items.map((i) => i.id);
+            const allPendente = g.items.every((i) => i.status === "pendente");
+            const allSelected = allPendente && ids.every((id) => selected.has(id));
+            const someSelected = allPendente && ids.some((id) => selected.has(id));
+            const total = g.items.reduce((s, i) => s + Number(i.valor), 0);
+            const cliente = g.items[0].cliente_nome;
+            const isOpen = expandedLotes.has(g.id);
+            const datas = g.items.map((i) => i.data_prevista).sort();
+            const dateRange = datas[0] === datas[datas.length - 1]
+              ? formatDateBR(datas[0])
+              : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
             return (
-              <Card key={p.id}>
+              <Card key={g.id} className="border-primary/30">
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      {isPendente && (
-                        <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
+                      {allPendente && (
+                        <Checkbox
+                          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                          onCheckedChange={() => toggleSelectGroup(ids)}
+                        />
                       )}
-                      <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
+                      <button onClick={() => toggleExpanded(g.id)} className="flex items-center gap-1 min-w-0">
+                        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <p className="text-sm font-semibold text-foreground truncate">{cliente}</p>
+                      </button>
                     </div>
-                    <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5 shrink-0">
-                      {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                      {isPendente ? "Pendente" : "Faturado"}
+                    <Badge variant="outline" className="text-[10px] shrink-0 border-primary/40 text-primary">
+                      Lote · {g.items.length}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Icon className="h-3 w-3" />
-                      <span className="uppercase">{p.origem_tipo}</span>
-                      <span>· {formatDateBR(p.data_prevista)}</span>
-                    </div>
-                    <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
+                    <span className="text-muted-foreground">{dateRange}</span>
+                    <span className="font-mono font-bold text-foreground">{formatCurrency(total)}</span>
                   </div>
+                  {isOpen && (
+                    <div className="mt-2 pt-2 border-t border-border space-y-1">
+                      {g.items.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between text-[11px] pl-5">
+                          <span className="text-muted-foreground">
+                            {formatDateBR(p.data_prevista)}
+                            {p.metadata?.placa ? ` · ${p.metadata.placa}` : ""}
+                          </span>
+                          <span className="font-mono">{formatCurrency(Number(p.valor))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -346,6 +402,7 @@ export function RevenueForecasts() {
                         onCheckedChange={toggleAll}
                       />
                     </TableHead>
+                    <TableHead className="w-6"></TableHead>
                     <TableHead className="text-xs">Origem</TableHead>
                     <TableHead className="text-xs">Cliente</TableHead>
                     <TableHead className="text-xs">Data Prevista</TableHead>
@@ -354,37 +411,122 @@ export function RevenueForecasts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {previsoes.map((p) => {
-                    const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
-                    const isPendente = p.status === "pendente";
+                  {[...pendentesGroups, ...faturadasGroups].map((g) => {
+                    if (g.kind === "single") {
+                      const p = g.previsao;
+                      const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
+                      const isPendente = p.status === "pendente";
+                      return (
+                        <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
+                          <TableCell>
+                            {isPendente && (
+                              <Checkbox
+                                checked={selected.has(p.id)}
+                                onCheckedChange={() => toggleSelect(p.id)}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell></TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs uppercase">{p.origem_tipo}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">{p.cliente_nome}</TableCell>
+                          <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
+                          <TableCell>
+                            <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                              {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                              {isPendente ? "Pendente" : "Faturado"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                    // Lote group (desktop)
+                    const ids = g.items.map((i) => i.id);
+                    const allPendente = g.items.every((i) => i.status === "pendente");
+                    const allSelected = allPendente && ids.every((id) => selected.has(id));
+                    const someSelected = allPendente && ids.some((id) => selected.has(id));
+                    const total = g.items.reduce((s, i) => s + Number(i.valor), 0);
+                    const isOpen = expandedLotes.has(g.id);
+                    const datas = g.items.map((i) => i.data_prevista).sort();
+                    const dateRange = datas[0] === datas[datas.length - 1]
+                      ? formatDateBR(datas[0])
+                      : `${formatDateBR(datas[0])} – ${formatDateBR(datas[datas.length - 1])}`;
+                    const Icon = ORIGEM_ICON[g.items[0].origem_tipo] || FileText;
                     return (
-                      <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
-                        <TableCell>
-                          {isPendente && (
-                            <Checkbox
-                              checked={selected.has(p.id)}
-                              onCheckedChange={() => toggleSelect(p.id)}
-                            />
+                      <>
+                        <TableRow
+                          key={g.id}
+                          className={cn(
+                            "border-l-2 border-l-primary/60",
+                            allSelected ? "bg-accent/30" : "bg-primary/5"
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-xs uppercase">{p.origem_tipo}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">{p.cliente_nome}</TableCell>
-                        <TableCell className="text-xs">
-                          {formatDateBR(p.data_prevista)}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
-                        <TableCell>
-                          <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                            {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                            {isPendente ? "Pendente" : "Faturado"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
+                        >
+                          <TableCell>
+                            {allPendente && (
+                              <Checkbox
+                                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                                onCheckedChange={() => toggleSelectGroup(ids)}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(g.id)}
+                              className="text-muted-foreground hover:text-foreground"
+                              title={isOpen ? "Recolher" : "Expandir"}
+                            >
+                              {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            </button>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-xs uppercase font-semibold text-primary">Lote · {g.items.length}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs font-medium">{g.items[0].cliente_nome}</TableCell>
+                          <TableCell className="text-xs">{dateRange}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
+                          <TableCell>
+                            <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                              {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                              {allPendente ? "Pendente" : "Faturado"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                        {isOpen && g.items.map((p) => (
+                          <TableRow key={p.id} className={cn("bg-muted/20", selected.has(p.id) && "bg-accent/20")}>
+                            <TableCell>
+                              {p.status === "pendente" && (
+                                <Checkbox
+                                  checked={selected.has(p.id)}
+                                  onCheckedChange={() => toggleSelect(p.id)}
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="pl-8">
+                              <div className="flex items-center gap-1.5">
+                                <Icon className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-[10px] uppercase text-muted-foreground">{p.origem_tipo}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">
+                              {p.metadata?.placa || "—"}
+                              {p.metadata?.motorista ? ` · ${p.metadata.motorista}` : ""}
+                            </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
+                            <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        ))}
+                      </>
                     );
                   })}
                 </TableBody>
