@@ -260,12 +260,12 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 justify-between font-normal h-11"
+                        className="flex-1 justify-between font-normal h-9 text-xs px-2"
                       >
                         <span className={cn("truncate", !selectedCliente && "text-muted-foreground")}>
                           {selectedCliente?.label || "Buscar cliente..."}
                         </span>
-                        <Search className="h-4 w-4 opacity-50 shrink-0" />
+                        <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
@@ -306,11 +306,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 shrink-0"
+                    className="h-9 w-9 shrink-0"
                     onClick={() => setCreateClienteOpen(true)}
                     title="Cadastrar novo cliente"
                   >
-                    <UserPlus className="h-4 w-4" />
+                    <UserPlus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 justify-between font-normal h-11"
+                        className="flex-1 justify-between font-normal h-9 text-xs px-2"
                       >
                         <span className={cn("truncate", !selectedVehicle && "text-muted-foreground")}>
                           {selectedVehicle?.label || "Buscar placa..."}
@@ -344,7 +344,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                             </span>
                           )}
                         </span>
-                        <Search className="h-4 w-4 opacity-50 shrink-0" />
+                        <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
@@ -397,11 +397,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 shrink-0"
+                    className="h-9 w-9 shrink-0"
                     onClick={handleCadastrarPlaca}
                     title="Cadastrar veículo"
                   >
-                    <Truck className="h-4 w-4" />
+                    <Truck className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -415,12 +415,12 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="flex-1 justify-between font-normal h-11"
+                        className="flex-1 justify-between font-normal h-9 text-xs px-2"
                       >
                         <span className={cn("truncate", !selectedDriver && "text-muted-foreground")}>
                           {selectedDriver?.label || "Buscar motorista..."}
                         </span>
-                        <Search className="h-4 w-4 opacity-50 shrink-0" />
+                        <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
@@ -468,11 +468,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 shrink-0"
+                    className="h-9 w-9 shrink-0"
                     onClick={handleCadastrarMotorista}
                     title="Cadastrar motorista"
                   >
-                    <User className="h-4 w-4" />
+                    <User className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
