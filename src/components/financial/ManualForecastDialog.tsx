@@ -284,12 +284,42 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     if (!clienteId) return toast.error("Selecione o cliente");
     const item = buildCurrentItem();
     if (!item) return;
-    setLote((prev) => [...prev, item]);
+    if (editingLoteId) {
+      setLote((prev) => prev.map((i) => (i.id === editingLoteId ? { ...item, id: editingLoteId } : i)));
+      toast.success("Serviço atualizado no lote");
+    } else {
+      setLote((prev) => [...prev, item]);
+      toast.success("Serviço adicionado ao lote");
+    }
     clearServiceFields();
-    toast.success("Serviço adicionado ao lote");
+  };
+
+  const handleEditLoteItem = (it: LoteItem) => {
+    setEditingLoteId(it.id);
+    setVehicleId(it.vehicleId);
+    setDriverId(it.driverId);
+    setDataServico(it.dataServico);
+    setPesoKg(String(it.pesoKg).replace(".", ","));
+    setValorTon(maskCurrency(String(Math.round(it.valorPorTon * 100))));
+    setDescontoTipo(it.descontoTipo);
+    if (it.descontoTipo === "diesel") {
+      setLitros(String(it.descontoDetalhe.litros ?? "").replace(".", ","));
+      setValorLitro(maskCurrency(String(Math.round((it.descontoDetalhe.valor_litro ?? 0) * 100))));
+    } else {
+      setLitros("");
+      setValorLitro("");
+    }
+    if (it.descontoTipo === "outros") {
+      setOutrosDescricao(it.descontoDetalhe.descricao ?? "");
+      setOutrosValor(maskCurrency(String(Math.round((it.descontoDetalhe.valor ?? 0) * 100))));
+    } else {
+      setOutrosDescricao("");
+      setOutrosValor("");
+    }
   };
 
   const handleRemoveFromBatch = (id: string) => {
+    if (editingLoteId === id) clearServiceFields();
     setLote((prev) => prev.filter((i) => i.id !== id));
   };
 
