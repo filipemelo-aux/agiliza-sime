@@ -131,6 +131,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setOutrosValor("");
     setVehicleQuery("");
     setDriverQuery("");
+  };
 
   // Load options
   const loadAll = async () => {
