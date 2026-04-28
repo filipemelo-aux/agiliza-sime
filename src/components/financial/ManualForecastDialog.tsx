@@ -361,6 +361,8 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
         status: "pendente" as any,
         metadata: {
           tipo: "manual",
+          lote_id: loteId,
+          lote_total: items.length,
           placa: it.placa,
           veiculo_id: it.vehicleId,
           motorista: it.motorista,
