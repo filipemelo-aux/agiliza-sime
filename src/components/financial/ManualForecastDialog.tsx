@@ -21,6 +21,7 @@ interface ManualForecastDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  appendToLote?: { loteId: string; clienteId: string } | null;
 }
 
 interface OptionItem {
@@ -50,7 +51,7 @@ interface LoteItem {
   valorLiquido: number;
 }
 
-export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualForecastDialogProps) {
+export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote }: ManualForecastDialogProps) {
   const navigate = useNavigate();
 
   // Cliente
@@ -101,7 +102,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
   // Reset form
   useEffect(() => {
     if (!open) return;
-    setClienteId("");
+    setClienteId(appendToLote?.clienteId || "");
     setVehicleId("");
     setDriverId("");
     setDataServico(getLocalDateISO());
@@ -117,7 +118,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setDriverQuery("");
     setLote([]);
     setEditingLoteId(null);
-  }, [open]);
+  }, [open, appendToLote]);
 
   // Lote (batch) de serviços
   const [lote, setLote] = useState<LoteItem[]>([]);
@@ -350,8 +351,8 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
 
     setSaving(true);
     try {
-      // Tag all rows with the same lote_id when there is more than one item
-      const loteId = items.length > 1 ? crypto.randomUUID() : null;
+      // Tag all rows with the same lote_id when there is more than one item OR when appending to an existing lote
+      const loteId = appendToLote?.loteId ?? (items.length > 1 ? crypto.randomUUID() : null);
       const rows = items.map((it) => ({
         origem_tipo: "manual" as any,
         origem_id: crypto.randomUUID(),
@@ -398,84 +399,92 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)] max-h-[92vh] p-0 overflow-hidden">
           <DialogHeader className="px-4 pt-4 pb-2">
-            <DialogTitle className="text-base">Nova Previsão Manual</DialogTitle>
+            <DialogTitle className="text-base">
+              {appendToLote ? "Adicionar serviços ao lote" : "Nova Previsão Manual"}
+            </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh]">
             <div className="px-4 pb-4 space-y-3">
               {/* Cliente */}
               <div className="space-y-1">
                 <Label className="text-xs">Cliente</Label>
-                <div className="flex gap-1.5">
-                  <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
-                      >
-                        <span className={cn("truncate", !selectedCliente && "text-muted-foreground")}>
-                          {selectedCliente?.label || "Buscar cliente..."}
-                        </span>
-                        <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
-                      <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
-                          placeholder="Digite para buscar..."
-                          value={clienteQuery}
-                          onValueChange={setClienteQuery}
-                        />
-                        <CommandList>
-                          {clienteQuery.trim().length === 0 ? (
-                            <div className="py-6 text-center text-xs text-muted-foreground">
-                              Digite para buscar clientes
-                            </div>
-                          ) : (
-                            <>
-                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                              <CommandGroup className="p-1.5">
-                                {filterByQuery(clientes, clienteQuery).map((c) => (
-                                  <CommandItem
-                                    key={c.id}
-                                    value={`${c.label} ${c.sublabel || ""}`}
-                                    onSelect={() => {
-                                      setClienteId(c.id);
-                                      setClientePopoverOpen(false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        clienteId === c.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="text-sm">{c.label}</span>
-                                      {c.sublabel && (
-                                        <span className="text-[10px] text-muted-foreground">{c.sublabel}</span>
-                                      )}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </>
-                          )}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={() => setCreateClienteOpen(true)}
-                    title="Cadastrar novo cliente"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {appendToLote ? (
+                  <div className="h-9 px-2.5 flex items-center text-xs rounded-md border border-input bg-muted/40 text-foreground truncate">
+                    {selectedCliente?.label || "Carregando..."}
+                  </div>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="flex-1 min-w-0 justify-between font-normal h-9 text-xs px-2.5 border-input hover:border-primary/40 hover:bg-background focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:border-primary/50 transition-colors"
+                        >
+                          <span className={cn("truncate", !selectedCliente && "text-muted-foreground")}>
+                            {selectedCliente?.label || "Buscar cliente..."}
+                          </span>
+                          <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
+                        <Command shouldFilter={false} className="bg-popover">
+                          <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
+                            placeholder="Digite para buscar..."
+                            value={clienteQuery}
+                            onValueChange={setClienteQuery}
+                          />
+                          <CommandList>
+                            {clienteQuery.trim().length === 0 ? (
+                              <div className="py-6 text-center text-xs text-muted-foreground">
+                                Digite para buscar clientes
+                              </div>
+                            ) : (
+                              <>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup className="p-1.5">
+                                  {filterByQuery(clientes, clienteQuery).map((c) => (
+                                    <CommandItem
+                                      key={c.id}
+                                      value={`${c.label} ${c.sublabel || ""}`}
+                                      onSelect={() => {
+                                        setClienteId(c.id);
+                                        setClientePopoverOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          clienteId === c.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="text-sm">{c.label}</span>
+                                        {c.sublabel && (
+                                          <span className="text-[10px] text-muted-foreground">{c.sublabel}</span>
+                                        )}
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </>
+                            )}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => setCreateClienteOpen(true)}
+                      title="Cadastrar novo cliente"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Data */}

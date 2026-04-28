@@ -54,6 +54,12 @@ export function RevenueForecasts() {
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
+
+  const openAppendDialog = (loteId: string, clienteId: string) => {
+    setAppendToLote({ loteId, clienteId });
+    setManualDialogOpen(true);
+  };
 
   const INTERVALO_PRESETS = [
     { value: "7", label: "7 dias" },
@@ -318,8 +324,12 @@ export function RevenueForecasts() {
 
       <ManualForecastDialog
         open={manualDialogOpen}
-        onOpenChange={setManualDialogOpen}
+        onOpenChange={(o) => {
+          setManualDialogOpen(o);
+          if (!o) setAppendToLote(null);
+        }}
         onSaved={fetchPrevisoes}
+        appendToLote={appendToLote}
       />
 
       {/* Summary - compact */}
@@ -449,6 +459,18 @@ export function RevenueForecasts() {
                     <span className="text-muted-foreground">{dateRange}</span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(total)}</span>
                   </div>
+                  {allPendente && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px] gap-1 w-full"
+                      onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Adicionar serviço ao lote
+                    </Button>
+                  )}
                   {isOpen && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                       {g.items.map((p) => (
@@ -572,10 +594,25 @@ export function RevenueForecasts() {
                           <TableCell className="text-xs">{dateRange}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
                           <TableCell>
-                            <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
-                              {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
-                              {allPendente ? "Pendente" : "Faturado"}
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={allPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
+                                {allPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
+                                {allPendente ? "Pendente" : "Faturado"}
+                              </Badge>
+                              {allPendente && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[10px] gap-1"
+                                  onClick={() => openAppendDialog(g.loteId, g.items[0].cliente_id)}
+                                  title="Adicionar serviços ao lote"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  Adicionar
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                         {isOpen && g.items.map((p) => (
