@@ -167,12 +167,14 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
         id: v.id,
         label: v.plate,
         sublabel: [v.brand, v.model].filter(Boolean).join(" "),
+        driverUserId: v.driver_id || undefined,
       }))
     );
     setDrivers(
       (drvData || []).map((d: any) => ({
         id: d.id,
         label: d.full_name,
+        userId: d.user_id || undefined,
       }))
     );
   };
