@@ -492,6 +492,154 @@ export type Database = {
           },
         ]
       }
+      credit_card_invoice_items: {
+        Row: {
+          amount: number
+          centro_custo: string | null
+          created_at: string
+          description: string
+          favorecido_id: string | null
+          favorecido_nome: string | null
+          fitid: string | null
+          id: string
+          ignored: boolean
+          invoice_id: string
+          observacoes: string | null
+          plano_contas_id: string | null
+          posted_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          centro_custo?: string | null
+          created_at?: string
+          description: string
+          favorecido_id?: string | null
+          favorecido_nome?: string | null
+          fitid?: string | null
+          id?: string
+          ignored?: boolean
+          invoice_id: string
+          observacoes?: string | null
+          plano_contas_id?: string | null
+          posted_date: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          centro_custo?: string | null
+          created_at?: string
+          description?: string
+          favorecido_id?: string | null
+          favorecido_nome?: string | null
+          fitid?: string | null
+          id?: string
+          ignored?: boolean
+          invoice_id?: string
+          observacoes?: string | null
+          plano_contas_id?: string | null
+          posted_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoice_items_favorecido_id_fkey"
+            columns: ["favorecido_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoice_items_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_card_invoices: {
+        Row: {
+          card_name: string
+          closing_date: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_date: string
+          empresa_id: string | null
+          expense_id: string | null
+          id: string
+          observacoes: string | null
+          ofx_account_id: string | null
+          ofx_bank_name: string | null
+          ofx_file_name: string | null
+          reference_label: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          card_name: string
+          closing_date?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          due_date: string
+          empresa_id?: string | null
+          expense_id?: string | null
+          id?: string
+          observacoes?: string | null
+          ofx_account_id?: string | null
+          ofx_bank_name?: string | null
+          ofx_file_name?: string | null
+          reference_label?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          card_name?: string
+          closing_date?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          due_date?: string
+          empresa_id?: string | null
+          expense_id?: string | null
+          id?: string
+          observacoes?: string | null
+          ofx_account_id?: string | null
+          ofx_bank_name?: string | null
+          ofx_file_name?: string | null
+          reference_label?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoices_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoices_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ctes: {
         Row: {
           aliquota_icms: number
