@@ -779,16 +779,23 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 </span>
               </div>
 
-              {/* Botão adicionar ao lote */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full gap-2 border-dashed"
-                onClick={handleAddToBatch}
-              >
-                <ListPlus className="h-4 w-4" />
-                Adicionar serviço ao lote
-              </Button>
+              {/* Botão adicionar/atualizar no lote */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 gap-2 border-dashed"
+                  onClick={handleAddToBatch}
+                >
+                  <ListPlus className="h-4 w-4" />
+                  {editingLoteId ? "Atualizar serviço no lote" : "Adicionar serviço ao lote"}
+                </Button>
+                {editingLoteId && (
+                  <Button type="button" variant="ghost" onClick={clearServiceFields}>
+                    Cancelar
+                  </Button>
+                )}
+              </div>
 
               {/* Lista do lote */}
               {lote.length > 0 && (
@@ -802,37 +809,52 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                     </span>
                   </div>
                   <div className="space-y-1.5 max-h-44 overflow-y-auto">
-                    {lote.map((it, idx) => (
-                      <div
-                        key={it.id}
-                        className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-2 py-1.5"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span className="font-mono">#{idx + 1}</span>
-                            <span>
-                              {new Date(it.dataServico + "T12:00:00").toLocaleDateString("pt-BR")}
-                            </span>
-                            <span className="font-mono">{it.placa}</span>
-                          </div>
-                          <div className="text-xs truncate">
-                            {it.motorista} · {it.pesoTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t
-                          </div>
-                        </div>
-                        <span className="font-mono text-xs font-semibold shrink-0">
-                          {formatCurrency(it.valorLiquido)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveFromBatch(it.id)}
+                    {lote.map((it, idx) => {
+                      const isEditing = editingLoteId === it.id;
+                      return (
+                        <div
+                          key={it.id}
+                          className={cn(
+                            "flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors",
+                            isEditing
+                              ? "border-primary/60 bg-primary/5"
+                              : "border-border/60 bg-background hover:border-primary/40 hover:bg-muted/40 cursor-pointer"
+                          )}
+                          onClick={() => !isEditing && handleEditLoteItem(it)}
+                          role="button"
+                          title={isEditing ? "Editando..." : "Clique para editar"}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="font-mono">#{idx + 1}</span>
+                              <span>
+                                {new Date(it.dataServico + "T12:00:00").toLocaleDateString("pt-BR")}
+                              </span>
+                              <span className="font-mono">{it.placa}</span>
+                              {isEditing && <span className="text-primary font-semibold">editando</span>}
+                            </div>
+                            <div className="text-xs truncate">
+                              {it.motorista} · {it.pesoTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t
+                            </div>
+                          </div>
+                          <span className="font-mono text-xs font-semibold shrink-0">
+                            {formatCurrency(it.valorLiquido)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFromBatch(it.id);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -840,9 +862,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
               <Button className="w-full" onClick={handleSave} disabled={saving}>
                 {saving
                   ? "Salvando..."
-                  : lote.length > 0
-                    ? `Salvar ${lote.length + (vehicleId || pesoKg ? 1 : 0)} previsões`
-                    : "Salvar Previsão"}
+                  : (() => {
+                      const extra = (vehicleId || pesoKg) && !editingLoteId ? 1 : 0;
+                      const total = lote.length + extra;
+                      return total > 1 ? `Salvar ${total} previsões` : "Salvar Previsão";
+                    })()}
               </Button>
             </div>
           </ScrollArea>
