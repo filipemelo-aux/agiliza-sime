@@ -286,9 +286,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite para buscar..."
                           value={clienteQuery}
                           onValueChange={setClienteQuery}
@@ -378,9 +378,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite a placa..."
                           value={vehicleQuery}
                           onValueChange={setVehicleQuery}
@@ -466,9 +466,9 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                         <Search className="h-3.5 w-3.5 opacity-50 shrink-0 ml-1" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden" align="start" sideOffset={4}>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-border/60 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)]" align="start" sideOffset={4}>
                       <Command shouldFilter={false} className="bg-popover">
-                        <CommandInput className="h-10 text-xs"
+                        <CommandInput className="h-10 text-xs border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none w-full max-w-full"
                           placeholder="Digite o nome..."
                           value={driverQuery}
                           onValueChange={setDriverQuery}
