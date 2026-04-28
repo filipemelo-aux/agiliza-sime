@@ -248,7 +248,7 @@ export function RevenueForecasts() {
           <CardContent className="p-8 text-center">
             <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Nenhuma previsão de recebimento encontrada.</p>
-            <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita.</p>
+            <p className="text-muted-foreground text-xs mt-1">Previsões são geradas automaticamente ao autorizar CT-e ou registrar pagamentos de colheita. Você também pode criar uma previsão manual no botão acima.</p>
           </CardContent>
         </Card>
       ) : isMobile ? (
