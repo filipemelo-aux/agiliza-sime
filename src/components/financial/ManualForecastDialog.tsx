@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, Search, Check, UserPlus, Truck, User } from "lucide-react";
+import { Plus, Search, Check, UserPlus, Truck, User, Trash2, ListPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,23 @@ interface OptionItem {
 }
 
 type DescontoTipo = "nenhum" | "diesel" | "outros";
+
+interface LoteItem {
+  id: string; // local UUID
+  dataServico: string;
+  vehicleId: string;
+  placa: string;
+  driverId: string;
+  motorista: string;
+  pesoKg: number;
+  pesoTon: number;
+  valorPorTon: number;
+  valorBruto: number;
+  descontoTipo: DescontoTipo;
+  descontoDetalhe: Record<string, any>;
+  valorDesconto: number;
+  valorLiquido: number;
+}
 
 export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualForecastDialogProps) {
   const navigate = useNavigate();
@@ -96,7 +113,25 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
     setClienteQuery("");
     setVehicleQuery("");
     setDriverQuery("");
+    setLote([]);
   }, [open]);
+
+  // Lote (batch) de serviços
+  const [lote, setLote] = useState<LoteItem[]>([]);
+
+  const clearServiceFields = () => {
+    setVehicleId("");
+    setDriverId("");
+    setPesoKg("");
+    setValorTon("");
+    setDescontoTipo("nenhum");
+    setLitros("");
+    setValorLitro("");
+    setOutrosDescricao("");
+    setOutrosValor("");
+    setVehicleQuery("");
+    setDriverQuery("");
+  };
 
   // Load options
   const loadAll = async () => {
@@ -201,60 +236,111 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const selectedDriver = drivers.find((d) => d.id === driverId);
 
+  const buildCurrentItem = (): LoteItem | null => {
+    if (!vehicleId) { toast.error("Selecione a placa"); return null; }
+    if (!driverId) { toast.error("Selecione o motorista"); return null; }
+    if (!dataServico) { toast.error("Informe a data do serviço"); return null; }
+    if (pesoTon <= 0) { toast.error("Informe o peso em quilos"); return null; }
+    if (valorPorTon <= 0) { toast.error("Informe o valor por tonelada"); return null; }
+    if (descontoTipo === "outros" && !outrosDescricao.trim()) { toast.error("Descreva o desconto"); return null; }
+    if (valorLiquido <= 0) { toast.error("Valor líquido deve ser maior que zero"); return null; }
+
+    const descontoDetalhe: Record<string, any> = { tipo: descontoTipo };
+    if (descontoTipo === "diesel") {
+      descontoDetalhe.litros = parseFloat(litros.replace(",", ".")) || 0;
+      descontoDetalhe.valor_litro = toNumber(valorLitro);
+    }
+    if (descontoTipo === "outros") {
+      descontoDetalhe.descricao = outrosDescricao.trim();
+      descontoDetalhe.valor = toNumber(outrosValor);
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      dataServico,
+      vehicleId,
+      placa: selectedVehicle?.label || "",
+      driverId,
+      motorista: selectedDriver?.label || "",
+      pesoKg: parseFloat(pesoKg.replace(",", ".")),
+      pesoTon,
+      valorPorTon,
+      valorBruto,
+      descontoTipo,
+      descontoDetalhe,
+      valorDesconto,
+      valorLiquido,
+    };
+  };
+
+  const handleAddToBatch = () => {
+    if (!clienteId) return toast.error("Selecione o cliente");
+    const item = buildCurrentItem();
+    if (!item) return;
+    setLote((prev) => [...prev, item]);
+    clearServiceFields();
+    toast.success("Serviço adicionado ao lote");
+  };
+
+  const handleRemoveFromBatch = (id: string) => {
+    setLote((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const totalLote = useMemo(
+    () => lote.reduce((sum, i) => sum + i.valorLiquido, 0),
+    [lote]
+  );
+
   const handleSave = async () => {
     if (!clienteId) return toast.error("Selecione o cliente");
-    if (!vehicleId) return toast.error("Selecione a placa");
-    if (!driverId) return toast.error("Selecione o motorista");
-    if (!dataServico) return toast.error("Informe a data do serviço");
-    if (pesoTon <= 0) return toast.error("Informe o peso em quilos");
-    if (valorPorTon <= 0) return toast.error("Informe o valor por tonelada");
-    if (descontoTipo === "outros" && !outrosDescricao.trim())
-      return toast.error("Descreva o desconto");
-    if (valorLiquido <= 0) return toast.error("Valor líquido deve ser maior que zero");
+
+    // Build full list: lote + (current form item, if filled)
+    const items: LoteItem[] = [...lote];
+    const hasCurrentFilled = vehicleId || driverId || pesoKg || valorTon;
+    if (hasCurrentFilled || items.length === 0) {
+      const current = buildCurrentItem();
+      if (!current) return;
+      items.push(current);
+    }
+
+    if (items.length === 0) return toast.error("Adicione ao menos um serviço");
 
     setSaving(true);
     try {
-      const metadata: Record<string, any> = {
-        tipo: "manual",
-        placa: selectedVehicle?.label,
-        veiculo_id: vehicleId,
-        motorista: selectedDriver?.label,
-        motorista_id: driverId,
-        peso_kg: parseFloat(pesoKg.replace(",", ".")),
-        peso_ton: pesoTon,
-        valor_por_ton: valorPorTon,
-        valor_bruto: valorBruto,
-        valor_desconto: valorDesconto,
-        desconto: {
-          tipo: descontoTipo,
-          ...(descontoTipo === "diesel" && {
-            litros: parseFloat(litros.replace(",", ".")) || 0,
-            valor_litro: toNumber(valorLitro),
-          }),
-          ...(descontoTipo === "outros" && {
-            descricao: outrosDescricao.trim(),
-            valor: toNumber(outrosValor),
-          }),
-        },
-      };
-
-      const { error } = await supabase.from("previsoes_recebimento").insert({
+      const rows = items.map((it) => ({
         origem_tipo: "manual" as any,
         origem_id: crypto.randomUUID(),
         cliente_id: clienteId,
-        valor: valorLiquido,
-        data_prevista: dataServico,
+        valor: it.valorLiquido,
+        data_prevista: it.dataServico,
         status: "pendente" as any,
-        metadata,
-      });
+        metadata: {
+          tipo: "manual",
+          placa: it.placa,
+          veiculo_id: it.vehicleId,
+          motorista: it.motorista,
+          motorista_id: it.driverId,
+          peso_kg: it.pesoKg,
+          peso_ton: it.pesoTon,
+          valor_por_ton: it.valorPorTon,
+          valor_bruto: it.valorBruto,
+          valor_desconto: it.valorDesconto,
+          desconto: it.descontoDetalhe,
+        },
+      }));
 
+      const { error } = await supabase.from("previsoes_recebimento").insert(rows);
       if (error) throw error;
 
-      toast.success("Previsão manual criada com sucesso!");
+      toast.success(
+        items.length === 1
+          ? "Previsão manual criada com sucesso!"
+          : `${items.length} previsões criadas com sucesso!`
+      );
       onOpenChange(false);
       onSaved();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar previsão");
+      toast.error(err.message || "Erro ao salvar previsões");
     } finally {
       setSaving(false);
     }
@@ -632,7 +718,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 )}
               </div>
 
-              {/* Valor líquido final */}
+              {/* Valor líquido do serviço atual */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">Valor Líquido</span>
                 <span className="font-mono text-lg font-bold text-primary">
@@ -640,8 +726,70 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved }: ManualFore
                 </span>
               </div>
 
+              {/* Botão adicionar ao lote */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 border-dashed"
+                onClick={handleAddToBatch}
+              >
+                <ListPlus className="h-4 w-4" />
+                Adicionar serviço ao lote
+              </Button>
+
+              {/* Lista do lote */}
+              {lote.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">
+                      Lote ({lote.length} {lote.length === 1 ? "serviço" : "serviços"})
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-primary">
+                      {formatCurrency(totalLote)}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                    {lote.map((it, idx) => (
+                      <div
+                        key={it.id}
+                        className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-2 py-1.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <span className="font-mono">#{idx + 1}</span>
+                            <span>
+                              {new Date(it.dataServico + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                            <span className="font-mono">{it.placa}</span>
+                          </div>
+                          <div className="text-xs truncate">
+                            {it.motorista} · {it.pesoTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs font-semibold shrink-0">
+                          {formatCurrency(it.valorLiquido)}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveFromBatch(it.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Button className="w-full" onClick={handleSave} disabled={saving}>
-                {saving ? "Salvando..." : "Salvar Previsão"}
+                {saving
+                  ? "Salvando..."
+                  : lote.length > 0
+                    ? `Salvar ${lote.length + (vehicleId || pesoKg ? 1 : 0)} previsões`
+                    : "Salvar Previsão"}
               </Button>
             </div>
           </ScrollArea>
