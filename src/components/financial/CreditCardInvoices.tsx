@@ -144,7 +144,7 @@ export function CreditCardInvoices() {
         invoiceId={editingId}
         onSaved={load}
       />
-      <ConfirmDialog />
+      {ConfirmDialog}
     </div>
   );
 }
