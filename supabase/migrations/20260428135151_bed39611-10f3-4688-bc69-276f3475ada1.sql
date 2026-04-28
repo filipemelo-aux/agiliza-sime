@@ -1,0 +1,1 @@
+ALTER TYPE public.previsao_origem_tipo ADD VALUE IF NOT EXISTS 'manual';
