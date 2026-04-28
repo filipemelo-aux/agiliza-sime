@@ -415,7 +415,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.fitid}-${idx}`}>
-                      <TableCell className="text-xs">{it.posted_date}</TableCell>
+                      <TableCell className="text-xs">{formatDateBR(it.posted_date)}</TableCell>
                       <TableCell>
                         <Input
                           className="h-8 text-xs"
