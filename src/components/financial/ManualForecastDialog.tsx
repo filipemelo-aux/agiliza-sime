@@ -492,7 +492,11 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
         <DialogContent className="sm:max-w-md max-w-[calc(100vw-1.5rem)] max-h-[92vh] p-0 overflow-hidden">
           <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle className="text-base">
-              {appendToLote ? "Adicionar serviços ao lote" : "Nova Previsão Manual"}
+              {editForecast
+                ? "Editar Previsão"
+                : appendToLote
+                ? "Adicionar serviços ao lote"
+                : "Nova Previsão Manual"}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh]">
@@ -500,7 +504,7 @@ export function ManualForecastDialog({ open, onOpenChange, onSaved, appendToLote
               {/* Cliente */}
               <div className="space-y-1">
                 <Label className="text-xs">Cliente</Label>
-                {appendToLote ? (
+                {appendToLote || editForecast ? (
                   <div className="h-9 px-2.5 flex items-center text-xs rounded-md border border-input bg-muted/40 text-foreground truncate">
                     {selectedCliente?.label || "Carregando..."}
                   </div>
