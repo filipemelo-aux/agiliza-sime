@@ -33,6 +33,34 @@ function daysDiff(a: string, b: string): number {
   return Math.abs(Math.round((da.getTime() - db.getTime()) / 86400000));
 }
 
+function matchValueQuery(query: string, valor?: number | null): boolean {
+  if (!query || !/[0-9]/.test(query) || valor == null) return false;
+  const qDigits = query.replace(/\D/g, "");
+  if (!qDigits) return false;
+  const vDigits = Math.round(Number(valor) * 100).toString();
+  const vInteger = Math.trunc(Number(valor)).toString();
+  return vDigits === qDigits || vInteger.includes(qDigits) || vDigits.includes(qDigits);
+}
+
+function matchAccountSearch(query: string, account: any, installments: any[] = []): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    String(account.descricao || account.description || "").toLowerCase().includes(q) ||
+    String(account.favorecido_nome || account.creditor_name || "").toLowerCase().includes(q) ||
+    String(account.veiculo_placa || "").toLowerCase().includes(q) ||
+    String(account.documento_fiscal_numero || "").toLowerCase().includes(q) ||
+    String(account.chave_nfe || "").toLowerCase().includes(q) ||
+    String(account.numero_multa || "").toLowerCase().includes(q) ||
+    String(account.observacoes || "").toLowerCase().includes(q) ||
+    String(account.fornecedor_cnpj || "").toLowerCase().includes(q) ||
+    String(account.forma_pagamento || "").toLowerCase().includes(q) ||
+    matchValueQuery(q, Number(account.valor_total || account.amount || 0)) ||
+    matchValueQuery(q, Number(account.valor_pago || account.paid_amount || 0)) ||
+    installments.some((inst) => matchValueQuery(q, Number(inst.valor || 0)))
+  );
+}
+
 interface OfxItem extends OfxTransaction {
   id: string;
   dbItemId?: string;
