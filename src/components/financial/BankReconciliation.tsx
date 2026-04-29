@@ -666,7 +666,7 @@ export function BankReconciliation() {
       if (expIds.length > 0) {
         const { data: instData } = await supabase
           .from("expense_installments")
-          .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
+          .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
           .in("expense_id", expIds)
           .order("numero_parcela");
         installments = instData || [];
@@ -684,6 +684,7 @@ export function BankReconciliation() {
       for (const exp of expenses) {
         const insts = instByExp.get(exp.id);
         if (insts && insts.length > 0) {
+          const totalParcelas = insts.length;
           for (const inst of insts) {
             const isPaid = inst.status === "pago";
             results.push({
@@ -692,8 +693,8 @@ export function BankReconciliation() {
               installment_id: inst.id,
               is_installment: true,
               numero_parcela: inst.numero_parcela,
-              total_parcelas: inst.total_parcelas,
-              descricao: `${exp.descricao} (parcela ${inst.numero_parcela}/${inst.total_parcelas})`,
+              total_parcelas: totalParcelas,
+              descricao: `${exp.descricao} (parcela ${inst.numero_parcela}/${totalParcelas})`,
               favorecido_nome: exp.favorecido_nome,
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
