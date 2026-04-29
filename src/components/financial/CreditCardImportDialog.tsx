@@ -124,7 +124,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const { matrizId } = useUnifiedCompany();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [cardName, setCardName] = useState("");
+  const [cardName, setCardName] = useState("Cartão ");
   const [referenceLabel, setReferenceLabel] = useState("");
   const [dueDate, setDueDate] = useState(getLocalDateISO());
   const [closingDate, setClosingDate] = useState("");
