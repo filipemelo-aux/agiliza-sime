@@ -200,6 +200,7 @@ export function FinancialPaid() {
       forma_pagamento: p.forma_pagamento || null,
       created_by_name: creatorsMap[p.created_by] || null,
       created_at: p.created_at || null,
+      documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
