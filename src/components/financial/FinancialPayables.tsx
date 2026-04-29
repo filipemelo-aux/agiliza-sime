@@ -24,6 +24,34 @@ import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischa
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
+/**
+ * Flexible value matching: digits-only comparison + numeric equality.
+ * Allows queries like "2580,01", "2.580,01", "2580.01", "258001" to match 2580.01.
+ */
+function matchValueQuery(query: string, valor: number): boolean {
+  if (!query) return false;
+  if (!/[0-9]/.test(query)) return false;
+  // Only consider as a value query if it's "numeric-like" (digits + , . space)
+  if (!/^[\d.,\s]+$/.test(query)) {
+    // Still allow substring digit match as fallback
+    const qDigits = query.replace(/\D/g, "");
+    if (qDigits.length === 0) return false;
+    const vDigits = Math.round(valor * 100).toString();
+    return vDigits.includes(qDigits);
+  }
+  const qDigits = query.replace(/\D/g, "");
+  if (qDigits.length === 0) return false;
+  const vDigits = Math.round(valor * 100).toString();
+  if (vDigits === qDigits) return true;
+  // Allow integer-only queries to match the integer part (e.g. "2580" matches 2580.01)
+  if (!/[.,]/.test(query)) {
+    const intPart = Math.trunc(valor).toString();
+    if (intPart === qDigits || intPart.includes(qDigits)) return true;
+  }
+  // Substring match on cents-formatted digits as last resort
+  return vDigits.includes(qDigits);
+}
+
 
 interface Installment {
   id: string;
