@@ -634,7 +634,9 @@ export function BankReconciliation() {
     setLinkAccountDialogOpen(true);
   }, []);
 
-  // Debounced search across expenses (any status, including paid)
+  // Debounced search across expenses (any status, including paid).
+  // Expenses with installments are expanded — one result per installment so the
+  // user can link the OFX entry to the correct parcela (matching valor + vencimento).
   useEffect(() => {
     if (!linkAccountDialogOpen) return;
     const q = linkSearchText.trim();
@@ -647,7 +649,7 @@ export function BankReconciliation() {
     const timer = setTimeout(async () => {
       // Escape commas/parens that break PostgREST `or` syntax
       const safe = q.replace(/[,()]/g, " ").trim();
-      const { data } = await supabase
+      const { data: expData } = await supabase
         .from("expenses")
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
@@ -656,8 +658,61 @@ export function BankReconciliation() {
         )
         .order("data_vencimento", { ascending: false })
         .limit(50);
+
+      const expenses = (expData as any[]) || [];
+      // Fetch installments for these expenses
+      const expIds = expenses.map((e) => e.id);
+      let installments: any[] = [];
+      if (expIds.length > 0) {
+        const { data: instData } = await supabase
+          .from("expense_installments")
+          .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
+          .in("expense_id", expIds)
+          .order("numero_parcela");
+        installments = instData || [];
+      }
+      const instByExp = new Map<string, any[]>();
+      for (const inst of installments) {
+        const arr = instByExp.get(inst.expense_id) || [];
+        arr.push(inst);
+        instByExp.set(inst.expense_id, arr);
+      }
+
+      // Build expanded results: one row per installment (when expense has parcelas),
+      // otherwise the expense itself.
+      const results: any[] = [];
+      for (const exp of expenses) {
+        const insts = instByExp.get(exp.id);
+        if (insts && insts.length > 0) {
+          for (const inst of insts) {
+            const isPaid = inst.status === "pago";
+            results.push({
+              id: `inst_${inst.id}`,
+              expense_id: exp.id,
+              installment_id: inst.id,
+              is_installment: true,
+              numero_parcela: inst.numero_parcela,
+              total_parcelas: inst.total_parcelas,
+              descricao: `${exp.descricao} (parcela ${inst.numero_parcela}/${inst.total_parcelas})`,
+              favorecido_nome: exp.favorecido_nome,
+              documento_fiscal_numero: exp.documento_fiscal_numero,
+              valor_total: Number(inst.valor),
+              valor_pago: isPaid ? Number(inst.valor) : 0,
+              status: isPaid ? "pago" : (exp.status === "atrasado" ? "atrasado" : "pendente"),
+              data_vencimento: inst.data_vencimento,
+              data_emissao: exp.data_emissao,
+            });
+          }
+        } else {
+          results.push({
+            ...exp,
+            is_installment: false,
+          });
+        }
+      }
+
       if (!cancelled) {
-        setLinkSearchResults((data as any[]) || []);
+        setLinkSearchResults(results);
         setLinkSearching(false);
       }
     }, 300);
@@ -672,40 +727,70 @@ export function BankReconciliation() {
       const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
       const minDate = targetItems.map((i) => i.date).sort()[0];
 
-      // If account is not fully paid yet, register a payment for the sum
+      const isInstallment = !!linkSelectedAccount.is_installment;
+      const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
       const isPaid = linkSelectedAccount.status === "pago";
+
+      // If account/parcela is not fully paid yet, register a payment for the sum
       if (!isPaid) {
         await supabase.from("expense_payments" as any).insert({
-          expense_id: linkSelectedAccount.id,
+          expense_id: expenseId,
           valor: totalSel,
           forma_pagamento: "transferencia",
           data_pagamento: minDate,
-          observacoes: `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+          observacoes: isInstallment
+            ? `Quitação parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} via conciliação bancária (${targetItems.length} lançamento(s) OFX)`
+            : `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
           created_by: user?.id,
           juros: 0,
         } as any);
 
-        // Refresh totals on expense
-        const { data: expData } = await supabase
-          .from("expenses")
-          .select("valor_total, valor_pago")
-          .eq("id", linkSelectedAccount.id)
-          .single();
-        const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
-        const valorTotal = Number(expData?.valor_total || 0);
-        const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-        await supabase.from("expenses").update({
-          valor_pago: novoValorPago,
-          status: novoStatus,
-          forma_pagamento: "transferencia",
-          data_pagamento: minDate,
-        } as any).eq("id", linkSelectedAccount.id);
+        if (isInstallment) {
+          // Mark this installment as paid, then recompute expense totals/status
+          await supabase
+            .from("expense_installments")
+            .update({ status: "pago" } as any)
+            .eq("id", linkSelectedAccount.installment_id);
+
+          const { data: allInst } = await supabase
+            .from("expense_installments")
+            .select("valor, status")
+            .eq("expense_id", expenseId);
+
+          const totalPagoNow = ((allInst as any) || [])
+            .filter((i: any) => i.status === "pago")
+            .reduce((s: number, i: any) => s + Number(i.valor), 0);
+          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
+
+          await supabase.from("expenses").update({
+            valor_pago: totalPagoNow,
+            status: allPaid ? "pago" : "parcial",
+            forma_pagamento: "transferencia",
+            data_pagamento: minDate,
+          } as any).eq("id", expenseId);
+        } else {
+          // Refresh totals on expense (no installments)
+          const { data: expData } = await supabase
+            .from("expenses")
+            .select("valor_total, valor_pago")
+            .eq("id", expenseId)
+            .single();
+          const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
+          const valorTotal = Number(expData?.valor_total || 0);
+          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+          await supabase.from("expenses").update({
+            valor_pago: novoValorPago,
+            status: novoStatus,
+            forma_pagamento: "transferencia",
+            data_pagamento: minDate,
+          } as any).eq("id", expenseId);
+        }
       }
 
       // Mark all selected OFX items as conciliado, gravando o vínculo com a movimentação criada
       for (const it of targetItems) {
         const movIdToLink = await findCreatedMovId({
-          expenseId: linkSelectedAccount.id,
+          expenseId: expenseId,
           amount: Math.abs(it.amount),
           tipo: it.tipo,
           referenceDate: it.date,
@@ -727,7 +812,9 @@ export function BankReconciliation() {
       toast.success(
         isPaid
           ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
-          : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+          : isInstallment
+            ? `Parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+            : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
       );
       setLinkAccountDialogOpen(false);
       setLinkSelectedAccount(null);
