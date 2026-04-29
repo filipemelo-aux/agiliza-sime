@@ -534,11 +534,15 @@ export function FinancialPaid() {
                       <p className="font-mono font-semibold text-success">{formatCurrency(item.amount)}</p>
                     </div>
                     <div>
+                      <span className="text-[11px] text-muted-foreground">Vencimento</span>
+                      <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
+                    </div>
+                    <div>
                       <span className="text-[11px] text-muted-foreground">Data Pgto</span>
                       <p className="font-medium text-foreground">{formatDateBR(item.paid_at)}</p>
                     </div>
                     {item.forma_pagamento && (
-                      <div className="col-span-2">
+                      <div>
                         <span className="text-[11px] text-muted-foreground">Forma Pgto</span>
                         <p className="text-[11px] capitalize text-foreground">{FORMA_PAGAMENTO_MAP[item.forma_pagamento] || item.forma_pagamento}</p>
                       </div>
