@@ -826,35 +826,6 @@ export function BankReconciliation() {
       setLinkSubmitting(false);
     }
   }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
-        const updateFilter = it.dbItemId
-          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
-          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
-        await updateFilter;
-      }
-
-      setItems((prev) =>
-        prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
-      );
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        linkTargetItemIds.forEach((id) => next.delete(id));
-        return next;
-      });
-      toast.success(
-        isPaid
-          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
-          : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
-      );
-      setLinkAccountDialogOpen(false);
-      setLinkSelectedAccount(null);
-      setLinkTargetItemIds([]);
-      setTimeout(updateReconciliationCount, 500);
-    } catch (err: any) {
-      toast.error("Erro ao vincular: " + (err.message || ""));
-    } finally {
-      setLinkSubmitting(false);
-    }
-  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
 
   const totals = useMemo(() => {
     const total = items.length;
