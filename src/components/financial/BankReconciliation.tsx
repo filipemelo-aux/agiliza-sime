@@ -1708,6 +1708,7 @@ export function BankReconciliation() {
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                        {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>
