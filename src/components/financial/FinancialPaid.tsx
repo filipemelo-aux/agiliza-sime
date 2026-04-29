@@ -163,7 +163,8 @@ export function FinancialPaid() {
           created_at,
           expenses:expense_id (
             descricao,
-            favorecido_nome
+            favorecido_nome,
+            data_vencimento
           )
         `)
         .order("data_pagamento", { ascending: false }),
