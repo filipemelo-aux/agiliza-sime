@@ -181,7 +181,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (!inv) return;
       const i: any = inv;
       setCardName(i.card_name || "");
-      setReferenceLabel(i.reference_label || "");
+      setReferenceYM(parseReferenceToYM(i.reference_label || ""));
       setDueDate(i.due_date || "");
       setClosingDate(i.closing_date || "");
       setObservacoes(i.observacoes || "");
