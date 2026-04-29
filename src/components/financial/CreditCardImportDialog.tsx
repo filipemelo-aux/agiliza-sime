@@ -125,6 +125,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [cardName, setCardName] = useState("");
+  const [bankPersonId, setBankPersonId] = useState<string | null>(null);
   const [referenceYM, setReferenceYM] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
