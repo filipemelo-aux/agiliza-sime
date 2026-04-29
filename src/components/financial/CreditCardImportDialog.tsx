@@ -124,7 +124,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const { matrizId } = useUnifiedCompany();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [cardName, setCardName] = useState("Cartão ");
+  const [cardName, setCardName] = useState("");
   const [referenceYM, setReferenceYM] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -167,7 +167,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     if (!invoiceId) {
       // reset
-      setCardName("Cartão "); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
+      setCardName(""); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
       setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
@@ -412,7 +412,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 className="h-9 text-xs"
                 value={cardName}
                 onChange={(e) => setCardName(maskName(e.target.value))}
-                placeholder="Ex: Itaú Black"
+                placeholder="Ex: Cartão Sicoob"
                 disabled={isClosed}
               />
             </div>
