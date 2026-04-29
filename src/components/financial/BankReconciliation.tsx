@@ -727,44 +727,105 @@ export function BankReconciliation() {
       const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
       const minDate = targetItems.map((i) => i.date).sort()[0];
 
-      // If account is not fully paid yet, register a payment for the sum
+      const isInstallment = !!linkSelectedAccount.is_installment;
+      const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
       const isPaid = linkSelectedAccount.status === "pago";
+
+      // If account/parcela is not fully paid yet, register a payment for the sum
       if (!isPaid) {
         await supabase.from("expense_payments" as any).insert({
-          expense_id: linkSelectedAccount.id,
+          expense_id: expenseId,
           valor: totalSel,
           forma_pagamento: "transferencia",
           data_pagamento: minDate,
-          observacoes: `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+          observacoes: isInstallment
+            ? `Quitação parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} via conciliação bancária (${targetItems.length} lançamento(s) OFX)`
+            : `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
           created_by: user?.id,
           juros: 0,
         } as any);
 
-        // Refresh totals on expense
-        const { data: expData } = await supabase
-          .from("expenses")
-          .select("valor_total, valor_pago")
-          .eq("id", linkSelectedAccount.id)
-          .single();
-        const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
-        const valorTotal = Number(expData?.valor_total || 0);
-        const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-        await supabase.from("expenses").update({
-          valor_pago: novoValorPago,
-          status: novoStatus,
-          forma_pagamento: "transferencia",
-          data_pagamento: minDate,
-        } as any).eq("id", linkSelectedAccount.id);
+        if (isInstallment) {
+          // Mark this installment as paid, then recompute expense totals/status
+          await supabase
+            .from("expense_installments")
+            .update({ status: "pago" } as any)
+            .eq("id", linkSelectedAccount.installment_id);
+
+          const { data: allInst } = await supabase
+            .from("expense_installments")
+            .select("valor, status")
+            .eq("expense_id", expenseId);
+
+          const totalPagoNow = ((allInst as any) || [])
+            .filter((i: any) => i.status === "pago")
+            .reduce((s: number, i: any) => s + Number(i.valor), 0);
+          const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
+
+          await supabase.from("expenses").update({
+            valor_pago: totalPagoNow,
+            status: allPaid ? "pago" : "parcial",
+            forma_pagamento: "transferencia",
+            data_pagamento: minDate,
+          } as any).eq("id", expenseId);
+        } else {
+          // Refresh totals on expense (no installments)
+          const { data: expData } = await supabase
+            .from("expenses")
+            .select("valor_total, valor_pago")
+            .eq("id", expenseId)
+            .single();
+          const novoValorPago = Number(expData?.valor_pago || 0) + totalSel;
+          const valorTotal = Number(expData?.valor_total || 0);
+          const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
+          await supabase.from("expenses").update({
+            valor_pago: novoValorPago,
+            status: novoStatus,
+            forma_pagamento: "transferencia",
+            data_pagamento: minDate,
+          } as any).eq("id", expenseId);
+        }
       }
 
       // Mark all selected OFX items as conciliado, gravando o vínculo com a movimentação criada
       for (const it of targetItems) {
         const movIdToLink = await findCreatedMovId({
-          expenseId: linkSelectedAccount.id,
+          expenseId: expenseId,
           amount: Math.abs(it.amount),
           tipo: it.tipo,
           referenceDate: it.date,
         });
+        const updateFilter = it.dbItemId
+          ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
+          : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+        await updateFilter;
+      }
+
+      setItems((prev) =>
+        prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+      );
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        linkTargetItemIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      toast.success(
+        isPaid
+          ? `${targetItems.length} lançamento(s) vinculado(s) à conta paga`
+          : isInstallment
+            ? `Parcela ${linkSelectedAccount.numero_parcela}/${linkSelectedAccount.total_parcelas} quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+            : `Conta quitada e ${targetItems.length} lançamento(s) conciliado(s)`
+      );
+      setLinkAccountDialogOpen(false);
+      setLinkSelectedAccount(null);
+      setLinkTargetItemIds([]);
+      setTimeout(updateReconciliationCount, 500);
+    } catch (err: any) {
+      toast.error("Erro ao vincular: " + (err.message || ""));
+    } finally {
+      setLinkSubmitting(false);
+    }
+  }, [linkSelectedAccount, linkTargetItemIds, items, reconciliationId, user, updateReconciliationCount, findCreatedMovId]);
         const updateFilter = it.dbItemId
           ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
           : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
