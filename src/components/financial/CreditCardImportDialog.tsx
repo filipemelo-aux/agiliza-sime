@@ -213,7 +213,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [open, invoiceId]);
 
   const total = useMemo(() => items.reduce((s, i) => s + i.amount, 0), [items]);
-  const isClosed = existingStatus === "fechada";
+  const isClosed = false; // edição liberada — alterações na fatura propagam para o Contas a Pagar
 
   const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -351,8 +351,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         if (itemsErr) throw itemsErr;
       }
 
-      // On close: create single expense in Contas a Pagar
-      if (closeNow) {
+      // Sync the linked expense in Contas a Pagar:
+      // - If closing now → create the expense (or update existing).
+      // - If editing an already-closed invoice (expense exists) → always update the expense.
+      const shouldSyncExpense = closeNow || !!existingExpenseId;
+
+      if (shouldSyncExpense) {
         // Lookup "Cartão de Crédito" plano de contas (use leaf accounts, fall back to first match)
         let cartaoCreditoPlanoId: string | null = null;
         const cartaoMatch = despesaLeaves.find(
@@ -361,7 +365,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         if (cartaoMatch) {
           cartaoCreditoPlanoId = cartaoMatch.id;
         } else {
-          // Fallback: query directly (could be a parent or under a different filter)
           const { data: cc } = await supabase
             .from("chart_of_accounts")
             .select("id")
@@ -390,36 +393,54 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
         const refLabel = formatReferenceLabel(referenceYM);
         const description = `Fatura Cartão ${cardName.trim()}${refLabel ? ` - ${refLabel}` : ""}`;
-        const expensePayload: any = {
-          empresa_id: matrizId || null,
-          unidade_id: matrizId || null,
-          descricao: description,
-          tipo_despesa: "outros",
-          plano_contas_id: cartaoCreditoPlanoId,
-          centro_custo: "administrativo",
-          valor_total: total,
-          data_emissao: getLocalDateISO(),
-          data_vencimento: dueDate,
-          forma_pagamento: "cartao_credito",
-          favorecido_id: favorecidoId,
-          favorecido_nome: favorecidoNome,
-          observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
-          origem: "importacao",
-          documento_fiscal_importado: false,
-          created_by: user?.id,
-        };
 
         if (existingExpenseId) {
-          const { error } = await supabase.from("expenses").update({
+          // Check if the expense was already paid — warn but allow updating non-financial fields safely.
+          const { data: existingExp } = await supabase
+            .from("expenses")
+            .select("status, valor_pago")
+            .eq("id", existingExpenseId)
+            .maybeSingle();
+          const isPaid = (existingExp as any)?.status === "pago" || Number((existingExp as any)?.valor_pago || 0) > 0;
+
+          const updatePayload: any = {
             descricao: description,
-            valor_total: total,
             data_vencimento: dueDate,
             plano_contas_id: cartaoCreditoPlanoId,
             favorecido_id: favorecidoId,
             favorecido_nome: favorecidoNome,
-          }).eq("id", existingExpenseId);
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+          };
+          // Only update the total when the expense was not (partially) paid — avoids breaking payment audit.
+          if (!isPaid) {
+            updatePayload.valor_total = total;
+          }
+
+          const { error } = await supabase.from("expenses").update(updatePayload).eq("id", existingExpenseId);
           if (error) throw error;
+
+          if (isPaid && Number((existingExp as any)?.valor_pago || 0) !== total) {
+            toast.warning("Despesa já paga: valor total não foi alterado em Contas a Pagar.");
+          }
         } else {
+          const expensePayload: any = {
+            empresa_id: matrizId || null,
+            unidade_id: matrizId || null,
+            descricao: description,
+            tipo_despesa: "outros",
+            plano_contas_id: cartaoCreditoPlanoId,
+            centro_custo: "administrativo",
+            valor_total: total,
+            data_emissao: getLocalDateISO(),
+            data_vencimento: dueDate,
+            forma_pagamento: "cartao_credito",
+            favorecido_id: favorecidoId,
+            favorecido_nome: favorecidoNome,
+            observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
+            origem: "importacao",
+            documento_fiscal_importado: false,
+            created_by: user?.id,
+          };
           const { data: exp, error: expErr } = await supabase.from("expenses").insert(expensePayload).select("id").single();
           if (expErr) throw expErr;
           await supabase.from("credit_card_invoices" as any).update({ expense_id: (exp as any).id }).eq("id", id);
