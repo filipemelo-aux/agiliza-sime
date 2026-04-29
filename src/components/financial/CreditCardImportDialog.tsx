@@ -445,40 +445,44 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Cartão *</Label>
-              <Input
-                className="h-9 text-xs"
-                value={cardName}
-                onChange={(e) => setCardName(maskName(e.target.value))}
-                placeholder="Ex: Cartão Sicoob"
-                disabled={isClosed}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+            <div className="space-y-1 flex flex-col">
+              <Label className="text-xs">Cartão (Banco) *</Label>
+              <PersonSearchInput
+                categories={["banco"]}
+                placeholder="Buscar banco cadastrado..."
+                selectedName={cardName || undefined}
+                onSelect={(p) => {
+                  const nome = p.razao_social || p.full_name || p.nome_fantasia || "";
+                  setCardName(nome);
+                  setBankPersonId(p.id);
+                }}
+                onClear={() => { setCardName(""); setBankPersonId(null); }}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Referência</Label>
               <MonthPicker
                 value={referenceYM}
                 onChange={(v) => setReferenceYM(v)}
-                className="w-full !h-9 text-xs px-3"
+                className="w-full !h-10 text-xs px-3"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Fechamento</Label>
               <Input
                 type="date"
-                className="h-9 text-xs"
+                className="h-10 text-xs"
                 value={closingDate}
                 onChange={(e) => setClosingDate(e.target.value)}
                 disabled={isClosed}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Vencimento *</Label>
               <Input
                 type="date"
-                className="h-9 text-xs"
+                className="h-10 text-xs"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 disabled={isClosed}
