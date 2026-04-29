@@ -20,6 +20,7 @@ interface PaidItem {
   description: string;
   amount: number;
   paid_at: string | null;
+  due_date: string | null;
   creditor_name: string | null;
   source: "expense_payment" | "legacy";
   expense_id: string | null;
@@ -162,7 +163,8 @@ export function FinancialPaid() {
           created_at,
           expenses:expense_id (
             descricao,
-            favorecido_nome
+            favorecido_nome,
+            data_vencimento
           )
         `)
         .order("data_pagamento", { ascending: false }),
@@ -189,6 +191,7 @@ export function FinancialPaid() {
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
       paid_at: toDateOnly(p.data_pagamento),
+      due_date: toDateOnly(p.expenses?.data_vencimento),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       expense_id: p.expense_id,
@@ -202,6 +205,7 @@ export function FinancialPaid() {
       description: a.description,
       amount: Number(a.paid_amount || a.amount),
       paid_at: toDateOnly(a.paid_at),
+      due_date: null,
       creditor_name: a.creditor_name,
       source: "legacy" as const,
       expense_id: null,
@@ -530,11 +534,15 @@ export function FinancialPaid() {
                       <p className="font-mono font-semibold text-success">{formatCurrency(item.amount)}</p>
                     </div>
                     <div>
+                      <span className="text-[11px] text-muted-foreground">Vencimento</span>
+                      <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
+                    </div>
+                    <div>
                       <span className="text-[11px] text-muted-foreground">Data Pgto</span>
                       <p className="font-medium text-foreground">{formatDateBR(item.paid_at)}</p>
                     </div>
                     {item.forma_pagamento && (
-                      <div className="col-span-2">
+                      <div>
                         <span className="text-[11px] text-muted-foreground">Forma Pgto</span>
                         <p className="text-[11px] capitalize text-foreground">{FORMA_PAGAMENTO_MAP[item.forma_pagamento] || item.forma_pagamento}</p>
                       </div>
