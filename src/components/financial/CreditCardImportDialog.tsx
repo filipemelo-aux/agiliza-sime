@@ -9,12 +9,87 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Trash2, FileText } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskName } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { MonthPicker } from "@/components/MonthPicker";
+import { cn } from "@/lib/utils";
+
+const MONTHS_PT_LONG = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const formatReferenceLabel = (ym: string) => {
+  if (!ym) return "";
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return "";
+  return `Fatura ${String(m).padStart(2, "0")}/${y}`;
+};
+
+const parseReferenceToYM = (label: string): string => {
+  const match = label?.match(/(\d{2})\/(\d{4})/);
+  if (match) return `${match[2]}-${match[1]}`;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+// Plano de contas combobox with typeahead
+function PlanoContasCombobox({
+  value, onChange, options, disabled,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+  options: ChartAccount[];
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-8 w-full justify-between text-xs font-normal px-2"
+          disabled={disabled}
+        >
+          <span className="truncate">
+            {selected ? `${selected.codigo} — ${selected.nome}` : "Selecionar..."}
+          </span>
+          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[340px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Digite para buscar..." className="h-9 text-xs" />
+          <CommandList>
+            <CommandEmpty>Nenhum plano encontrado.</CommandEmpty>
+            <CommandGroup>
+              {options.map((opt) => (
+                <CommandItem
+                  key={opt.id}
+                  value={`${opt.codigo} ${opt.nome}`}
+                  onSelect={() => { onChange(opt.id); setOpen(false); }}
+                  className="text-xs"
+                >
+                  <Check className={cn("mr-2 h-3 w-3", value === opt.id ? "opacity-100" : "opacity-0")} />
+                  {opt.codigo} — {opt.nome}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
