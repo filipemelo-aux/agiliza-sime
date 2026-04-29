@@ -24,6 +24,34 @@ import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischa
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 
+/**
+ * Flexible value matching: digits-only comparison + numeric equality.
+ * Allows queries like "2580,01", "2.580,01", "2580.01", "258001" to match 2580.01.
+ */
+function matchValueQuery(query: string, valor: number): boolean {
+  if (!query) return false;
+  if (!/[0-9]/.test(query)) return false;
+  // Only consider as a value query if it's "numeric-like" (digits + , . space)
+  if (!/^[\d.,\s]+$/.test(query)) {
+    // Still allow substring digit match as fallback
+    const qDigits = query.replace(/\D/g, "");
+    if (qDigits.length === 0) return false;
+    const vDigits = Math.round(valor * 100).toString();
+    return vDigits.includes(qDigits);
+  }
+  const qDigits = query.replace(/\D/g, "");
+  if (qDigits.length === 0) return false;
+  const vDigits = Math.round(valor * 100).toString();
+  if (vDigits === qDigits) return true;
+  // Allow integer-only queries to match the integer part (e.g. "2580" matches 2580.01)
+  if (!/[.,]/.test(query)) {
+    const intPart = Math.trunc(valor).toString();
+    if (intPart === qDigits || intPart.includes(qDigits)) return true;
+  }
+  // Substring match on cents-formatted digits as last resort
+  return vDigits.includes(qDigits);
+}
+
 
 interface Installment {
   id: string;
@@ -735,8 +763,9 @@ export function FinancialPayables() {
         (i.observacoes || "").toLowerCase().includes(q) ||
         (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
         (i.forma_pagamento || "").toLowerCase().includes(q) ||
-        String(i.valor_total).includes(q) ||
-        i.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
+        matchValueQuery(q, i.valor_total) ||
+        matchValueQuery(q, Number(i.valor_pago || 0)) ||
+        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
       const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
@@ -806,8 +835,9 @@ export function FinancialPayables() {
         (i.observacoes || "").toLowerCase().includes(q) ||
         (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
         (i.forma_pagamento || "").toLowerCase().includes(q) ||
-        String(i.valor_total).includes(q) ||
-        i.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
+        matchValueQuery(q, i.valor_total) ||
+        matchValueQuery(q, Number(i.valor_pago || 0)) ||
+        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
       const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
@@ -1217,7 +1247,7 @@ export function FinancialPayables() {
         {/* Row 2: Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Buscar descrição, favorecido, placa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
+          <Input placeholder="Buscar descrição, favorecido, placa, valor..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-xs" />
         </div>
 
         {/* Row 3: Quick filters + Plano de Contas (visible on small screens inside card) */}
