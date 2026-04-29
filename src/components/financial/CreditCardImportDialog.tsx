@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Upload, Trash2, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency, maskName } from "@/lib/masks";
+import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MonthPicker } from "@/components/MonthPicker";
@@ -125,6 +125,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [cardName, setCardName] = useState("");
+  const [bankPersonId, setBankPersonId] = useState<string | null>(null);
   const [referenceYM, setReferenceYM] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -167,7 +168,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     if (!invoiceId) {
       // reset
-      setCardName(""); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
+      setCardName(""); setBankPersonId(null); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
       setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
@@ -181,6 +182,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (!inv) return;
       const i: any = inv;
       setCardName(i.card_name || "");
+      setBankPersonId(i.bank_person_id || null);
       setReferenceYM(parseReferenceToYM(i.reference_label || ""));
       setDueDate(i.due_date || "");
       setClosingDate(i.closing_date || "");
@@ -293,7 +295,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
 
   const persistInvoice = async (closeNow: boolean) => {
-    if (!cardName.trim()) { toast.error("Informe o nome do cartão."); return; }
+    if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
     if (closeNow && items.length === 0) { toast.error("Adicione lançamentos antes de fechar."); return; }
     if (closeNow && items.some((i) => !i.plano_contas_id)) {
@@ -308,6 +310,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const payload: any = {
         empresa_id: matrizId || null,
         card_name: cardName.trim(),
+        bank_person_id: bankPersonId,
         reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
@@ -350,8 +353,41 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
       // On close: create single expense in Contas a Pagar
       if (closeNow) {
-        // Use first item's plano_contas as fallback for the umbrella expense (will not affect classification visibility on the invoice items)
-        const fallbackPlano = items[0]?.plano_contas_id || null;
+        // Lookup "Cartão de Crédito" plano de contas (use leaf accounts, fall back to first match)
+        let cartaoCreditoPlanoId: string | null = null;
+        const cartaoMatch = despesaLeaves.find(
+          (a) => a.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "cartao de credito"
+        );
+        if (cartaoMatch) {
+          cartaoCreditoPlanoId = cartaoMatch.id;
+        } else {
+          // Fallback: query directly (could be a parent or under a different filter)
+          const { data: cc } = await supabase
+            .from("chart_of_accounts")
+            .select("id")
+            .eq("ativo", true)
+            .ilike("nome", "Cartão de Crédito")
+            .limit(1)
+            .maybeSingle();
+          cartaoCreditoPlanoId = (cc as any)?.id || items[0]?.plano_contas_id || null;
+        }
+
+        // Resolve favorecido (banco selecionado)
+        let favorecidoId: string | null = null;
+        let favorecidoNome: string | null = null;
+        if (bankPersonId) {
+          const { data: bank } = await supabase
+            .from("profiles")
+            .select("id, full_name, razao_social, nome_fantasia")
+            .eq("id", bankPersonId)
+            .maybeSingle();
+          if (bank) {
+            favorecidoId = (bank as any).id;
+            favorecidoNome = (bank as any).razao_social || (bank as any).full_name || (bank as any).nome_fantasia || cardName.trim();
+          }
+        }
+        if (!favorecidoNome) favorecidoNome = cardName.trim();
+
         const refLabel = formatReferenceLabel(referenceYM);
         const description = `Fatura Cartão ${cardName.trim()}${refLabel ? ` - ${refLabel}` : ""}`;
         const expensePayload: any = {
@@ -359,12 +395,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           unidade_id: matrizId || null,
           descricao: description,
           tipo_despesa: "outros",
-          plano_contas_id: fallbackPlano,
+          plano_contas_id: cartaoCreditoPlanoId,
           centro_custo: "administrativo",
           valor_total: total,
           data_emissao: getLocalDateISO(),
           data_vencimento: dueDate,
           forma_pagamento: "cartao_credito",
+          favorecido_id: favorecidoId,
+          favorecido_nome: favorecidoNome,
           observacoes: `Importada via OFX (${ofxFileName || "arquivo"}). ${items.length} lançamento(s).`,
           origem: "importacao",
           documento_fiscal_importado: false,
@@ -376,7 +414,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             descricao: description,
             valor_total: total,
             data_vencimento: dueDate,
-            plano_contas_id: fallbackPlano,
+            plano_contas_id: cartaoCreditoPlanoId,
+            favorecido_id: favorecidoId,
+            favorecido_nome: favorecidoNome,
           }).eq("id", existingExpenseId);
           if (error) throw error;
         } else {
@@ -405,40 +445,44 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Cartão *</Label>
-              <Input
-                className="h-9 text-xs"
-                value={cardName}
-                onChange={(e) => setCardName(maskName(e.target.value))}
-                placeholder="Ex: Cartão Sicoob"
-                disabled={isClosed}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+            <div className="space-y-1 flex flex-col">
+              <Label className="text-xs">Cartão (Banco) *</Label>
+              <PersonSearchInput
+                categories={["banco"]}
+                placeholder="Buscar banco cadastrado..."
+                selectedName={cardName || undefined}
+                onSelect={(p) => {
+                  const nome = p.razao_social || p.full_name || p.nome_fantasia || "";
+                  setCardName(nome);
+                  setBankPersonId(p.id);
+                }}
+                onClear={() => { setCardName(""); setBankPersonId(null); }}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Referência</Label>
               <MonthPicker
                 value={referenceYM}
                 onChange={(v) => setReferenceYM(v)}
-                className="w-full !h-9 text-xs px-3"
+                className="w-full !h-10 text-xs px-3"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Fechamento</Label>
               <Input
                 type="date"
-                className="h-9 text-xs"
+                className="h-10 text-xs"
                 value={closingDate}
                 onChange={(e) => setClosingDate(e.target.value)}
                 disabled={isClosed}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Vencimento *</Label>
               <Input
                 type="date"
-                className="h-9 text-xs"
+                className="h-10 text-xs"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 disabled={isClosed}

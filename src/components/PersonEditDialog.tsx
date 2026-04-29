@@ -20,6 +20,7 @@ const CATEGORIES = [
   { value: "cliente", label: "Cliente" },
   { value: "proprietario", label: "Proprietário" },
   { value: "fornecedor", label: "Fornecedor" },
+  { value: "banco", label: "Banco" },
 ];
 
 const CNH_CATEGORIES = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];

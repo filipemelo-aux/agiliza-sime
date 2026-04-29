@@ -54,7 +54,7 @@ export function MonthPicker({ value, onChange, className }: MonthPickerProps) {
         <Button
           variant="outline"
           size="sm"
-          className={cn("h-9 justify-start text-left font-normal gap-2", className)}
+          className={cn("h-10 justify-start text-left font-normal gap-2", className)}
         >
           <CalendarIcon className="h-3.5 w-3.5 opacity-70" />
           <span className="capitalize">{label}</span>

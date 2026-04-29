@@ -40,6 +40,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   proprietario: "Proprietário",
   fornecedor: "Fornecedor",
   colaborador: "Colaborador",
+  banco: "Banco",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -48,6 +49,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   proprietario: "bg-emerald-500/10 text-emerald-500",
   fornecedor: "bg-purple-500/10 text-purple-500",
   colaborador: "bg-cyan-500/10 text-cyan-500",
+  banco: "bg-rose-500/10 text-rose-500",
 };
 
 export function PersonSearchInput({
