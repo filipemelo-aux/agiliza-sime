@@ -205,6 +205,7 @@ export function FinancialPaid() {
       description: a.description,
       amount: Number(a.paid_amount || a.amount),
       paid_at: toDateOnly(a.paid_at),
+      due_date: null,
       creditor_name: a.creditor_name,
       source: "legacy" as const,
       expense_id: null,
