@@ -214,3 +214,19 @@
     }
   }
 }
+
+/* Global form focus polish — remove harsh blue rings/outlines on form fields */
+@layer base {
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible,
+  [role="combobox"]:focus,
+  [role="combobox"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
