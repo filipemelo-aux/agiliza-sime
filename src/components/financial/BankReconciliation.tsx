@@ -645,13 +645,17 @@ export function BankReconciliation() {
     let cancelled = false;
     setLinkSearching(true);
     const timer = setTimeout(async () => {
+      // Escape commas/parens that break PostgREST `or` syntax
+      const safe = q.replace(/[,()]/g, " ").trim();
       const { data } = await supabase
         .from("expenses")
-        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao")
+        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
-        .or(`descricao.ilike.%${q}%,favorecido_nome.ilike.%${q}%`)
+        .or(
+          `descricao.ilike.%${safe}%,favorecido_nome.ilike.%${safe}%,documento_fiscal_numero.ilike.%${safe}%`
+        )
         .order("data_vencimento", { ascending: false })
-        .limit(30);
+        .limit(50);
       if (!cancelled) {
         setLinkSearchResults((data as any[]) || []);
         setLinkSearching(false);
