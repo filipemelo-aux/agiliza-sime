@@ -213,7 +213,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [open, invoiceId]);
 
   const total = useMemo(() => items.reduce((s, i) => s + i.amount, 0), [items]);
-  const isClosed = existingStatus === "fechada";
+  const isClosed = false; // edição liberada — alterações na fatura propagam para o Contas a Pagar
 
   const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
