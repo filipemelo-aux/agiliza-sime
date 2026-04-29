@@ -126,7 +126,7 @@ export function CreditCardInvoices() {
                 <div className="text-base font-bold text-foreground pt-1">{formatCurrency(Number(inv.total_amount))}</div>
                 <div className="flex items-center gap-1 pt-2 border-t">
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => handleEdit(inv.id)}>
-                    <Pencil className="w-3 h-3 mr-1" /> {inv.status === "fechada" ? "Visualizar" : "Editar"}
+                    <Pencil className="w-3 h-3 mr-1" /> Editar
                   </Button>
                   <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" onClick={() => handleDelete(inv)}>
                     <Trash2 className="w-3 h-3 mr-1" /> Excluir
