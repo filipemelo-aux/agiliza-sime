@@ -505,22 +505,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         {formatCurrency(it.amount)}
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={it.plano_contas_id || ""}
-                          onValueChange={(v) => updateItem(idx, { plano_contas_id: v })}
+                        <PlanoContasCombobox
+                          value={it.plano_contas_id}
+                          onChange={(v) => updateItem(idx, { plano_contas_id: v })}
+                          options={despesaLeaves}
                           disabled={isClosed}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Selecionar..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {despesaLeaves.map((a) => (
-                              <SelectItem key={a.id} value={a.id} className="text-xs">
-                                {a.codigo} — {a.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </TableCell>
                       <TableCell>
                         <Select
