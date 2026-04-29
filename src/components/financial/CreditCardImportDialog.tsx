@@ -418,12 +418,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Referência</Label>
-              <Input
-                className="h-9 text-xs"
-                value={referenceLabel}
-                onChange={(e) => setReferenceLabel(e.target.value)}
-                placeholder="Ex: Fatura 04/2026"
-                disabled={isClosed}
+              <MonthPicker
+                value={referenceYM}
+                onChange={(v) => setReferenceYM(v)}
+                className="w-full text-xs"
               />
             </div>
             <div className="space-y-1">
