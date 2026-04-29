@@ -14,7 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Upload, Trash2, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency, maskName } from "@/lib/masks";
+import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MonthPicker } from "@/components/MonthPicker";
