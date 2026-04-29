@@ -567,6 +567,7 @@ export type Database = {
       }
       credit_card_invoices: {
         Row: {
+          bank_person_id: string | null
           card_name: string
           closing_date: string | null
           created_at: string
@@ -586,6 +587,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_person_id?: string | null
           card_name: string
           closing_date?: string | null
           created_at?: string
@@ -605,6 +607,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_person_id?: string | null
           card_name?: string
           closing_date?: string | null
           created_at?: string
@@ -624,6 +627,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_card_invoices_bank_person_id_fkey"
+            columns: ["bank_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_card_invoices_empresa_id_fkey"
             columns: ["empresa_id"]
