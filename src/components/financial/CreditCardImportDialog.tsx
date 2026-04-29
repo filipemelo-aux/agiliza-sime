@@ -168,7 +168,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     if (!invoiceId) {
       // reset
-      setCardName(""); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
+      setCardName(""); setBankPersonId(null); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
       setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
@@ -182,6 +182,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (!inv) return;
       const i: any = inv;
       setCardName(i.card_name || "");
+      setBankPersonId(i.bank_person_id || null);
       setReferenceYM(parseReferenceToYM(i.reference_label || ""));
       setDueDate(i.due_date || "");
       setClosingDate(i.closing_date || "");
