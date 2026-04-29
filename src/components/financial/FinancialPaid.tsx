@@ -27,6 +27,7 @@ interface PaidItem {
   forma_pagamento?: string | null;
   created_by_name?: string | null;
   created_at?: string | null;
+  documento_fiscal_numero?: string | null;
 }
 
 interface ExpenseDetail {
