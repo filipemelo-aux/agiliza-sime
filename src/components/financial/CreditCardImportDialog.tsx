@@ -421,7 +421,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               <MonthPicker
                 value={referenceYM}
                 onChange={(v) => setReferenceYM(v)}
-                className="w-full text-xs"
+                className="w-full !h-9 text-xs px-3"
               />
             </div>
             <div className="space-y-1">
