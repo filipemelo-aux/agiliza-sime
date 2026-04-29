@@ -191,6 +191,7 @@ export function FinancialPaid() {
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
       paid_at: toDateOnly(p.data_pagamento),
+      due_date: toDateOnly(p.expenses?.data_vencimento),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       expense_id: p.expense_id,
