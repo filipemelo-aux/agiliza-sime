@@ -125,7 +125,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [cardName, setCardName] = useState("Cartão ");
-  const [referenceLabel, setReferenceLabel] = useState("");
+  const [referenceYM, setReferenceYM] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [dueDate, setDueDate] = useState(getLocalDateISO());
   const [closingDate, setClosingDate] = useState("");
   const [observacoes, setObservacoes] = useState("");
