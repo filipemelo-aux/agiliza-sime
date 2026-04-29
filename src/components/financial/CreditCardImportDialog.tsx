@@ -308,7 +308,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const payload: any = {
         empresa_id: matrizId || null,
         card_name: cardName.trim(),
-        reference_label: referenceLabel.trim() || null,
+        reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
         total_amount: total,
@@ -352,7 +352,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (closeNow) {
         // Use first item's plano_contas as fallback for the umbrella expense (will not affect classification visibility on the invoice items)
         const fallbackPlano = items[0]?.plano_contas_id || null;
-        const description = `Fatura Cartão ${cardName.trim()}${referenceLabel ? ` - ${referenceLabel}` : ""}`;
+        const refLabel = formatReferenceLabel(referenceYM);
+        const description = `Fatura Cartão ${cardName.trim()}${refLabel ? ` - ${refLabel}` : ""}`;
         const expensePayload: any = {
           empresa_id: matrizId || null,
           unidade_id: matrizId || null,
