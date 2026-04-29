@@ -645,13 +645,17 @@ export function BankReconciliation() {
     let cancelled = false;
     setLinkSearching(true);
     const timer = setTimeout(async () => {
+      // Escape commas/parens that break PostgREST `or` syntax
+      const safe = q.replace(/[,()]/g, " ").trim();
       const { data } = await supabase
         .from("expenses")
-        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao")
+        .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
-        .or(`descricao.ilike.%${q}%,favorecido_nome.ilike.%${q}%`)
+        .or(
+          `descricao.ilike.%${safe}%,favorecido_nome.ilike.%${safe}%,documento_fiscal_numero.ilike.%${safe}%`
+        )
         .order("data_vencimento", { ascending: false })
-        .limit(30);
+        .limit(50);
       if (!cancelled) {
         setLinkSearchResults((data as any[]) || []);
         setLinkSearching(false);
@@ -1654,7 +1658,7 @@ export function BankReconciliation() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 autoFocus
-                placeholder="Digite descrição ou favorecido da conta..."
+                placeholder="Buscar por descrição, favorecido ou número da nota..."
                 value={linkSearchText}
                 onChange={(e) => setLinkSearchText(e.target.value)}
                 className="h-9 pl-8 text-xs"
@@ -1704,6 +1708,7 @@ export function BankReconciliation() {
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {acc.favorecido_nome || "Sem favorecido"} · Venc: {formatDateBR(acc.data_vencimento || acc.data_emissao)}
+                        {acc.documento_fiscal_numero && <> · NF: <span className="font-mono">{acc.documento_fiscal_numero}</span></>}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         Total: <span className="font-mono">{formatCurrency(Number(acc.valor_total))}</span>

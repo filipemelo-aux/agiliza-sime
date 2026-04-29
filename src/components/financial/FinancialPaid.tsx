@@ -27,6 +27,7 @@ interface PaidItem {
   forma_pagamento?: string | null;
   created_by_name?: string | null;
   created_at?: string | null;
+  documento_fiscal_numero?: string | null;
 }
 
 interface ExpenseDetail {
@@ -164,7 +165,8 @@ export function FinancialPaid() {
           expenses:expense_id (
             descricao,
             favorecido_nome,
-            data_vencimento
+            data_vencimento,
+            documento_fiscal_numero
           )
         `)
         .order("data_pagamento", { ascending: false }),
@@ -198,6 +200,7 @@ export function FinancialPaid() {
       forma_pagamento: p.forma_pagamento || null,
       created_by_name: creatorsMap[p.created_by] || null,
       created_at: p.created_at || null,
+      documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
     }));
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
@@ -231,7 +234,8 @@ export function FinancialPaid() {
       const matchSearch =
         !search ||
         i.description.toLowerCase().includes(q) ||
-        (i.creditor_name || "").toLowerCase().includes(q);
+        (i.creditor_name || "").toLowerCase().includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().includes(q);
 
       let matchPeriodo = true;
       if (periodoInicio || periodoFim) {
@@ -443,7 +447,7 @@ export function FinancialPaid() {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex-1 min-w-0 relative">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou descrição..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+            <Input placeholder="Buscar por nome, descrição ou nº da nota..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 pl-8 text-xs" />
           </div>
           <Select value={origemFilter} onValueChange={(v) => setOrigemFilter(v as any)}>
             <SelectTrigger className="w-[150px] h-8 text-xs">
