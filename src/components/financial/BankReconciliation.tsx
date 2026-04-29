@@ -634,7 +634,9 @@ export function BankReconciliation() {
     setLinkAccountDialogOpen(true);
   }, []);
 
-  // Debounced search across expenses (any status, including paid)
+  // Debounced search across expenses (any status, including paid).
+  // Expenses with installments are expanded — one result per installment so the
+  // user can link the OFX entry to the correct parcela (matching valor + vencimento).
   useEffect(() => {
     if (!linkAccountDialogOpen) return;
     const q = linkSearchText.trim();
@@ -647,7 +649,7 @@ export function BankReconciliation() {
     const timer = setTimeout(async () => {
       // Escape commas/parens that break PostgREST `or` syntax
       const safe = q.replace(/[,()]/g, " ").trim();
-      const { data } = await supabase
+      const { data: expData } = await supabase
         .from("expenses")
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
@@ -656,8 +658,61 @@ export function BankReconciliation() {
         )
         .order("data_vencimento", { ascending: false })
         .limit(50);
+
+      const expenses = (expData as any[]) || [];
+      // Fetch installments for these expenses
+      const expIds = expenses.map((e) => e.id);
+      let installments: any[] = [];
+      if (expIds.length > 0) {
+        const { data: instData } = await supabase
+          .from("expense_installments")
+          .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
+          .in("expense_id", expIds)
+          .order("numero_parcela");
+        installments = instData || [];
+      }
+      const instByExp = new Map<string, any[]>();
+      for (const inst of installments) {
+        const arr = instByExp.get(inst.expense_id) || [];
+        arr.push(inst);
+        instByExp.set(inst.expense_id, arr);
+      }
+
+      // Build expanded results: one row per installment (when expense has parcelas),
+      // otherwise the expense itself.
+      const results: any[] = [];
+      for (const exp of expenses) {
+        const insts = instByExp.get(exp.id);
+        if (insts && insts.length > 0) {
+          for (const inst of insts) {
+            const isPaid = inst.status === "pago";
+            results.push({
+              id: `inst_${inst.id}`,
+              expense_id: exp.id,
+              installment_id: inst.id,
+              is_installment: true,
+              numero_parcela: inst.numero_parcela,
+              total_parcelas: inst.total_parcelas,
+              descricao: `${exp.descricao} (parcela ${inst.numero_parcela}/${inst.total_parcelas})`,
+              favorecido_nome: exp.favorecido_nome,
+              documento_fiscal_numero: exp.documento_fiscal_numero,
+              valor_total: Number(inst.valor),
+              valor_pago: isPaid ? Number(inst.valor) : 0,
+              status: isPaid ? "pago" : (exp.status === "atrasado" ? "atrasado" : "pendente"),
+              data_vencimento: inst.data_vencimento,
+              data_emissao: exp.data_emissao,
+            });
+          }
+        } else {
+          results.push({
+            ...exp,
+            is_installment: false,
+          });
+        }
+      }
+
       if (!cancelled) {
-        setLinkSearchResults((data as any[]) || []);
+        setLinkSearchResults(results);
         setLinkSearching(false);
       }
     }, 300);
