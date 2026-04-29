@@ -9,12 +9,87 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Trash2, FileText } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency, maskName } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { MonthPicker } from "@/components/MonthPicker";
+import { cn } from "@/lib/utils";
+
+const MONTHS_PT_LONG = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const formatReferenceLabel = (ym: string) => {
+  if (!ym) return "";
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return "";
+  return `Fatura ${String(m).padStart(2, "0")}/${y}`;
+};
+
+const parseReferenceToYM = (label: string): string => {
+  const match = label?.match(/(\d{2})\/(\d{4})/);
+  if (match) return `${match[2]}-${match[1]}`;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+// Plano de contas combobox with typeahead
+function PlanoContasCombobox({
+  value, onChange, options, disabled,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+  options: ChartAccount[];
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-8 w-full justify-between text-xs font-normal px-2"
+          disabled={disabled}
+        >
+          <span className="truncate">
+            {selected ? `${selected.codigo} — ${selected.nome}` : "Selecionar..."}
+          </span>
+          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[340px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Digite para buscar..." className="h-9 text-xs" />
+          <CommandList>
+            <CommandEmpty>Nenhum plano encontrado.</CommandEmpty>
+            <CommandGroup>
+              {options.map((opt) => (
+                <CommandItem
+                  key={opt.id}
+                  value={`${opt.codigo} ${opt.nome}`}
+                  onSelect={() => { onChange(opt.id); setOpen(false); }}
+                  className="text-xs"
+                >
+                  <Check className={cn("mr-2 h-3 w-3", value === opt.id ? "opacity-100" : "opacity-0")} />
+                  {opt.codigo} — {opt.nome}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -49,8 +124,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const { matrizId } = useUnifiedCompany();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [cardName, setCardName] = useState("");
-  const [referenceLabel, setReferenceLabel] = useState("");
+  const [cardName, setCardName] = useState("Cartão ");
+  const [referenceYM, setReferenceYM] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [dueDate, setDueDate] = useState(getLocalDateISO());
   const [closingDate, setClosingDate] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -89,7 +167,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     if (!invoiceId) {
       // reset
-      setCardName(""); setReferenceLabel(""); setDueDate(getLocalDateISO()); setClosingDate("");
+      setCardName("Cartão "); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
       setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
@@ -103,7 +181,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (!inv) return;
       const i: any = inv;
       setCardName(i.card_name || "");
-      setReferenceLabel(i.reference_label || "");
+      setReferenceYM(parseReferenceToYM(i.reference_label || ""));
       setDueDate(i.due_date || "");
       setClosingDate(i.closing_date || "");
       setObservacoes(i.observacoes || "");
@@ -230,7 +308,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const payload: any = {
         empresa_id: matrizId || null,
         card_name: cardName.trim(),
-        reference_label: referenceLabel.trim() || null,
+        reference_label: formatReferenceLabel(referenceYM) || null,
         due_date: dueDate,
         closing_date: closingDate || null,
         total_amount: total,
@@ -274,7 +352,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (closeNow) {
         // Use first item's plano_contas as fallback for the umbrella expense (will not affect classification visibility on the invoice items)
         const fallbackPlano = items[0]?.plano_contas_id || null;
-        const description = `Fatura Cartão ${cardName.trim()}${referenceLabel ? ` - ${referenceLabel}` : ""}`;
+        const refLabel = formatReferenceLabel(referenceYM);
+        const description = `Fatura Cartão ${cardName.trim()}${refLabel ? ` - ${refLabel}` : ""}`;
         const expensePayload: any = {
           empresa_id: matrizId || null,
           unidade_id: matrizId || null,
@@ -339,12 +418,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Referência</Label>
-              <Input
-                className="h-9 text-xs"
-                value={referenceLabel}
-                onChange={(e) => setReferenceLabel(e.target.value)}
-                placeholder="Ex: Fatura 04/2026"
-                disabled={isClosed}
+              <MonthPicker
+                value={referenceYM}
+                onChange={(v) => setReferenceYM(v)}
+                className="w-full text-xs"
               />
             </div>
             <div className="space-y-1">
@@ -428,22 +505,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         {formatCurrency(it.amount)}
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={it.plano_contas_id || ""}
-                          onValueChange={(v) => updateItem(idx, { plano_contas_id: v })}
+                        <PlanoContasCombobox
+                          value={it.plano_contas_id}
+                          onChange={(v) => updateItem(idx, { plano_contas_id: v })}
+                          options={despesaLeaves}
                           disabled={isClosed}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Selecionar..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {despesaLeaves.map((a) => (
-                              <SelectItem key={a.id} value={a.id} className="text-xs">
-                                {a.codigo} — {a.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </TableCell>
                       <TableCell>
                         <Select
