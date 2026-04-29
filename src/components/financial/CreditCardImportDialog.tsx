@@ -412,7 +412,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 className="h-9 text-xs"
                 value={cardName}
                 onChange={(e) => setCardName(maskName(e.target.value))}
-                placeholder="Ex: Itaú Black"
+                placeholder="Ex: Cartão Sicoob"
                 disabled={isClosed}
               />
             </div>
