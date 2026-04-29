@@ -20,6 +20,7 @@ interface PaidItem {
   description: string;
   amount: number;
   paid_at: string | null;
+  due_date: string | null;
   creditor_name: string | null;
   source: "expense_payment" | "legacy";
   expense_id: string | null;
