@@ -735,8 +735,9 @@ export function FinancialPayables() {
         (i.observacoes || "").toLowerCase().includes(q) ||
         (i.fornecedor_cnpj || "").toLowerCase().includes(q) ||
         (i.forma_pagamento || "").toLowerCase().includes(q) ||
-        String(i.valor_total).includes(q) ||
-        i.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 }).includes(q);
+        matchValueQuery(q, i.valor_total) ||
+        matchValueQuery(q, Number(i.valor_pago || 0)) ||
+        (installmentsMap[i.id] || []).some(inst => matchValueQuery(q, Number(inst.valor)));
       const matchPlanoContas = filterPlanoContas === "all" || (i.plano_contas_id && getAncestorIds(i.plano_contas_id).includes(filterPlanoContas));
       const matchNivel = filterNivel === "all" || (i.plano_contas_id && chartIdMap[i.plano_contas_id]?.nivel === Number(filterNivel));
       const matchVeiculo = filterVeiculo === "all" || i.veiculo_id === filterVeiculo;
