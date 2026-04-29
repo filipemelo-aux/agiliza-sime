@@ -234,7 +234,8 @@ export function FinancialPaid() {
       const matchSearch =
         !search ||
         i.description.toLowerCase().includes(q) ||
-        (i.creditor_name || "").toLowerCase().includes(q);
+        (i.creditor_name || "").toLowerCase().includes(q) ||
+        (i.documento_fiscal_numero || "").toLowerCase().includes(q);
 
       let matchPeriodo = true;
       if (periodoInicio || periodoFim) {
