@@ -92,7 +92,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   }, [open, cte]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
-  const valorTon = unmaskCurrency(form.valor_tonelada);
+  const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
   const valorFrete = +(pesoTon * valorTon).toFixed(2);
 
   const handleSave = async () => {
