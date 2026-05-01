@@ -129,7 +129,9 @@ export default function AdminDashboard() {
         });
 
       // "Vencidos (últimos 7 dias)" — antes de hoje, dentro do intervalo
-      const overdueItems = enriched.filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr);
+      const overdueItems = enriched
+        .filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr)
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento));
       // "Vencendo Hoje" — somente vencimentos do dia
       const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
       // "Próximos 7 dias" — de amanhã até hoje+7
@@ -292,11 +294,12 @@ export default function AdminDashboard() {
                 {/* Vencidos (últimos 7 dias) */}
                 {overdue.length > 0 && (
                   <div>
-                    <div className="flex items-center justify-between px-2.5 mb-1">
-                      <span className="text-[10px] font-semibold text-destructive/80 uppercase tracking-wider">
-                        Vencidos (7 dias)
-                      </span>
-                      <span className="text-[11px] font-semibold text-destructive/80">{fmt(totalOverdue)}</span>
+                    <div className="flex items-center justify-between pb-2 px-1">
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencidos 7 dias</span>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground/80">{fmt(totalOverdue)}</span>
                     </div>
                     <div className="space-y-1.5">
                       {overdue.map((item) => (
