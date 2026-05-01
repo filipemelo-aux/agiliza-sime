@@ -1861,14 +1861,39 @@ export function FinancialPayables() {
                           <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
                             {inst.status === "pago" ? "Pago" : "Pend."}
                           </Badge>
-                          {inst.boleto_url && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
-                              <Download className="h-3 w-3 text-primary" />
-                            </Button>
-                          )}
+                          <div className="ml-auto flex items-center gap-1 shrink-0">
+                            {inst.boleto_url && (
+                              <Button variant="ghost" size="icon" className="h-5 w-5" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                                <Download className="h-3 w-3 text-primary" />
+                              </Button>
+                            )}
+                            {inst.status !== "pago" && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] gap-1"
+                                onClick={() => { setDetailOpen(false); handlePayInstallment(inst); }}
+                              >
+                                <DollarSign className="h-3 w-3" /> Pagar
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {detailExpense.status !== "pago" && (
+                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => { setDetailOpen(false); handlePayment(detailExpense); }}
+                      className="gap-1.5"
+                    >
+                      <DollarSign className="h-3.5 w-3.5" /> Pagar Despesa
+                    </Button>
                   </div>
                 )}
               </div>
