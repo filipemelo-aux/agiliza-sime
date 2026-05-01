@@ -299,7 +299,12 @@ export default function AdminDashboard() {
                         <AlertTriangle className="h-3.5 w-3.5 text-destructive/70" />
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vencidos 7 dias</span>
                       </div>
-                      <span className="text-sm font-semibold text-foreground/80">{fmt(totalOverdue)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-foreground/80">{fmt(totalOverdue)}</span>
+                        <Link to="/admin/financial/payables" state={{ quickFilter: "atrasadas" }}>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                        </Link>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       {overdue.map((item) => (
