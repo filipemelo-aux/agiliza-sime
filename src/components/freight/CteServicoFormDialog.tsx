@@ -62,7 +62,7 @@ const empty: FormState = {
 export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { establishment } = useUnifiedCompany();
+  const { matrizId } = useUnifiedCompany();
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
 
