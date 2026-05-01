@@ -270,6 +270,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [gerarContrato, setGerarContrato] = useState(false);
+  const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
