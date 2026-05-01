@@ -126,7 +126,9 @@ export function FinancialPayables() {
   const STORAGE_KEY = "payables_filters";
   const location = useLocation();
   const navigate = useNavigate();
-  const locState = (location.state as any) || {};
+  // Capture initial nav state once (persists even after we clear location.state)
+  const initialNavStateRef = useRef<any>((location.state as any) || {});
+  const locState = initialNavStateRef.current;
   const fromNav = !!locState.fromNav;
   const initialQuickFilter: QuickFilter | undefined = locState.quickFilter;
   const initialOpenExpenseId: string | undefined = locState.openExpenseId;
