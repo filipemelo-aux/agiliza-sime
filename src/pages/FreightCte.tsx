@@ -5,10 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, FileText, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
+import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 
 export interface Cte {
@@ -34,6 +42,10 @@ export interface Cte {
   data_autorizacao: string | null;
   motivo_rejeicao: string | null;
   created_at: string;
+  tipo_talao?: string;
+  numero_interno?: number | null;
+  data_carregamento?: string | null;
+  valor_tonelada?: number | null;
   [key: string]: any;
 }
 
@@ -55,7 +67,9 @@ export default function FreightCte() {
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [servicoOpen, setServicoOpen] = useState(false);
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
@@ -86,18 +100,33 @@ export default function FreightCte() {
       c.remetente_nome?.toLowerCase().includes(q) ||
       c.destinatario_nome?.toLowerCase().includes(q) ||
       String(c.numero).includes(q) ||
+      String(c.numero_interno).includes(q) ||
       c.chave_acesso?.includes(q)
     );
   });
 
   const handleNew = () => {
     setEditingCte(null);
+    setChooserOpen(true);
+  };
+
+  const handlePickProducao = () => {
+    setChooserOpen(false);
     setFormOpen(true);
+  };
+
+  const handlePickServico = () => {
+    setChooserOpen(false);
+    setServicoOpen(true);
   };
 
   const handleEdit = (cte: Cte) => {
     setEditingCte(cte);
-    setFormOpen(true);
+    if (cte.tipo_talao === "servico") {
+      setServicoOpen(true);
+    } else {
+      setFormOpen(true);
+    }
   };
 
   return (
@@ -136,64 +165,134 @@ export default function FreightCte() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filtered.map((cte) => (
-              <Card
-                key={cte.id}
-                className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
-                onClick={() => setDetailCte(cte)}
-              >
-                <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold font-display">
-                          {cte.numero ? `Nº ${cte.numero}` : "Sem número"}
-                        </span>
-                        <Badge className={statusColors[cte.status] || ""}>
-                          {statusLabels[cte.status] || cte.status}
-                        </Badge>
+            {filtered.map((cte) => {
+              const isServico = cte.tipo_talao === "servico";
+              const numeroDisplay = isServico
+                ? cte.numero_interno
+                  ? `Interno Nº ${cte.numero_interno}`
+                  : "Interno"
+                : cte.numero
+                ? `Nº ${cte.numero}`
+                : "Sem número";
+              return (
+                <Card
+                  key={cte.id}
+                  className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
+                  onClick={() => setDetailCte(cte)}
+                >
+                  <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isServico ? "bg-amber-500/10" : "bg-primary/10"}`}>
+                        {isServico ? (
+                          <ScrollText className="h-5 w-5 text-amber-600" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-primary" />
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {cte.remetente_nome} → {cte.destinatario_nome}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold font-display">{numeroDisplay}</span>
+                          <Badge variant="outline" className={isServico ? "border-amber-500/40 text-amber-700" : "border-primary/40 text-primary"}>
+                            {isServico ? "Talão de Serviço" : "Talão de Produção"}
+                          </Badge>
+                          {!isServico && (
+                            <Badge className={statusColors[cte.status] || ""}>
+                              {statusLabels[cte.status] || cte.status}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {isServico
+                            ? `${cte.destinatario_nome} • ${cte.produto_predominante || cte.natureza_operacao || ""}`
+                            : `${cte.remetente_nome} → ${cte.destinatario_nome}`}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm shrink-0">
-                    <span className="text-muted-foreground">
-                      {cte.uf_origem} → {cte.uf_destino}
-                    </span>
-                    <span className="font-semibold">
-                      {Number(cte.valor_frete).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </span>
-                    {(cte.status === "rascunho" || cte.status === "rejeitado") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(cte);
-                        }}
-                      >
-                        Editar
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-4 text-sm shrink-0">
+                      {!isServico && (
+                        <span className="text-muted-foreground">
+                          {cte.uf_origem} → {cte.uf_destino}
+                        </span>
+                      )}
+                      <span className="font-semibold">
+                        {Number(cte.valor_frete).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </span>
+                      {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(cte);
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
 
+      {/* Chooser modal */}
+      <Dialog open={chooserOpen} onOpenChange={setChooserOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Novo CT-e</DialogTitle>
+            <DialogDescription>Escolha o tipo de talão a emitir.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 mt-2">
+            <button
+              type="button"
+              onClick={handlePickProducao}
+              className="text-left border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition-colors flex items-start gap-3"
+            >
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <FileCheck2 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="font-semibold">Talão de Produção</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  CT-e fiscal completo, transmitido à SEFAZ.
+                </p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={handlePickServico}
+              className="text-left border rounded-lg p-4 hover:border-amber-500 hover:bg-amber-500/5 transition-colors flex items-start gap-3"
+            >
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                <FileCog className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <div className="font-semibold">Talão de Serviço</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Registro interno simplificado, sem envio à SEFAZ.
+                </p>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <CteFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(o) => { setFormOpen(o); if (!o) setEditingCte(null); }}
+        cte={editingCte}
+        onSaved={fetchCtes}
+      />
+
+      <CteServicoFormDialog
+        open={servicoOpen}
+        onOpenChange={(o) => { setServicoOpen(o); if (!o) setEditingCte(null); }}
         cte={editingCte}
         onSaved={fetchCtes}
       />
