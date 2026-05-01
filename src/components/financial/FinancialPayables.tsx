@@ -1884,18 +1884,6 @@ export function FinancialPayables() {
                   </div>
                 )}
 
-                {detailExpense.status !== "pago" && (
-                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => { setDetailOpen(false); handlePayment(detailExpense); }}
-                      className="gap-1.5"
-                    >
-                      <DollarSign className="h-3.5 w-3.5" /> Pagar Despesa
-                    </Button>
-                  </div>
-                )}
               </div>
             );
           })()}
