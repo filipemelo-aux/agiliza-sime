@@ -416,6 +416,18 @@ export function FinancialPayables() {
     if (exp) { setDetailExpense(exp); setDetailOpen(true); }
   };
 
+  // Auto-open detail dialog when navigating from dashboard
+  const openedFromNavRef = useRef(false);
+  useEffect(() => {
+    if (!initialOpenExpenseId || openedFromNavRef.current || items.length === 0) return;
+    const exp = items.find(i => i.id === initialOpenExpenseId);
+    if (exp) {
+      openedFromNavRef.current = true;
+      setDetailExpense(exp);
+      setDetailOpen(true);
+    }
+  }, [initialOpenExpenseId, items]);
+
   const openMaintenanceDetail = async (expenseId: string) => {
     setMaintDetailOpen(true);
     setMaintDetailLoading(true);
