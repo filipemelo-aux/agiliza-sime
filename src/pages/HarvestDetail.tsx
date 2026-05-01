@@ -708,6 +708,7 @@ export default function HarvestDetail() {
 
     if (type === "agregados" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Agregados — ${job!.farm_name}</h2>`;
+      if (job!.client_name) html += `<h3>Cliente: ${job!.client_name}</h3>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
@@ -755,6 +756,7 @@ export default function HarvestDetail() {
     }
     if (type === "faturamento" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Faturamento — ${job!.farm_name}</h2>`;
+      if (job!.client_name) html += `<h3>Cliente: ${job!.client_name}</h3>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
@@ -800,6 +802,7 @@ export default function HarvestDetail() {
     }
     if (type === "cliente" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Cliente — ${job!.farm_name}</h2>`;
+      if (job!.client_name) html += `<h3>Cliente: ${job!.client_name}</h3>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
@@ -987,7 +990,7 @@ export default function HarvestDetail() {
     // Receipt footer with signature
     const today = new Date().toLocaleDateString("pt-BR");
     html += `<div class="receipt-footer">`;
-    html += `<p>Eu, <strong>${ownerName}</strong>, proprietário(a) dos veículos acima relacionados, declaro ter recebido da <strong>SIME TRANSPORTE LTDA</strong> a importância total de <strong>${formatCurrency(totalPaid)}</strong> (${totalPaidToWords(totalPaid)}), referente aos serviços de colheita prestados no período de <strong>${filterInicioLabel}</strong> a <strong>${filterFimLabel}</strong>, na fazenda <strong>${job.farm_name}</strong>, localizada em <strong>${job.location}</strong>.</p>`;
+    html += `<p>Eu, <strong>${ownerName}</strong>, proprietário(a) dos veículos acima relacionados, declaro ter recebido da <strong>SIME TRANSPORTE LTDA</strong> a importância total de <strong>${formatCurrency(totalPaid)}</strong> (${totalPaidToWords(totalPaid)}), referente aos serviços de colheita prestados no período de <strong>${filterInicioLabel}</strong> a <strong>${filterFimLabel}</strong>, na fazenda <strong>${job.farm_name}</strong>${job.client_name ? `, do cliente <strong>${job.client_name}</strong>` : ""}${job.location ? `, localizada em <strong>${job.location}</strong>` : ""}.</p>`;
     html += `<p>Declaro ainda que nada mais tenho a receber referente ao período acima mencionado, dando plena e irrevogável quitação dos valores devidos.</p>`;
     html += `<p style="margin-top:12px;font-size:10px;color:#666">${job.location}, ${today}</p>`;
     html += `<div class="signature-line"><strong>${ownerName}</strong><br/>Proprietário(a) dos Veículos</div>`;
