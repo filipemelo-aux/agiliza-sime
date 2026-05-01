@@ -708,6 +708,7 @@ export default function HarvestDetail() {
 
     if (type === "agregados" || type === "ambos") {
       html += `<div class="report-section"><h2>Relatório Agregados — ${job!.farm_name}</h2>`;
+      if (job!.client_name) html += `<h3>Cliente: ${job!.client_name}</h3>`;
       if (hasFilter) html += `<h3>Período: ${filterInicioLabel} até ${filterFimLabel}${discPeriodLabel} ${paymentStatusHtml}</h3>`;
 
       if (useMobileLayout) {
