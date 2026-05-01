@@ -270,11 +270,6 @@ export default function AdminDashboard() {
               <CardContent className="px-4 pb-4 pt-1 space-y-3">
                 {/* Vencendo Hoje */}
                 <div>
-                  {overdue.length > 0 && (
-                    <div className="flex items-center justify-between px-2.5 mb-1">
-                      <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider">Hoje</span>
-                    </div>
-                  )}
                   {dueToday.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
                   ) : (
