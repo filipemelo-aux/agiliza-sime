@@ -82,11 +82,16 @@ export default function AdminDashboard() {
       endOfWeek.setDate(today.getDate() + 7);
       const endWeekStr = getLocalDateISO(endOfWeek);
 
-      // Fetch installments due today through end of week OR overdue (before today)
+      const startOverdue = new Date(today);
+      startOverdue.setDate(today.getDate() - 7);
+      const startOverdueStr = getLocalDateISO(startOverdue);
+
+      // Fetch installments from 7 days ago through end of week
       const { data: installments } = await supabase
         .from("expense_installments")
         .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
         .in("status", ["pendente", "atrasado"])
+        .gte("data_vencimento", startOverdueStr)
         .lte("data_vencimento", endWeekStr)
         .order("data_vencimento", { ascending: true });
 
