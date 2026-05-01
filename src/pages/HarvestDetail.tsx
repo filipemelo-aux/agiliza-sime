@@ -1021,9 +1021,18 @@ export default function HarvestDetail() {
     html += `<div class="signature-line"><strong>${ownerName}</strong><br/>Proprietário(a) dos Veículos</div>`;
     html += `</div>`;
 
+    const slug = (s: string) =>
+      (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+    const periodoSlug = `${filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio"}-a-${filterEndDate ? filterEndDate.replace(/-/g, "") : "atual"}`;
+    const docTitle = `recibo-colheita-${slug(ownerName)}-${slug(job.client_name || job.farm_name)}-${periodoSlug}`;
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Recibo - ${ownerName} - ${job.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
