@@ -838,9 +838,33 @@ export default function HarvestDetail() {
         html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table></div>`;
       }
     }
+    const slug = (s: string) =>
+      (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+    const periodoSlug = (() => {
+      const s = filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio";
+      const e = filterEndDate ? filterEndDate.replace(/-/g, "") : "atual";
+      return `${s}-a-${e}`;
+    })();
+    const clienteSlug = slug(job!.client_name || job!.farm_name || "cliente");
+    const proprietarioSlug = slug(receiptOwnerInfo || "todos");
+    let docTitle = "";
+    if (type === "agregados") {
+      docTitle = `Relatorio-colheita-agregados-${proprietarioSlug}-${clienteSlug}-${periodoSlug}`;
+    } else if (type === "cliente") {
+      docTitle = `relatorio-colheita-cliente-${clienteSlug}-${periodoSlug}`;
+    } else if (type === "faturamento") {
+      docTitle = `relatorio-faturamento-colheita-${clienteSlug}-${periodoSlug}`;
+    } else {
+      docTitle = `relatorio-colheita-completo-${clienteSlug}-${periodoSlug}`;
+    }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
