@@ -67,6 +67,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const { matrizId } = useUnifiedCompany();
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+  const [gerarContrato, setGerarContrato] = useState(false);
+  const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
 
   useEffect(() => {
     if (!open) return;
