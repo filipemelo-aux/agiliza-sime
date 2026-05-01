@@ -1119,13 +1119,43 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-4 bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
-          </Button>
+        <div className="shrink-0 border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <Checkbox
+              checked={gerarContrato}
+              onCheckedChange={(v) => setGerarContrato(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="flex items-center gap-1 font-semibold">
+                <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+              </span>
+              <span className="block text-muted-foreground">
+                Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+              </span>
+            </span>
+          </label>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
+            </Button>
+          </div>
         </div>
       </SheetContent>
+
+      <FreightContractDialog
+        open={!!savedCteForContract}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSavedCteForContract(null);
+            setGerarContrato(false);
+            onOpenChange(false);
+          }
+        }}
+        cte={savedCteForContract}
+        onSaved={onSaved}
+      />
     </Sheet>
 
     <CargaFormDialog
