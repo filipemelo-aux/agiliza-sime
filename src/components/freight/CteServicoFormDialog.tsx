@@ -364,6 +364,22 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             />
           </div>
 
+          <label className="flex items-start gap-2 p-3 rounded-md border border-amber-500/30 bg-amber-500/5 cursor-pointer">
+            <Checkbox
+              checked={gerarContrato}
+              onCheckedChange={(v) => setGerarContrato(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="flex items-center gap-1 font-semibold">
+                <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+              </span>
+              <span className="block text-muted-foreground">
+                Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+              </span>
+            </span>
+          </label>
+
           <div className="flex gap-2 sticky bottom-0 bg-background pt-3 pb-2">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
@@ -375,6 +391,19 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           </div>
         </div>
       </SheetContent>
+
+      <FreightContractDialog
+        open={!!savedCteForContract}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSavedCteForContract(null);
+            setGerarContrato(false);
+            onOpenChange(false);
+          }
+        }}
+        cte={savedCteForContract}
+        onSaved={onSaved}
+      />
     </Sheet>
   );
 }
