@@ -107,7 +107,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       if (cte.motorista_id) {
         const { data: d } = await supabase
           .from("profiles")
-          .select("id, full_name, cpf")
+          .select("id, full_name")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         driver = d;
@@ -117,7 +117,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       if (!owner && cte.motorista_id) {
         const { data: dOwner } = await supabase
           .from("profiles")
-          .select("id, full_name, razao_social, cpf, cnpj, is_owner")
+          .select("id, full_name, razao_social, cnpj, is_owner")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         if (dOwner?.is_owner) owner = dOwner;
@@ -127,11 +127,11 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       setForm({
         contratado_id: owner?.id ?? null,
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
-        contratado_documento: owner?.cnpj || owner?.cpf || "",
+        contratado_documento: owner?.cnpj || "",
         contratado_tipo: isPJ ? "PJ" : "PF",
         motorista_id: driver?.id ?? cte.motorista_id ?? null,
         motorista_nome: driver?.full_name || (cte as any).motorista_nome || "",
-        motorista_cpf: driver?.cpf || (cte as any).motorista_cpf || "",
+        motorista_cpf: (cte as any).motorista_cpf || "",
         vehicle_id: vehicle?.id ?? null,
         placa_veiculo: placa,
         veiculo_modelo: vehicle ? `${vehicle.brand || ""} ${vehicle.model || ""}`.trim() : "",
