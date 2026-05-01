@@ -129,7 +129,9 @@ export default function AdminDashboard() {
         });
 
       // "Vencidos (últimos 7 dias)" — antes de hoje, dentro do intervalo
-      const overdueItems = enriched.filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr);
+      const overdueItems = enriched
+        .filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr)
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento));
       // "Vencendo Hoje" — somente vencimentos do dia
       const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
       // "Próximos 7 dias" — de amanhã até hoje+7
