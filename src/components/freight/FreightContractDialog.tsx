@@ -263,7 +263,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                     ...f,
                     contratado_id: p.id,
                     contratado_nome: p.razao_social || p.full_name,
-                    contratado_documento: p.cnpj || p.cpf || "",
+                    contratado_documento: p.cnpj || "",
                     contratado_tipo: p.cnpj ? "PJ" : "PF",
                   }))
                 }
