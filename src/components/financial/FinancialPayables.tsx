@@ -146,12 +146,12 @@ export function FinancialPayables() {
   // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
   useEffect(() => {
-    if ((fromNav || initialQuickFilter) && !clearedNav.current) {
+    if ((fromNav || initialQuickFilter || initialOpenExpenseId) && !clearedNav.current) {
       clearedNav.current = true;
       sessionStorage.removeItem(STORAGE_KEY);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [fromNav, initialQuickFilter]);
+  }, [fromNav, initialQuickFilter, initialOpenExpenseId]);
 
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
