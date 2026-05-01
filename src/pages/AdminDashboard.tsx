@@ -98,8 +98,10 @@ export default function AdminDashboard() {
       if (!installments || installments.length === 0) {
         setDueToday([]);
         setDueWeek([]);
+        setOverdue([]);
         setTotalToday(0);
         setTotalWeek(0);
+        setTotalOverdue(0);
         setLoading(false);
         return;
       }
@@ -126,13 +128,17 @@ export default function AdminDashboard() {
           };
         });
 
+      // "Vencidos (últimos 7 dias)" — antes de hoje, dentro do intervalo
+      const overdueItems = enriched.filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr);
       // "Vencendo Hoje" — somente vencimentos do dia
       const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
       // "Próximos 7 dias" — de amanhã até hoje+7
       const weekItems = enriched.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
 
+      setOverdue(overdueItems);
       setDueToday(todayItems);
       setDueWeek(weekItems);
+      setTotalOverdue(overdueItems.reduce((s, i) => s + Number(i.valor), 0));
       setTotalToday(todayItems.reduce((s, i) => s + Number(i.valor), 0));
       setTotalWeek(weekItems.reduce((s, i) => s + Number(i.valor), 0));
     } catch (err) {
