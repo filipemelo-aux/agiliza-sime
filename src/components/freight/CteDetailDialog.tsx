@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Send, Loader2, Pencil } from "lucide-react";
+import { Send, Loader2, Pencil, FileSignature, Printer } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
+import { supabase } from "@/integrations/supabase/client";
+import { FreightContractDialog } from "./FreightContractDialog";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
