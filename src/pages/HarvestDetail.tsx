@@ -1620,7 +1620,9 @@ export default function HarvestDetail() {
     );
   };
 
-  const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData));
+  // Relatório de Agregados exibe apenas motoristas com caminhões de frota terceiros
+  const sortedAgregados = filterBySearch(sortAssignments(assignments, agregadoSort, getAgregadoData))
+    .filter((a) => a.fleet_type !== "propria");
   const sortedFaturamento = filterBySearch(sortAssignments(assignments, faturamentoSort, getFaturamentoData));
   const sortedCliente = filterBySearch(sortAssignments(assignments, clienteSort, getClienteData));
 
