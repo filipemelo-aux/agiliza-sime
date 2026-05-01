@@ -44,8 +44,10 @@ export default function AdminDashboard() {
 
   const [dueToday, setDueToday] = useState<DueItem[]>([]);
   const [dueWeek, setDueWeek] = useState<DueItem[]>([]);
+  const [overdue, setOverdue] = useState<DueItem[]>([]);
   const [totalToday, setTotalToday] = useState(0);
   const [totalWeek, setTotalWeek] = useState(0);
+  const [totalOverdue, setTotalOverdue] = useState(0);
 
   useEffect(() => {
     supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle()
