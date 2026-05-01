@@ -88,8 +88,9 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   if (cteProp.id !== localCte.id) setLocalCte(cteProp);
 
   const cte = localCte;
-  const canEdit = cte.status === "rascunho" || cte.status === "rejeitado";
-  const canTransmit = cte.status === "rascunho" || cte.status === "rejeitado";
+  const isServico = (cte as any).tipo_talao === "servico";
+  const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
+  const canTransmit = !isServico && (cte.status === "rascunho" || cte.status === "rejeitado");
 
   const handleTransmit = async () => {
     setTransmitting(true);
