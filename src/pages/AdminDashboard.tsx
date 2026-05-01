@@ -313,7 +313,12 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-1.5">
                       {overdue.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                        <Link
+                          key={item.id}
+                          to="/admin/financial/payables"
+                          state={{ quickFilter: "atrasadas", openExpenseId: item.expense_id }}
+                          className="flex items-center justify-between py-2 px-2.5 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors"
+                        >
                           <div className="min-w-0 flex-1">
                             <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
                             <p className="text-[10px] text-muted-foreground/70 truncate">
@@ -324,7 +329,7 @@ export default function AdminDashboard() {
                             <p className="text-[13px] font-medium text-destructive whitespace-nowrap">{fmt(item.valor)}</p>
                             <p className="text-[10px] text-destructive/70">{fmtDate(item.data_vencimento)}</p>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>
