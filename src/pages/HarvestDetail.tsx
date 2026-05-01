@@ -448,8 +448,16 @@ export default function HarvestDetail() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const suffix = type === "ambos" ? "completo" : type;
-    link.download = `relatorio-${suffix}-${job!.farm_name.replace(/\s+/g, "-").toLowerCase()}.csv`;
+    const slugCsv = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+    const periodoCsv = `${filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio"}-a-${filterEndDate ? filterEndDate.replace(/-/g, "") : "atual"}`;
+    const clienteCsv = slugCsv(job!.client_name || job!.farm_name || "cliente");
+    const proprietarioCsv = slugCsv(receiptOwnerInfo || "todos");
+    let csvName = "";
+    if (type === "agregados") csvName = `Relatorio-colheita-agregados-${proprietarioCsv}-${clienteCsv}-${periodoCsv}.csv`;
+    else if (type === "cliente") csvName = `relatorio-colheita-cliente-${clienteCsv}-${periodoCsv}.csv`;
+    else if (type === "faturamento") csvName = `relatorio-faturamento-colheita-${clienteCsv}-${periodoCsv}.csv`;
+    else csvName = `relatorio-colheita-completo-${clienteCsv}-${periodoCsv}.csv`;
+    link.download = csvName;
     link.click();
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!" });
@@ -838,9 +846,33 @@ export default function HarvestDetail() {
         html += `<tr class="total-row"><td colspan="4" class="right">TOTAIS</td><td class="center">${totCliDias}</td><td colspan="1"></td><td colspan="1"></td><td class="right">${formatCurrency(totCliDesc)}</td><td class="right">${formatCurrency(totCliLiq)}</td></tr></tbody></table></div>`;
       }
     }
+    const slug = (s: string) =>
+      (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+    const periodoSlug = (() => {
+      const s = filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio";
+      const e = filterEndDate ? filterEndDate.replace(/-/g, "") : "atual";
+      return `${s}-a-${e}`;
+    })();
+    const clienteSlug = slug(job!.client_name || job!.farm_name || "cliente");
+    const proprietarioSlug = slug(receiptOwnerInfo || "todos");
+    let docTitle = "";
+    if (type === "agregados") {
+      docTitle = `Relatorio-colheita-agregados-${proprietarioSlug}-${clienteSlug}-${periodoSlug}`;
+    } else if (type === "cliente") {
+      docTitle = `relatorio-colheita-cliente-${clienteSlug}-${periodoSlug}`;
+    } else if (type === "faturamento") {
+      docTitle = `relatorio-faturamento-colheita-${clienteSlug}-${periodoSlug}`;
+    } else {
+      docTitle = `relatorio-colheita-completo-${clienteSlug}-${periodoSlug}`;
+    }
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Relatório - ${job!.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
@@ -997,9 +1029,18 @@ export default function HarvestDetail() {
     html += `<div class="signature-line"><strong>${ownerName}</strong><br/>Proprietário(a) dos Veículos</div>`;
     html += `</div>`;
 
+    const slug = (s: string) =>
+      (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+    const periodoSlug = `${filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio"}-a-${filterEndDate ? filterEndDate.replace(/-/g, "") : "atual"}`;
+    const docTitle = `recibo-colheita-${slug(ownerName)}-${slug(job.client_name || job.farm_name)}-${periodoSlug}`;
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Recibo - ${ownerName} - ${job.farm_name}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>${docTitle}</title><style>${tableStyle}</style></head><body>${html}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => printWindow.print(), 300);
