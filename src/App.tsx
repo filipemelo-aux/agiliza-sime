@@ -18,6 +18,7 @@ import AdminSettings from "./pages/AdminSettings";
 import HarvestDetail from "./pages/HarvestDetail";
 import FreightDashboard from "./pages/FreightDashboard";
 import FreightCte from "./pages/FreightCte";
+import FreightContracts from "./pages/FreightContracts";
 import FreightMdfe from "./pages/FreightMdfe";
 import FreightFiscalSettings from "./pages/FreightFiscalSettings";
 import AdminCargas from "./pages/AdminCargas";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/freight/dashboard" element={<FreightDashboard />} />
             <Route path="/admin/freight/cte" element={<FreightCte />} />
+            <Route path="/admin/freight/contracts" element={<FreightContracts />} />
             <Route path="/admin/freight/mdfe" element={<FreightMdfe />} />
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
