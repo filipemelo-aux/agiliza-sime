@@ -460,17 +460,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         valor_carga_averb: form.valor_carga_averb || null,
       };
 
+      let savedId: string;
       if (cte) {
         const { error } = await supabase.from("ctes").update(payload).eq("id", cte.id);
         if (error) throw error;
         toast({ title: "CT-e atualizado" });
+        savedId = cte.id;
       } else {
-        const { error } = await supabase.from("ctes").insert(payload);
+        const { data, error } = await supabase.from("ctes").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "CT-e criado", description: "Rascunho salvo com sucesso." });
+        savedId = data.id;
       }
       onSaved();
-      onOpenChange(false);
+
+      if (gerarContrato) {
+        const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setSavedCteForContract(fresh as any);
+      } else {
+        onOpenChange(false);
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
