@@ -2511,15 +2511,32 @@ export default function HarvestDetail() {
                         </TableRow>
                       );
                     })}
-                    <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
-                      <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
-                      <TableCell className="text-center">{sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).days, 0)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0))}</TableCell>
-                      <TableCell className="text-orange-500 whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</TableCell>
-                      <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0))}</TableCell>
-                      <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0))}</TableCell>
-                    </TableRow>
+                    {(() => {
+                      const totDias = sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).days, 0);
+                      const totBruto = sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).totalBruto, 0);
+                      const totLiqPropria = sortedFaturamento.filter(a => a.fleet_type === "propria").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
+                      const totLiqTerceiros = sortedFaturamento.filter(a => a.fleet_type !== "propria").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0);
+                      const totDesc = sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).descontosEmpresa, 0);
+                      const totFat = sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).faturamentoLiquido, 0);
+                      return (
+                        <>
+                          <TableRow className="bg-muted/50 font-semibold [&>td]:py-1.5 [&>td]:px-2">
+                            <TableCell colSpan={5} className="text-right text-xs">TOTAIS</TableCell>
+                            <TableCell className="text-center">{totDias}</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="whitespace-nowrap">{formatCurrency(totBruto)}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <div className="flex flex-col leading-tight">
+                                <span className="text-orange-500">{formatCurrency(totLiqTerceiros)}<span className="text-[10px] text-muted-foreground ml-1">terc.</span></span>
+                                <span className="text-blue-600">{formatCurrency(totLiqPropria)}<span className="text-[10px] text-muted-foreground ml-1">própria</span></span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-destructive whitespace-nowrap">{formatCurrency(totDesc)}</TableCell>
+                            <TableCell className="text-green-600 whitespace-nowrap">{formatCurrency(totFat)}</TableCell>
+                          </TableRow>
+                        </>
+                      );
+                    })()}
                   </TableBody>
                 </Table>
               </div>
