@@ -448,8 +448,16 @@ export default function HarvestDetail() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const suffix = type === "ambos" ? "completo" : type;
-    link.download = `relatorio-${suffix}-${job!.farm_name.replace(/\s+/g, "-").toLowerCase()}.csv`;
+    const slugCsv = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+    const periodoCsv = `${filterStartDate ? filterStartDate.replace(/-/g, "") : "inicio"}-a-${filterEndDate ? filterEndDate.replace(/-/g, "") : "atual"}`;
+    const clienteCsv = slugCsv(job!.client_name || job!.farm_name || "cliente");
+    const proprietarioCsv = slugCsv(receiptOwnerInfo || "todos");
+    let csvName = "";
+    if (type === "agregados") csvName = `Relatorio-colheita-agregados-${proprietarioCsv}-${clienteCsv}-${periodoCsv}.csv`;
+    else if (type === "cliente") csvName = `relatorio-colheita-cliente-${clienteCsv}-${periodoCsv}.csv`;
+    else if (type === "faturamento") csvName = `relatorio-faturamento-colheita-${clienteCsv}-${periodoCsv}.csv`;
+    else csvName = `relatorio-colheita-completo-${clienteCsv}-${periodoCsv}.csv`;
+    link.download = csvName;
     link.click();
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!" });
