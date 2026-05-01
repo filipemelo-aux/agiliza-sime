@@ -333,6 +333,10 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
         if (error) throw error;
         toast({ title: "Veículo cadastrado!" });
       }
+      // If driver is also the owner, flag the driver's profile so it shows up in owner searches
+      if (driverIsOwner && form.driverId) {
+        await supabase.from("profiles").update({ is_owner: true }).eq("user_id", form.driverId);
+      }
       onOpenChange(false);
       onSaved();
     } catch (error: any) {

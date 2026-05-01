@@ -2982,6 +2982,7 @@ export type Database = {
           inscricao_estadual: string | null
           is_colaborador_rh: boolean
           is_employee: boolean
+          is_owner: boolean
           nome_fantasia: string | null
           notes: string | null
           person_type: string | null
@@ -3022,6 +3023,7 @@ export type Database = {
           inscricao_estadual?: string | null
           is_colaborador_rh?: boolean
           is_employee?: boolean
+          is_owner?: boolean
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null
@@ -3062,6 +3064,7 @@ export type Database = {
           inscricao_estadual?: string | null
           is_colaborador_rh?: boolean
           is_employee?: boolean
+          is_owner?: boolean
           nome_fantasia?: string | null
           notes?: string | null
           person_type?: string | null

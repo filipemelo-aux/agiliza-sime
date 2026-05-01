@@ -92,10 +92,17 @@ export function PersonSearchInput({
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const { data } = await supabase
+        const includeOwners = categories.includes("proprietario");
+        let query = supabase
           .from("profiles")
-          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual")
-          .in("category", categories)
+          .select("id, user_id, full_name, cnpj, razao_social, nome_fantasia, category, person_type, address_street, address_number, address_neighborhood, address_city, address_state, inscricao_estadual, is_owner");
+        if (includeOwners) {
+          // Include profiles in selected categories OR any profile flagged as owner
+          query = query.or(`category.in.(${categories.join(",")}),is_owner.eq.true`);
+        } else {
+          query = query.in("category", categories);
+        }
+        const { data } = await query
           .or(`full_name.ilike.%${q}%,razao_social.ilike.%${q}%,cnpj.ilike.%${q}%,nome_fantasia.ilike.%${q}%`)
           .order("full_name")
           .limit(10);
