@@ -129,6 +129,7 @@ export function FinancialPayables() {
   const locState = (location.state as any) || {};
   const fromNav = !!locState.fromNav;
   const initialQuickFilter: QuickFilter | undefined = locState.quickFilter;
+  const initialOpenExpenseId: string | undefined = locState.openExpenseId;
 
   const getStoredFilters = () => {
     if (fromNav || initialQuickFilter) return null; // Reset filters on sidebar navigation or dashboard link
@@ -145,12 +146,12 @@ export function FinancialPayables() {
   // Clear the state flag so refreshes / CRUD don't reset filters
   const clearedNav = useRef(false);
   useEffect(() => {
-    if ((fromNav || initialQuickFilter) && !clearedNav.current) {
+    if ((fromNav || initialQuickFilter || initialOpenExpenseId) && !clearedNav.current) {
       clearedNav.current = true;
       sessionStorage.removeItem(STORAGE_KEY);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [fromNav, initialQuickFilter]);
+  }, [fromNav, initialQuickFilter, initialOpenExpenseId]);
 
   const [items, setItems] = useState<Expense[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -414,6 +415,18 @@ export function FinancialPayables() {
     const exp = items.find(i => i.id === expenseId);
     if (exp) { setDetailExpense(exp); setDetailOpen(true); }
   };
+
+  // Auto-open detail dialog when navigating from dashboard
+  const openedFromNavRef = useRef(false);
+  useEffect(() => {
+    if (!initialOpenExpenseId || openedFromNavRef.current || items.length === 0) return;
+    const exp = items.find(i => i.id === initialOpenExpenseId);
+    if (exp) {
+      openedFromNavRef.current = true;
+      setDetailExpense(exp);
+      setDetailOpen(true);
+    }
+  }, [initialOpenExpenseId, items]);
 
   const openMaintenanceDetail = async (expenseId: string) => {
     setMaintDetailOpen(true);
@@ -1848,14 +1861,39 @@ export function FinancialPayables() {
                           <Badge variant={inst.status === "pago" ? "default" : "outline"} className="text-[9px] shrink-0">
                             {inst.status === "pago" ? "Pago" : "Pend."}
                           </Badge>
-                          {inst.boleto_url && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto shrink-0" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
-                              <Download className="h-3 w-3 text-primary" />
-                            </Button>
-                          )}
+                          <div className="ml-auto flex items-center gap-1 shrink-0">
+                            {inst.boleto_url && (
+                              <Button variant="ghost" size="icon" className="h-5 w-5" title="Baixar boleto" onClick={() => handleDownloadBoleto(inst)}>
+                                <Download className="h-3 w-3 text-primary" />
+                              </Button>
+                            )}
+                            {inst.status !== "pago" && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] gap-1"
+                                onClick={() => { setDetailOpen(false); handlePayInstallment(inst); }}
+                              >
+                                <DollarSign className="h-3 w-3" /> Pagar
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {detailExpense.status !== "pago" && (
+                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => { setDetailOpen(false); handlePayment(detailExpense); }}
+                      className="gap-1.5"
+                    >
+                      <DollarSign className="h-3.5 w-3.5" /> Pagar Despesa
+                    </Button>
                   </div>
                 )}
               </div>
