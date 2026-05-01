@@ -2422,7 +2422,11 @@ export default function HarvestDetail() {
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Líq. Terceiros</span>
-                      <span className="text-orange-500">{formatCurrency(sortedFaturamento.reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</span>
+                      <span className="text-orange-500">{formatCurrency(sortedFaturamento.filter(a => a.fleet_type !== "propria").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Líq. Frota Própria</span>
+                      <span className="text-blue-600">{formatCurrency(sortedFaturamento.filter(a => a.fleet_type === "propria").reduce((s, a) => s + getFaturamentoData(a).liquidoTerceiros, 0))}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Descontos</span>
