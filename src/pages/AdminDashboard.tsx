@@ -267,24 +267,60 @@ export default function AdminDashboard() {
                   </Link>
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-4 pt-1">
-                {dueToday.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {dueToday.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
-                          <p className="text-[10px] text-muted-foreground/70 truncate">
-                            {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
-                          </p>
+              <CardContent className="px-4 pb-4 pt-1 space-y-3">
+                {/* Vencidos (últimos 7 dias) */}
+                {overdue.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between px-2.5 mb-1">
+                      <span className="text-[10px] font-semibold text-destructive/80 uppercase tracking-wider">
+                        Vencidos (7 dias)
+                      </span>
+                      <span className="text-[11px] font-semibold text-destructive/80">{fmt(totalOverdue)}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {overdue.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                            </p>
+                          </div>
+                          <div className="text-right ml-3 shrink-0">
+                            <p className="text-[13px] font-medium text-destructive whitespace-nowrap">{fmt(item.valor)}</p>
+                            <p className="text-[10px] text-destructive/70">{fmtDate(item.data_vencimento)}</p>
+                          </div>
                         </div>
-                        <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Vencendo Hoje */}
+                <div>
+                  {overdue.length > 0 && (
+                    <div className="flex items-center justify-between px-2.5 mb-1">
+                      <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider">Hoje</span>
+                    </div>
+                  )}
+                  {dueToday.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {dueToday.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                            </p>
+                          </div>
+                          <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
