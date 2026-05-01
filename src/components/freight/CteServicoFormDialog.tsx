@@ -168,7 +168,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         if (error) throw error;
         savedId = cte.id;
       } else {
-        const { data, error } = await supabase.from("ctes").insert(payload).select("id").single();
+        const { data, error } = await supabase.from("ctes").insert(payload as any).select("id").single();
         if (error) throw error;
         savedId = data.id;
       }
