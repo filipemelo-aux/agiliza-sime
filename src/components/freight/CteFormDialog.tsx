@@ -22,11 +22,13 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X } from "lucide-react";
+import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
+import { FreightContractDialog } from "./FreightContractDialog";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -270,6 +272,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [gerarContrato, setGerarContrato] = useState(false);
+  const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
@@ -460,17 +464,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         valor_carga_averb: form.valor_carga_averb || null,
       };
 
+      let savedId: string;
       if (cte) {
         const { error } = await supabase.from("ctes").update(payload).eq("id", cte.id);
         if (error) throw error;
         toast({ title: "CT-e atualizado" });
+        savedId = cte.id;
       } else {
-        const { error } = await supabase.from("ctes").insert(payload);
+        const { data, error } = await supabase.from("ctes").insert(payload).select("id").single();
         if (error) throw error;
         toast({ title: "CT-e criado", description: "Rascunho salvo com sucesso." });
+        savedId = data.id;
       }
       onSaved();
-      onOpenChange(false);
+
+      if (gerarContrato) {
+        const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setSavedCteForContract(fresh as any);
+      } else {
+        onOpenChange(false);
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -1106,13 +1119,43 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         </div>
 
         {/* Footer fixo */}
-        <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-4 bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
-          </Button>
+        <div className="shrink-0 border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <Checkbox
+              checked={gerarContrato}
+              onCheckedChange={(v) => setGerarContrato(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="flex items-center gap-1 font-semibold">
+                <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+              </span>
+              <span className="block text-muted-foreground">
+                Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+              </span>
+            </span>
+          </label>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
+            </Button>
+          </div>
         </div>
       </SheetContent>
+
+      <FreightContractDialog
+        open={!!savedCteForContract}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSavedCteForContract(null);
+            setGerarContrato(false);
+            onOpenChange(false);
+          }
+        }}
+        cte={savedCteForContract}
+        onSaved={onSaved}
+      />
     </Sheet>
 
     <CargaFormDialog

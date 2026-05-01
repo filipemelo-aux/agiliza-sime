@@ -1633,6 +1633,7 @@ export type Database = {
           serie_cte: number | null
           serie_mdfe: number | null
           type: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_contrato_frete: number
           ultimo_numero_cte: number | null
           ultimo_numero_cte_servico: number
           ultimo_numero_mdfe: number | null
@@ -1663,6 +1664,7 @@ export type Database = {
           serie_cte?: number | null
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_contrato_frete?: number
           ultimo_numero_cte?: number | null
           ultimo_numero_cte_servico?: number
           ultimo_numero_mdfe?: number | null
@@ -1693,6 +1695,7 @@ export type Database = {
           serie_cte?: number | null
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
+          ultimo_numero_contrato_frete?: number
           ultimo_numero_cte?: number | null
           ultimo_numero_cte_servico?: number
           ultimo_numero_mdfe?: number | null
@@ -2136,6 +2139,142 @@ export type Database = {
           },
           {
             foreignKeyName: "freight_applications_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_contracts: {
+        Row: {
+          accounts_payable_id: string | null
+          contratado_documento: string | null
+          contratado_id: string | null
+          contratado_nome: string
+          contratado_tipo: string
+          created_at: string
+          created_by: string | null
+          cte_id: string
+          data_contrato: string
+          establishment_id: string | null
+          id: string
+          motorista_cpf: string | null
+          motorista_id: string | null
+          motorista_nome: string | null
+          municipio_destino: string | null
+          municipio_origem: string | null
+          natureza_carga: string | null
+          numero: number
+          observacoes: string | null
+          peso_kg: number
+          placa_veiculo: string | null
+          uf_destino: string | null
+          uf_origem: string | null
+          updated_at: string
+          valor_tonelada: number
+          valor_total: number
+          vehicle_id: string | null
+          veiculo_modelo: string | null
+        }
+        Insert: {
+          accounts_payable_id?: string | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome: string
+          contratado_tipo?: string
+          created_at?: string
+          created_by?: string | null
+          cte_id: string
+          data_contrato?: string
+          establishment_id?: string | null
+          id?: string
+          motorista_cpf?: string | null
+          motorista_id?: string | null
+          motorista_nome?: string | null
+          municipio_destino?: string | null
+          municipio_origem?: string | null
+          natureza_carga?: string | null
+          numero: number
+          observacoes?: string | null
+          peso_kg?: number
+          placa_veiculo?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+          valor_tonelada?: number
+          valor_total?: number
+          vehicle_id?: string | null
+          veiculo_modelo?: string | null
+        }
+        Update: {
+          accounts_payable_id?: string | null
+          contratado_documento?: string | null
+          contratado_id?: string | null
+          contratado_nome?: string
+          contratado_tipo?: string
+          created_at?: string
+          created_by?: string | null
+          cte_id?: string
+          data_contrato?: string
+          establishment_id?: string | null
+          id?: string
+          motorista_cpf?: string | null
+          motorista_id?: string | null
+          motorista_nome?: string | null
+          municipio_destino?: string | null
+          municipio_origem?: string | null
+          natureza_carga?: string | null
+          numero?: number
+          observacoes?: string | null
+          peso_kg?: number
+          placa_veiculo?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+          valor_tonelada?: number
+          valor_total?: number
+          vehicle_id?: string | null
+          veiculo_modelo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_contracts_accounts_payable_id_fkey"
+            columns: ["accounts_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_contratado_id_fkey"
+            columns: ["contratado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: true
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
@@ -3507,6 +3646,33 @@ export type Database = {
         }
       }
       cleanup_rate_limit_entries: { Args: never; Returns: number }
+      create_freight_contract_with_payable: {
+        Args: {
+          _contratado_documento: string
+          _contratado_id: string
+          _contratado_nome: string
+          _contratado_tipo: string
+          _cte_id: string
+          _establishment_id: string
+          _motorista_cpf: string
+          _motorista_id: string
+          _motorista_nome: string
+          _municipio_destino: string
+          _municipio_origem: string
+          _natureza_carga: string
+          _observacoes: string
+          _peso_kg: number
+          _placa_veiculo: string
+          _uf_destino: string
+          _uf_origem: string
+          _user_id: string
+          _valor_tonelada: number
+          _valor_total: number
+          _vehicle_id: string
+          _veiculo_modelo: string
+        }
+        Returns: string
+      }
       fn_infer_salario_competencia: {
         Args: { _data_emissao: string }
         Returns: string
@@ -3537,6 +3703,10 @@ export type Database = {
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
       next_cte_servico_number: {
+        Args: { _establishment_id: string }
+        Returns: number
+      }
+      next_freight_contract_number: {
         Args: { _establishment_id: string }
         Returns: number
       }

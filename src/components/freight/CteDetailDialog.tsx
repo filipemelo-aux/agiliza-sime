@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Send, Loader2, Pencil } from "lucide-react";
+import { Send, Loader2, Pencil, FileSignature, Printer } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
+import { supabase } from "@/integrations/supabase/client";
+import { FreightContractDialog } from "./FreightContractDialog";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
@@ -81,6 +83,8 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
 export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit }: Props) {
   const [transmitting, setTransmitting] = useState(false);
   const [localCte, setLocalCte] = useState(cteProp);
+  const [contractOpen, setContractOpen] = useState(false);
+  const [existingContract, setExistingContract] = useState<{ id: string; numero: number } | null>(null);
   const { toast } = useToast();
 
   // Sync with prop when dialog opens with a different CTE
@@ -91,6 +95,39 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const isServico = (cte as any).tipo_talao === "servico";
   const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
   const canTransmit = !isServico && (cte.status === "rascunho" || cte.status === "rejeitado");
+
+  // Look up existing contract for this CT-e
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("freight_contracts")
+        .select("id, numero")
+        .eq("cte_id", cte.id)
+        .maybeSingle();
+      if (!cancelled) setExistingContract(data || null);
+    })();
+    return () => { cancelled = true; };
+  }, [open, cte.id, contractOpen]);
+
+  const handlePrintContract = async () => {
+    if (!existingContract) return;
+    const { data, error } = await supabase
+      .from("freight_contracts")
+      .select("*")
+      .eq("id", existingContract.id)
+      .single();
+    if (error || !data) {
+      toast({ title: "Erro", description: error?.message || "Contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    const html = buildStoredContractHtml(data);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) w.onload = () => setTimeout(() => w.print(), 400);
+  };
 
   const handleTransmit = async () => {
     setTransmitting(true);
@@ -333,8 +370,109 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
               </div>
             </>
           )}
+
+          {/* Contrato de Frete */}
+          <Separator />
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Contrato de Frete
+            </h4>
+            {existingContract ? (
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm">
+                  Contrato Nº <span className="font-semibold">{String(existingContract.numero).padStart(6, "0")}</span> gerado.
+                </p>
+                <Button size="sm" variant="outline" onClick={handlePrintContract} className="gap-1">
+                  <Printer className="w-4 h-4" /> Imprimir
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setContractOpen(true)} className="gap-2">
+                <FileSignature className="w-4 h-4" />
+                Gerar Contrato de Frete
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
+
+      <FreightContractDialog
+        open={contractOpen}
+        onOpenChange={setContractOpen}
+        cte={cte}
+        onSaved={() => { onUpdated(); }}
+      />
     </Dialog>
   );
 }
+
+// HTML do contrato a partir do registro persistido
+function buildStoredContractHtml(c: any) {
+  const fmt = (v: number) =>
+    Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const pesoTon = (Number(c.peso_kg) || 0) / 1000;
+  const dataExt = new Date(c.created_at || c.data_contrato).toLocaleDateString("pt-BR", {
+    day: "2-digit", month: "long", year: "numeric",
+  });
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Contrato de Frete Nº ${c.numero}</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.45; }
+  h1 { font-size: 14pt; text-align: center; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .sub { text-align: center; font-size: 10pt; color: #555; margin-bottom: 18px; }
+  table.parties { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 10pt; }
+  table.parties th, table.parties td { border: 1px solid #999; padding: 5px 7px; text-align: left; vertical-align: top; }
+  table.parties th { background: #f1f1f1; width: 28%; }
+  h2 { font-size: 11pt; margin: 14px 0 6px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; }
+  p { margin: 4px 0; text-align: justify; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 10pt; }
+  .grid div b { display: inline-block; min-width: 140px; }
+  .sign { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .sign .line { border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 10pt; }
+  .total-box { margin-top: 8px; padding: 8px 12px; background: #f5f5f5; border-left: 4px solid #2B4C7E; font-size: 11pt; }
+</style></head><body>
+<h1>Contrato de Prestação de Serviço de Frete</h1>
+<div class="sub">Contrato Nº ${String(c.numero).padStart(6, "0")} — ${dataExt}</div>
+<table class="parties">
+  <tr><th>CONTRATANTE</th><td><b>SIME TRANSPORTE LTDA</b></td></tr>
+  <tr><th>CONTRATADO</th><td>
+    <b>${c.contratado_nome || "-"}</b><br/>
+    ${c.contratado_tipo === "PJ" ? "CNPJ" : "CPF"}: ${c.contratado_documento || "-"} — Tipo: ${c.contratado_tipo || "PF"}
+  </td></tr>
+</table>
+<h2>1. Objeto</h2>
+<p>O presente instrumento tem por objeto a contratação, pela CONTRATANTE, do serviço de transporte rodoviário de cargas a ser executado pelo CONTRATADO, observadas as condições, valores e responsabilidades estabelecidas neste contrato.</p>
+<h2>2. Trecho e Carga</h2>
+<div class="grid">
+  <div><b>Origem:</b> ${c.municipio_origem || "-"}/${c.uf_origem || "--"}</div>
+  <div><b>Destino:</b> ${c.municipio_destino || "-"}/${c.uf_destino || "--"}</div>
+  <div><b>Natureza:</b> ${c.natureza_carga || "-"}</div>
+  <div><b>Peso:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t (${Number(c.peso_kg || 0).toLocaleString("pt-BR")} kg)</div>
+</div>
+<h2>3. Veículo e Motorista</h2>
+<div class="grid">
+  <div><b>Placa:</b> ${c.placa_veiculo || "-"}</div>
+  <div><b>Modelo:</b> ${c.veiculo_modelo || "-"}</div>
+  <div><b>Motorista:</b> ${c.motorista_nome || "-"}</div>
+  <div><b>CPF:</b> ${c.motorista_cpf || "-"}</div>
+</div>
+<h2>4. Valor e Forma de Pagamento</h2>
+<div class="grid">
+  <div><b>Valor por tonelada:</b> ${fmt(Number(c.valor_tonelada))}</div>
+  <div><b>Peso transportado:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</div>
+</div>
+<div class="total-box"><b>Valor total do frete:</b> ${fmt(Number(c.valor_total))} — Vencimento à vista, em nome do CONTRATADO.</div>
+<h2>5. Obrigações do Contratado</h2>
+<p>O CONTRATADO se obriga a executar o transporte com diligência, observando legislação de trânsito e RNTRC, zelando pela integridade da carga até a entrega no destino indicado.</p>
+<h2>6. Obrigações da Contratante</h2>
+<p>A CONTRATANTE se obriga a efetuar o pagamento do valor pactuado conforme cláusula 4ª, mediante apresentação de comprovante de entrega da carga.</p>
+<h2>7. Disposições Gerais</h2>
+<p>${c.observacoes ? c.observacoes : "Aplicam-se a este contrato, no que couberem, as disposições do Código Civil e da Lei nº 11.442/2007."}</p>
+<div class="sign">
+  <div class="line">CONTRATANTE<br/>SIME TRANSPORTE LTDA</div>
+  <div class="line">CONTRATADO<br/>${c.contratado_nome || ""}</div>
+</div>
+</body></html>`;
+}
+

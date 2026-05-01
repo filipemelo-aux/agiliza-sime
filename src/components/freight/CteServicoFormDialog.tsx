@@ -14,9 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { Loader2, Users, Truck, Package, DollarSign } from "lucide-react";
+import { Loader2, Users, Truck, Package, DollarSign, FileSignature } from "lucide-react";
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { FreightContractDialog } from "./FreightContractDialog";
 import type { Cte } from "@/pages/FreightCte";
 
 interface Props {
@@ -65,6 +67,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const { matrizId } = useUnifiedCompany();
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+  const [gerarContrato, setGerarContrato] = useState(false);
+  const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -190,7 +194,14 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
       toast({ title: cte ? "Talão atualizado" : "Talão de Serviço criado" });
       onSaved();
-      onOpenChange(false);
+
+      if (gerarContrato) {
+        // Recupera o CT-e salvo para alimentar o FreightContractDialog
+        const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setSavedCteForContract(fresh as any);
+      } else {
+        onOpenChange(false);
+      }
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     } finally {
@@ -353,6 +364,22 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             />
           </div>
 
+          <label className="flex items-start gap-2 p-3 rounded-md border border-amber-500/30 bg-amber-500/5 cursor-pointer">
+            <Checkbox
+              checked={gerarContrato}
+              onCheckedChange={(v) => setGerarContrato(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="flex items-center gap-1 font-semibold">
+                <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+              </span>
+              <span className="block text-muted-foreground">
+                Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+              </span>
+            </span>
+          </label>
+
           <div className="flex gap-2 sticky bottom-0 bg-background pt-3 pb-2">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
@@ -364,6 +391,19 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           </div>
         </div>
       </SheetContent>
+
+      <FreightContractDialog
+        open={!!savedCteForContract}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSavedCteForContract(null);
+            setGerarContrato(false);
+            onOpenChange(false);
+          }
+        }}
+        cte={savedCteForContract}
+        onSaved={onSaved}
+      />
     </Sheet>
   );
 }
