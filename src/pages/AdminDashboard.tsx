@@ -44,8 +44,10 @@ export default function AdminDashboard() {
 
   const [dueToday, setDueToday] = useState<DueItem[]>([]);
   const [dueWeek, setDueWeek] = useState<DueItem[]>([]);
+  const [overdue, setOverdue] = useState<DueItem[]>([]);
   const [totalToday, setTotalToday] = useState(0);
   const [totalWeek, setTotalWeek] = useState(0);
+  const [totalOverdue, setTotalOverdue] = useState(0);
 
   useEffect(() => {
     supabase.from("fiscal_establishments").select("id").eq("type", "matriz").limit(1).maybeSingle()
@@ -80,19 +82,26 @@ export default function AdminDashboard() {
       endOfWeek.setDate(today.getDate() + 7);
       const endWeekStr = getLocalDateISO(endOfWeek);
 
-      // Fetch installments due today through end of week OR overdue (before today)
+      const startOverdue = new Date(today);
+      startOverdue.setDate(today.getDate() - 7);
+      const startOverdueStr = getLocalDateISO(startOverdue);
+
+      // Fetch installments from 7 days ago through end of week
       const { data: installments } = await supabase
         .from("expense_installments")
         .select("id, expense_id, numero_parcela, valor, data_vencimento, status")
         .in("status", ["pendente", "atrasado"])
+        .gte("data_vencimento", startOverdueStr)
         .lte("data_vencimento", endWeekStr)
         .order("data_vencimento", { ascending: true });
 
       if (!installments || installments.length === 0) {
         setDueToday([]);
         setDueWeek([]);
+        setOverdue([]);
         setTotalToday(0);
         setTotalWeek(0);
+        setTotalOverdue(0);
         setLoading(false);
         return;
       }
@@ -119,13 +128,17 @@ export default function AdminDashboard() {
           };
         });
 
+      // "Vencidos (últimos 7 dias)" — antes de hoje, dentro do intervalo
+      const overdueItems = enriched.filter((i) => i.data_vencimento < todayStr && i.data_vencimento >= startOverdueStr);
       // "Vencendo Hoje" — somente vencimentos do dia
       const todayItems = enriched.filter((i) => i.data_vencimento === todayStr);
       // "Próximos 7 dias" — de amanhã até hoje+7
       const weekItems = enriched.filter((i) => i.data_vencimento > todayStr && i.data_vencimento <= endWeekStr);
 
+      setOverdue(overdueItems);
       setDueToday(todayItems);
       setDueWeek(weekItems);
+      setTotalOverdue(overdueItems.reduce((s, i) => s + Number(i.valor), 0));
       setTotalToday(todayItems.reduce((s, i) => s + Number(i.valor), 0));
       setTotalWeek(weekItems.reduce((s, i) => s + Number(i.valor), 0));
     } catch (err) {
@@ -254,24 +267,60 @@ export default function AdminDashboard() {
                   </Link>
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-4 pt-1">
-                {dueToday.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {dueToday.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
-                          <p className="text-[10px] text-muted-foreground/70 truncate">
-                            {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
-                          </p>
+              <CardContent className="px-4 pb-4 pt-1 space-y-3">
+                {/* Vencidos (últimos 7 dias) */}
+                {overdue.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between px-2.5 mb-1">
+                      <span className="text-[10px] font-semibold text-destructive/80 uppercase tracking-wider">
+                        Vencidos (7 dias)
+                      </span>
+                      <span className="text-[11px] font-semibold text-destructive/80">{fmt(totalOverdue)}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {overdue.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                            </p>
+                          </div>
+                          <div className="text-right ml-3 shrink-0">
+                            <p className="text-[13px] font-medium text-destructive whitespace-nowrap">{fmt(item.valor)}</p>
+                            <p className="text-[10px] text-destructive/70">{fmtDate(item.data_vencimento)}</p>
+                          </div>
                         </div>
-                        <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Vencendo Hoje */}
+                <div>
+                  {overdue.length > 0 && (
+                    <div className="flex items-center justify-between px-2.5 mb-1">
+                      <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider">Hoje</span>
+                    </div>
+                  )}
+                  {dueToday.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">Nenhuma conta vencendo hoje 🎉</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {dueToday.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2 px-2.5 rounded-md hover:bg-muted/40 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-foreground/90 truncate">{item.favorecido_nome || item.descricao}</p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {item.favorecido_nome ? item.descricao : ""} {item.numero_parcela > 0 && `• P${item.numero_parcela}`}
+                            </p>
+                          </div>
+                          <span className="text-[13px] font-medium text-destructive/80 whitespace-nowrap ml-3">{fmt(item.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
