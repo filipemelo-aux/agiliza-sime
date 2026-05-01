@@ -194,7 +194,14 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
       toast({ title: cte ? "Talão atualizado" : "Talão de Serviço criado" });
       onSaved();
-      onOpenChange(false);
+
+      if (gerarContrato) {
+        // Recupera o CT-e salvo para alimentar o FreightContractDialog
+        const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setSavedCteForContract(fresh as any);
+      } else {
+        onOpenChange(false);
+      }
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     } finally {
