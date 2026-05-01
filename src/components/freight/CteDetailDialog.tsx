@@ -83,6 +83,8 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
 export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit }: Props) {
   const [transmitting, setTransmitting] = useState(false);
   const [localCte, setLocalCte] = useState(cteProp);
+  const [contractOpen, setContractOpen] = useState(false);
+  const [existingContract, setExistingContract] = useState<{ id: string; numero: number } | null>(null);
   const { toast } = useToast();
 
   // Sync with prop when dialog opens with a different CTE
@@ -93,6 +95,39 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const isServico = (cte as any).tipo_talao === "servico";
   const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
   const canTransmit = !isServico && (cte.status === "rascunho" || cte.status === "rejeitado");
+
+  // Look up existing contract for this CT-e
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("freight_contracts")
+        .select("id, numero")
+        .eq("cte_id", cte.id)
+        .maybeSingle();
+      if (!cancelled) setExistingContract(data || null);
+    })();
+    return () => { cancelled = true; };
+  }, [open, cte.id, contractOpen]);
+
+  const handlePrintContract = async () => {
+    if (!existingContract) return;
+    const { data, error } = await supabase
+      .from("freight_contracts")
+      .select("*")
+      .eq("id", existingContract.id)
+      .single();
+    if (error || !data) {
+      toast({ title: "Erro", description: error?.message || "Contrato não encontrado", variant: "destructive" });
+      return;
+    }
+    const html = buildStoredContractHtml(data);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) w.onload = () => setTimeout(() => w.print(), 400);
+  };
 
   const handleTransmit = async () => {
     setTransmitting(true);
