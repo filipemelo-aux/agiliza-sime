@@ -129,6 +129,7 @@ export function FinancialPayables() {
   const locState = (location.state as any) || {};
   const fromNav = !!locState.fromNav;
   const initialQuickFilter: QuickFilter | undefined = locState.quickFilter;
+  const initialOpenExpenseId: string | undefined = locState.openExpenseId;
 
   const getStoredFilters = () => {
     if (fromNav || initialQuickFilter) return null; // Reset filters on sidebar navigation or dashboard link
