@@ -662,6 +662,7 @@ export type Database = {
           created_by: string
           cst_icms: string
           data_autorizacao: string | null
+          data_carregamento: string | null
           data_emissao: string | null
           destinatario_cnpj: string | null
           destinatario_endereco: string | null
@@ -690,6 +691,7 @@ export type Database = {
           municipio_origem_nome: string | null
           natureza_operacao: string
           numero: number | null
+          numero_interno: number | null
           observacoes: string | null
           peso_bruto: number | null
           placa_veiculo: string | null
@@ -711,6 +713,7 @@ export type Database = {
           rntrc: string | null
           serie: number
           status: string
+          tipo_talao: string
           tomador_cnpj: string | null
           tomador_endereco: string | null
           tomador_id: string | null
@@ -730,6 +733,7 @@ export type Database = {
           valor_frete: number
           valor_icms: number
           valor_receber: number | null
+          valor_tonelada: number | null
           valor_total_tributos: number | null
           veiculo_id: string | null
           xml_autorizado: string | null
@@ -746,6 +750,7 @@ export type Database = {
           created_by: string
           cst_icms?: string
           data_autorizacao?: string | null
+          data_carregamento?: string | null
           data_emissao?: string | null
           destinatario_cnpj?: string | null
           destinatario_endereco?: string | null
@@ -774,6 +779,7 @@ export type Database = {
           municipio_origem_nome?: string | null
           natureza_operacao?: string
           numero?: number | null
+          numero_interno?: number | null
           observacoes?: string | null
           peso_bruto?: number | null
           placa_veiculo?: string | null
@@ -795,6 +801,7 @@ export type Database = {
           rntrc?: string | null
           serie?: number
           status?: string
+          tipo_talao?: string
           tomador_cnpj?: string | null
           tomador_endereco?: string | null
           tomador_id?: string | null
@@ -814,6 +821,7 @@ export type Database = {
           valor_frete?: number
           valor_icms?: number
           valor_receber?: number | null
+          valor_tonelada?: number | null
           valor_total_tributos?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
@@ -830,6 +838,7 @@ export type Database = {
           created_by?: string
           cst_icms?: string
           data_autorizacao?: string | null
+          data_carregamento?: string | null
           data_emissao?: string | null
           destinatario_cnpj?: string | null
           destinatario_endereco?: string | null
@@ -858,6 +867,7 @@ export type Database = {
           municipio_origem_nome?: string | null
           natureza_operacao?: string
           numero?: number | null
+          numero_interno?: number | null
           observacoes?: string | null
           peso_bruto?: number | null
           placa_veiculo?: string | null
@@ -879,6 +889,7 @@ export type Database = {
           rntrc?: string | null
           serie?: number
           status?: string
+          tipo_talao?: string
           tomador_cnpj?: string | null
           tomador_endereco?: string | null
           tomador_id?: string | null
@@ -898,6 +909,7 @@ export type Database = {
           valor_frete?: number
           valor_icms?: number
           valor_receber?: number | null
+          valor_tonelada?: number | null
           valor_total_tributos?: number | null
           veiculo_id?: string | null
           xml_autorizado?: string | null
@@ -1622,6 +1634,7 @@ export type Database = {
           serie_mdfe: number | null
           type: Database["public"]["Enums"]["establishment_type"]
           ultimo_numero_cte: number | null
+          ultimo_numero_cte_servico: number
           ultimo_numero_mdfe: number | null
           updated_at: string | null
         }
@@ -1651,6 +1664,7 @@ export type Database = {
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
           ultimo_numero_cte?: number | null
+          ultimo_numero_cte_servico?: number
           ultimo_numero_mdfe?: number | null
           updated_at?: string | null
         }
@@ -1680,6 +1694,7 @@ export type Database = {
           serie_mdfe?: number | null
           type?: Database["public"]["Enums"]["establishment_type"]
           ultimo_numero_cte?: number | null
+          ultimo_numero_cte_servico?: number
           ultimo_numero_mdfe?: number | null
           updated_at?: string | null
         }
@@ -3518,6 +3533,10 @@ export type Database = {
       next_cte_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
+      next_cte_servico_number: {
+        Args: { _establishment_id: string }
+        Returns: number
+      }
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
