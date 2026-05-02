@@ -20,6 +20,7 @@ import { maskCurrency, unmaskCurrency, maskName, formatCurrency } from "@/lib/ma
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CteDescontoFields, emptyDesconto, calcDescontoTotal, type DescontoState } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
+import { buildFullContractHtml, openPrintWindow } from "./freightContractPrint";
 
 interface Props {
   open: boolean;
