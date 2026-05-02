@@ -186,9 +186,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
           "",
         natureza_carga: (cte as any).produto_predominante || cte.natureza_operacao || "",
         peso_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
-        valor_tonelada: (cte as any).valor_tonelada
-          ? maskCurrency(Number((cte as any).valor_tonelada).toFixed(2).replace(".", ""))
-          : "",
+        // Valor por tonelada deixado em branco propositalmente para o usuário
+        // negociar o frete terceiro sem herdar o valor do CT-e.
+        valor_tonelada: "",
         observacoes: "",
       });
     };
