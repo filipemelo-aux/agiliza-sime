@@ -200,7 +200,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
 
   const pesoTon = (Number(form.peso_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorTotal = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
+  const valorBruto = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
+  const descontoTotal = useMemo(() => calcDescontoTotal(desconto), [desconto]);
+  const valorTotal = useMemo(() => +Math.max(0, valorBruto - descontoTotal).toFixed(2), [valorBruto, descontoTotal]);
 
   const handleSave = async () => {
     if (!cte) return;
