@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FileSignature, Printer, Building2, Truck, User, Coins } from "lucide-react";
 import { maskCurrency, unmaskCurrency, maskName, formatCurrency } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { CteDescontoFields, emptyDesconto, calcDescontoTotal, type DescontoState } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 
 interface Props {
@@ -82,6 +83,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<ContractForm>(empty);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
 
@@ -89,6 +91,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   useEffect(() => {
     if (!open || !cte) return;
     setSavedContract(null);
+    setDesconto(emptyDesconto);
 
     const init = async () => {
       const placa = (cte.placa_veiculo || "").toUpperCase();
@@ -197,7 +200,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
 
   const pesoTon = (Number(form.peso_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorTotal = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
+  const valorBruto = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
+  const descontoTotal = useMemo(() => calcDescontoTotal(desconto), [desconto]);
+  const valorTotal = useMemo(() => +Math.max(0, valorBruto - descontoTotal).toFixed(2), [valorBruto, descontoTotal]);
 
   const handleSave = async () => {
     if (!cte) return;
@@ -237,7 +242,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         _peso_kg: Number(form.peso_kg) || 0,
         _valor_tonelada: valorTon,
         _valor_total: valorTotal,
-        _observacoes: form.observacoes || null,
+        _observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null,
         _user_id: user?.id ?? null,
       });
       if (error) throw error;
@@ -267,6 +272,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       form,
       pesoTon,
       valorTon,
+      valorBruto,
+      descontoTotal,
+      desconto,
       valorTotal,
     });
     const blob = new Blob([html], { type: "text/html" });
@@ -511,8 +519,15 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 </div>
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Valor bruto do frete</span>
+                <span className="font-semibold text-sm">{formatCurrency(valorBruto)}</span>
+              </div>
+
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+
+              <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Valor total a pagar (frete terceiro)</span>
-                <span className="font-semibold text-base">{formatCurrency(valorTotal)}</span>
+                <span className="font-semibold text-base text-primary">{formatCurrency(valorTotal)}</span>
               </div>
               <div>
                 <Label className="text-xs">Observações</Label>
@@ -554,6 +569,27 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   );
 }
 
+// ----------------- Helpers -----------------
+function buildObservacoesComDesconto(
+  base: string,
+  desconto: DescontoState,
+  total: number,
+  valorBruto: number,
+): string {
+  if (desconto.tipo === "nenhum" || total <= 0) return base || "";
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  let linha = "";
+  if (desconto.tipo === "diesel") {
+    const litros = parseFloat((desconto.litros || "0").replace(",", ".")) || 0;
+    const vl = Number(unmaskCurrency(desconto.valorLitro)) || 0;
+    linha = `Desconto Diesel: ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = ${fmt(total)}`;
+  } else {
+    linha = `Desconto (${desconto.descricao || "outros"}): ${fmt(total)}`;
+  }
+  const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
+  return [base, linha, resumo].filter(Boolean).join("\n");
+}
+
 // ----------------- Print HTML -----------------
 function buildContractHtml(args: {
   numero: number;
@@ -561,11 +597,24 @@ function buildContractHtml(args: {
   form: ContractForm;
   pesoTon: number;
   valorTon: number;
+  valorBruto: number;
+  descontoTotal: number;
+  desconto: DescontoState;
   valorTotal: number;
 }) {
-  const { numero, form, pesoTon, valorTon, valorTotal } = args;
+  const { numero, form, pesoTon, valorTon, valorBruto, descontoTotal, desconto, valorTotal } = args;
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const dataExt = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+
+  const descontoLinha = (() => {
+    if (desconto.tipo === "nenhum" || descontoTotal <= 0) return "";
+    if (desconto.tipo === "diesel") {
+      const litros = parseFloat((desconto.litros || "0").replace(",", ".")) || 0;
+      const vl = Number(unmaskCurrency(desconto.valorLitro)) || 0;
+      return `<div><b>Desconto Diesel:</b> ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = <b style="color:#b91c1c">− ${fmt(descontoTotal)}</b></div>`;
+    }
+    return `<div><b>Desconto (${desconto.descricao || "outros"}):</b> <b style="color:#b91c1c">− ${fmt(descontoTotal)}</b></div>`;
+  })();
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${numero}</title>
@@ -619,8 +668,10 @@ function buildContractHtml(args: {
 <div class="grid">
   <div><b>Valor por tonelada:</b> ${fmt(valorTon)}</div>
   <div><b>Peso transportado:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</div>
+  <div><b>Valor bruto:</b> ${fmt(valorBruto)}</div>
+  ${descontoLinha}
 </div>
-<div class="total-box"><b>Valor total do frete:</b> ${fmt(valorTotal)} — Vencimento à vista, em nome do CONTRATADO.</div>
+<div class="total-box"><b>Valor líquido a pagar:</b> ${fmt(valorTotal)} — Vencimento à vista, em nome do CONTRATADO.</div>
 
 <h2>5. Obrigações do Contratado</h2>
 <p>O CONTRATADO se obriga a executar o transporte com diligência, observando legislação de trânsito e RNTRC, zelando pela integridade da carga até a entrega no destino indicado.</p>
