@@ -784,6 +784,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 </div>
 
 ${harvestDetailsHtml}
+${manualDetailsHtml}
 
 ${previsoes.length > 0 ? `
 <div class="section">
