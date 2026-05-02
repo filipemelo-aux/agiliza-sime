@@ -597,11 +597,24 @@ function buildContractHtml(args: {
   form: ContractForm;
   pesoTon: number;
   valorTon: number;
+  valorBruto: number;
+  descontoTotal: number;
+  desconto: DescontoState;
   valorTotal: number;
 }) {
-  const { numero, form, pesoTon, valorTon, valorTotal } = args;
+  const { numero, form, pesoTon, valorTon, valorBruto, descontoTotal, desconto, valorTotal } = args;
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const dataExt = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+
+  const descontoLinha = (() => {
+    if (desconto.tipo === "nenhum" || descontoTotal <= 0) return "";
+    if (desconto.tipo === "diesel") {
+      const litros = parseFloat((desconto.litros || "0").replace(",", ".")) || 0;
+      const vl = Number(unmaskCurrency(desconto.valorLitro)) || 0;
+      return `<div><b>Desconto Diesel:</b> ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = <b style="color:#b91c1c">− ${fmt(descontoTotal)}</b></div>`;
+    }
+    return `<div><b>Desconto (${desconto.descricao || "outros"}):</b> <b style="color:#b91c1c">− ${fmt(descontoTotal)}</b></div>`;
+  })();
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
 <title>Contrato de Frete Nº ${numero}</title>
