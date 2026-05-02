@@ -69,6 +69,15 @@ const empty: ContractForm = {
   observacoes: "",
 };
 
+// Tenta extrair "Cidade" de strings tipo "Rua X, 123 - Bairro - Cidade/UF" ou "...; Cidade - UF"
+function extractCityFromAddress(addr?: string | null): string {
+  if (!addr) return "";
+  // Procura padrão "Cidade/UF" ou "Cidade - UF"
+  const m = addr.match(/([A-Za-zÀ-ÿ\s.'-]+?)\s*[\/\-]\s*([A-Z]{2})\b/);
+  if (m) return m[1].trim();
+  return "";
+}
+
 export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
