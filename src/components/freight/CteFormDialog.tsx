@@ -29,6 +29,14 @@ import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
 import { FreightContractDialog } from "./FreightContractDialog";
+import {
+  CteDescontoFields,
+  type DescontoState,
+  emptyDesconto,
+  calcDescontoTotal,
+  serializeDesconto,
+  deserializeDesconto,
+} from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
