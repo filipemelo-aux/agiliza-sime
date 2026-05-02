@@ -344,6 +344,48 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             </CardContent>
           </Card>
 
+          {/* Tomador do Serviço — checkbox */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4" /> Tomador do Serviço
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { value: 0, label: "Remetente" },
+                  { value: 1, label: "Expedidor" },
+                  { value: 2, label: "Recebedor" },
+                  { value: 3, label: "Destinatário" },
+                  { value: 4, label: "Outros" },
+                ].map((o) => {
+                  const checked = form.tomador_tipo === o.value;
+                  return (
+                    <label
+                      key={o.value}
+                      className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors text-xs ${
+                        checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => { if (v) setForm((f) => ({ ...f, tomador_tipo: o.value })); }}
+                      />
+                      <span className={checked ? "font-semibold text-foreground" : "text-foreground"}>
+                        {o.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+
           {/* Carga */}
           <Card>
             <CardHeader className="pb-3">
