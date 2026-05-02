@@ -21,7 +21,7 @@ import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
-import { unmaskCNPJ } from "@/lib/masks";
+import { unmaskCNPJ, maskCNPJ } from "@/lib/masks";
 import {
   CteDescontoFields,
   type DescontoState,
