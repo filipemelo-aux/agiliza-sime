@@ -20,6 +20,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { FreightContractDialog } from "./FreightContractDialog";
+import {
+  CteDescontoFields,
+  type DescontoState,
+  emptyDesconto,
+  calcDescontoTotal,
+  serializeDesconto,
+  deserializeDesconto,
+} from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 
 interface Props {
