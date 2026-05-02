@@ -118,6 +118,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         }
       }
 
+      // Buscar dados do motorista (profile + documentos: CPF)
+      let driverCpf = "";
       if (cte.motorista_id) {
         const { data: d } = await supabase
           .from("profiles")
@@ -125,6 +127,13 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
           .eq("id", cte.motorista_id)
           .maybeSingle();
         driver = d;
+
+        const { data: ddoc } = await supabase
+          .from("driver_documents")
+          .select("cpf")
+          .eq("user_id", cte.motorista_id)
+          .maybeSingle();
+        driverCpf = (ddoc as any)?.cpf || "";
       }
 
       // Se não há owner via veículo, mas o motorista é proprietário (is_owner), usa-o
@@ -153,42 +162,52 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       const isPJ = ptype
         ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
+
+      // Origem = REMETENTE do CT-e (origem da carga)
+      const cAny = cte as any;
+      const origemMunicipio =
+        cAny.remetente_municipio_nome ||
+        extractCityFromAddress(cte.remetente_endereco) ||
+        cte.municipio_origem_nome ||
+        cAny.expedidor_municipio_nome ||
+        extractCityFromAddress(cAny.expedidor_endereco) ||
+        "";
+      const origemUf =
+        cte.remetente_uf ||
+        cte.uf_origem ||
+        cAny.expedidor_uf ||
+        "";
+
+      // Destino = RECEBEDOR do CT-e (destino final do motorista); fallback Destinatário
+      const destinoMunicipio =
+        cAny.recebedor_municipio_nome ||
+        extractCityFromAddress(cAny.recebedor_endereco) ||
+        cte.destinatario_municipio_nome ||
+        extractCityFromAddress(cte.destinatario_endereco) ||
+        cte.municipio_destino_nome ||
+        "";
+      const destinoUf =
+        cAny.recebedor_uf ||
+        cte.destinatario_uf ||
+        cte.uf_destino ||
+        "";
+
       setForm({
         contratado_id: owner?.id ?? null,
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
         contratado_documento: isPJ ? ownerCnpj : (ownerCpf || ownerCnpj),
         contratado_tipo: isPJ ? "PJ" : "PF",
         motorista_id: driver?.id ?? cte.motorista_id ?? null,
-        motorista_nome: driver?.full_name || (cte as any).motorista_nome || "",
-        motorista_cpf: (cte as any).motorista_cpf || "",
+        motorista_nome: driver?.full_name || cAny.motorista_nome || "",
+        motorista_cpf: driverCpf || cAny.motorista_cpf || "",
         vehicle_id: vehicle?.id ?? null,
         placa_veiculo: placa,
         veiculo_modelo: vehicle ? `${vehicle.brand || ""} ${vehicle.model || ""}`.trim() : "",
-        // Origem: prioriza município/UF do CT-e; fallback para Expedidor → Remetente
-        municipio_origem:
-          cte.municipio_origem_nome ||
-          (cte as any).expedidor_municipio_nome ||
-          extractCityFromAddress((cte as any).expedidor_endereco) ||
-          extractCityFromAddress(cte.remetente_endereco) ||
-          "",
-        uf_origem:
-          cte.uf_origem ||
-          (cte as any).expedidor_uf ||
-          cte.remetente_uf ||
-          "",
-        // Destino: prioriza município/UF do CT-e; fallback para Recebedor → Destinatário
-        municipio_destino:
-          cte.municipio_destino_nome ||
-          (cte as any).recebedor_municipio_nome ||
-          extractCityFromAddress((cte as any).recebedor_endereco) ||
-          extractCityFromAddress(cte.destinatario_endereco) ||
-          "",
-        uf_destino:
-          cte.uf_destino ||
-          (cte as any).recebedor_uf ||
-          cte.destinatario_uf ||
-          "",
-        natureza_carga: (cte as any).produto_predominante || cte.natureza_operacao || "",
+        municipio_origem: origemMunicipio,
+        uf_origem: origemUf,
+        municipio_destino: destinoMunicipio,
+        uf_destino: destinoUf,
+        natureza_carga: cAny.produto_predominante || cte.natureza_operacao || "",
         peso_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
         // Valor por tonelada deixado em branco propositalmente para o usuário
         // negociar o frete terceiro sem herdar o valor do CT-e.
