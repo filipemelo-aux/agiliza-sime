@@ -19,7 +19,9 @@ import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
+import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
+import { unmaskCNPJ } from "@/lib/masks";
 import {
   CteDescontoFields,
   type DescontoState,
