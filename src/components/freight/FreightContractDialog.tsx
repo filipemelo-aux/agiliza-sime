@@ -566,6 +566,27 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   );
 }
 
+// ----------------- Helpers -----------------
+function buildObservacoesComDesconto(
+  base: string,
+  desconto: DescontoState,
+  total: number,
+  valorBruto: number,
+): string {
+  if (desconto.tipo === "nenhum" || total <= 0) return base || "";
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  let linha = "";
+  if (desconto.tipo === "diesel") {
+    const litros = parseFloat((desconto.litros || "0").replace(",", ".")) || 0;
+    const vl = Number(unmaskCurrency(desconto.valorLitro)) || 0;
+    linha = `Desconto Diesel: ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = ${fmt(total)}`;
+  } else {
+    linha = `Desconto (${desconto.descricao || "outros"}): ${fmt(total)}`;
+  }
+  const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
+  return [base, linha, resumo].filter(Boolean).join("\n");
+}
+
 // ----------------- Print HTML -----------------
 function buildContractHtml(args: {
   numero: number;
