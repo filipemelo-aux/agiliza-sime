@@ -636,71 +636,17 @@ export function FinancialInvoicing() {
       harvestDetailsHtml = sections;
     }
 
-    // Build manual freight details section
-    const manualPrevisoes = previsoes.filter(p => p.origem_tipo === "manual");
-    let manualDetailsHtml = "";
-    if (manualPrevisoes.length > 0) {
-      const descontoLabel = (d?: Previsao["metadata"]["desconto"]) => {
-        if (!d || !d.tipo || d.tipo === "nenhum") return "—";
-        if (d.tipo === "diesel") {
-          const litros = Number(d.litros || 0);
-          const vl = Number(d.valor_litro || 0);
-          return `Diesel ${litros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} L × ${formatCurrency(vl)}`;
-        }
-        if (d.tipo === "outros") return d.descricao || "Outros";
-        return d.tipo;
-      };
-      const rows = manualPrevisoes.map(p => {
-        const m = p.metadata || {};
-        const peso = Number(m.peso_kg || 0);
-        const ton = Number(m.peso_ton || (peso / 1000));
-        const vTon = Number(m.valor_por_ton || 0);
-        const bruto = Number(m.valor_bruto || 0);
-        const desc = Number(m.valor_desconto || 0);
-        return `<tr>
-          <td>${formatDateBR(p.data_prevista)}</td>
-          <td>${m.placa || "—"}</td>
-          <td>${m.motorista || "—"}</td>
-          <td class="text-right mono">${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg</td>
-          <td class="text-right mono">${ton.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t</td>
-          <td class="text-right mono">${formatCurrency(vTon)}</td>
-          <td class="text-right mono">${formatCurrency(bruto)}</td>
-          <td>${descontoLabel(m.desconto)}</td>
-          <td class="text-right mono">${formatCurrency(desc)}</td>
-          <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
-        </tr>`;
-      }).join("");
-      const totPeso = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.peso_kg || 0), 0);
-      const totTon = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.peso_ton || (Number(p.metadata?.peso_kg || 0) / 1000)), 0);
-      const totBruto = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.valor_bruto || 0), 0);
-      const totDesc = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.valor_desconto || 0), 0);
-      const totLiq = manualPrevisoes.reduce((s, p) => s + Number(p.valor), 0);
-      manualDetailsHtml = `
-<div class="section">
-  <div class="section-title">Detalhes dos Fretes Manuais (${manualPrevisoes.length})</div>
-  <table>
-    <thead><tr>
-      <th>Data</th><th>Placa</th><th>Motorista</th>
-      <th class="text-right">Peso</th><th class="text-right">Toneladas</th>
-      <th class="text-right">R$/Ton</th><th class="text-right">Valor Bruto</th>
-      <th>Desconto</th><th class="text-right">Vl. Desc.</th><th class="text-right">Líquido</th>
-    </tr></thead>
-    <tbody>
-      ${rows}
-      <tr class="total-row">
-        <td colspan="3" class="text-right">TOTAIS</td>
-        <td class="text-right mono">${totPeso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg</td>
-        <td class="text-right mono">${totTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t</td>
-        <td></td>
-        <td class="text-right mono">${formatCurrency(totBruto)}</td>
-        <td></td>
-        <td class="text-right mono">${formatCurrency(totDesc)}</td>
-        <td class="text-right mono">${formatCurrency(totLiq)}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>`;
-    }
+    // Helper for manual desconto label (used in Previsões Vinculadas table)
+    const manualDescontoLabel = (d?: Previsao["metadata"]["desconto"]) => {
+      if (!d || !d.tipo || d.tipo === "nenhum") return "—";
+      if (d.tipo === "diesel") {
+        const litros = Number(d.litros || 0);
+        const vl = Number(d.valor_litro || 0);
+        return `Diesel ${litros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} L × ${formatCurrency(vl)}`;
+      }
+      if (d.tipo === "outros") return d.descricao || "Outros";
+      return d.tipo;
+    };
 
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>faturamento-${String(fatura.numero).padStart(4, '0')}</title>
