@@ -473,6 +473,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         recebedor_nome: form.recebedor_nome || null,
         tomador_nome: form.tomador_nome || null,
         valor_carga_averb: form.valor_carga_averb || null,
+        desconto: serializeDesconto(desconto),
       };
 
       let savedId: string;
