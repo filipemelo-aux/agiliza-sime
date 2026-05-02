@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
 import { Link } from "react-router-dom";
+import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 
 interface FreightContractRow {
   id: string;
@@ -25,6 +26,10 @@ interface FreightContractRow {
   contratado_nome: string;
   contratado_documento: string | null;
   contratado_tipo: string;
+  contratado_id: string | null;
+  motorista_id: string | null;
+  motorista_cpf: string | null;
+  vehicle_id: string | null;
   motorista_nome: string | null;
   placa_veiculo: string | null;
   veiculo_modelo: string | null;
@@ -63,8 +68,9 @@ export default function FreightContracts() {
         .from("freight_contracts")
         .select(`
           id, numero, data_contrato,
-          contratado_nome, contratado_documento, contratado_tipo,
-          motorista_nome, placa_veiculo, veiculo_modelo,
+          contratado_id, contratado_nome, contratado_documento, contratado_tipo,
+          motorista_id, motorista_nome, motorista_cpf,
+          vehicle_id, placa_veiculo, veiculo_modelo,
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id,
@@ -121,12 +127,32 @@ export default function FreightContracts() {
     setDateTo("");
   };
 
-  const handlePrint = (r: FreightContractRow) => {
-    const html = buildContractHtml(r);
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) w.onload = () => setTimeout(() => w.print(), 400);
+  const handlePrint = async (r: FreightContractRow) => {
+    const html = await buildFullContractHtml({
+      numero: r.numero,
+      data_contrato: r.data_contrato,
+      contratado_id: (r as any).contratado_id ?? null,
+      contratado_nome: r.contratado_nome,
+      contratado_documento: r.contratado_documento,
+      contratado_tipo: r.contratado_tipo,
+      motorista_id: (r as any).motorista_id ?? null,
+      motorista_nome: r.motorista_nome,
+      motorista_cpf: (r as any).motorista_cpf ?? null,
+      vehicle_id: (r as any).vehicle_id ?? null,
+      placa_veiculo: r.placa_veiculo,
+      veiculo_modelo: r.veiculo_modelo,
+      municipio_origem: r.municipio_origem,
+      uf_origem: r.uf_origem,
+      municipio_destino: r.municipio_destino,
+      uf_destino: r.uf_destino,
+      natureza_carga: r.natureza_carga,
+      peso_kg: Number(r.peso_kg) || 0,
+      valor_tonelada: Number(r.valor_tonelada) || 0,
+      valor_total: Number(r.valor_total) || 0,
+      observacoes: r.observacoes,
+      cte: r.cte ? { numero: r.cte.numero, serie: r.cte.serie, tipo_talao: r.cte.tipo_talao } : null,
+    });
+    openPrintWindow(html);
   };
 
   const renderPayableStatus = (r: FreightContractRow) => {
@@ -289,82 +315,3 @@ export default function FreightContracts() {
   );
 }
 
-// ----------------- Print HTML (mesmo layout do diálogo) -----------------
-function buildContractHtml(r: FreightContractRow) {
-  const fmt = (v: number) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const pesoTon = Number(r.peso_kg || 0) / 1000;
-  const dataExt = new Date(r.data_contrato + "T12:00:00").toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
-<title>Contrato de Frete Nº ${r.numero}</title>
-<style>
-  @page { size: A4; margin: 18mm 16mm; }
-  body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.45; }
-  h1 { font-size: 14pt; text-align: center; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
-  .sub { text-align: center; font-size: 10pt; color: #555; margin-bottom: 18px; }
-  table.parties { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 10pt; }
-  table.parties th, table.parties td { border: 1px solid #999; padding: 5px 7px; text-align: left; vertical-align: top; }
-  table.parties th { background: #f1f1f1; width: 28%; }
-  h2 { font-size: 11pt; margin: 14px 0 6px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; }
-  p { margin: 4px 0; text-align: justify; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 10pt; }
-  .grid div b { display: inline-block; min-width: 140px; }
-  .sign { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-  .sign .line { border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 10pt; }
-  .total-box { margin-top: 8px; padding: 8px 12px; background: #f5f5f5; border-left: 4px solid #2B4C7E; font-size: 11pt; }
-</style></head><body>
-<h1>Contrato de Prestação de Serviço de Frete</h1>
-<div class="sub">Contrato Nº ${String(r.numero).padStart(6, "0")} — ${dataExt}</div>
-
-<table class="parties">
-  <tr><th>CONTRATANTE</th><td><b>SIME TRANSPORTE LTDA</b></td></tr>
-  <tr><th>CONTRATADO</th><td>
-    <b>${r.contratado_nome || "-"}</b><br/>
-    ${r.contratado_tipo === "PJ" ? "CNPJ" : "CPF"}: ${r.contratado_documento || "-"} — Tipo: ${r.contratado_tipo}
-  </td></tr>
-</table>
-
-<h2>1. Objeto</h2>
-<p>O presente instrumento tem por objeto a contratação, pela CONTRATANTE, do serviço de transporte rodoviário de cargas a ser executado pelo CONTRATADO, observadas as condições, valores e responsabilidades estabelecidas neste contrato.</p>
-
-<h2>2. Trecho e Carga</h2>
-<div class="grid">
-  <div><b>Origem:</b> ${r.municipio_origem || "-"}/${r.uf_origem || "--"}</div>
-  <div><b>Destino:</b> ${r.municipio_destino || "-"}/${r.uf_destino || "--"}</div>
-  <div><b>Natureza:</b> ${r.natureza_carga || "-"}</div>
-  <div><b>Peso:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t (${Number(r.peso_kg || 0).toLocaleString("pt-BR")} kg)</div>
-</div>
-
-<h2>3. Veículo e Motorista</h2>
-<div class="grid">
-  <div><b>Placa:</b> ${r.placa_veiculo || "-"}</div>
-  <div><b>Modelo:</b> ${r.veiculo_modelo || "-"}</div>
-  <div><b>Motorista:</b> ${r.motorista_nome || "-"}</div>
-  <div><b>CT-e vinculado:</b> ${r.cte?.numero ?? "-"}</div>
-</div>
-
-<h2>4. Valor e Forma de Pagamento</h2>
-<div class="grid">
-  <div><b>Valor por tonelada:</b> ${fmt(Number(r.valor_tonelada))}</div>
-  <div><b>Peso transportado:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</div>
-</div>
-<div class="total-box"><b>Valor total do frete:</b> ${fmt(Number(r.valor_total))} — Vencimento à vista, em nome do CONTRATADO.</div>
-
-<h2>5. Obrigações do Contratado</h2>
-<p>O CONTRATADO se obriga a executar o transporte com diligência, observando legislação de trânsito e RNTRC, zelando pela integridade da carga até a entrega no destino indicado.</p>
-
-<h2>6. Obrigações da Contratante</h2>
-<p>A CONTRATANTE se obriga a efetuar o pagamento do valor pactuado conforme cláusula 4ª, mediante apresentação de comprovante de entrega da carga.</p>
-
-<h2>7. Disposições Gerais</h2>
-<p>${r.observacoes ? r.observacoes : "Aplicam-se a este contrato, no que couberem, as disposições do Código Civil e da Lei nº 11.442/2007."}</p>
-
-<div class="sign">
-  <div class="line">CONTRATANTE<br/>SIME TRANSPORTE LTDA</div>
-  <div class="line">CONTRATADO<br/>${r.contratado_nome || ""}</div>
-</div>
-</body></html>`;
-}
