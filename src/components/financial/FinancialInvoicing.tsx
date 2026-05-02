@@ -685,7 +685,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 .summary-item .value{font-size:14px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px}
 .divider{border:none;border-top:1px dashed #e5e7eb;margin:10px 0}
-@media print{body{padding:12px 16px;font-size:8px}@page{margin:8mm;size:portrait}table{font-size:7px}th{padding:3px 5px;font-size:7px}td{padding:3px 5px;font-size:9px}.header{margin-bottom:8px}.summary-box{padding:6px;gap:4px;margin-bottom:8px}.summary-item .value{font-size:11px}.divider{margin:6px 0}.footer{margin-top:10px;padding-top:6px}h2{font-size:11px;margin-bottom:4px}.section{margin-bottom:10px}.section-title{font-size:8px;margin-bottom:4px;padding-bottom:2px}.info-item label{font-size:8px}.info-item span{font-size:10px}.info-grid,.info-grid-3{gap:3px 16px}}
+@media print{body{padding:10px 14px;font-size:8px}@page{margin:8mm;size:A4 landscape}table{font-size:7px}th{padding:3px 5px;font-size:7px}td{padding:3px 5px;font-size:9px}.header{margin-bottom:8px}.summary-box{padding:6px;gap:4px;margin-bottom:8px}.summary-item .value{font-size:11px}.divider{margin:6px 0}.footer{margin-top:10px;padding-top:6px}h2{font-size:11px;margin-bottom:4px}.section{margin-bottom:10px}.section-title{font-size:8px;margin-bottom:4px;padding-bottom:2px}.info-item label{font-size:8px}.info-item span{font-size:10px}.info-grid,.info-grid-3{gap:3px 16px}}
 </style></head><body>
 
 <div class="header">
