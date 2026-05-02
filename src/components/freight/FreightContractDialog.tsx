@@ -242,7 +242,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         _peso_kg: Number(form.peso_kg) || 0,
         _valor_tonelada: valorTon,
         _valor_total: valorTotal,
-        _observacoes: form.observacoes || null,
+        _observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null,
         _user_id: user?.id ?? null,
       });
       if (error) throw error;
