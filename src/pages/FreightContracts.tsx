@@ -26,6 +26,10 @@ interface FreightContractRow {
   contratado_nome: string;
   contratado_documento: string | null;
   contratado_tipo: string;
+  contratado_id: string | null;
+  motorista_id: string | null;
+  motorista_cpf: string | null;
+  vehicle_id: string | null;
   motorista_nome: string | null;
   placa_veiculo: string | null;
   veiculo_modelo: string | null;
