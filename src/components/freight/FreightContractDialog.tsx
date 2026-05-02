@@ -272,6 +272,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       form,
       pesoTon,
       valorTon,
+      valorBruto,
+      descontoTotal,
+      desconto,
       valorTotal,
     });
     const blob = new Blob([html], { type: "text/html" });
