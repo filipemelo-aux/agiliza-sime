@@ -18,6 +18,7 @@ import { Loader2, Users, Truck, Package, DollarSign, FileSignature } from "lucid
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { CargaSearchInput } from "./CargaSearchInput";
 import { FreightContractDialog } from "./FreightContractDialog";
 import type { Cte } from "@/pages/FreightCte";
 
