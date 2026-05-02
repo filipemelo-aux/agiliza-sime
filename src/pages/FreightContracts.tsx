@@ -68,11 +68,15 @@ export default function FreightContracts() {
         .from("freight_contracts")
         .select(`
           id, numero, data_contrato,
-          contratado_nome, contratado_documento, contratado_tipo,
-          motorista_nome, placa_veiculo, veiculo_modelo,
+          contratado_id, contratado_nome, contratado_documento, contratado_tipo,
+          motorista_id, motorista_nome, motorista_cpf,
+          vehicle_id, placa_veiculo, veiculo_modelo,
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id,
+          cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
+          payable:accounts_payable!freight_contracts_accounts_payable_id_fkey(status, paid_at)
+        `)
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
           payable:accounts_payable!freight_contracts_accounts_payable_id_fkey(status, paid_at)
         `)
