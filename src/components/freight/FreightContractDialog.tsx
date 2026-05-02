@@ -264,27 +264,33 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
     }
   };
 
-  const handlePrint = () => {
-    if (!savedContract) return;
-    const html = buildContractHtml({
+  const handlePrint = async () => {
+    if (!savedContract || !cte) return;
+    const html = await buildFullContractHtml({
       numero: savedContract.numero,
-      cte,
-      form,
-      pesoTon,
-      valorTon,
-      valorBruto,
-      descontoTotal,
-      desconto,
-      valorTotal,
+      data_contrato: new Date().toISOString().slice(0, 10),
+      contratado_id: form.contratado_id,
+      contratado_nome: form.contratado_nome,
+      contratado_documento: form.contratado_documento,
+      contratado_tipo: form.contratado_tipo,
+      motorista_id: form.motorista_id,
+      motorista_nome: form.motorista_nome,
+      motorista_cpf: form.motorista_cpf,
+      vehicle_id: form.vehicle_id,
+      placa_veiculo: form.placa_veiculo,
+      veiculo_modelo: form.veiculo_modelo,
+      municipio_origem: form.municipio_origem,
+      uf_origem: form.uf_origem,
+      municipio_destino: form.municipio_destino,
+      uf_destino: form.uf_destino,
+      natureza_carga: form.natureza_carga,
+      peso_kg: Number(form.peso_kg) || 0,
+      valor_tonelada: valorTon,
+      valor_total: valorTotal,
+      observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto),
+      cte: { numero: (cte as any).numero, serie: (cte as any).serie, tipo_talao: (cte as any).tipo_talao },
     });
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) {
-      w.onload = () => {
-        setTimeout(() => w.print(), 400);
-      };
-    }
+    openPrintWindow(html);
   };
 
   return (
