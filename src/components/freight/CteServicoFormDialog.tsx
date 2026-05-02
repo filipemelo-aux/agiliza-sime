@@ -78,6 +78,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
 
   useEffect(() => {
     if (!open) return;
@@ -99,14 +100,18 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           : "",
         observacoes: cte.observacoes || "",
       });
+      setDesconto(deserializeDesconto((cte as any).desconto));
     } else {
       setForm(empty);
+      setDesconto(emptyDesconto);
     }
   }, [open, cte]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorFrete = +(pesoTon * valorTon).toFixed(2);
+  const valorBruto = +(pesoTon * valorTon).toFixed(2);
+  const valorDesconto = calcDescontoTotal(desconto);
+  const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async () => {
     if (!form.tomador_nome) {
