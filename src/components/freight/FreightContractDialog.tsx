@@ -97,7 +97,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         if (vehicle?.owner_id) {
           const { data: p } = await supabase
             .from("profiles")
-            .select("id, full_name, razao_social, cpf, cnpj, category")
+            .select("id, full_name, razao_social, cnpj, person_type, category")
             .eq("id", vehicle.owner_id)
             .maybeSingle();
           owner = p;
@@ -117,17 +117,31 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       if (!owner && cte.motorista_id) {
         const { data: dOwner } = await supabase
           .from("profiles")
-          .select("id, full_name, razao_social, cnpj, is_owner")
+          .select("id, full_name, razao_social, cnpj, person_type, is_owner")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         if (dOwner?.is_owner) owner = dOwner;
       }
 
-      const isPJ = !!owner?.cnpj;
+      // Buscar CPF (driver_documents) se for PF
+      let ownerCpf = "";
+      if (owner?.id) {
+        const { data: ownerDoc } = await supabase
+          .from("driver_documents")
+          .select("cpf")
+          .eq("user_id", owner.id)
+          .maybeSingle();
+        ownerCpf = (ownerDoc as any)?.cpf || "";
+      }
+
+      const ownerCnpj = owner?.cnpj || "";
+      const isPJ = owner?.person_type
+        ? owner.person_type === "PJ"
+        : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
       setForm({
         contratado_id: owner?.id ?? null,
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
-        contratado_documento: owner?.cnpj || "",
+        contratado_documento: isPJ ? ownerCnpj : (ownerCpf || ownerCnpj),
         contratado_tipo: isPJ ? "PJ" : "PF",
         motorista_id: driver?.id ?? cte.motorista_id ?? null,
         motorista_nome: driver?.full_name || (cte as any).motorista_nome || "",
@@ -258,17 +272,40 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 categories={["proprietario", "motorista"]}
                 placeholder="Buscar proprietário..."
                 selectedName={form.contratado_nome}
-                onSelect={(p) =>
+                onSelect={async (p) => {
+                  // Busca dados completos do profile (documento e tipo)
+                  const { data: full } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, razao_social, cnpj, person_type")
+                    .eq("id", p.id)
+                    .maybeSingle();
+                  let cpfDoc = "";
+                  const { data: doc } = await supabase
+                    .from("driver_documents")
+                    .select("cpf")
+                    .eq("user_id", p.id)
+                    .maybeSingle();
+                  cpfDoc = (doc as any)?.cpf || "";
+                  const cnpj = full?.cnpj || p.cnpj || "";
+                  const isPJ = full?.person_type
+                    ? full.person_type === "PJ"
+                    : !!cnpj && cnpj.replace(/\D/g, "").length === 14;
                   setForm((f) => ({
                     ...f,
                     contratado_id: p.id,
-                    contratado_nome: p.razao_social || p.full_name,
-                    contratado_documento: p.cnpj || "",
-                    contratado_tipo: p.cnpj ? "PJ" : "PF",
-                  }))
-                }
+                    contratado_nome: full?.razao_social || full?.full_name || p.razao_social || p.full_name,
+                    contratado_documento: isPJ ? cnpj : (cpfDoc || cnpj),
+                    contratado_tipo: isPJ ? "PJ" : "PF",
+                  }));
+                }}
                 onClear={() =>
-                  setForm((f) => ({ ...f, contratado_id: null, contratado_nome: "", contratado_documento: "" }))
+                  setForm((f) => ({
+                    ...f,
+                    contratado_id: null,
+                    contratado_nome: "",
+                    contratado_documento: "",
+                    contratado_tipo: "PF",
+                  }))
                 }
               />
               <div className="grid grid-cols-3 gap-3">
@@ -276,23 +313,19 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                   <Label className="text-xs">Documento (CPF/CNPJ)</Label>
                   <Input
                     value={form.contratado_documento}
-                    onChange={(e) => setForm((f) => ({ ...f, contratado_documento: e.target.value }))}
+                    readOnly
+                    disabled
+                    placeholder="Preenchido automaticamente"
                   />
                 </div>
                 <div>
                   <Label className="text-xs">Tipo</Label>
-                  <RadioGroup
-                    className="flex gap-3 mt-2"
+                  <Input
                     value={form.contratado_tipo}
-                    onValueChange={(v) => setForm((f) => ({ ...f, contratado_tipo: v as "PF" | "PJ" }))}
-                  >
-                    <label className="flex items-center gap-1 text-xs">
-                      <RadioGroupItem value="PF" /> PF
-                    </label>
-                    <label className="flex items-center gap-1 text-xs">
-                      <RadioGroupItem value="PJ" /> PJ
-                    </label>
-                  </RadioGroup>
+                    readOnly
+                    disabled
+                    className="font-semibold text-center"
+                  />
                 </div>
               </div>
             </CardContent>
