@@ -121,12 +121,32 @@ export default function FreightContracts() {
     setDateTo("");
   };
 
-  const handlePrint = (r: FreightContractRow) => {
-    const html = buildContractHtml(r);
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) w.onload = () => setTimeout(() => w.print(), 400);
+  const handlePrint = async (r: FreightContractRow) => {
+    const html = await buildFullContractHtml({
+      numero: r.numero,
+      data_contrato: r.data_contrato,
+      contratado_id: (r as any).contratado_id ?? null,
+      contratado_nome: r.contratado_nome,
+      contratado_documento: r.contratado_documento,
+      contratado_tipo: r.contratado_tipo,
+      motorista_id: (r as any).motorista_id ?? null,
+      motorista_nome: r.motorista_nome,
+      motorista_cpf: (r as any).motorista_cpf ?? null,
+      vehicle_id: (r as any).vehicle_id ?? null,
+      placa_veiculo: r.placa_veiculo,
+      veiculo_modelo: r.veiculo_modelo,
+      municipio_origem: r.municipio_origem,
+      uf_origem: r.uf_origem,
+      municipio_destino: r.municipio_destino,
+      uf_destino: r.uf_destino,
+      natureza_carga: r.natureza_carga,
+      peso_kg: Number(r.peso_kg) || 0,
+      valor_tonelada: Number(r.valor_tonelada) || 0,
+      valor_total: Number(r.valor_total) || 0,
+      observacoes: r.observacoes,
+      cte: r.cte ? { numero: r.cte.numero, serie: r.cte.serie, tipo_talao: r.cte.tipo_talao } : null,
+    });
+    openPrintWindow(html);
   };
 
   const renderPayableStatus = (r: FreightContractRow) => {
