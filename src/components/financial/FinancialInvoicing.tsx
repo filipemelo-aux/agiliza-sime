@@ -1037,7 +1037,7 @@ ${previsoes.length > 0 ? `
                                   : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono">
-                              {isManual && peso > 0 ? `${peso.toLocaleString("pt-BR")} kg / ${ton.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t` : "—"}
+                              {isManual && peso > 0 ? `${peso.toLocaleString("pt-BR")} kg` : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono">
                               {isManual && m.valor_por_ton ? formatCurrency(Number(m.valor_por_ton)) : "—"}
