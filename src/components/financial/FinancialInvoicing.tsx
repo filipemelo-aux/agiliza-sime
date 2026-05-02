@@ -730,13 +730,17 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 </div>
 
 ${harvestDetailsHtml}
-${manualDetailsHtml}
 
 ${previsoes.length > 0 ? `
 <div class="section">
   <div class="section-title">Previsões Vinculadas (${previsoes.length})</div>
   <table>
-    <thead><tr><th>Origem</th><th>Descrição</th><th>Período Faturado</th><th class="text-right">Valor</th></tr></thead>
+    <thead><tr>
+      <th>Origem</th><th>Descrição</th><th>Período</th>
+      <th class="text-right">Peso</th><th class="text-right">R$/Ton</th>
+      <th class="text-right">Bruto</th><th>Desconto</th><th class="text-right">Vl. Desc.</th>
+      <th class="text-right">Líquido</th>
+    </tr></thead>
     <tbody>
       ${previsoes.map(p => {
         const meta = p.metadata as any;
@@ -761,15 +765,30 @@ ${previsoes.length > 0 ? `
         const periodoStr = periodoInicio && periodoFim
           ? `${formatDateBR(periodoInicio)} a ${formatDateBR(periodoFim)}`
           : formatDateBR(p.data_prevista);
+
+        const isManual = p.origem_tipo === "manual";
+        const peso = Number(meta?.peso_kg || 0);
+        const pesoCell = isManual && peso > 0
+          ? `${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg` : "—";
+        const vTonCell = isManual && meta?.valor_por_ton ? formatCurrency(Number(meta.valor_por_ton)) : "—";
+        const brutoCell = isManual && meta?.valor_bruto ? formatCurrency(Number(meta.valor_bruto)) : "—";
+        const descLabelCell = isManual ? manualDescontoLabel(meta?.desconto) : "—";
+        const vDescCell = isManual && meta?.valor_desconto ? formatCurrency(Number(meta.valor_desconto)) : "—";
+
         return `<tr>
           <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${badgeText}</span></td>
           <td style="font-size:11px">${descricao}</td>
           <td>${periodoStr}</td>
+          <td class="text-right mono">${pesoCell}</td>
+          <td class="text-right mono">${vTonCell}</td>
+          <td class="text-right mono">${brutoCell}</td>
+          <td>${descLabelCell}</td>
+          <td class="text-right mono">${vDescCell}</td>
           <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
         </tr>`;
       }).join("")}
       <tr class="total-row">
-        <td colspan="3">Total</td>
+        <td colspan="8" class="text-right">Total</td>
         <td class="text-right mono">${formatCurrency(previsoes.reduce((s, p) => s + Number(p.valor), 0))}</td>
       </tr>
     </tbody>
