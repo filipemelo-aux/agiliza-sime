@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
 import { Link } from "react-router-dom";
+import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 
 interface FreightContractRow {
   id: string;
