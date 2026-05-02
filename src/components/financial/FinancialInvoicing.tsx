@@ -1012,7 +1012,7 @@ ${previsoes.length > 0 ? `
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Fatura #{String(selectedFatura?.numero ?? 0).padStart(4, '0')}</DialogTitle>
           </DialogHeader>
