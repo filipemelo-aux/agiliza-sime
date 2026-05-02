@@ -225,7 +225,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         modal: "01",
         tp_cte: 0,
         tp_serv: 0,
-        tomador_tipo: 3,
+        tomador_tipo: form.tomador_tipo,
         base_calculo_icms: 0,
         aliquota_icms: 0,
         valor_icms: 0,
