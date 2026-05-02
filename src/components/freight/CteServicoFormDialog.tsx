@@ -40,10 +40,13 @@ interface Props {
 }
 
 interface FormState {
-  // Tomador / cliente
+  // Tomador / cliente (mantido para previsão de recebimento)
   tomador_id: string | null;
-  tomador_nome: string;
-  tomador_cnpj: string;
+  // Atores fiscais
+  remetente_nome: string; remetente_cnpj: string; remetente_ie: string; remetente_endereco: string; remetente_municipio_ibge: string; remetente_uf: string;
+  destinatario_nome: string; destinatario_cnpj: string; destinatario_ie: string; destinatario_endereco: string; destinatario_municipio_ibge: string; destinatario_uf: string;
+  expedidor_nome: string; expedidor_cnpj: string; expedidor_ie: string; expedidor_endereco: string; expedidor_municipio_ibge: string; expedidor_uf: string;
+  recebedor_nome: string; recebedor_cnpj: string; recebedor_ie: string; recebedor_endereco: string; recebedor_municipio_ibge: string; recebedor_uf: string;
   // Carga
   natureza_carga: string;
   // Carregamento
@@ -53,15 +56,17 @@ interface FormState {
   motorista_nome: string;
   placa_veiculo: string;
   // Valores
-  peso_bruto_kg: string; // input em kg
-  valor_tonelada: string; // mask currency
+  peso_bruto_kg: string;
+  valor_tonelada: string;
   observacoes: string;
 }
 
 const empty: FormState = {
   tomador_id: null,
-  tomador_nome: "",
-  tomador_cnpj: "",
+  remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
+  destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
+  expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
+  recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
   data_carregamento: new Date().toISOString().slice(0, 10),
   motorista_id: null,
