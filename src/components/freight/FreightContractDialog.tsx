@@ -259,20 +259,28 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 placeholder="Buscar proprietário..."
                 selectedName={form.contratado_nome}
                 onSelect={async (p) => {
-                  // Busca dados completos do profile (cpf, cnpj, person_type)
+                  // Busca dados completos do profile (documento e tipo)
                   const { data: full } = await supabase
                     .from("profiles")
-                    .select("id, full_name, razao_social, cpf, cnpj, person_type")
+                    .select("id, full_name, razao_social, cnpj, person_type")
                     .eq("id", p.id)
                     .maybeSingle();
+                  let cpfDoc = "";
+                  const { data: doc } = await supabase
+                    .from("driver_documents")
+                    .select("cpf")
+                    .eq("user_id", p.id)
+                    .maybeSingle();
+                  cpfDoc = (doc as any)?.cpf || "";
                   const cnpj = full?.cnpj || p.cnpj || "";
-                  const cpf = (full as any)?.cpf || "";
-                  const isPJ = !!cnpj || (full as any)?.person_type === "PJ";
+                  const isPJ = full?.person_type
+                    ? full.person_type === "PJ"
+                    : !!cnpj && cnpj.replace(/\D/g, "").length === 14;
                   setForm((f) => ({
                     ...f,
                     contratado_id: p.id,
                     contratado_nome: full?.razao_social || full?.full_name || p.razao_social || p.full_name,
-                    contratado_documento: isPJ ? cnpj : cpf,
+                    contratado_documento: isPJ ? cnpj : (cpfDoc || cnpj),
                     contratado_tipo: isPJ ? "PJ" : "PF",
                   }));
                 }}
