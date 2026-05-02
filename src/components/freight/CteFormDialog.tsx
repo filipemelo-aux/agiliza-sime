@@ -854,6 +854,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </div>
             </div>
 
+            {/* Desconto (registro interno — não afeta XML/Sefaz) */}
+            <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Desconto (interno)</Label>
+                {calcDescontoTotal(desconto) > 0 && (
+                  <span className="font-mono text-xs font-semibold text-destructive">
+                    − {calcDescontoTotal(desconto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o "Valor Frete" manualmente, se necessário.
+              </p>
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+            </div>
+
             {/* Componentes do Frete */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
