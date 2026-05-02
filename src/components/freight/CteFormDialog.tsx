@@ -540,53 +540,6 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
           <Separator />
 
-          {/* Tipo CT-e / Serviço / Modal */}
-          <section className="space-y-4">
-            <SectionHeader icon={FileText} title="Tipo do Documento" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo CT-e</Label>
-                <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo Serviço</Label>
-                <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Modal</Label>
-                <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="01">01 - Rodoviário</SelectItem>
-                    <SelectItem value="02">02 - Aéreo</SelectItem>
-                    <SelectItem value="03">03 - Aquaviário</SelectItem>
-                    <SelectItem value="04">04 - Ferroviário</SelectItem>
-                    <SelectItem value="05">05 - Dutoviário</SelectItem>
-                    <SelectItem value="06">06 - Multimodal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Retira?</Label>
-                <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0 - Sim</SelectItem>
-                    <SelectItem value="1">1 - Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </section>
-
-          <Separator />
-
           {/* Remetente */}
           <ActorSection
             title="Remetente"
@@ -643,25 +596,42 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
           <Separator />
 
-          {/* Tomador */}
-          <section className="space-y-4">
+          {/* Tomador — escolha por checkbox */}
+          <section className="space-y-3">
             <SectionHeader icon={Users} title="Tomador do Serviço" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tomador *</Label>
-                <Select value={String(form.tomador_tipo)} onValueChange={(v) => set("tomador_tipo", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TOMADOR_TIPO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Ind. IE Tomador</Label>
-                <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <p className="text-xs text-muted-foreground">
+              Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {TOMADOR_TIPO_OPTIONS.map((o) => {
+                const checked = String(form.tomador_tipo) === o.value;
+                return (
+                  <label
+                    key={o.value}
+                    className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors text-xs ${
+                      checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => { if (v) set("tomador_tipo", Number(o.value)); }}
+                    />
+                    <span className={checked ? "font-semibold text-foreground" : "text-foreground"}>
+                      {o.label}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+
+            <div className="space-y-1.5 max-w-xs">
+              <Label className="text-xs">Ind. IE Tomador</Label>
+              <Select value={String(form.ind_ie_toma)} onValueChange={(v) => set("ind_ie_toma", Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{IND_IE_TOMA_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
             {showTomadorFields && (
               <ActorSection
                 title="Dados do Tomador (Outros)"
@@ -674,11 +644,53 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 setCnpjError={(v) => setCnpjErrors((p) => ({ ...p, tomador: v }))}
               />
             )}
-            {!showTomadorFields && (
-              <p className="text-xs text-muted-foreground">
-                Tomador = <strong>{TOMADOR_TIPO_OPTIONS.find((o) => o.value === String(form.tomador_tipo))?.label}</strong> (dados já preenchidos acima)
-              </p>
-            )}
+          </section>
+
+          <Separator />
+
+          {/* Tipo CT-e / Serviço / Modal */}
+          <section className="space-y-4">
+            <SectionHeader icon={FileText} title="Tipo do Documento" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tipo CT-e</Label>
+                <Select value={String(form.tp_cte)} onValueChange={(v) => set("tp_cte", Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{TP_CTE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tipo Serviço</Label>
+                <Select value={String(form.tp_serv)} onValueChange={(v) => set("tp_serv", Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{TP_SERV_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Modal</Label>
+                <Select value={form.modal} onValueChange={(v) => set("modal", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01">01 - Rodoviário</SelectItem>
+                    <SelectItem value="02">02 - Aéreo</SelectItem>
+                    <SelectItem value="03">03 - Aquaviário</SelectItem>
+                    <SelectItem value="04">04 - Ferroviário</SelectItem>
+                    <SelectItem value="05">05 - Dutoviário</SelectItem>
+                    <SelectItem value="06">06 - Multimodal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Retira?</Label>
+                <Select value={String(form.retira)} onValueChange={(v) => set("retira", Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 - Sim</SelectItem>
+                    <SelectItem value="1">1 - Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </section>
 
           <Separator />
