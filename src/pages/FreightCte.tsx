@@ -179,7 +179,7 @@ export default function FreightCte() {
         if (!resp.success) {
           toast({
             title: "Falha no cancelamento SEFAZ",
-            description: resp.message || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
+            description: resp.motivo_rejeicao || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
             variant: "destructive",
           });
           return;
