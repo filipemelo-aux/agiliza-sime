@@ -83,6 +83,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<ContractForm>(empty);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
 
