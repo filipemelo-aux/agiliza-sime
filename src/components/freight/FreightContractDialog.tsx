@@ -516,8 +516,15 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 </div>
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Valor bruto do frete</span>
+                <span className="font-semibold text-sm">{formatCurrency(valorBruto)}</span>
+              </div>
+
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+
+              <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Valor total a pagar (frete terceiro)</span>
-                <span className="font-semibold text-base">{formatCurrency(valorTotal)}</span>
+                <span className="font-semibold text-base text-primary">{formatCurrency(valorTotal)}</span>
               </div>
               <div>
                 <Label className="text-xs">Observações</Label>
