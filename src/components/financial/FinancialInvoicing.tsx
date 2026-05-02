@@ -1011,7 +1011,7 @@ ${previsoes.length > 0 ? `
                         const m: any = p.metadata || {};
                         const isManual = p.origem_tipo === "manual";
                         const peso = Number(m.peso_kg || 0);
-                        const ton = Number(m.peso_ton || (peso / 1000));
+                        
                         const descTipo = m.desconto?.tipo;
                         let descLabel = "—";
                         if (isManual && descTipo && descTipo !== "nenhum") {
