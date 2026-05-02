@@ -135,6 +135,92 @@ export default function FreightCte() {
     }
   };
 
+  const handleDelete = async (cte: Cte) => {
+    const isServico = cte.tipo_talao === "servico";
+    const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
+
+    // CT-e de Produção AUTORIZADO → precisa cancelar na SEFAZ antes
+    if (!isServico && isAutorizado) {
+      const ok = await confirm({
+        title: "Cancelar CT-e na SEFAZ e excluir",
+        description:
+          `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
+          `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
+          `Esta operação é IRREVERSÍVEL. Deseja continuar?`,
+        confirmLabel: "Cancelar na SEFAZ e excluir",
+        variant: "destructive",
+      });
+      if (!ok) return;
+
+      const justificativa = window.prompt(
+        "Justificativa para cancelamento na SEFAZ (mínimo 15 caracteres):",
+        "Cancelamento solicitado pelo emitente"
+      );
+      if (!justificativa) return;
+      if (justificativa.trim().length < 15) {
+        toast({
+          title: "Justificativa inválida",
+          description: "A SEFAZ exige no mínimo 15 caracteres.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDeletingId(cte.id);
+      try {
+        const resp = await cancelarCte(
+          cte.id,
+          cte.chave_acesso!,
+          cte.protocolo_autorizacao!,
+          justificativa.trim(),
+          user?.id || "",
+          cte.establishment_id
+        );
+        if (!resp.success) {
+          toast({
+            title: "Falha no cancelamento SEFAZ",
+            description: resp.message || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
+            variant: "destructive",
+          });
+          return;
+        }
+        // Cancelado com sucesso → excluir registro
+        const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
+        if (error) throw error;
+        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} foi cancelado na SEFAZ e removido do sistema.` });
+        fetchCtes();
+      } catch (err: any) {
+        toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+      } finally {
+        setDeletingId(null);
+      }
+      return;
+    }
+
+    // Serviço, rascunho, rejeitado, erro ou cancelado → exclusão direta
+    const ok = await confirm({
+      title: "Excluir CT-e",
+      description: isServico
+        ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
+        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setDeletingId(cte.id);
+    try {
+      const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
+      if (error) throw error;
+      toast({ title: "CT-e excluído", description: "Registro removido com sucesso." });
+      fetchCtes();
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
