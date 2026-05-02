@@ -324,6 +324,27 @@ export default function FreightCte() {
                           Editar
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        disabled={deletingId === cte.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(cte);
+                        }}
+                        title={
+                          !isServico && cte.status === "autorizado"
+                            ? "Cancelar na SEFAZ e excluir"
+                            : "Excluir CT-e"
+                        }
+                      >
+                        {deletingId === cte.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
