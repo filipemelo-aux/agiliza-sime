@@ -61,6 +61,15 @@ interface Previsao {
       descontos: number;
       liquido: number;
     }>;
+    // Manual freight forecast fields
+    placa?: string;
+    motorista?: string;
+    peso_kg?: number;
+    peso_ton?: number;
+    valor_por_ton?: number;
+    valor_bruto?: number;
+    valor_desconto?: number;
+    desconto?: { tipo?: string; litros?: number; valor_litro?: number; descricao?: string; valor?: number };
   };
 }
 
@@ -627,6 +636,72 @@ export function FinancialInvoicing() {
       harvestDetailsHtml = sections;
     }
 
+    // Build manual freight details section
+    const manualPrevisoes = previsoes.filter(p => p.origem_tipo === "manual");
+    let manualDetailsHtml = "";
+    if (manualPrevisoes.length > 0) {
+      const descontoLabel = (d?: Previsao["metadata"]["desconto"]) => {
+        if (!d || !d.tipo || d.tipo === "nenhum") return "—";
+        if (d.tipo === "diesel") {
+          const litros = Number(d.litros || 0);
+          const vl = Number(d.valor_litro || 0);
+          return `Diesel ${litros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} L × ${formatCurrency(vl)}`;
+        }
+        if (d.tipo === "outros") return d.descricao || "Outros";
+        return d.tipo;
+      };
+      const rows = manualPrevisoes.map(p => {
+        const m = p.metadata || {};
+        const peso = Number(m.peso_kg || 0);
+        const ton = Number(m.peso_ton || (peso / 1000));
+        const vTon = Number(m.valor_por_ton || 0);
+        const bruto = Number(m.valor_bruto || 0);
+        const desc = Number(m.valor_desconto || 0);
+        return `<tr>
+          <td>${formatDateBR(p.data_prevista)}</td>
+          <td>${m.placa || "—"}</td>
+          <td>${m.motorista || "—"}</td>
+          <td class="text-right mono">${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg</td>
+          <td class="text-right mono">${ton.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t</td>
+          <td class="text-right mono">${formatCurrency(vTon)}</td>
+          <td class="text-right mono">${formatCurrency(bruto)}</td>
+          <td>${descontoLabel(m.desconto)}</td>
+          <td class="text-right mono">${formatCurrency(desc)}</td>
+          <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
+        </tr>`;
+      }).join("");
+      const totPeso = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.peso_kg || 0), 0);
+      const totTon = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.peso_ton || (Number(p.metadata?.peso_kg || 0) / 1000)), 0);
+      const totBruto = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.valor_bruto || 0), 0);
+      const totDesc = manualPrevisoes.reduce((s, p) => s + Number(p.metadata?.valor_desconto || 0), 0);
+      const totLiq = manualPrevisoes.reduce((s, p) => s + Number(p.valor), 0);
+      manualDetailsHtml = `
+<div class="section">
+  <div class="section-title">Detalhes dos Fretes Manuais (${manualPrevisoes.length})</div>
+  <table>
+    <thead><tr>
+      <th>Data</th><th>Placa</th><th>Motorista</th>
+      <th class="text-right">Peso</th><th class="text-right">Toneladas</th>
+      <th class="text-right">R$/Ton</th><th class="text-right">Valor Bruto</th>
+      <th>Desconto</th><th class="text-right">Vl. Desc.</th><th class="text-right">Líquido</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="total-row">
+        <td colspan="3" class="text-right">TOTAIS</td>
+        <td class="text-right mono">${totPeso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg</td>
+        <td class="text-right mono">${totTon.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t</td>
+        <td></td>
+        <td class="text-right mono">${formatCurrency(totBruto)}</td>
+        <td></td>
+        <td class="text-right mono">${formatCurrency(totDesc)}</td>
+        <td class="text-right mono">${formatCurrency(totLiq)}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>`;
+    }
+
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>faturamento-${String(fatura.numero).padStart(4, '0')}</title>
 <style>
@@ -709,6 +784,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 </div>
 
 ${harvestDetailsHtml}
+${manualDetailsHtml}
 
 ${previsoes.length > 0 ? `
 <div class="section">
@@ -936,7 +1012,7 @@ ${previsoes.length > 0 ? `
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Fatura #{String(selectedFatura?.numero ?? 0).padStart(4, '0')}</DialogTitle>
           </DialogHeader>
@@ -951,25 +1027,68 @@ ${previsoes.length > 0 ? `
 
               <div>
                 <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({detailPrevisoes.length})</p>
-                <div className="overflow-x-auto border rounded max-h-[150px] overflow-y-auto">
+                <div className="overflow-x-auto border rounded max-h-[280px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Origem</TableHead>
-                        <TableHead>Data Prevista</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Detalhes</TableHead>
+                        <TableHead className="text-right">Peso</TableHead>
+                        <TableHead className="text-right">R$/Ton</TableHead>
+                        <TableHead className="text-right">Bruto</TableHead>
+                        <TableHead className="text-right">Desconto</TableHead>
+                        <TableHead className="text-right">Líquido</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {detailPrevisoes.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="text-xs">
-                            <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : p.origem_tipo === "manual" ? "Manual" : "Colheita"}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
-                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                        </TableRow>
-                      ))}
+                      {detailPrevisoes.map((p) => {
+                        const m: any = p.metadata || {};
+                        const isManual = p.origem_tipo === "manual";
+                        const peso = Number(m.peso_kg || 0);
+                        const ton = Number(m.peso_ton || (peso / 1000));
+                        const descTipo = m.desconto?.tipo;
+                        let descLabel = "—";
+                        if (isManual && descTipo && descTipo !== "nenhum") {
+                          if (descTipo === "diesel") {
+                            descLabel = `Diesel ${Number(m.desconto.litros || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}L`;
+                          } else if (descTipo === "outros") {
+                            descLabel = m.desconto.descricao || "Outros";
+                          } else {
+                            descLabel = descTipo;
+                          }
+                        }
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="text-xs">
+                              <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : isManual ? "Manual" : "Colheita"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
+                            <TableCell className="text-xs">
+                              {isManual
+                                ? `${m.placa || "—"} · ${m.motorista || "—"}`
+                                : p.origem_tipo === "colheita"
+                                  ? (m.fazenda || "—")
+                                  : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && peso > 0 ? `${peso.toLocaleString("pt-BR")} kg / ${ton.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t` : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_por_ton ? formatCurrency(Number(m.valor_por_ton)) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_bruto ? formatCurrency(Number(m.valor_bruto)) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_desconto
+                                ? <span title={descLabel}>{formatCurrency(Number(m.valor_desconto))}</span>
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
