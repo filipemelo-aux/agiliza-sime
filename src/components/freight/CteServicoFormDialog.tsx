@@ -90,20 +90,43 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   useEffect(() => {
     if (!open) return;
     if (cte) {
+      const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
-        tomador_nome: cte.destinatario_nome || (cte as any).tomador_nome || "",
-        tomador_cnpj: cte.destinatario_cnpj || (cte as any).tomador_cnpj || "",
+        remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
+        remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
+        remetente_ie: cte.remetente_ie || "",
+        remetente_endereco: cte.remetente_endereco || "",
+        remetente_municipio_ibge: cte.remetente_municipio_ibge || "",
+        remetente_uf: cte.remetente_uf || "",
+        destinatario_nome: cte.destinatario_nome ? maskName(cte.destinatario_nome) : "",
+        destinatario_cnpj: cte.destinatario_cnpj ? maskCNPJ(cte.destinatario_cnpj) : "",
+        destinatario_ie: cte.destinatario_ie || "",
+        destinatario_endereco: cte.destinatario_endereco || "",
+        destinatario_municipio_ibge: cte.destinatario_municipio_ibge || "",
+        destinatario_uf: cte.destinatario_uf || "",
+        expedidor_nome: c.expedidor_nome ? maskName(c.expedidor_nome) : "",
+        expedidor_cnpj: c.expedidor_cnpj ? maskCNPJ(c.expedidor_cnpj) : "",
+        expedidor_ie: c.expedidor_ie || "",
+        expedidor_endereco: c.expedidor_endereco || "",
+        expedidor_municipio_ibge: c.expedidor_municipio_ibge || "",
+        expedidor_uf: c.expedidor_uf || "",
+        recebedor_nome: c.recebedor_nome ? maskName(c.recebedor_nome) : "",
+        recebedor_cnpj: c.recebedor_cnpj ? maskCNPJ(c.recebedor_cnpj) : "",
+        recebedor_ie: c.recebedor_ie || "",
+        recebedor_endereco: c.recebedor_endereco || "",
+        recebedor_municipio_ibge: c.recebedor_municipio_ibge || "",
+        recebedor_uf: c.recebedor_uf || "",
         natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
         data_carregamento:
-          (cte as any).data_carregamento ||
+          c.data_carregamento ||
           (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         motorista_id: cte.motorista_id ?? null,
-        motorista_nome: (cte as any).motorista_nome || "",
+        motorista_nome: c.motorista_nome || "",
         placa_veiculo: cte.placa_veiculo || "",
         peso_bruto_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
-        valor_tonelada: (cte as any).valor_tonelada
-          ? maskCurrency(String(Number((cte as any).valor_tonelada).toFixed(2)).replace(".", ""))
+        valor_tonelada: c.valor_tonelada
+          ? maskCurrency(String(Number(c.valor_tonelada).toFixed(2)).replace(".", ""))
           : "",
         observacoes: cte.observacoes || "",
       });
