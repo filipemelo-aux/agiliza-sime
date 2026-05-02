@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FileSignature, Printer, Building2, Truck, User, Coins } from "lucide-react";
 import { maskCurrency, unmaskCurrency, maskName, formatCurrency } from "@/lib/masks";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { CteDescontoFields, emptyDesconto, calcDescontoTotal, type DescontoState } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 
 interface Props {
