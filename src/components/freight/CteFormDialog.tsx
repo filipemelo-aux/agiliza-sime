@@ -288,6 +288,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const [showCargaForm, setShowCargaForm] = useState(false);
   const [motoristaNome, setMotoristaNome] = useState<string | undefined>(undefined);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
 
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
