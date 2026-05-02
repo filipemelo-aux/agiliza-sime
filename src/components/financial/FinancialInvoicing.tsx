@@ -61,6 +61,15 @@ interface Previsao {
       descontos: number;
       liquido: number;
     }>;
+    // Manual freight forecast fields
+    placa?: string;
+    motorista?: string;
+    peso_kg?: number;
+    peso_ton?: number;
+    valor_por_ton?: number;
+    valor_bruto?: number;
+    valor_desconto?: number;
+    desconto?: { tipo?: string; litros?: number; valor_litro?: number; descricao?: string; valor?: number };
   };
 }
 
