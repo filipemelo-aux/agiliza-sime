@@ -120,13 +120,13 @@ async function loadVehicleExtra(vehicleId: string | null | undefined) {
   if (!vehicleId) return { rntrc: "", placa_carreta1: "", placa_carreta2: "" };
   const { data } = await supabase
     .from("vehicles")
-    .select("rntrc, placa_carreta_1, placa_carreta_2")
+    .select("antt_number, trailer_plate_1, trailer_plate_2")
     .eq("id", vehicleId)
     .maybeSingle();
   return {
-    rntrc: (data as any)?.rntrc || "",
-    placa_carreta1: (data as any)?.placa_carreta_1 || "",
-    placa_carreta2: (data as any)?.placa_carreta_2 || "",
+    rntrc: (data as any)?.antt_number || "",
+    placa_carreta1: (data as any)?.trailer_plate_1 || "",
+    placa_carreta2: (data as any)?.trailer_plate_2 || "",
   };
 }
 
