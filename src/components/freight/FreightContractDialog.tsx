@@ -95,10 +95,11 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
           .maybeSingle();
         vehicle = v;
         if (vehicle?.owner_id) {
+          // vehicles.owner_id referencia auth.users.id → buscar profile via user_id
           const { data: p } = await supabase
             .from("profiles")
-            .select("id, full_name, razao_social, cnpj, person_type, category")
-            .eq("id", vehicle.owner_id)
+            .select("id, user_id, full_name, razao_social, cnpj, person_type, category, is_owner")
+            .eq("user_id", vehicle.owner_id)
             .maybeSingle();
           owner = p;
         }
@@ -117,13 +118,13 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       if (!owner && cte.motorista_id) {
         const { data: dOwner } = await supabase
           .from("profiles")
-          .select("id, full_name, razao_social, cnpj, person_type, is_owner")
+          .select("id, user_id, full_name, razao_social, cnpj, person_type, is_owner")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         if (dOwner?.is_owner) owner = dOwner;
       }
 
-      // Buscar CPF (driver_documents) se for PF
+      // Buscar CPF (driver_documents) se for PF — driver_documents.user_id = profiles.id
       let ownerCpf = "";
       if (owner?.id) {
         const { data: ownerDoc } = await supabase
@@ -135,8 +136,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       }
 
       const ownerCnpj = owner?.cnpj || "";
-      const isPJ = owner?.person_type
-        ? owner.person_type === "PJ"
+      const ptype = (owner?.person_type || "").toString().toLowerCase();
+      const isPJ = ptype
+        ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
       setForm({
         contratado_id: owner?.id ?? null,
@@ -287,8 +289,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                     .maybeSingle();
                   cpfDoc = (doc as any)?.cpf || "";
                   const cnpj = full?.cnpj || p.cnpj || "";
-                  const isPJ = full?.person_type
-                    ? full.person_type === "PJ"
+                  const ptype = (full?.person_type || "").toString().toLowerCase();
+                  const isPJ = ptype
+                    ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
                     : !!cnpj && cnpj.replace(/\D/g, "").length === 14;
                   setForm((f) => ({
                     ...f,
