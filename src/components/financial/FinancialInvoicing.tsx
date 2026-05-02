@@ -685,7 +685,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 .summary-item .value{font-size:14px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px}
 .divider{border:none;border-top:1px dashed #e5e7eb;margin:10px 0}
-@media print{body{padding:10px 14px;font-size:8px}@page{margin:8mm;size:A4 landscape}table{font-size:7px}th{padding:3px 5px;font-size:7px}td{padding:3px 5px;font-size:9px}.header{margin-bottom:8px}.summary-box{padding:6px;gap:4px;margin-bottom:8px}.summary-item .value{font-size:11px}.divider{margin:6px 0}.footer{margin-top:10px;padding-top:6px}h2{font-size:11px;margin-bottom:4px}.section{margin-bottom:10px}.section-title{font-size:8px;margin-bottom:4px;padding-bottom:2px}.info-item label{font-size:8px}.info-item span{font-size:10px}.info-grid,.info-grid-3{gap:3px 16px}}
+@media print{body{padding:6px 10px;font-size:8px}@page{margin:5mm;size:A4 landscape}table{font-size:8px}th{padding:2px 4px;font-size:7px}td{padding:2px 4px;font-size:8px}.header{margin-bottom:6px;padding-bottom:6px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:10px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:6px;padding-top:4px;font-size:7px}h2{font-size:10px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:7px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:14px}.doc-number{font-size:9px}}
 </style></head><body>
 
 <div class="header">
@@ -695,37 +695,21 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
     ${companyAddress ? `<div class="company-addr">${companyAddress}</div>` : ""}
   </div>
   <div class="doc-info">
-    <div class="doc-title">Fatura</div>
-    <div class="doc-number">#${String(fatura.numero).padStart(4, '0')}</div>
-    <div style="font-size:11px;color:#6b7280;margin-top:4px">${formatDateBR(fatura.data_emissao)}</div>
-  </div>
-</div>
-
-<div class="summary-box">
-  <div class="summary-item">
-    <div class="value">${formatCurrency(Number(fatura.valor_total))}</div>
-    <div class="label">Valor Total</div>
-  </div>
-  <div class="summary-item">
-    <div class="value">${fatura.num_parcelas === 1 ? 'À Vista' : fatura.num_parcelas + 'x'}</div>
-    <div class="label">Condição</div>
-  </div>
-  <div class="summary-item">
-    <div class="value">${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</div>
-    <div class="label">Status</div>
+    <div class="doc-title">Fatura #${String(fatura.numero).padStart(4, '0')}</div>
+    <div class="doc-number">${formatDateBR(fatura.data_emissao)} · ${fatura.num_parcelas === 1 ? 'À Vista' : fatura.num_parcelas + 'x'} · ${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</div>
+    <div style="font-size:14px;font-weight:800;margin-top:2px">${formatCurrency(Number(fatura.valor_total))}</div>
   </div>
 </div>
 
 <div class="section">
   <div class="section-title">Dados do Cliente</div>
-  <div class="info-grid">
+  <div class="info-grid-4" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px 16px">
     <div class="info-item"><label>${isJuridica ? "Razão Social" : "Nome"}</label><span>${clienteNomeDisplay}</span></div>
-    <div class="info-item"><label>Tipo</label><span>${clientePersonType}</span></div>
     <div class="info-item"><label>${isJuridica ? "CNPJ" : "CPF"}</label><span>${clienteCnpj}</span></div>
-    <div class="info-item"><label>Inscrição Estadual</label><span>${clienteIE}</span></div>
-    <div class="info-item"><label>E-mail</label><span>${clienteEmail}</span></div>
+    <div class="info-item"><label>IE</label><span>${clienteIE}</span></div>
     <div class="info-item"><label>Telefone</label><span>${clientePhone}</span></div>
-    <div class="info-item info-item-full"><label>Endereço</label><span>${clienteAddress}</span></div>
+    <div class="info-item" style="grid-column:1/3"><label>Endereço</label><span>${clienteAddress}</span></div>
+    <div class="info-item" style="grid-column:3/5"><label>E-mail</label><span>${clienteEmail}</span></div>
   </div>
 </div>
 
