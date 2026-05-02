@@ -382,6 +382,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         observacoes: cte.observacoes || "",
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
+      setDesconto(deserializeDesconto((cte as any).desconto));
 
       // Load motorista name for display
       if (cte.motorista_id) {
@@ -399,6 +400,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     } else {
       setForm(defaultForm);
       setMotoristaNome(undefined);
+      setDesconto(emptyDesconto);
     }
   }, [cte, open]);
 
