@@ -91,6 +91,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   useEffect(() => {
     if (!open || !cte) return;
     setSavedContract(null);
+    setDesconto(emptyDesconto);
 
     const init = async () => {
       const placa = (cte.placa_veiculo || "").toUpperCase();
