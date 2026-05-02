@@ -296,15 +296,27 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                 categories={["motorista"]}
                 placeholder="Buscar motorista..."
                 selectedName={form.motorista_nome}
-                onSelect={(p) =>
+                onSelect={async (p) => {
                   setForm((f) => ({
                     ...f,
                     motorista_id: p.id,
                     motorista_nome: p.full_name,
-                  }))
-                }
+                  }));
+                  // Auto-preenche placa do veículo ativo vinculado ao motorista
+                  try {
+                    const { data: vehicles } = await supabase
+                      .from("vehicles")
+                      .select("plate")
+                      .eq("driver_id", p.user_id)
+                      .eq("is_active", true)
+                      .limit(1);
+                    if (vehicles && vehicles.length > 0 && vehicles[0].plate) {
+                      setForm((f) => ({ ...f, placa_veiculo: maskPlate(vehicles[0].plate) }));
+                    }
+                  } catch {}
+                }}
                 onClear={() =>
-                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "" }))
+                  setForm((f) => ({ ...f, motorista_id: null, motorista_nome: "", placa_veiculo: "" }))
                 }
               />
               <div>
