@@ -12,9 +12,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
