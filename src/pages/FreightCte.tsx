@@ -76,6 +76,9 @@ export default function FreightCte() {
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCtes();
