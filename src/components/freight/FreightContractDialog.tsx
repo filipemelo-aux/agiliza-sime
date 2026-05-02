@@ -289,8 +289,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                     .maybeSingle();
                   cpfDoc = (doc as any)?.cpf || "";
                   const cnpj = full?.cnpj || p.cnpj || "";
-                  const isPJ = full?.person_type
-                    ? full.person_type === "PJ"
+                  const ptype = (full?.person_type || "").toString().toLowerCase();
+                  const isPJ = ptype
+                    ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
                     : !!cnpj && cnpj.replace(/\D/g, "").length === 14;
                   setForm((f) => ({
                     ...f,
