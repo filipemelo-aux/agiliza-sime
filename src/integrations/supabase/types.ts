@@ -684,6 +684,7 @@ export type Database = {
           modal: string | null
           motivo_rejeicao: string | null
           motorista_id: string | null
+          motorista_nome: string | null
           municipio_destino_ibge: string | null
           municipio_destino_nome: string | null
           municipio_envio_ibge: string | null
@@ -773,6 +774,7 @@ export type Database = {
           modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
+          motorista_nome?: string | null
           municipio_destino_ibge?: string | null
           municipio_destino_nome?: string | null
           municipio_envio_ibge?: string | null
@@ -862,6 +864,7 @@ export type Database = {
           modal?: string | null
           motivo_rejeicao?: string | null
           motorista_id?: string | null
+          motorista_nome?: string | null
           municipio_destino_ibge?: string | null
           municipio_destino_nome?: string | null
           municipio_envio_ibge?: string | null
