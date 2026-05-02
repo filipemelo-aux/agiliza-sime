@@ -379,44 +379,77 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <User className="w-4 h-4" /> Trecho e Carga
               </div>
-              <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-3">
-                  <Label className="text-xs">Origem</Label>
-                  <Input
-                    value={form.municipio_origem}
-                    onChange={(e) => setForm((f) => ({ ...f, municipio_origem: e.target.value }))}
-                  />
+
+              <div className="space-y-2">
+                <Label className="text-xs">Origem (buscar cliente/fornecedor)</Label>
+                <PersonSearchInput
+                  categories={["cliente", "fornecedor"]}
+                  placeholder="Buscar origem em clientes/fornecedores..."
+                  onSelect={(p) => {
+                    setForm((f) => ({
+                      ...f,
+                      municipio_origem: p.address_city || f.municipio_origem,
+                      uf_origem: (p.address_state || f.uf_origem || "").toUpperCase(),
+                    }));
+                  }}
+                />
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-3">
+                    <Label className="text-xs">Município de origem</Label>
+                    <Input
+                      value={form.municipio_origem}
+                      onChange={(e) => setForm((f) => ({ ...f, municipio_origem: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF</Label>
+                    <Input
+                      value={form.uf_origem}
+                      onChange={(e) => setForm((f) => ({ ...f, uf_origem: e.target.value.toUpperCase() }))}
+                      maxLength={2}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">UF</Label>
-                  <Input
-                    value={form.uf_origem}
-                    onChange={(e) => setForm((f) => ({ ...f, uf_origem: e.target.value.toUpperCase() }))}
-                    maxLength={2}
-                  />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Destino (buscar cliente/fornecedor)</Label>
+                <PersonSearchInput
+                  categories={["cliente", "fornecedor"]}
+                  placeholder="Buscar destino em clientes/fornecedores..."
+                  onSelect={(p) => {
+                    setForm((f) => ({
+                      ...f,
+                      municipio_destino: p.address_city || f.municipio_destino,
+                      uf_destino: (p.address_state || f.uf_destino || "").toUpperCase(),
+                    }));
+                  }}
+                />
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-3">
+                    <Label className="text-xs">Município de destino</Label>
+                    <Input
+                      value={form.municipio_destino}
+                      onChange={(e) => setForm((f) => ({ ...f, municipio_destino: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF</Label>
+                    <Input
+                      value={form.uf_destino}
+                      onChange={(e) => setForm((f) => ({ ...f, uf_destino: e.target.value.toUpperCase() }))}
+                      maxLength={2}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-3">
-                  <Label className="text-xs">Destino</Label>
-                  <Input
-                    value={form.municipio_destino}
-                    onChange={(e) => setForm((f) => ({ ...f, municipio_destino: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">UF</Label>
-                  <Input
-                    value={form.uf_destino}
-                    onChange={(e) => setForm((f) => ({ ...f, uf_destino: e.target.value.toUpperCase() }))}
-                    maxLength={2}
-                  />
-                </div>
-                <div className="col-span-4">
-                  <Label className="text-xs">Natureza da carga</Label>
-                  <Input
-                    value={form.natureza_carga}
-                    onChange={(e) => setForm((f) => ({ ...f, natureza_carga: e.target.value }))}
-                  />
-                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Natureza da carga</Label>
+                <Input
+                  value={form.natureza_carga}
+                  onChange={(e) => setForm((f) => ({ ...f, natureza_carga: e.target.value }))}
+                />
               </div>
             </CardContent>
           </Card>
