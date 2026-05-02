@@ -144,7 +144,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async () => {
-    if (!form.tomador_nome) {
+    if (!form.remetente_nome || !form.destinatario_nome) {
       toast({ title: "Cliente obrigatório", description: "Selecione o tomador/cliente.", variant: "destructive" });
       return;
     }
