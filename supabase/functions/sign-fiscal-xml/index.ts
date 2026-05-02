@@ -252,6 +252,43 @@ serve(async (req) => {
 
   if (!security.ok) return security.response!;
 
+  // ── Authentication & Authorization ──────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return secureError("Não autorizado", 401);
+  }
+  try {
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return secureError("Token inválido", 401);
+    }
+    const userId = claimsData.claims.sub;
+    const { data: roleData } = await security.client
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .in("role", ["admin", "moderator"])
+      .limit(1)
+      .maybeSingle();
+    if (!roleData) {
+      await logSecurityEvent(security.client, {
+        event_type: "unauthorized_sign_attempt",
+        source_ip: security.clientIp,
+        function_name: "sign-fiscal-xml",
+        details: { user_id: userId },
+      });
+      return secureError("Acesso negado: requer papel administrador ou moderador", 403);
+    }
+  } catch (e: any) {
+    return secureError("Falha na autenticação: " + e.message, 401);
+  }
+
   try {
     const body = security.body!;
     const { xml, document_type, document_id, establishment_id } = body as Record<string, any>;
