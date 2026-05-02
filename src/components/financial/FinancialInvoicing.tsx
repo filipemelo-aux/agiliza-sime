@@ -1027,25 +1027,68 @@ ${previsoes.length > 0 ? `
 
               <div>
                 <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({detailPrevisoes.length})</p>
-                <div className="overflow-x-auto border rounded max-h-[150px] overflow-y-auto">
+                <div className="overflow-x-auto border rounded max-h-[280px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Origem</TableHead>
-                        <TableHead>Data Prevista</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Detalhes</TableHead>
+                        <TableHead className="text-right">Peso</TableHead>
+                        <TableHead className="text-right">R$/Ton</TableHead>
+                        <TableHead className="text-right">Bruto</TableHead>
+                        <TableHead className="text-right">Desconto</TableHead>
+                        <TableHead className="text-right">Líquido</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {detailPrevisoes.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="text-xs">
-                            <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : p.origem_tipo === "manual" ? "Manual" : "Colheita"}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
-                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                        </TableRow>
-                      ))}
+                      {detailPrevisoes.map((p) => {
+                        const m: any = p.metadata || {};
+                        const isManual = p.origem_tipo === "manual";
+                        const peso = Number(m.peso_kg || 0);
+                        const ton = Number(m.peso_ton || (peso / 1000));
+                        const descTipo = m.desconto?.tipo;
+                        let descLabel = "—";
+                        if (isManual && descTipo && descTipo !== "nenhum") {
+                          if (descTipo === "diesel") {
+                            descLabel = `Diesel ${Number(m.desconto.litros || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}L`;
+                          } else if (descTipo === "outros") {
+                            descLabel = m.desconto.descricao || "Outros";
+                          } else {
+                            descLabel = descTipo;
+                          }
+                        }
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="text-xs">
+                              <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : isManual ? "Manual" : "Colheita"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
+                            <TableCell className="text-xs">
+                              {isManual
+                                ? `${m.placa || "—"} · ${m.motorista || "—"}`
+                                : p.origem_tipo === "colheita"
+                                  ? (m.fazenda || "—")
+                                  : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && peso > 0 ? `${peso.toLocaleString("pt-BR")} kg / ${ton.toLocaleString("pt-BR", { minimumFractionDigits: 3 })} t` : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_por_ton ? formatCurrency(Number(m.valor_por_ton)) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_bruto ? formatCurrency(Number(m.valor_bruto)) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {isManual && m.valor_desconto
+                                ? <span title={descLabel}>{formatCurrency(Number(m.valor_desconto))}</span>
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
