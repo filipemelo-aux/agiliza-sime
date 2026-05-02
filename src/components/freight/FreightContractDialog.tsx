@@ -69,6 +69,15 @@ const empty: ContractForm = {
   observacoes: "",
 };
 
+// Tenta extrair "Cidade" de strings tipo "Rua X, 123 - Bairro - Cidade/UF" ou "...; Cidade - UF"
+function extractCityFromAddress(addr?: string | null): string {
+  if (!addr) return "";
+  // Procura padrão "Cidade/UF" ou "Cidade - UF"
+  const m = addr.match(/([A-Za-zÀ-ÿ\s.'-]+?)\s*[\/\-]\s*([A-Z]{2})\b/);
+  if (m) return m[1].trim();
+  return "";
+}
+
 export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -151,10 +160,30 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         vehicle_id: vehicle?.id ?? null,
         placa_veiculo: placa,
         veiculo_modelo: vehicle ? `${vehicle.brand || ""} ${vehicle.model || ""}`.trim() : "",
-        municipio_origem: cte.municipio_origem_nome || "",
-        uf_origem: cte.uf_origem || "",
-        municipio_destino: cte.municipio_destino_nome || "",
-        uf_destino: cte.uf_destino || "",
+        // Origem: prioriza município/UF do CT-e; fallback para Expedidor → Remetente
+        municipio_origem:
+          cte.municipio_origem_nome ||
+          (cte as any).expedidor_municipio_nome ||
+          extractCityFromAddress((cte as any).expedidor_endereco) ||
+          extractCityFromAddress(cte.remetente_endereco) ||
+          "",
+        uf_origem:
+          cte.uf_origem ||
+          (cte as any).expedidor_uf ||
+          cte.remetente_uf ||
+          "",
+        // Destino: prioriza município/UF do CT-e; fallback para Recebedor → Destinatário
+        municipio_destino:
+          cte.municipio_destino_nome ||
+          (cte as any).recebedor_municipio_nome ||
+          extractCityFromAddress((cte as any).recebedor_endereco) ||
+          extractCityFromAddress(cte.destinatario_endereco) ||
+          "",
+        uf_destino:
+          cte.uf_destino ||
+          (cte as any).recebedor_uf ||
+          cte.destinatario_uf ||
+          "",
         natureza_carga: (cte as any).produto_predominante || cte.natureza_operacao || "",
         peso_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
         valor_tonelada: (cte as any).valor_tonelada
