@@ -42,6 +42,7 @@ interface Props {
 interface FormState {
   // Tomador / cliente (mantido para previsão de recebimento)
   tomador_id: string | null;
+  tomador_tipo: number;
   // Atores fiscais
   remetente_nome: string; remetente_cnpj: string; remetente_ie: string; remetente_endereco: string; remetente_municipio_ibge: string; remetente_uf: string;
   destinatario_nome: string; destinatario_cnpj: string; destinatario_ie: string; destinatario_endereco: string; destinatario_municipio_ibge: string; destinatario_uf: string;
