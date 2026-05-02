@@ -422,6 +422,7 @@ export default function FreightCte() {
           }}
         />
       )}
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
