@@ -664,6 +664,7 @@ export type Database = {
           data_autorizacao: string | null
           data_carregamento: string | null
           data_emissao: string | null
+          desconto: Json | null
           destinatario_cnpj: string | null
           destinatario_endereco: string | null
           destinatario_ie: string | null
@@ -752,6 +753,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_carregamento?: string | null
           data_emissao?: string | null
+          desconto?: Json | null
           destinatario_cnpj?: string | null
           destinatario_endereco?: string | null
           destinatario_ie?: string | null
@@ -840,6 +842,7 @@ export type Database = {
           data_autorizacao?: string | null
           data_carregamento?: string | null
           data_emissao?: string | null
+          desconto?: Json | null
           destinatario_cnpj?: string | null
           destinatario_endereco?: string | null
           destinatario_ie?: string | null
