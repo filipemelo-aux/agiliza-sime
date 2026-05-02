@@ -668,8 +668,10 @@ function buildContractHtml(args: {
 <div class="grid">
   <div><b>Valor por tonelada:</b> ${fmt(valorTon)}</div>
   <div><b>Peso transportado:</b> ${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t</div>
+  <div><b>Valor bruto:</b> ${fmt(valorBruto)}</div>
+  ${descontoLinha}
 </div>
-<div class="total-box"><b>Valor total do frete:</b> ${fmt(valorTotal)} — Vencimento à vista, em nome do CONTRATADO.</div>
+<div class="total-box"><b>Valor líquido a pagar:</b> ${fmt(valorTotal)} — Vencimento à vista, em nome do CONTRATADO.</div>
 
 <h2>5. Obrigações do Contratado</h2>
 <p>O CONTRATADO se obriga a executar o transporte com diligência, observando legislação de trânsito e RNTRC, zelando pela integridade da carga até a entrega no destino indicado.</p>
