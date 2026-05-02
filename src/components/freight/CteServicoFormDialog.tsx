@@ -291,49 +291,6 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Cliente (tomador) — atalho para preencher Destinatário automaticamente */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="w-4 h-4" /> Cliente (Tomador)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <PersonSearchInput
-                categories={["cliente"]}
-                placeholder="Buscar cliente..."
-                selectedName={form.destinatario_nome}
-                onSelect={(p) => {
-                  const nome = p.razao_social || p.full_name;
-                  const endereco = [p.address_street, p.address_number, p.address_neighborhood].filter(Boolean).join(", ");
-                  setForm((f) => ({
-                    ...f,
-                    tomador_id: p.id,
-                    destinatario_nome: nome,
-                    destinatario_cnpj: p.cnpj ? maskCNPJ(p.cnpj) : "",
-                    destinatario_ie: p.inscricao_estadual || "",
-                    destinatario_endereco: endereco || f.destinatario_endereco,
-                    destinatario_uf: p.address_state || f.destinatario_uf,
-                  }));
-                }}
-                onClear={() =>
-                  setForm((f) => ({
-                    ...f,
-                    tomador_id: null,
-                    destinatario_nome: "",
-                    destinatario_cnpj: "",
-                    destinatario_ie: "",
-                    destinatario_endereco: "",
-                    destinatario_uf: "",
-                  }))
-                }
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Selecionar o cliente preenche automaticamente os dados do Destinatário abaixo.
-              </p>
-            </CardContent>
-          </Card>
-
           {/* Atores fiscais */}
           <Card>
             <CardContent className="space-y-6 pt-6">
