@@ -145,7 +145,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
   const handleSave = async () => {
     if (!form.remetente_nome || !form.destinatario_nome) {
-      toast({ title: "Cliente obrigatório", description: "Selecione o tomador/cliente.", variant: "destructive" });
+      toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
     }
     if (!form.natureza_carga) {
