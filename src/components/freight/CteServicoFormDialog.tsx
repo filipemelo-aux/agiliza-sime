@@ -20,6 +20,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { FreightContractDialog } from "./FreightContractDialog";
+import {
+  CteDescontoFields,
+  type DescontoState,
+  emptyDesconto,
+  calcDescontoTotal,
+  serializeDesconto,
+  deserializeDesconto,
+} from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 
 interface Props {
@@ -70,6 +78,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
 
   useEffect(() => {
     if (!open) return;
@@ -91,14 +100,18 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           : "",
         observacoes: cte.observacoes || "",
       });
+      setDesconto(deserializeDesconto((cte as any).desconto));
     } else {
       setForm(empty);
+      setDesconto(emptyDesconto);
     }
   }, [open, cte]);
 
   const pesoTon = (Number(form.peso_bruto_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
-  const valorFrete = +(pesoTon * valorTon).toFixed(2);
+  const valorBruto = +(pesoTon * valorTon).toFixed(2);
+  const valorDesconto = calcDescontoTotal(desconto);
+  const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async () => {
     if (!form.tomador_nome) {
@@ -164,6 +177,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         valor_icms: 0,
         cst_icms: "00",
         observacoes: form.observacoes || null,
+        desconto: serializeDesconto(desconto),
         created_by: user?.id ?? null,
       };
 
@@ -367,8 +381,17 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                 </div>
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Valor total do frete</span>
-                <span className="font-semibold">
+                <span className="text-xs text-muted-foreground">Valor bruto</span>
+                <span className="font-mono text-sm font-semibold">
+                  {valorBruto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between">
+                <span className="text-sm font-semibold">Valor total do frete</span>
+                <span className="font-mono text-lg font-bold text-primary">
                   {valorFrete.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </span>
               </div>

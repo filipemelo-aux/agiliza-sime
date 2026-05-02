@@ -29,6 +29,14 @@ import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
 import { FreightContractDialog } from "./FreightContractDialog";
+import {
+  CteDescontoFields,
+  type DescontoState,
+  emptyDesconto,
+  calcDescontoTotal,
+  serializeDesconto,
+  deserializeDesconto,
+} from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -280,6 +288,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
   const [showCargaForm, setShowCargaForm] = useState(false);
   const [motoristaNome, setMotoristaNome] = useState<string | undefined>(undefined);
+  const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
 
   // CNPJ loading states for each actor
   const [cnpjLoading, setCnpjLoading] = useState<Record<string, boolean>>({});
@@ -373,6 +382,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         observacoes: cte.observacoes || "",
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
+      setDesconto(deserializeDesconto((cte as any).desconto));
 
       // Load motorista name for display
       if (cte.motorista_id) {
@@ -390,6 +400,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     } else {
       setForm(defaultForm);
       setMotoristaNome(undefined);
+      setDesconto(emptyDesconto);
     }
   }, [cte, open]);
 
@@ -462,6 +473,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         recebedor_nome: form.recebedor_nome || null,
         tomador_nome: form.tomador_nome || null,
         valor_carga_averb: form.valor_carga_averb || null,
+        desconto: serializeDesconto(desconto),
       };
 
       let savedId: string;
@@ -840,6 +852,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
                 <Label className="text-xs">Natureza da Operação</Label>
                 <Input value={form.natureza_operacao} onChange={(e) => set("natureza_operacao", e.target.value)} />
               </div>
+            </div>
+
+            {/* Desconto (registro interno — não afeta XML/Sefaz) */}
+            <div className="space-y-1.5 rounded-md border border-border bg-muted/10 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Desconto (interno)</Label>
+                {calcDescontoTotal(desconto) > 0 && (
+                  <span className="font-mono text-xs font-semibold text-destructive">
+                    − {calcDescontoTotal(desconto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Registrado apenas internamente. Não altera o vTPrest enviado à SEFAZ — ajuste o "Valor Frete" manualmente, se necessário.
+              </p>
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
             </div>
 
             {/* Componentes do Frete */}
