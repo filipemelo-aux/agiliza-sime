@@ -42,6 +42,7 @@ interface Props {
 interface FormState {
   // Tomador / cliente (mantido para previsão de recebimento)
   tomador_id: string | null;
+  tomador_tipo: number;
   // Atores fiscais
   remetente_nome: string; remetente_cnpj: string; remetente_ie: string; remetente_endereco: string; remetente_municipio_ibge: string; remetente_uf: string;
   destinatario_nome: string; destinatario_cnpj: string; destinatario_ie: string; destinatario_endereco: string; destinatario_municipio_ibge: string; destinatario_uf: string;
@@ -63,6 +64,7 @@ interface FormState {
 
 const empty: FormState = {
   tomador_id: null,
+  tomador_tipo: 3,
   remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
   destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
@@ -93,6 +95,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
+        tomador_tipo: (cte as any).tomador_tipo ?? 3,
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
         remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
@@ -222,7 +225,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         modal: "01",
         tp_cte: 0,
         tp_serv: 0,
-        tomador_tipo: 3,
+        tomador_tipo: form.tomador_tipo,
         base_calculo_icms: 0,
         aliquota_icms: 0,
         valor_icms: 0,
@@ -340,6 +343,48 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
               <CteActorSection title="Recebedor" prefix="recebedor" form={form} set={(k, v) => setForm((f) => ({ ...f, [k]: v }))} searchCategories={["cliente", "fornecedor"]} />
             </CardContent>
           </Card>
+
+          {/* Tomador do Serviço — checkbox */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4" /> Tomador do Serviço
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Marque qual dos atores acima é o tomador do serviço (quem paga o frete).
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { value: 0, label: "Remetente" },
+                  { value: 1, label: "Expedidor" },
+                  { value: 2, label: "Recebedor" },
+                  { value: 3, label: "Destinatário" },
+                  { value: 4, label: "Outros" },
+                ].map((o) => {
+                  const checked = form.tomador_tipo === o.value;
+                  return (
+                    <label
+                      key={o.value}
+                      className={`flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer transition-colors text-xs ${
+                        checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => { if (v) setForm((f) => ({ ...f, tomador_tipo: o.value })); }}
+                      />
+                      <span className={checked ? "font-semibold text-foreground" : "text-foreground"}>
+                        {o.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
 
           {/* Carga */}
           <Card>
