@@ -19,7 +19,9 @@ import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
+import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
+import { unmaskCNPJ, maskCNPJ } from "@/lib/masks";
 import {
   CteDescontoFields,
   type DescontoState,
@@ -38,10 +40,13 @@ interface Props {
 }
 
 interface FormState {
-  // Tomador / cliente
+  // Tomador / cliente (mantido para previsão de recebimento)
   tomador_id: string | null;
-  tomador_nome: string;
-  tomador_cnpj: string;
+  // Atores fiscais
+  remetente_nome: string; remetente_cnpj: string; remetente_ie: string; remetente_endereco: string; remetente_municipio_ibge: string; remetente_uf: string;
+  destinatario_nome: string; destinatario_cnpj: string; destinatario_ie: string; destinatario_endereco: string; destinatario_municipio_ibge: string; destinatario_uf: string;
+  expedidor_nome: string; expedidor_cnpj: string; expedidor_ie: string; expedidor_endereco: string; expedidor_municipio_ibge: string; expedidor_uf: string;
+  recebedor_nome: string; recebedor_cnpj: string; recebedor_ie: string; recebedor_endereco: string; recebedor_municipio_ibge: string; recebedor_uf: string;
   // Carga
   natureza_carga: string;
   // Carregamento
@@ -51,15 +56,17 @@ interface FormState {
   motorista_nome: string;
   placa_veiculo: string;
   // Valores
-  peso_bruto_kg: string; // input em kg
-  valor_tonelada: string; // mask currency
+  peso_bruto_kg: string;
+  valor_tonelada: string;
   observacoes: string;
 }
 
 const empty: FormState = {
   tomador_id: null,
-  tomador_nome: "",
-  tomador_cnpj: "",
+  remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
+  destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
+  expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
+  recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
   data_carregamento: new Date().toISOString().slice(0, 10),
   motorista_id: null,
@@ -83,20 +90,43 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   useEffect(() => {
     if (!open) return;
     if (cte) {
+      const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
-        tomador_nome: cte.destinatario_nome || (cte as any).tomador_nome || "",
-        tomador_cnpj: cte.destinatario_cnpj || (cte as any).tomador_cnpj || "",
+        remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
+        remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
+        remetente_ie: cte.remetente_ie || "",
+        remetente_endereco: cte.remetente_endereco || "",
+        remetente_municipio_ibge: cte.remetente_municipio_ibge || "",
+        remetente_uf: cte.remetente_uf || "",
+        destinatario_nome: cte.destinatario_nome ? maskName(cte.destinatario_nome) : "",
+        destinatario_cnpj: cte.destinatario_cnpj ? maskCNPJ(cte.destinatario_cnpj) : "",
+        destinatario_ie: cte.destinatario_ie || "",
+        destinatario_endereco: cte.destinatario_endereco || "",
+        destinatario_municipio_ibge: cte.destinatario_municipio_ibge || "",
+        destinatario_uf: cte.destinatario_uf || "",
+        expedidor_nome: c.expedidor_nome ? maskName(c.expedidor_nome) : "",
+        expedidor_cnpj: c.expedidor_cnpj ? maskCNPJ(c.expedidor_cnpj) : "",
+        expedidor_ie: c.expedidor_ie || "",
+        expedidor_endereco: c.expedidor_endereco || "",
+        expedidor_municipio_ibge: c.expedidor_municipio_ibge || "",
+        expedidor_uf: c.expedidor_uf || "",
+        recebedor_nome: c.recebedor_nome ? maskName(c.recebedor_nome) : "",
+        recebedor_cnpj: c.recebedor_cnpj ? maskCNPJ(c.recebedor_cnpj) : "",
+        recebedor_ie: c.recebedor_ie || "",
+        recebedor_endereco: c.recebedor_endereco || "",
+        recebedor_municipio_ibge: c.recebedor_municipio_ibge || "",
+        recebedor_uf: c.recebedor_uf || "",
         natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
         data_carregamento:
-          (cte as any).data_carregamento ||
+          c.data_carregamento ||
           (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         motorista_id: cte.motorista_id ?? null,
-        motorista_nome: (cte as any).motorista_nome || "",
+        motorista_nome: c.motorista_nome || "",
         placa_veiculo: cte.placa_veiculo || "",
         peso_bruto_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
-        valor_tonelada: (cte as any).valor_tonelada
-          ? maskCurrency(String(Number((cte as any).valor_tonelada).toFixed(2)).replace(".", ""))
+        valor_tonelada: c.valor_tonelada
+          ? maskCurrency(String(Number(c.valor_tonelada).toFixed(2)).replace(".", ""))
           : "",
         observacoes: cte.observacoes || "",
       });
@@ -114,8 +144,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async () => {
-    if (!form.tomador_nome) {
-      toast({ title: "Cliente obrigatório", description: "Selecione o tomador/cliente.", variant: "destructive" });
+    if (!form.remetente_nome || !form.destinatario_nome) {
+      toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
     }
     if (!form.natureza_carga) {
@@ -150,11 +180,32 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         status: "rascunho", // talão de serviço fica sempre como "rascunho" (interno)
         establishment_id: establishmentId,
         numero_interno,
-        // Reaproveitamos campos existentes para refletir os dados informados
+        // Atores fiscais
         tomador_id: form.tomador_id,
-        destinatario_nome: maskName(form.tomador_nome),
-        destinatario_cnpj: form.tomador_cnpj || null,
-        remetente_nome: maskName(form.tomador_nome), // exigido por NOT NULL
+        remetente_nome: maskName(form.remetente_nome),
+        remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj || null,
+        remetente_ie: form.remetente_ie || null,
+        remetente_endereco: form.remetente_endereco || null,
+        remetente_municipio_ibge: form.remetente_municipio_ibge || null,
+        remetente_uf: form.remetente_uf || null,
+        destinatario_nome: maskName(form.destinatario_nome),
+        destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || form.destinatario_cnpj || null,
+        destinatario_ie: form.destinatario_ie || null,
+        destinatario_endereco: form.destinatario_endereco || null,
+        destinatario_municipio_ibge: form.destinatario_municipio_ibge || null,
+        destinatario_uf: form.destinatario_uf || null,
+        expedidor_nome: form.expedidor_nome ? maskName(form.expedidor_nome) : null,
+        expedidor_cnpj: unmaskCNPJ(form.expedidor_cnpj) || form.expedidor_cnpj || null,
+        expedidor_ie: form.expedidor_ie || null,
+        expedidor_endereco: form.expedidor_endereco || null,
+        expedidor_municipio_ibge: form.expedidor_municipio_ibge || null,
+        expedidor_uf: form.expedidor_uf || null,
+        recebedor_nome: form.recebedor_nome ? maskName(form.recebedor_nome) : null,
+        recebedor_cnpj: unmaskCNPJ(form.recebedor_cnpj) || form.recebedor_cnpj || null,
+        recebedor_ie: form.recebedor_ie || null,
+        recebedor_endereco: form.recebedor_endereco || null,
+        recebedor_municipio_ibge: form.recebedor_municipio_ibge || null,
+        recebedor_uf: form.recebedor_uf || null,
         natureza_operacao: form.natureza_carga,
         produto_predominante: form.natureza_carga,
         data_carregamento: form.data_carregamento,
@@ -226,7 +277,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="font-display">
             {cte ? "Editar Talão de Serviço" : "Novo Talão de Serviço"}
@@ -237,30 +288,56 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Tomador / Cliente */}
+          {/* Cliente (tomador) — atalho para preencher Destinatário automaticamente */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="w-4 h-4" /> Tomador / Cliente
+                <Users className="w-4 h-4" /> Cliente (Tomador)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <PersonSearchInput
                 categories={["cliente"]}
                 placeholder="Buscar cliente..."
-                selectedName={form.tomador_nome}
-                onSelect={(p) =>
+                selectedName={form.destinatario_nome}
+                onSelect={(p) => {
+                  const nome = p.razao_social || p.full_name;
+                  const endereco = [p.address_street, p.address_number, p.address_neighborhood].filter(Boolean).join(", ");
                   setForm((f) => ({
                     ...f,
                     tomador_id: p.id,
-                    tomador_nome: p.razao_social || p.full_name,
-                    tomador_cnpj: p.cnpj || "",
+                    destinatario_nome: nome,
+                    destinatario_cnpj: p.cnpj ? maskCNPJ(p.cnpj) : "",
+                    destinatario_ie: p.inscricao_estadual || "",
+                    destinatario_endereco: endereco || f.destinatario_endereco,
+                    destinatario_uf: p.address_state || f.destinatario_uf,
+                  }));
+                }}
+                onClear={() =>
+                  setForm((f) => ({
+                    ...f,
+                    tomador_id: null,
+                    destinatario_nome: "",
+                    destinatario_cnpj: "",
+                    destinatario_ie: "",
+                    destinatario_endereco: "",
+                    destinatario_uf: "",
                   }))
                 }
-                onClear={() =>
-                  setForm((f) => ({ ...f, tomador_id: null, tomador_nome: "", tomador_cnpj: "" }))
-                }
               />
+              <p className="text-[10px] text-muted-foreground">
+                Selecionar o cliente preenche automaticamente os dados do Destinatário abaixo.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Atores fiscais */}
+          <Card>
+            <CardContent className="space-y-6 pt-6">
+              <CteActorSection title="Remetente" prefix="remetente" form={form} set={(k, v) => setForm((f) => ({ ...f, [k]: v }))} searchCategories={["cliente", "fornecedor"]} />
+              <CteActorSection title="Destinatário" prefix="destinatario" form={form} set={(k, v) => setForm((f) => ({ ...f, [k]: v }))} searchCategories={["cliente", "fornecedor"]} />
+              <CteActorSection title="Expedidor" prefix="expedidor" form={form} set={(k, v) => setForm((f) => ({ ...f, [k]: v }))} searchCategories={["cliente", "fornecedor"]} />
+              <CteActorSection title="Recebedor" prefix="recebedor" form={form} set={(k, v) => setForm((f) => ({ ...f, [k]: v }))} searchCategories={["cliente", "fornecedor"]} />
             </CardContent>
           </Card>
 
