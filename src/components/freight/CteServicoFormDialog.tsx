@@ -177,6 +177,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         valor_icms: 0,
         cst_icms: "00",
         observacoes: form.observacoes || null,
+        desconto: serializeDesconto(desconto),
         created_by: user?.id ?? null,
       };
 
