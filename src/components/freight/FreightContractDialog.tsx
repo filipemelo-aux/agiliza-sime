@@ -258,17 +258,32 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 categories={["proprietario", "motorista"]}
                 placeholder="Buscar proprietário..."
                 selectedName={form.contratado_nome}
-                onSelect={(p) =>
+                onSelect={async (p) => {
+                  // Busca dados completos do profile (cpf, cnpj, person_type)
+                  const { data: full } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, razao_social, cpf, cnpj, person_type")
+                    .eq("id", p.id)
+                    .maybeSingle();
+                  const cnpj = full?.cnpj || p.cnpj || "";
+                  const cpf = (full as any)?.cpf || "";
+                  const isPJ = !!cnpj || (full as any)?.person_type === "PJ";
                   setForm((f) => ({
                     ...f,
                     contratado_id: p.id,
-                    contratado_nome: p.razao_social || p.full_name,
-                    contratado_documento: p.cnpj || "",
-                    contratado_tipo: p.cnpj ? "PJ" : "PF",
-                  }))
-                }
+                    contratado_nome: full?.razao_social || full?.full_name || p.razao_social || p.full_name,
+                    contratado_documento: isPJ ? cnpj : cpf,
+                    contratado_tipo: isPJ ? "PJ" : "PF",
+                  }));
+                }}
                 onClear={() =>
-                  setForm((f) => ({ ...f, contratado_id: null, contratado_nome: "", contratado_documento: "" }))
+                  setForm((f) => ({
+                    ...f,
+                    contratado_id: null,
+                    contratado_nome: "",
+                    contratado_documento: "",
+                    contratado_tipo: "PF",
+                  }))
                 }
               />
               <div className="grid grid-cols-3 gap-3">
@@ -276,23 +291,19 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                   <Label className="text-xs">Documento (CPF/CNPJ)</Label>
                   <Input
                     value={form.contratado_documento}
-                    onChange={(e) => setForm((f) => ({ ...f, contratado_documento: e.target.value }))}
+                    readOnly
+                    disabled
+                    placeholder="Preenchido automaticamente"
                   />
                 </div>
                 <div>
                   <Label className="text-xs">Tipo</Label>
-                  <RadioGroup
-                    className="flex gap-3 mt-2"
+                  <Input
                     value={form.contratado_tipo}
-                    onValueChange={(v) => setForm((f) => ({ ...f, contratado_tipo: v as "PF" | "PJ" }))}
-                  >
-                    <label className="flex items-center gap-1 text-xs">
-                      <RadioGroupItem value="PF" /> PF
-                    </label>
-                    <label className="flex items-center gap-1 text-xs">
-                      <RadioGroupItem value="PJ" /> PJ
-                    </label>
-                  </RadioGroup>
+                    readOnly
+                    disabled
+                    className="font-semibold text-center"
+                  />
                 </div>
               </div>
             </CardContent>
