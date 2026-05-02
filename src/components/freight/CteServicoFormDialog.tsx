@@ -381,8 +381,17 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                 </div>
               </div>
               <div className="bg-muted/30 rounded-md px-3 py-2 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Valor total do frete</span>
-                <span className="font-semibold">
+                <span className="text-xs text-muted-foreground">Valor bruto</span>
+                <span className="font-mono text-sm font-semibold">
+                  {valorBruto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+
+              <CteDescontoFields value={desconto} onChange={setDesconto} />
+
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 flex items-center justify-between">
+                <span className="text-sm font-semibold">Valor total do frete</span>
+                <span className="font-mono text-lg font-bold text-primary">
                   {valorFrete.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </span>
               </div>
