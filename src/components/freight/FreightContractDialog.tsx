@@ -97,7 +97,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         if (vehicle?.owner_id) {
           const { data: p } = await supabase
             .from("profiles")
-            .select("id, full_name, razao_social, cpf, cnpj, category")
+            .select("id, full_name, razao_social, cnpj, person_type, category")
             .eq("id", vehicle.owner_id)
             .maybeSingle();
           owner = p;
@@ -117,17 +117,31 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       if (!owner && cte.motorista_id) {
         const { data: dOwner } = await supabase
           .from("profiles")
-          .select("id, full_name, razao_social, cnpj, is_owner")
+          .select("id, full_name, razao_social, cnpj, person_type, is_owner")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         if (dOwner?.is_owner) owner = dOwner;
       }
 
-      const isPJ = !!owner?.cnpj;
+      // Buscar CPF (driver_documents) se for PF
+      let ownerCpf = "";
+      if (owner?.id) {
+        const { data: ownerDoc } = await supabase
+          .from("driver_documents")
+          .select("cpf")
+          .eq("user_id", owner.id)
+          .maybeSingle();
+        ownerCpf = (ownerDoc as any)?.cpf || "";
+      }
+
+      const ownerCnpj = owner?.cnpj || "";
+      const isPJ = owner?.person_type
+        ? owner.person_type === "PJ"
+        : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
       setForm({
         contratado_id: owner?.id ?? null,
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
-        contratado_documento: owner?.cnpj || "",
+        contratado_documento: isPJ ? ownerCnpj : (ownerCpf || ownerCnpj),
         contratado_tipo: isPJ ? "PJ" : "PF",
         motorista_id: driver?.id ?? cte.motorista_id ?? null,
         motorista_nome: driver?.full_name || (cte as any).motorista_nome || "",
