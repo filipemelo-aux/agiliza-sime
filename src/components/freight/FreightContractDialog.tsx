@@ -119,21 +119,29 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       }
 
       // Buscar dados do motorista (profile + documentos: CPF)
+      // driver_documents.user_id = profiles.user_id (auth.users.id), NÃO profiles.id.
       let driverCpf = "";
       if (cte.motorista_id) {
         const { data: d } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, user_id, full_name, cnpj")
           .eq("id", cte.motorista_id)
           .maybeSingle();
         driver = d;
 
-        const { data: ddoc } = await supabase
-          .from("driver_documents")
-          .select("cpf")
-          .eq("user_id", cte.motorista_id)
-          .maybeSingle();
-        driverCpf = (ddoc as any)?.cpf || "";
+        if (d?.user_id) {
+          const { data: ddoc } = await supabase
+            .from("driver_documents")
+            .select("cpf")
+            .eq("user_id", d.user_id)
+            .maybeSingle();
+          driverCpf = (ddoc as any)?.cpf || "";
+        }
+        // Fallback: alguns motoristas podem ter o CPF salvo no próprio profile (campo cnpj reaproveitado p/ doc PF)
+        if (!driverCpf && (d as any)?.cnpj) {
+          const onlyDigits = String((d as any).cnpj).replace(/\D/g, "");
+          if (onlyDigits.length === 11) driverCpf = (d as any).cnpj;
+        }
       }
 
       // Se não há owner via veículo, mas o motorista é proprietário (is_owner), usa-o
@@ -146,13 +154,13 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         if (dOwner?.is_owner) owner = dOwner;
       }
 
-      // Buscar CPF (driver_documents) se for PF — driver_documents.user_id = profiles.id
+      // Buscar CPF do proprietário (driver_documents.user_id = profiles.user_id)
       let ownerCpf = "";
-      if (owner?.id) {
+      if (owner?.user_id) {
         const { data: ownerDoc } = await supabase
           .from("driver_documents")
           .select("cpf")
-          .eq("user_id", owner.id)
+          .eq("user_id", owner.user_id)
           .maybeSingle();
         ownerCpf = (ownerDoc as any)?.cpf || "";
       }
@@ -341,16 +349,18 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                   // Busca dados completos do profile (documento e tipo)
                   const { data: full } = await supabase
                     .from("profiles")
-                    .select("id, full_name, razao_social, cnpj, person_type")
+                    .select("id, user_id, full_name, razao_social, cnpj, person_type")
                     .eq("id", p.id)
                     .maybeSingle();
                   let cpfDoc = "";
-                  const { data: doc } = await supabase
-                    .from("driver_documents")
-                    .select("cpf")
-                    .eq("user_id", p.id)
-                    .maybeSingle();
-                  cpfDoc = (doc as any)?.cpf || "";
+                  if (full?.user_id) {
+                    const { data: doc } = await supabase
+                      .from("driver_documents")
+                      .select("cpf")
+                      .eq("user_id", full.user_id)
+                      .maybeSingle();
+                    cpfDoc = (doc as any)?.cpf || "";
+                  }
                   const cnpj = full?.cnpj || p.cnpj || "";
                   const ptype = (full?.person_type || "").toString().toLowerCase();
                   const isPJ = ptype
