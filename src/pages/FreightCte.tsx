@@ -101,6 +101,9 @@ export default function FreightCte() {
   };
 
   const filtered = ctes.filter((c) => {
+    const isServico = c.tipo_talao === "servico";
+    if (tipoFilter === "producao" && isServico) return false;
+    if (tipoFilter === "servico" && !isServico) return false;
     const q = search.toLowerCase();
     return (
       !q ||
