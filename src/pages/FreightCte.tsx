@@ -21,7 +21,7 @@ import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
-import { CteBatchDialog } from "@/components/freight/CteBatchDialog";
+
 
 export interface Cte {
   id: string;
