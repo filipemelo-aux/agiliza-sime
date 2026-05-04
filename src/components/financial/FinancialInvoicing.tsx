@@ -507,16 +507,16 @@ export function FinancialInvoicing() {
       .eq("id", fatura.cliente_id)
       .single();
 
-    // Harvest details are now read from previsao.metadata (stored at creation time)
-    // Fallback to harvest_jobs only for legacy previsões without metadata
+    // Harvest details: always fetch current harvest_jobs to ensure farm_name reflects
+    // the registered farm name (snapshot in metadata may be stale or contain address).
     const colheitaPrevisoes = previsoes.filter(p => p.origem_tipo === "colheita");
-    const legacyColheitaIds = colheitaPrevisoes.filter(p => !p.metadata?.fazenda).map(p => p.origem_id);
+    const colheitaIds = colheitaPrevisoes.map(p => p.origem_id);
     let harvestJobs: Record<string, any> = {};
-    if (legacyColheitaIds.length > 0) {
+    if (colheitaIds.length > 0) {
       const { data: hjData } = await supabase
         .from("harvest_jobs")
         .select("id, farm_name, location, harvest_period_start, harvest_period_end, payment_value, monthly_value")
-        .in("id", [...new Set(legacyColheitaIds)]);
+        .in("id", [...new Set(colheitaIds)]);
       if (hjData) {
         hjData.forEach((hj: any) => { harvestJobs[hj.id] = hj; });
       }
@@ -575,10 +575,12 @@ export function FinancialInvoicing() {
     if (colheitaPrevisoes.length > 0) {
       const sections = colheitaPrevisoes.map(p => {
         const meta = p.metadata as Previsao["metadata"];
-        const hj = harvestJobs[p.origem_id]; // legacy fallback
-        
-        const fazenda = meta?.fazenda || hj?.farm_name || "—";
-        const localizacao = meta?.localizacao || hj?.location || "—";
+        const hj = harvestJobs[p.origem_id];
+
+        // Prioriza nome cadastrado em harvest_jobs (fonte da verdade);
+        // metadata é usado como fallback para previsões cuja colheita foi removida.
+        const fazenda = hj?.farm_name || meta?.fazenda || "—";
+        const localizacao = hj?.location || meta?.localizacao || "—";
         const diaria = meta?.diaria_cliente ?? (hj ? (hj.payment_value || (hj.monthly_value / 30)) : 0);
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
@@ -729,7 +731,7 @@ ${previsoes.length > 0 ? `
       ${previsoes.map(p => {
         const meta = p.metadata as any;
         const hj = harvestJobs[p.origem_id];
-        const fazenda = meta?.fazenda || hj?.farm_name || "";
+        const fazenda = hj?.farm_name || meta?.fazenda || "";
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
         let descricao: string;
