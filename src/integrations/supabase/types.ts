@@ -3762,7 +3762,7 @@ export type Database = {
         | "frete_terceiro"
         | "imposto"
         | "outros"
-      fatura_status: "aberta" | "faturada" | "cancelada"
+      fatura_status: "aberta" | "faturada" | "cancelada" | "paga"
       folha_status: "em_aberto" | "confirmada" | "cancelada"
       freight_status: "available" | "in_progress" | "completed" | "cancelled"
       previsao_origem_tipo: "cte" | "colheita" | "manual"
@@ -3945,7 +3945,7 @@ export const Constants = {
         "imposto",
         "outros",
       ],
-      fatura_status: ["aberta", "faturada", "cancelada"],
+      fatura_status: ["aberta", "faturada", "cancelada", "paga"],
       folha_status: ["em_aberto", "confirmada", "cancelada"],
       freight_status: ["available", "in_progress", "completed", "cancelled"],
       previsao_origem_tipo: ["cte", "colheita", "manual"],
