@@ -923,6 +923,11 @@ ${previsoes.length > 0 ? `
                         <HandCoins className="h-3 w-3" /> Receber
                       </Button>
                     )}
+                    {isPaid(f) && (
+                      <Button variant="outline" size="sm" onClick={() => handleReverseFatura(f)} className="gap-1 h-7 text-xs flex-1 text-destructive hover:text-destructive">
+                        <Undo2 className="h-3 w-3" /> Estornar
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
