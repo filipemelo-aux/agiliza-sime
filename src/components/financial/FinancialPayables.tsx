@@ -1560,6 +1560,7 @@ export function FinancialPayables() {
               }
 
               const isHarvest = item.id.startsWith("harvest-");
+              const isFreightContract = typeof item.descricao === "string" && /contrato de frete/i.test(item.descricao);
               const isOverdue = item.status === "atrasado";
               const isPago = item.status === "pago";
               const isSelected = selectedIds.has(item.id);
@@ -1593,6 +1594,9 @@ export function FinancialPayables() {
                         {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                         {isHarvest && (
                           <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
+                        )}
+                        {isFreightContract && (
+                          <Badge className="text-[10px] shrink-0 bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">Contrato de Frete</Badge>
                         )}
                         <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                           {STATUS_MAP[item.status]?.label || item.status}
