@@ -731,7 +731,7 @@ ${previsoes.length > 0 ? `
       ${previsoes.map(p => {
         const meta = p.metadata as any;
         const hj = harvestJobs[p.origem_id];
-        const fazenda = meta?.fazenda || hj?.farm_name || "";
+        const fazenda = hj?.farm_name || meta?.fazenda || "";
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
         let descricao: string;
