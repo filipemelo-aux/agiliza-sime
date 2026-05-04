@@ -1595,6 +1595,9 @@ export function FinancialPayables() {
                         {isHarvest && (
                           <Badge variant="secondary" className="text-[10px] shrink-0">Colheita</Badge>
                         )}
+                        {isFreightContract && (
+                          <Badge className="text-[10px] shrink-0 bg-primary/10 text-primary border-primary/30 hover:bg-primary/10">Contrato de Frete</Badge>
+                        )}
                         <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                           {STATUS_MAP[item.status]?.label || item.status}
                         </Badge>
