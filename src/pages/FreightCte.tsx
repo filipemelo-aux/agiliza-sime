@@ -233,10 +233,16 @@ export default function FreightCte() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
-          <Button onClick={handleNew} className=" gap-2">
-            <Plus className="w-4 h-4" />
-            Novo CT-e
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
+              <Copy className="w-4 h-4" />
+              Emissão em Lote
+            </Button>
+            <Button onClick={handleNew} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo CT-e
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
