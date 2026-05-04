@@ -444,6 +444,13 @@ export default function FreightCte() {
         onSaved={fetchCtes}
       />
 
+      <CteBatchDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        ctes={ctes}
+        onCreated={fetchCtes}
+      />
+
       {detailCte && (
         <CteDetailDialog
           open={!!detailCte}
