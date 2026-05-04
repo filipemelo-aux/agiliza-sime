@@ -237,14 +237,36 @@ export default function FreightCte() {
           </Button>
         </div>
 
-        <div className="relative mb-6 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por número, remetente, destinatário..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por número, remetente, destinatário..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="inline-flex rounded-md border border-border bg-card p-0.5 w-fit">
+            {([
+              { v: "todos", label: "Todos" },
+              { v: "producao", label: "Produção" },
+              { v: "servico", label: "Serviço" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setTipoFilter(opt.v)}
+                className={`px-3 h-8 text-xs rounded-sm transition-colors ${
+                  tipoFilter === opt.v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
