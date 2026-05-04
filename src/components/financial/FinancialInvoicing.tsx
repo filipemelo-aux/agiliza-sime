@@ -575,10 +575,12 @@ export function FinancialInvoicing() {
     if (colheitaPrevisoes.length > 0) {
       const sections = colheitaPrevisoes.map(p => {
         const meta = p.metadata as Previsao["metadata"];
-        const hj = harvestJobs[p.origem_id]; // legacy fallback
-        
-        const fazenda = meta?.fazenda || hj?.farm_name || "—";
-        const localizacao = meta?.localizacao || hj?.location || "—";
+        const hj = harvestJobs[p.origem_id];
+
+        // Prioriza nome cadastrado em harvest_jobs (fonte da verdade);
+        // metadata é usado como fallback para previsões cuja colheita foi removida.
+        const fazenda = hj?.farm_name || meta?.fazenda || "—";
+        const localizacao = hj?.location || meta?.localizacao || "—";
         const diaria = meta?.diaria_cliente ?? (hj ? (hj.payment_value || (hj.monthly_value / 30)) : 0);
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
