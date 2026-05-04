@@ -488,6 +488,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         toast({ title: "CT-e criado", description: "Rascunho salvo com sucesso." });
         savedId = data.id;
       }
+
+      // Gerar/atualizar previsão de recebimento (interno) — vincula ao tomador
+      if (form.tomador_id && Number(form.valor_frete) > 0) {
+        await supabase.from("previsoes_recebimento").upsert(
+          {
+            origem_tipo: "cte" as any,
+            origem_id: savedId,
+            cliente_id: form.tomador_id,
+            valor: Number(form.valor_frete),
+            data_prevista: new Date().toISOString().split("T")[0],
+            status: "pendente" as any,
+          },
+          { onConflict: "origem_tipo,origem_id" }
+        );
+      }
+
       onSaved();
 
       if (gerarContrato) {
