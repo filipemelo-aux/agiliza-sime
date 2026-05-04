@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2 } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -819,6 +819,42 @@ ${previsoes.length > 0 ? `
 
   const totalFaturado = faturas.reduce((s, f) => s + Number(f.valor_total), 0);
   const hasPendingContas = (f: Fatura) => f.status === "faturada";
+  const isPaid = (f: Fatura) => f.status === "paga";
+
+  const handleReverseFatura = async (fatura: Fatura) => {
+    const ok = await confirm({
+      title: "Estornar recebimento",
+      description: `Deseja estornar o recebimento da fatura #${String(fatura.numero).padStart(4, '0')}? Os títulos voltarão para "aberto" e as movimentações bancárias serão removidas.`,
+      confirmLabel: "Estornar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      const { data: contas, error: errFetch } = await supabase
+        .from("contas_receber")
+        .select("id")
+        .eq("fatura_id", fatura.id)
+        .eq("status", "recebido");
+      if (errFetch) throw errFetch;
+
+      for (const c of (contas || [])) {
+        const { error } = await supabase
+          .from("contas_receber")
+          .update({
+            status: "aberto" as any,
+            data_recebimento: null,
+            valor_recebido: null,
+            forma_recebimento: null,
+          })
+          .eq("id", (c as any).id);
+        if (error) throw error;
+      }
+      toast.success("Recebimento estornado com sucesso");
+      fetchFaturas();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar recebimento");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -887,6 +923,11 @@ ${previsoes.length > 0 ? `
                         <HandCoins className="h-3 w-3" /> Receber
                       </Button>
                     )}
+                    {isPaid(f) && (
+                      <Button variant="outline" size="sm" onClick={() => handleReverseFatura(f)} className="gap-1 h-7 text-xs flex-1 text-destructive hover:text-destructive">
+                        <Undo2 className="h-3 w-3" /> Estornar
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -945,6 +986,11 @@ ${previsoes.length > 0 ? `
                             {hasPendingContas(f) && (
                               <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
                                 <HandCoins className="h-3 w-3" /> Receber
+                              </Button>
+                            )}
+                            {isPaid(f) && (
+                              <Button variant="outline" size="sm" onClick={() => handleReverseFatura(f)} className="gap-1 h-7 text-xs text-destructive hover:text-destructive" title="Estornar">
+                                <Undo2 className="h-3 w-3" /> Estornar
                               </Button>
                             )}
                           </div>
