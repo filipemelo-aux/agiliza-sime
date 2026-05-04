@@ -70,6 +70,7 @@ export default function FreightCte() {
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "producao" | "servico">("todos");
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
@@ -100,6 +101,9 @@ export default function FreightCte() {
   };
 
   const filtered = ctes.filter((c) => {
+    const isServico = c.tipo_talao === "servico";
+    if (tipoFilter === "producao" && isServico) return false;
+    if (tipoFilter === "servico" && !isServico) return false;
     const q = search.toLowerCase();
     return (
       !q ||
@@ -233,14 +237,36 @@ export default function FreightCte() {
           </Button>
         </div>
 
-        <div className="relative mb-6 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por número, remetente, destinatário..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por número, remetente, destinatário..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="inline-flex rounded-md border border-border bg-card p-0.5 w-fit">
+            {([
+              { v: "todos", label: "Todos" },
+              { v: "producao", label: "Produção" },
+              { v: "servico", label: "Serviço" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setTipoFilter(opt.v)}
+                className={`px-3 h-8 text-xs rounded-sm transition-colors ${
+                  tipoFilter === opt.v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -359,7 +385,7 @@ export default function FreightCte() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Novo CT-e</DialogTitle>
-            <DialogDescription>Escolha o tipo de talão a emitir.</DialogDescription>
+            <DialogDescription>Selecione o talão ao qual este CT-e pertence.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 mt-2">
             <button
@@ -371,7 +397,7 @@ export default function FreightCte() {
                 <FileCheck2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <div className="font-semibold">Talão de Produção</div>
+                <div className="font-semibold">CT-e do Talão de Produção</div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   CT-e fiscal completo, transmitido à SEFAZ.
                 </p>
@@ -386,7 +412,7 @@ export default function FreightCte() {
                 <FileCog className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <div className="font-semibold">Talão de Serviço</div>
+                <div className="font-semibold">CT-e do Talão de Serviço</div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Registro interno simplificado, sem envio à SEFAZ.
                 </p>
