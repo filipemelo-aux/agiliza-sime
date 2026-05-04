@@ -440,7 +440,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setForm((p) => ({ ...p, valor_receber: p.valor_frete }));
   }, [form.valor_frete]);
 
-  const handleSave = async () => {
+  const handleSave = async (keepOpenForNext = false) => {
     if (!user) return;
     if (!selectedEstId) {
       toast({ title: "Campos obrigatórios", description: "Selecione o estabelecimento emissor.", variant: "destructive" });
