@@ -349,16 +349,18 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                   // Busca dados completos do profile (documento e tipo)
                   const { data: full } = await supabase
                     .from("profiles")
-                    .select("id, full_name, razao_social, cnpj, person_type")
+                    .select("id, user_id, full_name, razao_social, cnpj, person_type")
                     .eq("id", p.id)
                     .maybeSingle();
                   let cpfDoc = "";
-                  const { data: doc } = await supabase
-                    .from("driver_documents")
-                    .select("cpf")
-                    .eq("user_id", p.id)
-                    .maybeSingle();
-                  cpfDoc = (doc as any)?.cpf || "";
+                  if (full?.user_id) {
+                    const { data: doc } = await supabase
+                      .from("driver_documents")
+                      .select("cpf")
+                      .eq("user_id", full.user_id)
+                      .maybeSingle();
+                    cpfDoc = (doc as any)?.cpf || "";
+                  }
                   const cnpj = full?.cnpj || p.cnpj || "";
                   const ptype = (full?.person_type || "").toString().toLowerCase();
                   const isPJ = ptype
