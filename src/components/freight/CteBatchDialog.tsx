@@ -40,6 +40,14 @@ const CAMPOS_EXCLUIDOS = new Set([
   "numero_interno",
   // data_emissao é sobrescrita pelo input do usuário
   "data_emissao",
+  // Veículo, motorista e peso são específicos de cada viagem — não copiar
+  "placa_veiculo",
+  "veiculo_id",
+  "motorista_id",
+  "motorista_nome",
+  "rntrc",
+  "peso_bruto",
+  "info_quantidade",
 ]);
 
 export function CteBatchDialog({ open, onOpenChange, ctes, onCreated }: Props) {
