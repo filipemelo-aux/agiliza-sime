@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, Copy } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +21,7 @@ import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
-import { CteBatchDialog } from "@/components/freight/CteBatchDialog";
+
 
 export interface Cte {
   id: string;
@@ -75,7 +75,7 @@ export default function FreightCte() {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [batchOpen, setBatchOpen] = useState(false);
+  
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
   const { toast } = useToast();
@@ -234,10 +234,6 @@ export default function FreightCte() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
-              <Copy className="w-4 h-4" />
-              Emissão em Lote
-            </Button>
             <Button onClick={handleNew} className="gap-2">
               <Plus className="w-4 h-4" />
               Novo CT-e
@@ -442,13 +438,6 @@ export default function FreightCte() {
         onOpenChange={(o) => { setServicoOpen(o); if (!o) setEditingCte(null); }}
         cte={editingCte}
         onSaved={fetchCtes}
-      />
-
-      <CteBatchDialog
-        open={batchOpen}
-        onOpenChange={setBatchOpen}
-        ctes={ctes}
-        onCreated={fetchCtes}
       />
 
       {detailCte && (

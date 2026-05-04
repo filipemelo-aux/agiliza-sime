@@ -440,7 +440,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     setForm((p) => ({ ...p, valor_receber: p.valor_frete }));
   }, [form.valor_frete]);
 
-  const handleSave = async () => {
+  const handleSave = async (keepOpenForNext = false) => {
     if (!user) return;
     if (!selectedEstId) {
       toast({ title: "Campos obrigatórios", description: "Selecione o estabelecimento emissor.", variant: "destructive" });
@@ -509,6 +509,21 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       if (gerarContrato) {
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
         setSavedCteForContract(fresh as any);
+      } else if (keepOpenForNext && !cte) {
+        // Reaproveita os dados gerais; limpa apenas campos específicos da viagem
+        setForm((p) => ({
+          ...p,
+          placa_veiculo: "",
+          rntrc: "",
+          peso_bruto: 0,
+          info_quantidade: [],
+          chaves_nfe_ref: [],
+          motorista_id: null,
+          veiculo_id: null,
+          observacoes: "",
+        }));
+        setMotoristaNome(undefined);
+        toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa, peso e quantidades." });
       } else {
         onOpenChange(false);
       }
@@ -1191,9 +1206,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </span>
             </span>
           </label>
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            {!cte && (
+              <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving} title="Salva e mantém os dados gerais para o próximo CT-e">
+                {saving ? "Salvando..." : "Salvar e novo"}
+              </Button>
+            )}
+            <Button onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
             </Button>
           </div>
