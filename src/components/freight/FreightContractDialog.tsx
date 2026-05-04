@@ -171,22 +171,22 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
 
-      // Origem = REMETENTE do CT-e (origem da carga)
+      // Origem = EXPEDIDOR (prioridade) → fallback REMETENTE
       const cAny = cte as any;
       const origemMunicipio =
+        cAny.expedidor_municipio_nome ||
+        extractCityFromAddress(cAny.expedidor_endereco) ||
         cAny.remetente_municipio_nome ||
         extractCityFromAddress(cte.remetente_endereco) ||
         cte.municipio_origem_nome ||
-        cAny.expedidor_municipio_nome ||
-        extractCityFromAddress(cAny.expedidor_endereco) ||
         "";
       const origemUf =
+        cAny.expedidor_uf ||
         cte.remetente_uf ||
         cte.uf_origem ||
-        cAny.expedidor_uf ||
         "";
 
-      // Destino = RECEBEDOR do CT-e (destino final do motorista); fallback Destinatário
+      // Destino = RECEBEDOR (prioridade) → fallback DESTINATÁRIO
       const destinoMunicipio =
         cAny.recebedor_municipio_nome ||
         extractCityFromAddress(cAny.recebedor_endereco) ||
