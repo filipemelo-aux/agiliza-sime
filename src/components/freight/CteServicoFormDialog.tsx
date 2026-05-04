@@ -146,7 +146,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const valorDesconto = calcDescontoTotal(desconto);
   const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
 
-  const handleSave = async () => {
+  const handleSave = async (keepOpenForNext = false) => {
     if (!form.remetente_nome || !form.destinatario_nome) {
       toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
@@ -268,6 +268,17 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         // Recupera o CT-e salvo para alimentar o FreightContractDialog
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
         setSavedCteForContract(fresh as any);
+      } else if (keepOpenForNext && !cte) {
+        // Reaproveita dados gerais; limpa apenas campos específicos da viagem
+        setForm((f) => ({
+          ...f,
+          placa_veiculo: "",
+          peso_bruto_kg: "",
+          motorista_id: null,
+          motorista_nome: "",
+          observacoes: "",
+        }));
+        toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa e peso." });
       } else {
         onOpenChange(false);
       }
@@ -502,13 +513,25 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             </span>
           </label>
 
-          <div className="flex gap-2 sticky bottom-0 bg-background pt-3 pb-2">
+          <div className="flex flex-wrap gap-2 sticky bottom-0 bg-background pt-3 pb-2">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
+            {!cte && (
+              <Button
+                variant="secondary"
+                className="flex-1 gap-2"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+                title="Salva e mantém os dados gerais para o próximo CT-e"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Salvar e novo
+              </Button>
+            )}
+            <Button className="flex-1 gap-2" onClick={() => handleSave(false)} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {cte ? "Salvar alterações" : "Criar Talão"}
+              {cte ? "Salvar alterações" : "Salvar CT-e"}
             </Button>
           </div>
         </div>

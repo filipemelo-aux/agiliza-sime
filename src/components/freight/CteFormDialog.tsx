@@ -1214,7 +1214,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </Button>
             )}
             <Button onClick={() => handleSave(false)} disabled={saving}>
-              {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
+              {saving ? "Salvando..." : cte ? "Atualizar CT-e" : "Salvar CT-e"}
             </Button>
           </div>
         </div>
