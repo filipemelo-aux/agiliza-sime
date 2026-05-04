@@ -70,6 +70,7 @@ export default function FreightCte() {
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "producao" | "servico">("todos");
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
