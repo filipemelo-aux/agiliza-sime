@@ -1560,6 +1560,7 @@ export function FinancialPayables() {
               }
 
               const isHarvest = item.id.startsWith("harvest-");
+              const isFreightContract = typeof item.descricao === "string" && /contrato de frete/i.test(item.descricao);
               const isOverdue = item.status === "atrasado";
               const isPago = item.status === "pago";
               const isSelected = selectedIds.has(item.id);
