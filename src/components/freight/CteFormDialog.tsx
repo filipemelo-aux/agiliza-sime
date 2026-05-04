@@ -1206,9 +1206,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
               </span>
             </span>
           </label>
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            {!cte && (
+              <Button variant="secondary" onClick={() => handleSave(true)} disabled={saving} title="Salva e mantém os dados gerais para o próximo CT-e">
+                {saving ? "Salvando..." : "Salvar e novo"}
+              </Button>
+            )}
+            <Button onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : cte ? "Atualizar" : "Salvar Rascunho"}
             </Button>
           </div>
