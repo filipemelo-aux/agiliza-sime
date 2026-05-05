@@ -376,9 +376,6 @@ export default function FreightCte() {
                           {formatDateBR(getCarregamentoDate(cte))}
                         </td>
                         <td className="px-3 py-2 truncate max-w-[220px]">{cliente}</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          {isServico ? "—" : `${cte.uf_origem || ""} → ${cte.uf_destino || ""}`}
-                        </td>
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
                           {cte.placa_veiculo || "—"}
                         </td>
