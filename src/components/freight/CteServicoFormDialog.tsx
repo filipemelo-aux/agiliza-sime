@@ -94,6 +94,19 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
+  const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
+
+  useEffect(() => {
+    if (!open || !cte?.id) { setLinkedContract(null); return; }
+    let cancelled = false;
+    supabase
+      .from("freight_contracts")
+      .select("id, numero")
+      .eq("cte_id", cte.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setLinkedContract(data as any); });
+    return () => { cancelled = true; };
+  }, [open, cte?.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -369,6 +382,12 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           <p className="text-xs text-muted-foreground">
             Registro interno — não é enviado à SEFAZ.
           </p>
+          {linkedContract && (
+            <div className="mt-2 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
+              <FileSignature className="w-3.5 h-3.5" />
+              <span>Vinculado ao Contrato de Frete Nº <strong>{linkedContract.numero}</strong></span>
+            </div>
+          )}
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
