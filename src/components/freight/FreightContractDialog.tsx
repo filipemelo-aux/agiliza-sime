@@ -313,49 +313,80 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
 
     setSaving(true);
     try {
-      const { data, error } = await supabase.rpc("create_freight_contract_with_payable", {
-        _cte_id: cte.id,
-        _establishment_id: cte.establishment_id || null,
-        _contratado_id: form.contratado_id,
-        _contratado_nome: maskName(form.contratado_nome),
-        _contratado_documento: form.contratado_documento || null,
-        _contratado_tipo: form.contratado_tipo,
-        _motorista_id: form.motorista_id,
-        _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
-        _motorista_cpf: form.motorista_cpf || null,
-        _vehicle_id: form.vehicle_id,
-        _placa_veiculo: form.placa_veiculo || null,
-        _veiculo_modelo: form.veiculo_modelo || null,
-        _municipio_origem: form.municipio_origem || null,
-        _uf_origem: form.uf_origem || null,
-        _municipio_destino: form.municipio_destino || null,
-        _uf_destino: form.uf_destino || null,
-        _natureza_carga: form.natureza_carga || null,
-        _peso_kg: Number(form.peso_kg) || 0,
-        _valor_tonelada: valorTon,
-        _valor_total: valorTotal,
-        _observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null,
-        _user_id: user?.id ?? null,
-      });
-      if (error) throw error;
+      const obs = buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null;
+      let resultId: string;
 
-      // buscar número
+      if (isEdit && contractId) {
+        const { error } = await supabase.rpc("update_freight_contract_with_payable", {
+          _contract_id: contractId,
+          _contratado_id: form.contratado_id,
+          _contratado_nome: maskName(form.contratado_nome),
+          _contratado_documento: form.contratado_documento || null,
+          _contratado_tipo: form.contratado_tipo,
+          _motorista_id: form.motorista_id,
+          _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
+          _motorista_cpf: form.motorista_cpf || null,
+          _vehicle_id: form.vehicle_id,
+          _placa_veiculo: form.placa_veiculo || null,
+          _veiculo_modelo: form.veiculo_modelo || null,
+          _municipio_origem: form.municipio_origem || null,
+          _uf_origem: form.uf_origem || null,
+          _municipio_destino: form.municipio_destino || null,
+          _uf_destino: form.uf_destino || null,
+          _natureza_carga: form.natureza_carga || null,
+          _peso_kg: Number(form.peso_kg) || 0,
+          _valor_tonelada: valorTon,
+          _valor_total: valorTotal,
+          _observacoes: obs,
+          _user_id: user?.id ?? null,
+        });
+        if (error) throw error;
+        resultId = contractId;
+      } else {
+        const { data, error } = await supabase.rpc("create_freight_contract_with_payable", {
+          _cte_id: cte.id,
+          _establishment_id: cte.establishment_id || null,
+          _contratado_id: form.contratado_id,
+          _contratado_nome: maskName(form.contratado_nome),
+          _contratado_documento: form.contratado_documento || null,
+          _contratado_tipo: form.contratado_tipo,
+          _motorista_id: form.motorista_id,
+          _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
+          _motorista_cpf: form.motorista_cpf || null,
+          _vehicle_id: form.vehicle_id,
+          _placa_veiculo: form.placa_veiculo || null,
+          _veiculo_modelo: form.veiculo_modelo || null,
+          _municipio_origem: form.municipio_origem || null,
+          _uf_origem: form.uf_origem || null,
+          _municipio_destino: form.municipio_destino || null,
+          _uf_destino: form.uf_destino || null,
+          _natureza_carga: form.natureza_carga || null,
+          _peso_kg: Number(form.peso_kg) || 0,
+          _valor_tonelada: valorTon,
+          _valor_total: valorTotal,
+          _observacoes: obs,
+          _user_id: user?.id ?? null,
+        });
+        if (error) throw error;
+        resultId = data as string;
+      }
+
       const { data: created } = await supabase
         .from("freight_contracts")
         .select("id, numero")
-        .eq("id", data as string)
+        .eq("id", resultId)
         .single();
 
       setSavedContract({ id: created!.id, numero: created!.numero });
       toast({
-        title: "Contrato gerado",
+        title: isEdit ? "Contrato atualizado" : "Contrato gerado",
         description: valorTotal > 0
-          ? `Contrato Nº ${created!.numero} criado e conta a pagar lançada.`
-          : `Contrato Nº ${created!.numero} criado sem conta a pagar (descontos zeraram o valor).`,
+          ? `Contrato Nº ${created!.numero} ${isEdit ? "atualizado" : "criado"} e conta a pagar sincronizada.`
+          : `Contrato Nº ${created!.numero} ${isEdit ? "atualizado" : "criado"} sem conta a pagar (descontos zeraram o valor).`,
       });
       onSaved?.();
     } catch (err: any) {
-      toast({ title: "Erro ao gerar contrato", description: err.message, variant: "destructive" });
+      toast({ title: isEdit ? "Erro ao atualizar contrato" : "Erro ao gerar contrato", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
