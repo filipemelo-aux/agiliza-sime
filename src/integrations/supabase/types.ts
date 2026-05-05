@@ -3727,6 +3727,32 @@ export type Database = {
         Args: { _timeout_seconds?: number }
         Returns: number
       }
+      update_freight_contract_with_payable: {
+        Args: {
+          _contract_id: string
+          _contratado_documento: string
+          _contratado_id: string
+          _contratado_nome: string
+          _contratado_tipo: string
+          _motorista_cpf: string
+          _motorista_id: string
+          _motorista_nome: string
+          _municipio_destino: string
+          _municipio_origem: string
+          _natureza_carga: string
+          _observacoes: string
+          _peso_kg: number
+          _placa_veiculo: string
+          _uf_destino: string
+          _uf_origem: string
+          _user_id: string
+          _valor_tonelada: number
+          _valor_total: number
+          _vehicle_id: string
+          _veiculo_modelo: string
+        }
+        Returns: string
+      }
       user_has_documents: { Args: never; Returns: boolean }
     }
     Enums: {

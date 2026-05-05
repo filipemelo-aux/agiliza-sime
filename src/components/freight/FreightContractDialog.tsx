@@ -27,6 +27,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   cte: Cte | null;
   onSaved?: () => void;
+  /** Quando informado, abre em modo edição do contrato existente */
+  contractId?: string | null;
 }
 
 interface ContractForm {
@@ -85,19 +87,56 @@ function resolveContractLocation(city?: string | null, address?: string | null, 
   return (city || extractCityFromAddress(address) || "").trim();
 }
 
-export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
+export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contractId }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<ContractForm>(empty);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
+  const isEdit = !!contractId;
 
-  // Pré-preenche a partir do CT-e (e busca veículo/proprietário)
+  // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
   useEffect(() => {
     if (!open || !cte) return;
     setSavedContract(null);
     setDesconto(emptyDesconto);
+
+    const initEdit = async () => {
+      const { data: c } = await supabase
+        .from("freight_contracts")
+        .select("*")
+        .eq("id", contractId!)
+        .maybeSingle();
+      if (!c) return;
+      setForm({
+        contratado_id: (c as any).contratado_id ?? null,
+        contratado_nome: (c as any).contratado_nome || "",
+        contratado_documento: (c as any).contratado_documento || "",
+        contratado_tipo: ((c as any).contratado_tipo as "PF" | "PJ") || "PF",
+        motorista_id: (c as any).motorista_id ?? null,
+        motorista_nome: (c as any).motorista_nome || "",
+        motorista_cpf: (c as any).motorista_cpf || "",
+        vehicle_id: (c as any).vehicle_id ?? null,
+        placa_veiculo: (c as any).placa_veiculo || "",
+        veiculo_modelo: (c as any).veiculo_modelo || "",
+        municipio_origem: (c as any).municipio_origem || "",
+        uf_origem: (c as any).uf_origem || "",
+        municipio_destino: (c as any).municipio_destino || "",
+        uf_destino: (c as any).uf_destino || "",
+        natureza_carga: (c as any).natureza_carga || "",
+        peso_kg: (c as any).peso_kg ? String((c as any).peso_kg) : "",
+        valor_tonelada: (c as any).valor_tonelada
+          ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
+          : "",
+        observacoes: (c as any).observacoes || "",
+      });
+    };
+
+    if (isEdit) {
+      initEdit();
+      return;
+    }
 
     const init = async () => {
       const { data: freshCte } = await supabase.from("ctes").select("*").eq("id", cte.id).maybeSingle();
@@ -249,7 +288,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       });
     };
     init();
-  }, [open, cte]);
+  }, [open, cte, contractId, isEdit]);
 
   const pesoTon = (Number(form.peso_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
@@ -274,49 +313,80 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
 
     setSaving(true);
     try {
-      const { data, error } = await supabase.rpc("create_freight_contract_with_payable", {
-        _cte_id: cte.id,
-        _establishment_id: cte.establishment_id || null,
-        _contratado_id: form.contratado_id,
-        _contratado_nome: maskName(form.contratado_nome),
-        _contratado_documento: form.contratado_documento || null,
-        _contratado_tipo: form.contratado_tipo,
-        _motorista_id: form.motorista_id,
-        _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
-        _motorista_cpf: form.motorista_cpf || null,
-        _vehicle_id: form.vehicle_id,
-        _placa_veiculo: form.placa_veiculo || null,
-        _veiculo_modelo: form.veiculo_modelo || null,
-        _municipio_origem: form.municipio_origem || null,
-        _uf_origem: form.uf_origem || null,
-        _municipio_destino: form.municipio_destino || null,
-        _uf_destino: form.uf_destino || null,
-        _natureza_carga: form.natureza_carga || null,
-        _peso_kg: Number(form.peso_kg) || 0,
-        _valor_tonelada: valorTon,
-        _valor_total: valorTotal,
-        _observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null,
-        _user_id: user?.id ?? null,
-      });
-      if (error) throw error;
+      const obs = buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto) || null;
+      let resultId: string;
 
-      // buscar número
+      if (isEdit && contractId) {
+        const { error } = await supabase.rpc("update_freight_contract_with_payable", {
+          _contract_id: contractId,
+          _contratado_id: form.contratado_id,
+          _contratado_nome: maskName(form.contratado_nome),
+          _contratado_documento: form.contratado_documento || null,
+          _contratado_tipo: form.contratado_tipo,
+          _motorista_id: form.motorista_id,
+          _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
+          _motorista_cpf: form.motorista_cpf || null,
+          _vehicle_id: form.vehicle_id,
+          _placa_veiculo: form.placa_veiculo || null,
+          _veiculo_modelo: form.veiculo_modelo || null,
+          _municipio_origem: form.municipio_origem || null,
+          _uf_origem: form.uf_origem || null,
+          _municipio_destino: form.municipio_destino || null,
+          _uf_destino: form.uf_destino || null,
+          _natureza_carga: form.natureza_carga || null,
+          _peso_kg: Number(form.peso_kg) || 0,
+          _valor_tonelada: valorTon,
+          _valor_total: valorTotal,
+          _observacoes: obs,
+          _user_id: user?.id ?? null,
+        });
+        if (error) throw error;
+        resultId = contractId;
+      } else {
+        const { data, error } = await supabase.rpc("create_freight_contract_with_payable", {
+          _cte_id: cte.id,
+          _establishment_id: cte.establishment_id || null,
+          _contratado_id: form.contratado_id,
+          _contratado_nome: maskName(form.contratado_nome),
+          _contratado_documento: form.contratado_documento || null,
+          _contratado_tipo: form.contratado_tipo,
+          _motorista_id: form.motorista_id,
+          _motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
+          _motorista_cpf: form.motorista_cpf || null,
+          _vehicle_id: form.vehicle_id,
+          _placa_veiculo: form.placa_veiculo || null,
+          _veiculo_modelo: form.veiculo_modelo || null,
+          _municipio_origem: form.municipio_origem || null,
+          _uf_origem: form.uf_origem || null,
+          _municipio_destino: form.municipio_destino || null,
+          _uf_destino: form.uf_destino || null,
+          _natureza_carga: form.natureza_carga || null,
+          _peso_kg: Number(form.peso_kg) || 0,
+          _valor_tonelada: valorTon,
+          _valor_total: valorTotal,
+          _observacoes: obs,
+          _user_id: user?.id ?? null,
+        });
+        if (error) throw error;
+        resultId = data as string;
+      }
+
       const { data: created } = await supabase
         .from("freight_contracts")
         .select("id, numero")
-        .eq("id", data as string)
+        .eq("id", resultId)
         .single();
 
       setSavedContract({ id: created!.id, numero: created!.numero });
       toast({
-        title: "Contrato gerado",
+        title: isEdit ? "Contrato atualizado" : "Contrato gerado",
         description: valorTotal > 0
-          ? `Contrato Nº ${created!.numero} criado e conta a pagar lançada.`
-          : `Contrato Nº ${created!.numero} criado sem conta a pagar (descontos zeraram o valor).`,
+          ? `Contrato Nº ${created!.numero} ${isEdit ? "atualizado" : "criado"} e conta a pagar sincronizada.`
+          : `Contrato Nº ${created!.numero} ${isEdit ? "atualizado" : "criado"} sem conta a pagar (descontos zeraram o valor).`,
       });
       onSaved?.();
     } catch (err: any) {
-      toast({ title: "Erro ao gerar contrato", description: err.message, variant: "destructive" });
+      toast({ title: isEdit ? "Erro ao atualizar contrato" : "Erro ao gerar contrato", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -358,11 +428,12 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <FileSignature className="w-5 h-5" /> Contrato de Frete
+            <FileSignature className="w-5 h-5" /> {isEdit ? "Editar Contrato de Frete" : "Contrato de Frete"}
           </DialogTitle>
           <DialogDescription>
-            Contrato de fretamento entre SIME (contratante) e o contratado (subcontratado).
-            Será gerada conta a pagar à vista no plano "Frete Terceiros".
+            {isEdit
+              ? "Edite os dados do contrato. A conta a pagar vinculada será atualizada automaticamente."
+              : "Contrato de fretamento entre SIME (contratante) e o contratado (subcontratado). Será gerada conta a pagar à vista no plano \"Frete Terceiros\"."}
           </DialogDescription>
         </DialogHeader>
 
@@ -592,7 +663,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
                 </Button>
                 <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Gerar Contrato e Conta a Pagar
+                  {isEdit ? "Salvar Alterações" : "Gerar Contrato e Conta a Pagar"}
                 </Button>
               </>
             ) : (
