@@ -382,6 +382,12 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           <p className="text-xs text-muted-foreground">
             Registro interno — não é enviado à SEFAZ.
           </p>
+          {linkedContract && (
+            <div className="mt-2 inline-flex items-center gap-2 self-start rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700">
+              <FileSignature className="w-3.5 h-3.5" />
+              <span>Vinculado ao Contrato de Frete Nº <strong>{linkedContract.numero}</strong></span>
+            </div>
+          )}
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
