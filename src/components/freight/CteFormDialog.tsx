@@ -490,18 +490,34 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
 
       // Gerar/atualizar previsão de recebimento (interno) — vincula ao tomador
-      if (form.tomador_id && Number(form.valor_frete) > 0) {
+      // Se tomador_id não foi setado manualmente (Outros), deriva pelo ator marcado em tomador_tipo
+      const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
+      const fAny = form as any;
+      const derivedTomadorId =
+        form.tomador_id ||
+        fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] ||
+        null;
+
+      if (derivedTomadorId && Number(form.valor_frete) > 0) {
+        if (!form.tomador_id) {
+          await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
+        }
         await supabase.from("previsoes_recebimento").upsert(
           {
             origem_tipo: "cte" as any,
             origem_id: savedId,
-            cliente_id: form.tomador_id,
+            cliente_id: derivedTomadorId,
             valor: Number(form.valor_frete),
             data_prevista: new Date().toISOString().split("T")[0],
             status: "pendente" as any,
           },
           { onConflict: "origem_tipo,origem_id" }
         );
+      } else if (Number(form.valor_frete) > 0) {
+        toast({
+          title: "Previsão não gerada",
+          description: "Selecione o tomador (busque o ator no cadastro) para gerar a previsão de recebimento.",
+        });
       }
 
       onSaved();
