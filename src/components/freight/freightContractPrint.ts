@@ -71,7 +71,7 @@ async function loadParty(profileId: string | null | undefined, fallbackName?: st
   const { data: prof } = await supabase
     .from("profiles")
     .select(`
-      id, full_name, razao_social, nome_fantasia, person_type, cnpj,
+      id, user_id, full_name, razao_social, nome_fantasia, person_type, cnpj,
       inscricao_estadual, email, phone,
       address_street, address_number, address_complement, address_neighborhood,
       address_city, address_state, address_zip
@@ -98,19 +98,27 @@ async function loadParty(profileId: string | null | undefined, fallbackName?: st
     out.endereco = partes.join(", ");
   }
 
-  // Driver documents (CPF, CNH) — keyed by profiles.id
-  const { data: doc } = await supabase
-    .from("driver_documents")
-    .select("cpf, cnh_number, cnh_category, cnh_expiry")
-    .eq("user_id", profileId)
-    .maybeSingle();
-  if (doc) {
-    if (out.tipo === "PF" && doc.cpf) out.documento = maskCPF(doc.cpf);
-    out.cnh_numero = doc.cnh_number || "";
-    out.cnh_categoria = doc.cnh_category || "";
-    out.cnh_validade = doc.cnh_expiry
-      ? new Date(doc.cnh_expiry + "T12:00:00").toLocaleDateString("pt-BR")
-      : "";
+  // Driver documents (CPF, CNH) — keyed by profiles.user_id (= auth.users.id)
+  const authUid = (prof as any)?.user_id || null;
+  if (authUid) {
+    const { data: doc } = await supabase
+      .from("driver_documents")
+      .select("cpf, cnh_number, cnh_category, cnh_expiry")
+      .eq("user_id", authUid)
+      .maybeSingle();
+    if (doc) {
+      if (out.tipo === "PF" && doc.cpf) out.documento = maskCPF(doc.cpf);
+      out.cnh_numero = doc.cnh_number || "";
+      out.cnh_categoria = doc.cnh_category || "";
+      out.cnh_validade = doc.cnh_expiry
+        ? new Date(doc.cnh_expiry + "T12:00:00").toLocaleDateString("pt-BR")
+        : "";
+    }
+  }
+  // Fallback PF: usa cnpj do profile se for 11 dígitos (CPF reaproveitado)
+  if (out.tipo === "PF" && !out.documento && (prof as any)?.cnpj) {
+    const digits = String((prof as any).cnpj).replace(/\D/g, "");
+    if (digits.length === 11) out.documento = maskCPF(digits);
   }
 
   return out;
