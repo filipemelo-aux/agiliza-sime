@@ -1258,7 +1258,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           if (!o) {
             setSavedCteForContract(null);
             setGerarContrato(false);
-            onOpenChange(false);
+            if (keepOpenAfterContract) {
+              setKeepOpenAfterContract(false);
+              resetForNextCte();
+            } else {
+              onOpenChange(false);
+            }
           }
         }}
         cte={savedCteForContract}
