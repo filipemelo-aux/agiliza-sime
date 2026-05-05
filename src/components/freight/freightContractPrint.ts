@@ -237,11 +237,12 @@ async function loadVehicleExtra(vehicleId: string | null | undefined) {
 }
 
 export async function buildFullContractHtml(input: ContractPrintInput): Promise<string> {
-  const [contratado, motorista, vehicleExtra, cteInfo] = await Promise.all([
+  const [contratado, motorista, vehicleExtra, cteInfo, emitente] = await Promise.all([
     loadParty(input.contratado_id, input.contratado_nome, input.contratado_documento, input.contratado_tipo),
     loadParty(input.motorista_id, input.motorista_nome, input.motorista_cpf, "PF"),
     loadVehicleExtra(input.vehicle_id),
     loadCteInfo(input.cte_id, input.cte),
+    loadEmitente(input.establishment_id, input.cte_id),
   ]);
 
   // Proprietário do veículo: por enquanto usa o mesmo CONTRATADO (alinhado com o modelo Bsoft)
