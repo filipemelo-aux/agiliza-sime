@@ -341,6 +341,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       valor_tonelada: valorTon,
       valor_total: valorTotal,
       observacoes: buildObservacoesComDesconto(form.observacoes, desconto, descontoTotal, valorBruto),
+      cte_id: (cte as any).id,
       cte: { numero: (cte as any).numero, serie: (cte as any).serie, tipo_talao: (cte as any).tipo_talao },
     });
     openPrintWindow(html);

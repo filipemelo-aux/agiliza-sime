@@ -25,7 +25,59 @@ export interface ContractPrintInput {
   valor_tonelada: number;
   valor_total: number;
   observacoes?: string | null;
+  cte_id?: string | null;
   cte?: { numero?: number | null; serie?: number | null; tipo_talao?: string | null } | null;
+}
+
+interface CteFullInfo {
+  numero: number | null;
+  serie: number | null;
+  tipo_talao: string | null;
+  chave_acesso: string | null;
+  data_emissao: string | null;
+  valor_frete: number | null;
+  valor_carga: number | null;
+  chaves_nfe_ref: string[] | null;
+  protocolo: string | null;
+}
+
+async function loadCteInfo(cteId: string | null | undefined, fallback?: ContractPrintInput["cte"]): Promise<CteFullInfo | null> {
+  if (!cteId) {
+    if (fallback?.numero) {
+      return {
+        numero: fallback.numero ?? null,
+        serie: fallback.serie ?? null,
+        tipo_talao: fallback.tipo_talao ?? null,
+        chave_acesso: null, data_emissao: null, valor_frete: null,
+        valor_carga: null, chaves_nfe_ref: null, protocolo: null,
+      };
+    }
+    return null;
+  }
+  const { data } = await supabase
+    .from("ctes")
+    .select("numero, serie, tipo_talao, chave_acesso, data_emissao, valor_frete, valor_carga, chaves_nfe_ref, protocolo_autorizacao")
+    .eq("id", cteId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    numero: (data as any).numero,
+    serie: (data as any).serie,
+    tipo_talao: (data as any).tipo_talao,
+    chave_acesso: (data as any).chave_acesso,
+    data_emissao: (data as any).data_emissao,
+    valor_frete: (data as any).valor_frete,
+    valor_carga: (data as any).valor_carga,
+    chaves_nfe_ref: (data as any).chaves_nfe_ref,
+    protocolo: (data as any).protocolo_autorizacao,
+  };
+}
+
+function formatChave(chave: string | null | undefined): string {
+  if (!chave) return "-";
+  const c = chave.replace(/\D/g, "");
+  if (c.length !== 44) return chave;
+  return c.match(/.{1,4}/g)!.join(" ");
 }
 
 interface PartyDetails {
@@ -139,10 +191,11 @@ async function loadVehicleExtra(vehicleId: string | null | undefined) {
 }
 
 export async function buildFullContractHtml(input: ContractPrintInput): Promise<string> {
-  const [contratado, motorista, vehicleExtra] = await Promise.all([
+  const [contratado, motorista, vehicleExtra, cteInfo] = await Promise.all([
     loadParty(input.contratado_id, input.contratado_nome, input.contratado_documento, input.contratado_tipo),
     loadParty(input.motorista_id, input.motorista_nome, input.motorista_cpf, "PF"),
     loadVehicleExtra(input.vehicle_id),
+    loadCteInfo(input.cte_id, input.cte),
   ]);
 
   // Proprietário do veículo: por enquanto usa o mesmo CONTRATADO (alinhado com o modelo Bsoft)
@@ -167,9 +220,16 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     vehicleExtra.placa_carreta2 ? `Carreta 2: ${vehicleExtra.placa_carreta2}` : "",
   ].filter(Boolean).join(" / ");
 
-  const cteLabel = input.cte?.numero
-    ? `CT-e ${input.cte.tipo_talao ? input.cte.tipo_talao + " " : ""}/ ${input.cte.numero}`
+  const cteSerie = cteInfo?.serie ?? input.cte?.serie ?? null;
+  const cteNumero = cteInfo?.numero ?? input.cte?.numero ?? null;
+  const cteTipo = cteInfo?.tipo_talao ?? input.cte?.tipo_talao ?? null;
+  const cteLabel = cteNumero
+    ? `CT-e ${cteTipo ? cteTipo + " " : ""}Nº ${cteNumero}${cteSerie ? " / Série " + cteSerie : ""}`
     : "-";
+  const cteDataEmissao = cteInfo?.data_emissao
+    ? new Date(cteInfo.data_emissao).toLocaleDateString("pt-BR")
+    : "-";
+  const nfeKeys = (cteInfo?.chaves_nfe_ref || []).filter((k) => !!k);
 
   const partyBlock = (titulo: string, p: PartyDetails) => `
     <table class="party">
@@ -266,6 +326,30 @@ ${motoristaBlock}
   <div><b>Local Entrega:</b> ${input.municipio_destino || "-"} - ${input.uf_destino || "--"}</div>
   <div><b>Documento vinculado:</b> ${cteLabel}</div>
 </div>
+
+<h2>Documento Vinculado</h2>
+<table class="party">
+  <tr>
+    <td style="width:33%"><b>CT-e:</b> ${cteLabel}</td>
+    <td style="width:33%"><b>Data Emissão:</b> ${cteDataEmissao}</td>
+    <td><b>Valor Frete:</b> ${cteInfo?.valor_frete != null ? fmt(Number(cteInfo.valor_frete)) : "-"}</td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Chave CT-e:</b> ${formatChave(cteInfo?.chave_acesso)}</td>
+    <td><b>Protocolo:</b> ${cteInfo?.protocolo || "-"}</td>
+  </tr>
+  ${nfeKeys.length > 0 ? `
+  <tr>
+    <th colspan="3">NF-e VINCULADAS (${nfeKeys.length})</th>
+  </tr>
+  ${nfeKeys.map((k, i) => `
+  <tr>
+    <td colspan="3" style="font-family: monospace; font-size: 8.5pt;">
+      <b>${String(i + 1).padStart(2, "0")}.</b> ${formatChave(k)}
+    </td>
+  </tr>`).join("")}
+  ` : ""}
+</table>
 
 <h2>Dados da Carga</h2>
 <table class="carga">
