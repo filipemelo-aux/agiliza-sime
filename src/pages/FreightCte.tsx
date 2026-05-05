@@ -338,10 +338,10 @@ export default function FreightCte() {
                     <th className="px-3 py-2 font-medium whitespace-nowrap">Data Emissão</th>
                     <th className="px-3 py-2 font-medium">Cliente</th>
                     
-                    <th className="px-3 py-2 font-medium">Placa</th>
-                    <th className="px-3 py-2 font-medium text-right">Valor</th>
-                    <th className="px-3 py-2 font-medium text-right">Status</th>
-                    <th className="px-3 py-2 font-medium text-right w-24"></th>
+                    <th className="px-2 py-2 font-medium w-[90px]">Placa</th>
+                    <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
+                    <th className="px-2 py-2 font-medium text-center w-[90px]">Status</th>
+                    <th className="px-2 py-2 font-medium text-right w-[70px]"></th>
                   </tr>
                 </thead>
                 <tbody>
