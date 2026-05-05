@@ -182,7 +182,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
   const valorBruto = +(pesoTon * valorTon).toFixed(2);
   const valorDesconto = calcDescontoTotal(desconto);
-  const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
+  // Permite valor negativo quando descontos superam o frete bruto
+  const valorFrete = +(valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async (keepOpenForNext = false) => {
     if (!form.remetente_nome || !form.destinatario_nome) {
