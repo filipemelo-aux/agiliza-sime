@@ -191,10 +191,11 @@ async function loadVehicleExtra(vehicleId: string | null | undefined) {
 }
 
 export async function buildFullContractHtml(input: ContractPrintInput): Promise<string> {
-  const [contratado, motorista, vehicleExtra] = await Promise.all([
+  const [contratado, motorista, vehicleExtra, cteInfo] = await Promise.all([
     loadParty(input.contratado_id, input.contratado_nome, input.contratado_documento, input.contratado_tipo),
     loadParty(input.motorista_id, input.motorista_nome, input.motorista_cpf, "PF"),
     loadVehicleExtra(input.vehicle_id),
+    loadCteInfo(input.cte_id, input.cte),
   ]);
 
   // Proprietário do veículo: por enquanto usa o mesmo CONTRATADO (alinhado com o modelo Bsoft)
@@ -219,9 +220,16 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     vehicleExtra.placa_carreta2 ? `Carreta 2: ${vehicleExtra.placa_carreta2}` : "",
   ].filter(Boolean).join(" / ");
 
-  const cteLabel = input.cte?.numero
-    ? `CT-e ${input.cte.tipo_talao ? input.cte.tipo_talao + " " : ""}/ ${input.cte.numero}`
+  const cteSerie = cteInfo?.serie ?? input.cte?.serie ?? null;
+  const cteNumero = cteInfo?.numero ?? input.cte?.numero ?? null;
+  const cteTipo = cteInfo?.tipo_talao ?? input.cte?.tipo_talao ?? null;
+  const cteLabel = cteNumero
+    ? `CT-e ${cteTipo ? cteTipo + " " : ""}Nº ${cteNumero}${cteSerie ? " / Série " + cteSerie : ""}`
     : "-";
+  const cteDataEmissao = cteInfo?.data_emissao
+    ? new Date(cteInfo.data_emissao).toLocaleDateString("pt-BR")
+    : "-";
+  const nfeKeys = (cteInfo?.chaves_nfe_ref || []).filter((k) => !!k);
 
   const partyBlock = (titulo: string, p: PartyDetails) => `
     <table class="party">
