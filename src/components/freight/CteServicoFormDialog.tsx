@@ -237,7 +237,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         natureza_operacao: form.natureza_carga,
         produto_predominante: form.natureza_carga,
         data_carregamento: form.data_carregamento,
-        data_emissao: new Date().toISOString(),
+        data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         motorista_id: form.motorista_id,
         motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
         placa_veiculo: form.placa_veiculo ? unmaskPlate(form.placa_veiculo).toUpperCase() : null,
