@@ -267,7 +267,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       });
       return;
     }
-    if (valorTotal <= 0) {
+    if (valorBruto <= 0) {
       toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
       return;
     }
