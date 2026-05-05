@@ -272,7 +272,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             origem_id: savedId,
             cliente_id: derivedTomadorId,
             valor: valorFrete,
-            data_prevista: form.data_carregamento,
+            data_prevista: ((cte as any)?.data_emissao ? (cte as any).data_emissao.slice(0, 10) : (form.data_carregamento || new Date().toISOString().slice(0, 10))),
             status: "pendente" as any,
           },
           { onConflict: "origem_tipo,origem_id" }

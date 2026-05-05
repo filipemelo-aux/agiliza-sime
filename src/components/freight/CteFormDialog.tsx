@@ -515,7 +515,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             origem_id: savedId,
             cliente_id: derivedTomadorId,
             valor: Number(form.valor_frete),
-            data_prevista: new Date().toISOString().split("T")[0],
+            data_prevista: ((cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10),
             status: "pendente" as any,
           },
           { onConflict: "origem_tipo,origem_id" }
