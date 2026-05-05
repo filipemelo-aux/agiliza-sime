@@ -95,7 +95,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
-        tomador_tipo: (cte as any).tomador_tipo ?? 3,
+        tomador_tipo: (cte as any).tomador_tipo ?? null,
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
         remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
