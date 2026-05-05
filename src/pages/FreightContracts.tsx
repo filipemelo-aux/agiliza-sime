@@ -338,6 +338,14 @@ export default function FreightContracts() {
           </div>
         )}
       </div>
+
+      <FreightContractDialog
+        open={!!editing}
+        onOpenChange={(o) => { if (!o) setEditing(null); }}
+        cte={editing?.cte ?? null}
+        contractId={editing?.contractId ?? null}
+        onSaved={() => { setEditing(null); fetchData(); }}
+      />
     </AdminLayout>
   );
 }
