@@ -474,13 +474,23 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                   onClear={() => setForm((f) => ({ ...f, natureza_carga: "" }))}
                 />
               </div>
-              <div>
-                <Label className="text-xs">Data do carregamento *</Label>
-                <Input
-                  type="date"
-                  value={form.data_carregamento}
-                  onChange={(e) => setForm((f) => ({ ...f, data_carregamento: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Data de emissão *</Label>
+                  <Input
+                    type="date"
+                    value={form.data_emissao}
+                    onChange={(e) => setForm((f) => ({ ...f, data_emissao: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Data do carregamento *</Label>
+                  <Input
+                    type="date"
+                    value={form.data_carregamento}
+                    onChange={(e) => setForm((f) => ({ ...f, data_carregamento: e.target.value }))}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
