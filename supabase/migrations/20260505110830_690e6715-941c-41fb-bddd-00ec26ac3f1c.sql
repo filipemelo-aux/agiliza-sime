@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_freight_contracts_numero_desc ON public.freight_contracts (numero DESC);
