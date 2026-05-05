@@ -1265,21 +1265,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
         {/* Footer fixo */}
         <div className="shrink-0 border-t border-border px-6 py-4 flex flex-col gap-3 bg-background">
-          <label className="flex items-start gap-2 cursor-pointer">
-            <Checkbox
-              checked={gerarContrato}
-              onCheckedChange={(v) => setGerarContrato(!!v)}
-              className="mt-0.5"
-            />
-            <span className="text-xs">
-              <span className="flex items-center gap-1 font-semibold">
-                <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+          {!linkedContract && (
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox
+                checked={gerarContrato}
+                onCheckedChange={(v) => setGerarContrato(!!v)}
+                className="mt-0.5"
+              />
+              <span className="text-xs">
+                <span className="flex items-center gap-1 font-semibold">
+                  <FileSignature className="w-3.5 h-3.5" /> Gerar contrato de frete
+                </span>
+                <span className="block text-muted-foreground">
+                  Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
+                </span>
               </span>
-              <span className="block text-muted-foreground">
-                Após salvar, abre o formulário do contrato de fretamento (subcontratado) e gera conta a pagar à vista.
-              </span>
-            </span>
-          </label>
+            </label>
+          )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             {!cte && (
