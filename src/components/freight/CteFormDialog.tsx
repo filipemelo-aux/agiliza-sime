@@ -285,6 +285,19 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
+  const [linkedContract, setLinkedContract] = useState<{ id: string; numero: number | string } | null>(null);
+
+  useEffect(() => {
+    if (!open || !cte?.id) { setLinkedContract(null); return; }
+    let cancelled = false;
+    supabase
+      .from("freight_contracts")
+      .select("id, numero")
+      .eq("cte_id", cte.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setLinkedContract(data as any); });
+    return () => { cancelled = true; };
+  }, [open, cte?.id]);
 
   const resetForNextCte = () => {
     setForm((p) => ({
