@@ -552,22 +552,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
 
       if (gerarContrato) {
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setKeepOpenAfterContract(keepOpenForNext && !cte);
         setSavedCteForContract(fresh as any);
       } else if (keepOpenForNext && !cte) {
-        // Reaproveita os dados gerais; limpa apenas campos específicos da viagem
-        setForm((p) => ({
-          ...p,
-          placa_veiculo: "",
-          rntrc: "",
-          peso_bruto: 0,
-          info_quantidade: [],
-          chaves_nfe_ref: [],
-          motorista_id: null,
-          veiculo_id: null,
-          observacoes: "",
-        }));
-        setMotoristaNome(undefined);
-        toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa, peso e quantidades." });
+        resetForNextCte();
       } else {
         onOpenChange(false);
       }
