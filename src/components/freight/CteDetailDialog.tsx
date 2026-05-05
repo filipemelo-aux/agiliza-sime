@@ -146,6 +146,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
       valor_total: Number(data.valor_total || 0),
       observacoes: data.observacoes,
       cte_id: cte.id,
+      establishment_id: (cte as any).establishment_id ?? null,
       cte: { numero: (cte as any).numero, serie: (cte as any).serie, tipo_talao: (cte as any).tipo_talao },
     });
     openPrintWindow(html);
