@@ -96,6 +96,8 @@ export default function FreightCte() {
       const { data, error } = await supabase
         .from("ctes")
         .select("*")
+        .order("data_carregamento", { ascending: false, nullsFirst: false })
+        .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       setCtes((data as any[]) || []);
@@ -106,16 +108,17 @@ export default function FreightCte() {
     }
   };
 
-  const getEmissaoDate = (c: Cte) => c.data_emissao || c.created_at;
+  const getCarregamentoDate = (c: Cte) =>
+    c.data_carregamento || c.data_emissao || c.created_at;
 
   const filtered = ctes.filter((c) => {
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
     if (tipoFilter === "servico" && !isServico) return false;
 
-    const emissao = normalizeDateInput(getEmissaoDate(c));
-    if (dateFrom && (!emissao || emissao < dateFrom)) return false;
-    if (dateTo && (!emissao || emissao > dateTo)) return false;
+    const carregamento = normalizeDateInput(getCarregamentoDate(c));
+    if (dateFrom && (!carregamento || carregamento < dateFrom)) return false;
+    if (dateTo && (!carregamento || carregamento > dateTo)) return false;
 
     const q = search.toLowerCase();
     return (
@@ -263,7 +266,7 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Emissão de</Label>
+            <Label className="text-xs text-muted-foreground">Carregamento de</Label>
             <Input
               type="date"
               value={dateFrom}
@@ -272,7 +275,7 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Emissão até</Label>
+            <Label className="text-xs text-muted-foreground">Carregamento até</Label>
             <Input
               type="date"
               value={dateTo}
@@ -372,7 +375,7 @@ export default function FreightCte() {
                     </div>
                     <div className="flex items-center gap-4 text-sm shrink-0">
                       <span className="text-muted-foreground whitespace-nowrap">
-                        Emitido em {formatDateBR(getEmissaoDate(cte))}
+                        Carregamento {formatDateBR(getCarregamentoDate(cte))}
                       </span>
                       {!isServico && (
                         <span className="text-muted-foreground">
