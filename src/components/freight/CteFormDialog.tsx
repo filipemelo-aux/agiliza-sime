@@ -534,12 +534,23 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           : null) ||
         null;
 
-      if (form.tomador_tipo === null && Number(form.valor_frete) > 0) {
+      // Se valor do frete <= 0, remove previsão existente e não cria nova
+      if (Number(form.valor_frete) <= 0) {
+        await supabase
+          .from("previsoes_recebimento")
+          .delete()
+          .eq("origem_tipo", "cte" as any)
+          .eq("origem_id", savedId);
+        toast({
+          title: "Sem previsão de recebimento",
+          description: "Valor do frete zerado/negativo. Nenhuma previsão a receber foi gerada.",
+        });
+      } else if (form.tomador_tipo === null) {
         toast({
           title: "Tomador não definido",
           description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
         });
-      } else if (derivedTomadorId && Number(form.valor_frete) > 0) {
+      } else if (derivedTomadorId) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
@@ -567,7 +578,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           console.error("Erro ao gerar previsão:", prevErr);
           toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
         }
-      } else if (Number(form.valor_frete) > 0) {
+      } else {
         toast({
           title: "Previsão não gerada",
           description: "Selecione o tomador (busque o ator no cadastro) para gerar a previsão de recebimento.",

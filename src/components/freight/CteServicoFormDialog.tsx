@@ -182,7 +182,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
   const valorBruto = +(pesoTon * valorTon).toFixed(2);
   const valorDesconto = calcDescontoTotal(desconto);
-  const valorFrete = +Math.max(0, valorBruto - valorDesconto).toFixed(2);
+  // Permite valor negativo quando descontos superam o frete bruto
+  const valorFrete = +(valorBruto - valorDesconto).toFixed(2);
 
   const handleSave = async (keepOpenForNext = false) => {
     if (!form.remetente_nome || !form.destinatario_nome) {
@@ -197,7 +198,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
-    if (valorFrete <= 0) {
+    if (valorBruto <= 0) {
       toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
       return;
     }
@@ -295,7 +296,18 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           : null) ||
         null;
 
-      if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
+      // Se valor do frete for <= 0 (descontos zeram/superam o bruto), remove qualquer previsão existente e não cria nova
+      if (valorFrete <= 0) {
+        await supabase
+          .from("previsoes_recebimento")
+          .delete()
+          .eq("origem_tipo", "cte" as any)
+          .eq("origem_id", savedId);
+        toast({
+          title: "Sem previsão de recebimento",
+          description: "Descontos zeraram o valor do frete. Nenhuma previsão a receber foi gerada.",
+        });
+      } else if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
         toast({
           title: "Tomador não definido",
           description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",

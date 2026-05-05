@@ -255,7 +255,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
   const valorBruto = useMemo(() => +(pesoTon * valorTon).toFixed(2), [pesoTon, valorTon]);
   const descontoTotal = useMemo(() => calcDescontoTotal(desconto), [desconto]);
-  const valorTotal = useMemo(() => +Math.max(0, valorBruto - descontoTotal).toFixed(2), [valorBruto, descontoTotal]);
+  const valorTotal = useMemo(() => +(valorBruto - descontoTotal).toFixed(2), [valorBruto, descontoTotal]);
 
   const handleSave = async () => {
     if (!cte) return;
@@ -267,7 +267,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       });
       return;
     }
-    if (valorTotal <= 0) {
+    if (valorBruto <= 0) {
       toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
       return;
     }
@@ -308,7 +308,12 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         .single();
 
       setSavedContract({ id: created!.id, numero: created!.numero });
-      toast({ title: "Contrato gerado", description: `Contrato Nº ${created!.numero} criado e conta a pagar lançada.` });
+      toast({
+        title: "Contrato gerado",
+        description: valorTotal > 0
+          ? `Contrato Nº ${created!.numero} criado e conta a pagar lançada.`
+          : `Contrato Nº ${created!.numero} criado sem conta a pagar (descontos zeraram o valor).`,
+      });
       onSaved?.();
     } catch (err: any) {
       toast({ title: "Erro ao gerar contrato", description: err.message, variant: "destructive" });
