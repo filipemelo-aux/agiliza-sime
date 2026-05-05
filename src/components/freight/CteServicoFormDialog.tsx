@@ -180,8 +180,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       toast({ title: "Natureza obrigatória", description: "Informe a natureza da carga.", variant: "destructive" });
       return;
     }
-    if (!form.data_carregamento) {
-      toast({ title: "Data obrigatória", description: "Informe a data do carregamento.", variant: "destructive" });
+    if (!form.data_emissao) {
+      toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
     if (valorFrete <= 0) {
