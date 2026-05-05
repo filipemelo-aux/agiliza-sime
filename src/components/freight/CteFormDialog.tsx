@@ -509,7 +509,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
-        await supabase.from("previsoes_recebimento").upsert(
+        const { error: prevErr } = await supabase.from("previsoes_recebimento").upsert(
           {
             origem_tipo: "cte" as any,
             origem_id: savedId,
@@ -518,8 +518,12 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             data_prevista: ((cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10),
             status: "pendente" as any,
           },
-          { onConflict: "origem_tipo,origem_id" }
+          { onConflict: "origem_id" }
         );
+        if (prevErr) {
+          console.error("Erro ao gerar previsão:", prevErr);
+          toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        }
       } else if (Number(form.valor_frete) > 0) {
         toast({
           title: "Previsão não gerada",

@@ -221,7 +221,7 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
           data_prevista: new Date().toISOString().split("T")[0],
           status: "pendente" as any,
         },
-        { onConflict: "origem_tipo,origem_id" }
+        { onConflict: "origem_id" }
       );
     }
 
