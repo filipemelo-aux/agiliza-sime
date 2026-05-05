@@ -252,7 +252,6 @@ export default function FreightCte() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-end sm:flex-wrap gap-3 mb-6">
           <div className="relative max-w-sm flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
