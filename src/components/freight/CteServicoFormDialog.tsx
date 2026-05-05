@@ -296,7 +296,18 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           : null) ||
         null;
 
-      if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
+      // Se valor do frete for <= 0 (descontos zeram/superam o bruto), remove qualquer previsão existente e não cria nova
+      if (valorFrete <= 0) {
+        await supabase
+          .from("previsoes_recebimento")
+          .delete()
+          .eq("origem_tipo", "cte" as any)
+          .eq("origem_id", savedId);
+        toast({
+          title: "Sem previsão de recebimento",
+          description: "Descontos zeraram o valor do frete. Nenhuma previsão a receber foi gerada.",
+        });
+      } else if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
         toast({
           title: "Tomador não definido",
           description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
