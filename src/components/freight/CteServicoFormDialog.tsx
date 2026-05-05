@@ -247,18 +247,34 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       }
 
       // Gerar/atualizar previsão de recebimento (interno)
-      if (form.tomador_id) {
+      // Deriva tomador_id a partir do ator selecionado (tomador_tipo) se ainda não houver
+      const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
+      const fAny = form as any;
+      const derivedTomadorId =
+        form.tomador_id ||
+        fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] ||
+        null;
+
+      if (derivedTomadorId) {
+        if (!form.tomador_id) {
+          await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
+        }
         await supabase.from("previsoes_recebimento").upsert(
           {
             origem_tipo: "cte" as any,
             origem_id: savedId,
-            cliente_id: form.tomador_id,
+            cliente_id: derivedTomadorId,
             valor: valorFrete,
             data_prevista: form.data_carregamento,
             status: "pendente" as any,
           },
           { onConflict: "origem_tipo,origem_id" }
         );
+      } else {
+        toast({
+          title: "Previsão não gerada",
+          description: "Selecione o tomador (busque o ator no cadastro) para gerar a previsão de recebimento.",
+        });
       }
 
       toast({ title: cte ? "Talão atualizado" : "Talão de Serviço criado" });
