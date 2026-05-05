@@ -375,7 +375,7 @@ export default function FreightCte() {
                     </div>
                     <div className="flex items-center gap-4 text-sm shrink-0">
                       <span className="text-muted-foreground whitespace-nowrap">
-                        Emitido em {formatDateBR(getEmissaoDate(cte))}
+                        Carregamento {formatDateBR(getCarregamentoDate(cte))}
                       </span>
                       {!isServico && (
                         <span className="text-muted-foreground">
