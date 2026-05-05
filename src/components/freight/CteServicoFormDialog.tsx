@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { Loader2, Users, Truck, Package, DollarSign, FileSignature } from "lucide-react";
+import { Loader2, Users, Truck, Package, DollarSign, FileSignature, Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
@@ -88,6 +89,26 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
+  const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
+  const [selectedEstId, setSelectedEstId] = useState<string>("");
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("fiscal_establishments")
+      .select("id, razao_social, cnpj, type")
+      .eq("active", true)
+      .order("type")
+      .order("razao_social")
+      .then(({ data }) => {
+        if (data) {
+          setEstablishments(data as any);
+          if (cte?.establishment_id) setSelectedEstId(cte.establishment_id);
+          else if (matrizId) setSelectedEstId(matrizId);
+          else if (data.length > 0) setSelectedEstId(data[0].id);
+        }
+      });
+  }, [open, cte?.establishment_id, matrizId]);
 
   useEffect(() => {
     if (!open) return;
@@ -166,7 +187,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
     setSaving(true);
     try {
-      const establishmentId = matrizId || cte?.establishment_id || null;
+      const establishmentId = selectedEstId || matrizId || cte?.establishment_id || null;
 
       // Get next internal number for new records
       let numero_interno = (cte as any)?.numero_interno ?? null;
@@ -346,6 +367,33 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
+          {/* Emitente (Estabelecimento) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Building2 className="w-4 h-4" /> Emitente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="text-xs">Estabelecimento *</Label>
+              <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione o emitente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {establishments.map((est) => (
+                    <SelectItem key={est.id} value={est.id}>
+                      {est.type === "matriz" ? "🏢" : "🏬"} {est.razao_social} ({maskCNPJ(est.cnpj)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {establishments.length === 0 && (
+                <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Atores fiscais */}
           <Card>
             <CardContent className="space-y-6 pt-6">

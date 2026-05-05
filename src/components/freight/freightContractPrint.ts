@@ -26,7 +26,50 @@ export interface ContractPrintInput {
   valor_total: number;
   observacoes?: string | null;
   cte_id?: string | null;
+  establishment_id?: string | null;
   cte?: { numero?: number | null; serie?: number | null; tipo_talao?: string | null } | null;
+}
+
+interface EmitenteInfo {
+  razao_social: string;
+  nome_fantasia: string;
+  cnpj: string;
+  ie: string;
+  rntrc: string;
+  endereco: string;
+  municipio: string;
+  uf: string;
+  cep: string;
+}
+
+async function loadEmitente(establishmentId: string | null | undefined, cteId?: string | null): Promise<EmitenteInfo | null> {
+  let estId = establishmentId || null;
+  if (!estId && cteId) {
+    const { data: cteRow } = await supabase.from("ctes").select("establishment_id").eq("id", cteId).maybeSingle();
+    estId = (cteRow as any)?.establishment_id || null;
+  }
+  if (!estId) return null;
+  const { data } = await supabase
+    .from("fiscal_establishments")
+    .select("razao_social, nome_fantasia, cnpj, inscricao_estadual, rntrc, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+    .eq("id", estId)
+    .maybeSingle();
+  if (!data) return null;
+  const d = data as any;
+  return {
+    razao_social: d.razao_social || "",
+    nome_fantasia: d.nome_fantasia || "",
+    cnpj: d.cnpj ? maskCNPJ(d.cnpj) : "",
+    ie: d.inscricao_estadual || "",
+    rntrc: d.rntrc || "",
+    endereco: [
+      [d.endereco_logradouro, d.endereco_numero].filter(Boolean).join(", "),
+      d.endereco_bairro,
+    ].filter(Boolean).join(" - "),
+    municipio: d.endereco_municipio || "",
+    uf: d.endereco_uf || "",
+    cep: d.endereco_cep ? maskCEP(d.endereco_cep) : "",
+  };
 }
 
 interface CteFullInfo {
@@ -194,11 +237,12 @@ async function loadVehicleExtra(vehicleId: string | null | undefined) {
 }
 
 export async function buildFullContractHtml(input: ContractPrintInput): Promise<string> {
-  const [contratado, motorista, vehicleExtra, cteInfo] = await Promise.all([
+  const [contratado, motorista, vehicleExtra, cteInfo, emitente] = await Promise.all([
     loadParty(input.contratado_id, input.contratado_nome, input.contratado_documento, input.contratado_tipo),
     loadParty(input.motorista_id, input.motorista_nome, input.motorista_cpf, "PF"),
     loadVehicleExtra(input.vehicle_id),
     loadCteInfo(input.cte_id, input.cte),
+    loadEmitente(input.establishment_id, input.cte_id),
   ]);
 
   // Proprietário do veículo: por enquanto usa o mesmo CONTRATADO (alinhado com o modelo Bsoft)
@@ -308,12 +352,13 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
 
 <div class="header">
   <div class="empresa">
-    <b>SIME TRANSPORTE LTDA</b><br/>
-    CNPJ: 23.662.751/0002-50<br/>
+    <b>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</b>${emitente?.nome_fantasia ? ` <span style="font-weight:normal;">(${emitente.nome_fantasia})</span>` : ""}<br/>
+    CNPJ: ${emitente?.cnpj || "23.662.751/0002-50"}${emitente?.ie ? ` &nbsp; IE: ${emitente.ie}` : ""}${emitente?.rntrc ? ` &nbsp; RNTRC: ${emitente.rntrc}` : ""}<br/>
+    ${emitente?.endereco ? `${emitente.endereco}` : ""}${emitente?.municipio ? `${emitente?.endereco ? " - " : ""}${emitente.municipio}/${emitente.uf || ""}` : ""}${emitente?.cep ? ` - CEP ${emitente.cep}` : ""}${emitente ? "<br/>" : ""}
     e-mail: ct-e@simetransportes.com.br
   </div>
   <div class="num">
-    Nº <b>${input.numero}</b>
+    Contrato Nº <b>${input.numero}</b>
   </div>
 </div>
 
@@ -393,7 +438,7 @@ ${motoristaBlock}
 <div class="obs">${(input.observacoes || "-").replace(/\n/g, "<br/>")}</div>
 
 <div class="sign">
-  <div class="line">CONTRATANTE<br/>SIME TRANSPORTE LTDA</div>
+  <div class="line">CONTRATANTE<br/>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</div>
   <div class="line">CONTRATADO<br/>${contratado.nome || ""}</div>
   <div class="line">MOTORISTA<br/>${motorista.nome || ""}</div>
 </div>
