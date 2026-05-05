@@ -51,7 +51,8 @@ interface FormState {
   recebedor_nome: string; recebedor_cnpj: string; recebedor_ie: string; recebedor_endereco: string; recebedor_municipio_ibge: string; recebedor_uf: string;
   // Carga
   natureza_carga: string;
-  // Carregamento
+  // Datas
+  data_emissao: string;
   data_carregamento: string;
   // Motorista / veículo
   motorista_id: string | null;
