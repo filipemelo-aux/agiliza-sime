@@ -327,6 +327,30 @@ ${motoristaBlock}
   <div><b>Documento vinculado:</b> ${cteLabel}</div>
 </div>
 
+<h2>Documento Vinculado</h2>
+<table class="party">
+  <tr>
+    <td style="width:33%"><b>CT-e:</b> ${cteLabel}</td>
+    <td style="width:33%"><b>Data Emissão:</b> ${cteDataEmissao}</td>
+    <td><b>Valor Frete:</b> ${cteInfo?.valor_frete != null ? fmt(Number(cteInfo.valor_frete)) : "-"}</td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Chave CT-e:</b> ${formatChave(cteInfo?.chave_acesso)}</td>
+    <td><b>Protocolo:</b> ${cteInfo?.protocolo || "-"}</td>
+  </tr>
+  ${nfeKeys.length > 0 ? `
+  <tr>
+    <th colspan="3">NF-e VINCULADAS (${nfeKeys.length})</th>
+  </tr>
+  ${nfeKeys.map((k, i) => `
+  <tr>
+    <td colspan="3" style="font-family: monospace; font-size: 8.5pt;">
+      <b>${String(i + 1).padStart(2, "0")}.</b> ${formatChave(k)}
+    </td>
+  </tr>`).join("")}
+  ` : ""}
+</table>
+
 <h2>Dados da Carga</h2>
 <table class="carga">
   <tr>
