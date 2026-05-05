@@ -333,6 +333,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       if (gerarContrato) {
         // Recupera o CT-e salvo para alimentar o FreightContractDialog
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setKeepOpenAfterContract(keepOpenForNext && !cte);
         setSavedCteForContract(fresh as any);
       } else if (keepOpenForNext && !cte) {
         // Reaproveita dados gerais; limpa apenas campos específicos da viagem
