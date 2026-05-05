@@ -125,7 +125,8 @@ export default function FreightCte() {
       c.destinatario_nome?.toLowerCase().includes(q) ||
       String(c.numero).includes(q) ||
       String(c.numero_interno).includes(q) ||
-      c.chave_acesso?.includes(q)
+      c.chave_acesso?.includes(q) ||
+      c.placa_veiculo?.toLowerCase().includes(q)
     );
   });
 
@@ -257,7 +258,7 @@ export default function FreightCte() {
           <div className="relative flex-1 min-w-[180px] max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Buscar nº, remetente, destinatário..."
+              placeholder="Buscar nº, remetente, destinatário, placa..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9 text-xs"
