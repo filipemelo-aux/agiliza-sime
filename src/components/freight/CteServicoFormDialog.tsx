@@ -51,7 +51,8 @@ interface FormState {
   recebedor_nome: string; recebedor_cnpj: string; recebedor_ie: string; recebedor_endereco: string; recebedor_municipio_ibge: string; recebedor_uf: string;
   // Carga
   natureza_carga: string;
-  // Carregamento
+  // Datas
+  data_emissao: string;
   data_carregamento: string;
   // Motorista / veículo
   motorista_id: string | null;
@@ -71,6 +72,7 @@ const empty: FormState = {
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
   recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
+  data_emissao: new Date().toISOString().slice(0, 10),
   data_carregamento: new Date().toISOString().slice(0, 10),
   motorista_id: null,
   motorista_nome: "",
@@ -143,6 +145,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         recebedor_municipio_ibge: c.recebedor_municipio_ibge || "",
         recebedor_uf: c.recebedor_uf || "",
         natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
+        data_emissao: (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         data_carregamento:
           c.data_carregamento ||
           (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
@@ -234,7 +237,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         natureza_operacao: form.natureza_carga,
         produto_predominante: form.natureza_carga,
         data_carregamento: form.data_carregamento,
-        data_emissao: new Date().toISOString(),
+        data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         motorista_id: form.motorista_id,
         motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
         placa_veiculo: form.placa_veiculo ? unmaskPlate(form.placa_veiculo).toUpperCase() : null,
@@ -471,13 +474,23 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                   onClear={() => setForm((f) => ({ ...f, natureza_carga: "" }))}
                 />
               </div>
-              <div>
-                <Label className="text-xs">Data do carregamento *</Label>
-                <Input
-                  type="date"
-                  value={form.data_carregamento}
-                  onChange={(e) => setForm((f) => ({ ...f, data_carregamento: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Data de emissão *</Label>
+                  <Input
+                    type="date"
+                    value={form.data_emissao}
+                    onChange={(e) => setForm((f) => ({ ...f, data_emissao: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Data do carregamento *</Label>
+                  <Input
+                    type="date"
+                    value={form.data_carregamento}
+                    onChange={(e) => setForm((f) => ({ ...f, data_carregamento: e.target.value }))}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

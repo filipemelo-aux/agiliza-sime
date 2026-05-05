@@ -168,6 +168,8 @@ const defaultForm = {
   motorista_id: null as string | null,
   veiculo_id: null as string | null,
   tomador_id: null as string | null,
+  // Data
+  data_emissao: new Date().toISOString().slice(0, 10),
   // Obs
   observacoes: "",
 };
@@ -397,6 +399,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         veiculo_id: cte.veiculo_id || null,
         tomador_id: cte.tomador_id || null,
         observacoes: cte.observacoes || "",
+        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
       setDesconto(deserializeDesconto((cte as any).desconto));
@@ -473,6 +476,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       const { tipo_carga: _tc, ...formWithoutExtra } = form;
       const payload: any = {
         ...formWithoutExtra,
+        data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
         destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || form.destinatario_cnpj,
         expedidor_cnpj: unmaskCNPJ(form.expedidor_cnpj) || form.expedidor_cnpj || null,
@@ -592,18 +596,28 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           {/* Emitente (Estabelecimento) */}
           <section className="space-y-4">
             <SectionHeader icon={Building2} title="Emitente" />
-            <div className="space-y-1.5">
-              <Label className="text-xs">Estabelecimento *</Label>
-              <Select value={selectedEstId} onValueChange={setSelectedEstId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
-                <SelectContent>
-                  {establishments.map((est) => (
-                    <SelectItem key={est.id} value={est.id}>
-                      {est.type === "matriz" ? "🏢" : "🏬"} {est.razao_social} ({maskCNPJ(est.cnpj)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">Estabelecimento *</Label>
+                <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                  <SelectContent>
+                    {establishments.map((est) => (
+                      <SelectItem key={est.id} value={est.id}>
+                        {est.type === "matriz" ? "🏢" : "🏬"} {est.razao_social} ({maskCNPJ(est.cnpj)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data de emissão *</Label>
+                <Input
+                  type="date"
+                  value={form.data_emissao}
+                  onChange={(e) => set("data_emissao", e.target.value)}
+                />
+              </div>
             </div>
             {establishments.length === 0 && (
               <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
