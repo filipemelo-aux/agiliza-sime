@@ -119,13 +119,22 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       }
 
       // Buscar dados do motorista (profile + documentos: CPF)
-      // driver_documents.user_id = profiles.user_id (auth.users.id), NÃO profiles.id.
+      // Fallback: se cte.motorista_id estiver vazio, tenta pelo driver_id do veículo
       let driverCpf = "";
-      if (cte.motorista_id) {
+      let motoristaProfileId: string | null = cte.motorista_id || null;
+      if (!motoristaProfileId && vehicle?.driver_id) {
+        const { data: dp } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", vehicle.driver_id)
+          .maybeSingle();
+        motoristaProfileId = dp?.id || null;
+      }
+      if (motoristaProfileId) {
         const { data: d } = await supabase
           .from("profiles")
           .select("id, user_id, full_name, cnpj")
-          .eq("id", cte.motorista_id)
+          .eq("id", motoristaProfileId)
           .maybeSingle();
         driver = d;
 
@@ -137,10 +146,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
             .maybeSingle();
           driverCpf = (ddoc as any)?.cpf || "";
         }
-        // Fallback: alguns motoristas podem ter o CPF salvo no próprio profile (campo cnpj reaproveitado p/ doc PF)
+        // Fallback: usar campo cnpj do profile como documento (CPF/CNPJ)
         if (!driverCpf && (d as any)?.cnpj) {
-          const onlyDigits = String((d as any).cnpj).replace(/\D/g, "");
-          if (onlyDigits.length === 11) driverCpf = (d as any).cnpj;
+          driverCpf = (d as any).cnpj;
         }
       }
 
