@@ -87,13 +87,14 @@ function resolveContractLocation(city?: string | null, address?: string | null, 
   return (city || extractCityFromAddress(address) || "").trim();
 }
 
-export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
+export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contractId }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<ContractForm>(empty);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
+  const isEdit = !!contractId;
 
   // Pré-preenche a partir do CT-e (e busca veículo/proprietário)
   useEffect(() => {
