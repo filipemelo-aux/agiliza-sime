@@ -145,6 +145,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         recebedor_municipio_ibge: c.recebedor_municipio_ibge || "",
         recebedor_uf: c.recebedor_uf || "",
         natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
+        natureza_carga: cte.produto_predominante || cte.natureza_operacao || "",
+        data_emissao: (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
         data_carregamento:
           c.data_carregamento ||
           (cte.data_emissao ? cte.data_emissao.slice(0, 10) : new Date().toISOString().slice(0, 10)),
