@@ -211,7 +211,10 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-4">
-            CT-e {cte.numero ? `Nº ${cte.numero}` : "(Sem número)"}
+            {(() => {
+              const num = isServico ? (cte as any).numero_interno : cte.numero;
+              return `CT-e ${num ? `Nº ${num}` : "(Sem número)"}`;
+            })()}
             <Badge className={statusColors[cte.status]}>
               {statusLabels[cte.status] || cte.status}
             </Badge>
