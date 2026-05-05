@@ -275,7 +275,7 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Emissão até</Label>
+            <Label className="text-xs text-muted-foreground">Carregamento até</Label>
             <Input
               type="date"
               value={dateTo}
