@@ -226,8 +226,12 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   const cteSerie = cteInfo?.serie ?? input.cte?.serie ?? null;
   const cteNumero = cteInfo?.numero ?? input.cte?.numero ?? null;
   const cteTipo = cteInfo?.tipo_talao ?? input.cte?.tipo_talao ?? null;
-  const cteLabel = cteNumero
-    ? `CT-e ${cteTipo ? cteTipo + " " : ""}Nº ${cteNumero}${cteSerie ? " / Série " + cteSerie : ""}`
+  const cteInterno = cteInfo?.numero_interno ?? null;
+  const isServico = cteTipo === "servico";
+  const cteTipoLabel = isServico ? "Serviço" : (cteTipo === "producao" ? "Produção" : "");
+  const numeroExibido = isServico ? (cteInterno ?? cteNumero) : cteNumero;
+  const cteLabel = numeroExibido
+    ? `CT-e ${cteTipoLabel ? cteTipoLabel + " " : ""}Nº ${numeroExibido}${cteSerie ? " / Série " + cteSerie : ""}${isServico && cteInterno && cteNumero && cteInterno !== cteNumero ? " (Sefaz " + cteNumero + ")" : ""}`
     : "-";
   const cteDataEmissao = cteInfo?.data_emissao
     ? new Date(cteInfo.data_emissao).toLocaleDateString("pt-BR")
