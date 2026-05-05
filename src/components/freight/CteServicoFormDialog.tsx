@@ -88,6 +88,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
+  const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
