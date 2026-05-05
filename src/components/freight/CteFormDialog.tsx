@@ -168,6 +168,8 @@ const defaultForm = {
   motorista_id: null as string | null,
   veiculo_id: null as string | null,
   tomador_id: null as string | null,
+  // Data
+  data_emissao: new Date().toISOString().slice(0, 10),
   // Obs
   observacoes: "",
 };
