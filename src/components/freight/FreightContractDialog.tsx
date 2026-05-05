@@ -80,6 +80,10 @@ function extractCityFromAddress(addr?: string | null): string {
   return "";
 }
 
+function resolveContractLocation(city?: string | null, address?: string | null, actorName?: string | null): string {
+  return city || extractCityFromAddress(address) || actorName || "";
+}
+
 export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -95,7 +99,10 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
     setDesconto(emptyDesconto);
 
     const init = async () => {
-      const placa = (cte.placa_veiculo || "").toUpperCase();
+      const { data: freshCte } = await supabase.from("ctes").select("*").eq("id", cte.id).maybeSingle();
+      const linkedCte = { ...cte, ...((freshCte as any) || {}) } as Cte;
+      const cAny = linkedCte as any;
+      const placa = (linkedCte.placa_veiculo || "").toUpperCase();
       let vehicle: any = null;
       let owner: any = null;
       let driver: any = null;
@@ -121,7 +128,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       // Buscar dados do motorista (profile + documentos: CPF)
       // Fallback: se cte.motorista_id estiver vazio, tenta pelo driver_id do veículo
       let driverCpf = "";
-      let motoristaProfileId: string | null = cte.motorista_id || null;
+      let motoristaProfileId: string | null = linkedCte.motorista_id || null;
       if (!motoristaProfileId && vehicle?.driver_id) {
         const { data: dp } = await supabase
           .from("profiles")
@@ -153,11 +160,11 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       }
 
       // Se não há owner via veículo, mas o motorista é proprietário (is_owner), usa-o
-      if (!owner && cte.motorista_id) {
+      if (!owner && linkedCte.motorista_id) {
         const { data: dOwner } = await supabase
           .from("profiles")
           .select("id, user_id, full_name, razao_social, cnpj, person_type, is_owner")
-          .eq("id", cte.motorista_id)
+          .eq("id", linkedCte.motorista_id)
           .maybeSingle();
         if (dOwner?.is_owner) owner = dOwner;
       }
@@ -180,32 +187,25 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
 
       // Origem: trecho oficial do CT-e (municipio_origem_nome) → fallback expedidor/remetente
-      const cAny = cte as any;
       const origemMunicipio =
-        cte.municipio_origem_nome ||
-        cAny.expedidor_municipio_nome ||
-        extractCityFromAddress(cAny.expedidor_endereco) ||
-        cAny.remetente_municipio_nome ||
-        extractCityFromAddress(cte.remetente_endereco) ||
-        "";
+        resolveContractLocation(linkedCte.municipio_origem_nome, null, null) ||
+        resolveContractLocation(cAny.expedidor_municipio_nome, cAny.expedidor_endereco, cAny.expedidor_nome) ||
+        resolveContractLocation(cAny.remetente_municipio_nome, linkedCte.remetente_endereco, linkedCte.remetente_nome);
       const origemUf =
-        cte.uf_origem ||
+        linkedCte.uf_origem ||
         cAny.expedidor_uf ||
-        cte.remetente_uf ||
+        linkedCte.remetente_uf ||
         "";
 
       // Destino: trecho oficial do CT-e (municipio_destino_nome) → fallback recebedor/destinatário
       const destinoMunicipio =
-        cte.municipio_destino_nome ||
-        cAny.recebedor_municipio_nome ||
-        extractCityFromAddress(cAny.recebedor_endereco) ||
-        cte.destinatario_municipio_nome ||
-        extractCityFromAddress(cte.destinatario_endereco) ||
-        "";
+        resolveContractLocation(linkedCte.municipio_destino_nome, null, null) ||
+        resolveContractLocation(cAny.recebedor_municipio_nome, cAny.recebedor_endereco, cAny.recebedor_nome) ||
+        resolveContractLocation(cAny.destinatario_municipio_nome, linkedCte.destinatario_endereco, linkedCte.destinatario_nome);
       const destinoUf =
-        cte.uf_destino ||
+        linkedCte.uf_destino ||
         cAny.recebedor_uf ||
-        cte.destinatario_uf ||
+        linkedCte.destinatario_uf ||
         "";
 
       setForm({
@@ -223,8 +223,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         uf_origem: origemUf,
         municipio_destino: destinoMunicipio,
         uf_destino: destinoUf,
-        natureza_carga: cAny.produto_predominante || cte.natureza_operacao || "",
-        peso_kg: cte.peso_bruto ? String(cte.peso_bruto) : "",
+        natureza_carga: cAny.produto_predominante || linkedCte.natureza_operacao || "",
+        peso_kg: linkedCte.peso_bruto ? String(linkedCte.peso_bruto) : "",
         // Valor por tonelada deixado em branco propositalmente para o usuário
         // negociar o frete terceiro sem herdar o valor do CT-e.
         valor_tonelada: "",
