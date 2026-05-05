@@ -476,6 +476,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       const { tipo_carga: _tc, ...formWithoutExtra } = form;
       const payload: any = {
         ...formWithoutExtra,
+        data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         remetente_cnpj: unmaskCNPJ(form.remetente_cnpj) || form.remetente_cnpj,
         destinatario_cnpj: unmaskCNPJ(form.destinatario_cnpj) || form.destinatario_cnpj,
         expedidor_cnpj: unmaskCNPJ(form.expedidor_cnpj) || form.expedidor_cnpj || null,
