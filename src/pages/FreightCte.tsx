@@ -96,6 +96,8 @@ export default function FreightCte() {
       const { data, error } = await supabase
         .from("ctes")
         .select("*")
+        .order("data_carregamento", { ascending: false, nullsFirst: false })
+        .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       setCtes((data as any[]) || []);
