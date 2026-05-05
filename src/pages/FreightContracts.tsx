@@ -73,7 +73,7 @@ export default function FreightContracts() {
           vehicle_id, placa_veiculo, veiculo_modelo,
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
-          cte_id, accounts_payable_id,
+          cte_id, accounts_payable_id, establishment_id,
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
