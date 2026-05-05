@@ -340,7 +340,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         recebedor_endereco: cte.recebedor_endereco || "",
         recebedor_municipio_ibge: cte.recebedor_municipio_ibge || "",
         recebedor_uf: cte.recebedor_uf || "",
-        tomador_tipo: cte.tomador_tipo ?? 3,
+        tomador_tipo: cte.tomador_tipo ?? null,
         tomador_nome: cte.tomador_nome ? maskName(cte.tomador_nome) : "",
         tomador_cnpj: cte.tomador_cnpj ? maskCNPJ(cte.tomador_cnpj) : "",
         tomador_ie: cte.tomador_ie || "",
