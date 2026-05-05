@@ -72,6 +72,7 @@ const empty: FormState = {
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
   recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
+  data_emissao: new Date().toISOString().slice(0, 10),
   data_carregamento: new Date().toISOString().slice(0, 10),
   motorista_id: null,
   motorista_nome: "",
