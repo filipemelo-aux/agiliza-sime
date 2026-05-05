@@ -27,6 +27,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   cte: Cte | null;
   onSaved?: () => void;
+  /** Quando informado, abre em modo edição do contrato existente */
+  contractId?: string | null;
 }
 
 interface ContractForm {
