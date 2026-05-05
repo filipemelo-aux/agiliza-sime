@@ -371,7 +371,7 @@ export default function FreightCte() {
                           {isServico ? "Serviço" : "Produção"}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                          {formatDateBR(getCarregamentoDate(cte))}
+                          {formatDateBR(getEmissaoDate(cte))}
                         </td>
                         <td className="px-3 py-2 truncate max-w-[220px]">{cliente}</td>
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
