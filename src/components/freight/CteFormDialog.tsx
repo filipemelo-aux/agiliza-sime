@@ -124,7 +124,7 @@ const defaultForm = {
   recebedor_municipio_ibge: "",
   recebedor_uf: "",
   // Tomador
-  tomador_tipo: 3,
+  tomador_tipo: null as number | null,
   tomador_nome: "",
   tomador_cnpj: "",
   tomador_ie: "",
@@ -340,7 +340,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         recebedor_endereco: cte.recebedor_endereco || "",
         recebedor_municipio_ibge: cte.recebedor_municipio_ibge || "",
         recebedor_uf: cte.recebedor_uf || "",
-        tomador_tipo: cte.tomador_tipo ?? 3,
+        tomador_tipo: cte.tomador_tipo ?? null,
         tomador_nome: cte.tomador_nome ? maskName(cte.tomador_nome) : "",
         tomador_cnpj: cte.tomador_cnpj ? maskCNPJ(cte.tomador_cnpj) : "",
         tomador_ie: cte.tomador_ie || "",
@@ -490,15 +490,22 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
 
       // Gerar/atualizar previsão de recebimento (interno) — vincula ao tomador
-      // Se tomador_id não foi setado manualmente (Outros), deriva pelo ator marcado em tomador_tipo
+      // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
       const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
       const fAny = form as any;
       const derivedTomadorId =
         form.tomador_id ||
-        fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] ||
+        (form.tomador_tipo !== null && form.tomador_tipo !== 4
+          ? fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`]
+          : null) ||
         null;
 
-      if (derivedTomadorId && Number(form.valor_frete) > 0) {
+      if (form.tomador_tipo === null && Number(form.valor_frete) > 0) {
+        toast({
+          title: "Tomador não definido",
+          description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
+        });
+      } else if (derivedTomadorId && Number(form.valor_frete) > 0) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }

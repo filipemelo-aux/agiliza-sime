@@ -64,7 +64,7 @@ interface FormState {
 
 const empty: FormState = {
   tomador_id: null,
-  tomador_tipo: 3,
+  tomador_tipo: null as any,
   remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
   destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
@@ -95,7 +95,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       const c = cte as any;
       setForm({
         tomador_id: cte.tomador_id ?? null,
-        tomador_tipo: (cte as any).tomador_tipo ?? 3,
+        tomador_tipo: (cte as any).tomador_tipo ?? null,
         remetente_nome: cte.remetente_nome ? maskName(cte.remetente_nome) : "",
         remetente_cnpj: cte.remetente_cnpj ? maskCNPJ(cte.remetente_cnpj) : "",
         remetente_ie: cte.remetente_ie || "",
@@ -247,15 +247,22 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       }
 
       // Gerar/atualizar previsão de recebimento (interno)
-      // Deriva tomador_id a partir do ator selecionado (tomador_tipo) se ainda não houver
+      // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
       const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
       const fAny = form as any;
       const derivedTomadorId =
         form.tomador_id ||
-        fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] ||
+        (form.tomador_tipo !== null && form.tomador_tipo !== undefined
+          ? fAny[`${tipoToPrefix[form.tomador_tipo as number]}_profile_id`]
+          : null) ||
         null;
 
-      if (derivedTomadorId) {
+      if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
+        toast({
+          title: "Tomador não definido",
+          description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
+        });
+      } else if (derivedTomadorId) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
