@@ -45,7 +45,7 @@ interface FreightContractRow {
   cte_id: string;
   accounts_payable_id: string | null;
   cte?: { numero: number | null; serie: number | null; tipo_talao?: string | null } | null;
-  payable?: { status: string; paid_at: string | null } | null;
+  payable?: { status: string; data_pagamento: string | null } | null;
 }
 
 export default function FreightContracts() {
@@ -75,7 +75,7 @@ export default function FreightContracts() {
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id,
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
-          payable:accounts_payable!freight_contracts_accounts_payable_id_fkey(status, paid_at)
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
         .order("numero", { ascending: false });
       if (error) throw error;
