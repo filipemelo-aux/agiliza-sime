@@ -637,7 +637,21 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           if (!o) {
             setSavedCteForContract(null);
             setGerarContrato(false);
-            onOpenChange(false);
+            if (keepOpenAfterContract) {
+              // "Salvar e novo": fecha apenas o contrato e mantém o form do CT-e aberto, limpando campos da viagem
+              setForm((f) => ({
+                ...f,
+                placa_veiculo: "",
+                peso_bruto_kg: "",
+                motorista_id: null,
+                motorista_nome: "",
+                observacoes: "",
+              }));
+              setKeepOpenAfterContract(false);
+              toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa e peso." });
+            } else {
+              onOpenChange(false);
+            }
           }
         }}
         cte={savedCteForContract}
