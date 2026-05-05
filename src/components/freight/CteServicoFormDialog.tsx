@@ -367,6 +367,33 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
+          {/* Emitente (Estabelecimento) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Building2 className="w-4 h-4" /> Emitente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="text-xs">Estabelecimento *</Label>
+              <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione o emitente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {establishments.map((est) => (
+                    <SelectItem key={est.id} value={est.id}>
+                      {est.type === "matriz" ? "🏢" : "🏬"} {est.razao_social} ({maskCNPJ(est.cnpj)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {establishments.length === 0 && (
+                <p className="text-xs text-destructive">Nenhum estabelecimento cadastrado. Cadastre em Configurações Fiscais.</p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Atores fiscais */}
           <Card>
             <CardContent className="space-y-6 pt-6">
