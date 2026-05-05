@@ -2248,7 +2248,7 @@ export type Database = {
             foreignKeyName: "freight_contracts_accounts_payable_id_fkey"
             columns: ["accounts_payable_id"]
             isOneToOne: false
-            referencedRelation: "accounts_payable"
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
           {
@@ -3677,6 +3677,10 @@ export type Database = {
           _vehicle_id: string
           _veiculo_modelo: string
         }
+        Returns: string
+      }
+      fn_contract_city_from_address: {
+        Args: { _addr: string }
         Returns: string
       }
       fn_infer_salario_competencia: {
