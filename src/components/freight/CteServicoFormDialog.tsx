@@ -247,15 +247,22 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       }
 
       // Gerar/atualizar previsão de recebimento (interno)
-      // Deriva tomador_id a partir do ator selecionado (tomador_tipo) se ainda não houver
+      // Tomador deve ser definido EXPLICITAMENTE pelo usuário (sem default para destinatário)
       const tipoToPrefix: Record<number, string> = { 0: "remetente", 1: "expedidor", 2: "recebedor", 3: "destinatario" };
       const fAny = form as any;
       const derivedTomadorId =
         form.tomador_id ||
-        fAny[`${tipoToPrefix[form.tomador_tipo]}_profile_id`] ||
+        (form.tomador_tipo !== null && form.tomador_tipo !== undefined
+          ? fAny[`${tipoToPrefix[form.tomador_tipo as number]}_profile_id`]
+          : null) ||
         null;
 
-      if (derivedTomadorId) {
+      if (form.tomador_tipo === null || form.tomador_tipo === undefined) {
+        toast({
+          title: "Tomador não definido",
+          description: "Selecione o tomador do serviço para gerar a previsão de recebimento.",
+        });
+      } else if (derivedTomadorId) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
