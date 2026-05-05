@@ -119,13 +119,22 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
       }
 
       // Buscar dados do motorista (profile + documentos: CPF)
-      // driver_documents.user_id = profiles.user_id (auth.users.id), NÃO profiles.id.
+      // Fallback: se cte.motorista_id estiver vazio, tenta pelo driver_id do veículo
       let driverCpf = "";
-      if (cte.motorista_id) {
+      let motoristaProfileId: string | null = cte.motorista_id || null;
+      if (!motoristaProfileId && vehicle?.driver_id) {
+        const { data: dp } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", vehicle.driver_id)
+          .maybeSingle();
+        motoristaProfileId = dp?.id || null;
+      }
+      if (motoristaProfileId) {
         const { data: d } = await supabase
           .from("profiles")
           .select("id, user_id, full_name, cnpj")
-          .eq("id", cte.motorista_id)
+          .eq("id", motoristaProfileId)
           .maybeSingle();
         driver = d;
 
@@ -137,10 +146,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
             .maybeSingle();
           driverCpf = (ddoc as any)?.cpf || "";
         }
-        // Fallback: alguns motoristas podem ter o CPF salvo no próprio profile (campo cnpj reaproveitado p/ doc PF)
+        // Fallback: usar campo cnpj do profile como documento (CPF/CNPJ)
         if (!driverCpf && (d as any)?.cnpj) {
-          const onlyDigits = String((d as any).cnpj).replace(/\D/g, "");
-          if (onlyDigits.length === 11) driverCpf = (d as any).cnpj;
+          driverCpf = (d as any).cnpj;
         }
       }
 
@@ -171,33 +179,33 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
 
-      // Origem = EXPEDIDOR (prioridade) → fallback REMETENTE
+      // Origem: trecho oficial do CT-e (municipio_origem_nome) → fallback expedidor/remetente
       const cAny = cte as any;
       const origemMunicipio =
+        cte.municipio_origem_nome ||
         cAny.expedidor_municipio_nome ||
         extractCityFromAddress(cAny.expedidor_endereco) ||
         cAny.remetente_municipio_nome ||
         extractCityFromAddress(cte.remetente_endereco) ||
-        cte.municipio_origem_nome ||
         "";
       const origemUf =
+        cte.uf_origem ||
         cAny.expedidor_uf ||
         cte.remetente_uf ||
-        cte.uf_origem ||
         "";
 
-      // Destino = RECEBEDOR (prioridade) → fallback DESTINATÁRIO
+      // Destino: trecho oficial do CT-e (municipio_destino_nome) → fallback recebedor/destinatário
       const destinoMunicipio =
+        cte.municipio_destino_nome ||
         cAny.recebedor_municipio_nome ||
         extractCityFromAddress(cAny.recebedor_endereco) ||
         cte.destinatario_municipio_nome ||
         extractCityFromAddress(cte.destinatario_endereco) ||
-        cte.municipio_destino_nome ||
         "";
       const destinoUf =
+        cte.uf_destino ||
         cAny.recebedor_uf ||
         cte.destinatario_uf ||
-        cte.uf_destino ||
         "";
 
       setForm({
@@ -205,7 +213,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
         contratado_documento: isPJ ? ownerCnpj : (ownerCpf || ownerCnpj),
         contratado_tipo: isPJ ? "PJ" : "PF",
-        motorista_id: driver?.id ?? cte.motorista_id ?? null,
+        motorista_id: driver?.id ?? motoristaProfileId,
         motorista_nome: driver?.full_name || cAny.motorista_nome || "",
         motorista_cpf: driverCpf || cAny.motorista_cpf || "",
         vehicle_id: vehicle?.id ?? null,
