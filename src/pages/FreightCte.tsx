@@ -373,17 +373,17 @@ export default function FreightCte() {
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
                           {formatDateBR(getEmissaoDate(cte))}
                         </td>
-                        <td className="px-3 py-2 truncate max-w-[220px]">{cliente}</td>
-                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                        <td className="px-3 py-2 truncate max-w-[420px]">{cliente}</td>
+                        <td className="px-2 py-2 whitespace-nowrap tabular-nums">
                           {cte.placa_veiculo || "—"}
                         </td>
-                        <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums font-medium">
+                        <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums font-medium">
                           {Number(cte.valor_frete).toLocaleString("pt-BR", {
                             style: "currency",
                             currency: "BRL",
                           })}
                         </td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2 py-2 text-center">
                           {isServico ? (
                             <Badge variant="outline" className="border-amber-500/40 text-amber-700">Interno</Badge>
                           ) : (
@@ -392,16 +392,17 @@ export default function FreightCte() {
                             </Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex items-center justify-end gap-0.5">
                             {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 px-2 text-xs"
+                                className="h-7 w-7 p-0"
                                 onClick={(e) => { e.stopPropagation(); handleEdit(cte); }}
+                                title="Editar"
                               >
-                                Editar
+                                <Pencil className="w-3.5 h-3.5" />
                               </Button>
                             )}
                             <Button
