@@ -372,53 +372,45 @@ ${motoristaBlock}
   O MDF-E REFERENTE A ESSE CONTRATO ${input.numero} SERÁ ENCERRADO AUTOMATICAMENTE EM 3 DIAS. SENDO ASSIM O MOTORISTA TEM A OBRIGAÇÃO DE AVISAR A TRANSPORTADORA EM CASO DE QUEBRAS E/OU FALHAS MECÂNICAS, OU QUALQUER TIPO DE IMPREVISTO QUE ACARRETE EM ATRASO DA VIAGEM, PARA QUE SEJA EMITIDO UM NOVO MDF-E. A NÃO COMUNICAÇÃO PODERÁ RESULTAR EM MULTA NO POSTO FISCAL, A QUAL SERÁ DE TOTAL RESPONSABILIDADE DO MOTORISTA.
 </div>
 
-<h2>Dados do Transporte</h2>
-<div class="grid3">
+<h2>Dados do Transporte e da Carga</h2>
+<div class="grid2">
   <div><b>Local Coleta:</b> ${input.municipio_origem || "-"} - ${input.uf_origem || "--"}</div>
   <div><b>Local Entrega:</b> ${input.municipio_destino || "-"} - ${input.uf_destino || "--"}</div>
-  <div><b>Documento vinculado:</b> ${cteLabel}</div>
 </div>
-
-<h2>Documento Vinculado</h2>
-<table class="party">
-  <tr>
-    <td style="width:33%"><b>CT-e:</b> ${cteLabel}</td>
-    <td style="width:33%"><b>Data Emissão:</b> ${cteDataEmissao}</td>
-    <td><b>Valor Frete:</b> ${cteInfo?.valor_frete != null ? fmt(Number(cteInfo.valor_frete)) : "-"}</td>
-  </tr>
-  <tr>
-    <td colspan="2"><b>Chave CT-e:</b> ${formatChave(cteInfo?.chave_acesso)}</td>
-    <td><b>Protocolo:</b> ${cteInfo?.protocolo || "-"}</td>
-  </tr>
-  ${nfeKeys.length > 0 ? `
-  <tr>
-    <th colspan="3">NF-e VINCULADAS (${nfeKeys.length})</th>
-  </tr>
-  ${nfeKeys.map((k, i) => `
-  <tr>
-    <td colspan="3" style="font-family: monospace; font-size: 8.5pt;">
-      <b>${String(i + 1).padStart(2, "0")}.</b> ${formatChave(k)}
-    </td>
-  </tr>`).join("")}
-  ` : ""}
-</table>
-
-<h2>Dados da Carga</h2>
 <table class="carga">
   <tr>
     <th>Documento</th>
+    <th>Data Emissão</th>
     <th>Natureza</th>
     <th>Peso (kg)</th>
     <th>Toneladas</th>
     <th>Valor por tonelada</th>
+    <th>Valor Frete CT-e</th>
   </tr>
   <tr>
     <td>${cteLabel}</td>
+    <td>${cteDataEmissao}</td>
     <td>${input.natureza_carga || "-"}</td>
     <td>${Number(input.peso_kg || 0).toLocaleString("pt-BR")}</td>
     <td>${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</td>
     <td>${fmt(Number(input.valor_tonelada || 0))}</td>
+    <td>${cteInfo?.valor_frete != null ? fmt(Number(cteInfo.valor_frete)) : "-"}</td>
   </tr>
+  <tr>
+    <td colspan="4"><b>Chave CT-e:</b> <span style="font-family: monospace; font-size: 8.5pt;">${formatChave(cteInfo?.chave_acesso)}</span></td>
+    <td colspan="3"><b>Protocolo:</b> ${cteInfo?.protocolo || "-"}</td>
+  </tr>
+  ${nfeKeys.length > 0 ? `
+  <tr>
+    <th colspan="7">NF-e VINCULADAS (${nfeKeys.length})</th>
+  </tr>
+  ${nfeKeys.map((k, i) => `
+  <tr>
+    <td colspan="7" style="font-family: monospace; font-size: 8.5pt;">
+      <b>${String(i + 1).padStart(2, "0")}.</b> ${formatChave(k)}
+    </td>
+  </tr>`).join("")}
+  ` : ""}
 </table>
 
 <h2>Composição do Frete</h2>
