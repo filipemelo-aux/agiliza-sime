@@ -107,17 +107,16 @@ export default function FreightCte() {
     }
   };
 
-  const getCarregamentoDate = (c: Cte) =>
-    c.data_carregamento || c.data_emissao || c.created_at;
+  const getEmissaoDate = (c: Cte) => c.data_emissao || c.created_at;
 
   const filtered = ctes.filter((c) => {
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
     if (tipoFilter === "servico" && !isServico) return false;
 
-    const carregamento = normalizeDateInput(getCarregamentoDate(c));
-    if (dateFrom && (!carregamento || carregamento < dateFrom)) return false;
-    if (dateTo && (!carregamento || carregamento > dateTo)) return false;
+    const emissao = normalizeDateInput(getEmissaoDate(c));
+    if (dateFrom && (!emissao || emissao < dateFrom)) return false;
+    if (dateTo && (!emissao || emissao > dateTo)) return false;
 
     const q = search.toLowerCase();
     return (
