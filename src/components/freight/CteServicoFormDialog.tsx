@@ -187,7 +187,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
 
     setSaving(true);
     try {
-      const establishmentId = matrizId || cte?.establishment_id || null;
+      const establishmentId = selectedEstId || matrizId || cte?.establishment_id || null;
 
       // Get next internal number for new records
       let numero_interno = (cte as any)?.numero_interno ?? null;
