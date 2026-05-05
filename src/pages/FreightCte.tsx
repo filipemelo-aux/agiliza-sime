@@ -125,7 +125,8 @@ export default function FreightCte() {
       c.destinatario_nome?.toLowerCase().includes(q) ||
       String(c.numero).includes(q) ||
       String(c.numero_interno).includes(q) ||
-      c.chave_acesso?.includes(q)
+      c.chave_acesso?.includes(q) ||
+      c.placa_veiculo?.toLowerCase().includes(q)
     );
   });
 
