@@ -15,6 +15,7 @@ import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
 import { supabase } from "@/integrations/supabase/client";
 import { FreightContractDialog } from "./FreightContractDialog";
+import { buildFullContractHtml, openPrintWindow } from "./freightContractPrint";
 import type { Cte } from "@/pages/FreightCte";
 
 const statusColors: Record<string, string> = {
