@@ -329,103 +329,108 @@ export default function FreightCte() {
             <p className="text-muted-foreground">Clique em "Novo CT-e" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filtered.map((cte) => {
-              const isServico = cte.tipo_talao === "servico";
-              const numeroDisplay = isServico
-                ? cte.numero_interno
-                  ? `Interno Nº ${cte.numero_interno}`
-                  : "Interno"
-                : cte.numero
-                ? `Nº ${cte.numero}`
-                : "Sem número";
-              return (
-                <Card
-                  key={cte.id}
-                  className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
-                  onClick={() => setDetailCte(cte)}
-                >
-                  <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isServico ? "bg-amber-500/10" : "bg-primary/10"}`}>
-                        {isServico ? (
-                          <ScrollText className="h-5 w-5 text-amber-600" />
-                        ) : (
-                          <FileText className="h-5 w-5 text-primary" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold font-display">{numeroDisplay}</span>
-                          <Badge variant="outline" className={isServico ? "border-amber-500/40 text-amber-700" : "border-primary/40 text-primary"}>
-                            {isServico ? "Talão de Serviço" : "Talão de Produção"}
-                          </Badge>
-                          {!isServico && (
+          <div className="border border-border rounded-md overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="px-3 py-2 font-medium w-10"></th>
+                    <th className="px-3 py-2 font-medium">N.º</th>
+                    <th className="px-3 py-2 font-medium">Talão</th>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data Carregamento</th>
+                    <th className="px-3 py-2 font-medium">Cliente</th>
+                    <th className="px-3 py-2 font-medium">Trajeto</th>
+                    <th className="px-3 py-2 font-medium">Placa</th>
+                    <th className="px-3 py-2 font-medium text-right">Valor</th>
+                    <th className="px-3 py-2 font-medium text-right">Status</th>
+                    <th className="px-3 py-2 font-medium text-right w-24"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((cte) => {
+                    const isServico = cte.tipo_talao === "servico";
+                    const numeroDisplay = isServico
+                      ? cte.numero_interno ?? "—"
+                      : cte.numero ?? "—";
+                    const cliente = isServico
+                      ? cte.destinatario_nome
+                      : cte.destinatario_nome || cte.remetente_nome;
+                    return (
+                      <tr
+                        key={cte.id}
+                        className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                        onClick={() => setDetailCte(cte)}
+                      >
+                        <td className="px-3 py-2">
+                          {isServico ? (
+                            <ScrollText className="h-4 w-4 text-amber-600" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-primary" />
+                          )}
+                        </td>
+                        <td className="px-3 py-2 font-medium tabular-nums">{numeroDisplay}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {isServico ? "Serviço" : "Produção"}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                          {formatDateBR(getCarregamentoDate(cte))}
+                        </td>
+                        <td className="px-3 py-2 truncate max-w-[220px]">{cliente}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {isServico ? "—" : `${cte.uf_origem || ""} → ${cte.uf_destino || ""}`}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                          {cte.placa_veiculo || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums font-medium">
+                          {Number(cte.valor_frete).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {isServico ? (
+                            <Badge variant="outline" className="border-amber-500/40 text-amber-700">Interno</Badge>
+                          ) : (
                             <Badge className={statusColors[cte.status] || ""}>
                               {statusLabels[cte.status] || cte.status}
                             </Badge>
                           )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {isServico
-                            ? `${cte.destinatario_nome} • ${cte.produto_predominante || cte.natureza_operacao || ""}`
-                            : `${cte.remetente_nome} → ${cte.destinatario_nome}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm shrink-0">
-                      <span className="text-muted-foreground whitespace-nowrap">
-                        Carregamento {formatDateBR(getCarregamentoDate(cte))}
-                      </span>
-                      {!isServico && (
-                        <span className="text-muted-foreground">
-                          {cte.uf_origem} → {cte.uf_destino}
-                        </span>
-                      )}
-                      <span className="font-semibold">
-                        {Number(cte.valor_frete).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </span>
-                      {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(cte);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                        disabled={deletingId === cte.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(cte);
-                        }}
-                        title={
-                          !isServico && cte.status === "autorizado"
-                            ? "Cancelar na SEFAZ e excluir"
-                            : "Excluir CT-e"
-                        }
-                      >
-                        {deletingId === cte.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => { e.stopPropagation(); handleEdit(cte); }}
+                              >
+                                Editar
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              disabled={deletingId === cte.id}
+                              onClick={(e) => { e.stopPropagation(); handleDelete(cte); }}
+                              title={!isServico && cte.status === "autorizado" ? "Cancelar na SEFAZ e excluir" : "Excluir CT-e"}
+                            >
+                              {deletingId === cte.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
