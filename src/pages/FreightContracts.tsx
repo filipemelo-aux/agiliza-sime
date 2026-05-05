@@ -75,7 +75,7 @@ export default function FreightContracts() {
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id,
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
-          payable:accounts_payable!freight_contracts_accounts_payable_id_fkey(status, paid_at)
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento:data_vencimento)
         `)
         .order("numero", { ascending: false });
       if (error) throw error;
