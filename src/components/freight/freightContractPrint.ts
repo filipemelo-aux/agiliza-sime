@@ -71,7 +71,7 @@ async function loadParty(profileId: string | null | undefined, fallbackName?: st
   const { data: prof } = await supabase
     .from("profiles")
     .select(`
-      id, full_name, razao_social, nome_fantasia, person_type, cnpj,
+      id, user_id, full_name, razao_social, nome_fantasia, person_type, cnpj,
       inscricao_estadual, email, phone,
       address_street, address_number, address_complement, address_neighborhood,
       address_city, address_state, address_zip
