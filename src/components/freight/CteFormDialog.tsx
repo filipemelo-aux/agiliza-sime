@@ -321,7 +321,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       .then(({ data }) => {
         if (data) {
           setEstablishments(data);
-          if (!selectedEstId && data.length > 0) setSelectedEstId(data[0].id);
+          // Não pré-selecionar emitente: o usuário deve escolher manualmente para evitar erros.
         }
       });
   }, [open]);

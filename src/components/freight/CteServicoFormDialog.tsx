@@ -103,9 +103,9 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       .then(({ data }) => {
         if (data) {
           setEstablishments(data as any);
+          // Só restaura o emitente se já estiver salvo no CT-e (edição). Em novo CT-e, deixa em branco para evitar erro do usuário.
           if (cte?.establishment_id) setSelectedEstId(cte.establishment_id);
-          else if (matrizId) setSelectedEstId(matrizId);
-          else if (data.length > 0) setSelectedEstId(data[0].id);
+          else setSelectedEstId("");
         }
       });
   }, [open, cte?.establishment_id, matrizId]);
