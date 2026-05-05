@@ -64,7 +64,7 @@ interface FormState {
 
 const empty: FormState = {
   tomador_id: null,
-  tomador_tipo: 3,
+  tomador_tipo: null as any,
   remetente_nome: "", remetente_cnpj: "", remetente_ie: "", remetente_endereco: "", remetente_municipio_ibge: "", remetente_uf: "",
   destinatario_nome: "", destinatario_cnpj: "", destinatario_ie: "", destinatario_endereco: "", destinatario_municipio_ibge: "", destinatario_uf: "",
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
