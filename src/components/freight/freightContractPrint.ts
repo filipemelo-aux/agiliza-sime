@@ -26,7 +26,50 @@ export interface ContractPrintInput {
   valor_total: number;
   observacoes?: string | null;
   cte_id?: string | null;
+  establishment_id?: string | null;
   cte?: { numero?: number | null; serie?: number | null; tipo_talao?: string | null } | null;
+}
+
+interface EmitenteInfo {
+  razao_social: string;
+  nome_fantasia: string;
+  cnpj: string;
+  ie: string;
+  rntrc: string;
+  endereco: string;
+  municipio: string;
+  uf: string;
+  cep: string;
+}
+
+async function loadEmitente(establishmentId: string | null | undefined, cteId?: string | null): Promise<EmitenteInfo | null> {
+  let estId = establishmentId || null;
+  if (!estId && cteId) {
+    const { data: cteRow } = await supabase.from("ctes").select("establishment_id").eq("id", cteId).maybeSingle();
+    estId = (cteRow as any)?.establishment_id || null;
+  }
+  if (!estId) return null;
+  const { data } = await supabase
+    .from("fiscal_establishments")
+    .select("razao_social, nome_fantasia, cnpj, inscricao_estadual, rntrc, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+    .eq("id", estId)
+    .maybeSingle();
+  if (!data) return null;
+  const d = data as any;
+  return {
+    razao_social: d.razao_social || "",
+    nome_fantasia: d.nome_fantasia || "",
+    cnpj: d.cnpj ? maskCNPJ(d.cnpj) : "",
+    ie: d.inscricao_estadual || "",
+    rntrc: d.rntrc || "",
+    endereco: [
+      [d.endereco_logradouro, d.endereco_numero].filter(Boolean).join(", "),
+      d.endereco_bairro,
+    ].filter(Boolean).join(" - "),
+    municipio: d.endereco_municipio || "",
+    uf: d.endereco_uf || "",
+    cep: d.endereco_cep ? maskCEP(d.endereco_cep) : "",
+  };
 }
 
 interface CteFullInfo {
