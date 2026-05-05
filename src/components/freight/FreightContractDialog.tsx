@@ -479,18 +479,6 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs">Origem (buscar cliente/fornecedor)</Label>
-                <PersonSearchInput
-                  categories={["cliente", "fornecedor"]}
-                  placeholder="Buscar origem em clientes/fornecedores..."
-                  onSelect={(p) => {
-                    setForm((f) => ({
-                      ...f,
-                      municipio_origem: p.address_city || f.municipio_origem,
-                      uf_origem: (p.address_state || f.uf_origem || "").toUpperCase(),
-                    }));
-                  }}
-                />
                 <div className="grid grid-cols-4 gap-3">
                   <div className="col-span-3">
                     <Label className="text-xs">Município de origem</Label>
