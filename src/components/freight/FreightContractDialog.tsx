@@ -663,7 +663,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
                 </Button>
                 <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Gerar Contrato e Conta a Pagar
+                  {isEdit ? "Salvar Alterações" : "Gerar Contrato e Conta a Pagar"}
                 </Button>
               </>
             ) : (
