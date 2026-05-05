@@ -438,7 +438,7 @@ ${motoristaBlock}
 <div class="obs">${(input.observacoes || "-").replace(/\n/g, "<br/>")}</div>
 
 <div class="sign">
-  <div class="line">CONTRATANTE<br/>SIME TRANSPORTE LTDA</div>
+  <div class="line">CONTRATANTE<br/>${emitente?.razao_social || "SIME TRANSPORTE LTDA"}</div>
   <div class="line">CONTRATADO<br/>${contratado.nome || ""}</div>
   <div class="line">MOTORISTA<br/>${motorista.nome || ""}</div>
 </div>
