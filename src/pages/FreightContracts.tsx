@@ -77,7 +77,8 @@ export default function FreightContracts() {
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
-        .order("numero", { ascending: false });
+        .order("numero", { ascending: false })
+        .limit(200);
       if (error) throw error;
       setRows((data as any) || []);
     } catch (err: any) {
