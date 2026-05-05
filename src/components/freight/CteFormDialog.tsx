@@ -124,7 +124,7 @@ const defaultForm = {
   recebedor_municipio_ibge: "",
   recebedor_uf: "",
   // Tomador
-  tomador_tipo: 3,
+  tomador_tipo: null as number | null,
   tomador_nome: "",
   tomador_cnpj: "",
   tomador_ie: "",
