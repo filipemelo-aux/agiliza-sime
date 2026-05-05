@@ -58,6 +58,7 @@ export default function FreightContracts() {
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [editing, setEditing] = useState<{ contractId: string; cte: Cte } | null>(null);
 
   useEffect(() => {
     fetchData();
