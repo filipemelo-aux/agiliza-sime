@@ -180,8 +180,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       toast({ title: "Natureza obrigatória", description: "Informe a natureza da carga.", variant: "destructive" });
       return;
     }
-    if (!form.data_carregamento) {
-      toast({ title: "Data obrigatória", description: "Informe a data do carregamento.", variant: "destructive" });
+    if (!form.data_emissao) {
+      toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
     if (valorFrete <= 0) {
@@ -236,7 +236,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         recebedor_uf: form.recebedor_uf || null,
         natureza_operacao: form.natureza_carga,
         produto_predominante: form.natureza_carga,
-        data_carregamento: form.data_carregamento,
+        data_carregamento: form.data_carregamento || form.data_emissao,
         data_emissao: form.data_emissao ? `${form.data_emissao}T12:00:00` : new Date().toISOString(),
         motorista_id: form.motorista_id,
         motorista_nome: form.motorista_nome ? maskName(form.motorista_nome) : null,
@@ -474,23 +474,13 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
                   onClear={() => setForm((f) => ({ ...f, natureza_carga: "" }))}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Data de emissão *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_emissao}
-                    onChange={(e) => setForm((f) => ({ ...f, data_emissao: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Data do carregamento *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_carregamento}
-                    onChange={(e) => setForm((f) => ({ ...f, data_carregamento: e.target.value }))}
-                  />
-                </div>
+              <div>
+                <Label className="text-xs">Data de emissão *</Label>
+                <Input
+                  type="date"
+                  value={form.data_emissao}
+                  onChange={(e) => setForm((f) => ({ ...f, data_emissao: e.target.value }))}
+                />
               </div>
             </CardContent>
           </Card>

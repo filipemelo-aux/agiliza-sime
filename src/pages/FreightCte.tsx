@@ -96,7 +96,6 @@ export default function FreightCte() {
       const { data, error } = await supabase
         .from("ctes")
         .select("*")
-        .order("data_carregamento", { ascending: false, nullsFirst: false })
         .order("data_emissao", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -108,17 +107,16 @@ export default function FreightCte() {
     }
   };
 
-  const getCarregamentoDate = (c: Cte) =>
-    c.data_carregamento || c.data_emissao || c.created_at;
+  const getEmissaoDate = (c: Cte) => c.data_emissao || c.created_at;
 
   const filtered = ctes.filter((c) => {
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
     if (tipoFilter === "servico" && !isServico) return false;
 
-    const carregamento = normalizeDateInput(getCarregamentoDate(c));
-    if (dateFrom && (!carregamento || carregamento < dateFrom)) return false;
-    if (dateTo && (!carregamento || carregamento > dateTo)) return false;
+    const emissao = normalizeDateInput(getEmissaoDate(c));
+    if (dateFrom && (!emissao || emissao < dateFrom)) return false;
+    if (dateTo && (!emissao || emissao > dateTo)) return false;
 
     const q = search.toLowerCase();
     return (
@@ -266,7 +264,7 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Carregamento de</Label>
+            <Label className="text-xs text-muted-foreground">Emissão de</Label>
             <Input
               type="date"
               value={dateFrom}
@@ -275,7 +273,7 @@ export default function FreightCte() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Carregamento até</Label>
+            <Label className="text-xs text-muted-foreground">Emissão até</Label>
             <Input
               type="date"
               value={dateTo}
@@ -337,7 +335,7 @@ export default function FreightCte() {
                     <th className="px-3 py-2 font-medium w-10"></th>
                     <th className="px-3 py-2 font-medium">N.º</th>
                     <th className="px-3 py-2 font-medium">Talão</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data Carregamento</th>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data Emissão</th>
                     <th className="px-3 py-2 font-medium">Cliente</th>
                     
                     <th className="px-3 py-2 font-medium">Placa</th>
@@ -373,7 +371,7 @@ export default function FreightCte() {
                           {isServico ? "Serviço" : "Produção"}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                          {formatDateBR(getCarregamentoDate(cte))}
+                          {formatDateBR(getEmissaoDate(cte))}
                         </td>
                         <td className="px-3 py-2 truncate max-w-[220px]">{cliente}</td>
                         <td className="px-3 py-2 whitespace-nowrap tabular-nums">
