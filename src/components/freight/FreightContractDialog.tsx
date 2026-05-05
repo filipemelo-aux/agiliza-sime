@@ -179,33 +179,33 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
 
-      // Origem = EXPEDIDOR (prioridade) → fallback REMETENTE
+      // Origem: trecho oficial do CT-e (municipio_origem_nome) → fallback expedidor/remetente
       const cAny = cte as any;
       const origemMunicipio =
+        cte.municipio_origem_nome ||
         cAny.expedidor_municipio_nome ||
         extractCityFromAddress(cAny.expedidor_endereco) ||
         cAny.remetente_municipio_nome ||
         extractCityFromAddress(cte.remetente_endereco) ||
-        cte.municipio_origem_nome ||
         "";
       const origemUf =
+        cte.uf_origem ||
         cAny.expedidor_uf ||
         cte.remetente_uf ||
-        cte.uf_origem ||
         "";
 
-      // Destino = RECEBEDOR (prioridade) → fallback DESTINATÁRIO
+      // Destino: trecho oficial do CT-e (municipio_destino_nome) → fallback recebedor/destinatário
       const destinoMunicipio =
+        cte.municipio_destino_nome ||
         cAny.recebedor_municipio_nome ||
         extractCityFromAddress(cAny.recebedor_endereco) ||
         cte.destinatario_municipio_nome ||
         extractCityFromAddress(cte.destinatario_endereco) ||
-        cte.municipio_destino_nome ||
         "";
       const destinoUf =
+        cte.uf_destino ||
         cAny.recebedor_uf ||
         cte.destinatario_uf ||
-        cte.uf_destino ||
         "";
 
       setForm({
@@ -213,7 +213,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         contratado_nome: owner ? owner.razao_social || owner.full_name || "" : "",
         contratado_documento: isPJ ? ownerCnpj : (ownerCpf || ownerCnpj),
         contratado_tipo: isPJ ? "PJ" : "PF",
-        motorista_id: driver?.id ?? cte.motorista_id ?? null,
+        motorista_id: driver?.id ?? motoristaProfileId,
         motorista_nome: driver?.full_name || cAny.motorista_nome || "",
         motorista_cpf: driverCpf || cAny.motorista_cpf || "",
         vehicle_id: vehicle?.id ?? null,
