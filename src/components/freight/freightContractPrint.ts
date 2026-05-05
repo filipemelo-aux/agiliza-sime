@@ -31,6 +31,7 @@ export interface ContractPrintInput {
 
 interface CteFullInfo {
   numero: number | null;
+  numero_interno: number | null;
   serie: number | null;
   tipo_talao: string | null;
   chave_acesso: string | null;
@@ -46,6 +47,7 @@ async function loadCteInfo(cteId: string | null | undefined, fallback?: Contract
     if (fallback?.numero) {
       return {
         numero: fallback.numero ?? null,
+        numero_interno: null,
         serie: fallback.serie ?? null,
         tipo_talao: fallback.tipo_talao ?? null,
         chave_acesso: null, data_emissao: null, valor_frete: null,
@@ -56,12 +58,13 @@ async function loadCteInfo(cteId: string | null | undefined, fallback?: Contract
   }
   const { data } = await supabase
     .from("ctes")
-    .select("numero, serie, tipo_talao, chave_acesso, data_emissao, valor_frete, valor_carga, chaves_nfe_ref, protocolo_autorizacao")
+    .select("numero, numero_interno, serie, tipo_talao, chave_acesso, data_emissao, valor_frete, valor_carga, chaves_nfe_ref, protocolo_autorizacao")
     .eq("id", cteId)
     .maybeSingle();
   if (!data) return null;
   return {
     numero: (data as any).numero,
+    numero_interno: (data as any).numero_interno,
     serie: (data as any).serie,
     tipo_talao: (data as any).tipo_talao,
     chave_acesso: (data as any).chave_acesso,
