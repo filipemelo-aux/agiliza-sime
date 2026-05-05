@@ -198,7 +198,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
-    if (valorFrete <= 0) {
+    if (valorBruto <= 0) {
       toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
       return;
     }
