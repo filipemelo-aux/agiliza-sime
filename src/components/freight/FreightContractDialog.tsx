@@ -80,8 +80,9 @@ function extractCityFromAddress(addr?: string | null): string {
   return "";
 }
 
-function resolveContractLocation(city?: string | null, address?: string | null, actorName?: string | null): string {
-  return city || extractCityFromAddress(address) || actorName || "";
+function resolveContractLocation(city?: string | null, address?: string | null, _actorName?: string | null): string {
+  // Não usa o nome do ator como fallback — evita preencher município com razão social.
+  return (city || extractCityFromAddress(address) || "").trim();
 }
 
 export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Props) {
