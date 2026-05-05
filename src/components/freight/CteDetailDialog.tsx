@@ -123,11 +123,31 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
       toast({ title: "Erro", description: error?.message || "Contrato não encontrado", variant: "destructive" });
       return;
     }
-    const html = buildStoredContractHtml(data);
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) w.onload = () => setTimeout(() => w.print(), 400);
+    const html = await buildFullContractHtml({
+      numero: data.numero,
+      data_contrato: data.data_contrato,
+      contratado_id: data.contratado_id,
+      contratado_nome: data.contratado_nome,
+      contratado_documento: data.contratado_documento,
+      contratado_tipo: data.contratado_tipo,
+      motorista_id: data.motorista_id,
+      motorista_nome: data.motorista_nome,
+      motorista_cpf: data.motorista_cpf,
+      vehicle_id: data.vehicle_id,
+      placa_veiculo: data.placa_veiculo,
+      veiculo_modelo: data.veiculo_modelo,
+      municipio_origem: data.municipio_origem,
+      uf_origem: data.uf_origem,
+      municipio_destino: data.municipio_destino,
+      uf_destino: data.uf_destino,
+      natureza_carga: data.natureza_carga,
+      peso_kg: Number(data.peso_kg || 0),
+      valor_tonelada: Number(data.valor_tonelada || 0),
+      valor_total: Number(data.valor_total || 0),
+      observacoes: data.observacoes,
+      cte: { numero: (cte as any).numero, serie: (cte as any).serie, tipo_talao: (cte as any).tipo_talao },
+    });
+    openPrintWindow(html);
   };
 
   const handleTransmit = async () => {
