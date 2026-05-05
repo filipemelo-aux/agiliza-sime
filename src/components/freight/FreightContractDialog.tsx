@@ -308,7 +308,12 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         .single();
 
       setSavedContract({ id: created!.id, numero: created!.numero });
-      toast({ title: "Contrato gerado", description: `Contrato Nº ${created!.numero} criado e conta a pagar lançada.` });
+      toast({
+        title: "Contrato gerado",
+        description: valorTotal > 0
+          ? `Contrato Nº ${created!.numero} criado e conta a pagar lançada.`
+          : `Contrato Nº ${created!.numero} criado sem conta a pagar (descontos zeraram o valor).`,
+      });
       onSaved?.();
     } catch (err: any) {
       toast({ title: "Erro ao gerar contrato", description: err.message, variant: "destructive" });
