@@ -253,32 +253,34 @@ export default function FreightCte() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-end sm:flex-wrap gap-3 mb-6">
-          <div className="relative max-w-sm flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por número, remetente, destinatário..."
+              placeholder="Buscar nº, remetente, destinatário..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-8 h-9 text-xs"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Emissão de</Label>
+          <div className="relative">
+            <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               type="date"
+              title="Emissão de"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="h-10 w-[160px]"
+              className="h-9 w-[44px] pl-7 pr-1 text-xs [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-datetime-edit]:hidden"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground">Emissão até</Label>
+          <div className="relative">
+            <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               type="date"
+              title="Emissão até"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="h-10 w-[160px]"
+              className="h-9 w-[44px] pl-7 pr-1 text-xs [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-datetime-edit]:hidden"
             />
           </div>
           {(dateFrom || dateTo) && (
@@ -286,12 +288,13 @@ export default function FreightCte() {
               variant="ghost"
               size="sm"
               onClick={() => { setDateFrom(""); setDateTo(""); }}
-              className="h-10 gap-1 text-muted-foreground"
+              className="h-9 w-9 p-0 text-muted-foreground"
+              title="Limpar datas"
             >
-              <X className="w-3.5 h-3.5" /> Limpar
+              <X className="w-3.5 h-3.5" />
             </Button>
           )}
-          <div className="inline-flex rounded-md border border-border bg-card p-0.5 w-fit ml-auto">
+          <div className="inline-flex rounded-md border border-border bg-card p-0.5">
             {([
               { v: "todos", label: "Todos" },
               { v: "producao", label: "Produção" },
@@ -301,7 +304,7 @@ export default function FreightCte() {
                 key={opt.v}
                 type="button"
                 onClick={() => setTipoFilter(opt.v)}
-                className={`px-3 h-8 text-xs rounded-sm transition-colors ${
+                className={`px-2.5 h-8 text-xs rounded-sm transition-colors ${
                   tipoFilter === opt.v
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
