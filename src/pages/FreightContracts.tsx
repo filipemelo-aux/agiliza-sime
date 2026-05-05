@@ -301,6 +301,27 @@ export default function FreightContracts() {
                       <div className="font-semibold text-primary">{formatCurrency(r.valor_total)}</div>
                     </div>
                     <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1"
+                        disabled={r.payable?.status === "pago" || r.payable?.status === "parcial"}
+                        title={
+                          r.payable?.status === "pago" || r.payable?.status === "parcial"
+                            ? "Estorne o pagamento antes de editar"
+                            : "Editar contrato"
+                        }
+                        onClick={async () => {
+                          const { data: cteData } = await supabase
+                            .from("ctes")
+                            .select("*")
+                            .eq("id", r.cte_id)
+                            .maybeSingle();
+                          if (cteData) setEditing({ contractId: r.id, cte: cteData as any });
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Editar
+                      </Button>
                       <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handlePrint(r)}>
                         <Printer className="w-3.5 h-3.5" /> Imprimir
                       </Button>
