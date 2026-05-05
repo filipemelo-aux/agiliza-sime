@@ -88,6 +88,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
+  const [keepOpenAfterContract, setKeepOpenAfterContract] = useState(false);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
@@ -332,6 +333,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       if (gerarContrato) {
         // Recupera o CT-e salvo para alimentar o FreightContractDialog
         const { data: fresh } = await supabase.from("ctes").select("*").eq("id", savedId).single();
+        setKeepOpenAfterContract(keepOpenForNext && !cte);
         setSavedCteForContract(fresh as any);
       } else if (keepOpenForNext && !cte) {
         // Reaproveita dados gerais; limpa apenas campos específicos da viagem
@@ -635,7 +637,21 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           if (!o) {
             setSavedCteForContract(null);
             setGerarContrato(false);
-            onOpenChange(false);
+            if (keepOpenAfterContract) {
+              // "Salvar e novo": fecha apenas o contrato e mantém o form do CT-e aberto, limpando campos da viagem
+              setForm((f) => ({
+                ...f,
+                placa_veiculo: "",
+                peso_bruto_kg: "",
+                motorista_id: null,
+                motorista_nome: "",
+                observacoes: "",
+              }));
+              setKeepOpenAfterContract(false);
+              toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa e peso." });
+            } else {
+              onOpenChange(false);
+            }
           }
         }}
         cte={savedCteForContract}
