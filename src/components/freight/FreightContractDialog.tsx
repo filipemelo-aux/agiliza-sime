@@ -96,11 +96,47 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
   const isEdit = !!contractId;
 
-  // Pré-preenche a partir do CT-e (e busca veículo/proprietário)
+  // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
   useEffect(() => {
     if (!open || !cte) return;
     setSavedContract(null);
     setDesconto(emptyDesconto);
+
+    const initEdit = async () => {
+      const { data: c } = await supabase
+        .from("freight_contracts")
+        .select("*")
+        .eq("id", contractId!)
+        .maybeSingle();
+      if (!c) return;
+      setForm({
+        contratado_id: (c as any).contratado_id ?? null,
+        contratado_nome: (c as any).contratado_nome || "",
+        contratado_documento: (c as any).contratado_documento || "",
+        contratado_tipo: ((c as any).contratado_tipo as "PF" | "PJ") || "PF",
+        motorista_id: (c as any).motorista_id ?? null,
+        motorista_nome: (c as any).motorista_nome || "",
+        motorista_cpf: (c as any).motorista_cpf || "",
+        vehicle_id: (c as any).vehicle_id ?? null,
+        placa_veiculo: (c as any).placa_veiculo || "",
+        veiculo_modelo: (c as any).veiculo_modelo || "",
+        municipio_origem: (c as any).municipio_origem || "",
+        uf_origem: (c as any).uf_origem || "",
+        municipio_destino: (c as any).municipio_destino || "",
+        uf_destino: (c as any).uf_destino || "",
+        natureza_carga: (c as any).natureza_carga || "",
+        peso_kg: (c as any).peso_kg ? String((c as any).peso_kg) : "",
+        valor_tonelada: (c as any).valor_tonelada
+          ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
+          : "",
+        observacoes: (c as any).observacoes || "",
+      });
+    };
+
+    if (isEdit) {
+      initEdit();
+      return;
+    }
 
     const init = async () => {
       const { data: freshCte } = await supabase.from("ctes").select("*").eq("id", cte.id).maybeSingle();
