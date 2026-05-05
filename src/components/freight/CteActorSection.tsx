@@ -73,6 +73,7 @@ export function CteActorSection({
           placeholder={`Buscar ${title.toLowerCase()} cadastrado...`}
           selectedName={form[`${prefix}_nome`] || undefined}
           onSelect={(person) => {
+            set(`${prefix}_profile_id`, person.id);
             set(`${prefix}_nome`, person.razao_social || person.full_name);
             if (person.cnpj) set(`${prefix}_cnpj`, maskCNPJ(person.cnpj));
             if (person.inscricao_estadual) set(`${prefix}_ie`, person.inscricao_estadual);
@@ -81,6 +82,7 @@ export function CteActorSection({
             if (endereco) set(`${prefix}_endereco`, endereco);
           }}
           onClear={() => {
+            set(`${prefix}_profile_id`, "");
             set(`${prefix}_nome`, "");
             set(`${prefix}_cnpj`, "");
             set(`${prefix}_ie`, "");
