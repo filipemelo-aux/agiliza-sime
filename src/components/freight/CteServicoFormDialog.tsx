@@ -89,6 +89,26 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
+  const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string; type: string }>>([]);
+  const [selectedEstId, setSelectedEstId] = useState<string>("");
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("fiscal_establishments")
+      .select("id, razao_social, cnpj, type")
+      .eq("active", true)
+      .order("type")
+      .order("razao_social")
+      .then(({ data }) => {
+        if (data) {
+          setEstablishments(data as any);
+          if (cte?.establishment_id) setSelectedEstId(cte.establishment_id);
+          else if (matrizId) setSelectedEstId(matrizId);
+          else if (data.length > 0) setSelectedEstId(data[0].id);
+        }
+      });
+  }, [open, cte?.establishment_id, matrizId]);
 
   useEffect(() => {
     if (!open) return;
