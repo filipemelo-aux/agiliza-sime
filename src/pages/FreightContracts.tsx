@@ -152,6 +152,7 @@ export default function FreightContracts() {
       valor_total: Number(r.valor_total) || 0,
       observacoes: r.observacoes,
       cte_id: (r as any).cte_id ?? null,
+      establishment_id: (r as any).establishment_id ?? null,
       cte: r.cte ? { numero: r.cte.numero, serie: r.cte.serie, tipo_talao: r.cte.tipo_talao } : null,
     });
     openPrintWindow(html);
