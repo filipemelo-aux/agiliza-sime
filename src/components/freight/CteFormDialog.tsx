@@ -399,6 +399,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         veiculo_id: cte.veiculo_id || null,
         tomador_id: cte.tomador_id || null,
         observacoes: cte.observacoes || "",
+        data_emissao: ((cte as any).data_emissao ? String((cte as any).data_emissao).slice(0, 10) : new Date().toISOString().slice(0, 10)),
       });
       if (cte.establishment_id) setSelectedEstId(cte.establishment_id);
       setDesconto(deserializeDesconto((cte as any).desconto));
