@@ -288,7 +288,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
       });
     };
     init();
-  }, [open, cte]);
+  }, [open, cte, contractId, isEdit]);
 
   const pesoTon = (Number(form.peso_kg) || 0) / 1000;
   const valorTon = Number(unmaskCurrency(form.valor_tonelada)) || 0;
