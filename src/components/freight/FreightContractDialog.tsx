@@ -428,11 +428,12 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2">
-            <FileSignature className="w-5 h-5" /> Contrato de Frete
+            <FileSignature className="w-5 h-5" /> {isEdit ? "Editar Contrato de Frete" : "Contrato de Frete"}
           </DialogTitle>
           <DialogDescription>
-            Contrato de fretamento entre SIME (contratante) e o contratado (subcontratado).
-            Será gerada conta a pagar à vista no plano "Frete Terceiros".
+            {isEdit
+              ? "Edite os dados do contrato. A conta a pagar vinculada será atualizada automaticamente."
+              : "Contrato de fretamento entre SIME (contratante) e o contratado (subcontratado). Será gerada conta a pagar à vista no plano \"Frete Terceiros\"."}
           </DialogDescription>
         </DialogHeader>
 
