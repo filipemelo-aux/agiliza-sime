@@ -266,17 +266,38 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
-        await supabase.from("previsoes_recebimento").upsert(
-          {
+        const dataPrev = ((cte as any)?.data_emissao ? (cte as any).data_emissao.slice(0, 10) : (form.data_carregamento || new Date().toISOString().slice(0, 10)));
+        const { data: existingPrev } = await supabase
+          .from("previsoes_recebimento")
+          .select("id")
+          .eq("origem_tipo", "cte" as any)
+          .eq("origem_id", savedId)
+          .maybeSingle();
+        if (existingPrev?.id) {
+          const { error: prevErr } = await supabase.from("previsoes_recebimento").update({
+            cliente_id: derivedTomadorId,
+            valor: valorFrete,
+            data_prevista: dataPrev,
+            status: "pendente" as any,
+          }).eq("id", existingPrev.id);
+          if (prevErr) {
+            console.error("Erro ao atualizar previsão:", prevErr);
+            toast({ title: "Aviso", description: `Previsão não atualizada: ${prevErr.message}`, variant: "destructive" });
+          }
+        } else {
+          const { error: prevErr } = await supabase.from("previsoes_recebimento").insert({
             origem_tipo: "cte" as any,
             origem_id: savedId,
             cliente_id: derivedTomadorId,
             valor: valorFrete,
-            data_prevista: ((cte as any)?.data_emissao ? (cte as any).data_emissao.slice(0, 10) : (form.data_carregamento || new Date().toISOString().slice(0, 10))),
+            data_prevista: dataPrev,
             status: "pendente" as any,
-          },
-          { onConflict: "origem_id" }
-        );
+          });
+          if (prevErr) {
+            console.error("Erro ao gerar previsão:", prevErr);
+            toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+          }
+        }
       } else {
         toast({
           title: "Previsão não gerada",

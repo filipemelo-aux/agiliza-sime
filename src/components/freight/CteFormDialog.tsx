@@ -526,17 +526,26 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
-        const { error: prevErr } = await supabase.from("previsoes_recebimento").upsert(
-          {
-            origem_tipo: "cte" as any,
-            origem_id: savedId,
-            cliente_id: derivedTomadorId,
-            valor: Number(form.valor_frete),
-            data_prevista: ((cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10),
-            status: "pendente" as any,
-          },
-          { onConflict: "origem_id" }
-        );
+        const dataPrev = ((cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10);
+        const { data: existingPrev } = await supabase
+          .from("previsoes_recebimento")
+          .select("id")
+          .eq("origem_tipo", "cte" as any)
+          .eq("origem_id", savedId)
+          .maybeSingle();
+        const prevPayload = {
+          cliente_id: derivedTomadorId,
+          valor: Number(form.valor_frete),
+          data_prevista: dataPrev,
+          status: "pendente" as any,
+        };
+        const { error: prevErr } = existingPrev?.id
+          ? await supabase.from("previsoes_recebimento").update(prevPayload).eq("id", existingPrev.id)
+          : await supabase.from("previsoes_recebimento").insert({
+              origem_tipo: "cte" as any,
+              origem_id: savedId,
+              ...prevPayload,
+            });
         if (prevErr) {
           console.error("Erro ao gerar previsão:", prevErr);
           toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
