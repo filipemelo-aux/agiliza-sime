@@ -187,27 +187,43 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved }: Prop
         ? (ptype === "pj" || ptype === "cnpj" || ptype === "juridica")
         : !!ownerCnpj && ownerCnpj.replace(/\D/g, "").length === 14;
 
-      // Origem: trecho oficial do CT-e (municipio_origem_nome) → fallback expedidor/remetente
-      const origemMunicipio =
-        resolveContractLocation(linkedCte.municipio_origem_nome, null, null) ||
-        resolveContractLocation(cAny.expedidor_municipio_nome, cAny.expedidor_endereco, cAny.expedidor_nome) ||
-        resolveContractLocation(cAny.remetente_municipio_nome, linkedCte.remetente_endereco, linkedCte.remetente_nome);
-      const origemUf =
-        linkedCte.uf_origem ||
-        cAny.expedidor_uf ||
-        linkedCte.remetente_uf ||
-        "";
+      // Helper: busca cidade/UF no cadastro de profiles pelo nome do ator
+      const lookupActorCity = async (name?: string | null): Promise<{ city: string; uf: string }> => {
+        if (!name?.trim()) return { city: "", uf: "" };
+        const { data } = await supabase
+          .from("profiles")
+          .select("address_city, address_state")
+          .or(`full_name.ilike.${name.trim()},razao_social.ilike.${name.trim()}`)
+          .limit(1)
+          .maybeSingle();
+          return { city: (data as any)?.address_city || "", uf: (data as any)?.address_state || "" };
+      };
 
-      // Destino: trecho oficial do CT-e (municipio_destino_nome) → fallback recebedor/destinatário
-      const destinoMunicipio =
+      // Origem: trecho oficial do CT-e → endereço/cadastro do expedidor → remetente
+      let origemMunicipio =
+        resolveContractLocation(linkedCte.municipio_origem_nome, null, null) ||
+        resolveContractLocation(cAny.expedidor_municipio_nome, cAny.expedidor_endereco, null) ||
+        resolveContractLocation(cAny.remetente_municipio_nome, linkedCte.remetente_endereco, null);
+      let origemUf = linkedCte.uf_origem || cAny.expedidor_uf || linkedCte.remetente_uf || "";
+      if (!origemMunicipio) {
+        const fromExp = await lookupActorCity(cAny.expedidor_nome);
+        const fromRem = fromExp.city ? fromExp : await lookupActorCity(linkedCte.remetente_nome);
+        origemMunicipio = fromRem.city;
+        if (!origemUf) origemUf = fromRem.uf;
+      }
+
+      // Destino: trecho oficial do CT-e → endereço/cadastro do recebedor → destinatário
+      let destinoMunicipio =
         resolveContractLocation(linkedCte.municipio_destino_nome, null, null) ||
-        resolveContractLocation(cAny.recebedor_municipio_nome, cAny.recebedor_endereco, cAny.recebedor_nome) ||
-        resolveContractLocation(cAny.destinatario_municipio_nome, linkedCte.destinatario_endereco, linkedCte.destinatario_nome);
-      const destinoUf =
-        linkedCte.uf_destino ||
-        cAny.recebedor_uf ||
-        linkedCte.destinatario_uf ||
-        "";
+        resolveContractLocation(cAny.recebedor_municipio_nome, cAny.recebedor_endereco, null) ||
+        resolveContractLocation(cAny.destinatario_municipio_nome, linkedCte.destinatario_endereco, null);
+      let destinoUf = linkedCte.uf_destino || cAny.recebedor_uf || linkedCte.destinatario_uf || "";
+      if (!destinoMunicipio) {
+        const fromRec = await lookupActorCity(cAny.recebedor_nome);
+        const fromDest = fromRec.city ? fromRec : await lookupActorCity(linkedCte.destinatario_nome);
+        destinoMunicipio = fromDest.city;
+        if (!destinoUf) destinoUf = fromDest.uf;
+      }
 
       setForm({
         contratado_id: owner?.id ?? null,
