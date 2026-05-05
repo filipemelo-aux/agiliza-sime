@@ -12,9 +12,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateBR, normalizeDateInput } from "@/lib/date";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { cancelarCte } from "@/services/fiscal";
@@ -72,6 +74,8 @@ export default function FreightCte() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "producao" | "servico">("todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
@@ -102,10 +106,17 @@ export default function FreightCte() {
     }
   };
 
+  const getEmissaoDate = (c: Cte) => c.data_emissao || c.created_at;
+
   const filtered = ctes.filter((c) => {
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
     if (tipoFilter === "servico" && !isServico) return false;
+
+    const emissao = normalizeDateInput(getEmissaoDate(c));
+    if (dateFrom && (!emissao || emissao < dateFrom)) return false;
+    if (dateTo && (!emissao || emissao > dateTo)) return false;
+
     const q = search.toLowerCase();
     return (
       !q ||
@@ -241,8 +252,8 @@ export default function FreightCte() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-          <div className="relative max-w-sm flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:flex-wrap gap-3 mb-6">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por número, remetente, destinatário..."
@@ -251,7 +262,35 @@ export default function FreightCte() {
               className="pl-9"
             />
           </div>
-          <div className="inline-flex rounded-md border border-border bg-card p-0.5 w-fit">
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">Emissão de</Label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground">Emissão até</Label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              className="h-10 gap-1 text-muted-foreground"
+            >
+              <X className="w-3.5 h-3.5" /> Limpar
+            </Button>
+          )}
+          <div className="inline-flex rounded-md border border-border bg-card p-0.5 w-fit ml-auto">
             {([
               { v: "todos", label: "Todos" },
               { v: "producao", label: "Produção" },
@@ -272,6 +311,7 @@ export default function FreightCte() {
             ))}
           </div>
         </div>
+
 
         {loading ? (
           <div className="space-y-4">
@@ -331,6 +371,9 @@ export default function FreightCte() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm shrink-0">
+                      <span className="text-muted-foreground whitespace-nowrap">
+                        Emitido em {formatDateBR(getEmissaoDate(cte))}
+                      </span>
                       {!isServico && (
                         <span className="text-muted-foreground">
                           {cte.uf_origem} → {cte.uf_destino}
