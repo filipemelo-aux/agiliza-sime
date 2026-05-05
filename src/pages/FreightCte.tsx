@@ -371,6 +371,9 @@ export default function FreightCte() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm shrink-0">
+                      <span className="text-muted-foreground whitespace-nowrap">
+                        Emitido em {formatDateBR(getEmissaoDate(cte))}
+                      </span>
                       {!isServico && (
                         <span className="text-muted-foreground">
                           {cte.uf_origem} → {cte.uf_destino}
