@@ -559,7 +559,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         if (!form.tomador_id) {
           await supabase.from("ctes").update({ tomador_id: derivedTomadorId }).eq("id", savedId);
         }
-        const dataPrev = ((cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10);
+        const dataPrev = (form.data_emissao || (cte as any)?.data_emissao || new Date().toISOString()).slice(0, 10);
         const { data: existingPrev } = await supabase
           .from("previsoes_recebimento")
           .select("id")
