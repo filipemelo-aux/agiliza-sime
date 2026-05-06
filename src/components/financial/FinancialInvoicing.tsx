@@ -1056,13 +1056,13 @@ ${hasPartial ? `
                               </>
                             )}
                             {hasPendingContas(f) && (
-                              <Button variant="outline" size="sm" onClick={() => openReceive(f)} className="gap-1 h-7 text-xs">
-                                <HandCoins className="h-3 w-3" /> Receber
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openReceive(f)} title="Receber">
+                                <HandCoins className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             {isPaid(f) && (
-                              <Button variant="outline" size="sm" onClick={() => handleReverseFatura(f)} className="gap-1 h-7 text-xs text-destructive hover:text-destructive" title="Estornar">
-                                <Undo2 className="h-3 w-3" /> Estornar
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-600" onClick={() => handleReverseFatura(f)} title="Estornar">
+                                <Undo2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                           </div>
