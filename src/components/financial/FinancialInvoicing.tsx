@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 
 interface Fatura {
   id: string;
