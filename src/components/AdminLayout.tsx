@@ -28,7 +28,7 @@ const menuItems = [
     children: [
       { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
-      { title: "Contas a Receber", url: "/admin/financial/receivables", icon: HandCoins },
+      
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Faturamento", url: "/admin/financial/invoicing", icon: Receipt },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
