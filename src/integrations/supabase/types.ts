@@ -3378,6 +3378,47 @@ export type Database = {
         }
         Relationships: []
       }
+      receivable_payments: {
+        Row: {
+          conta_receber_id: string
+          created_at: string
+          created_by: string
+          data_recebimento: string
+          forma_recebimento: string
+          id: string
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          conta_receber_id: string
+          created_at?: string
+          created_by: string
+          data_recebimento?: string
+          forma_recebimento: string
+          id?: string
+          observacoes?: string | null
+          valor: number
+        }
+        Update: {
+          conta_receber_id?: string
+          created_at?: string
+          created_by?: string
+          data_recebimento?: string
+          forma_recebimento?: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivable_payments_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_config: {
         Row: {
           description: string | null
