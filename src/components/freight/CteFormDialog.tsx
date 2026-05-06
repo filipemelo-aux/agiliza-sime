@@ -539,8 +539,8 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           : null) ||
         null;
 
-      // Se valor do frete <= 0, remove previsão existente e não cria nova
-      if (Number(form.valor_frete) <= 0) {
+      // Se valor do frete = 0, remove previsão existente e não cria nova (negativos são permitidos para lançamentos em lote)
+      if (Number(form.valor_frete) === 0) {
         await supabase
           .from("previsoes_recebimento")
           .delete()
@@ -548,7 +548,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           .eq("origem_id", savedId);
         toast({
           title: "Sem previsão de recebimento",
-          description: "Valor do frete zerado/negativo. Nenhuma previsão a receber foi gerada.",
+          description: "Valor do frete zerado. Nenhuma previsão a receber foi gerada.",
         });
       } else if (form.tomador_tipo === null) {
         toast({
