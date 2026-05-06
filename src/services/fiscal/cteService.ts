@@ -218,7 +218,7 @@ export async function emitirCte({ cte_id, user_id }: EmitirCteParams): Promise<E
           origem_id: cte_id,
           cliente_id: cte.tomador_id,
           valor: cte.valor_frete,
-          data_prevista: new Date().toISOString().split("T")[0],
+          data_prevista: (cte.data_emissao ? String(cte.data_emissao).slice(0, 10) : new Date().toISOString().split("T")[0]),
           status: "pendente" as any,
         },
         { onConflict: "origem_id" }
