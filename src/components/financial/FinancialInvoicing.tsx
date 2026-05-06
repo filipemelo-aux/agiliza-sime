@@ -36,6 +36,7 @@ interface Fatura {
   cliente_nome?: string;
   valor_recebido_total?: number;
   has_partial?: boolean;
+}
 
 interface Previsao {
   id: string;
