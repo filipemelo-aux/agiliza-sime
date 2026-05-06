@@ -72,8 +72,8 @@ const empty: FormState = {
   expedidor_nome: "", expedidor_cnpj: "", expedidor_ie: "", expedidor_endereco: "", expedidor_municipio_ibge: "", expedidor_uf: "",
   recebedor_nome: "", recebedor_cnpj: "", recebedor_ie: "", recebedor_endereco: "", recebedor_municipio_ibge: "", recebedor_uf: "",
   natureza_carga: "",
-  data_emissao: new Date().toISOString().slice(0, 10),
-  data_carregamento: new Date().toISOString().slice(0, 10),
+  data_emissao: "",
+  data_carregamento: "",
   motorista_id: null,
   motorista_nome: "",
   placa_veiculo: "",
@@ -373,6 +373,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           motorista_nome: "",
           observacoes: "",
         }));
+        setDesconto(emptyDesconto);
         toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa e peso." });
       } else {
         onOpenChange(false);

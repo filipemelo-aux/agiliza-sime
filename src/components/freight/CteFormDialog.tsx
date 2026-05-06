@@ -169,7 +169,7 @@ const defaultForm = {
   veiculo_id: null as string | null,
   tomador_id: null as string | null,
   // Data
-  data_emissao: new Date().toISOString().slice(0, 10),
+  data_emissao: "",
   // Obs
   observacoes: "",
 };
@@ -312,6 +312,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       observacoes: "",
     }));
     setMotoristaNome(undefined);
+    setDesconto(emptyDesconto);
     toast({ title: "Pronto para o próximo CT-e", description: "Dados gerais mantidos. Atualize motorista, placa, peso e quantidades." });
   };
   const [form, setForm] = useState(defaultForm);
@@ -481,6 +482,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
     }
     if (!form.remetente_nome || !form.destinatario_nome) {
       toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
+      return;
+    }
+    if (!form.data_emissao) {
+      toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
 
