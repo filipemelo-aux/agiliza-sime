@@ -172,12 +172,29 @@ export function FinancialInvoicing() {
       return;
     }
 
-    setFaturas(
-      (data || []).map((f: any) => ({
-        ...f,
-        cliente_nome: f.profiles?.full_name || "—",
-      }))
-    );
+    const faturasList = (data || []).map((f: any) => ({
+      ...f,
+      cliente_nome: f.profiles?.full_name || "—",
+    }));
+
+    // Soma valor_recebido por fatura para refletir parciais
+    const ids = faturasList.map((f: any) => f.id);
+    if (ids.length) {
+      const { data: contas } = await supabase
+        .from("contas_receber")
+        .select("fatura_id, valor_recebido")
+        .in("fatura_id", ids);
+      const sums: Record<string, number> = {};
+      (contas || []).forEach((c: any) => {
+        sums[c.fatura_id] = (sums[c.fatura_id] || 0) + Number(c.valor_recebido || 0);
+      });
+      faturasList.forEach((f: any) => {
+        f.valor_recebido_total = sums[f.id] || 0;
+        f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
+      });
+    }
+
+    setFaturas(faturasList);
     setLoading(false);
   };
 
