@@ -817,22 +817,41 @@ ${previsoes.length > 0 ? `
 </div>
 ` : ""}
 
+${hasPartial ? `
+<div class="section">
+  <div class="section-title">Pagamento Parcial Recebido</div>
+  <div class="summary-box" style="background:#fffbeb;border-color:#fcd34d">
+    <div class="summary-item"><div class="label">Valor da Fatura</div><div class="value mono">${formatCurrency(valorTotalFatura)}</div></div>
+    <div class="summary-item"><div class="label">Total Recebido</div><div class="value mono" style="color:#15803d">${formatCurrency(totalRecebido)}</div></div>
+    <div class="summary-item"><div class="label">Saldo Devedor</div><div class="value mono" style="color:#991b1b">${formatCurrency(saldoDevedor)}</div></div>
+  </div>
+</div>
+` : ""}
+
 <div class="section">
   <div class="section-title">Parcelas / Contas a Receber (${contas.length})</div>
   <table>
-    <thead><tr><th>#</th><th>Vencimento</th><th class="text-right">Valor</th><th class="text-center">Status</th><th>Recebimento</th></tr></thead>
+    <thead><tr><th>#</th><th>Vencimento</th><th class="text-right">Valor</th><th class="text-right">Recebido</th><th class="text-center">Status</th><th>Recebimento</th></tr></thead>
     <tbody>
       ${contas.map((c, i) => {
+        const recebido = Number(c.valor_recebido || 0);
         const badgeClass = c.status === "recebido" ? "badge-received" : c.status === "atrasado" ? "badge-late" : "badge-open";
         const statusLabel = c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto";
         return `<tr>
           <td>${i + 1}</td>
           <td>${formatDateBR(c.data_vencimento)}</td>
           <td class="text-right mono">${formatCurrency(Number(c.valor))}</td>
+          <td class="text-right mono" style="${recebido > 0 ? 'color:#15803d' : 'color:#9ca3af'}">${recebido > 0 ? formatCurrency(recebido) : "—"}</td>
           <td class="text-center"><span class="badge ${badgeClass}">${statusLabel}</span></td>
           <td>${c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</td>
         </tr>`;
       }).join("")}
+      ${hasPartial ? `<tr class="total-row">
+        <td colspan="2" class="text-right">TOTAIS</td>
+        <td class="text-right mono">${formatCurrency(valorTotalFatura)}</td>
+        <td class="text-right mono">${formatCurrency(totalRecebido)}</td>
+        <td colspan="2" class="text-right">Saldo: ${formatCurrency(saldoDevedor)}</td>
+      </tr>` : ""}
     </tbody>
   </table>
 </div>
