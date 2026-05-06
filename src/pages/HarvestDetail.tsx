@@ -1379,7 +1379,7 @@ export default function HarvestDetail() {
         origem_id: id,
         cliente_id: job.client_id,
         valor: totalCliente,
-        data_prevista: filterEndDate,
+        data_prevista: getLocalDateISO(),
         status: "pendente" as any,
         metadata,
       } as any);
