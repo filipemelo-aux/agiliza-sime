@@ -705,7 +705,7 @@ export function RevenueForecasts() {
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
                             <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                            <TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               {p.status === "pendente" && p.origem_tipo === "manual" && (
                                 <Button
                                   type="button"
