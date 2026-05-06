@@ -151,6 +151,7 @@ export function FinancialInvoicing() {
   const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
+  const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
 
   useEffect(() => {
     fetchFaturas();
