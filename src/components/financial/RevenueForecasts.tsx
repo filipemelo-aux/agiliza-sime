@@ -724,11 +724,10 @@ export function RevenueForecasts() {
                       </Fragment>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
 
       {/* Invoice creation dialog */}
