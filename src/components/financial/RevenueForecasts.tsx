@@ -562,8 +562,12 @@ export function RevenueForecasts() {
                       const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
                       const isPendente = p.status === "pendente";
                       return (
-                        <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
-                          <TableCell>
+                        <TableRow
+                          key={p.id}
+                          className={cn(isPendente && "cursor-pointer", selected.has(p.id) && "bg-accent/30")}
+                          onClick={isPendente ? () => toggleSelect(p.id) : undefined}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {isPendente && (
                               <Checkbox
                                 checked={selected.has(p.id)}
