@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { FinancialPayables } from "@/components/financial/FinancialPayables";
 import { FinancialReceipts } from "@/components/financial/FinancialReceipts";
-import { FinancialReceivables } from "@/components/financial/FinancialReceivables";
+
 import { ChartOfAccounts } from "@/components/financial/ChartOfAccounts";
 import { RevenueForecasts } from "@/components/financial/RevenueForecasts";
 import { FinancialCashFlow } from "@/components/financial/FinancialCashFlow";
