@@ -432,18 +432,26 @@ export function FinancialInvoicing() {
   // --- Receber ---
   const openReceive = async (fatura: Fatura) => {
     setReceiveFatura(fatura);
-    setReceiveDate(getLocalDateISO());
-    setReceiveForma("pix");
 
     const { data } = await supabase
       .from("contas_receber")
       .select("*")
       .eq("fatura_id", fatura.id)
-      .in("status", ["aberto", "atrasado"])
       .order("data_vencimento", { ascending: true });
 
     setReceiveContas((data as ContaReceber[]) || []);
     setReceiveDialogOpen(true);
+  };
+
+  const reloadReceiveContas = async () => {
+    if (!receiveFatura) return;
+    const { data } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .eq("fatura_id", receiveFatura.id)
+      .order("data_vencimento", { ascending: true });
+    setReceiveContas((data as ContaReceber[]) || []);
+    fetchFaturas();
   };
 
   const handleReceiveAll = async () => {
