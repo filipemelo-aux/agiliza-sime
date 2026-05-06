@@ -116,23 +116,27 @@ export function FinancialReceivables() {
             return (
               <Card key={c.id} onClick={() => openPayment(c)} className="cursor-pointer">
                 <CardContent className="p-3 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground truncate">{c.cliente_nome}</p>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate flex-1 min-w-0">{c.cliente_nome}</p>
                     <Badge variant={isParcial ? "secondary" : st.variant} className="text-[10px] gap-0.5 shrink-0">
                       <Icon className="h-2.5 w-2.5" />{isParcial ? "Parcial" : st.label}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <HandCoins className="h-3 w-3" />
-                      <span>Venc: {formatDateBR(c.data_vencimento)}</span>
-                      {c.data_recebimento && <span>· Receb: {formatDateBR(c.data_recebimento)}</span>}
+                  <div className="flex items-center justify-between text-xs gap-2">
+                    <div className="flex items-center gap-1 text-muted-foreground min-w-0 truncate">
+                      <HandCoins className="h-3 w-3 shrink-0" />
+                      <span className="truncate">Venc: {formatDateBR(c.data_vencimento)}{c.data_recebimento ? ` · Receb: ${formatDateBR(c.data_recebimento)}` : ""}</span>
                     </div>
-                    <span className="font-mono font-bold text-foreground">{formatCurrency(Number(c.valor))}</span>
+                    <span className="font-mono font-bold text-foreground shrink-0">{formatCurrency(Number(c.valor))}</span>
                   </div>
                   {isParcial && (
                     <p className="text-[11px] text-amber-600">Recebido: {formatCurrency(recebido)} • Saldo: {formatCurrency(Number(c.valor) - recebido)}</p>
                   )}
+                  <div className="flex items-center justify-end gap-0.5 pt-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openPayment(c)} title={c.status === "recebido" ? "Ver" : "Receber"}>
+                      <HandCoins className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
