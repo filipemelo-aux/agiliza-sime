@@ -562,8 +562,12 @@ export function RevenueForecasts() {
                       const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
                       const isPendente = p.status === "pendente";
                       return (
-                        <TableRow key={p.id} className={selected.has(p.id) ? "bg-accent/30" : ""}>
-                          <TableCell>
+                        <TableRow
+                          key={p.id}
+                          className={cn(isPendente && "cursor-pointer", selected.has(p.id) && "bg-accent/30")}
+                          onClick={isPendente ? () => toggleSelect(p.id) : undefined}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {isPendente && (
                               <Checkbox
                                 checked={selected.has(p.id)}
@@ -581,7 +585,7 @@ export function RevenueForecasts() {
                           <TableCell className="text-xs">{p.cliente_nome}</TableCell>
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1.5">
                               <Badge variant={isPendente ? "outline" : "default"} className="text-[10px] gap-0.5">
                                 {isPendente ? <Clock className="h-2.5 w-2.5" /> : <CheckCircle2 className="h-2.5 w-2.5" />}
@@ -675,8 +679,12 @@ export function RevenueForecasts() {
                           </TableCell>
                         </TableRow>
                         {isOpen && g.items.map((p) => (
-                          <TableRow key={p.id} className={cn("bg-muted/20", selected.has(p.id) && "bg-accent/20")}>
-                            <TableCell>
+                          <TableRow
+                            key={p.id}
+                            className={cn("bg-muted/20", p.status === "pendente" && "cursor-pointer", selected.has(p.id) && "bg-accent/20")}
+                            onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               {p.status === "pendente" && (
                                 <Checkbox
                                   checked={selected.has(p.id)}
@@ -697,7 +705,7 @@ export function RevenueForecasts() {
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">{formatDateBR(p.data_prevista)}</TableCell>
                             <TableCell className="text-[11px] text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
-                            <TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               {p.status === "pendente" && p.origem_tipo === "manual" && (
                                 <Button
                                   type="button"
