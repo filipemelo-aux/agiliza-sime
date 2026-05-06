@@ -42,6 +42,7 @@ const menuItems = [
       { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Cartão de Crédito", url: "/admin/financial/credit-card", icon: CreditCard },
+      { title: "Relatórios", url: "/admin/financial/reports", icon: FileSpreadsheet },
     ],
   },
   {
