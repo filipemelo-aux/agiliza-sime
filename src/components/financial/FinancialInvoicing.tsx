@@ -529,6 +529,12 @@ export function FinancialInvoicing() {
       .order("data_vencimento", { ascending: true });
     const contas = (contasData as ContaReceber[]) || [];
 
+    // Totais de pagamento parcial
+    const totalRecebido = contas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
+    const valorTotalFatura = Number(fatura.valor_total);
+    const saldoDevedor = Math.max(valorTotalFatura - totalRecebido, 0);
+    const hasPartial = totalRecebido > 0 && fatura.status !== "paga";
+
     // Load full client profile
     const { data: clienteProfile } = await supabase
       .from("profiles")
