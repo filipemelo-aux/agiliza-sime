@@ -998,83 +998,81 @@ ${hasPartial ? `
           })}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Nº</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Emissão</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
-                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Condição</th>
-                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {faturas.map((f) => {
-                    const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-                    return (
-                      <tr key={f.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
-                        <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
-                        <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
-                          {formatCurrency(Number(f.valor_total))}
-                          {f.has_partial && (
-                            <div className="text-[10px] text-amber-600 font-normal">
-                              Receb: {formatCurrency(f.valor_recebido_total || 0)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-center text-xs">
-                          {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
-                            {f.has_partial ? "Parcial" : st.label}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePrintFatura(f)} title="Imprimir">
-                              <Printer className="h-3.5 w-3.5" />
-                            </Button>
-                            {f.status !== "paga" && (
-                              <>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInvoice(f)} title="Editar">
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteFatura(f)} title="Excluir">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </>
-                            )}
-                            {hasPendingContas(f) && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openReceive(f)} title="Receber">
-                                <HandCoins className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            {isPaid(f) && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-600" onClick={() => handleReverseFatura(f)} title="Estornar">
-                                <Undo2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+        <div className="border border-border rounded-md overflow-hidden bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-medium w-[80px]">Nº</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">Emissão</th>
+                  <th className="px-3 py-2 font-medium">Cliente</th>
+                  <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
+                  <th className="px-2 py-2 font-medium text-center w-[110px]">Condição</th>
+                  <th className="px-2 py-2 font-medium text-center w-[90px]">Status</th>
+                  <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {faturas.map((f) => {
+                  const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+                  return (
+                    <tr key={f.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(f)}>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
+                      <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
+                      <td className="px-2 py-2 text-right tabular-nums font-medium">
+                        {formatCurrency(Number(f.valor_total))}
+                        {f.has_partial && (
+                          <div className="text-[10px] text-amber-600 font-normal">
+                            Receb: {formatCurrency(f.valor_recebido_total || 0)}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-center text-muted-foreground">
+                        {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePrintFatura(f)} title="Imprimir">
+                            <Printer className="h-3.5 w-3.5" />
+                          </Button>
+                          {f.status !== "paga" && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInvoice(f)} title="Editar">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteFatura(f)} title="Excluir">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                          {hasPendingContas(f) && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openReceive(f)} title="Receber">
+                              <HandCoins className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {isPaid(f) && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-600" onClick={() => handleReverseFatura(f)} title="Estornar">
+                              <Undo2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Detail Dialog */}

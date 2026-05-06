@@ -535,10 +535,10 @@ export function RevenueForecasts() {
           })}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
+        <div className="border border-border rounded-md overflow-hidden bg-card">
+          <div className="overflow-x-auto">
+            <Table>
+
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10">
@@ -724,11 +724,10 @@ export function RevenueForecasts() {
                       </Fragment>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
 
       {/* Invoice creation dialog */}

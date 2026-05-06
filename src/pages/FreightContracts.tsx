@@ -16,9 +16,11 @@ import { Search, FileSignature, Printer, ExternalLink, X, Pencil } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { Link } from "react-router-dom";
 import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
@@ -51,6 +53,7 @@ interface FreightContractRow {
 }
 
 export default function FreightContracts() {
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const [rows, setRows] = useState<FreightContractRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -260,81 +263,115 @@ export default function FreightContracts() {
               Nenhum contrato encontrado.
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {filtered.map((r) => (
-              <Card key={r.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Contrato</div>
-                      <div className="font-semibold text-base">Nº {String(r.numero).padStart(6, "0")}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {new Date(r.data_contrato + "T12:00:00").toLocaleDateString("pt-BR")}
+        ) : isMobile ? (
+          <div className="grid grid-cols-1 gap-2">
+            {filtered.map((r) => {
+              const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
+              return (
+                <Card key={r.id}>
+                  <CardContent className="p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-mono text-muted-foreground">#{String(r.numero).padStart(6, "0")}</span>
+                        <p className="text-sm font-semibold text-foreground truncate">{r.contratado_nome}</p>
                       </div>
+                      <div className="shrink-0">{renderPayableStatus(r)}</div>
                     </div>
-                    {renderPayableStatus(r)}
-                  </div>
-
-                  <div className="text-sm">
-                    <div className="font-medium truncate">{r.contratado_nome}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {r.contratado_tipo} {r.contratado_documento ? `· ${r.contratado_documento}` : ""}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground truncate">
+                        <span>{formatDateBR(r.data_contrato)}</span>
+                        {r.placa_veiculo && <span>· {r.placa_veiculo}</span>}
+                        {r.motorista_nome && <span className="truncate">· {r.motorista_nome}</span>}
+                      </div>
+                      <span className="font-mono font-bold text-foreground">{formatCurrency(r.valor_total)}</span>
                     </div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground space-y-0.5 border-t pt-2">
-                    <div>
-                      <b>Trecho:</b> {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
                     </div>
-                    <div>
-                      <b>Motorista:</b> {r.motorista_nome || "-"} · <b>Placa:</b> {r.placa_veiculo || "-"}
-                    </div>
-                    <div>
-                      <b>Peso:</b> {(Number(r.peso_kg) / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} t · <b>R$/t:</b> {formatCurrency(r.valor_tonelada)}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t pt-2">
-                    <div>
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</div>
-                      <div className="font-semibold text-primary">{formatCurrency(r.valor_total)}</div>
-                    </div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center justify-end gap-1 pt-1">
                       <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1"
-                        disabled={r.payable?.status === "pago" || r.payable?.status === "parcial"}
-                        title={
-                          r.payable?.status === "pago" || r.payable?.status === "parcial"
-                            ? "Estorne o pagamento antes de editar"
-                            : "Editar contrato"
-                        }
+                        size="sm" variant="ghost" className="h-7 w-7 p-0"
+                        disabled={editDisabled}
+                        title={editDisabled ? "Estorne o pagamento antes de editar" : "Editar contrato"}
                         onClick={async () => {
-                          const { data: cteData } = await supabase
-                            .from("ctes")
-                            .select("*")
-                            .eq("id", r.cte_id)
-                            .maybeSingle();
+                          const { data: cteData } = await supabase.from("ctes").select("*").eq("id", r.cte_id).maybeSingle();
                           if (cteData) setEditing({ contractId: r.id, cte: cteData as any });
                         }}
                       >
-                        <Pencil className="w-3.5 h-3.5" /> Editar
+                        <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handlePrint(r)}>
-                        <Printer className="w-3.5 h-3.5" /> Imprimir
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
+                        <Printer className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 gap-1" asChild>
-                        <Link to="/admin/freight/cte" title="Ver CT-e vinculado">
-                          <ExternalLink className="w-3.5 h-3.5" /> CT-e
-                        </Link>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="CT-e vinculado">
+                        <Link to="/admin/freight/cte"><ExternalLink className="w-3.5 h-3.5" /></Link>
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border border-border rounded-md overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="px-3 py-2 font-medium w-[90px]">Nº</th>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data</th>
+                    <th className="px-3 py-2 font-medium">Contratado</th>
+                    <th className="px-3 py-2 font-medium">Trecho</th>
+                    <th className="px-2 py-2 font-medium w-[90px]">Placa</th>
+                    <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
+                    <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
+                    <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => {
+                    const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
+                    return (
+                      <tr key={r.id} className="border-t border-border hover:bg-muted/30">
+                        <td className="px-3 py-2 font-mono text-muted-foreground">#{String(r.numero).padStart(6, "0")}</td>
+                        <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data_contrato)}</td>
+                        <td className="px-3 py-2 truncate max-w-[280px]">
+                          <div className="font-medium truncate">{r.contratado_nome}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
+                        </td>
+                        <td className="px-3 py-2 truncate max-w-[260px] text-muted-foreground">
+                          {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap tabular-nums">{r.placa_veiculo || "—"}</td>
+                        <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(r.valor_total)}</td>
+                        <td className="px-2 py-2 text-center">{renderPayableStatus(r)}</td>
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button
+                              size="sm" variant="ghost" className="h-7 w-7 p-0"
+                              disabled={editDisabled}
+                              title={editDisabled ? "Estorne o pagamento antes de editar" : "Editar contrato"}
+                              onClick={async () => {
+                                const { data: cteData } = await supabase.from("ctes").select("*").eq("id", r.cte_id).maybeSingle();
+                                if (cteData) setEditing({ contractId: r.id, cte: cteData as any });
+                              }}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
+                              <Printer className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="CT-e vinculado">
+                              <Link to="/admin/freight/cte"><ExternalLink className="w-3.5 h-3.5" /></Link>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
@@ -106,6 +107,7 @@ const ORIGEM_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
 };
 
 export function FinancialReports() {
+  const isMobile = useIsMobile();
   const [reportType, setReportType] = useState<ReportType>("payables");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
@@ -540,69 +542,109 @@ ${totalLine}
           </Card>
 
           {rows.length > 0 && (
-            <Card className="mt-3">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
-                  {reportType === "cashflow" ? (
-                    <div className="flex gap-3 text-xs">
-                      <span className="text-green-600 font-semibold">Entradas: {formatCurrency((totals as any).entradas)}</span>
-                      <span className="text-red-600 font-semibold">Saídas: {formatCurrency((totals as any).saidas)}</span>
-                      <span className={`font-bold ${totals.total >= 0 ? "text-primary" : "text-red-600"}`}>Saldo: {formatCurrency(totals.total)}</span>
-                    </div>
-                  ) : (
-                    <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
-                  )}
-                </div>
+            <div className="mt-3 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
+                {reportType === "cashflow" ? (
+                  <div className="flex gap-3 text-xs">
+                    <span className="text-green-600 font-semibold">Entradas: {formatCurrency((totals as any).entradas)}</span>
+                    <span className="text-red-600 font-semibold">Saídas: {formatCurrency((totals as any).saidas)}</span>
+                    <span className={`font-bold ${totals.total >= 0 ? "text-primary" : "text-red-600"}`}>Saldo: {formatCurrency(totals.total)}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
+                )}
+              </div>
 
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Data</TableHead>
-                        <TableHead className="text-xs">Pessoa / Descrição</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {grouped.map((g) => (
-                        <>
-                          {filters.groupBy !== "none" && (
-                            <TableRow key={`g-${g.key}`} className="bg-muted/50">
-                              <TableCell colSpan={4} className="text-xs font-bold text-primary uppercase py-1.5">
-                                {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {g.rows.map((r) => (
-                            <TableRow key={r.id}>
-                              <TableCell className="text-xs whitespace-nowrap">{formatDateBR(r.data)}</TableCell>
-                              <TableCell className="text-xs">
-                                <div className="font-semibold">{r.pessoa}</div>
-                                <div className="text-muted-foreground">{r.descricao}</div>
-                              </TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs">{r.status}</Badge></TableCell>
-                              <TableCell className={`text-xs text-right font-bold whitespace-nowrap ${r.tipo === "saida" ? "text-red-600" : "text-primary"}`}>
+              {isMobile ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {grouped.map((g) => (
+                    <div key={g.key} className="space-y-2">
+                      {filters.groupBy !== "none" && (
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold text-primary uppercase">
+                            {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
+                          </span>
+                          <span className="text-[11px] font-bold text-primary tabular-nums">
+                            {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
+                          </span>
+                        </div>
+                      )}
+                      {g.rows.map((r) => (
+                        <Card key={r.id}>
+                          <CardContent className="p-3 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground truncate">{r.pessoa}</p>
+                              <Badge variant="outline" className="text-[10px] shrink-0">{r.status}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground truncate">
+                                <span>{formatDateBR(r.data)}</span>
+                                <span className="truncate">· {r.descricao}</span>
+                              </div>
+                              <span className={`font-mono font-bold tabular-nums ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
                                 {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {filters.groupBy !== "none" && (
-                            <TableRow key={`s-${g.key}`} className="bg-muted/30">
-                              <TableCell colSpan={3} className="text-xs text-right font-semibold">Subtotal</TableCell>
-                              <TableCell className="text-xs text-right font-bold text-primary">
-                                {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </>
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+              ) : (
+                <div className="border border-border rounded-md overflow-hidden bg-card">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/40 text-muted-foreground">
+                        <tr className="text-left">
+                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[110px]">Data</th>
+                          <th className="px-3 py-2 font-medium">Pessoa / Descrição</th>
+                          <th className="px-2 py-2 font-medium text-center w-[110px]">Status</th>
+                          <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {grouped.map((g) => (
+                          <Fragment key={g.key}>
+                            {filters.groupBy !== "none" && (
+                              <tr className="bg-muted/40 border-t border-border">
+                                <td colSpan={4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
+                                  {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
+                                </td>
+                              </tr>
+                            )}
+                            {g.rows.map((r) => (
+                              <tr key={r.id} className="border-t border-border hover:bg-muted/30">
+                                <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
+                                <td className="px-3 py-2">
+                                  <div className="font-medium truncate max-w-[420px]">{r.pessoa}</div>
+                                  <div className="text-[10px] text-muted-foreground truncate max-w-[420px]">{r.descricao}</div>
+                                </td>
+                                <td className="px-2 py-2 text-center">
+                                  <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
+                                </td>
+                                <td className={`px-2 py-2 text-right tabular-nums font-medium ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
+                                  {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
+                                </td>
+                              </tr>
+                            ))}
+                            {filters.groupBy !== "none" && (
+                              <tr className="bg-muted/20 border-t border-border">
+                                <td colSpan={3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
+                                <td className="px-2 py-1.5 text-right text-xs font-bold text-primary tabular-nums">
+                                  {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </TabsContent>
       </Tabs>

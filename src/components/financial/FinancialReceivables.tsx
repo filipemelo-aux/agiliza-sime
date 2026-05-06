@@ -114,7 +114,7 @@ export function FinancialReceivables() {
             const recebido = Number(c.valor_recebido || 0);
             const isParcial = c.status !== "recebido" && recebido > 0;
             return (
-              <Card key={c.id}>
+              <Card key={c.id} onClick={() => openPayment(c)} className="cursor-pointer">
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-foreground truncate">{c.cliente_nome}</p>
@@ -123,72 +123,68 @@ export function FinancialReceivables() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Venc: {formatDateBR(c.data_vencimento)}</span>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <HandCoins className="h-3 w-3" />
+                      <span>Venc: {formatDateBR(c.data_vencimento)}</span>
+                      {c.data_recebimento && <span>· Receb: {formatDateBR(c.data_recebimento)}</span>}
+                    </div>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(c.valor))}</span>
                   </div>
                   {isParcial && (
                     <p className="text-[11px] text-amber-600">Recebido: {formatCurrency(recebido)} • Saldo: {formatCurrency(Number(c.valor) - recebido)}</p>
                   )}
-                  {c.data_recebimento && (
-                    <p className="text-[11px] text-muted-foreground">Receb: {formatDateBR(c.data_recebimento)}</p>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs w-full mt-1">
-                    <HandCoins className="h-3 w-3" /> {c.status === "recebido" ? "Ver / Estornar" : "Receber"}
-                  </Button>
                 </CardContent>
               </Card>
             );
           })}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Vencimento</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Recebido</th>
-                    <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Recebimento</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filtered.map(c => {
-                    const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
-                    const Icon = st.icon;
-                    const recebido = Number(c.valor_recebido || 0);
-                    const isParcial = c.status !== "recebido" && recebido > 0;
-                    return (
-                      <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 text-xs font-medium">{c.cliente_nome}</td>
-                        <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_vencimento)}</td>
-                        <td className="px-4 py-2.5 text-xs text-right font-mono font-semibold">{formatCurrency(Number(c.valor))}</td>
-                        <td className={`px-4 py-2.5 text-xs text-right font-mono ${isParcial ? "text-amber-600" : "text-muted-foreground"}`}>
-                          {recebido > 0 ? formatCurrency(recebido) : "—"}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <Badge variant={isParcial ? "secondary" : st.variant} className="text-[10px] gap-0.5">
-                            <Icon className="h-2.5 w-2.5" />{isParcial ? "Parcial" : st.label}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_recebimento)}</td>
-                        <td className="px-4 py-2.5 text-right">
-                          <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs">
-                            <HandCoins className="h-3 w-3" /> {c.status === "recebido" ? "Ver" : "Receber"}
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border border-border rounded-md overflow-hidden bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr className="text-left">
+                  <th className="px-3 py-2 font-medium">Cliente</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">Vencimento</th>
+                  <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
+                  <th className="px-2 py-2 font-medium text-right w-[110px]">Recebido</th>
+                  <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">Recebimento</th>
+                  <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(c => {
+                  const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
+                  const Icon = st.icon;
+                  const recebido = Number(c.valor_recebido || 0);
+                  const isParcial = c.status !== "recebido" && recebido > 0;
+                  return (
+                    <tr key={c.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openPayment(c)}>
+                      <td className="px-3 py-2 font-medium truncate max-w-[420px]">{c.cliente_nome}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(c.data_vencimento)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(Number(c.valor))}</td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${isParcial ? "text-amber-600" : "text-muted-foreground"}`}>
+                        {recebido > 0 ? formatCurrency(recebido) : "—"}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <Badge variant={isParcial ? "secondary" : st.variant} className="text-[10px] gap-0.5">
+                          <Icon className="h-2.5 w-2.5" />{isParcial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(c.data_recebimento)}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:text-green-600" onClick={(e) => { e.stopPropagation(); openPayment(c); }} title={c.status === "recebido" ? "Ver" : "Receber"}>
+                          <HandCoins className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {selectedConta && (
