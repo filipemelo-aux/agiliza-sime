@@ -16,9 +16,11 @@ import { Search, FileSignature, Printer, ExternalLink, X, Pencil } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { Link } from "react-router-dom";
 import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
