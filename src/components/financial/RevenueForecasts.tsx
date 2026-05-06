@@ -679,8 +679,12 @@ export function RevenueForecasts() {
                           </TableCell>
                         </TableRow>
                         {isOpen && g.items.map((p) => (
-                          <TableRow key={p.id} className={cn("bg-muted/20", selected.has(p.id) && "bg-accent/20")}>
-                            <TableCell>
+                          <TableRow
+                            key={p.id}
+                            className={cn("bg-muted/20", p.status === "pendente" && "cursor-pointer", selected.has(p.id) && "bg-accent/20")}
+                            onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                               {p.status === "pendente" && (
                                 <Checkbox
                                   checked={selected.has(p.id)}
