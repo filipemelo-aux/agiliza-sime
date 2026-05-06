@@ -19,6 +19,7 @@ interface ContaReceber {
   fatura_id: string;
   cliente_id: string;
   valor: number;
+  valor_recebido?: number | null;
   data_vencimento: string;
   status: string;
   data_recebimento: string | null;
