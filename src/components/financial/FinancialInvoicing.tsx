@@ -996,12 +996,21 @@ ${previsoes.length > 0 ? `
                         <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
                         <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
+                          {formatCurrency(Number(f.valor_total))}
+                          {f.has_partial && (
+                            <div className="text-[10px] text-amber-600 font-normal">
+                              Receb: {formatCurrency(f.valor_recebido_total || 0)}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-center text-xs">
                           {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
                         </td>
                         <td className="px-4 py-2.5 text-center">
-                          <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                          <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                            {f.has_partial ? "Parcial" : st.label}
+                          </Badge>
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex justify-end gap-1">
