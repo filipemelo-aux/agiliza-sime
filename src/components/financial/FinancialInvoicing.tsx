@@ -34,6 +34,8 @@ interface Fatura {
   data_emissao: string;
   created_at: string;
   cliente_nome?: string;
+  valor_recebido_total?: number;
+  has_partial?: boolean;
 }
 
 interface Previsao {
@@ -170,12 +172,29 @@ export function FinancialInvoicing() {
       return;
     }
 
-    setFaturas(
-      (data || []).map((f: any) => ({
-        ...f,
-        cliente_nome: f.profiles?.full_name || "—",
-      }))
-    );
+    const faturasList = (data || []).map((f: any) => ({
+      ...f,
+      cliente_nome: f.profiles?.full_name || "—",
+    }));
+
+    // Soma valor_recebido por fatura para refletir parciais
+    const ids = faturasList.map((f: any) => f.id);
+    if (ids.length) {
+      const { data: contas } = await supabase
+        .from("contas_receber")
+        .select("fatura_id, valor_recebido")
+        .in("fatura_id", ids);
+      const sums: Record<string, number> = {};
+      (contas || []).forEach((c: any) => {
+        sums[c.fatura_id] = (sums[c.fatura_id] || 0) + Number(c.valor_recebido || 0);
+      });
+      faturasList.forEach((f: any) => {
+        f.valor_recebido_total = sums[f.id] || 0;
+        f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
+      });
+    }
+
+    setFaturas(faturasList);
     setLoading(false);
   };
 
@@ -905,7 +924,9 @@ ${previsoes.length > 0 ? `
                       <span className="text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</span>
                       <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
                     </div>
-                    <Badge variant={st.variant} className="text-[10px] shrink-0">{st.label}</Badge>
+                    <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px] shrink-0">
+                      {f.has_partial ? "Parcial" : st.label}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">
@@ -913,6 +934,11 @@ ${previsoes.length > 0 ? `
                     </span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(f.valor_total))}</span>
                   </div>
+                  {f.has_partial && (
+                    <p className="text-[11px] text-amber-600">
+                      Recebido: {formatCurrency(f.valor_recebido_total || 0)} • Saldo: {formatCurrency(Number(f.valor_total) - (f.valor_recebido_total || 0))}
+                    </p>
+                  )}
                   <div className="flex gap-1.5 pt-1 flex-wrap">
                     <Button variant="ghost" size="sm" onClick={() => openDetail(f)} className="gap-1 h-7 text-xs flex-1">
                       <Eye className="h-3 w-3" /> Detalhes
@@ -970,12 +996,21 @@ ${previsoes.length > 0 ? `
                         <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(f.data_emissao)}</td>
                         <td className="px-4 py-2.5 text-xs font-medium">{f.cliente_nome}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">{formatCurrency(Number(f.valor_total))}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
+                          {formatCurrency(Number(f.valor_total))}
+                          {f.has_partial && (
+                            <div className="text-[10px] text-amber-600 font-normal">
+                              Receb: {formatCurrency(f.valor_recebido_total || 0)}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-center text-xs">
                           {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
                         </td>
                         <td className="px-4 py-2.5 text-center">
-                          <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                          <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                            {f.has_partial ? "Parcial" : st.label}
+                          </Badge>
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex justify-end gap-1">
