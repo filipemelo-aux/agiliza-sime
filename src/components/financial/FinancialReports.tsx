@@ -107,6 +107,7 @@ const ORIGEM_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
 };
 
 export function FinancialReports() {
+  const isMobile = useIsMobile();
   const [reportType, setReportType] = useState<ReportType>("payables");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
