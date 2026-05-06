@@ -3732,6 +3732,10 @@ export type Database = {
         Args: { _plano_contas_id: string }
         Returns: boolean
       }
+      fn_resolve_profile_for_cte_previsao: {
+        Args: { _cte: Database["public"]["Tables"]["ctes"]["Row"] }
+        Returns: string
+      }
       fn_strip_accents: { Args: { _t: string }; Returns: string }
       get_my_masked_documents: {
         Args: never
