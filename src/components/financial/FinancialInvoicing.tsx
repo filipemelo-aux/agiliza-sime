@@ -459,7 +459,16 @@ export function FinancialInvoicing() {
       .eq("fatura_id", fatura.id)
       .order("data_vencimento", { ascending: true });
 
-    setReceiveContas((data as ContaReceber[]) || []);
+    const contas = (data as ContaReceber[]) || [];
+    setReceiveContas(contas);
+
+    // Se houver apenas um título, abre direto o modal de recebimento (mesmo do Contas a Receber)
+    const abertos = contas.filter(c => c.status !== "recebido");
+    if (contas.length === 1 || abertos.length === 1) {
+      const alvo = abertos[0] || contas[0];
+      setPartialReceive({ id: alvo.id, valor: Number(alvo.valor) });
+      return;
+    }
     setReceiveDialogOpen(true);
   };
 
