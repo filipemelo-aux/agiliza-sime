@@ -484,6 +484,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       toast({ title: "Campos obrigatórios", description: "Preencha remetente e destinatário.", variant: "destructive" });
       return;
     }
+    if (!form.data_emissao) {
+      toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
+      return;
+    }
 
     setSaving(true);
     try {
