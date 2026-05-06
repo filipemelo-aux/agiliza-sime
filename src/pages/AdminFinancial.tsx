@@ -35,6 +35,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "cashflow" && <FinancialCashFlow />}
         {section === "reconciliation" && <BankReconciliation />}
         {section === "credit-card" && <CreditCardInvoices />}
+        {section === "reports" && <FinancialReports />}
       </div>
     </AdminLayout>
   );
