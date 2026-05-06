@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
