@@ -18,7 +18,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "payables" && <FinancialPayables />}
         {section === "invoicing" && <FinancialInvoicing />}
         {section === "forecasts" && <RevenueForecasts />}
-        {section === "receivables" && <FinancialReceivables />}
+        
         {section === "paid" && <FinancialPaid />}
         {section === "receipts" && (
           <>
