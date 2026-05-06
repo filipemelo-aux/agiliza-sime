@@ -150,6 +150,7 @@ export function FinancialReceivables() {
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Cliente</th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Vencimento</th>
                     <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Valor</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Recebido</th>
                     <th className="text-center text-xs font-medium text-muted-foreground px-4 py-2">Status</th>
                     <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2">Recebimento</th>
                     <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2">Ações</th>
@@ -159,23 +160,26 @@ export function FinancialReceivables() {
                   {filtered.map(c => {
                     const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
                     const Icon = st.icon;
+                    const recebido = Number(c.valor_recebido || 0);
+                    const isParcial = c.status !== "recebido" && recebido > 0;
                     return (
                       <tr key={c.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-2.5 text-xs font-medium">{c.cliente_nome}</td>
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_vencimento)}</td>
                         <td className="px-4 py-2.5 text-xs text-right font-mono font-semibold">{formatCurrency(Number(c.valor))}</td>
+                        <td className={`px-4 py-2.5 text-xs text-right font-mono ${isParcial ? "text-amber-600" : "text-muted-foreground"}`}>
+                          {recebido > 0 ? formatCurrency(recebido) : "—"}
+                        </td>
                         <td className="px-4 py-2.5 text-center">
-                          <Badge variant={st.variant} className="text-[10px] gap-0.5">
-                            <Icon className="h-2.5 w-2.5" />{st.label}
+                          <Badge variant={isParcial ? "secondary" : st.variant} className="text-[10px] gap-0.5">
+                            <Icon className="h-2.5 w-2.5" />{isParcial ? "Parcial" : st.label}
                           </Badge>
                         </td>
                         <td className="px-4 py-2.5 text-xs">{formatDateBR(c.data_recebimento)}</td>
                         <td className="px-4 py-2.5 text-right">
-                          {c.status !== "recebido" && (
-                            <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs">
-                              <HandCoins className="h-3 w-3" /> Receber
-                            </Button>
-                          )}
+                          <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs">
+                            <HandCoins className="h-3 w-3" /> {c.status === "recebido" ? "Ver" : "Receber"}
+                          </Button>
                         </td>
                       </tr>
                     );
