@@ -501,30 +501,69 @@ ${totalLine}
                     </Select>
                   </div>
                 )}
-                {showFavorecido && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Favorecido</Label>
-                    <Select value={filters.favorecidoId} onValueChange={(v) => updateFilter("favorecidoId", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                        {profiles.map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {showCliente && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cliente</Label>
-                    <Select value={filters.clienteId} onValueChange={(v) => updateFilter("clienteId", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                        {profiles.filter((p) => p.category === "cliente").map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {showFavorecido && (() => {
+                  const term = favorecidoSearch.trim().toLowerCase();
+                  const list = term
+                    ? profiles.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term)))
+                    : profiles;
+                  return (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Favorecido</Label>
+                      <Select value={filters.favorecidoId} onValueChange={(v) => updateFilter("favorecidoId", v)}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <div className="sticky top-0 z-10 bg-popover p-1.5 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                              <Input
+                                value={favorecidoSearch}
+                                onChange={(e) => setFavorecidoSearch(e.target.value)}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder="Buscar..."
+                                className="h-7 text-xs pl-7"
+                              />
+                            </div>
+                          </div>
+                          <SelectItem value="todos" className="text-xs">Todos</SelectItem>
+                          {list.slice(0, 100).map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
+                          {list.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
+                {showCliente && (() => {
+                  const term = clienteSearch.trim().toLowerCase();
+                  const baseList = profiles.filter((p) => p.category === "cliente");
+                  const list = term
+                    ? baseList.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term)))
+                    : baseList;
+                  return (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cliente</Label>
+                      <Select value={filters.clienteId} onValueChange={(v) => updateFilter("clienteId", v)}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <div className="sticky top-0 z-10 bg-popover p-1.5 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                              <Input
+                                value={clienteSearch}
+                                onChange={(e) => setClienteSearch(e.target.value)}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder="Buscar..."
+                                className="h-7 text-xs pl-7"
+                              />
+                            </div>
+                          </div>
+                          <SelectItem value="todos" className="text-xs">Todos</SelectItem>
+                          {list.slice(0, 100).map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
+                          {list.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-1">
                   <Label className="text-xs">Agrupar por</Label>
                   <Select value={filters.groupBy} onValueChange={(v) => updateFilter("groupBy", v)}>
