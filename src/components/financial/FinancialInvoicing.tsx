@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 
 interface Fatura {
   id: string;
@@ -150,6 +151,7 @@ export function FinancialInvoicing() {
   const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
+  const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
 
   useEffect(() => {
     fetchFaturas();
@@ -431,18 +433,26 @@ export function FinancialInvoicing() {
   // --- Receber ---
   const openReceive = async (fatura: Fatura) => {
     setReceiveFatura(fatura);
-    setReceiveDate(getLocalDateISO());
-    setReceiveForma("pix");
 
     const { data } = await supabase
       .from("contas_receber")
       .select("*")
       .eq("fatura_id", fatura.id)
-      .in("status", ["aberto", "atrasado"])
       .order("data_vencimento", { ascending: true });
 
     setReceiveContas((data as ContaReceber[]) || []);
     setReceiveDialogOpen(true);
+  };
+
+  const reloadReceiveContas = async () => {
+    if (!receiveFatura) return;
+    const { data } = await supabase
+      .from("contas_receber")
+      .select("*")
+      .eq("fatura_id", receiveFatura.id)
+      .order("data_vencimento", { ascending: true });
+    setReceiveContas((data as ContaReceber[]) || []);
+    fetchFaturas();
   };
 
   const handleReceiveAll = async () => {
@@ -1319,72 +1329,90 @@ ${previsoes.length > 0 ? `
         </DialogContent>
       </Dialog>
 
-      {/* Receive Dialog */}
+      {/* Receive Dialog - per-title with partial support */}
       <Dialog open={receiveDialogOpen} onOpenChange={setReceiveDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar Recebimento</DialogTitle>
+            <DialogTitle>Recebimento da Fatura</DialogTitle>
           </DialogHeader>
           {receiveFatura && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="space-y-3">
+              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
                 <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
                 <p>Valor da fatura: <strong className="text-foreground">{formatCurrency(Number(receiveFatura.valor_total))}</strong></p>
               </div>
 
               <div>
-                <p className="text-sm font-semibold mb-1">Títulos pendentes ({receiveContas.length})</p>
-                <div className="border rounded max-h-[150px] overflow-y-auto">
+                <p className="text-xs font-semibold mb-1.5">Títulos ({receiveContas.length})</p>
+                <div className="border rounded">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="text-xs h-8">Vencimento</TableHead>
+                        <TableHead className="text-xs h-8 text-right">Valor</TableHead>
+                        <TableHead className="text-xs h-8 text-right">Recebido</TableHead>
+                        <TableHead className="text-xs h-8 text-center">Status</TableHead>
+                        <TableHead className="text-xs h-8 text-right">Ação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {receiveContas.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell className="text-xs">{formatDateBR(c.data_vencimento)}</TableCell>
-                          <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
-                          <TableCell className="text-xs">
-                            <Badge variant={c.status === "atrasado" ? "destructive" : "outline"}>
-                              {c.status === "atrasado" ? "Atrasado" : "Aberto"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {receiveContas.map((c) => {
+                        const recebido = Number(c.valor_recebido || 0);
+                        const isParcial = c.status !== "recebido" && recebido > 0;
+                        const label = c.status === "recebido"
+                          ? "Recebido"
+                          : isParcial
+                            ? "Parcial"
+                            : c.status === "atrasado" ? "Atrasado" : "Aberto";
+                        const variant: any = c.status === "recebido"
+                          ? "default"
+                          : isParcial ? "secondary"
+                          : c.status === "atrasado" ? "destructive" : "outline";
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-xs py-1.5">{formatDateBR(c.data_vencimento)}</TableCell>
+                            <TableCell className="text-xs py-1.5 text-right font-mono">{formatCurrency(Number(c.valor))}</TableCell>
+                            <TableCell className={`text-xs py-1.5 text-right font-mono ${isParcial ? "text-amber-600" : "text-muted-foreground"}`}>
+                              {recebido > 0 ? formatCurrency(recebido) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-center">
+                              <Badge variant={variant} className="text-[10px]">{label}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => setPartialReceive({ id: c.id, valor: Number(c.valor) })}
+                              >
+                                <HandCoins className="h-3 w-3" />
+                                {c.status === "recebido" ? "Ver" : "Receber"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5 italic">
+                  Use o botão "Receber" em cada título para registrar pagamentos totais ou parciais.
+                </p>
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label>Data do Recebimento</Label>
-                  <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Forma de Recebimento</Label>
-                  <Select value={receiveForma} onValueChange={setReceiveForma}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {FORMA_RECEBIMENTO_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button onClick={handleReceiveAll} className="w-full" disabled={receiveSaving || receiveContas.length === 0}>
-                {receiveSaving ? "Processando..." : `Receber ${receiveContas.length} título(s)`}
-              </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {partialReceive && (
+        <ReceivablePaymentDialog
+          open={!!partialReceive}
+          onOpenChange={(o) => !o && setPartialReceive(null)}
+          contaReceberId={partialReceive.id}
+          valorTotal={partialReceive.valor}
+          onSaved={reloadReceiveContas}
+        />
+      )}
 
       {ConfirmDialog}
     </div>
