@@ -71,6 +71,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function FreightCte() {
+  const isMobile = useIsMobile();
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
