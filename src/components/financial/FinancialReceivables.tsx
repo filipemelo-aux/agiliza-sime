@@ -111,27 +111,30 @@ export function FinancialReceivables() {
           {filtered.map(c => {
             const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
             const Icon = st.icon;
+            const recebido = Number(c.valor_recebido || 0);
+            const isParcial = c.status !== "recebido" && recebido > 0;
             return (
               <Card key={c.id}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-foreground truncate">{c.cliente_nome}</p>
-                    <Badge variant={st.variant} className="text-[10px] gap-0.5 shrink-0">
-                      <Icon className="h-2.5 w-2.5" />{st.label}
+                    <Badge variant={isParcial ? "secondary" : st.variant} className="text-[10px] gap-0.5 shrink-0">
+                      <Icon className="h-2.5 w-2.5" />{isParcial ? "Parcial" : st.label}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Venc: {formatDateBR(c.data_vencimento)}</span>
                     <span className="font-mono font-bold text-foreground">{formatCurrency(Number(c.valor))}</span>
                   </div>
+                  {isParcial && (
+                    <p className="text-[11px] text-amber-600">Recebido: {formatCurrency(recebido)} • Saldo: {formatCurrency(Number(c.valor) - recebido)}</p>
+                  )}
                   {c.data_recebimento && (
                     <p className="text-[11px] text-muted-foreground">Receb: {formatDateBR(c.data_recebimento)}</p>
                   )}
-                  {c.status !== "recebido" && (
-                    <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs w-full mt-1">
-                      <HandCoins className="h-3 w-3" /> Receber
-                    </Button>
-                  )}
+                  <Button size="sm" variant="outline" onClick={() => openPayment(c)} className="gap-1 h-7 text-xs w-full mt-1">
+                    <HandCoins className="h-3 w-3" /> {c.status === "recebido" ? "Ver / Estornar" : "Receber"}
+                  </Button>
                 </CardContent>
               </Card>
             );
