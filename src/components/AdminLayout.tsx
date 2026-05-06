@@ -31,7 +31,7 @@ const menuItems = [
       
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
       { title: "Faturas e Contas a Receber", url: "/admin/financial/invoicing", icon: Receipt },
-      { title: "Previsões", url: "/admin/financial/forecasts", icon: TrendingUp },
+      { title: "Previsões a Receber", url: "/admin/financial/forecasts", icon: TrendingUp },
     ],
   },
   {
