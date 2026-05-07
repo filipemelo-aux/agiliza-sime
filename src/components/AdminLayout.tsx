@@ -52,11 +52,17 @@ const menuItems = [
       { title: "Contratos de Frete", url: "/admin/freight/contracts", icon: FileSignature },
       { title: "MDF-e", url: "/admin/freight/mdfe", icon: FileCheck },
       { title: "Colheita", url: "/admin/harvest", icon: Sprout },
+      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
+      { title: "Relatórios", url: "/admin/freight/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Frota",
+    icon: Car,
+    children: [
       { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
-      { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
-      { title: "Relatórios", url: "/admin/freight/reports", icon: FileSpreadsheet },
     ],
   },
   {

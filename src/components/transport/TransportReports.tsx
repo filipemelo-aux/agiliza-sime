@@ -595,11 +595,7 @@ ${totalLine}
           <TabsTrigger value="cte">CT-e</TabsTrigger>
           <TabsTrigger value="mdfe">MDF-e</TabsTrigger>
           <TabsTrigger value="contratos">Contratos</TabsTrigger>
-          <TabsTrigger value="colheita">Colheita</TabsTrigger>
-          <TabsTrigger value="ordens_carregamento">Ord. Carregamento</TabsTrigger>
-          <TabsTrigger value="ordens_abastecimento">Ord. Abastecimento</TabsTrigger>
           <TabsTrigger value="cotacoes">Cotações</TabsTrigger>
-          <TabsTrigger value="manutencoes">Manutenções</TabsTrigger>
           <TabsTrigger value="abastecimentos">Abastecimentos</TabsTrigger>
         </TabsList>
 
