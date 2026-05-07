@@ -796,7 +796,7 @@ ${previsoes.length > 0 ? `
   <div class="section-title">Previsões Vinculadas (${previsoes.length})</div>
   <table>
     <thead><tr>
-      <th>Origem</th><th>Período</th>
+      <th>Origem</th><th>Emissão</th>
       <th class="text-right">Peso</th><th class="text-right">R$/Ton</th>
       <th class="text-right">Bruto</th><th>Desconto</th><th class="text-right">Vl. Desc.</th>
       <th class="text-right">Líquido</th>
