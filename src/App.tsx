@@ -28,6 +28,7 @@ import AdminFuelOrders from "./pages/AdminFuelOrders";
 import AdminFuelings from "./pages/AdminFuelings";
 import AdminMaintenances from "./pages/AdminMaintenances";
 import AdminReports from "./pages/AdminReports";
+import AdminTransportReports from "./pages/AdminTransportReports";
 import AdminRH from "./pages/AdminRH";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/admin/freight/fiscal-settings" element={<FreightFiscalSettings />} />
             <Route path="/admin/cargas" element={<AdminCargas />} />
             <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/freight/reports" element={<AdminTransportReports />} />
             <Route path="/admin/rh" element={<Navigate to="/admin/rh/colaboradores" replace />} />
             <Route path="/admin/rh/colaboradores" element={<AdminRH section="colaboradores" />} />
             <Route path="/admin/rh/movimentacoes" element={<AdminRH section="movimentacoes" />} />

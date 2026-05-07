@@ -56,6 +56,7 @@ const menuItems = [
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Cotações", url: "/admin/quotations", icon: ClipboardList },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
+      { title: "Relatórios", url: "/admin/freight/reports", icon: FileSpreadsheet },
     ],
   },
   {
