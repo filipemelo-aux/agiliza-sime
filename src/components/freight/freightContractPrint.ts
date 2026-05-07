@@ -251,8 +251,10 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
   const fmt = (v: number) =>
     Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const pesoTon = Number(input.peso_kg || 0) / 1000;
-  const dataLocal = input.data_contrato
-    ? new Date(input.data_contrato + "T12:00:00")
+  // Data do contrato = data de emissão do CT-e (fallback: data_contrato informado, depois hoje)
+  const dataBase = cteInfo?.data_emissao || input.data_contrato || null;
+  const dataLocal = dataBase
+    ? new Date(String(dataBase).slice(0, 10) + "T12:00:00")
     : new Date();
   const dataExt = dataLocal.toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -385,7 +387,7 @@ ${motoristaBlock}
     <th>Peso (kg)</th>
     <th>Toneladas</th>
     <th>Valor por tonelada</th>
-    <th>Valor Frete CT-e</th>
+    <th>Valor do Frete</th>
   </tr>
   <tr>
     <td>${cteLabel}</td>
@@ -394,7 +396,7 @@ ${motoristaBlock}
     <td>${Number(input.peso_kg || 0).toLocaleString("pt-BR")}</td>
     <td>${pesoTon.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</td>
     <td>${fmt(Number(input.valor_tonelada || 0))}</td>
-    <td>${cteInfo?.valor_frete != null ? fmt(Number(cteInfo.valor_frete)) : "-"}</td>
+    <td>${fmt(Number(input.valor_total || 0))}</td>
   </tr>
   <tr>
     <td colspan="4"><b>Chave CT-e:</b> <span style="font-family: monospace; font-size: 8.5pt;">${formatChave(cteInfo?.chave_acesso)}</span></td>
