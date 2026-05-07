@@ -827,13 +827,53 @@ ${previsoes.length > 0 ? `
           : formatDateBR(p.data_prevista);
 
         const isManual = p.origem_tipo === "manual";
-        const peso = Number(meta?.peso_kg || 0);
-        const pesoCell = isManual && peso > 0
+        const isCte = p.origem_tipo === "cte";
+        const cte = isCte ? ctesById[p.origem_id] : null;
+
+        // Resolve real values: CT-e from ctes table, Manual from metadata
+        const peso = isCte
+          ? Number(cte?.peso_bruto || 0)
+          : Number(meta?.peso_kg || 0);
+        const vTon = isCte
+          ? Number(cte?.valor_tonelada || 0)
+          : Number(meta?.valor_por_ton || 0);
+        const bruto = isCte
+          ? Number(cte?.valor_carga || cte?.valor_frete || 0)
+          : Number(meta?.valor_bruto || 0);
+        const cteDescontoVal = isCte
+          ? (() => {
+              const d = cte?.desconto;
+              if (!d) return 0;
+              if (typeof d === "number") return Number(d) || 0;
+              return Number(d?.valor || 0);
+            })()
+          : 0;
+        const vDesc = isCte ? cteDescontoVal : Number(meta?.valor_desconto || 0);
+        const liquido = isCte
+          ? Number(cte?.valor_receber || cte?.valor_frete || p.valor)
+          : Number(p.valor);
+
+        const cteDescontoLabel = (() => {
+          if (!isCte || !cte?.desconto) return "—";
+          const d = cte.desconto;
+          if (typeof d === "object") {
+            if (d.tipo === "diesel") {
+              const litros = Number(d.litros || 0);
+              const vl = Number(d.valor_litro || 0);
+              return `Diesel ${litros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} L × ${formatCurrency(vl)}`;
+            }
+            if (d.tipo === "outros") return d.descricao || "Outros";
+            if (d.tipo) return d.tipo;
+          }
+          return cteDescontoVal > 0 ? "Desconto" : "—";
+        })();
+
+        const pesoCell = peso > 0
           ? `${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg` : "—";
-        const vTonCell = isManual && meta?.valor_por_ton ? formatCurrency(Number(meta.valor_por_ton)) : "—";
-        const brutoCell = isManual && meta?.valor_bruto ? formatCurrency(Number(meta.valor_bruto)) : "—";
-        const descLabelCell = isManual ? manualDescontoLabel(meta?.desconto) : "—";
-        const vDescCell = isManual && meta?.valor_desconto ? formatCurrency(Number(meta.valor_desconto)) : "—";
+        const vTonCell = vTon > 0 ? formatCurrency(vTon) : "—";
+        const brutoCell = bruto > 0 ? formatCurrency(bruto) : "—";
+        const descLabelCell = isManual ? manualDescontoLabel(meta?.desconto) : cteDescontoLabel;
+        const vDescCell = vDesc > 0 ? formatCurrency(vDesc) : "—";
 
         return `<tr>
           <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${badgeText}</span></td>
@@ -844,7 +884,7 @@ ${previsoes.length > 0 ? `
           <td class="text-right mono">${brutoCell}</td>
           <td>${descLabelCell}</td>
           <td class="text-right mono">${vDescCell}</td>
-          <td class="text-right mono">${formatCurrency(Number(p.valor))}</td>
+          <td class="text-right mono">${formatCurrency(liquido)}</td>
         </tr>`;
       }).join("")}
       <tr class="total-row">
