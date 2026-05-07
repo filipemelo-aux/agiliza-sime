@@ -596,6 +596,23 @@ export function FinancialInvoicing() {
       }
     }
 
+    // Sort previsões by emission date ascending
+    previsoes = [...previsoes].sort((a, b) => {
+      const getDate = (p: Previsao): string => {
+        const meta = p.metadata as any;
+        if (p.origem_tipo === "cte") {
+          const c = ctesById[p.origem_id];
+          return c?.data_emissao || p.data_prevista || "";
+        }
+        if (p.origem_tipo === "colheita") {
+          const hj = harvestJobs[p.origem_id];
+          return meta?.periodo_inicio || hj?.harvest_period_start || p.data_prevista || "";
+        }
+        return p.data_prevista || "";
+      };
+      return getDate(a).localeCompare(getDate(b));
+    });
+
     // Company info
     const companyName = unifiedLabel;
     const cnpjLines = unifiedCnpjLines.join("<br/>");
