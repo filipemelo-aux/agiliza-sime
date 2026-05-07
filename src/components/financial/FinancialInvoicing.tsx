@@ -877,7 +877,6 @@ ${previsoes.length > 0 ? `
 
         return `<tr>
           <td><span class="badge" style="background:#f0f9ff;color:#0369a1">${badgeText}</span></td>
-          <td style="font-size:11px">${descricao}</td>
           <td>${periodoStr}</td>
           <td class="text-right mono">${pesoCell}</td>
           <td class="text-right mono">${vTonCell}</td>
@@ -888,7 +887,7 @@ ${previsoes.length > 0 ? `
         </tr>`;
       }).join("")}
       <tr class="total-row">
-        <td colspan="8" class="text-right">Total</td>
+        <td colspan="7" class="text-right">Total</td>
         <td class="text-right mono">${formatCurrency(previsoes.reduce((s, p) => s + Number(p.valor), 0))}</td>
       </tr>
     </tbody>
