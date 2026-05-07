@@ -157,6 +157,22 @@ export function FinancialInvoicing() {
 
   useEffect(() => {
     fetchFaturas();
+    const onFocus = () => fetchFaturas();
+    window.addEventListener("focus", onFocus);
+    const onVisibility = () => { if (document.visibilityState === "visible") fetchFaturas(); };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Realtime: refletir novas faturas/atualizações imediatamente
+    const channel = supabase
+      .channel("faturas_recebimento_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "faturas_recebimento" }, () => fetchFaturas())
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchFaturas = async () => {
