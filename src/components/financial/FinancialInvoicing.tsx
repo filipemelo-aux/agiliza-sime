@@ -854,9 +854,15 @@ ${previsoes.length > 0 ? `
         const vTon = isCte
           ? Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_por_ton || 0);
-        const bruto = isCte
+        const brutoCalc = isCte
           ? (Number(cte?.peso_bruto || 0) / 1000) * Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_bruto || 0);
+        // Fallback: se não há peso/valor por tonelada, usa valor_frete (CT-e) ou líquido + desconto (manual)
+        const bruto = brutoCalc > 0
+          ? brutoCalc
+          : isCte
+            ? Number(cte?.valor_frete || 0)
+            : (Number(p.valor) + Number(meta?.valor_desconto || 0));
         const cteDescontoVal = isCte
           ? (() => {
               const d = cte?.desconto;
