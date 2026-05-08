@@ -136,31 +136,78 @@ export function FinancialReports() {
     try {
       let result: Row[] = [];
       if (reportType === "payables") {
+        // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
-        if (filters.dataInicio) q = q.gte("data_vencimento", filters.dataInicio);
-        if (filters.dataFim) q = q.lte("data_vencimento", filters.dataFim);
-        if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
         if (filters.centroCusto !== "todos") q = q.eq("centro_custo", filters.centroCusto);
         if (filters.favorecidoId !== "todos") q = q.eq("favorecido_id", filters.favorecidoId);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
         const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
         if (error) throw error;
+        const expenses = data || [];
+        const expIds = expenses.map((e: any) => e.id);
+        const installmentsByExp: Record<string, any[]> = {};
+        if (expIds.length > 0) {
+          const { data: insts } = await supabase
+            .from("expense_installments")
+            .select("*")
+            .in("expense_id", expIds)
+            .order("numero_parcela");
+          (insts || []).forEach((i: any) => {
+            (installmentsByExp[i.expense_id] ||= []).push(i);
+          });
+        }
         const chartMap = new Map(chartAccounts.map((c) => [c.id, c]));
-        result = (data || []).map((e: any) => {
+        const today = format(new Date(), "yyyy-MM-dd");
+        const inRange = (d: string | null) => {
+          if (!d) return false;
+          if (filters.dataInicio && d < filters.dataInicio) return false;
+          if (filters.dataFim && d > filters.dataFim) return false;
+          return true;
+        };
+        const matchStatus = (s: string) => filters.status === "todos" || filters.status === s;
+        const out: Row[] = [];
+        expenses.forEach((e: any) => {
           const c = e.plano_contas_id ? chartMap.get(e.plano_contas_id) : null;
-          return {
-            id: e.id,
-            data: e.data_vencimento || e.data_emissao,
-            descricao: e.descricao,
-            pessoa: e.favorecido_nome || "—",
-            status: e.status,
-            valor: Number(e.valor_total),
-            origem: e.origem,
-            plano: c ? `${c.codigo} ${c.nome}` : "—",
-            centro: e.centro_custo,
-          };
+          const planoLabel = c ? `${c.codigo} ${c.nome}` : "—";
+          const installs = installmentsByExp[e.id] || [];
+          if (installs.length > 0) {
+            installs.forEach((inst: any) => {
+              const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
+              const status = isOverdue ? "atrasado" : inst.status;
+              if (!inRange(inst.data_vencimento)) return;
+              if (!matchStatus(status)) return;
+              out.push({
+                id: `${e.id}-${inst.id}`,
+                data: inst.data_vencimento,
+                descricao: `${e.descricao} (P${inst.numero_parcela}/${installs.length})`,
+                pessoa: e.favorecido_nome || "—",
+                status,
+                valor: Number(inst.valor),
+                origem: e.origem,
+                plano: planoLabel,
+                centro: e.centro_custo,
+              });
+            });
+          } else {
+            const d = e.data_vencimento || e.data_emissao;
+            if (!inRange(d)) return;
+            if (!matchStatus(e.status)) return;
+            out.push({
+              id: e.id,
+              data: d,
+              descricao: e.descricao,
+              pessoa: e.favorecido_nome || "—",
+              status: e.status,
+              valor: Number(e.valor_total),
+              origem: e.origem,
+              plano: planoLabel,
+              centro: e.centro_custo,
+            });
+          }
         });
+        out.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+        result = out;
       } else if (reportType === "receivables") {
         let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
         if (filters.dataInicio) q = q.gte("data_vencimento", filters.dataInicio);
