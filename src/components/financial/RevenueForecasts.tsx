@@ -471,7 +471,7 @@ export function RevenueForecasts() {
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Icon className="h-3 w-3" />
-                        <span className="uppercase">{p.origem_tipo}</span>
+                        <span className="uppercase">{getOrigemLabel(p)}</span>
                         <span>· {formatDateBR(p.data_prevista)}</span>
                       </div>
                       <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
@@ -606,7 +606,7 @@ export function RevenueForecasts() {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs uppercase">{p.origem_tipo}</span>
+                              <span className="text-xs uppercase">{getOrigemLabel(p)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">{p.cliente_nome}</TableCell>
@@ -723,7 +723,7 @@ export function RevenueForecasts() {
                             <TableCell className="pl-8">
                               <div className="flex items-center gap-1.5">
                                 <Icon className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-[10px] uppercase text-muted-foreground">{p.origem_tipo}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemLabel(p)}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">
