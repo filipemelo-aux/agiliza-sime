@@ -855,7 +855,7 @@ ${previsoes.length > 0 ? `
           ? Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_por_ton || 0);
         const bruto = isCte
-          ? Number(cte?.valor_carga || cte?.valor_frete || 0)
+          ? (Number(cte?.peso_bruto || 0) / 1000) * Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_bruto || 0);
         const cteDescontoVal = isCte
           ? (() => {
