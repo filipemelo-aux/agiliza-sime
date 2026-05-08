@@ -32,6 +32,7 @@ import {
   deserializeDesconto,
 } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Props {
   open: boolean;
@@ -86,6 +87,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const { user } = useAuth();
   const { toast } = useToast();
   const { matrizId } = useUnifiedCompany();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
