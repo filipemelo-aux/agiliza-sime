@@ -491,6 +491,41 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       return;
     }
 
+    // Se já existe previsão FATURADA para este CT-e, exigir confirmação
+    let faturaIdParaRecalcular: string | null = null;
+    if (cte) {
+      const { data: prevExist } = await supabase
+        .from("previsoes_recebimento")
+        .select("id, status")
+        .eq("origem_tipo", "cte" as any)
+        .eq("origem_id", cte.id)
+        .maybeSingle();
+      if (prevExist?.status === "faturado") {
+        const { data: link } = await supabase
+          .from("fatura_previsoes")
+          .select("fatura_id, faturas_recebimento(numero, status)")
+          .eq("previsao_id", prevExist.id)
+          .maybeSingle();
+        const fatNum = (link as any)?.faturas_recebimento?.numero;
+        const fatStatus = (link as any)?.faturas_recebimento?.status;
+        if (fatStatus === "paga") {
+          toast({
+            title: "Fatura já quitada",
+            description: `O CT-e está vinculado à fatura Nº ${fatNum} que já foi paga. Estorne os recebimentos antes de alterar.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        const ok = await confirm({
+          title: "CT-e já faturado",
+          description: `Este CT-e já foi incluído na fatura Nº ${fatNum}. Ao prosseguir, os valores serão atualizados dentro da fatura (sem gerar nova previsão). Deseja continuar?`,
+          confirmLabel: "Prosseguir e atualizar fatura",
+        });
+        if (!ok) return;
+        faturaIdParaRecalcular = (link as any)?.fatura_id || null;
+      }
+    }
+
     setSaving(true);
     try {
       const { tipo_carga: _tc, ...formWithoutExtra } = form;
