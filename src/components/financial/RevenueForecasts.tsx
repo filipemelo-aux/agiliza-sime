@@ -56,6 +56,7 @@ export function RevenueForecasts() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
+  const [cteMap, setCteMap] = useState<Record<string, number>>({});
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
