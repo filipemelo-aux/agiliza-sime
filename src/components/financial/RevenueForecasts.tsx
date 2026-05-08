@@ -95,13 +95,32 @@ export function RevenueForecasts() {
       return;
     }
 
-    setPrevisoes(
-      (data || []).map((p: any) => ({
-        ...p,
-        cliente_nome: p.profiles?.full_name || "—",
-      }))
-    );
+    const mapped = (data || []).map((p: any) => ({
+      ...p,
+      cliente_nome: p.profiles?.full_name || "—",
+    }));
+
+    setPrevisoes(mapped);
     setSelected(new Set());
+
+    const cteIds = mapped
+      .filter((p: any) => p.origem_tipo === "cte" && p.origem_id)
+      .map((p: any) => p.origem_id);
+
+    if (cteIds.length > 0) {
+      const { data: ctes } = await supabase
+        .from("ctes")
+        .select("id, numero, numero_interno")
+        .in("id", cteIds);
+      const map: Record<string, number> = {};
+      (ctes || []).forEach((c: any) => {
+        map[c.id] = c.numero ?? c.numero_interno;
+      });
+      setCteMap(map);
+    } else {
+      setCteMap({});
+    }
+
     setLoading(false);
   };
 
