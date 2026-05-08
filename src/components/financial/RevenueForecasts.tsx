@@ -128,6 +128,13 @@ export function RevenueForecasts() {
     fetchPrevisoes();
   }, []);
 
+  const getOrigemLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return `CT-e ${cteMap[p.origem_id]}`;
+    }
+    return p.origem_tipo.toUpperCase();
+  };
+
   const pendentes = previsoes.filter((p) => p.status === "pendente");
   const faturadas = previsoes.filter((p) => p.status === "faturado");
 
