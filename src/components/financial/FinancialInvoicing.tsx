@@ -888,7 +888,7 @@ ${previsoes.length > 0 ? `
         const pesoCell = peso > 0
           ? `${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg` : "—";
         const vTonCell = vTon > 0 ? formatCurrency(vTon) : "—";
-        const brutoCell = bruto !== 0 ? formatCurrency(bruto) : "—";
+        const brutoCell = bruto > 0 ? formatCurrency(bruto) : "—";
         const descLabelCell = isManual ? manualDescontoLabel(meta?.desconto) : cteDescontoLabel;
         const vDescCell = vDesc > 0 ? formatCurrency(vDesc) : "—";
 
