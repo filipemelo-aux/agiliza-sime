@@ -589,7 +589,7 @@ export function FinancialInvoicing() {
     if (cteIds.length > 0) {
       const { data: cteData } = await supabase
         .from("ctes")
-        .select("id, numero, serie, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante, data_emissao")
+        .select("id, numero, numero_interno, tipo_talao, serie, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante, data_emissao")
         .in("id", [...new Set(cteIds)]);
       if (cteData) {
         cteData.forEach((c: any) => { ctesById[c.id] = c; });
