@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
