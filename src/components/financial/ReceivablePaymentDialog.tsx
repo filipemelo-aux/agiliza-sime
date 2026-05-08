@@ -91,7 +91,6 @@ export function ReceivablePaymentDialog({ open, onOpenChange, contaReceberId, va
   const handleConfirm = async () => {
     const valorNum = Number(valor);
     if (!valorNum || valorNum <= 0) return toast.error("Informe o valor recebido");
-    if (valorNum > saldo + 0.01) return toast.error(`Valor excede o saldo (${formatCurrency(saldo)})`);
     if (!formaRecebimento) return toast.error("Informe a forma de recebimento");
     if (!dataRecebimento) return toast.error("Informe a data");
     if (!user?.id) return toast.error("Sessão inválida");
