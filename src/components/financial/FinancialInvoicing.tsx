@@ -825,11 +825,13 @@ ${previsoes.length > 0 ? `
         const fazenda = hj?.farm_name || meta?.fazenda || "";
         const periodoInicio = meta?.periodo_inicio || hj?.harvest_period_start;
         const periodoFim = meta?.periodo_fim || hj?.harvest_period_end;
+        const isCte = p.origem_tipo === "cte";
+        const cte = isCte ? ctesById[p.origem_id] : null;
         let descricao: string;
         let badgeText: string;
-        if (p.origem_tipo === "cte") {
+        if (isCte) {
           descricao = "Conhecimento de Transporte";
-          badgeText = "CT-e";
+          badgeText = cte?.numero ? `CT-e ${cte.numero}` : "CT-e";
         } else if (p.origem_tipo === "manual") {
           const placa = meta?.placa ? ` · ${meta.placa}` : "";
           const motorista = meta?.motorista ? ` · ${meta.motorista}` : "";
@@ -844,10 +846,9 @@ ${previsoes.length > 0 ? `
           : formatDateBR(p.data_prevista);
 
         const isManual = p.origem_tipo === "manual";
-        const isCte = p.origem_tipo === "cte";
-        const cte = isCte ? ctesById[p.origem_id] : null;
 
         // Resolve real values: CT-e from ctes table, Manual from metadata
+
         const peso = isCte
           ? Number(cte?.peso_bruto || 0)
           : Number(meta?.peso_kg || 0);
