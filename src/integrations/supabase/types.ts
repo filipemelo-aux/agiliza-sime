@@ -3768,6 +3768,7 @@ export type Database = {
       next_mdfe_number:
         | { Args: never; Returns: number }
         | { Args: { _establishment_id: string }; Returns: number }
+      recalculate_fatura: { Args: { _fatura_id: string }; Returns: undefined }
       reset_stale_queue_locks: {
         Args: { _timeout_seconds?: number }
         Returns: number

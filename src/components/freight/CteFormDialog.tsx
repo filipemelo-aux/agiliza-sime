@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { MapPin, Building2, DollarSign, Truck, FileText, Loader2, Users, Package, Plus, X, FileSignature } from "lucide-react";
 import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -281,6 +282,7 @@ function ActorSection({
 export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
   const [savedCteForContract, setSavedCteForContract] = useState<Cte | null>(null);
@@ -489,6 +491,41 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       return;
     }
 
+    // Se já existe previsão FATURADA para este CT-e, exigir confirmação
+    let faturaIdParaRecalcular: string | null = null;
+    if (cte) {
+      const { data: prevExist } = await supabase
+        .from("previsoes_recebimento")
+        .select("id, status")
+        .eq("origem_tipo", "cte" as any)
+        .eq("origem_id", cte.id)
+        .maybeSingle();
+      if (prevExist?.status === "faturado") {
+        const { data: link } = await supabase
+          .from("fatura_previsoes")
+          .select("fatura_id, faturas_recebimento(numero, status)")
+          .eq("previsao_id", prevExist.id)
+          .maybeSingle();
+        const fatNum = (link as any)?.faturas_recebimento?.numero;
+        const fatStatus = (link as any)?.faturas_recebimento?.status;
+        if (fatStatus === "paga") {
+          toast({
+            title: "Fatura já quitada",
+            description: `O CT-e está vinculado à fatura Nº ${fatNum} que já foi paga. Estorne os recebimentos antes de alterar.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        const ok = await confirm({
+          title: "CT-e já faturado",
+          description: `Este CT-e já foi incluído na fatura Nº ${fatNum}. Ao prosseguir, os valores serão atualizados dentro da fatura (sem gerar nova previsão). Deseja continuar?`,
+          confirmLabel: "Prosseguir e atualizar fatura",
+        });
+        if (!ok) return;
+        faturaIdParaRecalcular = (link as any)?.fatura_id || null;
+      }
+    }
+
     setSaving(true);
     try {
       const { tipo_carga: _tc, ...formWithoutExtra } = form;
@@ -566,22 +603,33 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           .eq("origem_tipo", "cte" as any)
           .eq("origem_id", savedId)
           .maybeSingle();
-        const prevPayload = {
+        const prevPayload: any = {
           cliente_id: derivedTomadorId,
           valor: Number(form.valor_frete),
           data_prevista: dataPrev,
-          status: "pendente" as any,
         };
+        // Preserva status 'faturado' quando a previsão já está vinculada a uma fatura
+        if (!faturaIdParaRecalcular) {
+          prevPayload.status = "pendente";
+        }
         const { error: prevErr } = existingPrev?.id
           ? await supabase.from("previsoes_recebimento").update(prevPayload).eq("id", existingPrev.id)
           : await supabase.from("previsoes_recebimento").insert({
               origem_tipo: "cte" as any,
               origem_id: savedId,
               ...prevPayload,
+              status: "pendente",
             });
         if (prevErr) {
           console.error("Erro ao gerar previsão:", prevErr);
           toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        } else if (faturaIdParaRecalcular) {
+          const { error: recalcErr } = await supabase.rpc("recalculate_fatura", { _fatura_id: faturaIdParaRecalcular });
+          if (recalcErr) {
+            toast({ title: "Erro ao atualizar fatura", description: recalcErr.message, variant: "destructive" });
+          } else {
+            toast({ title: "Fatura atualizada", description: "Os valores e títulos da fatura foram recalculados." });
+          }
         }
       } else {
         toast({
@@ -1339,6 +1387,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         setShowCargaForm(false);
       }}
     />
+    {ConfirmDialog}
   </>
   );
 }
