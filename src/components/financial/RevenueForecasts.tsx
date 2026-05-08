@@ -56,6 +56,7 @@ export function RevenueForecasts() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
+  const [cteMap, setCteMap] = useState<Record<string, number>>({});
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
@@ -94,19 +95,45 @@ export function RevenueForecasts() {
       return;
     }
 
-    setPrevisoes(
-      (data || []).map((p: any) => ({
-        ...p,
-        cliente_nome: p.profiles?.full_name || "—",
-      }))
-    );
+    const mapped = (data || []).map((p: any) => ({
+      ...p,
+      cliente_nome: p.profiles?.full_name || "—",
+    }));
+
+    setPrevisoes(mapped);
     setSelected(new Set());
+
+    const cteIds = mapped
+      .filter((p: any) => p.origem_tipo === "cte" && p.origem_id)
+      .map((p: any) => p.origem_id);
+
+    if (cteIds.length > 0) {
+      const { data: ctes } = await supabase
+        .from("ctes")
+        .select("id, numero, numero_interno")
+        .in("id", cteIds);
+      const map: Record<string, number> = {};
+      (ctes || []).forEach((c: any) => {
+        map[c.id] = c.numero ?? c.numero_interno;
+      });
+      setCteMap(map);
+    } else {
+      setCteMap({});
+    }
+
     setLoading(false);
   };
 
   useEffect(() => {
     fetchPrevisoes();
   }, []);
+
+  const getOrigemLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return `CT-e ${cteMap[p.origem_id]}`;
+    }
+    return p.origem_tipo.toUpperCase();
+  };
 
   const pendentes = previsoes.filter((p) => p.status === "pendente");
   const faturadas = previsoes.filter((p) => p.status === "faturado");
@@ -444,7 +471,7 @@ export function RevenueForecasts() {
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Icon className="h-3 w-3" />
-                        <span className="uppercase">{p.origem_tipo}</span>
+                        <span className="uppercase">{getOrigemLabel(p)}</span>
                         <span>· {formatDateBR(p.data_prevista)}</span>
                       </div>
                       <span className="font-mono font-bold text-foreground">{formatCurrency(Number(p.valor))}</span>
@@ -579,7 +606,7 @@ export function RevenueForecasts() {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs uppercase">{p.origem_tipo}</span>
+                              <span className="text-xs uppercase">{getOrigemLabel(p)}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">{p.cliente_nome}</TableCell>
@@ -696,7 +723,7 @@ export function RevenueForecasts() {
                             <TableCell className="pl-8">
                               <div className="flex items-center gap-1.5">
                                 <Icon className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-[10px] uppercase text-muted-foreground">{p.origem_tipo}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemLabel(p)}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">
