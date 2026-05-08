@@ -831,7 +831,8 @@ ${previsoes.length > 0 ? `
         let badgeText: string;
         if (isCte) {
           descricao = "Conhecimento de Transporte";
-          badgeText = cte?.numero ? `CT-e ${cte.numero}` : "CT-e";
+          const cteNum = cte?.numero ?? cte?.numero_interno;
+          badgeText = cteNum ? `CT-e ${cteNum}` : "CT-e";
         } else if (p.origem_tipo === "manual") {
           const placa = meta?.placa ? ` · ${meta.placa}` : "";
           const motorista = meta?.motorista ? ` · ${meta.motorista}` : "";
