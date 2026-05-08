@@ -360,29 +360,32 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           .eq("origem_tipo", "cte" as any)
           .eq("origem_id", savedId)
           .maybeSingle();
-        if (existingPrev?.id) {
-          const { error: prevErr } = await supabase.from("previsoes_recebimento").update({
-            cliente_id: derivedTomadorId,
-            valor: valorFrete,
-            data_prevista: dataPrev,
-            status: "pendente" as any,
-          }).eq("id", existingPrev.id);
-          if (prevErr) {
-            console.error("Erro ao atualizar previsão:", prevErr);
-            toast({ title: "Aviso", description: `Previsão não atualizada: ${prevErr.message}`, variant: "destructive" });
-          }
-        } else {
-          const { error: prevErr } = await supabase.from("previsoes_recebimento").insert({
-            origem_tipo: "cte" as any,
-            origem_id: savedId,
-            cliente_id: derivedTomadorId,
-            valor: valorFrete,
-            data_prevista: dataPrev,
-            status: "pendente" as any,
-          });
-          if (prevErr) {
-            console.error("Erro ao gerar previsão:", prevErr);
-            toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        const prevPayload: any = {
+          cliente_id: derivedTomadorId,
+          valor: valorFrete,
+          data_prevista: dataPrev,
+        };
+        // Preserva status 'faturado' quando a previsão já está vinculada a uma fatura
+        if (!faturaIdParaRecalcular) {
+          prevPayload.status = "pendente";
+        }
+        const { error: prevErr } = existingPrev?.id
+          ? await supabase.from("previsoes_recebimento").update(prevPayload).eq("id", existingPrev.id)
+          : await supabase.from("previsoes_recebimento").insert({
+              origem_tipo: "cte" as any,
+              origem_id: savedId,
+              ...prevPayload,
+              status: "pendente",
+            });
+        if (prevErr) {
+          console.error("Erro ao gerar previsão:", prevErr);
+          toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        } else if (faturaIdParaRecalcular) {
+          const { error: recalcErr } = await supabase.rpc("recalculate_fatura", { _fatura_id: faturaIdParaRecalcular });
+          if (recalcErr) {
+            toast({ title: "Erro ao atualizar fatura", description: recalcErr.message, variant: "destructive" });
+          } else {
+            toast({ title: "Fatura atualizada", description: "Os valores e títulos da fatura foram recalculados." });
           }
         }
       } else {
