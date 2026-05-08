@@ -1387,6 +1387,7 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
         setShowCargaForm(false);
       }}
     />
+    {ConfirmDialog}
   </>
   );
 }
