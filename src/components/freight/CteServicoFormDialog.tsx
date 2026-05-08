@@ -426,6 +426,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   };
 
   return (
+    <>
+    {ConfirmDialog}
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
