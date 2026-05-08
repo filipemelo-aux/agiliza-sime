@@ -855,7 +855,7 @@ ${previsoes.length > 0 ? `
           ? Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_por_ton || 0);
         const bruto = isCte
-          ? Number(cte?.valor_carga || cte?.valor_frete || 0)
+          ? (Number(cte?.peso_bruto || 0) / 1000) * Number(cte?.valor_tonelada || 0)
           : Number(meta?.valor_bruto || 0);
         const cteDescontoVal = isCte
           ? (() => {
@@ -888,7 +888,7 @@ ${previsoes.length > 0 ? `
         const pesoCell = peso > 0
           ? `${peso.toLocaleString("pt-BR", { minimumFractionDigits: 0 })} kg` : "—";
         const vTonCell = vTon > 0 ? formatCurrency(vTon) : "—";
-        const brutoCell = bruto !== 0 ? formatCurrency(bruto) : "—";
+        const brutoCell = bruto > 0 ? formatCurrency(bruto) : "—";
         const descLabelCell = isManual ? manualDescontoLabel(meta?.desconto) : cteDescontoLabel;
         const vDescCell = vDesc > 0 ? formatCurrency(vDesc) : "—";
 
