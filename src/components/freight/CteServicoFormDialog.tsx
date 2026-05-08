@@ -32,6 +32,7 @@ import {
   deserializeDesconto,
 } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 
 interface Props {
   open: boolean;
@@ -86,6 +87,7 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   const { user } = useAuth();
   const { toast } = useToast();
   const { matrizId } = useUnifiedCompany();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
   const [gerarContrato, setGerarContrato] = useState(false);
@@ -201,6 +203,41 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
     if (valorBruto <= 0) {
       toast({ title: "Valor inválido", description: "Informe peso e valor por tonelada.", variant: "destructive" });
       return;
+    }
+
+    // Se já existe previsão FATURADA para este CT-e, exigir confirmação
+    let faturaIdParaRecalcular: string | null = null;
+    if (cte) {
+      const { data: prevExist } = await supabase
+        .from("previsoes_recebimento")
+        .select("id, status")
+        .eq("origem_tipo", "cte" as any)
+        .eq("origem_id", cte.id)
+        .maybeSingle();
+      if (prevExist?.status === "faturado") {
+        const { data: link } = await supabase
+          .from("fatura_previsoes")
+          .select("fatura_id, faturas_recebimento(numero, status)")
+          .eq("previsao_id", prevExist.id)
+          .maybeSingle();
+        const fatNum = (link as any)?.faturas_recebimento?.numero;
+        const fatStatus = (link as any)?.faturas_recebimento?.status;
+        if (fatStatus === "paga") {
+          toast({
+            title: "Fatura já quitada",
+            description: `O CT-e está vinculado à fatura Nº ${fatNum} que já foi paga. Estorne os recebimentos antes de alterar.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        const ok = await confirm({
+          title: "CT-e já faturado",
+          description: `Este CT-e já foi incluído na fatura Nº ${fatNum}. Ao prosseguir, os valores serão atualizados dentro da fatura (sem gerar nova previsão). Deseja continuar?`,
+          confirmLabel: "Prosseguir e atualizar fatura",
+        });
+        if (!ok) return;
+        faturaIdParaRecalcular = (link as any)?.fatura_id || null;
+      }
     }
 
     setSaving(true);
@@ -323,29 +360,32 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
           .eq("origem_tipo", "cte" as any)
           .eq("origem_id", savedId)
           .maybeSingle();
-        if (existingPrev?.id) {
-          const { error: prevErr } = await supabase.from("previsoes_recebimento").update({
-            cliente_id: derivedTomadorId,
-            valor: valorFrete,
-            data_prevista: dataPrev,
-            status: "pendente" as any,
-          }).eq("id", existingPrev.id);
-          if (prevErr) {
-            console.error("Erro ao atualizar previsão:", prevErr);
-            toast({ title: "Aviso", description: `Previsão não atualizada: ${prevErr.message}`, variant: "destructive" });
-          }
-        } else {
-          const { error: prevErr } = await supabase.from("previsoes_recebimento").insert({
-            origem_tipo: "cte" as any,
-            origem_id: savedId,
-            cliente_id: derivedTomadorId,
-            valor: valorFrete,
-            data_prevista: dataPrev,
-            status: "pendente" as any,
-          });
-          if (prevErr) {
-            console.error("Erro ao gerar previsão:", prevErr);
-            toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        const prevPayload: any = {
+          cliente_id: derivedTomadorId,
+          valor: valorFrete,
+          data_prevista: dataPrev,
+        };
+        // Preserva status 'faturado' quando a previsão já está vinculada a uma fatura
+        if (!faturaIdParaRecalcular) {
+          prevPayload.status = "pendente";
+        }
+        const { error: prevErr } = existingPrev?.id
+          ? await supabase.from("previsoes_recebimento").update(prevPayload).eq("id", existingPrev.id)
+          : await supabase.from("previsoes_recebimento").insert({
+              origem_tipo: "cte" as any,
+              origem_id: savedId,
+              ...prevPayload,
+              status: "pendente",
+            });
+        if (prevErr) {
+          console.error("Erro ao gerar previsão:", prevErr);
+          toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        } else if (faturaIdParaRecalcular) {
+          const { error: recalcErr } = await supabase.rpc("recalculate_fatura", { _fatura_id: faturaIdParaRecalcular });
+          if (recalcErr) {
+            toast({ title: "Erro ao atualizar fatura", description: recalcErr.message, variant: "destructive" });
+          } else {
+            toast({ title: "Fatura atualizada", description: "Os valores e títulos da fatura foram recalculados." });
           }
         }
       } else {
@@ -386,6 +426,8 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
   };
 
   return (
+    <>
+    {ConfirmDialog}
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
@@ -695,5 +737,6 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
         onSaved={onSaved}
       />
     </Sheet>
+    </>
   );
 }
