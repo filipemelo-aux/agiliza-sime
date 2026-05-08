@@ -603,22 +603,33 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
           .eq("origem_tipo", "cte" as any)
           .eq("origem_id", savedId)
           .maybeSingle();
-        const prevPayload = {
+        const prevPayload: any = {
           cliente_id: derivedTomadorId,
           valor: Number(form.valor_frete),
           data_prevista: dataPrev,
-          status: "pendente" as any,
         };
+        // Preserva status 'faturado' quando a previsão já está vinculada a uma fatura
+        if (!faturaIdParaRecalcular) {
+          prevPayload.status = "pendente";
+        }
         const { error: prevErr } = existingPrev?.id
           ? await supabase.from("previsoes_recebimento").update(prevPayload).eq("id", existingPrev.id)
           : await supabase.from("previsoes_recebimento").insert({
               origem_tipo: "cte" as any,
               origem_id: savedId,
               ...prevPayload,
+              status: "pendente",
             });
         if (prevErr) {
           console.error("Erro ao gerar previsão:", prevErr);
           toast({ title: "Aviso", description: `Previsão não gerada: ${prevErr.message}`, variant: "destructive" });
+        } else if (faturaIdParaRecalcular) {
+          const { error: recalcErr } = await supabase.rpc("recalculate_fatura", { _fatura_id: faturaIdParaRecalcular });
+          if (recalcErr) {
+            toast({ title: "Erro ao atualizar fatura", description: recalcErr.message, variant: "destructive" });
+          } else {
+            toast({ title: "Fatura atualizada", description: "Os valores e títulos da fatura foram recalculados." });
+          }
         }
       } else {
         toast({
