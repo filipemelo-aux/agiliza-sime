@@ -74,7 +74,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
     // Validate all values
     for (const it of items) {
       const v = getValor(it.id, it.valor);
-      if (!v || v <= 0) return toast.error(`Valor inválido para: ${it.descricao}`);
+      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
     }
 
     setSaving(true);
