@@ -153,7 +153,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
             (s, p) => s + (Number(p.valor) - Number(p.juros || 0)),
             0,
           );
-          novoStatus = novoPago + 0.005 >= valorTotal ? "pago" : (novoPago > 0 ? "parcial" : "pendente");
+          novoStatus = Math.abs(novoPago) + 0.005 >= Math.abs(valorTotal) ? "pago" : (novoPago !== 0 ? "parcial" : "pendente");
         }
 
         await supabase.from("expenses").update({
