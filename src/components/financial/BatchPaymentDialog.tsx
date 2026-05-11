@@ -107,7 +107,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
 
         if (item.tipo === "installment" && item.installmentId) {
           // Marca parcela como paga somente se cobriu o valor da parcela (com tolerância)
-          if (valorPago + 0.005 >= saldoItem) {
+          if (Math.abs(valorPago) + 0.005 >= Math.abs(saldoItem)) {
             const { error: e } = await supabase
               .from("expense_installments")
               .update({ status: "pago" } as any)
