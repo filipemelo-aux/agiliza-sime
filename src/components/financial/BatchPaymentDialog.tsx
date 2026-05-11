@@ -196,9 +196,23 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
                     {formatCurrency(item.valor)}
                   </span>
                   <Input
-                    className="h-7 w-28 text-xs font-mono"
-                    value={valores[item.id] ? maskCurrency(String(Math.round(parseFloat(valores[item.id]) * 100))) : ""}
-                    onChange={e => setValores(v => ({ ...v, [item.id]: unmaskCurrency(e.target.value) }))}
+                    className="h-7 w-32 text-xs font-mono"
+                    value={(() => {
+                      const raw = valores[item.id];
+                      if (raw === undefined || raw === "") return "";
+                      const num = parseFloat(raw);
+                      if (isNaN(num)) return "";
+                      const isNeg = num < 0;
+                      const masked = maskCurrency(String(Math.round(Math.abs(num) * 100)));
+                      return isNeg ? `-${masked}` : masked;
+                    })()}
+                    onChange={e => {
+                      const txt = e.target.value;
+                      const isNeg = txt.trim().startsWith("-");
+                      const unmasked = unmaskCurrency(txt);
+                      const next = unmasked === "" ? "" : (isNeg ? `-${unmasked}` : unmasked);
+                      setValores(v => ({ ...v, [item.id]: next }));
+                    }}
                   />
                   {Math.abs(diff) > 0.005 && (
                     <span className={`text-[10px] font-bold whitespace-nowrap ${diff > 0 ? "text-yellow-600" : "text-orange-600"}`}>
