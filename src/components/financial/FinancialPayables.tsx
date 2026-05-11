@@ -1615,9 +1615,20 @@ export function FinancialPayables() {
                             {formatCurrency(Number(item.valor_total))}
                           </p>
                           {item.valor_pago > 0 && !isPago && (
-                            <p className="text-[10px] text-muted-foreground font-mono">
-                              Pago: {formatCurrency(Number(item.valor_pago))}
-                            </p>
+                            <>
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                Pago: {formatCurrency(Number(item.valor_pago))}
+                              </p>
+                              {(() => {
+                                const falta = Number(item.valor_total) - Number(item.valor_pago);
+                                const isNeg = falta < 0;
+                                return (
+                                  <p className={`text-[10px] font-mono ${isNeg ? "text-destructive" : "text-amber-600"}`}>
+                                    {isNeg ? "Excedente: " : "Falta: "}{formatCurrency(falta)}
+                                  </p>
+                                );
+                              })()}
+                            </>
                           )}
                         </div>
                         <div>
