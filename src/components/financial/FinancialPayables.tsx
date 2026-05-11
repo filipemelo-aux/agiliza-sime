@@ -1620,11 +1620,17 @@ export function FinancialPayables() {
                                 Pago: {formatCurrency(Number(item.valor_pago))}
                               </p>
                               {(() => {
-                                const falta = Number(item.valor_total) - Number(item.valor_pago);
-                                const isNeg = falta < 0;
+                                const total = Number(item.valor_total);
+                                const pago = Number(item.valor_pago);
+                                const isNegBill = total < 0;
+                                const falta = total - pago;
+                                // Excedente: pago além do valor (em valor absoluto)
+                                const isExcedente = isNegBill ? falta > 0 : falta < 0;
+                                // Para títulos negativos, exibir sempre com sinal negativo
+                                const display = isNegBill ? -Math.abs(falta) : falta;
                                 return (
-                                  <p className={`text-[10px] font-mono ${isNeg ? "text-destructive" : "text-amber-600"}`}>
-                                    {isNeg ? "Excedente: " : "Falta: "}{formatCurrency(falta)}
+                                  <p className={`text-[10px] font-mono ${isExcedente ? "text-destructive" : "text-amber-600"}`}>
+                                    {isExcedente ? "Excedente: " : "Falta: "}{formatCurrency(display)}
                                   </p>
                                 );
                               })()}
