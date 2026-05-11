@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
@@ -44,66 +44,127 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
   const [observacoes, setObservacoes] = useState("");
   const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
+  // Per-item amount edits, keyed by item.id (string of cents)
+  const [valores, setValores] = useState<Record<string, string>>({});
 
-  const totalGeral = items.reduce((s, i) => s + i.valor, 0);
+  useEffect(() => {
+    if (open) {
+      const init: Record<string, string> = {};
+      items.forEach(it => { init[it.id] = String(it.valor); });
+      setValores(init);
+      setObservacoes("");
+      setFormaPagamento("pix");
+      setDataPagamento(getLocalDateISO());
+    }
+  }, [open, items]);
+
+  const getValor = (id: string, fallback: number) => {
+    const v = valores[id];
+    const n = v !== undefined ? Number(v) : fallback;
+    return isNaN(n) ? 0 : n;
+  };
+
+  const totalGeral = items.reduce((s, i) => s + getValor(i.id, i.valor), 0);
 
   const handleConfirm = async () => {
     if (items.length === 0) return;
+    if (!formaPagamento) return toast.error("Selecione a forma de pagamento");
+    if (!dataPagamento) return toast.error("Informe a data do pagamento");
+
+    // Validate all values
+    for (const it of items) {
+      const v = getValor(it.id, it.valor);
+      if (!v || v <= 0) return toast.error(`Valor inválido para: ${it.descricao}`);
+    }
+
     setSaving(true);
     const todayISO = dataPagamento;
 
     try {
+      // Group items by expenseId to recalc once per expense
+      const touchedExpenses = new Set<string>();
+
       for (const item of items) {
+        const valorPago = getValor(item.id, item.valor);
+        const saldoItem = item.valor; // valor original do item (parcela ou saldo da despesa)
+        const juros = Math.max(0, Math.round((valorPago - saldoItem) * 100) / 100);
+        const obsBase = observacoes.trim();
+        const obsFinal = juros > 0
+          ? `${obsBase ? obsBase + ' | ' : ''}Juros por atraso: R$ ${juros.toFixed(2).replace('.', ',')}`
+          : (obsBase || null);
+
+        // Insert payment record
+        const { error: payErr } = await supabase.from("expense_payments" as any).insert({
+          expense_id: item.expenseId,
+          valor: valorPago,
+          forma_pagamento: formaPagamento,
+          data_pagamento: todayISO,
+          observacoes: obsFinal,
+          created_by: user?.id,
+          juros,
+        } as any);
+        if (payErr) throw payErr;
+
         if (item.tipo === "installment" && item.installmentId) {
-          // Pay installment
-          await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", item.installmentId);
-          // We need to recalculate expense totals - this is handled by the parent after batch
+          // Marca parcela como paga somente se cobriu o valor da parcela (com tolerância)
+          if (valorPago + 0.005 >= saldoItem) {
+            const { error: e } = await supabase
+              .from("expense_installments")
+              .update({ status: "pago" } as any)
+              .eq("id", item.installmentId);
+            if (e) throw e;
+          }
+        }
+
+        touchedExpenses.add(item.expenseId);
+      }
+
+      // Recalc each touched expense
+      for (const expenseId of touchedExpenses) {
+        const { data: exp } = await supabase
+          .from("expenses")
+          .select("valor_total")
+          .eq("id", expenseId)
+          .maybeSingle();
+        if (!exp) continue;
+        const valorTotal = Number((exp as any).valor_total);
+
+        // Has installments?
+        const { data: insts } = await supabase
+          .from("expense_installments")
+          .select("valor, status")
+          .eq("expense_id", expenseId);
+
+        let novoPago = 0;
+        let novoStatus: string;
+        if (insts && insts.length > 0) {
+          novoPago = (insts as any[])
+            .filter(i => i.status === "pago")
+            .reduce((s, i) => s + Number(i.valor), 0);
+          const allPaid = (insts as any[]).every(i => i.status === "pago");
+          novoStatus = allPaid ? "pago" : (novoPago > 0 ? "parcial" : "pendente");
         } else {
-          // Pay full expense
-          await supabase.from("expense_payments" as any).insert({
-            expense_id: item.expenseId,
-            valor: item.valor,
-            forma_pagamento: formaPagamento,
-            data_pagamento: todayISO,
-            observacoes: observacoes.trim() || null,
-            created_by: user?.id,
-            juros: 0,
-          } as any);
+          // Sum payments (principal only, excluding juros)
+          const { data: pays } = await supabase
+            .from("expense_payments" as any)
+            .select("valor, juros")
+            .eq("expense_id", expenseId);
+          novoPago = ((pays as any[]) || []).reduce(
+            (s, p) => s + (Number(p.valor) - Number(p.juros || 0)),
+            0,
+          );
+          novoStatus = novoPago + 0.005 >= valorTotal ? "pago" : (novoPago > 0 ? "parcial" : "pendente");
         }
 
-        // Update expense status
-        // For installments, the parent will recalculate
-        if (item.tipo === "expense") {
-          await supabase.from("expenses").update({
-            valor_pago: item.valor,
-            status: "pago",
-            forma_pagamento: formaPagamento,
-            data_pagamento: todayISO,
-          } as any).eq("id", item.expenseId);
-        }
+        await supabase.from("expenses").update({
+          valor_pago: novoPago,
+          status: novoStatus,
+          forma_pagamento: formaPagamento,
+          data_pagamento: todayISO,
+        } as any).eq("id", expenseId);
       }
 
-      // For installments, recalculate expense totals
-      const installmentsByExpense = new Map<string, number>();
-      items.filter(i => i.tipo === "installment").forEach(i => {
-        installmentsByExpense.set(i.expenseId, (installmentsByExpense.get(i.expenseId) || 0) + i.valor);
-      });
-
-      for (const [expenseId, addedValue] of installmentsByExpense) {
-        const { data: exp } = await supabase.from("expenses").select("valor_pago, valor_total").eq("id", expenseId).maybeSingle();
-        if (exp) {
-          const newPago = Number((exp as any).valor_pago) + addedValue;
-          const newStatus = newPago >= Number((exp as any).valor_total) ? "pago" : "parcial";
-          await supabase.from("expenses").update({
-            valor_pago: newPago,
-            status: newStatus,
-            forma_pagamento: formaPagamento,
-            data_pagamento: todayISO,
-          } as any).eq("id", expenseId);
-        }
-      }
-
-      toast.success(`${items.length} conta(s) quitada(s)`);
+      toast.success(`${items.length} pagamento(s) processado(s)`);
       setSaving(false);
       onOpenChange(false);
       onSaved();
@@ -115,22 +176,38 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Pagamento em Lote — {items.length} conta(s)</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Summary */}
-          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2 max-h-[200px] overflow-y-auto">
-            {items.map((item, idx) => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground truncate max-w-[280px]">
-                  {idx + 1}. {item.descricao}
-                  {item.numeroParcela ? ` (P${item.numeroParcela}/${item.totalParcelas})` : ""}
-                </span>
-                <span className="font-mono font-medium text-foreground">{formatCurrency(item.valor)}</span>
-              </div>
-            ))}
+          {/* Editable items list */}
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2 max-h-[280px] overflow-y-auto">
+            {items.map((item, idx) => {
+              const valorPago = getValor(item.id, item.valor);
+              const diff = Math.round((valorPago - item.valor) * 100) / 100;
+              return (
+                <div key={item.id} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground truncate flex-1 min-w-0">
+                    {idx + 1}. {item.descricao}
+                    {item.numeroParcela ? ` (P${item.numeroParcela}/${item.totalParcelas})` : ""}
+                  </span>
+                  <span className="text-muted-foreground font-mono whitespace-nowrap">
+                    {formatCurrency(item.valor)}
+                  </span>
+                  <Input
+                    className="h-7 w-28 text-xs font-mono"
+                    value={valores[item.id] ? maskCurrency(String(Math.round(parseFloat(valores[item.id]) * 100))) : ""}
+                    onChange={e => setValores(v => ({ ...v, [item.id]: unmaskCurrency(e.target.value) }))}
+                  />
+                  {Math.abs(diff) > 0.005 && (
+                    <span className={`text-[10px] font-bold whitespace-nowrap ${diff > 0 ? "text-yellow-600" : "text-orange-600"}`}>
+                      {diff > 0 ? `+${formatCurrency(diff)} juros` : `${formatCurrency(diff)} parcial`}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-between rounded-md bg-primary/5 p-3">
