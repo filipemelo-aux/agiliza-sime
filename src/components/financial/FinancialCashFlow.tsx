@@ -152,7 +152,39 @@ export function FinancialCashFlow() {
       (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
     }
 
-    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || null })));
+    const enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || null }));
+
+    // Group movimentacoes that share a lote_id into a single aggregated row
+    const grouped: MovimentacaoEnriquecida[] = [];
+    const loteAcc = new Map<string, MovimentacaoEnriquecida>();
+    for (const mov of enriched) {
+      if (!mov.lote_id) { grouped.push(mov); continue; }
+      const existing = loteAcc.get(mov.lote_id);
+      if (!existing) {
+        loteAcc.set(mov.lote_id, {
+          ...mov,
+          valor: Number(mov.valor),
+          lote_count: 1,
+          lote_pessoas: mov.pessoa_nome ? [mov.pessoa_nome] : [],
+        });
+      } else {
+        existing.valor = Number(existing.valor) + Number(mov.valor);
+        existing.lote_count = (existing.lote_count || 1) + 1;
+        if (mov.pessoa_nome && !existing.lote_pessoas!.includes(mov.pessoa_nome)) {
+          existing.lote_pessoas!.push(mov.pessoa_nome);
+        }
+      }
+    }
+    for (const agg of loteAcc.values()) {
+      const pessoas = agg.lote_pessoas || [];
+      agg.pessoa_nome = pessoas.length === 0 ? null
+        : pessoas.length <= 2 ? pessoas.join(", ")
+        : `${pessoas.slice(0, 2).join(", ")} +${pessoas.length - 2}`;
+      agg.descricao = `Pagamento em lote — ${agg.lote_count} conta(s)`;
+      grouped.push(agg);
+    }
+    grouped.sort((a, b) => b.data_movimentacao.localeCompare(a.data_movimentacao));
+    setMovimentacoes(grouped);
     setLoading(false);
   }, [filters]);
 
