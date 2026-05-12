@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, formatDateBR } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
