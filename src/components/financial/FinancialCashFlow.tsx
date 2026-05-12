@@ -342,7 +342,10 @@ export function FinancialCashFlow() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{formatDateBR(m.data_movimentacao)}</span>
-                    <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                    <div className="flex gap-1">
+                      <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                      {m.lote_id && <Badge variant="outline" className="text-[9px]">Lote {m.lote_count}</Badge>}
+                    </div>
                   </div>
                   {(m.pessoa_nome || m.descricao) && (
                     <p className="text-xs text-foreground truncate">
