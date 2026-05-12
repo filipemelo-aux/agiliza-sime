@@ -549,6 +549,7 @@ export function FinancialPayables() {
               installmentId: instId,
               numeroParcela: foundInst.numero_parcela,
               totalParcelas: installs.length,
+              dataVencimento: foundInst.data_vencimento,
             });
             break;
           }
@@ -562,6 +563,7 @@ export function FinancialPayables() {
           valor: Number(item.valor_total) - Number(item.valor_pago),
           tipo: "expense",
           expenseId: item.id,
+          dataVencimento: item.data_vencimento,
         });
       }
     }
