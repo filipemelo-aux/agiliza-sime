@@ -80,6 +80,8 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
 
     setSaving(true);
     const todayISO = dataPagamento;
+    // Shared lote_id only when there is more than one item, so cash flow can group them
+    const loteId = items.length > 1 ? (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : null) : null;
 
     try {
       // Group items by expenseId to recalc once per expense
