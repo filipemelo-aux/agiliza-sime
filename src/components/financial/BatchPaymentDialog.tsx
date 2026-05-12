@@ -29,6 +29,7 @@ interface BatchItem {
   installmentId?: string;
   numeroParcela?: number;
   totalParcelas?: number;
+  dataVencimento?: string | null;
 }
 
 interface Props {
