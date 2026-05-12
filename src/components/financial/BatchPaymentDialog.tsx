@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
-import { getLocalDateISO } from "@/lib/date";
+import { getLocalDateISO, formatDateBR } from "@/lib/date";
 
 const FORMA_PAGAMENTO_OPTIONS = [
   { value: "pix", label: "PIX" },
@@ -29,6 +29,7 @@ interface BatchItem {
   installmentId?: string;
   numeroParcela?: number;
   totalParcelas?: number;
+  dataVencimento?: string | null;
 }
 
 interface Props {
@@ -189,7 +190,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
               return (
                 <div key={item.id} className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground truncate flex-1 min-w-0">
-                    {idx + 1}. {item.descricao}
+                    {idx + 1}.
+                    {item.dataVencimento ? <span className="ml-1 font-mono text-foreground">{formatDateBR(item.dataVencimento)}</span> : null}
+                    <span className="ml-1">— {item.descricao}</span>
                     {item.numeroParcela ? ` (P${item.numeroParcela}/${item.totalParcelas})` : ""}
                   </span>
                   <span className="text-muted-foreground font-mono whitespace-nowrap">
