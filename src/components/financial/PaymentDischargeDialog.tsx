@@ -157,7 +157,7 @@ export function PaymentDischargeDialog({
     } else {
       // ---- REGULAR MODE: update expense directly ----
       const novoValorPago = valorPago + valorPrincipal;
-      const novoStatus = Math.abs(novoValorPago) + 0.005 >= Math.abs(valorTotal) ? "pago" : "parcial";
+      const novoStatus = novoValorPago + 0.005 >= valorTotal ? "pago" : "parcial";
 
       const { error } = await supabase.from("expenses").update({
         valor_pago: novoValorPago,
