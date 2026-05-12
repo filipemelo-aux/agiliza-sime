@@ -34,10 +34,13 @@ interface Movimentacao {
   data_movimentacao: string;
   descricao: string | null;
   created_at: string;
+  lote_id: string | null;
 }
 
 interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
+  lote_count?: number;
+  lote_pessoas?: string[];
 }
 
 export function FinancialCashFlow() {
