@@ -190,7 +190,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
               return (
                 <div key={item.id} className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground truncate flex-1 min-w-0">
-                    {idx + 1}. {item.descricao}
+                    {idx + 1}.
+                    {item.dataVencimento ? <span className="ml-1 font-mono text-foreground">{formatDateBR(item.dataVencimento)}</span> : null}
+                    <span className="ml-1">— {item.descricao}</span>
                     {item.numeroParcela ? ` (P${item.numeroParcela}/${item.totalParcelas})` : ""}
                   </span>
                   <span className="text-muted-foreground font-mono whitespace-nowrap">
