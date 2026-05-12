@@ -374,7 +374,10 @@ export function FinancialCashFlow() {
                           {m.tipo === "entrada" ? "Entrada" : "Saída"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap py-2">
+                        {origemLabel(m.origem)}
+                        {m.lote_id && <Badge variant="outline" className="ml-1 text-[9px]">Lote {m.lote_count}</Badge>}
+                      </TableCell>
                       <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
                       <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
