@@ -105,6 +105,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
           observacoes: obsFinal,
           created_by: user?.id,
           juros,
+          lote_id: loteId,
         } as any);
         if (payErr) throw payErr;
 
