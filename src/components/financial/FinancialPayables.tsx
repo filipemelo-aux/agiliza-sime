@@ -1614,7 +1614,7 @@ export function FinancialPayables() {
                           <p className="font-mono font-semibold text-foreground">
                             {formatCurrency(Number(item.valor_total))}
                           </p>
-                          {item.valor_pago > 0 && !isPago && (
+                          {Math.abs(Number(item.valor_pago)) > 0.005 && !isPago && (
                             <>
                               <p className="text-[10px] text-muted-foreground font-mono">
                                 Pago: {formatCurrency(Number(item.valor_pago))}
