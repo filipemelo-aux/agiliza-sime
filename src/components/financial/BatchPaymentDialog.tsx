@@ -47,8 +47,13 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
   const [observacoes, setObservacoes] = useState("");
   const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
   // Per-item amount edits, keyed by item.id (string of cents)
   const [valores, setValores] = useState<Record<string, string>>({});
+  // Metadata of source expenses (for "Criar Conta a Pagar" flow)
+  const [expensesMeta, setExpensesMeta] = useState<Record<string, any>>({});
+  const [novoFavorecidoId, setNovoFavorecidoId] = useState<string>("");
+  const [novaDataVencimento, setNovaDataVencimento] = useState<string>(getLocalDateISO());
 
   useEffect(() => {
     if (open) {
@@ -58,8 +63,38 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       setObservacoes("");
       setFormaPagamento("pix");
       setDataPagamento(getLocalDateISO());
+      setNovaDataVencimento(getLocalDateISO());
+      setNovoFavorecidoId("");
+      setExpensesMeta({});
+
+      // Load expense metadata for consolidated/create flow
+      if (consolidated && items.length > 0) {
+        const expenseIds = Array.from(new Set(items.map(i => i.expenseId)));
+        supabase
+          .from("expenses")
+          .select("id, favorecido_id, favorecido_nome, empresa_id, plano_contas_id, centro_custo, tipo_despesa")
+          .in("id", expenseIds)
+          .then(({ data }) => {
+            const map: Record<string, any> = {};
+            ((data as any[]) || []).forEach(e => { map[e.id] = e; });
+            setExpensesMeta(map);
+            // Auto-pick favorecido if all the same
+            const favs = Array.from(new Set(((data as any[]) || []).map(e => e.favorecido_id).filter(Boolean)));
+            if (favs.length === 1) setNovoFavorecidoId(favs[0] as string);
+          });
+      }
     }
-  }, [open, items]);
+  }, [open, items, consolidated]);
+
+  // Distinct favorecidos derived from loaded metadata
+  const favorecidosDistintos = (() => {
+    const seen = new Map<string, string>();
+    Object.values(expensesMeta).forEach((e: any) => {
+      if (e?.favorecido_id) seen.set(e.favorecido_id, e.favorecido_nome || "—");
+    });
+    return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome }));
+  })();
+  const hasInstallments = items.some(i => i.tipo === "installment");
 
   const getValor = (id: string, fallback: number) => {
     const v = valores[id];
@@ -212,6 +247,68 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     }
   };
 
+  const handleCreatePayable = async () => {
+    if (items.length === 0) return;
+    if (hasInstallments) {
+      return toast.error("Não é possível agrupar parcelas. Selecione apenas contas inteiras.");
+    }
+    if (!novaDataVencimento) return toast.error("Informe a data de vencimento da nova conta");
+    if (favorecidosDistintos.length === 0) return toast.error("Carregando favorecidos, aguarde...");
+    if (!novoFavorecidoId) return toast.error("Selecione o favorecido da nova conta");
+
+    for (const it of items) {
+      const v = getValor(it.id, it.valor);
+      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+    }
+
+    setCreating(true);
+    try {
+      const total = items.reduce((s, i) => s + getValor(i.id, i.valor), 0);
+      const template = expensesMeta[items[0].expenseId];
+      if (!template) throw new Error("Metadados da conta original não carregados");
+
+      const favorecidoNome = favorecidosDistintos.find(f => f.id === novoFavorecidoId)?.nome || null;
+      const expenseIds = Array.from(new Set(items.map(i => i.expenseId)));
+
+      const descricaoBase = `Agrupamento de ${items.length} conta(s)`;
+      const obsLista = items.map((it, i) => `${i + 1}. ${it.descricao} — ${formatCurrency(getValor(it.id, it.valor))}`).join("\n");
+      const obsFinal = [observacoes.trim(), `Contas agrupadas:\n${obsLista}`].filter(Boolean).join("\n\n");
+
+      const { error: insErr } = await supabase.from("expenses").insert({
+        empresa_id: template.empresa_id,
+        descricao: descricaoBase + (favorecidoNome ? ` - ${favorecidoNome}` : ""),
+        plano_contas_id: template.plano_contas_id,
+        centro_custo: template.centro_custo,
+        tipo_despesa: template.tipo_despesa,
+        valor_total: total,
+        data_emissao: novaDataVencimento,
+        data_vencimento: novaDataVencimento,
+        data_competencia: novaDataVencimento,
+        status: "pendente",
+        favorecido_id: novoFavorecidoId,
+        favorecido_nome: favorecidoNome,
+        observacoes: obsFinal,
+        created_by: user?.id,
+        origem: "manual",
+      } as any);
+      if (insErr) throw insErr;
+
+      const { error: delErr } = await supabase
+        .from("expenses")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .in("id", expenseIds);
+      if (delErr) throw delErr;
+
+      toast.success(`Nova conta a pagar criada (${items.length} contas agrupadas)`);
+      setCreating(false);
+      onOpenChange(false);
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar conta a pagar");
+      setCreating(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -296,9 +393,55 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
 
-          <Button onClick={handleConfirm} className="w-full" disabled={saving}>
-            {saving ? "Processando..." : "Confirmar Pagamento"}
-          </Button>
+          {consolidated && !hasInstallments && (
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                Criar nova conta a pagar (agrupar)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Vencimento da nova conta</Label>
+                  <Input
+                    type="date"
+                    value={novaDataVencimento}
+                    onChange={e => setNovaDataVencimento(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">
+                    Favorecido {favorecidosDistintos.length > 1 ? "(múltiplos detectados)" : ""}
+                  </Label>
+                  <Select value={novoFavorecidoId} onValueChange={setNovoFavorecidoId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {favorecidosDistintos.map(f => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            {consolidated && !hasInstallments && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCreatePayable}
+                className="sm:flex-1"
+                disabled={creating || saving}
+              >
+                {creating ? "Criando..." : "Criar Conta a Pagar"}
+              </Button>
+            )}
+            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating}>
+              {saving ? "Processando..." : "Confirmar Pagamento"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
