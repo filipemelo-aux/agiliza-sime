@@ -1389,7 +1389,7 @@ export function FinancialPayables() {
                   {batchPaying ? "Processando..." : "Pagar"}
                 </Button>
               )}
-              {hasSelectedUnpaid && (
+              {selectedUnpaidCount > 1 && (
                 <Button
                   size="sm"
                   variant="outline"
