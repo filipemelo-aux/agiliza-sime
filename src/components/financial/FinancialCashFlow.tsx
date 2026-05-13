@@ -344,39 +344,64 @@ export function FinancialCashFlow() {
             <p className="text-center py-8 text-sm text-muted-foreground">Nenhuma movimentação no período</p>
           ) : isMobile ? (
             <div className="divide-y divide-border">
-              {movimentacoes.map((m) => (
-                <div key={m.id} className="p-3 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge
-                      variant={m.tipo === "entrada" ? "default" : "destructive"}
-                      className={cn("text-[10px] shrink-0", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+              {movimentacoes.map((m) => {
+                const isLote = !!m.lote_id && (m.lote_count || 0) > 1;
+                const expanded = isLote && expandedLotes.has(m.id);
+                return (
+                  <div key={m.id}>
+                    <div
+                      className={cn("p-3 space-y-1.5", isLote && "cursor-pointer hover:bg-muted/40")}
+                      onClick={isLote ? () => toggleLote(m.id) : undefined}
                     >
-                      {m.tipo === "entrada" ? "Entrada" : "Saída"}
-                    </Badge>
-                    <span className={cn("text-sm font-mono font-bold", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
-                      {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{formatDateBR(m.data_movimentacao)}</span>
-                    <div className="flex gap-1">
-                      <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
-                      {m.lote_id && <Badge variant="outline" className="text-[9px]">Lote {m.lote_count}</Badge>}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {isLote && (expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />)}
+                          <Badge
+                            variant={m.tipo === "entrada" ? "default" : "destructive"}
+                            className={cn("text-[10px] shrink-0", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+                          >
+                            {m.tipo === "entrada" ? "Entrada" : "Saída"}
+                          </Badge>
+                        </div>
+                        <span className={cn("text-sm font-mono font-bold", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                          {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{formatDateBR(m.data_movimentacao)}</span>
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className="text-[9px]">{origemLabel(m.origem)}</Badge>
+                          {isLote && <Badge variant="outline" className="text-[9px]">Lote {m.lote_count}</Badge>}
+                        </div>
+                      </div>
+                      {(m.pessoa_nome || m.descricao) && (
+                        <p className="text-xs text-foreground truncate">
+                          {m.pessoa_nome || m.descricao}
+                        </p>
+                      )}
                     </div>
+                    {expanded && m.lote_children && (
+                      <div className="bg-muted/20 px-3 py-2 space-y-1.5 border-t border-border">
+                        {m.lote_children.map((c) => (
+                          <div key={c.id} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground truncate flex-1">{c.pessoa_nome || c.descricao || "—"}</span>
+                            <span className={cn("font-mono shrink-0 ml-2", c.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                              {c.tipo === "saida" ? "- " : "+ "}{formatCurrency(Number(c.valor))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {(m.pessoa_nome || m.descricao) && (
-                    <p className="text-xs text-foreground truncate">
-                      {m.pessoa_nome || m.descricao}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="text-xs w-6"></TableHead>
                     <TableHead className="text-xs">Data</TableHead>
                     <TableHead className="text-xs">Tipo</TableHead>
                     <TableHead className="text-xs">Origem</TableHead>
@@ -386,25 +411,55 @@ export function FinancialCashFlow() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movimentacoes.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(m.data_movimentacao)}</TableCell>
-                      <TableCell className="py-2">
-                        <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn("text-[10px]", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
-                          {m.tipo === "entrada" ? "Entrada" : "Saída"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap py-2">
-                        {origemLabel(m.origem)}
-                        {m.lote_id && <Badge variant="outline" className="ml-1 text-[9px]">Lote {m.lote_count}</Badge>}
-                      </TableCell>
-                      <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
-                      <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
-                      <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
-                        {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {movimentacoes.map((m) => {
+                    const isLote = !!m.lote_id && (m.lote_count || 0) > 1;
+                    const expanded = isLote && expandedLotes.has(m.id);
+                    return (
+                      <>
+                        <TableRow
+                          key={m.id}
+                          className={cn(isLote && "cursor-pointer hover:bg-muted/40")}
+                          onClick={isLote ? () => toggleLote(m.id) : undefined}
+                        >
+                          <TableCell className="py-2 w-6">
+                            {isLote && (expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />)}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(m.data_movimentacao)}</TableCell>
+                          <TableCell className="py-2">
+                            <Badge variant={m.tipo === "entrada" ? "default" : "destructive"} className={cn("text-[10px]", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}>
+                              {m.tipo === "entrada" ? "Entrada" : "Saída"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap py-2">
+                            {origemLabel(m.origem)}
+                            {isLote && <Badge variant="outline" className="ml-1 text-[9px]">Lote {m.lote_count}</Badge>}
+                          </TableCell>
+                          <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
+                          <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
+                          <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                            {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
+                          </TableCell>
+                        </TableRow>
+                        {expanded && m.lote_children?.map((c) => (
+                          <TableRow key={c.id} className="bg-muted/20">
+                            <TableCell className="py-1.5 w-6"></TableCell>
+                            <TableCell className="text-xs whitespace-nowrap py-1.5 text-muted-foreground">↳</TableCell>
+                            <TableCell className="py-1.5">
+                              <Badge variant="outline" className={cn("text-[10px]", c.tipo === "entrada" ? "text-green-700 border-green-300" : "text-red-700 border-red-300")}>
+                                {c.tipo === "entrada" ? "Entrada" : "Saída"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-muted-foreground">{origemLabel(c.origem)}</TableCell>
+                            <TableCell className="text-xs max-w-[140px] truncate py-1.5">{c.pessoa_nome || "—"}</TableCell>
+                            <TableCell className="text-xs max-w-[180px] truncate py-1.5">{c.descricao || "—"}</TableCell>
+                            <TableCell className={cn("text-right font-mono text-xs py-1.5", c.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                              {c.tipo === "saida" ? "- " : "+ "}{formatCurrency(Number(c.valor))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
