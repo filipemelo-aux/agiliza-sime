@@ -224,10 +224,12 @@ export function FinancialPaid() {
     const groupItems: PaidItem[] = Array.from(groupedMap.entries()).map(([loteId, payments]) => {
       const total = payments.reduce((s, p) => s + Number(p.valor || 0), 0);
       const first = payments[0];
-      const favorecidos = new Set(payments.map(p => p.expenses?.favorecido_nome).filter(Boolean));
-      const creditor = favorecidos.size === 1
-        ? Array.from(favorecidos)[0] as string
-        : `${favorecidos.size} favorecidos`;
+      const favorecidos = Array.from(new Set(payments.map(p => p.expenses?.favorecido_nome).filter(Boolean))) as string[];
+      const creditor = favorecidos.length === 0
+        ? "Sem favorecido"
+        : favorecidos.length === 1
+          ? favorecidos[0]
+          : `${favorecidos.length} favorecidos: ${favorecidos.join(", ")}`;
       return {
         id: `group-${loteId}`,
         description: `Pagamento agrupado de ${payments.length} conta(s)`,
