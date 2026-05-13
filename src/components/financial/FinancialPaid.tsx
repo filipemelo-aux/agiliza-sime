@@ -335,6 +335,26 @@ export function FinancialPaid() {
 
   // --- Detail ---
   const openDetail = async (item: PaidItem) => {
+    if (item.source === "group" && item.lote_id) {
+      setDetailOpen(true);
+      setDetailLoading(true);
+      setDetailExpense(null);
+      setDetailPayments([]);
+      setDetailChart(null);
+
+      const { data: payments } = await supabase
+        .from("expense_payments" as any)
+        .select(`
+          id, valor, forma_pagamento, data_pagamento, observacoes,
+          expenses:expense_id ( descricao, favorecido_nome, documento_fiscal_numero )
+        `)
+        .eq("lote_id", item.lote_id)
+        .order("created_at");
+      setDetailPayments((payments || []) as any);
+      setDetailLoading(false);
+      return;
+    }
+
     if (!item.expense_id) return;
     setDetailOpen(true);
     setDetailLoading(true);
@@ -370,15 +390,22 @@ export function FinancialPaid() {
 
   // --- Reverse ---
   const handleReverseSingle = async (item: PaidItem) => {
-    if (item.source !== "expense_payment" || !item.expense_id) return;
+    if (item.source === "legacy") return;
+    const label = item.source === "group"
+      ? `o pagamento agrupado de ${item.group_count} conta(s)`
+      : `o pagamento de "${item.creditor_name || item.description}"`;
     if (!await confirm({
       title: "Estornar pagamento",
-      description: `Deseja estornar o pagamento de "${item.creditor_name || item.description}"? O registro será removido e o saldo da despesa recalculado.`,
+      description: `Deseja estornar ${label}? Os registros serão removidos e os saldos das despesas recalculados.`,
     })) return;
 
     setReversing(true);
     try {
-      await reversePayment(item);
+      if (item.source === "group") {
+        await reverseGroup(item);
+      } else {
+        await reversePayment(item);
+      }
       toast.success("Pagamento estornado com sucesso");
       setSelectedIds(new Set());
       await fetchData();
@@ -399,7 +426,10 @@ export function FinancialPaid() {
     try {
       for (const id of selectedIds) {
         const item = items.find(i => i.id === id);
-        if (item && item.source === "expense_payment") {
+        if (!item) continue;
+        if (item.source === "group") {
+          await reverseGroup(item);
+        } else if (item.source === "expense_payment") {
           await reversePayment(item);
         }
       }
@@ -410,6 +440,61 @@ export function FinancialPaid() {
       toast.error(err.message || "Erro ao estornar");
     }
     setReversing(false);
+  };
+
+  const reverseGroup = async (item: PaidItem) => {
+    if (!item.lote_id) return;
+    // Fetch all payments in lote with their expense_id
+    const { data: payments } = await supabase
+      .from("expense_payments" as any)
+      .select("id, expense_id")
+      .eq("lote_id", item.lote_id);
+
+    const expenseIds = [...new Set((payments || []).map((p: any) => p.expense_id))];
+
+    // Delete all payments (trigger handles consolidated cash flow cleanup)
+    await supabase.from("expense_payments" as any).delete().eq("lote_id", item.lote_id);
+
+    // Recalc each touched expense
+    for (const expenseId of expenseIds) {
+      const { data: remaining } = await supabase
+        .from("expense_payments" as any)
+        .select("valor, juros")
+        .eq("expense_id", expenseId);
+      const totalPago = (remaining || []).reduce(
+        (s: number, p: any) => s + (Number(p.valor) - Number(p.juros || 0)),
+        0,
+      );
+      const { data: expense } = await supabase
+        .from("expenses").select("valor_total").eq("id", expenseId).maybeSingle();
+      const valorTotal = expense ? Number((expense as any).valor_total) : 0;
+      let newStatus = "pendente";
+      if (totalPago + 0.005 >= valorTotal && totalPago > 0) newStatus = "pago";
+      else if (totalPago !== 0) newStatus = "parcial";
+
+      await supabase.from("expenses").update({
+        valor_pago: totalPago,
+        status: newStatus,
+        ...(totalPago === 0 ? { data_pagamento: null } : {}),
+      } as any).eq("id", expenseId);
+
+      // Reset installments if needed
+      const { data: insts } = await supabase
+        .from("expense_installments")
+        .select("id, valor, status")
+        .eq("expense_id", expenseId)
+        .eq("status", "pago" as any);
+      const totalInstPago = (insts || []).reduce((s: number, i: any) => s + Number(i.valor), 0);
+      if (insts && insts.length > 0 && totalPago < totalInstPago) {
+        const sorted = [...insts].reverse();
+        let deficit = totalInstPago - totalPago;
+        for (const inst of sorted) {
+          if (deficit <= 0) break;
+          await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+          deficit -= Number(inst.valor);
+        }
+      }
+    }
   };
 
   const reversePayment = async (item: PaidItem) => {
