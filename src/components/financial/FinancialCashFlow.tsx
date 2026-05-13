@@ -154,33 +154,41 @@ export function FinancialCashFlow() {
 
     const enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || null }));
 
-    // Group movimentacoes that share a lote_id into a single aggregated row
+    // Group movimentacoes that share a lote_id into a single aggregated row.
+    // Sum values with sign (entrada=+, saida=-) so that batches containing
+    // negative payments (discounts/reversals) collapse to the correct net.
     const grouped: MovimentacaoEnriquecida[] = [];
-    const loteAcc = new Map<string, MovimentacaoEnriquecida>();
+    const loteAcc = new Map<string, { agg: MovimentacaoEnriquecida; net: number }>();
     for (const mov of enriched) {
       if (!mov.lote_id) { grouped.push(mov); continue; }
+      const signed = (mov.tipo === "entrada" ? 1 : -1) * Number(mov.valor);
       const existing = loteAcc.get(mov.lote_id);
       if (!existing) {
         loteAcc.set(mov.lote_id, {
-          ...mov,
-          valor: Number(mov.valor),
-          lote_count: 1,
-          lote_pessoas: mov.pessoa_nome ? [mov.pessoa_nome] : [],
+          agg: {
+            ...mov,
+            valor: 0, // set after loop
+            lote_count: 1,
+            lote_pessoas: mov.pessoa_nome ? [mov.pessoa_nome] : [],
+          },
+          net: signed,
         });
       } else {
-        existing.valor = Number(existing.valor) + Number(mov.valor);
-        existing.lote_count = (existing.lote_count || 1) + 1;
-        if (mov.pessoa_nome && !existing.lote_pessoas!.includes(mov.pessoa_nome)) {
-          existing.lote_pessoas!.push(mov.pessoa_nome);
+        existing.net += signed;
+        existing.agg.lote_count = (existing.agg.lote_count || 1) + 1;
+        if (mov.pessoa_nome && !existing.agg.lote_pessoas!.includes(mov.pessoa_nome)) {
+          existing.agg.lote_pessoas!.push(mov.pessoa_nome);
         }
       }
     }
-    for (const agg of loteAcc.values()) {
+    for (const { agg, net } of loteAcc.values()) {
       const pessoas = agg.lote_pessoas || [];
       agg.pessoa_nome = pessoas.length === 0 ? null
         : pessoas.length <= 2 ? pessoas.join(", ")
         : `${pessoas.slice(0, 2).join(", ")} +${pessoas.length - 2}`;
       agg.descricao = `Pagamento em lote — ${agg.lote_count} conta(s)`;
+      agg.tipo = net >= 0 ? "entrada" : "saida";
+      agg.valor = Math.abs(net);
       grouped.push(agg);
     }
     grouped.sort((a, b) => b.data_movimentacao.localeCompare(a.data_movimentacao));
