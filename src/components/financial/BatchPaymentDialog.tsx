@@ -204,7 +204,14 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Pagamento em Lote — {items.length} conta(s)</DialogTitle>
+          <DialogTitle>
+            {consolidated ? "Pagamento Agrupado" : "Pagamento em Lote"} — {items.length} conta(s)
+          </DialogTitle>
+          {consolidated && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+            </p>
+          )}
         </DialogHeader>
         <div className="space-y-4">
           {/* Editable items list */}
