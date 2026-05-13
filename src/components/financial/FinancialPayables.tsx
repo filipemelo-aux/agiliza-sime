@@ -939,6 +939,23 @@ export function FinancialPayables() {
     return false;
   }, [selectedIds, items, installmentsMap]);
 
+  const selectedUnpaidCount = useMemo(() => {
+    let count = 0;
+    for (const id of selectedIds) {
+      if (id.startsWith("inst-")) {
+        const instId = id.replace("inst-", "");
+        for (const installs of Object.values(installmentsMap)) {
+          const found = installs.find(i => i.id === instId);
+          if (found && found.status !== "pago") count++;
+        }
+      } else {
+        const item = items.find(i => i.id === id);
+        if (item && item.status !== "pago") count++;
+      }
+    }
+    return count;
+  }, [selectedIds, items, installmentsMap]);
+
   const toggleSelectAll = () => {
     if (selectedIds.size === selectableCardIds.length && selectableCardIds.length > 0) {
       setSelectedIds(new Set());
