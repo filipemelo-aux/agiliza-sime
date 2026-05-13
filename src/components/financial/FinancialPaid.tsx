@@ -347,6 +347,27 @@ export function FinancialPaid() {
     }
   };
 
+  const handleReverseLote = async (lote: PaidItem) => {
+    const children = lote.lote_children || [];
+    if (children.length === 0) return;
+    if (!await confirm({
+      title: "Estornar lote",
+      description: `Deseja estornar todos os ${children.length} pagamento(s) deste lote? Os registros serão removidos e os saldos recalculados.`,
+    })) return;
+
+    setReversing(true);
+    try {
+      for (const child of children) {
+        await reversePayment(child);
+      }
+      toast.success(`${children.length} pagamento(s) estornado(s)`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar lote");
+    }
+    setReversing(false);
+  };
+
   // --- Detail ---
   const openDetail = async (item: PaidItem) => {
     if (!item.expense_id) return;
