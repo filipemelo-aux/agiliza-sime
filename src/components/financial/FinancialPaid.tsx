@@ -636,8 +636,9 @@ export function FinancialPaid() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
-            const isSelectable = item.source === "expense_payment";
+            const isSelectable = item.source === "expense_payment" || item.source === "group";
             const isSelected = selectedIds.has(item.id);
+            const isGroup = item.source === "group";
 
             return (
               <Card
@@ -652,8 +653,11 @@ export function FinancialPaid() {
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
+                    <Badge
+                      variant={item.source === "legacy" ? "secondary" : "default"}
+                      className={`shrink-0 text-[10px] ${isGroup ? "bg-primary/80" : ""}`}
+                    >
+                      {item.source === "legacy" ? "Legado" : isGroup ? `Agrupado · ${item.group_count}` : "Pago"}
                     </Badge>
                   </div>
 
