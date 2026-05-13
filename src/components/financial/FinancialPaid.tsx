@@ -565,14 +565,20 @@ export function FinancialPaid() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
+            const isLote = item.source === "lote";
             const isSelectable = item.source === "expense_payment";
             const isSelected = selectedIds.has(item.id);
+            const isExpanded = isLote && expandedLotes.has(item.id);
 
             return (
               <Card
                 key={item.id}
-                className={`h-full transition-all ${isSelectable ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                onClick={(e) => { if (!isSelectable) return; if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
+                className={`h-full transition-all ${isSelectable || isLote ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isLote ? "border-primary/30" : ""}`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return;
+                  if (isLote) { toggleLote(item.id); return; }
+                  if (isSelectable) toggleSelect(item.id);
+                }}
               >
                 <CardContent className="flex h-full flex-col p-3">
                   {/* Row 1: Checkbox + Nome + Badge */}
@@ -580,10 +586,19 @@ export function FinancialPaid() {
                     {isSelectable && (
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
+                    {isLote && (
+                      isExpanded ? <ChevronDown className="h-4 w-4 text-primary shrink-0" /> : <ChevronRight className="h-4 w-4 text-primary shrink-0" />
+                    )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
-                    </Badge>
+                    {isLote ? (
+                      <Badge variant="default" className="shrink-0 text-[10px] gap-1">
+                        <Layers className="h-3 w-3" /> Lote {item.lote_count}
+                      </Badge>
+                    ) : (
+                      <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
+                        {item.source === "legacy" ? "Legado" : "Pago"}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Row 2: Descrição */}
@@ -592,13 +607,15 @@ export function FinancialPaid() {
                   {/* Row 3: Dados */}
                   <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
                     <div>
-                      <span className="text-[11px] text-muted-foreground">Valor Pago</span>
+                      <span className="text-[11px] text-muted-foreground">{isLote ? "Total do Lote" : "Valor Pago"}</span>
                       <p className="font-mono font-semibold text-success">{formatCurrency(item.amount)}</p>
                     </div>
-                    <div>
-                      <span className="text-[11px] text-muted-foreground">Vencimento</span>
-                      <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
-                    </div>
+                    {!isLote && (
+                      <div>
+                        <span className="text-[11px] text-muted-foreground">Vencimento</span>
+                        <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-[11px] text-muted-foreground">Data Pgto</span>
                       <p className="font-medium text-foreground">{formatDateBR(item.paid_at)}</p>
@@ -610,6 +627,40 @@ export function FinancialPaid() {
                       </div>
                     )}
                   </div>
+
+                  {/* Lote children (expanded) */}
+                  {isLote && isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-border space-y-1.5">
+                      {item.lote_children!.map((child) => (
+                        <div key={child.id} className="flex items-center gap-2 rounded bg-muted/40 px-2 py-1.5 text-[11px]">
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium text-foreground">{child.creditor_name || "Sem favorecido"}</p>
+                            <p className="truncate text-muted-foreground">{child.description}</p>
+                          </div>
+                          <span className="font-mono font-semibold text-success shrink-0">{formatCurrency(child.amount)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px] gap-1 text-primary"
+                            onClick={(e) => { e.stopPropagation(); openDetail(child); }}
+                            title="Detalhes"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px] gap-1 text-amber-600"
+                            onClick={(e) => { e.stopPropagation(); handleReverseSingle(child); }}
+                            disabled={reversing}
+                            title="Estornar"
+                          >
+                            <Undo2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Creator info */}
                   {item.created_by_name && (
@@ -643,6 +694,19 @@ export function FinancialPaid() {
                           </Button>
                         </div>
                       </>
+                    )}
+                    {isLote && (
+                      <div className="ml-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                          onClick={(e) => { e.stopPropagation(); handleReverseLote(item); }}
+                          disabled={reversing}
+                        >
+                          <Undo2 className="h-3 w-3" /> Estornar lote
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>
