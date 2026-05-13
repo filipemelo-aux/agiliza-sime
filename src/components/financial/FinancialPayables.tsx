@@ -1800,8 +1800,9 @@ export function FinancialPayables() {
 
       <BatchPaymentDialog
         open={batchPayOpen}
-        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); } }}
+        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); setBatchConsolidated(false); } }}
         items={batchPayItems}
+        consolidated={batchConsolidated}
         onSaved={() => { setSelectedIds(new Set()); fetchData(); }}
       />
 
