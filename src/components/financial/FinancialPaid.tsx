@@ -293,7 +293,7 @@ export function FinancialPaid() {
     });
   }, [items, search, periodoInicio, periodoFim, origemFilter]);
 
-  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
+  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment" || i.source === "group").map(i => i.id), [filtered]);
 
   const total = filtered.reduce((s, i) => s + i.amount, 0);
   const selectedTotal = useMemo(() => {
