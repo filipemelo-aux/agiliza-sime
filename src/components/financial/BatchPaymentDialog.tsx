@@ -37,9 +37,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   items: BatchItem[];
   onSaved: () => void;
+  /** When true, all payments are consolidated into a single cash flow movement (one bank entry). */
+  consolidated?: boolean;
 }
 
-export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props) {
+export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consolidated = false }: Props) {
   const { user } = useAuth();
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
@@ -84,6 +86,9 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
     try {
       // Group items by expenseId to recalc once per expense
       const touchedExpenses = new Set<string>();
+      // Shared lote_id so individual payments + consolidated movement are linked
+      const loteId = consolidated ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) : null;
+      let totalConsolidado = 0;
 
       for (const item of items) {
         const valorPago = getValor(item.id, item.valor);
@@ -103,8 +108,12 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
           observacoes: obsFinal,
           created_by: user?.id,
           juros,
+          lote_id: loteId,
+          skip_cashflow: consolidated,
         } as any);
         if (payErr) throw payErr;
+
+        totalConsolidado += valorPago;
 
         if (item.tipo === "installment" && item.installmentId) {
           // Marca parcela como paga somente se cobriu o valor da parcela (com tolerância)
@@ -118,6 +127,22 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
         }
 
         touchedExpenses.add(item.expenseId);
+      }
+
+      // Create consolidated bank movement (single entry for the whole batch)
+      if (consolidated && loteId && Math.abs(totalConsolidado) > 0.005) {
+        const tipo = totalConsolidado < 0 ? "entrada" : "saida";
+        const descricao = `Pagamento agrupado de ${items.length} conta(s) — ${formatCurrency(Math.abs(totalConsolidado))}`;
+        const { error: movErr } = await supabase.from("movimentacoes_bancarias").insert({
+          tipo,
+          origem: "pagamento_agrupado",
+          origem_id: loteId,
+          valor: Math.abs(totalConsolidado),
+          data_movimentacao: todayISO,
+          descricao,
+          lote_id: loteId,
+        } as any);
+        if (movErr) throw movErr;
       }
 
       // Recalc each touched expense
@@ -179,7 +204,14 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Pagamento em Lote — {items.length} conta(s)</DialogTitle>
+          <DialogTitle>
+            {consolidated ? "Pagamento Agrupado" : "Pagamento em Lote"} — {items.length} conta(s)
+          </DialogTitle>
+          {consolidated && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Os pagamentos serão registrados individualmente, mas gerarão uma única movimentação consolidada no fluxo de caixa.
+            </p>
+          )}
         </DialogHeader>
         <div className="space-y-4">
           {/* Editable items list */}

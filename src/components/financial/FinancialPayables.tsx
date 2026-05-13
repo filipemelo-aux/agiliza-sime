@@ -179,6 +179,7 @@ export function FinancialPayables() {
   const [batchPaying, setBatchPaying] = useState(false);
   const [batchPayOpen, setBatchPayOpen] = useState(false);
   const [batchPayItems, setBatchPayItems] = useState<BatchItem[]>([]);
+  const [batchConsolidated, setBatchConsolidated] = useState(false);
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [editInstallment, setEditInstallment] = useState<Installment | null>(null);
   const [editInstOpen, setEditInstOpen] = useState(false);
@@ -529,7 +530,7 @@ export function FinancialPayables() {
     });
   };
 
-  const handleBatchPay = () => {
+  const handleBatchPay = (consolidated = false) => {
     if (selectedIds.size === 0) return;
     const batchItems: BatchItem[] = [];
 
@@ -570,6 +571,7 @@ export function FinancialPayables() {
 
     if (batchItems.length === 0) return;
     setBatchPayItems(batchItems);
+    setBatchConsolidated(consolidated);
     setBatchPayOpen(true);
   };
 
@@ -1362,11 +1364,25 @@ export function FinancialPayables() {
                 <Button
                   size="sm"
                   className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  onClick={handleBatchPay}
+                  onClick={() => handleBatchPay(false)}
                   disabled={batchPaying}
+                  title="Cada conta gera uma movimentação individual no fluxo de caixa"
                 >
                   <Check className="h-3.5 w-3.5" />
                   {batchPaying ? "Processando..." : "Pagar"}
+                </Button>
+              )}
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 h-8 text-primary border-primary/30 hover:bg-primary/10"
+                  onClick={() => handleBatchPay(true)}
+                  disabled={batchPaying}
+                  title="Quita várias contas gerando uma única movimentação consolidada no fluxo de caixa"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Pagar Agrupado
                 </Button>
               )}
               {hasSelectedPaid && (
@@ -1784,8 +1800,9 @@ export function FinancialPayables() {
 
       <BatchPaymentDialog
         open={batchPayOpen}
-        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); } }}
+        onOpenChange={(v) => { setBatchPayOpen(v); if (!v) { setSelectedIds(new Set()); setBatchConsolidated(false); } }}
         items={batchPayItems}
+        consolidated={batchConsolidated}
         onSaved={() => { setSelectedIds(new Set()); fetchData(); }}
       />
 

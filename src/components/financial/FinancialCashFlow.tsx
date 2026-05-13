@@ -72,8 +72,8 @@ export function FinancialCashFlow() {
 
     if (filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
     if (filters.origem === "despesas") {
-      // "Despesas" filter should include both legacy 'despesas' and new 'pagamento_despesa'
-      query = query.in("origem", ["despesas", "pagamento_despesa"]);
+      // "Despesas" filter should include legacy 'despesas', individual payments and grouped payments
+      query = query.in("origem", ["despesas", "pagamento_despesa", "pagamento_agrupado"]);
     } else if (filters.origem !== "todos") {
       query = query.eq("origem", filters.origem);
     }
@@ -194,6 +194,7 @@ export function FinancialCashFlow() {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
     if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
+    if (o === "pagamento_agrupado") return "Pagamento Agrupado";
     if (o === "colheitas") return "Colheita";
     if (o === "manual") return "Manual";
     return o;

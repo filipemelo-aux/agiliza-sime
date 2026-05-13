@@ -1232,6 +1232,7 @@ export type Database = {
           juros: number
           lote_id: string | null
           observacoes: string | null
+          skip_cashflow: boolean
           valor: number
         }
         Insert: {
@@ -1244,6 +1245,7 @@ export type Database = {
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
+          skip_cashflow?: boolean
           valor?: number
         }
         Update: {
@@ -1256,6 +1258,7 @@ export type Database = {
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
+          skip_cashflow?: boolean
           valor?: number
         }
         Relationships: [
