@@ -30,6 +30,7 @@ interface Movimentacao {
   tipo: string;
   origem: string;
   origem_id: string;
+  lote_id?: string | null;
   valor: number;
   data_movimentacao: string;
   descricao: string | null;
@@ -87,6 +88,12 @@ export function FinancialCashFlow() {
     const receberIds = movs.filter((m) => m.origem === "contas_receber").map((m) => m.origem_id);
     const despesaIds = movs.filter((m) => m.origem === "despesas").map((m) => m.origem_id);
     const pagDespesaIds = movs.filter((m) => m.origem === "pagamento_despesa").map((m) => m.origem_id);
+    const pagamentoAgrupadoLoteIds = [...new Set(
+      movs
+        .filter((m) => m.origem === "pagamento_agrupado")
+        .map((m) => m.lote_id || m.origem_id)
+        .filter(Boolean),
+    )];
     const colheitaIds = movs.filter((m) => m.origem === "colheitas").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
@@ -111,6 +118,36 @@ export function FinancialCashFlow() {
         (pagDespesaRes.data || []).forEach((p: any) => {
           const nome = expMap.get(p.expense_id);
           if (nome) pessoaMap.set(p.id, nome);
+        });
+      }
+    }
+
+    // Enrich pagamento_agrupado: origem_id/lote_id points to a batch, not a single payment.
+    if (pagamentoAgrupadoLoteIds.length > 0) {
+      const { data: groupPayments } = await supabase
+        .from("expense_payments" as any)
+        .select("lote_id, expense_id")
+        .in("lote_id", pagamentoAgrupadoLoteIds);
+      const groupExpenseIds = [...new Set(((groupPayments as any[]) || []).map((p) => p.expense_id).filter(Boolean))];
+      if (groupExpenseIds.length > 0) {
+        const { data: groupExpenses } = await supabase
+          .from("expenses")
+          .select("id, favorecido_nome")
+          .in("id", groupExpenseIds);
+        const expenseNameMap = new Map((groupExpenses || []).map((e: any) => [e.id, e.favorecido_nome]));
+        const loteNamesMap = new Map<string, Set<string>>();
+
+        ((groupPayments as any[]) || []).forEach((payment) => {
+          const nome = expenseNameMap.get(payment.expense_id);
+          if (!nome || !payment.lote_id) return;
+          const names = loteNamesMap.get(payment.lote_id) || new Set<string>();
+          names.add(nome);
+          loteNamesMap.set(payment.lote_id, names);
+        });
+
+        loteNamesMap.forEach((namesSet, loteId) => {
+          const names = Array.from(namesSet).sort((a, b) => a.localeCompare(b, "pt-BR"));
+          pessoaMap.set(loteId, names.length === 1 ? names[0] : `${names.length} favorecidos: ${names.join(", ")}`);
         });
       }
     }
@@ -149,7 +186,7 @@ export function FinancialCashFlow() {
       (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
     }
 
-    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || null })));
+    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null })));
     setLoading(false);
   }, [filters]);
 
