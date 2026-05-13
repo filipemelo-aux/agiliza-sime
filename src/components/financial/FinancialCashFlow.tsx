@@ -41,6 +41,7 @@ interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
   lote_count?: number;
   lote_pessoas?: string[];
+  lote_children?: MovimentacaoEnriquecida[];
 }
 
 export function FinancialCashFlow() {
