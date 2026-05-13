@@ -47,8 +47,13 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
   const [observacoes, setObservacoes] = useState("");
   const [dataPagamento, setDataPagamento] = useState<string>(getLocalDateISO());
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
   // Per-item amount edits, keyed by item.id (string of cents)
   const [valores, setValores] = useState<Record<string, string>>({});
+  // Metadata of source expenses (for "Criar Conta a Pagar" flow)
+  const [expensesMeta, setExpensesMeta] = useState<Record<string, any>>({});
+  const [novoFavorecidoId, setNovoFavorecidoId] = useState<string>("");
+  const [novaDataVencimento, setNovaDataVencimento] = useState<string>(getLocalDateISO());
 
   useEffect(() => {
     if (open) {
@@ -58,8 +63,38 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       setObservacoes("");
       setFormaPagamento("pix");
       setDataPagamento(getLocalDateISO());
+      setNovaDataVencimento(getLocalDateISO());
+      setNovoFavorecidoId("");
+      setExpensesMeta({});
+
+      // Load expense metadata for consolidated/create flow
+      if (consolidated && items.length > 0) {
+        const expenseIds = Array.from(new Set(items.map(i => i.expenseId)));
+        supabase
+          .from("expenses")
+          .select("id, favorecido_id, favorecido_nome, empresa_id, plano_contas_id, centro_custo, tipo_despesa")
+          .in("id", expenseIds)
+          .then(({ data }) => {
+            const map: Record<string, any> = {};
+            ((data as any[]) || []).forEach(e => { map[e.id] = e; });
+            setExpensesMeta(map);
+            // Auto-pick favorecido if all the same
+            const favs = Array.from(new Set(((data as any[]) || []).map(e => e.favorecido_id).filter(Boolean)));
+            if (favs.length === 1) setNovoFavorecidoId(favs[0] as string);
+          });
+      }
     }
-  }, [open, items]);
+  }, [open, items, consolidated]);
+
+  // Distinct favorecidos derived from loaded metadata
+  const favorecidosDistintos = (() => {
+    const seen = new Map<string, string>();
+    Object.values(expensesMeta).forEach((e: any) => {
+      if (e?.favorecido_id) seen.set(e.favorecido_id, e.favorecido_nome || "—");
+    });
+    return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome }));
+  })();
+  const hasInstallments = items.some(i => i.tipo === "installment");
 
   const getValor = (id: string, fallback: number) => {
     const v = valores[id];
