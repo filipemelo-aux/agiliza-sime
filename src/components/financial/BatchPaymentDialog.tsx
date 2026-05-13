@@ -37,9 +37,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   items: BatchItem[];
   onSaved: () => void;
+  /** When true, all payments are consolidated into a single cash flow movement (one bank entry). */
+  consolidated?: boolean;
 }
 
-export function BatchPaymentDialog({ open, onOpenChange, items, onSaved }: Props) {
+export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consolidated = false }: Props) {
   const { user } = useAuth();
   const [formaPagamento, setFormaPagamento] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
