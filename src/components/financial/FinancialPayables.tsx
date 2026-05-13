@@ -1364,11 +1364,25 @@ export function FinancialPayables() {
                 <Button
                   size="sm"
                   className="gap-1.5 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  onClick={handleBatchPay}
+                  onClick={() => handleBatchPay(false)}
                   disabled={batchPaying}
+                  title="Cada conta gera uma movimentação individual no fluxo de caixa"
                 >
                   <Check className="h-3.5 w-3.5" />
                   {batchPaying ? "Processando..." : "Pagar"}
+                </Button>
+              )}
+              {hasSelectedUnpaid && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 h-8 text-primary border-primary/30 hover:bg-primary/10"
+                  onClick={() => handleBatchPay(true)}
+                  disabled={batchPaying}
+                  title="Quita várias contas gerando uma única movimentação consolidada no fluxo de caixa"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Pagar Agrupado
                 </Button>
               )}
               {hasSelectedPaid && (
