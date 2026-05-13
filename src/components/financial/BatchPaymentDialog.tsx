@@ -393,9 +393,55 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
             <Input value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Opcional" />
           </div>
 
-          <Button onClick={handleConfirm} className="w-full" disabled={saving}>
-            {saving ? "Processando..." : "Confirmar Pagamento"}
-          </Button>
+          {consolidated && !hasInstallments && (
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                Criar nova conta a pagar (agrupar)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Vencimento da nova conta</Label>
+                  <Input
+                    type="date"
+                    value={novaDataVencimento}
+                    onChange={e => setNovaDataVencimento(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">
+                    Favorecido {favorecidosDistintos.length > 1 ? "(múltiplos detectados)" : ""}
+                  </Label>
+                  <Select value={novoFavorecidoId} onValueChange={setNovoFavorecidoId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {favorecidosDistintos.map(f => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            {consolidated && !hasInstallments && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCreatePayable}
+                className="sm:flex-1"
+                disabled={creating || saving}
+              >
+                {creating ? "Criando..." : "Criar Conta a Pagar"}
+              </Button>
+            )}
+            <Button onClick={handleConfirm} className="sm:flex-1" disabled={saving || creating}>
+              {saving ? "Processando..." : "Confirmar Pagamento"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
