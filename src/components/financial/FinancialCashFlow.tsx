@@ -47,6 +47,12 @@ interface MovimentacaoEnriquecida extends Movimentacao {
 export function FinancialCashFlow() {
   const isMobile = useIsMobile();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
+  const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
+  const toggleLote = (id: string) => setExpandedLotes((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
