@@ -22,12 +22,15 @@ interface PaidItem {
   paid_at: string | null;
   due_date: string | null;
   creditor_name: string | null;
-  source: "expense_payment" | "legacy";
+  source: "expense_payment" | "legacy" | "group";
   expense_id: string | null;
   forma_pagamento?: string | null;
   created_by_name?: string | null;
   created_at?: string | null;
   documento_fiscal_numero?: string | null;
+  lote_id?: string | null;
+  group_count?: number;
+  group_payment_ids?: string[];
 }
 
 interface ExpenseDetail {
@@ -162,6 +165,8 @@ export function FinancialPaid() {
           expense_id,
           created_by,
           created_at,
+          lote_id,
+          skip_cashflow,
           expenses:expense_id (
             descricao,
             favorecido_nome,
@@ -188,7 +193,20 @@ export function FinancialPaid() {
       (profiles || []).forEach((p: any) => { creatorsMap[p.user_id] = p.full_name; });
     }
 
-    const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
+    // Split grouped payments (skip_cashflow + lote_id) from individual ones
+    const groupedMap = new Map<string, any[]>();
+    const individualPayments: any[] = [];
+    (expensePayments || []).forEach((p: any) => {
+      if (p.skip_cashflow && p.lote_id) {
+        const arr = groupedMap.get(p.lote_id) || [];
+        arr.push(p);
+        groupedMap.set(p.lote_id, arr);
+      } else {
+        individualPayments.push(p);
+      }
+    });
+
+    const expenseItems: PaidItem[] = individualPayments.map((p: any) => ({
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
@@ -202,6 +220,32 @@ export function FinancialPaid() {
       created_at: p.created_at || null,
       documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
     }));
+
+    const groupItems: PaidItem[] = Array.from(groupedMap.entries()).map(([loteId, payments]) => {
+      const total = payments.reduce((s, p) => s + Number(p.valor || 0), 0);
+      const first = payments[0];
+      const favorecidos = new Set(payments.map(p => p.expenses?.favorecido_nome).filter(Boolean));
+      const creditor = favorecidos.size === 1
+        ? Array.from(favorecidos)[0] as string
+        : `${favorecidos.size} favorecidos`;
+      return {
+        id: `group-${loteId}`,
+        description: `Pagamento agrupado de ${payments.length} conta(s)`,
+        amount: total,
+        paid_at: toDateOnly(first.data_pagamento),
+        due_date: null,
+        creditor_name: creditor,
+        source: "group" as const,
+        expense_id: null,
+        forma_pagamento: first.forma_pagamento || null,
+        created_by_name: creatorsMap[first.created_by] || null,
+        created_at: first.created_at || null,
+        documento_fiscal_numero: null,
+        lote_id: loteId,
+        group_count: payments.length,
+        group_payment_ids: payments.map(p => p.id),
+      };
+    });
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
       id: `legacy-${a.id}`,
@@ -218,7 +262,7 @@ export function FinancialPaid() {
     // Harvest payments now flow through the expense system (no longer shown separately)
 
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...expenseItems, ...groupItems, ...legacyItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
@@ -249,7 +293,7 @@ export function FinancialPaid() {
     });
   }, [items, search, periodoInicio, periodoFim, origemFilter]);
 
-  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment").map(i => i.id), [filtered]);
+  const selectableIds = useMemo(() => filtered.filter(i => i.source === "expense_payment" || i.source === "group").map(i => i.id), [filtered]);
 
   const total = filtered.reduce((s, i) => s + i.amount, 0);
   const selectedTotal = useMemo(() => {
@@ -291,6 +335,26 @@ export function FinancialPaid() {
 
   // --- Detail ---
   const openDetail = async (item: PaidItem) => {
+    if (item.source === "group" && item.lote_id) {
+      setDetailOpen(true);
+      setDetailLoading(true);
+      setDetailExpense(null);
+      setDetailPayments([]);
+      setDetailChart(null);
+
+      const { data: payments } = await supabase
+        .from("expense_payments" as any)
+        .select(`
+          id, valor, forma_pagamento, data_pagamento, observacoes,
+          expenses:expense_id ( descricao, favorecido_nome, documento_fiscal_numero )
+        `)
+        .eq("lote_id", item.lote_id)
+        .order("created_at");
+      setDetailPayments((payments || []) as any);
+      setDetailLoading(false);
+      return;
+    }
+
     if (!item.expense_id) return;
     setDetailOpen(true);
     setDetailLoading(true);
@@ -326,15 +390,22 @@ export function FinancialPaid() {
 
   // --- Reverse ---
   const handleReverseSingle = async (item: PaidItem) => {
-    if (item.source !== "expense_payment" || !item.expense_id) return;
+    if (item.source === "legacy") return;
+    const label = item.source === "group"
+      ? `o pagamento agrupado de ${item.group_count} conta(s)`
+      : `o pagamento de "${item.creditor_name || item.description}"`;
     if (!await confirm({
       title: "Estornar pagamento",
-      description: `Deseja estornar o pagamento de "${item.creditor_name || item.description}"? O registro será removido e o saldo da despesa recalculado.`,
+      description: `Deseja estornar ${label}? Os registros serão removidos e os saldos das despesas recalculados.`,
     })) return;
 
     setReversing(true);
     try {
-      await reversePayment(item);
+      if (item.source === "group") {
+        await reverseGroup(item);
+      } else {
+        await reversePayment(item);
+      }
       toast.success("Pagamento estornado com sucesso");
       setSelectedIds(new Set());
       await fetchData();
@@ -355,7 +426,10 @@ export function FinancialPaid() {
     try {
       for (const id of selectedIds) {
         const item = items.find(i => i.id === id);
-        if (item && item.source === "expense_payment") {
+        if (!item) continue;
+        if (item.source === "group") {
+          await reverseGroup(item);
+        } else if (item.source === "expense_payment") {
           await reversePayment(item);
         }
       }
@@ -366,6 +440,61 @@ export function FinancialPaid() {
       toast.error(err.message || "Erro ao estornar");
     }
     setReversing(false);
+  };
+
+  const reverseGroup = async (item: PaidItem) => {
+    if (!item.lote_id) return;
+    // Fetch all payments in lote with their expense_id
+    const { data: payments } = await supabase
+      .from("expense_payments" as any)
+      .select("id, expense_id")
+      .eq("lote_id", item.lote_id);
+
+    const expenseIds = [...new Set((payments || []).map((p: any) => p.expense_id))];
+
+    // Delete all payments (trigger handles consolidated cash flow cleanup)
+    await supabase.from("expense_payments" as any).delete().eq("lote_id", item.lote_id);
+
+    // Recalc each touched expense
+    for (const expenseId of expenseIds) {
+      const { data: remaining } = await supabase
+        .from("expense_payments" as any)
+        .select("valor, juros")
+        .eq("expense_id", expenseId);
+      const totalPago = (remaining || []).reduce(
+        (s: number, p: any) => s + (Number(p.valor) - Number(p.juros || 0)),
+        0,
+      );
+      const { data: expense } = await supabase
+        .from("expenses").select("valor_total").eq("id", expenseId).maybeSingle();
+      const valorTotal = expense ? Number((expense as any).valor_total) : 0;
+      let newStatus = "pendente";
+      if (totalPago + 0.005 >= valorTotal && totalPago > 0) newStatus = "pago";
+      else if (totalPago !== 0) newStatus = "parcial";
+
+      await supabase.from("expenses").update({
+        valor_pago: totalPago,
+        status: newStatus,
+        ...(totalPago === 0 ? { data_pagamento: null } : {}),
+      } as any).eq("id", expenseId);
+
+      // Reset installments if needed
+      const { data: insts } = await supabase
+        .from("expense_installments")
+        .select("id, valor, status")
+        .eq("expense_id", expenseId)
+        .eq("status", "pago" as any);
+      const totalInstPago = (insts || []).reduce((s: number, i: any) => s + Number(i.valor), 0);
+      if (insts && insts.length > 0 && totalPago < totalInstPago) {
+        const sorted = [...insts].reverse();
+        let deficit = totalInstPago - totalPago;
+        for (const inst of sorted) {
+          if (deficit <= 0) break;
+          await supabase.from("expense_installments").update({ status: "pendente" } as any).eq("id", inst.id);
+          deficit -= Number(inst.valor);
+        }
+      }
+    }
   };
 
   const reversePayment = async (item: PaidItem) => {
@@ -507,8 +636,9 @@ export function FinancialPaid() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
-            const isSelectable = item.source === "expense_payment";
+            const isSelectable = item.source === "expense_payment" || item.source === "group";
             const isSelected = selectedIds.has(item.id);
+            const isGroup = item.source === "group";
 
             return (
               <Card
@@ -523,8 +653,11 @@ export function FinancialPaid() {
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
+                    <Badge
+                      variant={item.source === "legacy" ? "secondary" : "default"}
+                      className={`shrink-0 text-[10px] ${isGroup ? "bg-primary/80" : ""}`}
+                    >
+                      {item.source === "legacy" ? "Legado" : isGroup ? `Agrupado · ${item.group_count}` : "Pago"}
                     </Badge>
                   </div>
 
@@ -689,6 +822,31 @@ export function FinancialPaid() {
               )}
 
 
+            </div>
+          ) : detailPayments.length > 0 ? (
+            <div className="space-y-2 text-sm">
+              <p className="text-xs text-muted-foreground">
+                Pagamento agrupado · {detailPayments.length} conta(s) · Total{" "}
+                <span className="font-mono font-bold text-success">
+                  {formatCurrency(detailPayments.reduce((s, p) => s + Number(p.valor), 0))}
+                </span>
+              </p>
+              <div className="space-y-1.5 border-t border-border pt-2">
+                {detailPayments.map((pay: any) => (
+                  <div key={pay.id} className="flex flex-col gap-0.5 text-xs p-2 rounded bg-success/10">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground truncate flex-1">
+                        {pay.expenses?.favorecido_nome || "—"}
+                      </span>
+                      <span className="font-mono font-semibold shrink-0">{formatCurrency(Number(pay.valor))}</span>
+                    </div>
+                    <span className="text-muted-foreground truncate">{pay.expenses?.descricao || ""}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDateBR(toDateOnly(pay.data_pagamento))} · {FORMA_PAGAMENTO_MAP[pay.forma_pagamento] || pay.forma_pagamento}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">Despesa não encontrada.</p>
