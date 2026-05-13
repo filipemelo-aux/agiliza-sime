@@ -174,15 +174,17 @@ export function FinancialCashFlow() {
         loteAcc.set(mov.lote_id, {
           agg: {
             ...mov,
-            valor: 0, // set after loop
+            valor: 0,
             lote_count: 1,
             lote_pessoas: mov.pessoa_nome ? [mov.pessoa_nome] : [],
+            lote_children: [mov],
           },
           net: signed,
         });
       } else {
         existing.net += signed;
         existing.agg.lote_count = (existing.agg.lote_count || 1) + 1;
+        existing.agg.lote_children!.push(mov);
         if (mov.pessoa_nome && !existing.agg.lote_pessoas!.includes(mov.pessoa_nome)) {
           existing.agg.lote_pessoas!.push(mov.pessoa_nome);
         }
