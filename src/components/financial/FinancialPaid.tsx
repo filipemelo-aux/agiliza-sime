@@ -214,7 +214,47 @@ export function FinancialPaid() {
       created_by_name: creatorsMap[p.created_by] || null,
       created_at: p.created_at || null,
       documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
+      lote_id: p.lote_id || null,
     }));
+
+    // Group by lote_id
+    const loteMap = new Map<string, PaidItem>();
+    const ungrouped: PaidItem[] = [];
+    for (const it of expenseItems) {
+      if (it.lote_id) {
+        const existing = loteMap.get(it.lote_id);
+        if (existing) {
+          existing.amount += it.amount;
+          existing.lote_children!.push(it);
+          existing.lote_count = (existing.lote_count || 0) + 1;
+        } else {
+          loteMap.set(it.lote_id, {
+            id: `lote-${it.lote_id}`,
+            description: `Pagamento em lote`,
+            amount: it.amount,
+            paid_at: it.paid_at,
+            due_date: null,
+            creditor_name: null,
+            source: "lote",
+            expense_id: null,
+            forma_pagamento: it.forma_pagamento,
+            created_by_name: it.created_by_name,
+            created_at: it.created_at,
+            lote_id: it.lote_id,
+            lote_children: [it],
+            lote_count: 1,
+          });
+        }
+      } else {
+        ungrouped.push(it);
+      }
+    }
+    // Set creditor summary for lotes
+    loteMap.forEach((lote) => {
+      const names = [...new Set(lote.lote_children!.map(c => c.creditor_name).filter(Boolean))];
+      lote.creditor_name = names.length === 1 ? names[0] : `${names.length} favorecidos`;
+    });
+    const groupedExpenseItems = [...ungrouped, ...Array.from(loteMap.values())];
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
       id: `legacy-${a.id}`,
