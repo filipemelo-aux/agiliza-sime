@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
+import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil, ChevronRight, ChevronDown, Layers } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -22,12 +22,15 @@ interface PaidItem {
   paid_at: string | null;
   due_date: string | null;
   creditor_name: string | null;
-  source: "expense_payment" | "legacy";
+  source: "expense_payment" | "legacy" | "lote";
   expense_id: string | null;
   forma_pagamento?: string | null;
   created_by_name?: string | null;
   created_at?: string | null;
   documento_fiscal_numero?: string | null;
+  lote_id?: string | null;
+  lote_children?: PaidItem[];
+  lote_count?: number;
 }
 
 interface ExpenseDetail {
@@ -123,6 +126,15 @@ export function FinancialPaid() {
   const [periodoFim, setPeriodoFim] = useState("");
   const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy">("todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
+
+  const toggleLote = (id: string) => {
+    setExpandedLotes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
@@ -162,6 +174,7 @@ export function FinancialPaid() {
           expense_id,
           created_by,
           created_at,
+          lote_id,
           expenses:expense_id (
             descricao,
             favorecido_nome,
@@ -201,7 +214,47 @@ export function FinancialPaid() {
       created_by_name: creatorsMap[p.created_by] || null,
       created_at: p.created_at || null,
       documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
+      lote_id: p.lote_id || null,
     }));
+
+    // Group by lote_id
+    const loteMap = new Map<string, PaidItem>();
+    const ungrouped: PaidItem[] = [];
+    for (const it of expenseItems) {
+      if (it.lote_id) {
+        const existing = loteMap.get(it.lote_id);
+        if (existing) {
+          existing.amount += it.amount;
+          existing.lote_children!.push(it);
+          existing.lote_count = (existing.lote_count || 0) + 1;
+        } else {
+          loteMap.set(it.lote_id, {
+            id: `lote-${it.lote_id}`,
+            description: `Pagamento em lote`,
+            amount: it.amount,
+            paid_at: it.paid_at,
+            due_date: null,
+            creditor_name: null,
+            source: "lote",
+            expense_id: null,
+            forma_pagamento: it.forma_pagamento,
+            created_by_name: it.created_by_name,
+            created_at: it.created_at,
+            lote_id: it.lote_id,
+            lote_children: [it],
+            lote_count: 1,
+          });
+        }
+      } else {
+        ungrouped.push(it);
+      }
+    }
+    // Set creditor summary for lotes
+    loteMap.forEach((lote) => {
+      const names = [...new Set(lote.lote_children!.map(c => c.creditor_name).filter(Boolean))];
+      lote.creditor_name = names.length === 1 ? names[0] : `${names.length} favorecidos`;
+    });
+    const groupedExpenseItems = [...ungrouped, ...Array.from(loteMap.values())];
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
       id: `legacy-${a.id}`,
@@ -218,7 +271,7 @@ export function FinancialPaid() {
     // Harvest payments now flow through the expense system (no longer shown separately)
 
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...groupedExpenseItems, ...legacyItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
@@ -235,7 +288,12 @@ export function FinancialPaid() {
         !search ||
         i.description.toLowerCase().includes(q) ||
         (i.creditor_name || "").toLowerCase().includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().includes(q);
+        (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
+        (i.lote_children || []).some(c =>
+          c.description.toLowerCase().includes(q) ||
+          (c.creditor_name || "").toLowerCase().includes(q) ||
+          (c.documento_fiscal_numero || "").toLowerCase().includes(q)
+        );
 
       let matchPeriodo = true;
       if (periodoInicio || periodoFim) {
@@ -287,6 +345,27 @@ export function FinancialPaid() {
     } else {
       setSelectedIds(new Set(selectableIds));
     }
+  };
+
+  const handleReverseLote = async (lote: PaidItem) => {
+    const children = lote.lote_children || [];
+    if (children.length === 0) return;
+    if (!await confirm({
+      title: "Estornar lote",
+      description: `Deseja estornar todos os ${children.length} pagamento(s) deste lote? Os registros serão removidos e os saldos recalculados.`,
+    })) return;
+
+    setReversing(true);
+    try {
+      for (const child of children) {
+        await reversePayment(child);
+      }
+      toast.success(`${children.length} pagamento(s) estornado(s)`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao estornar lote");
+    }
+    setReversing(false);
   };
 
   // --- Detail ---
@@ -507,14 +586,20 @@ export function FinancialPaid() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => {
+            const isLote = item.source === "lote";
             const isSelectable = item.source === "expense_payment";
             const isSelected = selectedIds.has(item.id);
+            const isExpanded = isLote && expandedLotes.has(item.id);
 
             return (
               <Card
                 key={item.id}
-                className={`h-full transition-all ${isSelectable ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                onClick={(e) => { if (!isSelectable) return; if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return; toggleSelect(item.id); }}
+                className={`h-full transition-all ${isSelectable || isLote ? "cursor-pointer" : ""} ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""} ${isLote ? "border-primary/30" : ""}`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button, a, [role='checkbox']")) return;
+                  if (isLote) { toggleLote(item.id); return; }
+                  if (isSelectable) toggleSelect(item.id);
+                }}
               >
                 <CardContent className="flex h-full flex-col p-3">
                   {/* Row 1: Checkbox + Nome + Badge */}
@@ -522,10 +607,19 @@ export function FinancialPaid() {
                     {isSelectable && (
                       <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(item.id)} />
                     )}
+                    {isLote && (
+                      isExpanded ? <ChevronDown className="h-4 w-4 text-primary shrink-0" /> : <ChevronRight className="h-4 w-4 text-primary shrink-0" />
+                    )}
                     <p className="flex-1 truncate text-sm font-semibold text-foreground">{item.creditor_name || "Sem favorecido"}</p>
-                    <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
-                      {item.source === "legacy" ? "Legado" : "Pago"}
-                    </Badge>
+                    {isLote ? (
+                      <Badge variant="default" className="shrink-0 text-[10px] gap-1">
+                        <Layers className="h-3 w-3" /> Lote {item.lote_count}
+                      </Badge>
+                    ) : (
+                      <Badge variant={item.source === "legacy" ? "secondary" : "default"} className="shrink-0 text-[10px]">
+                        {item.source === "legacy" ? "Legado" : "Pago"}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Row 2: Descrição */}
@@ -534,13 +628,15 @@ export function FinancialPaid() {
                   {/* Row 3: Dados */}
                   <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
                     <div>
-                      <span className="text-[11px] text-muted-foreground">Valor Pago</span>
+                      <span className="text-[11px] text-muted-foreground">{isLote ? "Total do Lote" : "Valor Pago"}</span>
                       <p className="font-mono font-semibold text-success">{formatCurrency(item.amount)}</p>
                     </div>
-                    <div>
-                      <span className="text-[11px] text-muted-foreground">Vencimento</span>
-                      <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
-                    </div>
+                    {!isLote && (
+                      <div>
+                        <span className="text-[11px] text-muted-foreground">Vencimento</span>
+                        <p className="font-medium text-foreground">{item.due_date ? formatDateBR(item.due_date) : "—"}</p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-[11px] text-muted-foreground">Data Pgto</span>
                       <p className="font-medium text-foreground">{formatDateBR(item.paid_at)}</p>
@@ -552,6 +648,40 @@ export function FinancialPaid() {
                       </div>
                     )}
                   </div>
+
+                  {/* Lote children (expanded) */}
+                  {isLote && isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-border space-y-1.5">
+                      {item.lote_children!.map((child) => (
+                        <div key={child.id} className="flex items-center gap-2 rounded bg-muted/40 px-2 py-1.5 text-[11px]">
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium text-foreground">{child.creditor_name || "Sem favorecido"}</p>
+                            <p className="truncate text-muted-foreground">{child.description}</p>
+                          </div>
+                          <span className="font-mono font-semibold text-success shrink-0">{formatCurrency(child.amount)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px] gap-1 text-primary"
+                            onClick={(e) => { e.stopPropagation(); openDetail(child); }}
+                            title="Detalhes"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px] gap-1 text-amber-600"
+                            onClick={(e) => { e.stopPropagation(); handleReverseSingle(child); }}
+                            disabled={reversing}
+                            title="Estornar"
+                          >
+                            <Undo2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Creator info */}
                   {item.created_by_name && (
@@ -585,6 +715,19 @@ export function FinancialPaid() {
                           </Button>
                         </div>
                       </>
+                    )}
+                    {isLote && (
+                      <div className="ml-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-400/30 hover:bg-amber-500/10"
+                          onClick={(e) => { e.stopPropagation(); handleReverseLote(item); }}
+                          disabled={reversing}
+                        >
+                          <Undo2 className="h-3 w-3" /> Estornar lote
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>
