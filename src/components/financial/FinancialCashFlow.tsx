@@ -415,9 +415,8 @@ export function FinancialCashFlow() {
                     const isLote = !!m.lote_id && (m.lote_count || 0) > 1;
                     const expanded = isLote && expandedLotes.has(m.id);
                     return (
-                      <>
+                      <Fragment key={m.id}>
                         <TableRow
-                          key={m.id}
                           className={cn(isLote && "cursor-pointer hover:bg-muted/40")}
                           onClick={isLote ? () => toggleLote(m.id) : undefined}
                         >
