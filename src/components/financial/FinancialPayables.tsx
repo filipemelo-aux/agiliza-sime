@@ -530,7 +530,7 @@ export function FinancialPayables() {
     });
   };
 
-  const handleBatchPay = () => {
+  const handleBatchPay = (consolidated = false) => {
     if (selectedIds.size === 0) return;
     const batchItems: BatchItem[] = [];
 
@@ -571,6 +571,7 @@ export function FinancialPayables() {
 
     if (batchItems.length === 0) return;
     setBatchPayItems(batchItems);
+    setBatchConsolidated(consolidated);
     setBatchPayOpen(true);
   };
 
