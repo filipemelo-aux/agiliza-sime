@@ -951,30 +951,63 @@ ${hasPartial ? `
 <div class="section">
   <div class="section-title">Parcelas / Contas a Receber (${contas.length})</div>
   <table>
-    <thead><tr><th>#</th><th>Vencimento</th><th class="text-right">Valor</th><th class="text-right">Recebido</th><th class="text-center">Status</th><th>Recebimento</th></tr></thead>
+    <thead><tr><th>#</th><th>Vencimento</th><th class="text-right">Valor</th><th class="text-right">Recebido</th><th class="text-right">Saldo</th><th class="text-center">Status</th></tr></thead>
     <tbody>
       ${contas.map((c, i) => {
         const recebido = Number(c.valor_recebido || 0);
+        const valor = Number(c.valor);
+        const saldo = Math.max(valor - recebido, 0);
         const badgeClass = c.status === "recebido" ? "badge-received" : c.status === "atrasado" ? "badge-late" : "badge-open";
-        const statusLabel = c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : "Aberto";
+        const statusLabel = c.status === "recebido" ? "Recebido" : c.status === "atrasado" ? "Atrasado" : recebido > 0 ? "Parcial" : "Aberto";
         return `<tr>
           <td>${i + 1}</td>
           <td>${formatDateBR(c.data_vencimento)}</td>
-          <td class="text-right mono">${formatCurrency(Number(c.valor))}</td>
+          <td class="text-right mono">${formatCurrency(valor)}</td>
           <td class="text-right mono" style="${recebido > 0 ? 'color:#15803d' : 'color:#9ca3af'}">${recebido > 0 ? formatCurrency(recebido) : "—"}</td>
+          <td class="text-right mono" style="${saldo > 0 ? 'color:#991b1b' : 'color:#9ca3af'}">${saldo > 0 ? formatCurrency(saldo) : "—"}</td>
           <td class="text-center"><span class="badge ${badgeClass}">${statusLabel}</span></td>
-          <td>${c.data_recebimento ? formatDateBR(c.data_recebimento) : "—"}</td>
         </tr>`;
       }).join("")}
-      ${hasPartial ? `<tr class="total-row">
+      <tr class="total-row">
         <td colspan="2" class="text-right">TOTAIS</td>
         <td class="text-right mono">${formatCurrency(valorTotalFatura)}</td>
         <td class="text-right mono">${formatCurrency(totalRecebido)}</td>
-        <td colspan="2" class="text-right">Saldo: ${formatCurrency(saldoDevedor)}</td>
-      </tr>` : ""}
+        <td class="text-right mono">${formatCurrency(saldoDevedor)}</td>
+        <td></td>
+      </tr>
     </tbody>
   </table>
 </div>
+
+${hasRecebimentos ? `
+<div class="section">
+  <div class="section-title">Recebimentos Registrados (${recebimentos.length})</div>
+  <table>
+    <thead><tr><th>#</th><th>Data Recebimento</th><th>Parcela</th><th>Forma</th><th>Observações</th><th class="text-right">Valor</th></tr></thead>
+    <tbody>
+      ${recebimentos
+        .slice()
+        .sort((a, b) => (a.data_recebimento || "").localeCompare(b.data_recebimento || ""))
+        .map((r, idx) => {
+          const idxParcela = contas.findIndex(c => c.id === r.conta_receber_id);
+          const parcelaLabel = idxParcela >= 0 ? `${idxParcela + 1}/${contas.length}` : "—";
+          return `<tr>
+            <td>${idx + 1}</td>
+            <td>${formatDateBR(r.data_recebimento)}</td>
+            <td>${parcelaLabel}</td>
+            <td>${r.forma_recebimento || "—"}</td>
+            <td>${r.observacoes ? String(r.observacoes).replace(/</g, "&lt;") : "—"}</td>
+            <td class="text-right mono" style="color:#15803d">${formatCurrency(Number(r.valor))}</td>
+          </tr>`;
+        }).join("")}
+      <tr class="total-row">
+        <td colspan="5" class="text-right">TOTAL RECEBIDO</td>
+        <td class="text-right mono">${formatCurrency(totalRecebido)}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+` : ""}
 
 <hr class="divider" />
 
