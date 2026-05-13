@@ -823,6 +823,31 @@ export function FinancialPaid() {
 
 
             </div>
+          ) : detailPayments.length > 0 ? (
+            <div className="space-y-2 text-sm">
+              <p className="text-xs text-muted-foreground">
+                Pagamento agrupado · {detailPayments.length} conta(s) · Total{" "}
+                <span className="font-mono font-bold text-success">
+                  {formatCurrency(detailPayments.reduce((s, p) => s + Number(p.valor), 0))}
+                </span>
+              </p>
+              <div className="space-y-1.5 border-t border-border pt-2">
+                {detailPayments.map((pay: any) => (
+                  <div key={pay.id} className="flex flex-col gap-0.5 text-xs p-2 rounded bg-success/10">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground truncate flex-1">
+                        {pay.expenses?.favorecido_nome || "—"}
+                      </span>
+                      <span className="font-mono font-semibold shrink-0">{formatCurrency(Number(pay.valor))}</span>
+                    </div>
+                    <span className="text-muted-foreground truncate">{pay.expenses?.descricao || ""}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDateBR(toDateOnly(pay.data_pagamento))} · {FORMA_PAGAMENTO_MAP[pay.forma_pagamento] || pay.forma_pagamento}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">Despesa não encontrada.</p>
           )}
