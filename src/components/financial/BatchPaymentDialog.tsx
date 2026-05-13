@@ -247,6 +247,68 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
     }
   };
 
+  const handleCreatePayable = async () => {
+    if (items.length === 0) return;
+    if (hasInstallments) {
+      return toast.error("Não é possível agrupar parcelas. Selecione apenas contas inteiras.");
+    }
+    if (!novaDataVencimento) return toast.error("Informe a data de vencimento da nova conta");
+    if (favorecidosDistintos.length === 0) return toast.error("Carregando favorecidos, aguarde...");
+    if (!novoFavorecidoId) return toast.error("Selecione o favorecido da nova conta");
+
+    for (const it of items) {
+      const v = getValor(it.id, it.valor);
+      if (v === 0 || isNaN(v)) return toast.error(`Valor inválido para: ${it.descricao}`);
+    }
+
+    setCreating(true);
+    try {
+      const total = items.reduce((s, i) => s + getValor(i.id, i.valor), 0);
+      const template = expensesMeta[items[0].expenseId];
+      if (!template) throw new Error("Metadados da conta original não carregados");
+
+      const favorecidoNome = favorecidosDistintos.find(f => f.id === novoFavorecidoId)?.nome || null;
+      const expenseIds = Array.from(new Set(items.map(i => i.expenseId)));
+
+      const descricaoBase = `Agrupamento de ${items.length} conta(s)`;
+      const obsLista = items.map((it, i) => `${i + 1}. ${it.descricao} — ${formatCurrency(getValor(it.id, it.valor))}`).join("\n");
+      const obsFinal = [observacoes.trim(), `Contas agrupadas:\n${obsLista}`].filter(Boolean).join("\n\n");
+
+      const { error: insErr } = await supabase.from("expenses").insert({
+        empresa_id: template.empresa_id,
+        descricao: descricaoBase + (favorecidoNome ? ` - ${favorecidoNome}` : ""),
+        plano_contas_id: template.plano_contas_id,
+        centro_custo: template.centro_custo,
+        tipo_despesa: template.tipo_despesa,
+        valor_total: total,
+        data_emissao: novaDataVencimento,
+        data_vencimento: novaDataVencimento,
+        data_competencia: novaDataVencimento,
+        status: "pendente",
+        favorecido_id: novoFavorecidoId,
+        favorecido_nome: favorecidoNome,
+        observacoes: obsFinal,
+        created_by: user?.id,
+        origem: "manual",
+      } as any);
+      if (insErr) throw insErr;
+
+      const { error: delErr } = await supabase
+        .from("expenses")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .in("id", expenseIds);
+      if (delErr) throw delErr;
+
+      toast.success(`Nova conta a pagar criada (${items.length} contas agrupadas)`);
+      setCreating(false);
+      onOpenChange(false);
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar conta a pagar");
+      setCreating(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
