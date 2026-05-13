@@ -165,6 +165,8 @@ export function FinancialPaid() {
           expense_id,
           created_by,
           created_at,
+          lote_id,
+          skip_cashflow,
           expenses:expense_id (
             descricao,
             favorecido_nome,
@@ -191,7 +193,20 @@ export function FinancialPaid() {
       (profiles || []).forEach((p: any) => { creatorsMap[p.user_id] = p.full_name; });
     }
 
-    const expenseItems: PaidItem[] = (expensePayments || []).map((p: any) => ({
+    // Split grouped payments (skip_cashflow + lote_id) from individual ones
+    const groupedMap = new Map<string, any[]>();
+    const individualPayments: any[] = [];
+    (expensePayments || []).forEach((p: any) => {
+      if (p.skip_cashflow && p.lote_id) {
+        const arr = groupedMap.get(p.lote_id) || [];
+        arr.push(p);
+        groupedMap.set(p.lote_id, arr);
+      } else {
+        individualPayments.push(p);
+      }
+    });
+
+    const expenseItems: PaidItem[] = individualPayments.map((p: any) => ({
       id: p.id,
       description: p.expenses?.descricao || "Pagamento de despesa",
       amount: Number(p.valor || 0),
@@ -205,6 +220,32 @@ export function FinancialPaid() {
       created_at: p.created_at || null,
       documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
     }));
+
+    const groupItems: PaidItem[] = Array.from(groupedMap.entries()).map(([loteId, payments]) => {
+      const total = payments.reduce((s, p) => s + Number(p.valor || 0), 0);
+      const first = payments[0];
+      const favorecidos = new Set(payments.map(p => p.expenses?.favorecido_nome).filter(Boolean));
+      const creditor = favorecidos.size === 1
+        ? Array.from(favorecidos)[0] as string
+        : `${favorecidos.size} favorecidos`;
+      return {
+        id: `group-${loteId}`,
+        description: `Pagamento agrupado de ${payments.length} conta(s)`,
+        amount: total,
+        paid_at: toDateOnly(first.data_pagamento),
+        due_date: null,
+        creditor_name: creditor,
+        source: "group" as const,
+        expense_id: null,
+        forma_pagamento: first.forma_pagamento || null,
+        created_by_name: creatorsMap[first.created_by] || null,
+        created_at: first.created_at || null,
+        documento_fiscal_numero: null,
+        lote_id: loteId,
+        group_count: payments.length,
+        group_payment_ids: payments.map(p => p.id),
+      };
+    });
 
     const legacyItems: PaidItem[] = (paidLegacy || []).map((a: any) => ({
       id: `legacy-${a.id}`,
@@ -221,7 +262,7 @@ export function FinancialPaid() {
     // Harvest payments now flow through the expense system (no longer shown separately)
 
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...expenseItems, ...groupItems, ...legacyItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
