@@ -22,12 +22,15 @@ interface PaidItem {
   paid_at: string | null;
   due_date: string | null;
   creditor_name: string | null;
-  source: "expense_payment" | "legacy";
+  source: "expense_payment" | "legacy" | "group";
   expense_id: string | null;
   forma_pagamento?: string | null;
   created_by_name?: string | null;
   created_at?: string | null;
   documento_fiscal_numero?: string | null;
+  lote_id?: string | null;
+  group_count?: number;
+  group_payment_ids?: string[];
 }
 
 interface ExpenseDetail {
