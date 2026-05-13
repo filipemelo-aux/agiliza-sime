@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil } from "lucide-react";
+import { Search, CheckCircle2, TrendingUp, DollarSign, CalendarIcon, X, Undo2, Eye, Pencil, ChevronRight, ChevronDown, Layers } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
