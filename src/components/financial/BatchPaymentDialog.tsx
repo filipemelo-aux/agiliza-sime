@@ -132,7 +132,19 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       // Create consolidated bank movement (single entry for the whole batch)
       if (consolidated && loteId && Math.abs(totalConsolidado) > 0.005) {
         const tipo = totalConsolidado < 0 ? "entrada" : "saida";
-        const descricao = `Pagamento agrupado de ${items.length} conta(s) — ${formatCurrency(Math.abs(totalConsolidado))}`;
+        // Fetch favorecidos to enrich description
+        const expenseIds = Array.from(touchedExpenses);
+        const { data: expRows } = await supabase
+          .from("expenses")
+          .select("favorecido_nome")
+          .in("id", expenseIds);
+        const favorecidos = Array.from(new Set(((expRows as any[]) || []).map(e => e.favorecido_nome).filter(Boolean))) as string[];
+        const favorecidosTxt = favorecidos.length === 0
+          ? ""
+          : favorecidos.length === 1
+            ? ` — ${favorecidos[0]}`
+            : ` — ${favorecidos.length} favorecidos: ${favorecidos.join(", ")}`;
+        const descricao = `Pagamento agrupado de ${items.length} conta(s)${favorecidosTxt} — ${formatCurrency(Math.abs(totalConsolidado))}`;
         const { error: movErr } = await supabase.from("movimentacoes_bancarias").insert({
           tipo,
           origem: "pagamento_agrupado",
