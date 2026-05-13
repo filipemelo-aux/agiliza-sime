@@ -1230,7 +1230,6 @@ export type Database = {
           forma_pagamento: string
           id: string
           juros: number
-          lote_id: string | null
           observacoes: string | null
           valor: number
         }
@@ -1242,7 +1241,6 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           juros?: number
-          lote_id?: string | null
           observacoes?: string | null
           valor?: number
         }
@@ -1254,7 +1252,6 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           juros?: number
-          lote_id?: string | null
           observacoes?: string | null
           valor?: number
         }
@@ -2923,7 +2920,6 @@ export type Database = {
           data_movimentacao: string
           descricao: string | null
           id: string
-          lote_id: string | null
           origem: string
           origem_id: string
           plano_contas_id: string | null
@@ -2936,7 +2932,6 @@ export type Database = {
           data_movimentacao: string
           descricao?: string | null
           id?: string
-          lote_id?: string | null
           origem: string
           origem_id: string
           plano_contas_id?: string | null
@@ -2949,7 +2944,6 @@ export type Database = {
           data_movimentacao?: string
           descricao?: string | null
           id?: string
-          lote_id?: string | null
           origem?: string
           origem_id?: string
           plano_contas_id?: string | null
