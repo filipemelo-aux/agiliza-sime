@@ -456,7 +456,7 @@ export function FinancialCashFlow() {
                             </TableCell>
                           </TableRow>
                         ))}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
