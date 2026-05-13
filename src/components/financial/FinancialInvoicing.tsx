@@ -554,11 +554,28 @@ export function FinancialInvoicing() {
       .order("data_vencimento", { ascending: true });
     const contas = (contasData as ContaReceber[]) || [];
 
+    // Load all receivable_payments (recebimentos parciais/totais) das parcelas
+    const contasIds = contas.map(c => c.id);
+    let recebimentos: any[] = [];
+    if (contasIds.length > 0) {
+      const { data: rpData } = await supabase
+        .from("receivable_payments")
+        .select("id, conta_receber_id, valor, forma_recebimento, data_recebimento, observacoes, created_at")
+        .in("conta_receber_id", contasIds)
+        .order("data_recebimento", { ascending: true });
+      recebimentos = rpData || [];
+    }
+    const recebimentosByConta: Record<string, any[]> = {};
+    recebimentos.forEach(r => {
+      (recebimentosByConta[r.conta_receber_id] ||= []).push(r);
+    });
+
     // Totais de pagamento parcial
     const totalRecebido = contas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
     const valorTotalFatura = Number(fatura.valor_total);
     const saldoDevedor = Math.max(valorTotalFatura - totalRecebido, 0);
     const hasPartial = totalRecebido > 0 && fatura.status !== "paga";
+    const hasRecebimentos = recebimentos.length > 0;
 
     // Load full client profile
     const { data: clienteProfile } = await supabase
