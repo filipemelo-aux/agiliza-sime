@@ -271,7 +271,7 @@ export function FinancialPaid() {
     // Harvest payments now flow through the expense system (no longer shown separately)
 
     setItems(
-      [...expenseItems, ...legacyItems].sort((a, b) => {
+      [...groupedExpenseItems, ...legacyItems].sort((a, b) => {
         const dateA = a.paid_at ? new Date(`${a.paid_at}T12:00:00`).getTime() : 0;
         const dateB = b.paid_at ? new Date(`${b.paid_at}T12:00:00`).getTime() : 0;
         return dateB - dateA;
