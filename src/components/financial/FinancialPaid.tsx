@@ -288,7 +288,12 @@ export function FinancialPaid() {
         !search ||
         i.description.toLowerCase().includes(q) ||
         (i.creditor_name || "").toLowerCase().includes(q) ||
-        (i.documento_fiscal_numero || "").toLowerCase().includes(q);
+        (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
+        (i.lote_children || []).some(c =>
+          c.description.toLowerCase().includes(q) ||
+          (c.creditor_name || "").toLowerCase().includes(q) ||
+          (c.documento_fiscal_numero || "").toLowerCase().includes(q)
+        );
 
       let matchPeriodo = true;
       if (periodoInicio || periodoFim) {
