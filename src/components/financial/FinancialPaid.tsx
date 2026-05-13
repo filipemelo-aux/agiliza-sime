@@ -174,6 +174,7 @@ export function FinancialPaid() {
           expense_id,
           created_by,
           created_at,
+          lote_id,
           expenses:expense_id (
             descricao,
             favorecido_nome,
