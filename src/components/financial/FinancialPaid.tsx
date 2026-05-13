@@ -126,6 +126,15 @@ export function FinancialPaid() {
   const [periodoFim, setPeriodoFim] = useState("");
   const [origemFilter, setOrigemFilter] = useState<"todos" | "expense_payment" | "legacy">("todos");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
+
+  const toggleLote = (id: string) => {
+    setExpandedLotes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
