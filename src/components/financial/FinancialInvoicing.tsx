@@ -130,6 +130,7 @@ export function FinancialInvoicing() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFatura, setSelectedFatura] = useState<Fatura | null>(null);
   const [detailPrevisoes, setDetailPrevisoes] = useState<Previsao[]>([]);
+  const [detailCtes, setDetailCtes] = useState<Record<string, any>>({});
   const [detailContas, setDetailContas] = useState<ContaReceber[]>([]);
 
   // New/Edit invoice dialog
