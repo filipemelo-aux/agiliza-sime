@@ -2540,7 +2540,32 @@ export default function HarvestDetail() {
                             )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                            {editingEndDateId === a.id ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="date"
+                                  className="h-6 text-xs w-28"
+                                  value={editingEndDateValue}
+                                  onChange={(e) => setEditingEndDateValue(e.target.value)}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEndDate(a.id);
+                                    if (e.key === "Escape") { setEditingEndDateId(null); setEditingEndDateValue(""); }
+                                  }}
+                                />
+                                <Button variant="ghost" size="icon" className="h-5 w-5 text-green-600" onClick={() => handleSaveEndDate(a.id)}>
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingEndDateId(null); setEditingEndDateValue(""); }}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-0.5 cursor-pointer" onClick={() => { setEditingEndDateId(a.id); setEditingEndDateValue(a.end_date || ""); }}>
+                                <span className={a.end_date ? "" : "text-muted-foreground"}>{a.end_date ? formatDate(a.end_date) : "—"}</span>
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">{fat.days}</TableCell>
                           <TableCell className="whitespace-nowrap">{formatCurrency(fat.dvEmpresa)}</TableCell>
