@@ -231,9 +231,24 @@ export function FinancialInvoicing() {
         .from("previsoes_recebimento")
         .select("*")
         .in("id", ids);
-      setDetailPrevisoes((prevData as Previsao[]) || []);
+      const previsoes = (prevData as Previsao[]) || [];
+      setDetailPrevisoes(previsoes);
+
+      const cteIds = previsoes.filter(p => p.origem_tipo === "cte").map(p => p.origem_id);
+      if (cteIds.length > 0) {
+        const { data: cteData } = await supabase
+          .from("ctes")
+          .select("id, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante")
+          .in("id", [...new Set(cteIds)]);
+        const map: Record<string, any> = {};
+        (cteData || []).forEach((c: any) => { map[c.id] = c; });
+        setDetailCtes(map);
+      } else {
+        setDetailCtes({});
+      }
     } else {
       setDetailPrevisoes([]);
+      setDetailCtes({});
     }
 
     const { data: contasData } = await supabase
