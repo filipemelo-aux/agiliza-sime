@@ -130,6 +130,7 @@ export function FinancialInvoicing() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFatura, setSelectedFatura] = useState<Fatura | null>(null);
   const [detailPrevisoes, setDetailPrevisoes] = useState<Previsao[]>([]);
+  const [detailCtes, setDetailCtes] = useState<Record<string, any>>({});
   const [detailContas, setDetailContas] = useState<ContaReceber[]>([]);
 
   // New/Edit invoice dialog
@@ -230,9 +231,24 @@ export function FinancialInvoicing() {
         .from("previsoes_recebimento")
         .select("*")
         .in("id", ids);
-      setDetailPrevisoes((prevData as Previsao[]) || []);
+      const previsoes = (prevData as Previsao[]) || [];
+      setDetailPrevisoes(previsoes);
+
+      const cteIds = previsoes.filter(p => p.origem_tipo === "cte").map(p => p.origem_id);
+      if (cteIds.length > 0) {
+        const { data: cteData } = await supabase
+          .from("ctes")
+          .select("id, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante")
+          .in("id", [...new Set(cteIds)]);
+        const map: Record<string, any> = {};
+        (cteData || []).forEach((c: any) => { map[c.id] = c; });
+        setDetailCtes(map);
+      } else {
+        setDetailCtes({});
+      }
     } else {
       setDetailPrevisoes([]);
+      setDetailCtes({});
     }
 
     const { data: contasData } = await supabase
@@ -1248,6 +1264,7 @@ ${hasRecebimentos ? `
                       <TableRow>
                         <TableHead>Origem</TableHead>
                         <TableHead>Data</TableHead>
+                        <TableHead>Placa</TableHead>
                         <TableHead>Detalhes</TableHead>
                         <TableHead className="text-right">Peso</TableHead>
                         <TableHead className="text-right">R$/Ton</TableHead>
@@ -1260,8 +1277,50 @@ ${hasRecebimentos ? `
                       {detailPrevisoes.map((p) => {
                         const m: any = p.metadata || {};
                         const isManual = p.origem_tipo === "manual";
-                        const peso = Number(m.peso_kg || 0);
-                        
+                        const isCte = p.origem_tipo === "cte";
+                        const isColheita = p.origem_tipo === "colheita";
+                        const cte = isCte ? detailCtes[p.origem_id] : null;
+
+                        // Resolve fields per origem
+                        const placa = isManual
+                          ? (m.placa || "—")
+                          : isCte
+                            ? (cte?.placa_veiculo || "—")
+                            : "—";
+
+                        const pesoKg = isManual
+                          ? Number(m.peso_kg || 0)
+                          : isCte
+                            ? Number(cte?.peso_bruto || 0)
+                            : 0;
+
+                        const valorTon = isManual
+                          ? Number(m.valor_por_ton || 0)
+                          : isCte
+                            ? Number(cte?.valor_tonelada || 0)
+                            : 0;
+
+                        const valorBruto = isManual
+                          ? Number(m.valor_bruto || 0)
+                          : isCte
+                            ? Number(cte?.valor_carga || cte?.valor_frete || 0)
+                            : 0;
+
+                        const valorDesc = isManual
+                          ? Number(m.valor_desconto || 0)
+                          : isCte
+                            ? Number(cte?.desconto || 0)
+                            : 0;
+
+                        let detalhes = "—";
+                        if (isManual) {
+                          detalhes = m.motorista || "Frete Manual";
+                        } else if (isCte) {
+                          detalhes = cte?.produto_predominante || "CT-e";
+                        } else if (isColheita) {
+                          detalhes = m.fazenda || "—";
+                        }
+
                         const descTipo = m.desconto?.tipo;
                         let descLabel = "—";
                         if (isManual && descTipo && descTipo !== "nenhum") {
@@ -1276,28 +1335,23 @@ ${hasRecebimentos ? `
                         return (
                           <TableRow key={p.id}>
                             <TableCell className="text-xs">
-                              <Badge variant="outline">{p.origem_tipo === "cte" ? "CT-e" : isManual ? "Manual" : "Colheita"}</Badge>
+                              <Badge variant="outline">{isCte ? "CT-e" : isManual ? "Manual" : "Colheita"}</Badge>
                             </TableCell>
                             <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
-                            <TableCell className="text-xs">
-                              {isManual
-                                ? `${m.placa || "—"} · ${m.motorista || "—"}`
-                                : p.origem_tipo === "colheita"
-                                  ? (m.fazenda || "—")
-                                  : "—"}
+                            <TableCell className="text-xs font-mono">{placa}</TableCell>
+                            <TableCell className="text-xs">{detalhes}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">
+                              {pesoKg > 0 ? `${pesoKg.toLocaleString("pt-BR")} kg` : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono">
-                              {isManual && peso > 0 ? `${peso.toLocaleString("pt-BR")} kg` : "—"}
+                              {valorTon > 0 ? formatCurrency(valorTon) : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono">
-                              {isManual && m.valor_por_ton ? formatCurrency(Number(m.valor_por_ton)) : "—"}
+                              {valorBruto > 0 ? formatCurrency(valorBruto) : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono">
-                              {isManual && m.valor_bruto ? formatCurrency(Number(m.valor_bruto)) : "—"}
-                            </TableCell>
-                            <TableCell className="text-xs text-right font-mono">
-                              {isManual && m.valor_desconto
-                                ? <span title={descLabel}>{formatCurrency(Number(m.valor_desconto))}</span>
+                              {valorDesc > 0
+                                ? <span title={descLabel}>{formatCurrency(valorDesc)}</span>
                                 : "—"}
                             </TableCell>
                             <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
