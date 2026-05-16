@@ -141,9 +141,15 @@ export function TransportReports() {
   const [proprietarioSearch, setProprietarioSearch] = useState("");
 
   useEffect(() => {
-    supabase.from("profiles").select("id, full_name, nome_fantasia, razao_social, category, is_owner").order("full_name").then(({ data }) => setProfiles(data || []));
+    supabase.from("profiles").select("id, user_id, full_name, nome_fantasia, razao_social, category, is_owner").order("full_name").then(({ data }) => setProfiles(data || []));
     supabase.from("vehicles").select("id, plate, brand, model, owner_id").order("plate").then(({ data }) => setVehicles(data || []));
   }, []);
+
+  const ownerName = useCallback((userId?: string | null) => {
+    if (!userId) return "—";
+    const p = profiles.find((x) => x.user_id === userId);
+    return p ? (p.nome_fantasia || p.razao_social || p.full_name) : "—";
+  }, [profiles]);
 
   const handleTab = (t: string) => {
     setReportType(t as ReportType);
