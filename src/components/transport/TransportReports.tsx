@@ -554,11 +554,19 @@ export function TransportReports() {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
-@media print { @page { margin: 8mm 6mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} }
+@media print { @page { margin: 10mm 8mm; size: A4 portrait; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} }
+.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.toolbar button{font-family:${FONT};font-size:12px;font-weight:600;padding:8px 14px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.toolbar button.primary{background:#2B4C7E;color:#fff;border-color:#2B4C7E}
+.toolbar button:hover{opacity:0.9}
 </style></head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
+<div class="toolbar no-print">
+  <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
+  <button onclick="(window.opener&&window.opener.__shareTransportPdf)?window.opener.__shareTransportPdf():alert('Não foi possível compartilhar')">📤 Compartilhar PDF</button>
+</div>
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:1200px;font-family:${FONT}">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
 <tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
 <table width="100%"><tr>
 <td style="width:48px"><div style="width:42px;height:42px;border-radius:6px;background:#2B4C7E;color:#F5C518;font-weight:800;font-size:18px;text-align:center;line-height:42px;font-family:${FONT}">ST</div></td>
