@@ -141,9 +141,15 @@ export function TransportReports() {
   const [proprietarioSearch, setProprietarioSearch] = useState("");
 
   useEffect(() => {
-    supabase.from("profiles").select("id, full_name, nome_fantasia, razao_social, category, is_owner").order("full_name").then(({ data }) => setProfiles(data || []));
+    supabase.from("profiles").select("id, user_id, full_name, nome_fantasia, razao_social, category, is_owner").order("full_name").then(({ data }) => setProfiles(data || []));
     supabase.from("vehicles").select("id, plate, brand, model, owner_id").order("plate").then(({ data }) => setVehicles(data || []));
   }, []);
+
+  const ownerName = useCallback((userId?: string | null) => {
+    if (!userId) return "—";
+    const p = profiles.find((x) => x.user_id === userId);
+    return p ? (p.nome_fantasia || p.razao_social || p.full_name) : "—";
+  }, [profiles]);
 
   const handleTab = (t: string) => {
     setReportType(t as ReportType);
@@ -163,10 +169,10 @@ export function TransportReports() {
   const ownerByPlate = useMemo(() => {
     const m = new Map<string, string>();
     vehicles.forEach((v) => {
-      if (v.plate) m.set(v.plate, profileName(v.owner_id));
+      if (v.plate) m.set(v.plate, ownerName(v.owner_id));
     });
     return m;
-  }, [vehicles, profileName]);
+  }, [vehicles, ownerName]);
 
   /** Plates owned by a given proprietário profile id */
   const platesByOwnerId = useMemo(() => {
@@ -454,8 +460,8 @@ export function TransportReports() {
 
   const proprietarioList = useMemo(() => {
     const term = proprietarioSearch.trim().toLowerCase();
-    const ownerIds = new Set(vehicles.map((v) => v.owner_id).filter(Boolean));
-    const base = profiles.filter((p) => p.is_owner || ownerIds.has(p.id));
+    const ownerUserIds = new Set(vehicles.map((v) => v.owner_id).filter(Boolean));
+    const base = profiles.filter((p) => p.user_id && (p.is_owner || ownerUserIds.has(p.user_id)));
     return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term))) : base;
   }, [profiles, vehicles, proprietarioSearch]);
 
@@ -729,7 +735,7 @@ ${totalLine}
                           </div>
                         </div>
                         <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                        {proprietarioList.slice(0, 100).map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
+                        {proprietarioList.slice(0, 100).map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
                         {proprietarioList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
