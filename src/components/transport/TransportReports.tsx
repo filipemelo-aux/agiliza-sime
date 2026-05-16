@@ -500,10 +500,6 @@ ${totalLine}
                   <Label className="text-xs">Data Final</Label>
                   <Input type="date" className="h-8 text-xs" value={filters.dataFim} onChange={(e) => updateFilter("dataFim", e.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Status</Label>
-                  <Input className="h-8 text-xs" placeholder="Digite o status..." value={filters.status} onChange={(e) => updateFilter("status", e.target.value)} />
-                </div>
                 {showCliente && (
                   <div className="space-y-1">
                     <Label className="text-xs">Cliente</Label>
