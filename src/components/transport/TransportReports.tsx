@@ -789,8 +789,11 @@ ${totalLine}
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1">
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
           </Button>
-          <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
-            <Share2 className="h-3.5 w-3.5" /> PDF
+          <Button variant="outline" size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
+            <Printer className="h-3.5 w-3.5" /> Imprimir
+          </Button>
+          <Button size="sm" onClick={handleShare} disabled={!rows.length} className="gap-1">
+            <Share2 className="h-3.5 w-3.5" /> Compartilhar
           </Button>
         </div>
       </div>
