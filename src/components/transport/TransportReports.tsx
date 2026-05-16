@@ -299,6 +299,11 @@ export function TransportReports() {
     }
   }, [reportType, filters.dataInicio, filters.dataFim, profileName, vehicleMap, ownerByPlate]);
 
+  useEffect(() => {
+    const t = setTimeout(() => { fetchData(); }, 300);
+    return () => clearTimeout(t);
+  }, [fetchData]);
+
   const filteredRows = useMemo(() => {
     const norm = (s: string) => (s || "").toLowerCase().trim();
     const fStatus = norm(filters.status);
