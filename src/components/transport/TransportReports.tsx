@@ -592,12 +592,47 @@ ${totalLine}
 </td></tr>
 </table></td></tr></table></body></html>`;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => { win.focus(); win.print(); };
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      container.style.position = "fixed";
+      container.style.left = "-10000px";
+      container.style.top = "0";
+      container.style.width = "1200px";
+      document.body.appendChild(container);
+      const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      const worker: any = html2pdf()
+        .from(container)
+        .set({
+          margin: [6, 4, 6, 4],
+          filename,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f4f6f8" },
+          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+          pagebreak: { mode: ["css", "legacy"] },
+        });
+      const pdfBlob: Blob = await worker.outputPdf("blob");
+      document.body.removeChild(container);
+
+      const file = new File([pdfBlob], filename, { type: "application/pdf" });
+      const nav: any = navigator;
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        try {
+          await nav.share({ files: [file], title: TITLES[reportType] });
+          return;
+        } catch {
+          // fallback to download
+        }
+      }
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e: any) {
+      toast.error("Erro ao gerar PDF", { description: e?.message });
     }
   };
 
