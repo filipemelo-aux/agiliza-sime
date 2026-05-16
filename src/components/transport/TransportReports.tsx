@@ -214,8 +214,12 @@ export function TransportReports() {
         const { data, error } = await q.order("data_emissao", { ascending: false }).limit(2000);
         if (error) throw error;
         result = (data || []).map((c: any) => {
-          const origem = c.municipio_origem_nome || c.uf_origem || "—";
-          const destino = c.municipio_destino_nome || c.uf_destino || "—";
+          const cidOri = c.municipio_origem_nome || "";
+          const ufOri = c.uf_origem || c.remetente_uf || c.expedidor_uf || "";
+          const cidDes = c.municipio_destino_nome || "";
+          const ufDes = c.uf_destino || c.destinatario_uf || c.recebedor_uf || "";
+          const origem = [cidOri, ufOri].filter(Boolean).join("/") || "—";
+          const destino = [cidDes, ufDes].filter(Boolean).join("/") || "—";
           const placa = c.placa_veiculo || "—";
           const isServ = c.tipo_talao === "servico";
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
