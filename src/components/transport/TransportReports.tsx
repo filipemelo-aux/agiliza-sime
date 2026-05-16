@@ -563,7 +563,7 @@ export function TransportReports() {
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
 <div class="toolbar no-print">
   <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
-  <button onclick="(window.opener&&window.opener.__shareTransportPdf)?window.opener.__shareTransportPdf():alert('Não foi possível compartilhar')">📤 Compartilhar PDF</button>
+  <button onclick="window.print()">📤 Compartilhar PDF</button>
 </div>
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
