@@ -217,11 +217,15 @@ export function TransportReports() {
           const origem = c.municipio_origem_nome || c.uf_origem || "—";
           const destino = c.municipio_destino_nome || c.uf_destino || "—";
           const placa = c.placa_veiculo || "—";
+          const isServ = c.tipo_talao === "servico";
+          const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
+          const pesoTxt = c.peso_bruto ? `${Number(c.peso_bruto).toLocaleString("pt-BR")} kg` : "";
+          const descBase = c.produto_predominante || c.natureza_operacao || "—";
           return {
             id: c.id,
             data: c.data_emissao,
-            titulo: `CT-e ${c.tipo_talao === "producao" ? "Produção" : "Serviço"} Nº ${c.numero || "—"}`,
-            subtitulo: c.produto_predominante || c.natureza_operacao || "—",
+            titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
+            subtitulo: pesoTxt ? `${descBase} • ${pesoTxt}` : descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
@@ -526,7 +530,6 @@ export function TransportReports() {
         <div style="font-weight:600">${r.titulo}</div>
         <div style="font-size:9px;color:#888;margin-top:1px">${r.subtitulo}</div>
       </td>
-      <td style="padding:6px 8px;font-size:10px;color:#333">${r.pessoa}</td>
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
       <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}</td>
@@ -535,7 +538,7 @@ export function TransportReports() {
       )
       .join("");
 
-    const colspan = showValor ? 7 : 7;
+    const colspan = showValor ? 6 : 6;
     const totalLine = showValor
       ? `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`
       : `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
@@ -567,7 +570,7 @@ ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#6
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:center;width:24px">#</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Data</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Descrição</td>
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Pessoa</td>
+
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Origem → Destino</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Veículo / Proprietário</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:center">Status</td>
