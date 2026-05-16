@@ -500,7 +500,6 @@ export function TransportReports() {
     } catch {}
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
-    const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
 
     const statusBadge = (s: string) => {
@@ -559,7 +558,7 @@ export function TransportReports() {
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:1200px;font-family:${FONT}">
 <tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
 <table width="100%"><tr>
-<td style="width:48px"><img src="${logoUrl}" width="42" height="42" style="border-radius:6px"/></td>
+<td style="width:48px"><div style="width:42px;height:42px;border-radius:6px;background:#2B4C7E;color:#F5C518;font-weight:800;font-size:18px;text-align:center;line-height:42px;font-family:${FONT}">ST</div></td>
 <td><div style="font-weight:800;font-size:18px;color:#2B4C7E">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
 <div style="font-size:11px;color:#666">${estName}</div>
 ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("") : ""}
@@ -596,11 +595,16 @@ ${totalLine}
       const html2pdf = (await import("html2pdf.js")).default;
       const container = document.createElement("div");
       container.innerHTML = html;
-      container.style.position = "fixed";
-      container.style.left = "-10000px";
+      container.style.position = "absolute";
+      container.style.left = "0";
       container.style.top = "0";
       container.style.width = "1200px";
+      container.style.zIndex = "-1";
+      container.style.opacity = "0";
+      container.style.pointerEvents = "none";
       document.body.appendChild(container);
+      // wait a frame for layout
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
       const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
       const worker: any = html2pdf()
         .from(container)
@@ -608,7 +612,7 @@ ${totalLine}
           margin: [6, 4, 6, 4],
           filename,
           image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f4f6f8" },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: 1200 },
           jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
           pagebreak: { mode: ["css", "legacy"] },
         });
