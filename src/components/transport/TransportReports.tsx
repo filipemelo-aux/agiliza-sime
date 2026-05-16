@@ -530,7 +530,6 @@ export function TransportReports() {
         <div style="font-weight:600">${r.titulo}</div>
         <div style="font-size:9px;color:#888;margin-top:1px">${r.subtitulo}</div>
       </td>
-      <td style="padding:6px 8px;font-size:10px;color:#333">${r.pessoa}</td>
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
       <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}</td>
@@ -539,7 +538,7 @@ export function TransportReports() {
       )
       .join("");
 
-    const colspan = showValor ? 7 : 7;
+    const colspan = showValor ? 6 : 6;
     const totalLine = showValor
       ? `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`
       : `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
