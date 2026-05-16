@@ -735,7 +735,7 @@ ${totalLine}
                           </div>
                         </div>
                         <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                        {proprietarioList.slice(0, 100).map((p) => <SelectItem key={p.id} value={p.id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
+                        {proprietarioList.slice(0, 100).map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.nome_fantasia || p.razao_social || p.full_name}</SelectItem>)}
                         {proprietarioList.length === 0 && <div className="px-2 py-3 text-xs text-muted-foreground text-center">Nenhum encontrado</div>}
                       </SelectContent>
                     </Select>
