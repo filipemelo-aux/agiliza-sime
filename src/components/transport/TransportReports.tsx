@@ -610,12 +610,12 @@ ${totalLine}
     if (!printWindow) return toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
 
     try {
+      (window as any).__shareTransportPdf = () => { handleShare(); };
       const html = buildReportHtml(await getReportMeta());
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => printWindow.print(), 350);
     } catch (e: any) {
       printWindow.close();
       toast.error("Erro ao abrir impressão", { description: e?.message });
