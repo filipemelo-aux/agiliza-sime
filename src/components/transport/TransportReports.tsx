@@ -500,7 +500,6 @@ export function TransportReports() {
     } catch {}
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
-    const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
 
     const statusBadge = (s: string) => {
