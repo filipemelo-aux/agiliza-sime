@@ -217,11 +217,15 @@ export function TransportReports() {
           const origem = c.municipio_origem_nome || c.uf_origem || "—";
           const destino = c.municipio_destino_nome || c.uf_destino || "—";
           const placa = c.placa_veiculo || "—";
+          const isServ = c.tipo_talao === "servico";
+          const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
+          const pesoTxt = c.peso_bruto ? `${Number(c.peso_bruto).toLocaleString("pt-BR")} kg` : "";
+          const descBase = c.produto_predominante || c.natureza_operacao || "—";
           return {
             id: c.id,
             data: c.data_emissao,
-            titulo: `CT-e ${c.tipo_talao === "producao" ? "Produção" : "Serviço"} Nº ${c.numero || "—"}`,
-            subtitulo: c.produto_predominante || c.natureza_operacao || "—",
+            titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
+            subtitulo: pesoTxt ? `${descBase} • ${pesoTxt}` : descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
