@@ -569,9 +569,8 @@ export function TransportReports() {
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
 <tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
 <table width="100%"><tr>
-<td style="width:48px"><div style="width:42px;height:42px;border-radius:6px;background:#2B4C7E;color:#F5C518;font-weight:800;font-size:18px;text-align:center;line-height:42px;font-family:${FONT}">ST</div></td>
-<td><div style="font-weight:800;font-size:18px;color:#2B4C7E">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-<div style="font-size:11px;color:#666">${estName}</div>
+<td style="width:90px;vertical-align:middle"><img src="${window.location.origin}/logo.png" alt="City Transportes" style="height:54px;width:auto;display:block" /></td>
+<td style="vertical-align:middle"><div style="font-size:11px;color:#666">${estName}</div>
 ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("") : ""}
 </td></tr></table></td></tr>
 <tr><td style="height:8px"></td></tr>
@@ -636,22 +635,28 @@ ${totalLine}
       : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
     const x = cols.reduce<number[]>((acc, w, i) => (i ? [...acc, acc[i - 1] + cols[i - 1]] : [margin]), []);
 
+    let logoDataUrl = "";
+    try {
+      const res = await fetch("/logo.png");
+      const blob = await res.blob();
+      logoDataUrl = await new Promise<string>((resolve) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result || ""));
+        fr.readAsDataURL(blob);
+      });
+    } catch {}
+
     const addHeader = () => {
       doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, pageWidth, pageHeight, "F");
-      doc.setFillColor(43, 76, 126);
-      doc.roundedRect(margin, 8, 42, 15, 2, 2, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.setTextColor(245, 197, 24);
-      doc.text("ST", margin + 4, 18);
-      doc.setTextColor(43, 76, 126);
-      doc.text("SIME TRANSPORTES", margin + 48, 14);
+      if (logoDataUrl) {
+        try { doc.addImage(logoDataUrl, "PNG", margin, 8, 28, 16); } catch {}
+      }
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(95, 95, 95);
-      if (estName) doc.text(estName, margin + 48, 19);
-      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 48, 23);
+      if (estName) doc.text(estName, margin + 32, 14);
+      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 32, 19);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
