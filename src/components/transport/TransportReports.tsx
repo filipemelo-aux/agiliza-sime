@@ -624,13 +624,13 @@ ${totalLine}
 
   const generatePdfBlob = async ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
     const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 8;
     const cols = showValor
-      ? [8, 21, 60, 70, 49, 24, 33]
-      : [8, 23, 74, 78, 56, 26];
+      ? [7, 18, 45, 50, 38, 18, 28]
+      : [8, 20, 55, 60, 45, 24];
     const headers = showValor
       ? ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status", "Valor"]
       : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
