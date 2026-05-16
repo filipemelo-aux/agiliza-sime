@@ -672,7 +672,7 @@ ${totalLine}
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
           </Button>
           <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
-            <Printer className="h-3.5 w-3.5" /> Imprimir
+            <Share2 className="h-3.5 w-3.5" /> PDF
           </Button>
         </div>
       </div>
