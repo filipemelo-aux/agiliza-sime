@@ -214,15 +214,14 @@ export function TransportReports() {
         const { data, error } = await q.order("data_emissao", { ascending: false }).limit(2000);
         if (error) throw error;
         result = (data || []).map((c: any) => {
-          const firstWord = (s?: string | null) => (s || "").trim().split(/\s+/)[0] || "";
-          const oriCity = firstWord(c.municipio_origem_nome);
-          const oriUf = c.uf_origem || c.remetente_uf || c.expedidor_uf || "";
-          const hasReceb = !!(c.recebedor_nome || c.recebedor_uf);
-          const desCity = hasReceb ? "" : firstWord(c.municipio_destino_nome);
-          const desUf = hasReceb ? (c.recebedor_uf || c.uf_destino) : (c.uf_destino || c.destinatario_uf);
-          const desName = hasReceb ? firstWord(c.recebedor_nome) : "";
-          const origem = oriCity || oriUf || "—";
-          const destino = desCity || desName || desUf || "—";
+          const trunc = (s?: string | null, n = 22) => {
+            const t = (s || "").trim();
+            return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+          };
+          const origemRaw = c.remetente_nome || c.expedidor_nome || c.municipio_origem_nome || c.uf_origem || "";
+          const destinoRaw = c.recebedor_nome || c.destinatario_nome || c.municipio_destino_nome || c.uf_destino || "";
+          const origem = trunc(origemRaw) || "—";
+          const destino = trunc(destinoRaw) || "—";
           const placa = c.placa_veiculo || "—";
           const isServ = c.tipo_talao === "servico";
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
