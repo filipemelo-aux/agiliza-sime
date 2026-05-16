@@ -635,22 +635,28 @@ ${totalLine}
       : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
     const x = cols.reduce<number[]>((acc, w, i) => (i ? [...acc, acc[i - 1] + cols[i - 1]] : [margin]), []);
 
+    let logoDataUrl = "";
+    try {
+      const res = await fetch("/logo.png");
+      const blob = await res.blob();
+      logoDataUrl = await new Promise<string>((resolve) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result || ""));
+        fr.readAsDataURL(blob);
+      });
+    } catch {}
+
     const addHeader = () => {
       doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, pageWidth, pageHeight, "F");
-      doc.setFillColor(43, 76, 126);
-      doc.roundedRect(margin, 8, 42, 15, 2, 2, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.setTextColor(245, 197, 24);
-      doc.text("ST", margin + 4, 18);
-      doc.setTextColor(43, 76, 126);
-      doc.text("SIME TRANSPORTES", margin + 48, 14);
+      if (logoDataUrl) {
+        try { doc.addImage(logoDataUrl, "PNG", margin, 8, 28, 16); } catch {}
+      }
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(95, 95, 95);
-      if (estName) doc.text(estName, margin + 48, 19);
-      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 48, 23);
+      if (estName) doc.text(estName, margin + 32, 14);
+      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 32, 19);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
