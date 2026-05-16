@@ -480,8 +480,7 @@ export function TransportReports() {
     return term ? vehicles.filter((v) => [v.plate, v.brand, v.model].some((n) => (n || "").toLowerCase().includes(term))) : vehicles;
   }, [vehicles, vehicleSearch]);
 
-  const handlePrint = async () => {
-    if (!rows.length) return toast.warning("Nenhum dado para imprimir");
+  const getReportMeta = async () => {
     let estName = "";
     let estCnpj = "";
     try {
@@ -499,6 +498,10 @@ export function TransportReports() {
       }
     } catch {}
 
+    return { estName, estCnpj };
+  };
+
+  const buildReportHtml = ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
 
@@ -548,7 +551,7 @@ export function TransportReports() {
       ? `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`
       : `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
 @media print { @page { margin: 8mm 6mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} }
@@ -590,53 +593,164 @@ ${totalLine}
 <div style="font-size:10px;color:rgba(255,255,255,0.85)">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
 </td></tr>
 </table></td></tr></table></body></html>`;
+  };
+
+  const handlePrint = async () => {
+    if (!rows.length) return toast.warning("Nenhum dado para imprimir");
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
 
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
-      const container = document.createElement("div");
-      container.innerHTML = html;
-      container.style.position = "absolute";
-      container.style.left = "0";
-      container.style.top = "0";
-      container.style.width = "1200px";
-      container.style.zIndex = "-1";
-      container.style.opacity = "0";
-      container.style.pointerEvents = "none";
-      document.body.appendChild(container);
-      // wait a frame for layout
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
-      const worker: any = html2pdf()
-        .from(container)
-        .set({
-          margin: [6, 4, 6, 4],
-          filename,
-          image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: 1200 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-          pagebreak: { mode: ["css", "legacy"] },
-        });
-      const pdfBlob: Blob = await worker.outputPdf("blob");
-      document.body.removeChild(container);
+      const html = buildReportHtml(await getReportMeta());
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 350);
+    } catch (e: any) {
+      printWindow.close();
+      toast.error("Erro ao abrir impressão", { description: e?.message });
+    }
+  };
 
+  const generatePdfBlob = async ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    const cols = showValor
+      ? [8, 21, 60, 70, 49, 24, 33]
+      : [8, 23, 74, 78, 56, 26];
+    const headers = showValor
+      ? ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status", "Valor"]
+      : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
+    const x = cols.reduce<number[]>((acc, w, i) => (i ? [...acc, acc[i - 1] + cols[i - 1]] : [margin]), []);
+
+    const addHeader = () => {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageWidth, pageHeight, "F");
+      doc.setFillColor(43, 76, 126);
+      doc.roundedRect(margin, 8, 42, 15, 2, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(245, 197, 24);
+      doc.text("ST", margin + 4, 18);
+      doc.setTextColor(43, 76, 126);
+      doc.text("SIME TRANSPORTES", margin + 48, 14);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(95, 95, 95);
+      if (estName) doc.text(estName, margin + 48, 19);
+      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 48, 23);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(43, 76, 126);
+      doc.text(TITLES[reportType], pageWidth / 2, 34, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Período: ${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)} • ${rows.length} registro(s)`, pageWidth / 2, 39, { align: "center" });
+
+      doc.setFillColor(245, 247, 250);
+      doc.rect(margin, 44, cols.reduce((s, w) => s + w, 0), 7, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      headers.forEach((h, i) => doc.text(h, x[i] + 1.5, 48.5));
+      return 52;
+    };
+
+    let y = addHeader();
+    rows.forEach((r, idx) => {
+      const row = [
+        String(idx + 1),
+        formatDateBR(r.data),
+        `${r.titulo}\n${r.subtitulo}`,
+        r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—",
+        `${r.veiculo}\n${r.proprietario}`,
+        r.status,
+        ...(showValor ? [formatCurrency(r.valor)] : []),
+      ];
+      const wrapped = row.map((value, i) => doc.splitTextToSize(value || "—", cols[i] - 3));
+      const rowHeight = Math.max(7, ...wrapped.map((lines) => lines.length * 3.4 + 2));
+      if (y + rowHeight > pageHeight - 18) {
+        doc.addPage();
+        y = addHeader();
+      }
+      doc.setDrawColor(235, 238, 242);
+      doc.line(margin, y + rowHeight, margin + cols.reduce((s, w) => s + w, 0), y + rowHeight);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(55, 55, 55);
+      wrapped.forEach((lines, i) => {
+        if (showValor && i === wrapped.length - 1) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(43, 76, 126);
+          doc.text(lines, x[i] + cols[i] - 1.5, y + 3.8, { align: "right" });
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(55, 55, 55);
+        } else {
+          doc.text(lines, x[i] + 1.5, y + 3.8);
+        }
+      });
+      y += rowHeight;
+    });
+
+    if (showValor) {
+      if (y + 10 > pageHeight - 18) {
+        doc.addPage();
+        y = addHeader();
+      }
+      doc.setFillColor(240, 244, 248);
+      doc.rect(margin, y, cols.reduce((s, w) => s + w, 0), 9, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(43, 76, 126);
+      doc.text("Total Geral", margin + cols.reduce((s, w) => s + w, 0) - 58, y + 6);
+      doc.text(formatCurrency(totals.total), margin + cols.reduce((s, w) => s + w, 0) - 2, y + 6, { align: "right" });
+    }
+
+    const pageCount = doc.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page++) {
+      doc.setPage(page);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, margin, pageHeight - 8);
+      doc.text(`Página ${page}/${pageCount}`, pageWidth - margin, pageHeight - 8, { align: "right" });
+    }
+
+    return doc.output("blob");
+  };
+
+  const handleShare = async () => {
+    if (!rows.length) return toast.warning("Nenhum dado para compartilhar");
+
+    try {
+      const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      const pdfBlob = await generatePdfBlob(await getReportMeta());
       const file = new File([pdfBlob], filename, { type: "application/pdf" });
       const nav: any = navigator;
-      if (nav.canShare && nav.canShare({ files: [file] })) {
-        try {
-          await nav.share({ files: [file], title: TITLES[reportType] });
-          return;
-        } catch {
-          // fallback to download
-        }
+
+      if (nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: TITLES[reportType] });
+        return;
       }
+
       const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      const opened = window.open(url, "_blank");
+      if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e: any) {
-      toast.error("Erro ao gerar PDF", { description: e?.message });
+      toast.error("Erro ao compartilhar PDF", { description: e?.message });
     }
   };
 
