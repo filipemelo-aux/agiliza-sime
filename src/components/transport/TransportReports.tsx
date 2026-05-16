@@ -563,7 +563,7 @@ export function TransportReports() {
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
 <div class="toolbar no-print">
   <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
-  <button onclick="(window.opener&&window.opener.__shareTransportPdf)?window.opener.__shareTransportPdf():alert('Não foi possível compartilhar')">📤 Compartilhar PDF</button>
+  <button onclick="window.print()">📤 Compartilhar PDF</button>
 </div>
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
@@ -609,7 +609,6 @@ ${totalLine}
     if (!printWindow) return toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
 
     try {
-      (window as any).__shareTransportPdf = () => { handleShare(); };
       const html = buildReportHtml(await getReportMeta());
       printWindow.document.open();
       printWindow.document.write(html);
@@ -618,152 +617,6 @@ ${totalLine}
     } catch (e: any) {
       printWindow.close();
       toast.error("Erro ao abrir impressão", { description: e?.message });
-    }
-  };
-
-  const generatePdfBlob = async ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
-    const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 8;
-    const cols = showValor
-      ? [7, 18, 45, 50, 38, 18, 28]
-      : [8, 20, 55, 60, 45, 24];
-    const headers = showValor
-      ? ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status", "Valor"]
-      : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
-    const x = cols.reduce<number[]>((acc, w, i) => (i ? [...acc, acc[i - 1] + cols[i - 1]] : [margin]), []);
-
-    let logoDataUrl = "";
-    try {
-      const res = await fetch("/logo.png");
-      const blob = await res.blob();
-      logoDataUrl = await new Promise<string>((resolve) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(String(fr.result || ""));
-        fr.readAsDataURL(blob);
-      });
-    } catch {}
-
-    const addHeader = () => {
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, pageWidth, pageHeight, "F");
-      if (logoDataUrl) {
-        try { doc.addImage(logoDataUrl, "PNG", margin, 8, 28, 16); } catch {}
-      }
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(95, 95, 95);
-      if (estName) doc.text(estName, margin + 32, 14);
-      if (estCnpj) doc.text(estCnpj.split(" / ").map((c) => `CNPJ: ${c}`).join("   "), margin + 32, 19);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.setTextColor(43, 76, 126);
-      doc.text(TITLES[reportType], pageWidth / 2, 34, { align: "center" });
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(120, 120, 120);
-      doc.text(`Período: ${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)} • ${rows.length} registro(s)`, pageWidth / 2, 39, { align: "center" });
-
-      doc.setFillColor(245, 247, 250);
-      doc.rect(margin, 44, cols.reduce((s, w) => s + w, 0), 7, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      doc.setTextColor(100, 100, 100);
-      headers.forEach((h, i) => doc.text(h, x[i] + 1.5, 48.5));
-      return 52;
-    };
-
-    let y = addHeader();
-    rows.forEach((r, idx) => {
-      const row = [
-        String(idx + 1),
-        formatDateBR(r.data),
-        `${r.titulo}\n${r.subtitulo}`,
-        r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—",
-        `${r.veiculo}\n${r.proprietario}`,
-        r.status,
-        ...(showValor ? [formatCurrency(r.valor)] : []),
-      ];
-      const wrapped = row.map((value, i) => doc.splitTextToSize(value || "—", cols[i] - 3));
-      const rowHeight = Math.max(7, ...wrapped.map((lines) => lines.length * 3.4 + 2));
-      if (y + rowHeight > pageHeight - 18) {
-        doc.addPage();
-        y = addHeader();
-      }
-      doc.setDrawColor(235, 238, 242);
-      doc.line(margin, y + rowHeight, margin + cols.reduce((s, w) => s + w, 0), y + rowHeight);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(55, 55, 55);
-      wrapped.forEach((lines, i) => {
-        if (showValor && i === wrapped.length - 1) {
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(43, 76, 126);
-          doc.text(lines, x[i] + cols[i] - 1.5, y + 3.8, { align: "right" });
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(55, 55, 55);
-        } else {
-          doc.text(lines, x[i] + 1.5, y + 3.8);
-        }
-      });
-      y += rowHeight;
-    });
-
-    if (showValor) {
-      if (y + 10 > pageHeight - 18) {
-        doc.addPage();
-        y = addHeader();
-      }
-      doc.setFillColor(240, 244, 248);
-      doc.rect(margin, y, cols.reduce((s, w) => s + w, 0), 9, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(43, 76, 126);
-      doc.text("Total Geral", margin + cols.reduce((s, w) => s + w, 0) - 58, y + 6);
-      doc.text(formatCurrency(totals.total), margin + cols.reduce((s, w) => s + w, 0) - 2, y + 6, { align: "right" });
-    }
-
-    const pageCount = doc.getNumberOfPages();
-    for (let page = 1; page <= pageCount; page++) {
-      doc.setPage(page);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(120, 120, 120);
-      doc.text(`Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, margin, pageHeight - 8);
-      doc.text(`Página ${page}/${pageCount}`, pageWidth - margin, pageHeight - 8, { align: "right" });
-    }
-
-    return doc.output("blob");
-  };
-
-  const handleShare = async () => {
-    if (!rows.length) return toast.warning("Nenhum dado para compartilhar");
-
-    try {
-      const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
-      const pdfBlob = await generatePdfBlob(await getReportMeta());
-      const file = new File([pdfBlob], filename, { type: "application/pdf" });
-      const nav: any = navigator;
-
-      if (nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], title: TITLES[reportType] });
-        return;
-      }
-
-      const url = URL.createObjectURL(pdfBlob);
-      const opened = window.open(url, "_blank");
-      if (!opened) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
-      }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e: any) {
-      toast.error("Erro ao compartilhar PDF", { description: e?.message });
     }
   };
 
