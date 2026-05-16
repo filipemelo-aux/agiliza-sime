@@ -169,10 +169,10 @@ export function TransportReports() {
   const ownerByPlate = useMemo(() => {
     const m = new Map<string, string>();
     vehicles.forEach((v) => {
-      if (v.plate) m.set(v.plate, profileName(v.owner_id));
+      if (v.plate) m.set(v.plate, ownerName(v.owner_id));
     });
     return m;
-  }, [vehicles, profileName]);
+  }, [vehicles, ownerName]);
 
   /** Plates owned by a given proprietário profile id */
   const platesByOwnerId = useMemo(() => {
