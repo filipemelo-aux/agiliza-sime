@@ -220,7 +220,7 @@ export function TransportReports() {
           return {
             id: c.id,
             data: c.data_emissao,
-            titulo: `CT-e ${c.numero || "—"}`,
+            titulo: `CT-e ${c.tipo_talao === "producao" ? "Produção" : "Serviço"} Nº ${c.numero || "—"}`,
             subtitulo: c.produto_predominante || c.natureza_operacao || "—",
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
