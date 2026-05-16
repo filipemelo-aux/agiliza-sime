@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
+import { Printer, Loader2, FileSpreadsheet, Search, Share2 } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -592,12 +592,47 @@ ${totalLine}
 </td></tr>
 </table></td></tr></table></body></html>`;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => { win.focus(); win.print(); };
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      container.style.position = "fixed";
+      container.style.left = "-10000px";
+      container.style.top = "0";
+      container.style.width = "1200px";
+      document.body.appendChild(container);
+      const filename = `relatorio-transporte-${reportType}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+      const worker: any = html2pdf()
+        .from(container)
+        .set({
+          margin: [6, 4, 6, 4],
+          filename,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#f4f6f8" },
+          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+          pagebreak: { mode: ["css", "legacy"] },
+        });
+      const pdfBlob: Blob = await worker.outputPdf("blob");
+      document.body.removeChild(container);
+
+      const file = new File([pdfBlob], filename, { type: "application/pdf" });
+      const nav: any = navigator;
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        try {
+          await nav.share({ files: [file], title: TITLES[reportType] });
+          return;
+        } catch {
+          // fallback to download
+        }
+      }
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e: any) {
+      toast.error("Erro ao gerar PDF", { description: e?.message });
     }
   };
 
@@ -637,7 +672,7 @@ ${totalLine}
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
           </Button>
           <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
-            <Printer className="h-3.5 w-3.5" /> Imprimir
+            <Share2 className="h-3.5 w-3.5" /> PDF
           </Button>
         </div>
       </div>
