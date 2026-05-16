@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Loader2, FileSpreadsheet, Search, Share2 } from "lucide-react";
+import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -554,11 +554,19 @@ export function TransportReports() {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
-@media print { @page { margin: 8mm 6mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} }
+@media print { @page { margin: 10mm 8mm; size: A4 portrait; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} }
+.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.toolbar button{font-family:${FONT};font-size:12px;font-weight:600;padding:8px 14px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.toolbar button.primary{background:#2B4C7E;color:#fff;border-color:#2B4C7E}
+.toolbar button:hover{opacity:0.9}
 </style></head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
+<div class="toolbar no-print">
+  <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
+  <button onclick="(window.opener&&window.opener.__shareTransportPdf)?window.opener.__shareTransportPdf():alert('Não foi possível compartilhar')">📤 Compartilhar PDF</button>
+</div>
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:1200px;font-family:${FONT}">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
 <tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
 <table width="100%"><tr>
 <td style="width:48px"><div style="width:42px;height:42px;border-radius:6px;background:#2B4C7E;color:#F5C518;font-weight:800;font-size:18px;text-align:center;line-height:42px;font-family:${FONT}">ST</div></td>
@@ -602,12 +610,12 @@ ${totalLine}
     if (!printWindow) return toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
 
     try {
+      (window as any).__shareTransportPdf = () => { handleShare(); };
       const html = buildReportHtml(await getReportMeta());
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => printWindow.print(), 350);
     } catch (e: any) {
       printWindow.close();
       toast.error("Erro ao abrir impressão", { description: e?.message });
@@ -616,13 +624,13 @@ ${totalLine}
 
   const generatePdfBlob = async ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
     const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 8;
     const cols = showValor
-      ? [8, 21, 60, 70, 49, 24, 33]
-      : [8, 23, 74, 78, 56, 26];
+      ? [7, 18, 45, 50, 38, 18, 28]
+      : [8, 20, 55, 60, 45, 24];
     const headers = showValor
       ? ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status", "Valor"]
       : ["#", "Data", "Descrição", "Origem → Destino", "Veículo / Proprietário", "Status"];
@@ -791,9 +799,6 @@ ${totalLine}
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
             <Printer className="h-3.5 w-3.5" /> Imprimir
-          </Button>
-          <Button size="sm" onClick={handleShare} disabled={!rows.length} className="gap-1">
-            <Share2 className="h-3.5 w-3.5" /> Compartilhar
           </Button>
         </div>
       </div>
