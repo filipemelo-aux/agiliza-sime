@@ -569,9 +569,8 @@ export function TransportReports() {
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
 <tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
 <table width="100%"><tr>
-<td style="width:48px"><div style="width:42px;height:42px;border-radius:6px;background:#2B4C7E;color:#F5C518;font-weight:800;font-size:18px;text-align:center;line-height:42px;font-family:${FONT}">ST</div></td>
-<td><div style="font-weight:800;font-size:18px;color:#2B4C7E">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-<div style="font-size:11px;color:#666">${estName}</div>
+<td style="width:90px;vertical-align:middle"><img src="${window.location.origin}/logo.png" alt="City Transportes" style="height:54px;width:auto;display:block" /></td>
+<td style="vertical-align:middle"><div style="font-size:11px;color:#666">${estName}</div>
 ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("") : ""}
 </td></tr></table></td></tr>
 <tr><td style="height:8px"></td></tr>
