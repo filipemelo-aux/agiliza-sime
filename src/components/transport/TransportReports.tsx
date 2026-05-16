@@ -460,8 +460,8 @@ export function TransportReports() {
 
   const proprietarioList = useMemo(() => {
     const term = proprietarioSearch.trim().toLowerCase();
-    const ownerIds = new Set(vehicles.map((v) => v.owner_id).filter(Boolean));
-    const base = profiles.filter((p) => p.is_owner || ownerIds.has(p.id));
+    const ownerUserIds = new Set(vehicles.map((v) => v.owner_id).filter(Boolean));
+    const base = profiles.filter((p) => p.user_id && (p.is_owner || ownerUserIds.has(p.user_id)));
     return term ? base.filter((p) => [p.nome_fantasia, p.razao_social, p.full_name].some((n) => (n || "").toLowerCase().includes(term))) : base;
   }, [profiles, vehicles, proprietarioSearch]);
 
