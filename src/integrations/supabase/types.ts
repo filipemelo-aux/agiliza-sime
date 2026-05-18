@@ -1229,6 +1229,7 @@ export type Database = {
           expense_id: string
           forma_pagamento: string
           id: string
+          installment_id: string | null
           juros: number
           lote_id: string | null
           observacoes: string | null
@@ -1242,6 +1243,7 @@ export type Database = {
           expense_id: string
           forma_pagamento?: string
           id?: string
+          installment_id?: string | null
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
@@ -1255,6 +1257,7 @@ export type Database = {
           expense_id?: string
           forma_pagamento?: string
           id?: string
+          installment_id?: string | null
           juros?: number
           lote_id?: string | null
           observacoes?: string | null
@@ -1267,6 +1270,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "expense_installments"
             referencedColumns: ["id"]
           },
         ]

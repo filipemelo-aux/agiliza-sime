@@ -123,6 +123,7 @@ export function PaymentDischargeDialog({
         : (observacoes.trim() || null),
       created_by: user?.id,
       juros: juros,
+      installment_id: isInstallmentMode ? installment!.installmentId : null,
     } as any);
     if (payErr) { toast.error(payErr.message); setSaving(false); return; }
 
