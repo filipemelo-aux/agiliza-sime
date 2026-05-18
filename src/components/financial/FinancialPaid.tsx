@@ -163,6 +163,7 @@ export function FinancialPaid() {
           data_pagamento,
           forma_pagamento,
           expense_id,
+          installment_id,
           created_by,
           created_at,
           lote_id,
@@ -172,6 +173,10 @@ export function FinancialPaid() {
             favorecido_nome,
             data_vencimento,
             documento_fiscal_numero
+          ),
+          installment:installment_id (
+            data_vencimento,
+            numero_parcela
           )
         `)
         .order("data_pagamento", { ascending: false }),
@@ -208,10 +213,12 @@ export function FinancialPaid() {
 
     const expenseItems: PaidItem[] = individualPayments.map((p: any) => ({
       id: p.id,
-      description: p.expenses?.descricao || "Pagamento de despesa",
+      description: p.installment?.numero_parcela
+        ? `${p.expenses?.descricao || "Pagamento de despesa"} (parcela ${p.installment.numero_parcela})`
+        : (p.expenses?.descricao || "Pagamento de despesa"),
       amount: Number(p.valor || 0),
       paid_at: toDateOnly(p.data_pagamento),
-      due_date: toDateOnly(p.expenses?.data_vencimento),
+      due_date: toDateOnly(p.installment?.data_vencimento || p.expenses?.data_vencimento),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       expense_id: p.expense_id,
