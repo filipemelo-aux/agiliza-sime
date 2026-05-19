@@ -288,7 +288,7 @@ export function TransportReports() {
             q = q.eq("contratado_id", filters.proprietarioId);
           }
         }
-        const { data, error } = await q.order("data_contrato", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("data_contrato", { ascending: true }).limit(2000);
         if (error) throw error;
         const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
         const truncTo = (s?: string | null, n = 38) => {
