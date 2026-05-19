@@ -84,6 +84,7 @@ export default function FreightCte() {
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
