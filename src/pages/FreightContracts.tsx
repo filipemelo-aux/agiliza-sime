@@ -62,6 +62,13 @@ export default function FreightContracts() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [editing, setEditing] = useState<{ contractId: string; cte: Cte } | null>(null);
+  const [detailCte, setDetailCte] = useState<Cte | null>(null);
+
+  const openCteDetail = async (cteId: string) => {
+    const { data } = await supabase.from("ctes").select("*").eq("id", cteId).maybeSingle();
+    if (data) setDetailCte(data as any);
+    else toast({ title: "CT-e não encontrado", variant: "destructive" });
+  };
 
   useEffect(() => {
     fetchData();
