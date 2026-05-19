@@ -201,7 +201,8 @@ export default function FreightCte() {
         description:
           `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
           `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
-          `Esta operação é IRREVERSÍVEL. Deseja continuar?`,
+          `Esta operação é IRREVERSÍVEL. Deseja continuar?` + contractWarning,
+
         confirmLabel: "Cancelar na SEFAZ e excluir",
         variant: "destructive",
       });
