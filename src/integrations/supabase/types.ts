@@ -1092,6 +1092,45 @@ export type Database = {
           },
         ]
       }
+      expense_group_items: {
+        Row: {
+          created_at: string
+          grupo_expense_id: string
+          id: string
+          original_expense_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          grupo_expense_id: string
+          id?: string
+          original_expense_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          grupo_expense_id?: string
+          id?: string
+          original_expense_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_group_items_grupo_expense_id_fkey"
+            columns: ["grupo_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_group_items_original_expense_id_fkey"
+            columns: ["original_expense_id"]
+            isOneToOne: true
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_installments: {
         Row: {
           boleto_url: string | null
