@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { CargaSearchInput } from "./CargaSearchInput";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
