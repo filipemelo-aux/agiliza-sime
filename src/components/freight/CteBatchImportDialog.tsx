@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { maskName } from "@/lib/masks";
+import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 
 interface Props {
   open: boolean;
