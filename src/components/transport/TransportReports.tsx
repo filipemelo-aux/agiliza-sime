@@ -555,7 +555,7 @@ export function TransportReports() {
       </td>
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
-      <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}</td>
+      <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}${r.dataPagamento ? `<div style="font-size:9px;color:#666;margin-top:2px">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       ${showValor ? `<td style="padding:6px 10px;text-align:right;font-weight:700;color:#2B4C7E;white-space:nowrap;font-size:11px">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`,
       )
