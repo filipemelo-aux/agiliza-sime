@@ -28,6 +28,7 @@ import { maskCNPJ, unmaskCNPJ, maskCurrency, unmaskCurrency, maskName, maskPlate
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
+import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CargaFormDialog } from "./CargaFormDialog";
 import { FreightContractDialog } from "./FreightContractDialog";
 import {
