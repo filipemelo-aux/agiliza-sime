@@ -576,6 +576,11 @@ export default function FreightCte() {
           }}
         />
       )}
+      <CteBatchImportDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        onImported={fetchCtes}
+      />
       {ConfirmDialog}
     </AdminLayout>
   );
