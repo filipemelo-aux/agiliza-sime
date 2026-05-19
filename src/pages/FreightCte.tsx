@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar } from "lucide-react";
+import { Plus, Search, FileText, FileCheck2, FileCog, ScrollText, Trash2, Loader2, X, Pencil, Calendar, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateBR, normalizeDateInput } from "@/lib/date";
@@ -24,6 +24,7 @@ import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
+import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
@@ -83,6 +84,7 @@ export default function FreightCte() {
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [inconsistencyOpen, setInconsistencyOpen] = useState(false);
   
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
@@ -251,7 +253,11 @@ export default function FreightCte() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setInconsistencyOpen(true)} className="gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Verificar inconsistências
+            </Button>
             <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
               <FileText className="w-4 h-4" />
               Importar lote
@@ -580,6 +586,11 @@ export default function FreightCte() {
         open={batchOpen}
         onOpenChange={setBatchOpen}
         onImported={fetchCtes}
+      />
+      <CteInconsistencyDialog
+        open={inconsistencyOpen}
+        onOpenChange={setInconsistencyOpen}
+        onDeleted={fetchCtes}
       />
       {ConfirmDialog}
     </AdminLayout>
