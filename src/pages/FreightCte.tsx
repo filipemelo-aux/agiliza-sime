@@ -240,10 +240,12 @@ export default function FreightCte() {
           });
           return;
         }
-        // Cancelado com sucesso → excluir registro
+        // Cancelado com sucesso → excluir contrato vinculado + CT-e
+        const removed = await removeLinkedFreightContract(cte.id);
         const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
         if (error) throw error;
-        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} foi cancelado na SEFAZ e removido do sistema.` });
+        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} removido${removed ? ` (e ${removed} contrato de frete vinculado).` : "."}` });
+
         fetchCtes();
       } catch (err: any) {
         toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
