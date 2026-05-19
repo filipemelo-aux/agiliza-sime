@@ -23,6 +23,7 @@ import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
+import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
