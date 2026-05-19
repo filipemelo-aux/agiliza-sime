@@ -394,8 +394,8 @@ ${motoristaBlock}
 
 <h2>Dados do Transporte e da Carga</h2>
 <div class="grid2">
-  <div><b>Local Coleta:</b> ${input.municipio_origem || "-"} - ${input.uf_origem || "--"}</div>
-  <div><b>Local Entrega:</b> ${input.municipio_destino || "-"} - ${input.uf_destino || "--"}</div>
+  <div><b>Local Coleta:</b> ${origemDisplay}</div>
+  <div><b>Local Entrega:</b> ${destinoDisplay}</div>
 </div>
 <table class="carga">
   <tr>
