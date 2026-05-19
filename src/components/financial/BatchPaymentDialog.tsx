@@ -274,7 +274,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
       const obsLista = items.map((it, i) => `${i + 1}. ${it.descricao} — ${formatCurrency(getValor(it.id, it.valor))}`).join("\n");
       const obsFinal = [observacoes.trim(), `Contas agrupadas:\n${obsLista}`].filter(Boolean).join("\n\n");
 
-      const { error: insErr } = await supabase.from("expenses").insert({
+      const { data: novaExpense, error: insErr } = await supabase.from("expenses").insert({
         empresa_id: template.empresa_id,
         descricao: descricaoBase + (favorecidoNome ? ` - ${favorecidoNome}` : ""),
         plano_contas_id: template.plano_contas_id,
@@ -290,8 +290,18 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
         observacoes: obsFinal,
         created_by: user?.id,
         origem: "manual",
-      } as any);
+      } as any).select("id").single();
       if (insErr) throw insErr;
+
+      // Vincular contas originais à conta consolidada (rastreabilidade)
+      const grupoId = (novaExpense as any).id as string;
+      const groupRows = items.map(it => ({
+        grupo_expense_id: grupoId,
+        original_expense_id: it.expenseId,
+        valor: getValor(it.id, it.valor),
+      }));
+      const { error: grpErr } = await supabase.from("expense_group_items" as any).insert(groupRows);
+      if (grpErr) throw grpErr;
 
       const { error: delErr } = await supabase
         .from("expenses")

@@ -273,7 +273,7 @@ export function TransportReports() {
         let q: any = supabase.from("freight_contracts").select(`
           *,
           cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome),
-          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(id, status, data_pagamento)
         `);
         if (filters.dataInicio) q = q.gte("data_contrato", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_contrato", filters.dataFim);
@@ -290,6 +290,30 @@ export function TransportReports() {
         }
         const { data, error } = await q.order("data_contrato", { ascending: true }).limit(2000);
         if (error) throw error;
+
+        // Para contas originais que foram agrupadas em outra despesa quitada,
+        // resolver o pagamento via expense_group_items -> grupo_expense.
+
+        const ungroupedNeedingResolve = (data || [])
+          .filter((c: any) => c.payable && c.payable.status !== "pago" && c.payable.id)
+          .map((c: any) => c.payable.id as string);
+
+        const groupMap = new Map<string, { status: string; data_pagamento: string | null }>();
+        if (ungroupedNeedingResolve.length > 0) {
+          const { data: grupos } = await supabase
+            .from("expense_group_items" as any)
+            .select("original_expense_id, grupo:expenses!expense_group_items_grupo_expense_id_fkey(status, data_pagamento)")
+            .in("original_expense_id", ungroupedNeedingResolve);
+          ((grupos as any) || []).forEach((g: any) => {
+            if (g.grupo) {
+              groupMap.set(g.original_expense_id, {
+                status: g.grupo.status,
+                data_pagamento: g.grupo.data_pagamento,
+              });
+            }
+          });
+        }
+
         const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
         const truncTo = (s?: string | null, n = 38) => {
           const t = (s || "").trim();
@@ -299,10 +323,17 @@ export function TransportReports() {
           const placa = c.placa_veiculo || "—";
           const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
           const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
-          const isPago = c.payable?.status === "pago";
-          const rawDp = isPago ? c.payable?.data_pagamento : null;
-          // Normaliza para date-only (yyyy-MM-dd) tomando o componente UTC,
-          // evitando shift de timezone (ex.: 2026-05-01T00:00Z exibindo como 30/04).
+          let payStatus = c.payable?.status;
+          let payData = c.payable?.data_pagamento;
+          if (payStatus !== "pago" && c.payable?.id) {
+            const g = groupMap.get(c.payable.id);
+            if (g && g.status === "pago") {
+              payStatus = "pago";
+              payData = g.data_pagamento;
+            }
+          }
+          const isPago = payStatus === "pago";
+          const rawDp = isPago ? payData : null;
           const dpStr = rawDp ? String(rawDp).slice(0, 10) : null;
           return {
             id: c.id,
