@@ -507,7 +507,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                 </div>
                 <div>
                   <Label className="text-xs">Natureza da carga *</Label>
-                  <Input value={naturezaCarga} onChange={(e) => setNaturezaCarga(e.target.value)} className="h-9 text-xs" />
+                  <NaturezaCargaSearchInput value={naturezaCarga} onChange={setNaturezaCarga} />
                 </div>
               </div>
 
