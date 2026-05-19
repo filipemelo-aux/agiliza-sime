@@ -587,6 +587,11 @@ export default function FreightCte() {
         onOpenChange={setBatchOpen}
         onImported={fetchCtes}
       />
+      <CteInconsistencyDialog
+        open={inconsistencyOpen}
+        onOpenChange={setInconsistencyOpen}
+        onDeleted={fetchCtes}
+      />
       {ConfirmDialog}
     </AdminLayout>
   );
