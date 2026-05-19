@@ -277,20 +277,24 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         const queries: Promise<any>[] = [];
         if (dates.length > 0) {
           queries.push(
-            supabase
-              .from("ctes")
-              .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
-              .in("data_carregamento", dates)
-              .limit(2000)
+            Promise.resolve(
+              supabase
+                .from("ctes")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .in("data_carregamento", dates)
+                .limit(2000)
+            )
           );
         }
         if (plates.length > 0) {
           queries.push(
-            supabase
-              .from("ctes")
-              .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
-              .in("placa_veiculo", plates)
-              .limit(2000)
+            Promise.resolve(
+              supabase
+                .from("ctes")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .in("placa_veiculo", plates)
+                .limit(2000)
+            )
           );
         }
         const results = await Promise.all(queries);
