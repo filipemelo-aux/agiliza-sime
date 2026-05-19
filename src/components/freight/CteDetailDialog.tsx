@@ -85,12 +85,15 @@ function ActorBlock({ title, nome, cnpj, ie, endereco, uf }: { title: string; no
   );
 }
 
-export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit }: Props) {
+export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, onEdit, onDeleted }: Props) {
   const [transmitting, setTransmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [localCte, setLocalCte] = useState(cteProp);
   const [contractOpen, setContractOpen] = useState(false);
   const [existingContract, setExistingContract] = useState<{ id: string; numero: number } | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // Sync with prop when dialog opens with a different CTE
   useState(() => { setLocalCte(cteProp); });
