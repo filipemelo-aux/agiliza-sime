@@ -108,6 +108,12 @@ export default function FreightContracts() {
     }
   };
 
+  const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+  const truncTo = (s?: string | null, n = 38) => {
+    const t = (s || "").trim();
+    return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+  };
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
@@ -127,6 +133,9 @@ export default function FreightContracts() {
         r.municipio_origem,
         r.municipio_destino,
         r.natureza_carga,
+        r.cte?.remetente_nome,
+        r.cte?.recebedor_nome,
+        r.cte?.destinatario_nome,
       ]
         .filter(Boolean)
         .join(" ")
