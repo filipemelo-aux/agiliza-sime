@@ -117,8 +117,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
 
-  // Load establishments on open
-  useState(() => {
+  useEffect(() => {
+    if (!open) return;
     supabase
       .from("fiscal_establishments")
       .select("id, razao_social, cnpj")
@@ -128,10 +128,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       .then(({ data }) => {
         if (data) {
           setEstablishments(data as any);
-          if (matrizId) setSelectedEstId(matrizId);
+          if (matrizId && !selectedEstId) setSelectedEstId(matrizId);
         }
       });
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, matrizId]);
 
   const reset = () => {
     setRows([]);
