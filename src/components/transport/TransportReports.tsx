@@ -467,7 +467,7 @@ export function TransportReports() {
   const showMotorista = ["cte", "mdfe", "contratos", "abastecimentos"].includes(reportType);
   const showVehicle = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
   const showProprietario = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
-  const showStatus = reportType !== "contratos";
+  const showStatus = true;
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
 
   const clienteList = useMemo(() => {
