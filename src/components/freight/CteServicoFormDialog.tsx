@@ -240,6 +240,28 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
       }
     }
 
+    // Verificação de duplicidade: mesmo peso+data OU mesmo peso+placa
+    try {
+      const { findCteDuplicates, buildDuplicateConfirmMessage } = await import("@/lib/cteDuplicateCheck");
+      const dups = await findCteDuplicates({
+        pesoBruto: Number(form.peso_bruto_kg) || 0,
+        dataEmissao: form.data_emissao,
+        placaVeiculo: form.placa_veiculo ? unmaskPlate(form.placa_veiculo).toUpperCase() : null,
+        excludeId: cte?.id ?? null,
+      });
+      if (dups.length > 0) {
+        const ok = await confirm({
+          title: "Possível lançamento duplicado",
+          description: buildDuplicateConfirmMessage(dups),
+          confirmLabel: "Prosseguir mesmo assim",
+          cancelLabel: "Revisar",
+        });
+        if (!ok) return;
+      }
+    } catch (e) {
+      console.warn("Falha na verificação de duplicidade", e);
+    }
+
     setSaving(true);
     try {
       const establishmentId = selectedEstId || matrizId || cte?.establishment_id || null;
