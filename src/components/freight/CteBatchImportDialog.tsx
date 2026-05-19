@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog,
@@ -19,7 +19,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Upload, Building2, Users, FileSpreadsheet } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  Building2,
+  Users,
+  FileSpreadsheet,
+  AlertTriangle,
+  Trash2,
+  PlusCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +37,7 @@ import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { maskName } from "@/lib/masks";
 import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
+import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 interface Props {
   open: boolean;
@@ -55,6 +66,7 @@ const emptyActor: ActorState = {
 };
 
 interface ParsedRow {
+  _key: string;
   data: string; // YYYY-MM-DD
   placa: string;
   motorista: string;
@@ -67,6 +79,22 @@ interface ParsedRow {
   _error?: string;
 }
 
+interface DbDupInfo {
+  id: string;
+  numero: number | null;
+  numero_interno: number | null;
+  data_carregamento: string | null;
+  placa_veiculo: string | null;
+  peso_bruto: number | null;
+  reason: "peso_data" | "peso_placa";
+}
+
+interface ValidationState {
+  internalDups: Record<string, { reason: "peso_data" | "peso_placa"; with: number[] }>; // key -> conflict rows (1-based)
+  dbDups: Record<string, DbDupInfo[]>;
+  missingPlates: string[]; // uppercased
+}
+
 function excelDateToISO(v: any): string {
   if (!v) return "";
   if (v instanceof Date) {
@@ -74,20 +102,17 @@ function excelDateToISO(v: any): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
   if (typeof v === "number") {
-    // Excel serial date
     const utc = XLSX.SSF.parse_date_code(v);
     if (!utc) return "";
     return `${utc.y}-${String(utc.m).padStart(2, "0")}-${String(utc.d).padStart(2, "0")}`;
   }
   const s = String(v).trim();
-  // Try DD/MM/YYYY
   const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if (m) {
     const [, d, mo, y] = m;
     const yy = y.length === 2 ? `20${y}` : y;
     return `${yy}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
-  // Try YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
   return "";
 }
@@ -99,6 +124,8 @@ function parseNum(v: any): number {
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
+
+const pesoKgOf = (r: ParsedRow) => +(r.pesoTon * 1000).toFixed(3);
 
 export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) {
   const { user } = useAuth();
@@ -117,6 +144,13 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
+
+  // validation
+  const [validation, setValidation] = useState<ValidationState | null>(null);
+  const [validating, setValidating] = useState(false);
+
+  // vehicle registration modal
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -139,6 +173,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     setRows([]);
     setFileName("");
     setProgress({ done: 0, total: 0, errors: [] });
+    setValidation(null);
   };
 
   const handleFile = async (file: File) => {
@@ -149,8 +184,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const ws = wb.Sheets[wb.SheetNames[0]];
       const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
       const parsed: ParsedRow[] = [];
-      // skip header (first row that has DATA)
       let started = false;
+      let idx = 0;
       for (const row of aoa) {
         if (!row || row.length === 0) continue;
         const first = row[0];
@@ -164,6 +199,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         const data = excelDateToISO(row[0]);
         if (!data) continue;
         const r: ParsedRow = {
+          _key: `r${++idx}-${Math.random().toString(36).slice(2, 8)}`,
           data,
           placa: String(row[1] || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, ""),
           motorista: String(row[2] || "").trim(),
@@ -180,10 +216,131 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         parsed.push(r);
       }
       setRows(parsed);
+      setValidation(null);
       toast({ title: "Arquivo lido", description: `${parsed.length} linha(s) detectada(s).` });
     } catch (err: any) {
       toast({ title: "Erro ao ler arquivo", description: err.message, variant: "destructive" });
     }
+  };
+
+  // Re-validate whenever rows change
+  useEffect(() => {
+    if (rows.length === 0) {
+      setValidation(null);
+      return;
+    }
+    const handle = setTimeout(() => {
+      runValidation(rows);
+    }, 250);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+
+  const runValidation = async (currentRows: ParsedRow[]) => {
+    setValidating(true);
+    try {
+      const valid = currentRows.filter((r) => !r._error);
+
+      // 1) Internal duplicates
+      const internalDups: ValidationState["internalDups"] = {};
+      for (let i = 0; i < valid.length; i++) {
+        const a = valid[i];
+        const aKg = pesoKgOf(a);
+        for (let j = i + 1; j < valid.length; j++) {
+          const b = valid[j];
+          const bKg = pesoKgOf(b);
+          if (aKg !== bKg || aKg === 0) continue;
+          let reason: "peso_data" | "peso_placa" | null = null;
+          if (a.data && b.data && a.data === b.data) reason = "peso_data";
+          else if (a.placa && b.placa && a.placa === b.placa) reason = "peso_placa";
+          if (!reason) continue;
+          const idxA = currentRows.indexOf(a) + 1;
+          const idxB = currentRows.indexOf(b) + 1;
+          internalDups[a._key] = {
+            reason,
+            with: [...(internalDups[a._key]?.with || []), idxB],
+          };
+          internalDups[b._key] = {
+            reason,
+            with: [...(internalDups[b._key]?.with || []), idxA],
+          };
+        }
+      }
+
+      // 2) DB duplicates — fetch existing ctes for relevant dates OR plates
+      const dates = Array.from(new Set(valid.map((r) => r.data).filter(Boolean)));
+      const plates = Array.from(new Set(valid.map((r) => r.placa).filter(Boolean)));
+      const dbDups: ValidationState["dbDups"] = {};
+
+      if (dates.length > 0 || plates.length > 0) {
+        // We need either same date OR same plate; do two queries to keep filters simple.
+        const queries: Promise<any>[] = [];
+        if (dates.length > 0) {
+          queries.push(
+            supabase
+              .from("ctes")
+              .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+              .in("data_carregamento", dates)
+              .limit(2000)
+          );
+        }
+        if (plates.length > 0) {
+          queries.push(
+            supabase
+              .from("ctes")
+              .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+              .in("placa_veiculo", plates)
+              .limit(2000)
+          );
+        }
+        const results = await Promise.all(queries);
+        const existing = new Map<string, any>();
+        for (const res of results) {
+          if (res.data) for (const row of res.data) existing.set(row.id, row);
+        }
+        const existingArr = Array.from(existing.values());
+        for (const r of valid) {
+          const kg = pesoKgOf(r);
+          if (kg === 0) continue;
+          const hits: DbDupInfo[] = [];
+          for (const e of existingArr) {
+            const ePeso = Number(e.peso_bruto || 0);
+            if (Math.abs(ePeso - kg) > 0.5) continue;
+            const eData = e.data_carregamento ? String(e.data_carregamento).slice(0, 10) : "";
+            const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            const sameData = eData && eData === r.data;
+            const samePlaca = ePlaca && r.placa && ePlaca === r.placa;
+            if (sameData) hits.push({ ...e, reason: "peso_data" });
+            else if (samePlaca) hits.push({ ...e, reason: "peso_placa" });
+          }
+          if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
+        }
+      }
+
+      // 3) Missing plates
+      const missingPlates: string[] = [];
+      if (plates.length > 0) {
+        const { data: vehs } = await supabase
+          .from("vehicles")
+          .select("plate")
+          .in("plate", plates);
+        const registered = new Set((vehs || []).map((v: any) => String(v.plate || "").toUpperCase()));
+        for (const p of plates) {
+          if (!registered.has(p)) missingPlates.push(p);
+        }
+      }
+
+      setValidation({ internalDups, dbDups, missingPlates });
+    } catch (err: any) {
+      console.warn("validação falhou:", err.message);
+      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [] });
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const removeRow = (key: string) => {
+    setRows((rs) => rs.filter((r) => r._key !== key));
   };
 
   const actorByTipo = (tipo: number): ActorState => {
@@ -195,6 +352,15 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       default: return remetente;
     }
   };
+
+  const hasBlockingIssues = useMemo(() => {
+    if (!validation) return false;
+    return (
+      Object.keys(validation.internalDups).length > 0 ||
+      Object.keys(validation.dbDups).length > 0 ||
+      validation.missingPlates.length > 0
+    );
+  }, [validation]);
 
   const handleImport = async () => {
     if (!selectedEstId) {
@@ -214,6 +380,14 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       toast({ title: "Nenhuma linha válida para importar", variant: "destructive" });
       return;
     }
+    if (hasBlockingIssues) {
+      toast({
+        title: "Resolva os avisos antes de importar",
+        description: "Há duplicidades ou placas sem cadastro. Use os botões abaixo para corrigir.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const tomador = actorByTipo(tomadorTipo);
     if (!tomador.id) {
@@ -228,13 +402,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     for (let i = 0; i < validRows.length; i++) {
       const r = validRows[i];
       try {
-        // 1) Próximo número interno
         const { data: nextNum, error: numErr } = await supabase.rpc("next_cte_servico_number", {
           _establishment_id: selectedEstId,
         });
         if (numErr) throw numErr;
 
-        // 2) Lookup vehicle/owner/driver
         let vehicleId: string | null = null;
         let ownerProfile: any = null;
         let driverProfile: any = null;
@@ -265,7 +437,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           }
         }
 
-        // 3) Lookup motorista by name if not via vehicle
         if (!driverProfile && r.motorista) {
           const { data: m } = await supabase
             .from("profiles")
@@ -277,7 +448,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           driverProfile = m;
         }
 
-        // 4) Desconto JSON (diesel) — informativo no CT-e
         const dieselTotal = r.totalDescontado > 0
           ? r.totalDescontado
           : (r.litros > 0 && r.valorDiesel > 0 ? +(r.litros * r.valorDiesel).toFixed(2) : 0);
@@ -286,7 +456,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           ? { tipo: "diesel", litros: r.litros, valor_litro: r.valorDiesel, valor: dieselTotal }
           : null;
 
-        const pesoKg = +(r.pesoTon * 1000).toFixed(3);
+        const pesoKg = pesoKgOf(r);
         const valorTon = pesoKg > 0 ? +(r.valorCte / (pesoKg / 1000)).toFixed(2) : 0;
 
         const cteInsert: Record<string, any> = {
@@ -351,7 +521,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (insErr) throw insErr;
         const cteId = insertedCte.id;
 
-        // 5) Previsão de recebimento (conta a receber)
         const { error: prevErr } = await supabase.from("previsoes_recebimento").insert({
           origem_tipo: "cte" as any,
           origem_id: cteId,
@@ -362,7 +531,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         });
         if (prevErr) console.warn("Previsão não gerada:", prevErr.message);
 
-        // 6) Contrato de frete (conta a pagar) — apenas se houver valor de contrato
         if (gerarContrato && r.valorContrato > 0) {
           if (!ownerProfile?.id) {
             errors.push(`Linha ${i + 1} (${r.placa}): contrato não gerado — proprietário do veículo não encontrado.`);
@@ -431,185 +599,301 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const totalValorCte = rows.reduce((s, r) => s + (r._error ? 0 : r.valorCte), 0);
   const totalValorContrato = rows.reduce((s, r) => s + (r._error ? 0 : r.valorContrato), 0);
 
+  const internalCount = validation ? Object.keys(validation.internalDups).length : 0;
+  const dbCount = validation ? Object.keys(validation.dbDups).length : 0;
+  const missingCount = validation ? validation.missingPlates.length : 0;
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!importing) { if (!v) reset(); onOpenChange(v); } }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-display">
-            <FileSpreadsheet className="w-5 h-5" /> Importar CT-e em Lote (Serviço)
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Cria talões de serviço a partir de uma planilha. Antes, defina os atores fiscais e o tomador — eles serão aplicados a todos os CT-e do lote.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(v) => { if (!importing) { if (!v) reset(); onOpenChange(v); } }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-display">
+              <FileSpreadsheet className="w-5 h-5" /> Importar CT-e em Lote (Serviço)
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Cria talões de serviço a partir de uma planilha. Antes, defina os atores fiscais e o tomador — eles serão aplicados a todos os CT-e do lote.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Emitente */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" /> Emitente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={selectedEstId} onValueChange={setSelectedEstId}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
-                <SelectContent>
-                  {establishments.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Atores */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Atores (válidos para todo o lote)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                { label: "Remetente *", state: remetente, set: setRemetente },
-                { label: "Destinatário *", state: destinatario, set: setDestinatario },
-                { label: "Expedidor", state: expedidor, set: setExpedidor },
-                { label: "Recebedor", state: recebedor, set: setRecebedor },
-              ].map((a) => (
-                <div key={a.label}>
-                  <Label className="text-xs">{a.label}</Label>
-                  <PersonSearchInput
-                    placeholder={`Buscar ${a.label.replace(" *", "").toLowerCase()}...`}
-                    selectedName={a.state.nome}
-                    categories={["cliente", "fornecedor"]}
-                    onSelect={(p) => a.set({
-                      id: p.id,
-                      nome: p.razao_social || p.full_name,
-                      cnpj: p.cnpj,
-                      ie: p.inscricao_estadual,
-                      endereco: [p.address_street, p.address_number, p.address_neighborhood, p.address_city].filter(Boolean).join(", ") || null,
-                      municipio_ibge: null,
-                      uf: p.address_state,
-                    })}
-                    onClear={() => a.set(emptyActor)}
-                  />
-                </div>
-              ))}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Tomador do serviço *</Label>
-                  <Select value={String(tomadorTipo)} onValueChange={(v) => setTomadorTipo(Number(v))}>
-                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Remetente</SelectItem>
-                      <SelectItem value="1">Expedidor</SelectItem>
-                      <SelectItem value="2">Recebedor</SelectItem>
-                      <SelectItem value="3">Destinatário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Natureza da carga *</Label>
-                  <NaturezaCargaSearchInput value={naturezaCarga} onChange={setNaturezaCarga} />
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} />
-                Gerar contrato de frete (conta a pagar) para linhas com valor de contrato &gt; 0
-              </label>
-            </CardContent>
-          </Card>
-
-          {/* Upload */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2"><Upload className="w-4 h-4" /> Planilha (.xlsx)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFile(f);
-                }}
-                className="text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Colunas esperadas: DATA, PLACA, MOTORISTA, PESO (ton), VALOR DO CT-E, CONTRATO DE FRETE, VALOR DO DIESEL, LITROS, TOTAL DESCONTO.
-              </p>
-              {fileName && <p className="text-xs">{fileName} — <strong>{rows.length}</strong> linhas</p>}
-            </CardContent>
-          </Card>
-
-          {/* Preview */}
-          {rows.length > 0 && (
+          <div className="space-y-4">
+            {/* Emitente */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Pré-visualização ({rows.filter((r) => !r._error).length} válidas)</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" /> Emitente</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="max-h-64 overflow-auto border rounded-md">
-                  <table className="w-full text-[11px]">
-                    <thead className="bg-muted/40 sticky top-0">
-                      <tr className="text-left">
-                        <th className="px-2 py-1">#</th>
-                        <th className="px-2 py-1">Data</th>
-                        <th className="px-2 py-1">Placa</th>
-                        <th className="px-2 py-1">Motorista</th>
-                        <th className="px-2 py-1 text-right">Ton</th>
-                        <th className="px-2 py-1 text-right">CT-E</th>
-                        <th className="px-2 py-1 text-right">Contrato</th>
-                        <th className="px-2 py-1 text-right">Diesel</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r, i) => (
-                        <tr key={i} className={`border-t ${r._error ? "bg-destructive/10" : ""}`}>
-                          <td className="px-2 py-1">{i + 1}</td>
-                          <td className="px-2 py-1">{r.data || "?"}</td>
-                          <td className="px-2 py-1 font-mono">{r.placa}</td>
-                          <td className="px-2 py-1 truncate max-w-[120px]">{r.motorista}</td>
-                          <td className="px-2 py-1 text-right">{r.pesoTon.toFixed(2)}</td>
-                          <td className="px-2 py-1 text-right">{r.valorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                          <td className="px-2 py-1 text-right">{r.valorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                          <td className="px-2 py-1 text-right">{(r.totalDescontado || r.litros * r.valorDiesel).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>Total CT-E: <strong>R$ {totalValorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
-                  <span>Total Contrato: <strong>R$ {totalValorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
-                </div>
+              <CardContent>
+                <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                  <SelectContent>
+                    {establishments.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
-          )}
 
-          {importing && (
-            <div className="p-3 rounded-md border bg-muted/30 text-xs space-y-1">
-              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Importando {progress.done}/{progress.total}...</div>
+            {/* Atores */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Atores (válidos para todo o lote)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { label: "Remetente *", state: remetente, set: setRemetente },
+                  { label: "Destinatário *", state: destinatario, set: setDestinatario },
+                  { label: "Expedidor", state: expedidor, set: setExpedidor },
+                  { label: "Recebedor", state: recebedor, set: setRecebedor },
+                ].map((a) => (
+                  <div key={a.label}>
+                    <Label className="text-xs">{a.label}</Label>
+                    <PersonSearchInput
+                      placeholder={`Buscar ${a.label.replace(" *", "").toLowerCase()}...`}
+                      selectedName={a.state.nome}
+                      categories={["cliente", "fornecedor"]}
+                      onSelect={(p) => a.set({
+                        id: p.id,
+                        nome: p.razao_social || p.full_name,
+                        cnpj: p.cnpj,
+                        ie: p.inscricao_estadual,
+                        endereco: [p.address_street, p.address_number, p.address_neighborhood, p.address_city].filter(Boolean).join(", ") || null,
+                        municipio_ibge: null,
+                        uf: p.address_state,
+                      })}
+                      onClear={() => a.set(emptyActor)}
+                    />
+                  </div>
+                ))}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Tomador do serviço *</Label>
+                    <Select value={String(tomadorTipo)} onValueChange={(v) => setTomadorTipo(Number(v))}>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Remetente</SelectItem>
+                        <SelectItem value="1">Expedidor</SelectItem>
+                        <SelectItem value="2">Recebedor</SelectItem>
+                        <SelectItem value="3">Destinatário</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Natureza da carga *</Label>
+                    <NaturezaCargaSearchInput value={naturezaCarga} onChange={setNaturezaCarga} />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} />
+                  Gerar contrato de frete (conta a pagar) para linhas com valor de contrato &gt; 0
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* Upload */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><Upload className="w-4 h-4" /> Planilha (.xlsx)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                  className="text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Colunas esperadas: DATA, PLACA, MOTORISTA, PESO (ton), VALOR DO CT-E, CONTRATO DE FRETE, VALOR DO DIESEL, LITROS, TOTAL DESCONTO.
+                </p>
+                {fileName && <p className="text-xs">{fileName} — <strong>{rows.length}</strong> linhas</p>}
+              </CardContent>
+            </Card>
+
+            {/* Validação */}
+            {rows.length > 0 && (
+              <Card className={hasBlockingIssues ? "border-destructive/50" : ""}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    {validating ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Validando…</>
+                    ) : hasBlockingIssues ? (
+                      <><AlertTriangle className="w-4 h-4 text-destructive" /> Avisos de duplicidade / cadastro</>
+                    ) : (
+                      <><ShieldCheck className="w-4 h-4 text-emerald-600" /> Nenhum aviso detectado</>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {validation && (
+                    <div className="flex gap-3 flex-wrap text-[11px]">
+                      <span className={internalCount ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        Duplicatas internas: <strong>{internalCount}</strong>
+                      </span>
+                      <span className={dbCount ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        Já existem no sistema: <strong>{dbCount}</strong>
+                      </span>
+                      <span className={missingCount ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        Placas sem cadastro: <strong>{missingCount}</strong>
+                      </span>
+                    </div>
+                  )}
+
+                  {validation && validation.missingPlates.length > 0 && (
+                    <div className="border rounded-md p-2 bg-muted/30 space-y-1.5">
+                      <p className="text-[11px] font-semibold">Cadastre as placas abaixo antes de importar:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {validation.missingPlates.map((p) => (
+                          <span key={p} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border text-[11px] font-mono">
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 mt-1"
+                        onClick={() => setVehicleModalOpen(true)}
+                      >
+                        <PlusCircle className="w-3.5 h-3.5 mr-1" /> Cadastrar placa/motorista/proprietário
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Preview */}
+            {rows.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Pré-visualização ({rows.filter((r) => !r._error).length} válidas)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="max-h-72 overflow-auto border rounded-md">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40 sticky top-0">
+                        <tr className="text-left">
+                          <th className="px-2 py-1">#</th>
+                          <th className="px-2 py-1">Data</th>
+                          <th className="px-2 py-1">Placa</th>
+                          <th className="px-2 py-1">Motorista</th>
+                          <th className="px-2 py-1 text-right">Ton</th>
+                          <th className="px-2 py-1 text-right">CT-E</th>
+                          <th className="px-2 py-1 text-right">Contrato</th>
+                          <th className="px-2 py-1 text-right">Diesel</th>
+                          <th className="px-2 py-1">Avisos</th>
+                          <th className="px-2 py-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => {
+                          const internal = validation?.internalDups[r._key];
+                          const dbHits = validation?.dbDups[r._key];
+                          const missingPlate = validation?.missingPlates.includes(r.placa);
+                          const flagged = !!internal || !!dbHits || missingPlate;
+                          return (
+                            <tr
+                              key={r._key}
+                              className={`border-t ${
+                                r._error
+                                  ? "bg-destructive/10"
+                                  : flagged
+                                  ? "bg-amber-100/40 dark:bg-amber-500/10"
+                                  : ""
+                              }`}
+                            >
+                              <td className="px-2 py-1">{i + 1}</td>
+                              <td className="px-2 py-1">{r.data || "?"}</td>
+                              <td className="px-2 py-1 font-mono">{r.placa}</td>
+                              <td className="px-2 py-1 truncate max-w-[120px]">{r.motorista}</td>
+                              <td className="px-2 py-1 text-right">{r.pesoTon.toFixed(2)}</td>
+                              <td className="px-2 py-1 text-right">{r.valorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                              <td className="px-2 py-1 text-right">{r.valorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                              <td className="px-2 py-1 text-right">{(r.totalDescontado || r.litros * r.valorDiesel).toFixed(2)}</td>
+                              <td className="px-2 py-1 text-[10px] text-destructive whitespace-nowrap">
+                                {r._error && <div>{r._error}</div>}
+                                {internal && (
+                                  <div>
+                                    Dup. interna ({internal.reason === "peso_data" ? "peso+data" : "peso+placa"}) c/ linha {Array.from(new Set(internal.with)).join(", ")}
+                                  </div>
+                                )}
+                                {dbHits && dbHits.length > 0 && (
+                                  <div>
+                                    Já existe ({dbHits[0].reason === "peso_data" ? "peso+data" : "peso+placa"})
+                                    {dbHits[0].numero || dbHits[0].numero_interno ? ` Nº ${dbHits[0].numero ?? dbHits[0].numero_interno}` : ""}
+                                  </div>
+                                )}
+                                {missingPlate && <div>Placa sem cadastro</div>}
+                              </td>
+                              <td className="px-2 py-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => removeRow(r._key)}
+                                  title="Remover linha"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span>Total CT-E: <strong>R$ {totalValorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
+                    <span>Total Contrato: <strong>R$ {totalValorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {importing && (
+              <div className="p-3 rounded-md border bg-muted/30 text-xs space-y-1">
+                <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Importando {progress.done}/{progress.total}...</div>
+              </div>
+            )}
+
+            {progress.errors.length > 0 && !importing && (
+              <div className="p-3 rounded-md border border-destructive/40 bg-destructive/5 text-xs space-y-1 max-h-40 overflow-auto">
+                <p className="font-semibold text-destructive">Avisos/Erros:</p>
+                {progress.errors.map((e, i) => <p key={i}>• {e}</p>)}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }} disabled={importing}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={importing || rows.length === 0 || validating || hasBlockingIssues}
+              >
+                {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                Importar {rows.filter((r) => !r._error).length} CT-e(s)
+              </Button>
             </div>
-          )}
-
-          {progress.errors.length > 0 && !importing && (
-            <div className="p-3 rounded-md border border-destructive/40 bg-destructive/5 text-xs space-y-1 max-h-40 overflow-auto">
-              <p className="font-semibold text-destructive">Avisos/Erros:</p>
-              {progress.errors.map((e, i) => <p key={i}>• {e}</p>)}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => { reset(); onOpenChange(false); }} disabled={importing}>
-              Cancelar
-            </Button>
-            <Button onClick={handleImport} disabled={importing || rows.length === 0}>
-              {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-              Importar {rows.filter((r) => !r._error).length} CT-e(s)
-            </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <VehicleFormModal
+        open={vehicleModalOpen}
+        onOpenChange={setVehicleModalOpen}
+        onSaved={() => {
+          setVehicleModalOpen(false);
+          runValidation(rows);
+        }}
+      />
+    </>
   );
 }
