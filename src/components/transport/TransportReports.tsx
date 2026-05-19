@@ -270,7 +270,11 @@ export function TransportReports() {
           };
         });
       } else if (reportType === "contratos") {
-        let q: any = supabase.from("freight_contracts").select("*");
+        let q: any = supabase.from("freight_contracts").select(`
+          *,
+          cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome),
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
+        `);
         if (filters.dataInicio) q = q.gte("data_contrato", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_contrato", filters.dataFim);
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
@@ -278,8 +282,16 @@ export function TransportReports() {
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("vehicle_id", Array.from(ownedVehicleIds));
         const { data, error } = await q.order("data_contrato", { ascending: false }).limit(2000);
         if (error) throw error;
+        const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+        const truncTo = (s?: string | null, n = 38) => {
+          const t = (s || "").trim();
+          return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+        };
         result = (data || []).map((c: any) => {
           const placa = c.placa_veiculo || "—";
+          const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
+          const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
+          const isPago = c.payable?.status === "pago";
           return {
             id: c.id,
             data: c.data_contrato,
@@ -288,9 +300,10 @@ export function TransportReports() {
             pessoa: c.contratado_nome || "—",
             veiculo: placa,
             proprietario: c.contratado_nome || ownerByPlate.get(placa) || "—",
-            origem: c.municipio_origem || "—",
-            destino: c.municipio_destino || "—",
-            status: "—",
+            origem: remet,
+            destino: destin,
+            status: isPago ? "pago" : "pendente",
+            dataPagamento: isPago ? c.payable?.data_pagamento : null,
             valor: Number(c.valor_total || 0),
           };
         });
