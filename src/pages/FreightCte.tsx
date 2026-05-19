@@ -258,9 +258,9 @@ export default function FreightCte() {
     // Serviço, rascunho, rejeitado, erro ou cancelado → exclusão direta
     const ok = await confirm({
       title: "Excluir CT-e",
-      description: isServico
+      description: (isServico
         ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
-        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`,
+        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`) + contractWarning,
       confirmLabel: "Excluir",
       variant: "destructive",
     });
@@ -268,10 +268,12 @@ export default function FreightCte() {
 
     setDeletingId(cte.id);
     try {
+      const removed = await removeLinkedFreightContract(cte.id);
       const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
       if (error) throw error;
-      toast({ title: "CT-e excluído", description: "Registro removido com sucesso." });
+      toast({ title: "CT-e excluído", description: removed ? `Registro removido (e ${removed} contrato de frete vinculado).` : "Registro removido com sucesso." });
       fetchCtes();
+
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
     } finally {
