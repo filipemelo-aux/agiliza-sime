@@ -82,6 +82,8 @@ export default function FreightCte() {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
+  
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
