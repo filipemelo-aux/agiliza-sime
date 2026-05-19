@@ -123,6 +123,24 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const handleDelete = async () => {
     const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
 
+    // Bloqueia exclusão se a previsão deste CT-e já foi vinculada a uma fatura
+    const { data: prevs } = await supabase
+      .from("previsoes_recebimento")
+      .select("id, status, fatura_previsoes(fatura_id, faturas_recebimento(numero, status))")
+      .eq("origem_tipo", "cte")
+      .eq("origem_id", cte.id);
+    const invoiced = (prevs || []).find((p: any) => (p.fatura_previsoes?.length ?? 0) > 0);
+    if (invoiced) {
+      const f = (invoiced as any).fatura_previsoes[0]?.faturas_recebimento;
+      toast({
+        title: "Exclusão bloqueada",
+        description: `Este CT-e está vinculado à Fatura nº ${f?.numero ?? "?"} (status: ${f?.status ?? "?"}). Estorne os recebimentos e desvincule/exclua a fatura antes de excluir o CT-e.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+
     const { count: linkedContracts } = await supabase
       .from("freight_contracts")
       .select("id", { count: "exact", head: true })
