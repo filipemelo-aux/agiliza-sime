@@ -390,6 +390,21 @@ export default function FreightContracts() {
         contractId={editing?.contractId ?? null}
         onSaved={() => { setEditing(null); fetchData(); }}
       />
+
+      {detailCte && (
+        <CteDetailDialog
+          open={!!detailCte}
+          onOpenChange={(o) => !o && setDetailCte(null)}
+          cte={detailCte}
+          onUpdated={fetchData}
+          onEdit={async (cte) => {
+            const { data } = await supabase.from("freight_contracts").select("id").eq("cte_id", cte.id).maybeSingle();
+            setDetailCte(null);
+            if (data) setEditing({ contractId: data.id, cte });
+          }}
+          onDeleted={() => { setDetailCte(null); fetchData(); }}
+        />
+      )}
     </AdminLayout>
   );
 }
