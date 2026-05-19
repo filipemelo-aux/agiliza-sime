@@ -293,11 +293,6 @@ export function TransportReports() {
 
         // Para contas originais que foram agrupadas em outra despesa quitada,
         // resolver o pagamento via expense_group_items -> grupo_expense.
-        const originalIds = Array.from(new Set(
-          (data || [])
-            .map((c: any) => c.payable?.id)
-            .filter((id: any) => id && c => true)
-        )).filter(Boolean) as string[];
 
         const ungroupedNeedingResolve = (data || [])
           .filter((c: any) => c.payable && c.payable.status !== "pago" && c.payable.id)
