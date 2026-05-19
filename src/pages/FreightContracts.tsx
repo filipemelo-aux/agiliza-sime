@@ -17,9 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { Link } from "react-router-dom";
 import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
+import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Cte } from "@/pages/FreightCte";
 
@@ -62,6 +62,13 @@ export default function FreightContracts() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [editing, setEditing] = useState<{ contractId: string; cte: Cte } | null>(null);
+  const [detailCte, setDetailCte] = useState<Cte | null>(null);
+
+  const openCteDetail = async (cteId: string) => {
+    const { data } = await supabase.from("ctes").select("*").eq("id", cteId).maybeSingle();
+    if (data) setDetailCte(data as any);
+    else toast({ title: "CT-e não encontrado", variant: "destructive" });
+  };
 
   useEffect(() => {
     fetchData();
@@ -303,8 +310,8 @@ export default function FreightContracts() {
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
                         <Printer className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="CT-e vinculado">
-                        <Link to="/admin/freight/cte"><ExternalLink className="w-3.5 h-3.5" /></Link>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </CardContent>
@@ -361,8 +368,8 @@ export default function FreightContracts() {
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
                               <Printer className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="CT-e vinculado">
-                              <Link to="/admin/freight/cte"><ExternalLink className="w-3.5 h-3.5" /></Link>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
+                              <ExternalLink className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </td>
@@ -383,6 +390,21 @@ export default function FreightContracts() {
         contractId={editing?.contractId ?? null}
         onSaved={() => { setEditing(null); fetchData(); }}
       />
+
+      {detailCte && (
+        <CteDetailDialog
+          open={!!detailCte}
+          onOpenChange={(o) => !o && setDetailCte(null)}
+          cte={detailCte}
+          onUpdated={fetchData}
+          onEdit={async (cte) => {
+            const { data } = await supabase.from("freight_contracts").select("id").eq("cte_id", cte.id).maybeSingle();
+            setDetailCte(null);
+            if (data) setEditing({ contractId: data.id, cte });
+          }}
+          onDeleted={() => { setDetailCte(null); fetchData(); }}
+        />
+      )}
     </AdminLayout>
   );
 }
