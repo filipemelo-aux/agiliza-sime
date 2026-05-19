@@ -272,6 +272,14 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     year: "numeric",
   });
 
+  const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+  const truncTo = (s?: string | null, n = 38) => {
+    const t = (s || "").trim();
+    return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+  };
+  const origemDisplay = firstTwoWords(input.remetente_nome || cteInfo?.remetente_nome) || input.municipio_origem || "—";
+  const destinoDisplay = truncTo(input.recebedor_nome || input.destinatario_nome || cteInfo?.recebedor_nome || cteInfo?.destinatario_nome) || input.municipio_destino || "—";
+
   const docLabel = (p: PartyDetails) => (p.tipo === "PJ" ? "Nome/CNPJ" : "Nome/CPF");
   const placasLinha = [
     input.placa_veiculo ? `Veíc.: ${input.placa_veiculo}` : "",
