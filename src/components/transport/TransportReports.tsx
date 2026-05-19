@@ -47,6 +47,7 @@ interface Row {
   destino: string;
   status: string;
   valor: number;
+  dataPagamento?: string | null;
 }
 
 const initial = (): Filters => ({
@@ -269,7 +270,11 @@ export function TransportReports() {
           };
         });
       } else if (reportType === "contratos") {
-        let q: any = supabase.from("freight_contracts").select("*");
+        let q: any = supabase.from("freight_contracts").select(`
+          *,
+          cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome),
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
+        `);
         if (filters.dataInicio) q = q.gte("data_contrato", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_contrato", filters.dataFim);
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
@@ -277,8 +282,16 @@ export function TransportReports() {
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("vehicle_id", Array.from(ownedVehicleIds));
         const { data, error } = await q.order("data_contrato", { ascending: false }).limit(2000);
         if (error) throw error;
+        const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+        const truncTo = (s?: string | null, n = 38) => {
+          const t = (s || "").trim();
+          return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+        };
         result = (data || []).map((c: any) => {
           const placa = c.placa_veiculo || "—";
+          const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
+          const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
+          const isPago = c.payable?.status === "pago";
           return {
             id: c.id,
             data: c.data_contrato,
@@ -287,9 +300,10 @@ export function TransportReports() {
             pessoa: c.contratado_nome || "—",
             veiculo: placa,
             proprietario: c.contratado_nome || ownerByPlate.get(placa) || "—",
-            origem: c.municipio_origem || "—",
-            destino: c.municipio_destino || "—",
-            status: "—",
+            origem: remet,
+            destino: destin,
+            status: isPago ? "pago" : "pendente",
+            dataPagamento: isPago ? c.payable?.data_pagamento : null,
             valor: Number(c.valor_total || 0),
           };
         });
@@ -453,7 +467,7 @@ export function TransportReports() {
   const showMotorista = ["cte", "mdfe", "contratos", "abastecimentos"].includes(reportType);
   const showVehicle = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
   const showProprietario = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
-  const showStatus = reportType !== "contratos";
+  const showStatus = true;
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
 
   const clienteList = useMemo(() => {
@@ -511,6 +525,7 @@ export function TransportReports() {
         encerrado: { bg: "#d4edda", fg: "#155724" },
         concluida: { bg: "#d4edda", fg: "#155724" },
         aprovada: { bg: "#d4edda", fg: "#155724" },
+        pago: { bg: "#d4edda", fg: "#155724" },
         faturado: { bg: "#cce5ff", fg: "#004085" },
         rascunho: { bg: "#fff3cd", fg: "#856404" },
         pendente: { bg: "#fff3cd", fg: "#856404" },
@@ -540,7 +555,7 @@ export function TransportReports() {
       </td>
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
-      <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}</td>
+      <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}${r.dataPagamento ? `<div style="font-size:9px;color:#666;margin-top:2px">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       ${showValor ? `<td style="padding:6px 10px;text-align:right;font-weight:700;color:#2B4C7E;white-space:nowrap;font-size:11px">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`,
       )
