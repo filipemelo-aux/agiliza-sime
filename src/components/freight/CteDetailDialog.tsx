@@ -8,12 +8,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Send, Loader2, Pencil, FileSignature, Printer } from "lucide-react";
+import { Send, Loader2, Pencil, FileSignature, Printer, Trash2 } from "lucide-react";
 import { maskCNPJ, maskCurrency } from "@/lib/masks";
 import { useToast } from "@/hooks/use-toast";
 import { emitirCteViaService } from "@/services/fiscal/fiscalServiceClient";
 import { prepararCteParaTransmissao } from "@/services/fiscal/prepareCteXml";
+import { cancelarCte } from "@/services/fiscal";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { FreightContractDialog } from "./FreightContractDialog";
 import { buildFullContractHtml, openPrintWindow } from "./freightContractPrint";
 import type { Cte } from "@/pages/FreightCte";
