@@ -525,6 +525,7 @@ export function TransportReports() {
         encerrado: { bg: "#d4edda", fg: "#155724" },
         concluida: { bg: "#d4edda", fg: "#155724" },
         aprovada: { bg: "#d4edda", fg: "#155724" },
+        pago: { bg: "#d4edda", fg: "#155724" },
         faturado: { bg: "#cce5ff", fg: "#004085" },
         rascunho: { bg: "#fff3cd", fg: "#856404" },
         pendente: { bg: "#fff3cd", fg: "#856404" },
