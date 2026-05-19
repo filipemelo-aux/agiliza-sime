@@ -365,7 +365,7 @@ export default function FreightContracts() {
                           <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
                         </td>
                         <td className="px-3 py-2 truncate max-w-[260px] text-muted-foreground">
-                          {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                          {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
                         </td>
                         <td className="px-2 py-2 whitespace-nowrap tabular-nums">{r.placa_veiculo || "—"}</td>
                         <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(r.valor_total)}</td>
