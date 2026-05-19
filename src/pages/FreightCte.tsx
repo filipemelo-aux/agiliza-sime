@@ -253,7 +253,11 @@ export default function FreightCte() {
         <BackButton to="/admin" label="Dashboard" />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setInconsistencyOpen(true)} className="gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Verificar inconsistências
+            </Button>
             <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
               <FileText className="w-4 h-4" />
               Importar lote
