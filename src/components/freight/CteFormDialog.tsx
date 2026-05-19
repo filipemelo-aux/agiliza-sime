@@ -1170,7 +1170,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs">Produto Predominante</Label>
-                <Input value={form.produto_predominante} onChange={(e) => set("produto_predominante", maskName(e.target.value))} placeholder="Ex: Sulfato de Cálcio" />
+                <NaturezaCargaSearchInput
+                  value={form.produto_predominante || ""}
+                  onChange={(v) => set("produto_predominante", v)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo da Carga</Label>
