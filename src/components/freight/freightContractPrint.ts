@@ -20,6 +20,9 @@ export interface ContractPrintInput {
   uf_origem?: string | null;
   municipio_destino?: string | null;
   uf_destino?: string | null;
+  remetente_nome?: string | null;
+  recebedor_nome?: string | null;
+  destinatario_nome?: string | null;
   natureza_carga?: string | null;
   peso_kg: number;
   valor_tonelada: number;
@@ -83,6 +86,9 @@ interface CteFullInfo {
   valor_carga: number | null;
   chaves_nfe_ref: string[] | null;
   protocolo: string | null;
+  remetente_nome: string | null;
+  recebedor_nome: string | null;
+  destinatario_nome: string | null;
 }
 
 async function loadCteInfo(cteId: string | null | undefined, fallback?: ContractPrintInput["cte"]): Promise<CteFullInfo | null> {
@@ -95,13 +101,14 @@ async function loadCteInfo(cteId: string | null | undefined, fallback?: Contract
         tipo_talao: fallback.tipo_talao ?? null,
         chave_acesso: null, data_emissao: null, valor_frete: null,
         valor_carga: null, chaves_nfe_ref: null, protocolo: null,
+        remetente_nome: null, recebedor_nome: null, destinatario_nome: null,
       };
     }
     return null;
   }
   const { data } = await supabase
     .from("ctes")
-    .select("numero, numero_interno, serie, tipo_talao, chave_acesso, data_emissao, valor_frete, valor_carga, chaves_nfe_ref, protocolo_autorizacao")
+    .select("numero, numero_interno, serie, tipo_talao, chave_acesso, data_emissao, valor_frete, valor_carga, chaves_nfe_ref, protocolo_autorizacao, remetente_nome, recebedor_nome, destinatario_nome")
     .eq("id", cteId)
     .maybeSingle();
   if (!data) return null;
@@ -116,6 +123,9 @@ async function loadCteInfo(cteId: string | null | undefined, fallback?: Contract
     valor_carga: (data as any).valor_carga,
     chaves_nfe_ref: (data as any).chaves_nfe_ref,
     protocolo: (data as any).protocolo_autorizacao,
+    remetente_nome: (data as any).remetente_nome || null,
+    recebedor_nome: (data as any).recebedor_nome || null,
+    destinatario_nome: (data as any).destinatario_nome || null,
   };
 }
 
@@ -262,6 +272,14 @@ export async function buildFullContractHtml(input: ContractPrintInput): Promise<
     year: "numeric",
   });
 
+  const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+  const truncTo = (s?: string | null, n = 38) => {
+    const t = (s || "").trim();
+    return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+  };
+  const origemDisplay = firstTwoWords(input.remetente_nome || cteInfo?.remetente_nome) || input.municipio_origem || "—";
+  const destinoDisplay = truncTo(input.recebedor_nome || input.destinatario_nome || cteInfo?.recebedor_nome || cteInfo?.destinatario_nome) || input.municipio_destino || "—";
+
   const docLabel = (p: PartyDetails) => (p.tipo === "PJ" ? "Nome/CNPJ" : "Nome/CPF");
   const placasLinha = [
     input.placa_veiculo ? `Veíc.: ${input.placa_veiculo}` : "",
@@ -376,8 +394,8 @@ ${motoristaBlock}
 
 <h2>Dados do Transporte e da Carga</h2>
 <div class="grid2">
-  <div><b>Local Coleta:</b> ${input.municipio_origem || "-"} - ${input.uf_origem || "--"}</div>
-  <div><b>Local Entrega:</b> ${input.municipio_destino || "-"} - ${input.uf_destino || "--"}</div>
+  <div><b>Local Coleta:</b> ${origemDisplay}</div>
+  <div><b>Local Entrega:</b> ${destinoDisplay}</div>
 </div>
 <table class="carga">
   <tr>

@@ -48,7 +48,14 @@ interface FreightContractRow {
   observacoes: string | null;
   cte_id: string;
   accounts_payable_id: string | null;
-  cte?: { numero: number | null; serie: number | null; tipo_talao?: string | null } | null;
+  cte?: {
+    numero: number | null;
+    serie: number | null;
+    tipo_talao?: string | null;
+    remetente_nome?: string | null;
+    recebedor_nome?: string | null;
+    destinatario_nome?: string | null;
+  } | null;
   payable?: { status: string; data_pagamento: string | null } | null;
 }
 
@@ -87,7 +94,7 @@ export default function FreightContracts() {
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id, establishment_id,
-          cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
+          cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao, remetente_nome, recebedor_nome, destinatario_nome),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
         .order("numero", { ascending: false })
@@ -99,6 +106,12 @@ export default function FreightContracts() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+  const truncTo = (s?: string | null, n = 38) => {
+    const t = (s || "").trim();
+    return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
   };
 
   const filtered = useMemo(() => {
@@ -120,6 +133,9 @@ export default function FreightContracts() {
         r.municipio_origem,
         r.municipio_destino,
         r.natureza_carga,
+        r.cte?.remetente_nome,
+        r.cte?.recebedor_nome,
+        r.cte?.destinatario_nome,
       ]
         .filter(Boolean)
         .join(" ")
@@ -159,6 +175,8 @@ export default function FreightContracts() {
       uf_origem: r.uf_origem,
       municipio_destino: r.municipio_destino,
       uf_destino: r.uf_destino,
+      remetente_nome: r.cte?.remetente_nome || null,
+      recebedor_nome: r.cte?.recebedor_nome || r.cte?.destinatario_nome || null,
       natureza_carga: r.natureza_carga,
       peso_kg: Number(r.peso_kg) || 0,
       valor_tonelada: Number(r.valor_tonelada) || 0,
@@ -293,7 +311,7 @@ export default function FreightContracts() {
                       <span className="font-mono font-bold text-foreground">{formatCurrency(r.valor_total)}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                      {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
                     </div>
                     <div className="flex items-center justify-end gap-1 pt-1">
                       <Button
@@ -347,7 +365,7 @@ export default function FreightContracts() {
                           <div className="text-[10px] text-muted-foreground truncate">{r.contratado_documento || ""}</div>
                         </td>
                         <td className="px-3 py-2 truncate max-w-[260px] text-muted-foreground">
-                          {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                          {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
                         </td>
                         <td className="px-2 py-2 whitespace-nowrap tabular-nums">{r.placa_veiculo || "—"}</td>
                         <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(r.valor_total)}</td>
