@@ -48,7 +48,14 @@ interface FreightContractRow {
   observacoes: string | null;
   cte_id: string;
   accounts_payable_id: string | null;
-  cte?: { numero: number | null; serie: number | null; tipo_talao?: string | null } | null;
+  cte?: {
+    numero: number | null;
+    serie: number | null;
+    tipo_talao?: string | null;
+    remetente_nome?: string | null;
+    recebedor_nome?: string | null;
+    destinatario_nome?: string | null;
+  } | null;
   payable?: { status: string; data_pagamento: string | null } | null;
 }
 
@@ -87,7 +94,7 @@ export default function FreightContracts() {
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
           cte_id, accounts_payable_id, establishment_id,
-          cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao),
+          cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao, remetente_nome, recebedor_nome, destinatario_nome),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
         .order("numero", { ascending: false })
@@ -159,6 +166,8 @@ export default function FreightContracts() {
       uf_origem: r.uf_origem,
       municipio_destino: r.municipio_destino,
       uf_destino: r.uf_destino,
+      remetente_nome: r.cte?.remetente_nome || null,
+      recebedor_nome: r.cte?.recebedor_nome || r.cte?.destinatario_nome || null,
       natureza_carga: r.natureza_carga,
       peso_kg: Number(r.peso_kg) || 0,
       valor_tonelada: Number(r.valor_tonelada) || 0,
