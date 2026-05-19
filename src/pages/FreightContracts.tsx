@@ -368,8 +368,8 @@ export default function FreightContracts() {
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
                               <Printer className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="CT-e vinculado">
-                              <Link to="/admin/freight/cte"><ExternalLink className="w-3.5 h-3.5" /></Link>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
+                              <ExternalLink className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </td>
