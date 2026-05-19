@@ -279,7 +279,15 @@ export function TransportReports() {
         if (filters.dataFim) q = q.lte("data_contrato", filters.dataFim);
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
         if (filters.vehicleId !== "todos") q = q.eq("vehicle_id", filters.vehicleId);
-        if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("vehicle_id", Array.from(ownedVehicleIds));
+        if (filters.proprietarioId !== "todos") {
+          // Contratado é o proprietário do veículo; também aceita match por veículos cadastrados a ele
+          const ids = ownedVehicleIds && ownedVehicleIds.size > 0 ? Array.from(ownedVehicleIds) : [];
+          if (ids.length > 0) {
+            q = q.or(`contratado_id.eq.${filters.proprietarioId},vehicle_id.in.(${ids.join(",")})`);
+          } else {
+            q = q.eq("contratado_id", filters.proprietarioId);
+          }
+        }
         const { data, error } = await q.order("data_contrato", { ascending: false }).limit(2000);
         if (error) throw error;
         const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
