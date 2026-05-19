@@ -311,7 +311,7 @@ export default function FreightContracts() {
                       <span className="font-mono font-bold text-foreground">{formatCurrency(r.valor_total)}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      {r.municipio_origem || "-"}/{r.uf_origem || "--"} → {r.municipio_destino || "-"}/{r.uf_destino || "--"}
+                      {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
                     </div>
                     <div className="flex items-center justify-end gap-1 pt-1">
                       <Button
