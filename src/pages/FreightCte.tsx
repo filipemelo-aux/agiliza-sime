@@ -24,6 +24,7 @@ import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
+import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
