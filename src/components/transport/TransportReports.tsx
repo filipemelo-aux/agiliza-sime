@@ -47,6 +47,7 @@ interface Row {
   destino: string;
   status: string;
   valor: number;
+  dataPagamento?: string | null;
 }
 
 const initial = (): Filters => ({
