@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "@/lib/masks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
-import { CargaSearchInput } from "./CargaSearchInput";
+import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
 import { unmaskCNPJ, maskCNPJ } from "@/lib/masks";
@@ -557,17 +557,9 @@ export function CteServicoFormDialog({ open, onOpenChange, cte, onSaved }: Props
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-xs">Natureza da carga *</Label>
-                <CargaSearchInput
-                  placeholder="Buscar natureza no cadastro de cargas..."
-                  selectedName={form.natureza_carga || undefined}
-                  onSelect={(carga) => {
-                    setForm((f) => ({
-                      ...f,
-                      natureza_carga: carga.produto_predominante,
-                      peso_bruto_kg: carga.peso_bruto && !f.peso_bruto_kg ? String(carga.peso_bruto) : f.peso_bruto_kg,
-                    }));
-                  }}
-                  onClear={() => setForm((f) => ({ ...f, natureza_carga: "" }))}
+                <NaturezaCargaSearchInput
+                  value={form.natureza_carga || ""}
+                  onChange={(v) => setForm((f) => ({ ...f, natureza_carga: v }))}
                 />
               </div>
               <div>
