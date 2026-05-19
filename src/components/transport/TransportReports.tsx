@@ -212,7 +212,7 @@ export function TransportReports() {
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
         if (filters.vehicleId !== "todos") q = q.eq("veiculo_id", filters.vehicleId);
         if (ownedPlates && ownedPlates.size > 0) q = q.in("placa_veiculo", Array.from(ownedPlates));
-        const { data, error } = await q.order("data_emissao", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("data_emissao", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((c: any) => {
           const trunc = (s?: string | null, n = 22) => {
@@ -250,7 +250,7 @@ export function TransportReports() {
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
         if (filters.vehicleId !== "todos") q = q.eq("veiculo_id", filters.vehicleId);
         if (ownedPlates && ownedPlates.size > 0) q = q.in("placa_veiculo", Array.from(ownedPlates));
-        const { data, error } = await q.order("data_emissao", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("data_emissao", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((m: any) => {
           const qtdCtes = Array.isArray(m.lista_ctes) ? m.lista_ctes.length : 0;
@@ -325,7 +325,7 @@ export function TransportReports() {
         if (filters.dataFim) q = q.lte("harvest_period_start", filters.dataFim);
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.clienteId !== "todos") q = q.eq("client_id", filters.clienteId);
-        const { data, error } = await q.order("harvest_period_start", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("harvest_period_start", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((h: any) => ({
           id: h.id,
@@ -347,7 +347,7 @@ export function TransportReports() {
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.vehicleId !== "todos") q = q.eq("vehicle_id", filters.vehicleId);
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("vehicle_id", Array.from(ownedVehicleIds));
-        const { data, error } = await q.order("applied_at", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("applied_at", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((a: any) => {
           const f = a.freight || {};
@@ -372,7 +372,7 @@ export function TransportReports() {
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.vehicleId !== "todos") q = q.eq("vehicle_id", filters.vehicleId);
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("vehicle_id", Array.from(ownedVehicleIds));
-        const { data, error } = await q.order("created_at", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("created_at", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((o: any) => {
           const placa = o.vehicle_plate || "—";
@@ -396,7 +396,7 @@ export function TransportReports() {
         if (filters.dataFim) q = q.lte("created_at", filters.dataFim + "T23:59:59");
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.clienteId !== "todos") q = q.eq("client_id", filters.clienteId);
-        const { data, error } = await q.order("created_at", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("created_at", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((c: any) => ({
           id: c.id,
@@ -418,7 +418,7 @@ export function TransportReports() {
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.vehicleId !== "todos") q = q.eq("veiculo_id", filters.vehicleId);
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("veiculo_id", Array.from(ownedVehicleIds));
-        const { data, error } = await q.order("data_manutencao", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("data_manutencao", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((m: any) => {
           const v = vehicleMap.get(m.veiculo_id);
@@ -445,7 +445,7 @@ export function TransportReports() {
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
         if (filters.vehicleId !== "todos") q = q.eq("veiculo_id", filters.vehicleId);
         if (ownedVehicleIds && ownedVehicleIds.size > 0) q = q.in("veiculo_id", Array.from(ownedVehicleIds));
-        const { data, error } = await q.order("data_abastecimento", { ascending: false }).limit(2000);
+        const { data, error } = await q.order("data_abastecimento", { ascending: true }).limit(2000);
         if (error) throw error;
         result = (data || []).map((f: any) => {
           const v = vehicleMap.get(f.veiculo_id);
