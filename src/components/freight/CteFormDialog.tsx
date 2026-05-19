@@ -526,6 +526,28 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
     }
 
+    // Verificação de duplicidade: mesmo peso+data OU mesmo peso+placa
+    try {
+      const { findCteDuplicates, buildDuplicateConfirmMessage } = await import("@/lib/cteDuplicateCheck");
+      const dups = await findCteDuplicates({
+        pesoBruto: Number(form.peso_bruto) || 0,
+        dataEmissao: form.data_emissao,
+        placaVeiculo: unmaskPlate(form.placa_veiculo) || form.placa_veiculo,
+        excludeId: cte?.id ?? null,
+      });
+      if (dups.length > 0) {
+        const ok = await confirm({
+          title: "Possível lançamento duplicado",
+          description: buildDuplicateConfirmMessage(dups),
+          confirmLabel: "Prosseguir mesmo assim",
+          cancelLabel: "Revisar",
+        });
+        if (!ok) return;
+      }
+    } catch (e) {
+      console.warn("Falha na verificação de duplicidade", e);
+    }
+
     setSaving(true);
     try {
       const { tipo_carga: _tc, ...formWithoutExtra } = form;
