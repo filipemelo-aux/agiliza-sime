@@ -53,6 +53,7 @@ interface Props {
   cte: Cte;
   onUpdated: () => void;
   onEdit?: (cte: Cte) => void;
+  onDeleted?: () => void;
 }
 
 const fmt = (v: number) =>
