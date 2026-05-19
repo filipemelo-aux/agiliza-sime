@@ -300,6 +300,10 @@ export function TransportReports() {
           const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
           const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
           const isPago = c.payable?.status === "pago";
+          const rawDp = isPago ? c.payable?.data_pagamento : null;
+          // Normaliza para date-only (yyyy-MM-dd) tomando o componente UTC,
+          // evitando shift de timezone (ex.: 2026-05-01T00:00Z exibindo como 30/04).
+          const dpStr = rawDp ? String(rawDp).slice(0, 10) : null;
           return {
             id: c.id,
             data: c.data_contrato,
@@ -311,7 +315,7 @@ export function TransportReports() {
             origem: remet,
             destino: destin,
             status: isPago ? "pago" : "pendente",
-            dataPagamento: isPago ? c.payable?.data_pagamento : null,
+            dataPagamento: dpStr,
             valor: Number(c.valor_total || 0),
           };
         });
