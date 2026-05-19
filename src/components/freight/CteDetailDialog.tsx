@@ -104,6 +104,114 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
   const canEdit = isServico || cte.status === "rascunho" || cte.status === "rejeitado";
   const canTransmit = !isServico && (cte.status === "rascunho" || cte.status === "rejeitado");
 
+  const removeLinkedFreightContract = async (cteId: string) => {
+    const { data: contracts } = await supabase
+      .from("freight_contracts")
+      .select("id, accounts_payable_id")
+      .eq("cte_id", cteId);
+    const expenseIds = (contracts || []).map((c: any) => c.accounts_payable_id).filter(Boolean);
+    const contractIds = (contracts || []).map((c: any) => c.id);
+    if (contractIds.length) {
+      await supabase.from("freight_contracts").delete().in("id", contractIds);
+    }
+    if (expenseIds.length) {
+      await supabase.from("expenses").delete().in("id", expenseIds).in("status", ["pendente", "atrasado"]);
+    }
+    return contractIds.length;
+  };
+
+  const handleDelete = async () => {
+    const isAutorizado = cte.status === "autorizado" && !!cte.chave_acesso && !!cte.protocolo_autorizacao;
+
+    const { count: linkedContracts } = await supabase
+      .from("freight_contracts")
+      .select("id", { count: "exact", head: true })
+      .eq("cte_id", cte.id);
+    const contractWarning = linkedContracts && linkedContracts > 0
+      ? `\n\n⚠️ Há ${linkedContracts} contrato(s) de frete vinculado(s) que também será(ão) excluído(s) (e sua(s) conta(s) a pagar pendente(s)).`
+      : "";
+
+    if (!isServico && isAutorizado) {
+      const ok = await confirm({
+        title: "Cancelar CT-e na SEFAZ e excluir",
+        description:
+          `Este CT-e (Nº ${cte.numero}) está autorizado pela SEFAZ.\n\n` +
+          `Será solicitado o CANCELAMENTO oficial na SEFAZ e, em seguida, o registro será excluído do sistema.\n\n` +
+          `Esta operação é IRREVERSÍVEL. Deseja continuar?` + contractWarning,
+        confirmLabel: "Cancelar na SEFAZ e excluir",
+        variant: "destructive",
+      });
+      if (!ok) return;
+
+      const justificativa = window.prompt(
+        "Justificativa para cancelamento na SEFAZ (mínimo 15 caracteres):",
+        "Cancelamento solicitado pelo emitente"
+      );
+      if (!justificativa) return;
+      if (justificativa.trim().length < 15) {
+        toast({ title: "Justificativa inválida", description: "A SEFAZ exige no mínimo 15 caracteres.", variant: "destructive" });
+        return;
+      }
+
+      setDeleting(true);
+      try {
+        const resp = await cancelarCte(
+          cte.id,
+          cte.chave_acesso!,
+          cte.protocolo_autorizacao!,
+          justificativa.trim(),
+          user?.id || "",
+          (cte as any).establishment_id
+        );
+        if (!resp.success) {
+          toast({
+            title: "Falha no cancelamento SEFAZ",
+            description: resp.motivo_rejeicao || "Não foi possível cancelar o CT-e na SEFAZ. Exclusão abortada.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const removed = await removeLinkedFreightContract(cte.id);
+        const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
+        if (error) throw error;
+        toast({ title: "CT-e cancelado e excluído", description: `Nº ${cte.numero} removido${removed ? ` (e ${removed} contrato de frete vinculado).` : "."}` });
+        onDeleted?.();
+        onUpdated();
+        onOpenChange(false);
+      } catch (err: any) {
+        toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+      } finally {
+        setDeleting(false);
+      }
+      return;
+    }
+
+    const ok = await confirm({
+      title: "Excluir CT-e",
+      description: (isServico
+        ? `Excluir definitivamente este talão de serviço?\n\nEsta ação não pode ser desfeita.`
+        : `Este CT-e não foi autorizado pela SEFAZ (status: ${cte.status}). Excluir definitivamente?\n\nEsta ação não pode ser desfeita.`) + contractWarning,
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setDeleting(true);
+    try {
+      const removed = await removeLinkedFreightContract(cte.id);
+      const { error } = await supabase.from("ctes").delete().eq("id", cte.id);
+      if (error) throw error;
+      toast({ title: "CT-e excluído", description: removed ? `Registro removido (e ${removed} contrato de frete vinculado).` : "Registro removido com sucesso." });
+      onDeleted?.();
+      onUpdated();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Look up existing contract for this CT-e
   useEffect(() => {
     if (!open) return;
