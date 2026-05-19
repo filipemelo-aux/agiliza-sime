@@ -534,6 +534,18 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
               </Button>
             )}
           </div>
+
+          {/* Excluir CT-e */}
+          <Separator />
+          <Button
+            variant="outline"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Excluir CT-e
+          </Button>
         </div>
       </DialogContent>
 
@@ -543,6 +555,7 @@ export function CteDetailDialog({ open, onOpenChange, cte: cteProp, onUpdated, o
         cte={cte}
         onSaved={() => { onUpdated(); }}
       />
+      {ConfirmDialog}
     </Dialog>
   );
 }
