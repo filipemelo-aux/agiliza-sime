@@ -20,6 +20,7 @@ import { maskCurrency, unmaskCurrency, maskName, maskPlate, unmaskPlate } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CargaSearchInput } from "./CargaSearchInput";
+import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { CteActorSection } from "./CteActorSection";
 import { FreightContractDialog } from "./FreightContractDialog";
 import { unmaskCNPJ, maskCNPJ } from "@/lib/masks";
