@@ -273,7 +273,7 @@ export function TransportReports() {
         let q: any = supabase.from("freight_contracts").select(`
           *,
           cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome),
-          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
+          payable:expenses!freight_contracts_accounts_payable_id_fkey(id, status, data_pagamento)
         `);
         if (filters.dataInicio) q = q.gte("data_contrato", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_contrato", filters.dataFim);
