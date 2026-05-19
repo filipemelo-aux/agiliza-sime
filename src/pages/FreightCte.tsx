@@ -23,6 +23,7 @@ import { cancelarCte } from "@/services/fiscal";
 import { CteFormDialog } from "@/components/freight/CteFormDialog";
 import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
+import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
@@ -81,6 +82,8 @@ export default function FreightCte() {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
+  
   
   const [editingCte, setEditingCte] = useState<Cte | null>(null);
   const [detailCte, setDetailCte] = useState<Cte | null>(null);
@@ -249,6 +252,10 @@ export default function FreightCte() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-3xl font-bold font-display">CT-e</h1>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setBatchOpen(true)} className="gap-2">
+              <FileText className="w-4 h-4" />
+              Importar lote
+            </Button>
             <Button onClick={handleNew} className="gap-2">
               <Plus className="w-4 h-4" />
               Novo CT-e
@@ -569,6 +576,11 @@ export default function FreightCte() {
           }}
         />
       )}
+      <CteBatchImportDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        onImported={fetchCtes}
+      />
       {ConfirmDialog}
     </AdminLayout>
   );
