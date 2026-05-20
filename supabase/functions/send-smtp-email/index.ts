@@ -80,7 +80,7 @@ serve(async (req) => {
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .in("role", ["admin", "moderator"])
+      .in("role", ["admin", "moderator", "operador"])
       .limit(1);
 
     if (roleError || !roleRows?.length) {
