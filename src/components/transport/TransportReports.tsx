@@ -564,7 +564,7 @@ export function TransportReports() {
   const fmtL = (l: number) => `${Number(l || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} L`;
   const numeroLabel = useMemo(() => {
     switch (reportType) {
-      case "cte": return "CT-e Serviço Nº";
+      case "cte": return "CTE";
       case "mdfe": return "MDF-e";
       case "contratos": return "Contrato";
       case "colheita": return "Fazenda";
@@ -647,12 +647,12 @@ export function TransportReports() {
         const peso = r.pesoKg || 0;
         const litros = r.litrosDesconto || 0;
         return `<tr>
-      <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
-      <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
-      ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
-      <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
-      <td class="t1 nowrap">${esc(r.veiculo)}</td>
-      <td class="t2b">${esc(r.proprietario)}</td>
+       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+       <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
+       ${showProduto ? `<td class="t2b nowrap">${esc(r.produto || "—")}</td>` : ""}
+       <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
+       <td class="t1 nowrap">${esc(r.veiculo)}</td>
+       <td class="t2b nowrap">${esc(r.proprietario)}</td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
@@ -726,11 +726,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   <table class="sheet">
     <thead><tr>
       <th style="width:54px">Data</th>
-      <th style="width:60px">${esc(numeroLabel)}</th>
-      ${showProduto ? `<th style="width:110px">Produto</th>` : ""}
-      <th style="width:150px">Origem → Destino</th>
-      <th style="width:80px">Veículo</th>
-      <th>Proprietário</th>
+      <th style="width:46px">${esc(numeroLabel)}</th>
+      ${showProduto ? `<th style="width:100px" class="nowrap">Produto</th>` : ""}
+      <th style="width:130px" class="nowrap">Origem → Destino</th>
+      <th style="width:80px" class="nowrap">Veículo</th>
+      <th style="width:120px" class="nowrap">Proprietário</th>
       ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
       ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
       ${showDesconto ? `<th class="r" style="width:72px">Desconto</th>` : ""}
@@ -945,11 +945,12 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>{numeroLabel}</SortableTh>
-                          {showProduto && <th className="px-3 py-2 font-medium">Produto</th>}
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[60px]" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>{numeroLabel}</SortableTh>
+                          {showProduto && <th className="px-3 py-2 font-medium whitespace-nowrap w-[100px]">Produto</th>}
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[130px]" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[80px]" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo</SortableTh>
+                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[120px]">Proprietário</th>
                           {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
                           {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
                           {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
@@ -964,15 +965,13 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                               <div className="font-medium">{r.titulo}</div>
                               {r.subtitulo && <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>}
                             </td>
-                            {showProduto && <td className="px-3 py-2 text-[11px]">{r.produto || "—"}</td>}
+                            {showProduto && <td className="px-3 py-2 text-[11px] whitespace-nowrap">{r.produto || "—"}</td>}
                             <td className="px-3 py-2">{r.pessoa}</td>
                             <td className="px-3 py-2 text-[11px] whitespace-nowrap">
                               {r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`}
                             </td>
-                            <td className="px-3 py-2">
-                              <div className="font-medium">{r.veiculo}</div>
-                              <div className="text-[10px] text-muted-foreground">{r.proprietario}</div>
-                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap">{r.veiculo}</td>
+                            <td className="px-3 py-2 whitespace-nowrap text-[11px]">{r.proprietario}</td>
                             {showPeso && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
                                 {(r.pesoKg || 0) > 0 ? fmtTon(r.pesoKg || 0) : "—"}
