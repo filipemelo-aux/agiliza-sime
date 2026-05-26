@@ -537,8 +537,22 @@ export default function AdminMaintenances() {
                     </CardContent>
                   </Card>
                 )}
-                {/* Delete button */}
-                <div className="pt-2 border-t border-border flex justify-end">
+                {/* Action buttons */}
+                <div className="pt-2 border-t border-border flex justify-end gap-2">
+                  {!detailMaint.expense_id && !detailMaint.nfse_expense_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => {
+                        setEditId(detailMaint.id);
+                        setDetailOpen(false);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                  )}
                   <Button
                     variant="destructive"
                     size="sm"
