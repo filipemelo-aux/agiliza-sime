@@ -610,12 +610,14 @@ export function TransportReports() {
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
       1 /* Status */ +
+      (showPeso ? 1 : 0) +
       (showDesconto ? 1 : 0) +
       (showValor ? 1 : 0);
 
     const tableRows = rows
       .map((r, i) => {
         const desc = r.desconto || 0;
+        const peso = r.pesoKg || 0;
         return `<tr>
       <td class="c idx">${i + 1}</td>
       <td class="nowrap">${formatDateBR(r.data)}</td>
@@ -623,19 +625,21 @@ export function TransportReports() {
       <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
       <td class="c st">${esc(r.status)}${r.dataPagamento ? `<div class="t2">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+      ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtKg(peso) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
       ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`;
       })
       .join("");
 
-    const totalLine = showValor
-      ? `<tr class="tot">
-          <td colspan="${colCount - (showDesconto ? 2 : 1)}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+    const trailingCols = (showPeso ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
+    const labelColspan = colCount - trailingCols;
+    const totalLine = `<tr class="tot">
+          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
-          <td class="r val">${formatCurrency(totals.total)}</td>
-        </tr>`
-      : `<tr class="tot"><td colspan="${colCount}" class="r">TOTAL: ${rows.length} registro(s)</td></tr>`;
+          ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
+        </tr>`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
