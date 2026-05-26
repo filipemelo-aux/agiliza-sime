@@ -230,6 +230,9 @@ export function TransportReports() {
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
           const pesoTxt = c.peso_bruto ? `${Number(c.peso_bruto).toLocaleString("pt-BR")} kg` : "";
           const descBase = c.produto_predominante || c.natureza_operacao || "—";
+          let descRaw: any = c.desconto;
+          if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
+          const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
           return {
             id: c.id,
             data: c.data_emissao,
@@ -242,6 +245,7 @@ export function TransportReports() {
             destino,
             status: c.status,
             valor: Number(c.valor_frete || c.valor_receber || 0),
+            desconto: descontoValor,
           };
         });
       } else if (reportType === "mdfe") {
