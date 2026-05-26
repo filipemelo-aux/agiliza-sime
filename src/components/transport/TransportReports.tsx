@@ -634,7 +634,8 @@ export function TransportReports() {
       1 /* Número */ +
       (showProduto ? 1 : 0) +
       1 /* Origem→Destino */ +
-      1 /* Veículo/Prop */ +
+      1 /* Veículo */ +
+      1 /* Proprietário */ +
       (showPeso ? 1 : 0) +
       (showLitros ? 1 : 0) +
       (showDesconto ? 1 : 0) +
