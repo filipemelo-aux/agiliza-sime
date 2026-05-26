@@ -713,8 +713,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <thead><tr>
       <th class="c" style="width:18px">#</th>
       <th style="width:54px">Data</th>
-      <th>Descrição</th>
-      <th>Origem → Destino</th>
+      <th style="width:60px">Número</th>
+      ${showProduto ? `<th style="width:110px">Produto</th>` : ""}
+      <th style="width:150px">Origem → Destino</th>
       <th>Veículo / Proprietário</th>
       ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
       ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
