@@ -646,7 +646,6 @@ export function TransportReports() {
         const peso = r.pesoKg || 0;
         const litros = r.litrosDesconto || 0;
         return `<tr>
-      <td class="c idx">${i + 1}</td>
       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
       ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
@@ -694,7 +693,6 @@ table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
 .c{text-align:center}
 .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.idx{color:#9ca3af;font-size:7.5px;width:18px}
 .t1{font-weight:600;color:#111827}
 .t2{font-size:7.5px;color:#6b7280;margin-top:0}
 .t2b{font-size:8.5px;color:#374151}
@@ -766,7 +764,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Número", ...(showProduto ? ["Produto"] : []), "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", numeroLabel, ...(showProduto ? ["Produto"] : []), "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -945,7 +943,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Número</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>{numeroLabel}</SortableTh>
                           {showProduto && <th className="px-3 py-2 font-medium">Produto</th>}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
