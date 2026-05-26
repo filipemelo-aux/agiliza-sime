@@ -11,13 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2, CalendarIcon, X } from "lucide-react";
+import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2, CalendarIcon, X, Plus, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
 import { toast } from "sonner";
+import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 
 
 interface Maintenance {
