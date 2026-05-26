@@ -109,6 +109,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         .eq("id", contractId!)
         .maybeSingle();
       if (!c) return;
+      const rawObs = (c as any).observacoes || "";
+      const { desconto: parsedDesc, cleanObs } = parseObservacoesDesconto(rawObs);
+      setDesconto(parsedDesc);
       setForm({
         contratado_id: (c as any).contratado_id ?? null,
         contratado_nome: (c as any).contratado_nome || "",
@@ -129,7 +132,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         valor_tonelada: (c as any).valor_tonelada
           ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
           : "",
-        observacoes: (c as any).observacoes || "",
+        observacoes: cleanObs,
       });
     };
 
