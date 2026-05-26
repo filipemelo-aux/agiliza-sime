@@ -382,12 +382,39 @@ export function FinancialPayables() {
   const handleEdit = (item: Expense) => { setEditingExpense(item); setFormOpen(true); };
   const handleNew = () => { setEditingExpense(null); setFormOpen(true); };
 
+  const restoreGroupedOriginals = async (groupExpenseId: string): Promise<number> => {
+    const { data: groupItems } = await supabase
+      .from("expense_group_items" as any)
+      .select("original_expense_id")
+      .eq("grupo_expense_id", groupExpenseId);
+    const originals = (groupItems as any[] || []).map(r => r.original_expense_id).filter(Boolean);
+    if (originals.length === 0) return 0;
+    await supabase.from("expenses").update({ deleted_at: null } as any).in("id", originals);
+    await supabase.from("expense_group_items" as any).delete().eq("grupo_expense_id", groupExpenseId);
+    return originals.length;
+  };
+
   const handleDelete = async (item: Expense) => {
     if (item.status === "pago") return toast.error("Contas pagas não podem ser excluídas. Use cancelamento.");
     const chart = item.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
     const isMaintenance = chart?.tipo_operacional === "manutencao";
 
-    if (isMaintenance) {
+    const { data: groupCheck } = await supabase
+      .from("expense_group_items" as any)
+      .select("original_expense_id")
+      .eq("grupo_expense_id", item.id);
+    const isGrouped = (groupCheck as any[] || []).length > 0;
+
+    if (isGrouped) {
+      const count = (groupCheck as any[]).length;
+      const ok = await confirm({
+        title: "Excluir conta agrupada",
+        description: `Esta conta foi criada agrupando ${count} conta(s). Ao excluí-la, as contas originais serão restauradas no Contas a Pagar. Deseja continuar?`,
+        variant: "destructive",
+        confirmLabel: "Excluir e restaurar",
+      });
+      if (!ok) return;
+    } else if (isMaintenance) {
       const { data: linkedMaint } = await supabase
         .from("maintenances" as any)
         .select("id")
@@ -406,9 +433,12 @@ export function FinancialPayables() {
       if (!await confirm({ title: "Excluir despesa", description: "Deseja excluir esta despesa?", variant: "destructive", confirmLabel: "Excluir" })) return;
     }
 
+    let restored = 0;
+    if (isGrouped) restored = await restoreGroupedOriginals(item.id);
+
     const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() } as any).eq("id", item.id);
     if (error) return toast.error(error.message);
-    toast.success("Despesa excluída");
+    toast.success(restored > 0 ? `Conta agrupada excluída · ${restored} conta(s) restaurada(s)` : "Despesa excluída");
     fetchData();
   };
 
