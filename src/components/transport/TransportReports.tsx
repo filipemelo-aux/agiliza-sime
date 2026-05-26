@@ -510,7 +510,11 @@ export function TransportReports() {
     }
   }, [reportType, filters, profileName, vehicleMap, ownerByPlate, platesByOwnerId, vehicleIdsByOwnerId]);
 
-  const totals = useMemo(() => ({ total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length }), [rows]);
+  const totals = useMemo(() => ({
+    total: rows.reduce((s, r) => s + r.valor, 0),
+    desconto: rows.reduce((s, r) => s + (r.desconto || 0), 0),
+    count: rows.length,
+  }), [rows]);
 
   type RowSortKey = "data" | "titulo" | "pessoa" | "rota" | "veiculo" | "status" | "valor";
   const { sort, toggle, sorted } = useSortableTable<Row, RowSortKey>(
