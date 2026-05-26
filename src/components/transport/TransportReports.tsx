@@ -562,6 +562,20 @@ export function TransportReports() {
   const fmtTon = (kg: number) => `${(kg / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} t`;
   const fmtKg = (kg: number) => `${Number(kg || 0).toLocaleString("pt-BR")} kg`;
   const fmtL = (l: number) => `${Number(l || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} L`;
+  const numeroLabel = useMemo(() => {
+    switch (reportType) {
+      case "cte": return "CT-e Serviço Nº";
+      case "mdfe": return "MDF-e";
+      case "contratos": return "Contrato";
+      case "colheita": return "Fazenda";
+      case "ordens_carregamento": return "Frete";
+      case "ordens_abastecimento": return "Combustível";
+      case "cotacoes": return "Cotação";
+      case "manutencoes": return "Manutenção";
+      case "abastecimentos": return "Abastecimento";
+      default: return "Número";
+    }
+  }, [reportType]);
 
   const clienteList = useMemo(() => {
     const term = clienteSearch.trim().toLowerCase();
