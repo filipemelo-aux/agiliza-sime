@@ -872,7 +872,12 @@ ${totalLine}
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
-                {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
+                <div className="flex items-center gap-4 flex-wrap">
+                  {showDesconto && totals.desconto > 0 && (
+                    <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
+                  )}
+                  {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
+                </div>
               </div>
 
               <div className="border border-border rounded-md overflow-hidden bg-card">
