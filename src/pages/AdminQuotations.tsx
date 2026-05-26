@@ -144,8 +144,32 @@ export default function AdminQuotations() {
   const formatCurrency = (v: number | null) =>
     v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 
-  const freteQuotations = quotations.filter((q) => q.type === "frete");
-  const colheitaQuotations = quotations.filter((q) => q.type === "colheita");
+  const sortQuotations = (items: Quotation[]) => {
+    const copy = [...items];
+    const dir = sortBy.endsWith("_desc") ? -1 : 1;
+    const field = sortBy.replace(/_(asc|desc)$/, "");
+    copy.sort((a, b) => {
+      let av: any, bv: any;
+      if (field === "data") { av = a.created_at; bv = b.created_at; }
+      else if (field === "numero") { av = a.numero; bv = b.numero; }
+      else if (field === "valor") {
+        av = a.valor_frete ?? a.valor_mensal_por_caminhao ?? 0;
+        bv = b.valor_frete ?? b.valor_mensal_por_caminhao ?? 0;
+      } else if (field === "cliente") {
+        av = a.client?.razao_social || a.client?.full_name || "";
+        bv = b.client?.razao_social || b.client?.full_name || "";
+      } else { av = a.created_at; bv = b.created_at; }
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    return copy;
+  };
+
+  const sortedAll = sortQuotations(quotations);
+  const freteQuotations = sortQuotations(quotations.filter((q) => q.type === "frete"));
+  const colheitaQuotations = sortQuotations(quotations.filter((q) => q.type === "colheita"));
 
   const openNewForm = (type: "frete" | "colheita") => {
     setFormType(type);
