@@ -186,6 +186,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
           fleetType: (data as any).fleet_type || "terceiros",
+          intervaloRevisaoKm: (data as any).intervalo_revisao_km ? String((data as any).intervalo_revisao_km) : "",
+          proximaRevisaoKm: (data as any).proxima_revisao_km ? String((data as any).proxima_revisao_km) : "",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
