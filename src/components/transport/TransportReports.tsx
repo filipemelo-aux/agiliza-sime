@@ -51,6 +51,7 @@ interface Row {
   valor: number;
   desconto?: number;
   pesoKg?: number;
+  litrosDesconto?: number;
   dataPagamento?: string | null;
 }
 
