@@ -953,7 +953,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             </td>
                             {showPeso && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
-                                {(r.pesoKg || 0) > 0 ? fmtKg(r.pesoKg || 0) : "—"}
+                                {(r.pesoKg || 0) > 0 ? fmtTon(r.pesoKg || 0) : "—"}
                               </td>
                             )}
                             {showLitros && (
