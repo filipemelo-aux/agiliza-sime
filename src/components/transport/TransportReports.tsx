@@ -617,7 +617,8 @@ export function TransportReports() {
 
     const colCount =
       2 /* # + Data */ +
-      1 /* Descrição */ +
+      1 /* Número */ +
+      (showProduto ? 1 : 0) +
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
       (showPeso ? 1 : 0) +
@@ -633,8 +634,9 @@ export function TransportReports() {
         return `<tr>
       <td class="c idx">${i + 1}</td>
       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
-      <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
-      <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
+      <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
+      ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
+      <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
