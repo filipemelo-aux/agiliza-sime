@@ -41,6 +41,12 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
   const [gerarDespesa, setGerarDespesa] = useState(false);
   const [dataVencimento, setDataVencimento] = useState("");
 
+  // Revisão (review) data
+  const [vehicleIntervalo, setVehicleIntervalo] = useState<number | null>(null);
+  const [vehicleProximaRevisao, setVehicleProximaRevisao] = useState<number | null>(null);
+  const [revisaoDialogOpen, setRevisaoDialogOpen] = useState(false);
+  const [revisaoIntervaloInput, setRevisaoIntervaloInput] = useState("");
+
   const reset = () => {
     setVeiculoId(null); setKmAtual(""); setTipoManutencao("corretiva");
     setDescricaoServico(""); setTipoServico("interno"); setTempoParado("");
@@ -48,7 +54,50 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
     setItensManutencao([]); setTotal(0);
     setDataManutencao(new Date().toISOString().slice(0, 10));
     setFornecedor(""); setGerarDespesa(false); setDataVencimento("");
+    setVehicleIntervalo(null); setVehicleProximaRevisao(null);
+    setRevisaoDialogOpen(false); setRevisaoIntervaloInput("");
   };
+
+  // Load vehicle revision settings when veiculoId changes
+  useEffect(() => {
+    if (!veiculoId) { setVehicleIntervalo(null); setVehicleProximaRevisao(null); return; }
+    supabase.from("vehicles").select("intervalo_revisao_km, proxima_revisao_km").eq("id", veiculoId).maybeSingle().then(({ data }) => {
+      const d = data as any;
+      setVehicleIntervalo(d?.intervalo_revisao_km ? Number(d.intervalo_revisao_km) : null);
+      setVehicleProximaRevisao(d?.proxima_revisao_km ? Number(d.proxima_revisao_km) : null);
+    });
+  }, [veiculoId]);
+
+  // When user picks "revisão" type, ensure interval is defined
+  useEffect(() => {
+    if (tipoManutencao !== "revisao" || !veiculoId) return;
+    if (vehicleIntervalo && vehicleIntervalo > 0) {
+      // Pre-fill próxima manutenção (KM) using interval + current km
+      const baseKm = Number(kmAtual) || vehicleProximaRevisao || 0;
+      if (!proximaManutencaoKm && baseKm > 0) {
+        setProximaManutencaoKm(String(baseKm + vehicleIntervalo));
+      }
+    } else {
+      // Ask user to define the interval for this vehicle
+      setRevisaoIntervaloInput("");
+      setRevisaoDialogOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipoManutencao, vehicleIntervalo, veiculoId]);
+
+  const handleSaveRevisaoIntervalo = async () => {
+    const intervalo = Number(revisaoIntervaloInput);
+    if (!intervalo || intervalo <= 0) return toast.error("Informe um intervalo válido");
+    if (!veiculoId) return;
+    const { error } = await supabase.from("vehicles").update({ intervalo_revisao_km: intervalo } as any).eq("id", veiculoId);
+    if (error) { toast.error("Erro ao salvar intervalo: " + error.message); return; }
+    setVehicleIntervalo(intervalo);
+    const baseKm = Number(kmAtual) || vehicleProximaRevisao || 0;
+    if (baseKm > 0) setProximaManutencaoKm(String(baseKm + intervalo));
+    setRevisaoDialogOpen(false);
+    toast.success("Intervalo de revisão salvo no veículo");
+  };
+
 
   useEffect(() => {
     if (!open) { reset(); return; }
