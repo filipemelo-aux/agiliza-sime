@@ -339,7 +339,7 @@ export default function AdminQuotations() {
               <div className="text-center text-muted-foreground py-12">Nenhuma cotação criada</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {quotations.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
+                {sortedAll.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
               </div>
             )}
           </TabsContent>
