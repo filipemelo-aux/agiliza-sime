@@ -736,7 +736,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showPeso ? ["Peso (kg)"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -749,6 +749,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
         r.status,
+        ...(showPeso ? [(r.pesoKg || 0).toFixed(0)] : []),
         ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
       ].join(";"));
