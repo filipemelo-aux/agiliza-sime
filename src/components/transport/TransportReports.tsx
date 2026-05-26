@@ -50,6 +50,7 @@ interface Row {
   status: string;
   valor: number;
   desconto?: number;
+  pesoKg?: number;
   dataPagamento?: string | null;
 }
 
