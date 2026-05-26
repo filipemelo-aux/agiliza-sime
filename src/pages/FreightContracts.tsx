@@ -99,6 +99,7 @@ export default function FreightContracts() {
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao, remetente_nome, recebedor_nome, destinatario_nome),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
+        .order("data_contrato", { ascending: false })
         .order("numero", { ascending: false })
         .limit(200);
       if (error) throw error;
