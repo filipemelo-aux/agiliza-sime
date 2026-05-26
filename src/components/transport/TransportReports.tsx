@@ -53,6 +53,7 @@ interface Row {
   pesoKg?: number;
   litrosDesconto?: number;
   dataPagamento?: string | null;
+  produto?: string;
 }
 
 const initial = (): Filters => ({
