@@ -300,7 +300,7 @@ export default function FreightContracts() {
         {/* Lista */}
         {loading ? (
           <div className="text-center text-sm text-muted-foreground py-10">Carregando...</div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
               Nenhum contrato encontrado.
@@ -308,7 +308,7 @@ export default function FreightContracts() {
           </Card>
         ) : isMobile ? (
           <div className="grid grid-cols-1 gap-2">
-            {filtered.map((r) => {
+            {sorted.map((r) => {
               const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
               return (
                 <Card key={r.id}>
@@ -372,7 +372,7 @@ export default function FreightContracts() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((r) => {
+                  {sorted.map((r) => {
                     const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
                     return (
                       <tr key={r.id} className="border-t border-border hover:bg-muted/30">
