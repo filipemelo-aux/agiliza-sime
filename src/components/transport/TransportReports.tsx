@@ -633,7 +633,7 @@ export function TransportReports() {
       <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
       <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
-      ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtKg(peso) : "—"}</td>` : ""}
+      ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
       ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
@@ -645,7 +645,7 @@ export function TransportReports() {
     const labelColspan = colCount - trailingCols;
     const totalLine = `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
-          ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
+          ${showPeso ? `<td class="r val">${fmtTon(totals.pesoKg)}</td>` : ""}
           ${showLitros ? `<td class="r neg">${fmtL(totals.litros)}</td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
           ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
@@ -655,38 +655,38 @@ export function TransportReports() {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box}
-@media print { @page { margin: 8mm 6mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} .sheet{box-shadow:none!important;border:none!important} }
+@media print { @page { margin: 6mm 5mm; size: A4 portrait; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} .sheet{box-shadow:none!important;border:none!important} tr{page-break-inside:avoid} thead{display:table-header-group} }
 html,body{margin:0;padding:0;background:#f4f6f8;font-family:${FONT};color:#1f2937}
-.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 14px;display:flex;gap:8px;justify-content:flex-end}
-.toolbar button{font-family:${FONT};font-size:12px;font-weight:600;padding:6px 12px;border-radius:4px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer}
+.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
+.toolbar button{font-family:${FONT};font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer}
 .toolbar button.primary{background:#2B4C7E;color:#fff;border-color:#2B4C7E}
-.wrap{max-width:1280px;margin:10px auto;padding:0 10px}
-.head{display:flex;align-items:center;gap:12px;padding:6px 4px 10px;border-bottom:2px solid #2B4C7E;margin-bottom:6px}
-.head img{height:38px;width:auto;display:block}
-.head .est{font-size:10px;color:#555;line-height:1.3}
-.head h1{margin:0;font-size:13px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
-.head .per{font-size:10px;color:#666;text-align:right;margin-top:2px}
-table.sheet{width:100%;border-collapse:collapse;font-size:10px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
-table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.3px;padding:5px 6px;border:1px solid #d0d7de;text-align:left}
+.wrap{max-width:900px;margin:6px auto;padding:0 8px}
+.head{display:flex;align-items:center;gap:10px;padding:4px 2px 6px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
+.head img{height:30px;width:auto;display:block}
+.head .est{font-size:9px;color:#555;line-height:1.25}
+.head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:9px;color:#666;text-align:right;margin-top:1px}
+table.sheet{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
+table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
 table.sheet thead th.r{text-align:right}
 table.sheet thead th.c{text-align:center}
-table.sheet tbody td{padding:3px 6px;border:1px solid #e5e7eb;vertical-align:top;font-size:10px;line-height:1.25}
+table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
 table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
 .c{text-align:center}
 .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.idx{color:#9ca3af;font-size:9px;width:22px}
+.idx{color:#9ca3af;font-size:7.5px;width:18px}
 .t1{font-weight:600;color:#111827}
-.t2{font-size:9px;color:#6b7280;margin-top:1px}
-.t2b{font-size:10px;color:#374151}
-.st{font-size:10px;font-weight:600;color:#374151;text-transform:capitalize}
+.t2{font-size:7.5px;color:#6b7280;margin-top:0}
+.t2b{font-size:8.5px;color:#374151}
+.st{font-size:8.5px;font-weight:600;color:#374151;text-transform:capitalize}
 .neg{color:#b91c1c;font-weight:700}
 .mut{color:#9ca3af}
 .val{font-weight:700;color:#111827}
-tr.tot td{background:#eef2f6!important;font-weight:800;font-size:11px;color:#2B4C7E;padding:6px 8px;border-top:2px solid #2B4C7E}
+tr.tot td{background:#eef2f6!important;font-weight:800;font-size:9.5px;color:#2B4C7E;padding:4px 5px;border-top:1.5px solid #2B4C7E}
 tr.tot td.neg{color:#b91c1c}
-tr.tot td.val{color:#2B4C7E;font-size:12px}
-.foot{margin-top:6px;display:flex;justify-content:space-between;font-size:9px;color:#6b7280;padding:0 2px}
+tr.tot td.val{color:#2B4C7E;font-size:10px}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:8px;color:#6b7280;padding:0 2px}
 </style></head>
 <body>
 <div class="toolbar no-print">
@@ -706,15 +706,15 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
   </div>
   <table class="sheet">
     <thead><tr>
-      <th class="c" style="width:22px">#</th>
-      <th style="width:70px">Data</th>
+      <th class="c" style="width:18px">#</th>
+      <th style="width:54px">Data</th>
       <th>Descrição</th>
       <th>Origem → Destino</th>
       <th>Veículo / Proprietário</th>
-      ${showPeso ? `<th class="r" style="width:90px">Peso</th>` : ""}
-      ${showLitros ? `<th class="r" style="width:80px">Litros</th>` : ""}
-      ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
-      ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
+      ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
+      ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
+      ${showDesconto ? `<th class="r" style="width:72px">Desconto</th>` : ""}
+      ${showValor ? `<th class="r" style="width:82px">Valor Líquido</th>` : ""}
     </tr></thead>
     <tbody>${tableRows}${totalLine}</tbody>
   </table>
@@ -746,7 +746,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (kg)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -758,7 +758,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
         r.destino.replace(/;/g, ","),
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
-        ...(showPeso ? [(r.pesoKg || 0).toFixed(0)] : []),
+        ...(showPeso ? [((r.pesoKg || 0) / 1000).toFixed(3).replace(".", ",")] : []),
         ...(showLitros ? [(r.litrosDesconto || 0).toString().replace(".", ",")] : []),
         ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
@@ -910,7 +910,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                 <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
                 <div className="flex items-center gap-4 flex-wrap">
                   {showPeso && totals.pesoKg > 0 && (
-                    <div className="text-sm font-semibold text-foreground">Peso: {fmtKg(totals.pesoKg)} <span className="text-primary">({fmtTon(totals.pesoKg)})</span></div>
+                    <div className="text-sm font-semibold text-foreground">Peso: <span className="text-primary">{fmtTon(totals.pesoKg)}</span></div>
                   )}
                   {showDesconto && totals.desconto > 0 && (
                     <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
@@ -929,7 +929,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
-                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[100px]">Peso</th>}
+                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
                           {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
                           {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
                           {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
@@ -953,7 +953,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                             </td>
                             {showPeso && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
-                                {(r.pesoKg || 0) > 0 ? fmtKg(r.pesoKg || 0) : "—"}
+                                {(r.pesoKg || 0) > 0 ? fmtTon(r.pesoKg || 0) : "—"}
                               </td>
                             )}
                             {showLitros && (
