@@ -49,6 +49,7 @@ interface Row {
   destino: string;
   status: string;
   valor: number;
+  desconto?: number;
   dataPagamento?: string | null;
 }
 
