@@ -410,7 +410,7 @@ export default function FreightCte() {
               <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="text-center py-16">
             <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Nenhum CT-e encontrado</h3>
@@ -418,7 +418,7 @@ export default function FreightCte() {
           </div>
         ) : isMobile ? (
           <div className="grid grid-cols-1 gap-2">
-            {filtered.map((cte) => {
+            {sorted.map((cte) => {
               const isServico = cte.tipo_talao === "servico";
               const numeroDisplay = isServico
                 ? cte.numero_interno ?? "—"
@@ -497,7 +497,7 @@ export default function FreightCte() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((cte) => {
+                  {sorted.map((cte) => {
                     const isServico = cte.tipo_talao === "servico";
                     const numeroDisplay = isServico
                       ? cte.numero_interno ?? "—"
