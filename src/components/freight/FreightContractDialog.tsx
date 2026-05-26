@@ -709,37 +709,49 @@ function buildObservacoesComDesconto(
 }
 
 
-/** Reverte texto de observações para o estado do desconto, removendo as linhas geradas. */
+/** Reverte texto de observações para o estado do desconto, removendo as linhas/trechos gerados. */
 function parseObservacoesDesconto(raw: string): { desconto: DescontoState; cleanObs: string } {
   if (!raw) return { desconto: emptyDesconto, cleanObs: "" };
-  const lines = raw.split(/\r?\n/);
-  const kept: string[] = [];
-  let desconto: DescontoState = emptyDesconto;
 
   const moneyToNum = (s: string): number => {
-    const cleaned = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
-    const n = parseFloat(cleaned);
+    const cleaned = s.replace(/[^\d,.\-]/g, "");
+    if (!cleaned) return 0;
+    // Se tem vírgula → vírgula é decimal (BR), pontos são milhar.
+    // Senão → ponto é decimal (formato importado em lote).
+    const normalized = cleaned.includes(",")
+      ? cleaned.replace(/\./g, "").replace(",", ".")
+      : cleaned;
+    const n = parseFloat(normalized);
     return Number.isFinite(n) ? n : 0;
   };
   const numToMaskedCurrency = (n: number) => maskCurrency(String(Math.round(n * 100)));
+  const numToLitrosStr = (n: number) =>
+    n.toLocaleString("pt-BR", { maximumFractionDigits: 4, useGrouping: false });
 
-  // Padrões: "Desconto Diesel: 150 L × R$ 5,00 = R$ 750,00"
-  const diesel = /^Desconto\s+Diesel:\s*([\d.,]+)\s*L\s*[×x]\s*([R$\s\d.,]+?)\s*=\s*([R$\s\d.,]+)\s*$/i;
+  // Aceita: "Desconto Diesel: 150 L × R$ 5,00 = R$ 750,00"
+  // e também: "Desconto diesel: 288.71L × R$ 7.39 = R$ 2133.57" (sem espaço antes de L, ponto decimal)
+  const diesel = /Desconto\s+Diesel\s*:\s*([\d.,]+)\s*L\s*[×x*]\s*(R?\$?\s*[\d.,]+)\s*=\s*(R?\$?\s*[\d.,]+)/i;
   // "Desconto (descricao): R$ 100,00"
-  const outros = /^Desconto\s*\(([^)]+)\):\s*([R$\s\d.,]+)\s*$/i;
+  const outros = /Desconto\s*\(([^)]+)\)\s*:\s*(R?\$?\s*[\d.,]+)/i;
   // Linha resumo: "Bruto ... → Líquido ..."
-  const resumo = /(Bruto\s+R\$|→\s*Líquido)/i;
+  const resumo = /(Bruto\s+R?\$?|→\s*L[ií]quido)/i;
 
-  for (const ln of lines) {
+  let desconto: DescontoState = emptyDesconto;
+  const lines = raw.split(/\r?\n/);
+  const kept: string[] = [];
+
+  for (let ln of lines) {
     const md = ln.match(diesel);
     if (md) {
       desconto = {
         tipo: "diesel",
-        litros: md[1].replace(".", "").replace(",", ","),
+        litros: numToLitrosStr(moneyToNum(md[1])),
         valorLitro: numToMaskedCurrency(moneyToNum(md[2])),
         descricao: "",
         valor: "",
       };
+      ln = ln.replace(diesel, "").trim().replace(/[.;,\s-]+$/, "");
+      if (ln) kept.push(ln);
       continue;
     }
     const mo = ln.match(outros);
@@ -751,12 +763,14 @@ function parseObservacoesDesconto(raw: string): { desconto: DescontoState; clean
         descricao: mo[1].trim(),
         valor: numToMaskedCurrency(moneyToNum(mo[2])),
       };
+      ln = ln.replace(outros, "").trim().replace(/[.;,\s-]+$/, "");
+      if (ln) kept.push(ln);
       continue;
     }
     if (resumo.test(ln)) continue;
     kept.push(ln);
   }
 
-  return { desconto, cleanObs: kept.join("\n").replace(/\n+$/, "") };
+  return { desconto, cleanObs: kept.join("\n").replace(/\n+$/, "").trim() };
 }
 
