@@ -139,6 +139,21 @@ export default function FreightCte() {
     );
   });
 
+  type CteSortKey = "numero" | "talao" | "data" | "cliente" | "placa" | "valor" | "status";
+  const { sort, toggle, sorted } = useSortableTable<Cte, CteSortKey>(
+    filtered,
+    { key: "data", direction: "desc" },
+    {
+      numero: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
+      talao: (c) => (c.tipo_talao === "servico" ? "Serviço" : "Produção"),
+      data: (c) => getEmissaoDate(c) || "",
+      cliente: (c) => c.destinatario_nome || c.remetente_nome || "",
+      placa: (c) => c.placa_veiculo || "",
+      valor: (c) => Number(c.valor_frete) || 0,
+      status: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
+    },
+  );
+
   const handleNew = () => {
     setEditingCte(null);
     setChooserOpen(true);
