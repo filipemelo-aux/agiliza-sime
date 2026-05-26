@@ -758,7 +758,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
         r.destino.replace(/;/g, ","),
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
-        ...(showPeso ? [(r.pesoKg || 0).toFixed(0)] : []),
+        ...(showPeso ? [((r.pesoKg || 0) / 1000).toFixed(3).replace(".", ",")] : []),
         ...(showLitros ? [(r.litrosDesconto || 0).toString().replace(".", ",")] : []),
         ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
