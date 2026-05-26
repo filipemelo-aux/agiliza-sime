@@ -109,6 +109,9 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         .eq("id", contractId!)
         .maybeSingle();
       if (!c) return;
+      const rawObs = (c as any).observacoes || "";
+      const { desconto: parsedDesc, cleanObs } = parseObservacoesDesconto(rawObs);
+      setDesconto(parsedDesc);
       setForm({
         contratado_id: (c as any).contratado_id ?? null,
         contratado_nome: (c as any).contratado_nome || "",
@@ -129,7 +132,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         valor_tonelada: (c as any).valor_tonelada
           ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
           : "",
-        observacoes: (c as any).observacoes || "",
+        observacoes: cleanObs,
       });
     };
 
@@ -700,7 +703,59 @@ function buildObservacoesComDesconto(
     linha = `Desconto Diesel: ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = ${fmt(total)}`;
   } else {
     linha = `Desconto (${desconto.descricao || "outros"}): ${fmt(total)}`;
+}
+
+/** Reverte texto de observações para o estado do desconto, removendo as linhas geradas. */
+function parseObservacoesDesconto(raw: string): { desconto: DescontoState; cleanObs: string } {
+  if (!raw) return { desconto: emptyDesconto, cleanObs: "" };
+  const lines = raw.split(/\r?\n/);
+  const kept: string[] = [];
+  let desconto: DescontoState = emptyDesconto;
+
+  const moneyToNum = (s: string): number => {
+    const cleaned = s.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const numToMaskedCurrency = (n: number) => maskCurrency(String(Math.round(n * 100)));
+
+  // Padrões: "Desconto Diesel: 150 L × R$ 5,00 = R$ 750,00"
+  const diesel = /^Desconto\s+Diesel:\s*([\d.,]+)\s*L\s*[×x]\s*([R$\s\d.,]+?)\s*=\s*([R$\s\d.,]+)\s*$/i;
+  // "Desconto (descricao): R$ 100,00"
+  const outros = /^Desconto\s*\(([^)]+)\):\s*([R$\s\d.,]+)\s*$/i;
+  // Linha resumo: "Bruto ... → Líquido ..."
+  const resumo = /(Bruto\s+R\$|→\s*Líquido)/i;
+
+  for (const ln of lines) {
+    const md = ln.match(diesel);
+    if (md) {
+      desconto = {
+        tipo: "diesel",
+        litros: md[1].replace(".", "").replace(",", ","),
+        valorLitro: numToMaskedCurrency(moneyToNum(md[2])),
+        descricao: "",
+        valor: "",
+      };
+      continue;
+    }
+    const mo = ln.match(outros);
+    if (mo) {
+      desconto = {
+        tipo: "outros",
+        litros: "",
+        valorLitro: "",
+        descricao: mo[1].trim(),
+        valor: numToMaskedCurrency(moneyToNum(mo[2])),
+      };
+      continue;
+    }
+    if (resumo.test(ln)) continue;
+    kept.push(ln);
   }
+
+  return { desconto, cleanObs: kept.join("\n").replace(/\n+$/, "") };
+}
+
   const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
   return [base, linha, resumo].filter(Boolean).join("\n");
 }
