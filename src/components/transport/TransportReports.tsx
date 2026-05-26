@@ -651,7 +651,8 @@ export function TransportReports() {
       <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
       ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
       <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
-      <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
+      <td class="t1 nowrap">${esc(r.veiculo)}</td>
+      <td class="t2b">${esc(r.proprietario)}</td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
