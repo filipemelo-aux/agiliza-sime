@@ -222,6 +222,15 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
         toast.success(gerarDespesa ? "Manutenção e conta a pagar criadas" : "Manutenção registrada");
       }
 
+      // If it's a revisão, update vehicle's next-review odometer mark
+      if (tipoManutencao === "revisao" && veiculoId && vehicleIntervalo && vehicleIntervalo > 0) {
+        const baseKm = Number(kmAtual) || 0;
+        if (baseKm > 0) {
+          await supabase.from("vehicles").update({ proxima_revisao_km: baseKm + vehicleIntervalo } as any).eq("id", veiculoId);
+        }
+      }
+
+
       onSaved();
       onOpenChange(false);
     } catch (e: any) {
