@@ -350,7 +350,7 @@ export function TransportReports() {
             id: c.id,
             data: c.data_contrato,
             titulo: `Contrato ${c.numero || "—"}`,
-            subtitulo: `${c.contratado_nome || "—"} • ${(c.peso_kg || 0).toLocaleString("pt-BR")} kg`,
+            subtitulo: c.contratado_nome || "—",
             pessoa: c.contratado_nome || "—",
             veiculo: placa,
             proprietario: c.contratado_nome || ownerByPlate.get(placa) || "—",
@@ -360,6 +360,7 @@ export function TransportReports() {
             dataPagamento: dpStr,
             valor: Number(c.valor_total || 0),
             desconto: descontoValor,
+            pesoKg: Number(c.peso_kg || 0),
           };
         });
       } else if (reportType === "colheita") {
