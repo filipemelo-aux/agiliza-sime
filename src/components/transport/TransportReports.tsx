@@ -12,6 +12,8 @@ import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 import { toast } from "sonner";
 
 type ReportType =
