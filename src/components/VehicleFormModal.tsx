@@ -699,7 +699,40 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                           </div>
                         </RadioGroup>
                       </div>
+
+                      {/* Configurações de Manutenção - apenas frota própria */}
+                      {form.fleetType === "propria" && (
+                        <>
+                          <Separator className="my-1" />
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Configurações de Manutenção</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Intervalo de Revisão (KM)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Ex: 10000"
+                                  value={form.intervaloRevisaoKm}
+                                  onChange={(e) => setForm((p) => ({ ...p, intervaloRevisaoKm: e.target.value }))}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Revisão a cada X km</p>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Próxima Revisão (KM)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Hodômetro alvo"
+                                  value={form.proximaRevisaoKm}
+                                  onChange={(e) => setForm((p) => ({ ...p, proximaRevisaoKm: e.target.value }))}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Atualizado a cada revisão</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
+
 
                     <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
                       {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
