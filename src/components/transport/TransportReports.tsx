@@ -508,6 +508,21 @@ export function TransportReports() {
 
   const totals = useMemo(() => ({ total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length }), [rows]);
 
+  type RowSortKey = "data" | "titulo" | "pessoa" | "rota" | "veiculo" | "status" | "valor";
+  const { sort, toggle, sorted } = useSortableTable<Row, RowSortKey>(
+    rows,
+    { key: "data", direction: "desc" },
+    {
+      data: (r) => r.data || "",
+      titulo: (r) => r.titulo || "",
+      pessoa: (r) => r.pessoa || "",
+      rota: (r) => `${r.origem} ${r.destino}`,
+      veiculo: (r) => `${r.veiculo} ${r.proprietario}`,
+      status: (r) => r.status || "",
+      valor: (r) => r.valor || 0,
+    },
+  );
+
   const showCliente = ["cte", "colheita", "cotacoes"].includes(reportType);
   const showMotorista = ["cte", "mdfe", "contratos", "abastecimentos"].includes(reportType);
   const showVehicle = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
