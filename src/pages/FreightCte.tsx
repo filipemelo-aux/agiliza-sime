@@ -485,7 +485,7 @@ export default function FreightCte() {
               <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <th className="px-3 py-2 font-medium w-10"></th>
+                    
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>N.º</SortableTh>
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "talao"} direction={sort.direction} onSort={() => toggle("talao")}>Talão</SortableTh>
                     <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data Emissão</SortableTh>
