@@ -361,13 +361,13 @@ export default function FreightContracts() {
               <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <th className="px-3 py-2 font-medium w-[90px]">Nº</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data</th>
-                    <th className="px-3 py-2 font-medium">Contratado</th>
-                    <th className="px-3 py-2 font-medium">Trecho</th>
-                    <th className="px-2 py-2 font-medium w-[90px]">Placa</th>
-                    <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
-                    <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
+                    <SortableTh className="px-3 py-2 font-medium w-[90px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contratado"} direction={sort.direction} onSort={() => toggle("contratado")}>Contratado</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "trecho"} direction={sort.direction} onSort={() => toggle("trecho")}>Trecho</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium w-[90px]" active={sort.key === "placa"} direction={sort.direction} onSort={() => toggle("placa")}>Placa</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-center w-[100px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                     <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
                   </tr>
                 </thead>
