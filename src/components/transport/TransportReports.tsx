@@ -630,7 +630,7 @@ export function TransportReports() {
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 
     const colCount =
-      2 /* # + Data */ +
+      1 /* Data */ +
       1 /* Número */ +
       (showProduto ? 1 : 0) +
       1 /* Origem→Destino */ +
