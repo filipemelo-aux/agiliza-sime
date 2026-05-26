@@ -21,6 +21,8 @@ import { buildFullContractHtml, openPrintWindow } from "@/components/freight/fre
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
