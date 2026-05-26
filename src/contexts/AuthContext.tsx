@@ -33,28 +33,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchRoles = useCallback(async (userId: string) => {
     setRolesLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-
-      if (error) throw error;
-
-      const userRoles = data?.map((r) => r.role as AppRole) || [];
-      setRoles(userRoles);
-      setIsAdmin(userRoles.includes("admin"));
-      setIsModerator(userRoles.includes("moderator"));
-      setIsOperador(userRoles.includes("operador"));
-    } catch (error) {
-      console.error("Error fetching roles:", error);
-      setRoles([]);
-      setIsAdmin(false);
-      setIsModerator(false);
-      setIsOperador(false);
-    } finally {
-      setRolesLoading(false);
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        if (error) throw error;
+        const userRoles = data?.map((r) => r.role as AppRole) || [];
+        setRoles(userRoles);
+        setIsAdmin(userRoles.includes("admin"));
+        setIsModerator(userRoles.includes("moderator"));
+        setIsOperador(userRoles.includes("operador"));
+        setRolesLoading(false);
+        return;
+      } catch (error: any) {
+        lastError = error;
+        const msg = String(error?.message || "");
+        const transient = msg.includes("Failed to fetch") || msg.includes("NetworkError");
+        if (!transient || attempt === 2) break;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
     }
+    console.error("Error fetching roles:", lastError);
+    setRoles([]);
+    setIsAdmin(false);
+    setIsModerator(false);
+    setIsOperador(false);
+    setRolesLoading(false);
   }, []);
 
   useEffect(() => {

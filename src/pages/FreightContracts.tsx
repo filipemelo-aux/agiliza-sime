@@ -84,8 +84,8 @@ export default function FreightContracts() {
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
+    const runQuery = () =>
+      supabase
         .from("freight_contracts")
         .select(`
           id, numero, data_contrato,
@@ -101,13 +101,25 @@ export default function FreightContracts() {
         .order("data_contrato", { ascending: false })
         .order("numero", { ascending: false })
         .limit(200);
-      if (error) throw error;
-      setRows((data as any) || []);
-    } catch (err: any) {
-      toast({ title: "Erro ao carregar contratos", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data, error } = await runQuery();
+        if (error) throw error;
+        setRows((data as any) || []);
+        setLoading(false);
+        return;
+      } catch (err: any) {
+        lastError = err;
+        const msg = String(err?.message || "");
+        const transient = msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("fetch");
+        if (!transient || attempt === 2) break;
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      }
     }
+    toast({ title: "Erro ao carregar contratos", description: lastError?.message, variant: "destructive" });
+    setLoading(false);
   };
 
   const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
