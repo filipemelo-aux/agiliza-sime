@@ -147,6 +147,21 @@ export default function FreightContracts() {
     });
   }, [rows, search, statusFilter, dateFrom, dateTo]);
 
+  type ContractSortKey = "numero" | "data" | "contratado" | "trecho" | "placa" | "valor" | "status";
+  const { sort, toggle, sorted } = useSortableTable<FreightContractRow, ContractSortKey>(
+    filtered,
+    { key: "data", direction: "desc" },
+    {
+      numero: (r) => r.numero,
+      data: (r) => r.data_contrato || "",
+      contratado: (r) => r.contratado_nome || "",
+      trecho: (r) => `${r.cte?.remetente_nome || r.municipio_origem || ""} ${r.cte?.recebedor_nome || r.cte?.destinatario_nome || r.municipio_destino || ""}`,
+      placa: (r) => r.placa_veiculo || "",
+      valor: (r) => Number(r.valor_total) || 0,
+      status: (r) => r.payable?.status || "sem_titulo",
+    },
+  );
+
   const totals = useMemo(() => {
     const totalValor = filtered.reduce((sum, r) => sum + Number(r.valor_total || 0), 0);
     const totalPeso = filtered.reduce((sum, r) => sum + Number(r.peso_kg || 0), 0);
