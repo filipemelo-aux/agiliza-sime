@@ -66,6 +66,7 @@ export default function AdminQuotations() {
   const [formType, setFormType] = useState<"frete" | "colheita">("frete");
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
+  const [sortBy, setSortBy] = useState<string>("data_desc");
   const { matrizId, unifiedLabel, unifiedCnpjs, establishments } = useUnifiedCompany();
 
   const fetchQuotations = async () => {
