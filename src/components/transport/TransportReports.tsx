@@ -592,108 +592,114 @@ export function TransportReports() {
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
 
-    const statusBadge = (s: string) => {
-      const colors: Record<string, { bg: string; fg: string }> = {
-        autorizado: { bg: "#d4edda", fg: "#155724" },
-        encerrado: { bg: "#d4edda", fg: "#155724" },
-        concluida: { bg: "#d4edda", fg: "#155724" },
-        aprovada: { bg: "#d4edda", fg: "#155724" },
-        pago: { bg: "#d4edda", fg: "#155724" },
-        faturado: { bg: "#cce5ff", fg: "#004085" },
-        rascunho: { bg: "#fff3cd", fg: "#856404" },
-        pendente: { bg: "#fff3cd", fg: "#856404" },
-        aberta: { bg: "#fff3cd", fg: "#856404" },
-        ativa: { bg: "#fff3cd", fg: "#856404" },
-        agendada: { bg: "#fff3cd", fg: "#856404" },
-        em_andamento: { bg: "#cce5ff", fg: "#004085" },
-        rejeitado: { bg: "#f8d7da", fg: "#721c24" },
-        rejeitada: { bg: "#f8d7da", fg: "#721c24" },
-        cancelado: { bg: "#f8d7da", fg: "#721c24" },
-        cancelada: { bg: "#f8d7da", fg: "#721c24" },
-        expirada: { bg: "#f8d7da", fg: "#721c24" },
-        nao_faturado: { bg: "#e9ecef", fg: "#495057" },
-      };
-      const c = colors[s] || { bg: "#e9ecef", fg: "#495057" };
-      return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${s}</span>`;
-    };
+    // Compact spreadsheet style — sem badges coloridos, sem cards arredondados
+    const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
+
+    const colCount =
+      2 /* # + Data */ +
+      1 /* Descrição */ +
+      1 /* Origem→Destino */ +
+      1 /* Veículo/Prop */ +
+      1 /* Status */ +
+      (showDesconto ? 1 : 0) +
+      (showValor ? 1 : 0);
 
     const tableRows = rows
-      .map(
-        (r, i) => `<tr style="border-bottom:1px solid #f0f2f5">
-      <td style="padding:6px 8px;font-size:10px;color:#888;text-align:center;width:24px">${i + 1}</td>
-      <td style="padding:6px 8px;font-size:10px;color:#555;white-space:nowrap">${formatDateBR(r.data)}</td>
-      <td style="padding:6px 8px;font-size:10px;color:#333">
-        <div style="font-weight:600">${r.titulo}</div>
-        <div style="font-size:9px;color:#888;margin-top:1px">${r.subtitulo}</div>
-      </td>
-      <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
-      <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
-      <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}${r.dataPagamento ? `<div style="font-size:9px;color:#666;margin-top:2px">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
-      ${showDesconto ? `<td style="padding:6px 10px;text-align:right;white-space:nowrap;font-size:11px;color:${(r.desconto || 0) > 0 ? "#b91c1c" : "#999"};font-weight:${(r.desconto || 0) > 0 ? 700 : 400}">${(r.desconto || 0) > 0 ? "− " + formatCurrency(r.desconto || 0) : "—"}</td>` : ""}
-      ${showValor ? `<td style="padding:6px 10px;text-align:right;font-weight:700;color:#2B4C7E;white-space:nowrap;font-size:11px">${formatCurrency(r.valor)}</td>` : ""}
-    </tr>`,
-      )
+      .map((r, i) => {
+        const desc = r.desconto || 0;
+        return `<tr>
+      <td class="c idx">${i + 1}</td>
+      <td class="nowrap">${formatDateBR(r.data)}</td>
+      <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
+      <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
+      <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
+      <td class="c st">${esc(r.status)}${r.dataPagamento ? `<div class="t2">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+      ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
+      ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
+    </tr>`;
+      })
       .join("");
 
-    const baseCols = 6;
     const totalLine = showValor
-      ? `<tr style="background:#f0f4f8">
-          <td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td>
-          ${showDesconto ? `<td style="padding:10px;text-align:right;font-size:12px;font-weight:800;color:#b91c1c;white-space:nowrap">− ${formatCurrency(totals.desconto)}</td>` : ""}
-          <td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td>
+      ? `<tr class="tot">
+          <td colspan="${colCount - (showDesconto ? 2 : 1)}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
+          <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`
-      : `<tr style="background:#f0f4f8"><td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
+      : `<tr class="tot"><td colspan="${colCount}" class="r">TOTAL: ${rows.length} registro(s)</td></tr>`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
-@media print { @page { margin: 10mm 8mm; size: A4 portrait; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} }
-.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
-.toolbar button{font-family:${FONT};font-size:12px;font-weight:600;padding:8px 14px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box}
+@media print { @page { margin: 8mm 6mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} .sheet{box-shadow:none!important;border:none!important} }
+html,body{margin:0;padding:0;background:#f4f6f8;font-family:${FONT};color:#1f2937}
+.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 14px;display:flex;gap:8px;justify-content:flex-end}
+.toolbar button{font-family:${FONT};font-size:12px;font-weight:600;padding:6px 12px;border-radius:4px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer}
 .toolbar button.primary{background:#2B4C7E;color:#fff;border-color:#2B4C7E}
-.toolbar button:hover{opacity:0.9}
+.wrap{max-width:1280px;margin:10px auto;padding:0 10px}
+.head{display:flex;align-items:center;gap:12px;padding:6px 4px 10px;border-bottom:2px solid #2B4C7E;margin-bottom:6px}
+.head img{height:38px;width:auto;display:block}
+.head .est{font-size:10px;color:#555;line-height:1.3}
+.head h1{margin:0;font-size:13px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:10px;color:#666;text-align:right;margin-top:2px}
+table.sheet{width:100%;border-collapse:collapse;font-size:10px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
+table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.3px;padding:5px 6px;border:1px solid #d0d7de;text-align:left}
+table.sheet thead th.r{text-align:right}
+table.sheet thead th.c{text-align:center}
+table.sheet tbody td{padding:3px 6px;border:1px solid #e5e7eb;vertical-align:top;font-size:10px;line-height:1.25}
+table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
+.nowrap{white-space:nowrap}
+.c{text-align:center}
+.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.idx{color:#9ca3af;font-size:9px;width:22px}
+.t1{font-weight:600;color:#111827}
+.t2{font-size:9px;color:#6b7280;margin-top:1px}
+.t2b{font-size:10px;color:#374151}
+.st{font-size:10px;font-weight:600;color:#374151;text-transform:capitalize}
+.neg{color:#b91c1c;font-weight:700}
+.mut{color:#9ca3af}
+.val{font-weight:700;color:#111827}
+tr.tot td{background:#eef2f6!important;font-weight:800;font-size:11px;color:#2B4C7E;padding:6px 8px;border-top:2px solid #2B4C7E}
+tr.tot td.neg{color:#b91c1c}
+tr.tot td.val{color:#2B4C7E;font-size:12px}
+.foot{margin-top:6px;display:flex;justify-content:space-between;font-size:9px;color:#6b7280;padding:0 2px}
 </style></head>
-<body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
+<body>
 <div class="toolbar no-print">
   <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
-  <button onclick="window.print()">📤 Compartilhar PDF</button>
 </div>
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
-<tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
-<table width="100%"><tr>
-<td style="width:90px;vertical-align:middle"><img src="${window.location.origin}/logo.png" alt="City Transportes" style="height:54px;width:auto;display:block" /></td>
-<td style="vertical-align:middle"><div style="font-size:11px;color:#666">${estName}</div>
-${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("") : ""}
-</td></tr></table></td></tr>
-<tr><td style="height:8px"></td></tr>
-<tr><td style="background:#fff;border-radius:10px;padding:10px 20px;text-align:center">
-<div style="font-size:17px;font-weight:700;color:#2B4C7E">${TITLES[reportType]}</div>
-<div style="font-size:11px;color:#888;margin-top:4px">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
-</td></tr>
-<tr><td style="height:8px"></td></tr>
-<tr><td style="background:#fff;border-radius:10px;overflow:hidden">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr style="background:#f5f7fa">
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:center;width:24px">#</td>
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Data</td>
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Descrição</td>
-
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Origem → Destino</td>
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Veículo / Proprietário</td>
-<td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:center">Status</td>
-${showDesconto ? `<td style="padding:7px 10px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Desconto</td>` : ""}
-${showValor ? `<td style="padding:7px 10px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor Líquido</td>` : ""}
-</tr>
-${tableRows}
-${totalLine}
-</table></td></tr>
-<tr><td style="height:10px"></td></tr>
-<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-<div style="font-size:10px;color:rgba(255,255,255,0.85)">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
-<div style="font-size:10px;color:rgba(255,255,255,0.85)">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
-</td></tr>
-</table></td></tr></table></body></html>`;
+<div class="wrap">
+  <div class="head">
+    <img src="${window.location.origin}/logo.png" alt="" />
+    <div class="est">
+      <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
+      ${estCnpj ? estCnpj.split(" / ").map((c) => `<div>CNPJ ${esc(c)}</div>`).join("") : ""}
+    </div>
+    <div style="flex:1">
+      <h1>${TITLES[reportType]}</h1>
+      <div class="per">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
+    </div>
+  </div>
+  <table class="sheet">
+    <thead><tr>
+      <th class="c" style="width:22px">#</th>
+      <th style="width:70px">Data</th>
+      <th>Descrição</th>
+      <th>Origem → Destino</th>
+      <th>Veículo / Proprietário</th>
+      <th class="c" style="width:80px">Status</th>
+      ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
+      ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
+    </tr></thead>
+    <tbody>${tableRows}${totalLine}</tbody>
+  </table>
+  <div class="foot">
+    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
+    <div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+  </div>
+</div>
+</body></html>`;
   };
 
   const handlePrint = async () => {
