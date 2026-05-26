@@ -41,6 +41,12 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
   const [gerarDespesa, setGerarDespesa] = useState(false);
   const [dataVencimento, setDataVencimento] = useState("");
 
+  // Revisão (review) data
+  const [vehicleIntervalo, setVehicleIntervalo] = useState<number | null>(null);
+  const [vehicleProximaRevisao, setVehicleProximaRevisao] = useState<number | null>(null);
+  const [revisaoDialogOpen, setRevisaoDialogOpen] = useState(false);
+  const [revisaoIntervaloInput, setRevisaoIntervaloInput] = useState("");
+
   const reset = () => {
     setVeiculoId(null); setKmAtual(""); setTipoManutencao("corretiva");
     setDescricaoServico(""); setTipoServico("interno"); setTempoParado("");
@@ -48,7 +54,50 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
     setItensManutencao([]); setTotal(0);
     setDataManutencao(new Date().toISOString().slice(0, 10));
     setFornecedor(""); setGerarDespesa(false); setDataVencimento("");
+    setVehicleIntervalo(null); setVehicleProximaRevisao(null);
+    setRevisaoDialogOpen(false); setRevisaoIntervaloInput("");
   };
+
+  // Load vehicle revision settings when veiculoId changes
+  useEffect(() => {
+    if (!veiculoId) { setVehicleIntervalo(null); setVehicleProximaRevisao(null); return; }
+    supabase.from("vehicles").select("intervalo_revisao_km, proxima_revisao_km").eq("id", veiculoId).maybeSingle().then(({ data }) => {
+      const d = data as any;
+      setVehicleIntervalo(d?.intervalo_revisao_km ? Number(d.intervalo_revisao_km) : null);
+      setVehicleProximaRevisao(d?.proxima_revisao_km ? Number(d.proxima_revisao_km) : null);
+    });
+  }, [veiculoId]);
+
+  // When user picks "revisão" type, ensure interval is defined
+  useEffect(() => {
+    if (tipoManutencao !== "revisao" || !veiculoId) return;
+    if (vehicleIntervalo && vehicleIntervalo > 0) {
+      // Pre-fill próxima manutenção (KM) using interval + current km
+      const baseKm = Number(kmAtual) || vehicleProximaRevisao || 0;
+      if (!proximaManutencaoKm && baseKm > 0) {
+        setProximaManutencaoKm(String(baseKm + vehicleIntervalo));
+      }
+    } else {
+      // Ask user to define the interval for this vehicle
+      setRevisaoIntervaloInput("");
+      setRevisaoDialogOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipoManutencao, vehicleIntervalo, veiculoId]);
+
+  const handleSaveRevisaoIntervalo = async () => {
+    const intervalo = Number(revisaoIntervaloInput);
+    if (!intervalo || intervalo <= 0) return toast.error("Informe um intervalo válido");
+    if (!veiculoId) return;
+    const { error } = await supabase.from("vehicles").update({ intervalo_revisao_km: intervalo } as any).eq("id", veiculoId);
+    if (error) { toast.error("Erro ao salvar intervalo: " + error.message); return; }
+    setVehicleIntervalo(intervalo);
+    const baseKm = Number(kmAtual) || vehicleProximaRevisao || 0;
+    if (baseKm > 0) setProximaManutencaoKm(String(baseKm + intervalo));
+    setRevisaoDialogOpen(false);
+    toast.success("Intervalo de revisão salvo no veículo");
+  };
+
 
   useEffect(() => {
     if (!open) { reset(); return; }
@@ -173,6 +222,15 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
         toast.success(gerarDespesa ? "Manutenção e conta a pagar criadas" : "Manutenção registrada");
       }
 
+      // If it's a revisão, update vehicle's next-review odometer mark
+      if (tipoManutencao === "revisao" && veiculoId && vehicleIntervalo && vehicleIntervalo > 0) {
+        const baseKm = Number(kmAtual) || 0;
+        if (baseKm > 0) {
+          await supabase.from("vehicles").update({ proxima_revisao_km: baseKm + vehicleIntervalo } as any).eq("id", veiculoId);
+        }
+      }
+
+
       onSaved();
       onOpenChange(false);
     } catch (e: any) {
@@ -235,6 +293,23 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
               hasNfse={false}
             />
 
+            {tipoManutencao === "revisao" && veiculoId && vehicleIntervalo && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] text-foreground space-y-1">
+                <p><strong>Revisão programada:</strong> a cada {vehicleIntervalo.toLocaleString("pt-BR")} km.</p>
+                {vehicleProximaRevisao ? (
+                  <p className="text-muted-foreground">Próxima prevista neste veículo: {vehicleProximaRevisao.toLocaleString("pt-BR")} km</p>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-[11px] text-primary underline"
+                  onClick={() => { setRevisaoIntervaloInput(String(vehicleIntervalo)); setRevisaoDialogOpen(true); }}
+                >
+                  Alterar intervalo
+                </button>
+              </div>
+            )}
+
+
             {!editId && (
               <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
@@ -277,6 +352,39 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Configuração do intervalo de revisão deste veículo */}
+      <Dialog open={revisaoDialogOpen} onOpenChange={setRevisaoDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Configurar Revisão do Veículo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Defina a cada quantos quilômetros este veículo deve passar por revisão.
+              Este valor ficará salvo nas configurações do veículo.
+            </p>
+            <div>
+              <Label className="text-xs">Intervalo (KM) *</Label>
+              <Input
+                type="number"
+                placeholder="Ex: 10000"
+                value={revisaoIntervaloInput}
+                onChange={(e) => setRevisaoIntervaloInput(e.target.value)}
+                className="h-9"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setRevisaoDialogOpen(false); if (!vehicleIntervalo) setTipoManutencao("corretiva"); }}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSaveRevisaoIntervalo}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+

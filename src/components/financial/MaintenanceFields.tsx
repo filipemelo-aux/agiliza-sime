@@ -153,6 +153,7 @@ export function MaintenanceFields({
             <SelectContent>
               <SelectItem value="preventiva">Preventiva</SelectItem>
               <SelectItem value="corretiva">Corretiva</SelectItem>
+              <SelectItem value="revisao">Revisão</SelectItem>
             </SelectContent>
           </Select>
         </div>

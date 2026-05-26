@@ -80,6 +80,8 @@ interface VehicleFormData {
   driverId: string;
   ownerId: string;
   fleetType: string;
+  intervaloRevisaoKm: string;
+  proximaRevisaoKm: string;
 }
 
 const emptyVehicle: VehicleFormData = {
@@ -89,6 +91,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate2: "", trailerRenavam2: "",
   trailerPlate3: "", trailerRenavam3: "",
   driverId: "", ownerId: "", fleetType: "terceiros",
+  intervaloRevisaoKm: "", proximaRevisaoKm: "",
 };
 
 interface ExistingVehicle {
@@ -183,6 +186,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
           driverId: (data as any).driver_id || "",
           ownerId: (data as any).owner_id || "",
           fleetType: (data as any).fleet_type || "terceiros",
+          intervaloRevisaoKm: (data as any).intervalo_revisao_km ? String((data as any).intervalo_revisao_km) : "",
+          proximaRevisaoKm: (data as any).proxima_revisao_km ? String((data as any).proxima_revisao_km) : "",
         });
         const dId = (data as any).driver_id || "";
         const oId = (data as any).owner_id || "";
@@ -286,6 +291,8 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
     driver_id: form.driverId || null,
     owner_id: driverIsOwner ? (form.driverId || null) : (form.ownerId || null),
     fleet_type: form.fleetType || "terceiros",
+    intervalo_revisao_km: form.intervaloRevisaoKm ? Number(form.intervaloRevisaoKm) : null,
+    proxima_revisao_km: form.proximaRevisaoKm ? Number(form.proximaRevisaoKm) : null,
   });
 
   // Link existing vehicle to this driver
@@ -692,7 +699,40 @@ export function VehicleFormModal({ open, onOpenChange, vehicleId, onSaved, defau
                           </div>
                         </RadioGroup>
                       </div>
+
+                      {/* Configurações de Manutenção - apenas frota própria */}
+                      {form.fleetType === "propria" && (
+                        <>
+                          <Separator className="my-1" />
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Configurações de Manutenção</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Intervalo de Revisão (KM)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Ex: 10000"
+                                  value={form.intervaloRevisaoKm}
+                                  onChange={(e) => setForm((p) => ({ ...p, intervaloRevisaoKm: e.target.value }))}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Revisão a cada X km</p>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Próxima Revisão (KM)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Hodômetro alvo"
+                                  value={form.proximaRevisaoKm}
+                                  onChange={(e) => setForm((p) => ({ ...p, proximaRevisaoKm: e.target.value }))}
+                                />
+                                <p className="text-[10px] text-muted-foreground">Atualizado a cada revisão</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
+
 
                     <Button className="w-full mt-2" onClick={handleSubmit} disabled={loading}>
                       {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Veículo"}
