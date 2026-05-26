@@ -11,9 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { DragScroll } from "@/components/ui/drag-scroll";
 import { toast } from "sonner";
 
 type ReportType =
@@ -131,7 +131,6 @@ const TITLES: Record<ReportType, string> = {
 };
 
 export function TransportReports() {
-  const isMobile = useIsMobile();
   const [reportType, setReportType] = useState<ReportType>("cte");
   const [filters, setFilters] = useState<Filters>(initial());
   const [rows, setRows] = useState<Row[]>([]);
@@ -860,34 +859,9 @@ ${totalLine}
                 {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
               </div>
 
-              {isMobile ? (
-                <div className="grid grid-cols-1 gap-2">
-                  {sorted.map((r) => (
-                    <Card key={r.id}>
-                      <CardContent className="p-3 space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground truncate">{r.titulo}</p>
-                          <Badge variant="outline" className="text-[10px] shrink-0">{r.status}</Badge>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground truncate">{r.subtitulo}</div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex flex-col text-muted-foreground truncate">
-                            <span>{formatDateBR(r.data)} · {r.pessoa}</span>
-                            <span className="truncate">{r.origem} → {r.destino}</span>
-                            <span className="truncate">{r.veiculo} · {r.proprietario}</span>
-                          </div>
-                          {showValor && (
-                            <span className="font-mono font-bold tabular-nums text-foreground">{formatCurrency(r.valor)}</span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="border border-border rounded-md overflow-hidden bg-card">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+              <div className="border border-border rounded-md overflow-hidden bg-card">
+                <DragScroll className="overflow-x-auto">
+                  <table className="w-full text-xs min-w-[820px]">
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
@@ -926,10 +900,9 @@ ${totalLine}
                           </tr>
                         ))}
                       </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                  </table>
+                </DragScroll>
+              </div>
             </div>
           )}
         </TabsContent>

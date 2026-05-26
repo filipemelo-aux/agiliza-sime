@@ -25,9 +25,9 @@ import { CteServicoFormDialog } from "@/components/freight/CteServicoFormDialog"
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { DragScroll } from "@/components/ui/drag-scroll";
 
 
 export interface Cte {
@@ -75,7 +75,6 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function FreightCte() {
-  const isMobile = useIsMobile();
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -416,73 +415,10 @@ export default function FreightCte() {
             <h3 className="text-xl font-semibold mb-2">Nenhum CT-e encontrado</h3>
             <p className="text-muted-foreground">Clique em "Novo CT-e" para criar o primeiro.</p>
           </div>
-        ) : isMobile ? (
-          <div className="grid grid-cols-1 gap-2">
-            {sorted.map((cte) => {
-              const isServico = cte.tipo_talao === "servico";
-              const numeroDisplay = isServico
-                ? cte.numero_interno ?? "—"
-                : cte.numero ?? "—";
-              const cliente = isServico
-                ? cte.destinatario_nome
-                : cte.destinatario_nome || cte.remetente_nome;
-              return (
-                <Card key={cte.id} onClick={() => setDetailCte(cte)} className="cursor-pointer">
-                  <CardContent className="p-3 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {isServico ? (
-                          <ScrollText className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        ) : (
-                          <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-                        )}
-                        <span className="text-xs font-mono text-muted-foreground">#{numeroDisplay}</span>
-                        <p className="text-sm font-semibold text-foreground truncate">{cliente}</p>
-                      </div>
-                      {isServico ? (
-                        <Badge variant="outline" className="text-[10px] shrink-0 border-amber-500/40 text-amber-700">Interno</Badge>
-                      ) : (
-                        <Badge className={`${statusColors[cte.status] || ""} text-[10px] shrink-0`}>
-                          {statusLabels[cte.status] || cte.status}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <span className="uppercase">{isServico ? "Serviço" : "Produção"}</span>
-                        <span>· {formatDateBR(getEmissaoDate(cte))}</span>
-                        {cte.placa_veiculo && <span>· {cte.placa_veiculo}</span>}
-                      </div>
-                      <span className="font-mono font-bold text-foreground">
-                        {Number(cte.valor_frete).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
-                      {(isServico || cte.status === "rascunho" || cte.status === "rejeitado") && (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleEdit(cte)} title="Editar">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        disabled={deletingId === cte.id}
-                        onClick={() => handleDelete(cte)}
-                        title={!isServico && cte.status === "autorizado" ? "Cancelar na SEFAZ e excluir" : "Excluir CT-e"}
-                      >
-                        {deletingId === cte.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+            <DragScroll className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[760px]">
               <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
                     
@@ -571,7 +507,7 @@ export default function FreightCte() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </DragScroll>
           </div>
         )}
       </div>

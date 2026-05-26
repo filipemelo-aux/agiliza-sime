@@ -20,9 +20,9 @@ import { formatDateBR } from "@/lib/date";
 import { buildFullContractHtml, openPrintWindow } from "@/components/freight/freightContractPrint";
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { SortableTh } from "@/components/ui/sortable-th";
+import { DragScroll } from "@/components/ui/drag-scroll";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
@@ -62,7 +62,6 @@ interface FreightContractRow {
 }
 
 export default function FreightContracts() {
-  const isMobile = useIsMobile();
   const { toast } = useToast();
   const [rows, setRows] = useState<FreightContractRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,59 +305,10 @@ export default function FreightContracts() {
               Nenhum contrato encontrado.
             </CardContent>
           </Card>
-        ) : isMobile ? (
-          <div className="grid grid-cols-1 gap-2">
-            {sorted.map((r) => {
-              const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
-              return (
-                <Card key={r.id}>
-                  <CardContent className="p-3 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono text-muted-foreground">#{String(r.numero).padStart(6, "0")}</span>
-                        <p className="text-sm font-semibold text-foreground truncate">{r.contratado_nome}</p>
-                      </div>
-                      <div className="shrink-0">{renderPayableStatus(r)}</div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1 text-muted-foreground truncate">
-                        <span>{formatDateBR(r.data_contrato)}</span>
-                        {r.placa_veiculo && <span>· {r.placa_veiculo}</span>}
-                        {r.motorista_nome && <span className="truncate">· {r.motorista_nome}</span>}
-                      </div>
-                      <span className="font-mono font-bold text-foreground">{formatCurrency(r.valor_total)}</span>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      {firstTwoWords(r.cte?.remetente_nome) || r.municipio_origem || "—"} → {truncTo(r.cte?.recebedor_nome || r.cte?.destinatario_nome) || r.municipio_destino || "—"}
-                    </div>
-                    <div className="flex items-center justify-end gap-1 pt-1">
-                      <Button
-                        size="sm" variant="ghost" className="h-7 w-7 p-0"
-                        disabled={editDisabled}
-                        title={editDisabled ? "Estorne o pagamento antes de editar" : "Editar contrato"}
-                        onClick={async () => {
-                          const { data: cteData } = await supabase.from("ctes").select("*").eq("id", r.cte_id).maybeSingle();
-                          if (cteData) setEditing({ contractId: r.id, cte: cteData as any });
-                        }}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handlePrint(r)} title="Imprimir">
-                        <Printer className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+            <DragScroll className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[860px]">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
                     <SortableTh className="px-3 py-2 font-medium w-[90px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
@@ -414,7 +364,7 @@ export default function FreightContracts() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </DragScroll>
           </div>
         )}
       </div>
