@@ -229,7 +229,7 @@ export function TransportReports() {
           const placa = c.placa_veiculo || "—";
           const isServ = c.tipo_talao === "servico";
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
-          const pesoTxt = c.peso_bruto ? `${Number(c.peso_bruto).toLocaleString("pt-BR")} kg` : "";
+          const pesoKg = Number(c.peso_bruto || 0);
           const descBase = c.produto_predominante || c.natureza_operacao || "—";
           let descRaw: any = c.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
@@ -238,7 +238,7 @@ export function TransportReports() {
             id: c.id,
             data: c.data_emissao,
             titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
-            subtitulo: pesoTxt ? `${descBase} • ${pesoTxt}` : descBase,
+            subtitulo: descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
@@ -247,6 +247,7 @@ export function TransportReports() {
             status: c.status,
             valor: Number(c.valor_frete || c.valor_receber || 0),
             desconto: descontoValor,
+            pesoKg,
           };
         });
       } else if (reportType === "mdfe") {
