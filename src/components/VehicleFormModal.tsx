@@ -80,6 +80,8 @@ interface VehicleFormData {
   driverId: string;
   ownerId: string;
   fleetType: string;
+  intervaloRevisaoKm: string;
+  proximaRevisaoKm: string;
 }
 
 const emptyVehicle: VehicleFormData = {
@@ -89,6 +91,7 @@ const emptyVehicle: VehicleFormData = {
   trailerPlate2: "", trailerRenavam2: "",
   trailerPlate3: "", trailerRenavam3: "",
   driverId: "", ownerId: "", fleetType: "terceiros",
+  intervaloRevisaoKm: "", proximaRevisaoKm: "",
 };
 
 interface ExistingVehicle {
