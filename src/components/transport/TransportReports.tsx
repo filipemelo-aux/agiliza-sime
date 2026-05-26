@@ -929,7 +929,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
-                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[100px]">Peso</th>}
+                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
                           {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
                           {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
                           {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
