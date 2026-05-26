@@ -240,8 +240,9 @@ export function TransportReports() {
           return {
             id: c.id,
             data: c.data_emissao,
-            titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
-            subtitulo: descBase,
+            titulo: `${numExib ?? "—"}`,
+            subtitulo: "",
+            produto: descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
