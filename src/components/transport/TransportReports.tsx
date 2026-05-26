@@ -645,7 +645,7 @@ export function TransportReports() {
     const labelColspan = colCount - trailingCols;
     const totalLine = `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
-          ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
+          ${showPeso ? `<td class="r val">${fmtTon(totals.pesoKg)}</td>` : ""}
           ${showLitros ? `<td class="r neg">${fmtL(totals.litros)}</td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
           ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
