@@ -26,6 +26,8 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 
 export interface Cte {
