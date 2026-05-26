@@ -49,6 +49,7 @@ interface Row {
   destino: string;
   status: string;
   valor: number;
+  desconto?: number;
   dataPagamento?: string | null;
 }
 
@@ -273,7 +274,7 @@ export function TransportReports() {
       } else if (reportType === "contratos") {
         let q: any = supabase.from("freight_contracts").select(`
           *,
-          cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome),
+          cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome, desconto),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(id, status, data_pagamento)
         `);
         if (filters.dataInicio) q = q.gte("data_contrato", filters.dataInicio);
@@ -336,6 +337,9 @@ export function TransportReports() {
           const isPago = payStatus === "pago";
           const rawDp = isPago ? payData : null;
           const dpStr = rawDp ? String(rawDp).slice(0, 10) : null;
+          let descRaw: any = c.cte?.desconto;
+          if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
+          const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
           return {
             id: c.id,
             data: c.data_contrato,
@@ -349,6 +353,7 @@ export function TransportReports() {
             status: isPago ? "pago" : "pendente",
             dataPagamento: dpStr,
             valor: Number(c.valor_total || 0),
+            desconto: descontoValor,
           };
         });
       } else if (reportType === "colheita") {
@@ -505,7 +510,11 @@ export function TransportReports() {
     }
   }, [reportType, filters, profileName, vehicleMap, ownerByPlate, platesByOwnerId, vehicleIdsByOwnerId]);
 
-  const totals = useMemo(() => ({ total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length }), [rows]);
+  const totals = useMemo(() => ({
+    total: rows.reduce((s, r) => s + r.valor, 0),
+    desconto: rows.reduce((s, r) => s + (r.desconto || 0), 0),
+    count: rows.length,
+  }), [rows]);
 
   type RowSortKey = "data" | "titulo" | "pessoa" | "rota" | "veiculo" | "status" | "valor";
   const { sort, toggle, sorted } = useSortableTable<Row, RowSortKey>(
@@ -528,6 +537,7 @@ export function TransportReports() {
   const showProprietario = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
   const showStatus = true;
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
+  const showDesconto = reportType === "contratos";
 
   const clienteList = useMemo(() => {
     const term = clienteSearch.trim().toLowerCase();
@@ -615,15 +625,20 @@ export function TransportReports() {
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
       <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}${r.dataPagamento ? `<div style="font-size:9px;color:#666;margin-top:2px">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+      ${showDesconto ? `<td style="padding:6px 10px;text-align:right;white-space:nowrap;font-size:11px;color:${(r.desconto || 0) > 0 ? "#b91c1c" : "#999"};font-weight:${(r.desconto || 0) > 0 ? 700 : 400}">${(r.desconto || 0) > 0 ? "− " + formatCurrency(r.desconto || 0) : "—"}</td>` : ""}
       ${showValor ? `<td style="padding:6px 10px;text-align:right;font-weight:700;color:#2B4C7E;white-space:nowrap;font-size:11px">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`,
       )
       .join("");
 
-    const colspan = showValor ? 6 : 6;
+    const baseCols = 6;
     const totalLine = showValor
-      ? `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`
-      : `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
+      ? `<tr style="background:#f0f4f8">
+          <td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td>
+          ${showDesconto ? `<td style="padding:10px;text-align:right;font-size:12px;font-weight:800;color:#b91c1c;white-space:nowrap">− ${formatCurrency(totals.desconto)}</td>` : ""}
+          <td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td>
+        </tr>`
+      : `<tr style="background:#f0f4f8"><td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
@@ -663,7 +678,8 @@ ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#6
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Origem → Destino</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase">Veículo / Proprietário</td>
 <td style="padding:7px 8px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:center">Status</td>
-${showValor ? `<td style="padding:7px 10px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor</td>` : ""}
+${showDesconto ? `<td style="padding:7px 10px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Desconto</td>` : ""}
+${showValor ? `<td style="padding:7px 10px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor Líquido</td>` : ""}
 </tr>
 ${tableRows}
 ${totalLine}
@@ -696,7 +712,7 @@ ${totalLine}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", "Valor"];
+    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -709,6 +725,7 @@ ${totalLine}
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
         r.status,
+        ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
       ].join(";"));
     });
@@ -856,7 +873,12 @@ ${totalLine}
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
-                {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
+                <div className="flex items-center gap-4 flex-wrap">
+                  {showDesconto && totals.desconto > 0 && (
+                    <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
+                  )}
+                  {showValor && <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>}
+                </div>
               </div>
 
               <div className="border border-border rounded-md overflow-hidden bg-card">
@@ -870,7 +892,8 @@ ${totalLine}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
                           <SortableTh className="px-2 py-2 font-medium text-center w-[110px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
-                          {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>}
+                          {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
+                          {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
                         </tr>
                       </thead>
                       <tbody>
@@ -892,6 +915,11 @@ ${totalLine}
                             <td className="px-2 py-2 text-center">
                               <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
                             </td>
+                            {showDesconto && (
+                              <td className={`px-2 py-2 text-right tabular-nums ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                                {(r.desconto || 0) > 0 ? `− ${formatCurrency(r.desconto || 0)}` : "—"}
+                              </td>
+                            )}
                             {showValor && (
                               <td className="px-2 py-2 text-right tabular-nums font-medium">
                                 {formatCurrency(r.valor)}
