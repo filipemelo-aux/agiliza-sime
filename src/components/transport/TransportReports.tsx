@@ -931,9 +931,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Descrição</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Número</SortableTh>
+                          {showProduto && <th className="px-3 py-2 font-medium">Produto</th>}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
                           {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
                           {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
@@ -945,12 +946,13 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {sorted.map((r) => (
                           <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                             <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 whitespace-nowrap">
                               <div className="font-medium">{r.titulo}</div>
-                              <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>
+                              {r.subtitulo && <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>}
                             </td>
+                            {showProduto && <td className="px-3 py-2 text-[11px]">{r.produto || "—"}</td>}
                             <td className="px-3 py-2">{r.pessoa}</td>
-                            <td className="px-3 py-2 text-[11px]">
+                            <td className="px-3 py-2 text-[11px] whitespace-nowrap">
                               {r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`}
                             </td>
                             <td className="px-3 py-2">
