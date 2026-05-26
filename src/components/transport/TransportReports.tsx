@@ -522,6 +522,7 @@ export function TransportReports() {
   const totals = useMemo(() => ({
     total: rows.reduce((s, r) => s + r.valor, 0),
     desconto: rows.reduce((s, r) => s + (r.desconto || 0), 0),
+    pesoKg: rows.reduce((s, r) => s + (r.pesoKg || 0), 0),
     count: rows.length,
   }), [rows]);
 
