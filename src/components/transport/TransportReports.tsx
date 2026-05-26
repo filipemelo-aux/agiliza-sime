@@ -235,6 +235,7 @@ export function TransportReports() {
           let descRaw: any = c.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
           const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
+          const litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
           return {
             id: c.id,
             data: c.data_emissao,
@@ -248,6 +249,7 @@ export function TransportReports() {
             status: c.status,
             valor: Number(c.valor_frete || c.valor_receber || 0),
             desconto: descontoValor,
+            litrosDesconto,
             pesoKg,
           };
         });
