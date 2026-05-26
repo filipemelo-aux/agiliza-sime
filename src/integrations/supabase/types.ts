@@ -3638,10 +3638,12 @@ export type Database = {
           driver_id: string | null
           fleet_type: string
           id: string
+          intervalo_revisao_km: number | null
           is_active: boolean | null
           model: string
           owner_id: string | null
           plate: string
+          proxima_revisao_km: number | null
           renavam: string
           trailer_plate_1: string | null
           trailer_plate_2: string | null
@@ -3662,10 +3664,12 @@ export type Database = {
           driver_id?: string | null
           fleet_type?: string
           id?: string
+          intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model: string
           owner_id?: string | null
           plate: string
+          proxima_revisao_km?: number | null
           renavam: string
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
@@ -3686,10 +3690,12 @@ export type Database = {
           driver_id?: string | null
           fleet_type?: string
           id?: string
+          intervalo_revisao_km?: number | null
           is_active?: boolean | null
           model?: string
           owner_id?: string | null
           plate?: string
+          proxima_revisao_km?: number | null
           renavam?: string
           trailer_plate_1?: string | null
           trailer_plate_2?: string | null
