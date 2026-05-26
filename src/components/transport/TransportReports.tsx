@@ -944,6 +944,11 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                             <td className="px-2 py-2 text-center">
                               <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
                             </td>
+                            {showPeso && (
+                              <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                                {(r.pesoKg || 0) > 0 ? fmtKg(r.pesoKg || 0) : "—"}
+                              </td>
+                            )}
                             {showDesconto && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                                 {(r.desconto || 0) > 0 ? `− ${formatCurrency(r.desconto || 0)}` : "—"}
