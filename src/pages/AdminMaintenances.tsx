@@ -11,13 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2, CalendarIcon, X } from "lucide-react";
+import { Search, Wrench, Car, DollarSign, Eye, FileText, Loader2, Trash2, CalendarIcon, X, Plus, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/masks";
 import { toast } from "sonner";
+import { MaintenanceFormDialog } from "@/components/maintenance/MaintenanceFormDialog";
 
 
 interface Maintenance {
@@ -98,6 +99,10 @@ export default function AdminMaintenances() {
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Maintenance | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Form dialog
+  const [formOpen, setFormOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const handleDelete = async (withExpenses: boolean) => {
     if (!deleteTarget) return;
@@ -219,11 +224,16 @@ export default function AdminMaintenances() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h1 className="text-2xl font-bold text-foreground">Manutenções</h1>
-          <Button size="sm" onClick={() => navigate("/admin/financial/payables")} variant="outline" className="gap-1.5 text-xs">
-            <Wrench className="h-3.5 w-3.5" /> Nova via Contas a Pagar
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin/financial/payables")} className="gap-1.5 text-xs">
+              <FileText className="h-3.5 w-3.5" /> Via Contas a Pagar
+            </Button>
+            <Button size="sm" onClick={() => { setEditId(null); setFormOpen(true); }} className="gap-1.5 text-xs">
+              <Plus className="h-3.5 w-3.5" /> Nova Manutenção
+            </Button>
+          </div>
         </div>
 
         {/* Summary */}
@@ -527,8 +537,22 @@ export default function AdminMaintenances() {
                     </CardContent>
                   </Card>
                 )}
-                {/* Delete button */}
-                <div className="pt-2 border-t border-border flex justify-end">
+                {/* Action buttons */}
+                <div className="pt-2 border-t border-border flex justify-end gap-2">
+                  {!detailMaint.expense_id && !detailMaint.nfse_expense_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => {
+                        setEditId(detailMaint.id);
+                        setDetailOpen(false);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                  )}
                   <Button
                     variant="destructive"
                     size="sm"
@@ -585,6 +609,13 @@ export default function AdminMaintenances() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <MaintenanceFormDialog
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          editId={editId}
+          onSaved={() => { fetchData(); setEditId(null); }}
+        />
       </div>
     </AdminLayout>
   );
