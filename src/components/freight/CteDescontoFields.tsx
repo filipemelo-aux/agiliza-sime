@@ -57,7 +57,12 @@ export function serializeDesconto(d: DescontoState): Record<string, any> | null 
 
 /** Hidrata estado a partir do JSONB salvo. */
 export function deserializeDesconto(raw: any): DescontoState {
-  if (!raw || typeof raw !== "object") return emptyDesconto;
+  if (!raw) return emptyDesconto;
+  // Aceita string JSON (caso o jsonb venha serializado por alguma camada)
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { return emptyDesconto; }
+  }
+  if (typeof raw !== "object") return emptyDesconto;
   const tipo: DescontoTipo = raw.tipo === "diesel" || raw.tipo === "outros" ? raw.tipo : "nenhum";
   if (tipo === "diesel") {
     return {
