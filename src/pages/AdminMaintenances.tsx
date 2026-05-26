@@ -100,6 +100,10 @@ export default function AdminMaintenances() {
   const [deleteTarget, setDeleteTarget] = useState<Maintenance | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Form dialog
+  const [formOpen, setFormOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+
   const handleDelete = async (withExpenses: boolean) => {
     if (!deleteTarget) return;
     setDeleting(true);
