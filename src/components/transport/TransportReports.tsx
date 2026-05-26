@@ -752,13 +752,13 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Número", ...(showProduto ? ["Produto"] : []), "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
         formatDateBR(r.data),
         r.titulo.replace(/;/g, ","),
-        r.subtitulo.replace(/;/g, ","),
+        ...(showProduto ? [(r.produto || "").replace(/;/g, ",")] : []),
         r.pessoa.replace(/;/g, ","),
         r.origem.replace(/;/g, ","),
         r.destino.replace(/;/g, ","),
