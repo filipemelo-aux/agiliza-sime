@@ -706,15 +706,15 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   </div>
   <table class="sheet">
     <thead><tr>
-      <th class="c" style="width:22px">#</th>
-      <th style="width:70px">Data</th>
+      <th class="c" style="width:18px">#</th>
+      <th style="width:54px">Data</th>
       <th>Descrição</th>
       <th>Origem → Destino</th>
       <th>Veículo / Proprietário</th>
-      ${showPeso ? `<th class="r" style="width:90px">Peso</th>` : ""}
-      ${showLitros ? `<th class="r" style="width:80px">Litros</th>` : ""}
-      ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
-      ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
+      ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
+      ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
+      ${showDesconto ? `<th class="r" style="width:72px">Desconto</th>` : ""}
+      ${showValor ? `<th class="r" style="width:82px">Valor Líquido</th>` : ""}
     </tr></thead>
     <tbody>${tableRows}${totalLine}</tbody>
   </table>
