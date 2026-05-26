@@ -511,13 +511,6 @@ export default function FreightCte() {
                         className="border-t border-border hover:bg-muted/30 cursor-pointer"
                         onClick={() => setDetailCte(cte)}
                       >
-                        <td className="px-3 py-2">
-                          {isServico ? (
-                            <ScrollText className="h-4 w-4 text-amber-600" />
-                          ) : (
-                            <FileText className="h-4 w-4 text-primary" />
-                          )}
-                        </td>
                         <td className="px-3 py-2 font-medium tabular-nums">{numeroDisplay}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {isServico ? "Serviço" : "Produção"}
