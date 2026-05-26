@@ -53,6 +53,7 @@ interface Row {
   pesoKg?: number;
   litrosDesconto?: number;
   dataPagamento?: string | null;
+  produto?: string;
 }
 
 const initial = (): Filters => ({
@@ -239,8 +240,9 @@ export function TransportReports() {
           return {
             id: c.id,
             data: c.data_emissao,
-            titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
-            subtitulo: descBase,
+            titulo: `${numExib ?? "—"}`,
+            subtitulo: "",
+            produto: descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
@@ -556,6 +558,7 @@ export function TransportReports() {
   const showDesconto = reportType === "contratos" || reportType === "cte";
   const showPeso = ["cte", "contratos", "cotacoes", "ordens_carregamento"].includes(reportType);
   const showLitros = showDesconto && rows.some((r) => (r.litrosDesconto || 0) > 0);
+  const showProduto = rows.some((r) => !!(r.produto && r.produto.trim() && r.produto !== "—"));
   const fmtTon = (kg: number) => `${(kg / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} t`;
   const fmtKg = (kg: number) => `${Number(kg || 0).toLocaleString("pt-BR")} kg`;
   const fmtL = (l: number) => `${Number(l || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} L`;
@@ -614,7 +617,8 @@ export function TransportReports() {
 
     const colCount =
       2 /* # + Data */ +
-      1 /* Descrição */ +
+      1 /* Número */ +
+      (showProduto ? 1 : 0) +
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
       (showPeso ? 1 : 0) +
@@ -630,8 +634,9 @@ export function TransportReports() {
         return `<tr>
       <td class="c idx">${i + 1}</td>
       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
-      <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
-      <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
+      <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
+      ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
+      <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
@@ -708,8 +713,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <thead><tr>
       <th class="c" style="width:18px">#</th>
       <th style="width:54px">Data</th>
-      <th>Descrição</th>
-      <th>Origem → Destino</th>
+      <th style="width:60px">Número</th>
+      ${showProduto ? `<th style="width:110px">Produto</th>` : ""}
+      <th style="width:150px">Origem → Destino</th>
       <th>Veículo / Proprietário</th>
       ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
       ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
@@ -746,13 +752,13 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Número", ...(showProduto ? ["Produto"] : []), "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (t)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
         formatDateBR(r.data),
         r.titulo.replace(/;/g, ","),
-        r.subtitulo.replace(/;/g, ","),
+        ...(showProduto ? [(r.produto || "").replace(/;/g, ",")] : []),
         r.pessoa.replace(/;/g, ","),
         r.origem.replace(/;/g, ","),
         r.destino.replace(/;/g, ","),
@@ -925,9 +931,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
                           <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Descrição</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Número</SortableTh>
+                          {showProduto && <th className="px-3 py-2 font-medium">Produto</th>}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
-                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
                           {showPeso && <th className="px-2 py-2 font-medium text-right w-[90px]">Peso (t)</th>}
                           {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
@@ -939,12 +946,13 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         {sorted.map((r) => (
                           <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                             <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 whitespace-nowrap">
                               <div className="font-medium">{r.titulo}</div>
-                              <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>
+                              {r.subtitulo && <div className="text-[10px] text-muted-foreground">{r.subtitulo}</div>}
                             </td>
+                            {showProduto && <td className="px-3 py-2 text-[11px]">{r.produto || "—"}</td>}
                             <td className="px-3 py-2">{r.pessoa}</td>
-                            <td className="px-3 py-2 text-[11px]">
+                            <td className="px-3 py-2 text-[11px] whitespace-nowrap">
                               {r.origem === "—" && r.destino === "—" ? "—" : `${r.origem} → ${r.destino}`}
                             </td>
                             <td className="px-3 py-2">
