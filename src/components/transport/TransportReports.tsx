@@ -909,6 +909,11 @@ ${totalLine}
                             <td className="px-2 py-2 text-center">
                               <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
                             </td>
+                            {showDesconto && (
+                              <td className={`px-2 py-2 text-right tabular-nums ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                                {(r.desconto || 0) > 0 ? `− ${formatCurrency(r.desconto || 0)}` : "—"}
+                              </td>
+                            )}
                             {showValor && (
                               <td className="px-2 py-2 text-right tabular-nums font-medium">
                                 {formatCurrency(r.valor)}
