@@ -617,8 +617,8 @@ export function TransportReports() {
       1 /* Descrição */ +
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
-      1 /* Status */ +
       (showPeso ? 1 : 0) +
+      (showLitros ? 1 : 0) +
       (showDesconto ? 1 : 0) +
       (showValor ? 1 : 0);
 
@@ -626,25 +626,27 @@ export function TransportReports() {
       .map((r, i) => {
         const desc = r.desconto || 0;
         const peso = r.pesoKg || 0;
+        const litros = r.litrosDesconto || 0;
         return `<tr>
       <td class="c idx">${i + 1}</td>
-      <td class="nowrap">${formatDateBR(r.data)}</td>
+      <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
       <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
-      <td class="c st">${esc(r.status)}${r.dataPagamento ? `<div class="t2">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtKg(peso) : "—"}</td>` : ""}
+      ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
       ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`;
       })
       .join("");
 
-    const trailingCols = (showPeso ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
+    const trailingCols = (showPeso ? 1 : 0) + (showLitros ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
     const labelColspan = colCount - trailingCols;
     const totalLine = `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
           ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
+          ${showLitros ? `<td class="r neg">${fmtL(totals.litros)}</td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
           ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
         </tr>`;
