@@ -634,7 +634,8 @@ export function TransportReports() {
       1 /* Número */ +
       (showProduto ? 1 : 0) +
       1 /* Origem→Destino */ +
-      1 /* Veículo/Prop */ +
+      1 /* Veículo */ +
+      1 /* Proprietário */ +
       (showPeso ? 1 : 0) +
       (showLitros ? 1 : 0) +
       (showDesconto ? 1 : 0) +
@@ -650,7 +651,8 @@ export function TransportReports() {
       <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
       ${showProduto ? `<td class="t2b">${esc(r.produto || "—")}</td>` : ""}
       <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
-      <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
+      <td class="t1 nowrap">${esc(r.veiculo)}</td>
+      <td class="t2b">${esc(r.proprietario)}</td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtTon(peso) : "—"}</td>` : ""}
       ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
@@ -723,12 +725,12 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   </div>
   <table class="sheet">
     <thead><tr>
-      <th class="c" style="width:18px">#</th>
       <th style="width:54px">Data</th>
-      <th style="width:60px">Número</th>
+      <th style="width:60px">${esc(numeroLabel)}</th>
       ${showProduto ? `<th style="width:110px">Produto</th>` : ""}
       <th style="width:150px">Origem → Destino</th>
-      <th>Veículo / Proprietário</th>
+      <th style="width:80px">Veículo</th>
+      <th>Proprietário</th>
       ${showPeso ? `<th class="r" style="width:60px">Peso (t)</th>` : ""}
       ${showLitros ? `<th class="r" style="width:60px">Litros</th>` : ""}
       ${showDesconto ? `<th class="r" style="width:72px">Desconto</th>` : ""}
