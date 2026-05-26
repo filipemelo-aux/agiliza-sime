@@ -541,7 +541,7 @@ export function TransportReports() {
   const showProprietario = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
   const showStatus = true;
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
-  const showDesconto = reportType === "contratos";
+  const showDesconto = reportType === "contratos" || reportType === "cte";
 
   const clienteList = useMemo(() => {
     const term = clienteSearch.trim().toLowerCase();
