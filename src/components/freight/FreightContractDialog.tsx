@@ -756,7 +756,3 @@ function parseObservacoesDesconto(raw: string): { desconto: DescontoState; clean
   return { desconto, cleanObs: kept.join("\n").replace(/\n+$/, "") };
 }
 
-  const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
-  return [base, linha, resumo].filter(Boolean).join("\n");
-}
-
