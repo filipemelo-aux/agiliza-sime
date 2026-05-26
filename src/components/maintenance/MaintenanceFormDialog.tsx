@@ -352,6 +352,39 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Configuração do intervalo de revisão deste veículo */}
+      <Dialog open={revisaoDialogOpen} onOpenChange={setRevisaoDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Configurar Revisão do Veículo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Defina a cada quantos quilômetros este veículo deve passar por revisão.
+              Este valor ficará salvo nas configurações do veículo.
+            </p>
+            <div>
+              <Label className="text-xs">Intervalo (KM) *</Label>
+              <Input
+                type="number"
+                placeholder="Ex: 10000"
+                value={revisaoIntervaloInput}
+                onChange={(e) => setRevisaoIntervaloInput(e.target.value)}
+                className="h-9"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setRevisaoDialogOpen(false); if (!vehicleIntervalo) setTipoManutencao("corretiva"); }}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSaveRevisaoIntervalo}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+
