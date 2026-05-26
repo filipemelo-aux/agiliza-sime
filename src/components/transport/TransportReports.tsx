@@ -50,6 +50,7 @@ interface Row {
   status: string;
   valor: number;
   desconto?: number;
+  pesoKg?: number;
   dataPagamento?: string | null;
 }
 
@@ -228,7 +229,7 @@ export function TransportReports() {
           const placa = c.placa_veiculo || "—";
           const isServ = c.tipo_talao === "servico";
           const numExib = isServ ? (c.numero_interno ?? c.numero) : c.numero;
-          const pesoTxt = c.peso_bruto ? `${Number(c.peso_bruto).toLocaleString("pt-BR")} kg` : "";
+          const pesoKg = Number(c.peso_bruto || 0);
           const descBase = c.produto_predominante || c.natureza_operacao || "—";
           let descRaw: any = c.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
@@ -237,7 +238,7 @@ export function TransportReports() {
             id: c.id,
             data: c.data_emissao,
             titulo: `CT-e ${isServ ? "Serviço" : "Produção"} Nº ${numExib ?? "—"}`,
-            subtitulo: pesoTxt ? `${descBase} • ${pesoTxt}` : descBase,
+            subtitulo: descBase,
             pessoa: c.tomador_nome || profileName(c.tomador_id),
             veiculo: placa,
             proprietario: ownerByPlate.get(placa) || "—",
@@ -246,6 +247,7 @@ export function TransportReports() {
             status: c.status,
             valor: Number(c.valor_frete || c.valor_receber || 0),
             desconto: descontoValor,
+            pesoKg,
           };
         });
       } else if (reportType === "mdfe") {
@@ -348,7 +350,7 @@ export function TransportReports() {
             id: c.id,
             data: c.data_contrato,
             titulo: `Contrato ${c.numero || "—"}`,
-            subtitulo: `${c.contratado_nome || "—"} • ${(c.peso_kg || 0).toLocaleString("pt-BR")} kg`,
+            subtitulo: c.contratado_nome || "—",
             pessoa: c.contratado_nome || "—",
             veiculo: placa,
             proprietario: c.contratado_nome || ownerByPlate.get(placa) || "—",
@@ -358,6 +360,7 @@ export function TransportReports() {
             dataPagamento: dpStr,
             valor: Number(c.valor_total || 0),
             desconto: descontoValor,
+            pesoKg: Number(c.peso_kg || 0),
           };
         });
       } else if (reportType === "colheita") {
@@ -396,7 +399,8 @@ export function TransportReports() {
             id: a.id,
             data: a.applied_at,
             titulo: `OC ${a.cte_number ? `• CT-e ${a.cte_number}` : ""}`,
-            subtitulo: `${f.cargo_type || "Carga"} • ${(f.weight_kg || 0).toLocaleString("pt-BR")} kg`,
+            subtitulo: `${f.cargo_type || "Carga"}`,
+            pesoKg: Number(f.weight_kg || 0),
             pessoa: profileName(a.user_id),
             veiculo: "—",
             proprietario: "—",
@@ -443,7 +447,8 @@ export function TransportReports() {
           id: c.id,
           data: c.created_at,
           titulo: `Cotação ${c.numero || "—"}`,
-          subtitulo: `${c.produto || "—"} • ${(c.peso_kg || 0).toLocaleString("pt-BR")} kg`,
+          subtitulo: `${c.produto || "—"}`,
+          pesoKg: Number(c.peso_kg || 0),
           pessoa: profileName(c.client_id),
           veiculo: "—",
           proprietario: "—",
@@ -517,6 +522,7 @@ export function TransportReports() {
   const totals = useMemo(() => ({
     total: rows.reduce((s, r) => s + r.valor, 0),
     desconto: rows.reduce((s, r) => s + (r.desconto || 0), 0),
+    pesoKg: rows.reduce((s, r) => s + (r.pesoKg || 0), 0),
     count: rows.length,
   }), [rows]);
 
@@ -542,6 +548,9 @@ export function TransportReports() {
   const showStatus = true;
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
   const showDesconto = reportType === "contratos" || reportType === "cte";
+  const showPeso = ["cte", "contratos", "cotacoes", "ordens_carregamento"].includes(reportType);
+  const fmtTon = (kg: number) => `${(kg / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} t`;
+  const fmtKg = (kg: number) => `${Number(kg || 0).toLocaleString("pt-BR")} kg`;
 
   const clienteList = useMemo(() => {
     const term = clienteSearch.trim().toLowerCase();
@@ -601,12 +610,14 @@ export function TransportReports() {
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
       1 /* Status */ +
+      (showPeso ? 1 : 0) +
       (showDesconto ? 1 : 0) +
       (showValor ? 1 : 0);
 
     const tableRows = rows
       .map((r, i) => {
         const desc = r.desconto || 0;
+        const peso = r.pesoKg || 0;
         return `<tr>
       <td class="c idx">${i + 1}</td>
       <td class="nowrap">${formatDateBR(r.data)}</td>
@@ -614,19 +625,21 @@ export function TransportReports() {
       <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
       <td class="c st">${esc(r.status)}${r.dataPagamento ? `<div class="t2">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+      ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtKg(peso) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
       ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`;
       })
       .join("");
 
-    const totalLine = showValor
-      ? `<tr class="tot">
-          <td colspan="${colCount - (showDesconto ? 2 : 1)}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+    const trailingCols = (showPeso ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
+    const labelColspan = colCount - trailingCols;
+    const totalLine = `<tr class="tot">
+          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
-          <td class="r val">${formatCurrency(totals.total)}</td>
-        </tr>`
-      : `<tr class="tot"><td colspan="${colCount}" class="r">TOTAL: ${rows.length} registro(s)</td></tr>`;
+          ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
+        </tr>`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
@@ -689,6 +702,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
       <th>Origem → Destino</th>
       <th>Veículo / Proprietário</th>
       <th class="c" style="width:80px">Status</th>
+      ${showPeso ? `<th class="r" style="width:90px">Peso</th>` : ""}
       ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
       ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
     </tr></thead>
@@ -722,7 +736,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showPeso ? ["Peso (kg)"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -735,6 +749,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
         r.status,
+        ...(showPeso ? [(r.pesoKg || 0).toFixed(0)] : []),
         ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
       ].join(";"));
@@ -884,6 +899,9 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
                 <div className="flex items-center gap-4 flex-wrap">
+                  {showPeso && totals.pesoKg > 0 && (
+                    <div className="text-sm font-semibold text-foreground">Peso: {fmtKg(totals.pesoKg)} <span className="text-primary">({fmtTon(totals.pesoKg)})</span></div>
+                  )}
                   {showDesconto && totals.desconto > 0 && (
                     <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
                   )}
@@ -902,6 +920,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
                           <SortableTh className="px-2 py-2 font-medium text-center w-[110px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                          {showPeso && <th className="px-2 py-2 font-medium text-right w-[100px]">Peso</th>}
                           {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
                           {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
                         </tr>
@@ -925,6 +944,11 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                             <td className="px-2 py-2 text-center">
                               <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
                             </td>
+                            {showPeso && (
+                              <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                                {(r.pesoKg || 0) > 0 ? fmtKg(r.pesoKg || 0) : "—"}
+                              </td>
+                            )}
                             {showDesconto && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.desconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                                 {(r.desconto || 0) > 0 ? `− ${formatCurrency(r.desconto || 0)}` : "—"}
