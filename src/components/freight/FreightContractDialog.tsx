@@ -703,7 +703,11 @@ function buildObservacoesComDesconto(
     linha = `Desconto Diesel: ${litros.toLocaleString("pt-BR")} L × ${fmt(vl)} = ${fmt(total)}`;
   } else {
     linha = `Desconto (${desconto.descricao || "outros"}): ${fmt(total)}`;
+  }
+  const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
+  return [base, linha, resumo].filter(Boolean).join("\n");
 }
+
 
 /** Reverte texto de observações para o estado do desconto, removendo as linhas geradas. */
 function parseObservacoesDesconto(raw: string): { desconto: DescontoState; cleanObs: string } {
@@ -754,9 +758,5 @@ function parseObservacoesDesconto(raw: string): { desconto: DescontoState; clean
   }
 
   return { desconto, cleanObs: kept.join("\n").replace(/\n+$/, "") };
-}
-
-  const resumo = `Bruto ${fmt(valorBruto)} − ${linha} → Líquido ${fmt(valorBruto - total)}`;
-  return [base, linha, resumo].filter(Boolean).join("\n");
 }
 
