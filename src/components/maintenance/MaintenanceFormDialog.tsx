@@ -293,6 +293,23 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
               hasNfse={false}
             />
 
+            {tipoManutencao === "revisao" && veiculoId && vehicleIntervalo && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-[11px] text-foreground space-y-1">
+                <p><strong>Revisão programada:</strong> a cada {vehicleIntervalo.toLocaleString("pt-BR")} km.</p>
+                {vehicleProximaRevisao ? (
+                  <p className="text-muted-foreground">Próxima prevista neste veículo: {vehicleProximaRevisao.toLocaleString("pt-BR")} km</p>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-[11px] text-primary underline"
+                  onClick={() => { setRevisaoIntervaloInput(String(vehicleIntervalo)); setRevisaoDialogOpen(true); }}
+                >
+                  Alterar intervalo
+                </button>
+              </div>
+            )}
+
+
             {!editId && (
               <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
