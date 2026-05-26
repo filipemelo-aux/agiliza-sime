@@ -711,8 +711,8 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
       <th>Descrição</th>
       <th>Origem → Destino</th>
       <th>Veículo / Proprietário</th>
-      <th class="c" style="width:80px">Status</th>
       ${showPeso ? `<th class="r" style="width:90px">Peso</th>` : ""}
+      ${showLitros ? `<th class="r" style="width:80px">Litros</th>` : ""}
       ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
       ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
     </tr></thead>
