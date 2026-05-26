@@ -910,7 +910,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                 <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
                 <div className="flex items-center gap-4 flex-wrap">
                   {showPeso && totals.pesoKg > 0 && (
-                    <div className="text-sm font-semibold text-foreground">Peso: {fmtKg(totals.pesoKg)} <span className="text-primary">({fmtTon(totals.pesoKg)})</span></div>
+                    <div className="text-sm font-semibold text-foreground">Peso: <span className="text-primary">{fmtTon(totals.pesoKg)}</span></div>
                   )}
                   {showDesconto && totals.desconto > 0 && (
                     <div className="text-sm font-semibold text-destructive">Descontos: − {formatCurrency(totals.desconto)}</div>
