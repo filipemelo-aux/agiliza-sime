@@ -625,15 +625,20 @@ export function TransportReports() {
       <td style="padding:6px 8px;font-size:10px;color:#555">${r.origem !== "—" || r.destino !== "—" ? `${r.origem} → ${r.destino}` : "—"}</td>
       <td style="padding:6px 8px;font-size:10px;color:#333">${r.veiculo}<div style="font-size:9px;color:#888">${r.proprietario}</div></td>
       <td style="padding:6px 8px;text-align:center">${statusBadge(r.status)}${r.dataPagamento ? `<div style="font-size:9px;color:#666;margin-top:2px">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+      ${showDesconto ? `<td style="padding:6px 10px;text-align:right;white-space:nowrap;font-size:11px;color:${(r.desconto || 0) > 0 ? "#b91c1c" : "#999"};font-weight:${(r.desconto || 0) > 0 ? 700 : 400}">${(r.desconto || 0) > 0 ? "− " + formatCurrency(r.desconto || 0) : "—"}</td>` : ""}
       ${showValor ? `<td style="padding:6px 10px;text-align:right;font-weight:700;color:#2B4C7E;white-space:nowrap;font-size:11px">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`,
       )
       .join("");
 
-    const colspan = showValor ? 6 : 6;
+    const baseCols = 6;
     const totalLine = showValor
-      ? `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`
-      : `<tr style="background:#f0f4f8"><td colspan="${colspan}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
+      ? `<tr style="background:#f0f4f8">
+          <td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td>
+          ${showDesconto ? `<td style="padding:10px;text-align:right;font-size:12px;font-weight:800;color:#b91c1c;white-space:nowrap">− ${formatCurrency(totals.desconto)}</td>` : ""}
+          <td style="padding:10px;text-align:right;font-size:14px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td>
+        </tr>`
+      : `<tr style="background:#f0f4f8"><td colspan="${baseCols}" style="padding:10px;text-align:right;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total: ${rows.length} registro(s)</td></tr>`;
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${TITLES[reportType]}</title>
 <style>
