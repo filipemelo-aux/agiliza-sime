@@ -51,6 +51,7 @@ interface Row {
   valor: number;
   desconto?: number;
   pesoKg?: number;
+  litrosDesconto?: number;
   dataPagamento?: string | null;
 }
 
@@ -234,6 +235,7 @@ export function TransportReports() {
           let descRaw: any = c.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
           const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
+          const litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
           return {
             id: c.id,
             data: c.data_emissao,
@@ -247,6 +249,7 @@ export function TransportReports() {
             status: c.status,
             valor: Number(c.valor_frete || c.valor_receber || 0),
             desconto: descontoValor,
+            litrosDesconto,
             pesoKg,
           };
         });
@@ -346,6 +349,7 @@ export function TransportReports() {
           let descRaw: any = c.cte?.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
           const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
+          const litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
           return {
             id: c.id,
             data: c.data_contrato,
@@ -360,6 +364,7 @@ export function TransportReports() {
             dataPagamento: dpStr,
             valor: Number(c.valor_total || 0),
             desconto: descontoValor,
+            litrosDesconto,
             pesoKg: Number(c.peso_kg || 0),
           };
         });
@@ -523,6 +528,7 @@ export function TransportReports() {
     total: rows.reduce((s, r) => s + r.valor, 0),
     desconto: rows.reduce((s, r) => s + (r.desconto || 0), 0),
     pesoKg: rows.reduce((s, r) => s + (r.pesoKg || 0), 0),
+    litros: rows.reduce((s, r) => s + (r.litrosDesconto || 0), 0),
     count: rows.length,
   }), [rows]);
 
@@ -549,8 +555,10 @@ export function TransportReports() {
   const showValor = reportType !== "mdfe" && reportType !== "ordens_abastecimento";
   const showDesconto = reportType === "contratos" || reportType === "cte";
   const showPeso = ["cte", "contratos", "cotacoes", "ordens_carregamento"].includes(reportType);
+  const showLitros = showDesconto && rows.some((r) => (r.litrosDesconto || 0) > 0);
   const fmtTon = (kg: number) => `${(kg / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} t`;
   const fmtKg = (kg: number) => `${Number(kg || 0).toLocaleString("pt-BR")} kg`;
+  const fmtL = (l: number) => `${Number(l || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} L`;
 
   const clienteList = useMemo(() => {
     const term = clienteSearch.trim().toLowerCase();
@@ -609,8 +617,8 @@ export function TransportReports() {
       1 /* Descrição */ +
       1 /* Origem→Destino */ +
       1 /* Veículo/Prop */ +
-      1 /* Status */ +
       (showPeso ? 1 : 0) +
+      (showLitros ? 1 : 0) +
       (showDesconto ? 1 : 0) +
       (showValor ? 1 : 0);
 
@@ -618,25 +626,27 @@ export function TransportReports() {
       .map((r, i) => {
         const desc = r.desconto || 0;
         const peso = r.pesoKg || 0;
+        const litros = r.litrosDesconto || 0;
         return `<tr>
       <td class="c idx">${i + 1}</td>
-      <td class="nowrap">${formatDateBR(r.data)}</td>
+      <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       <td><div class="t1">${esc(r.titulo)}</div><div class="t2">${esc(r.subtitulo)}</div></td>
       <td class="t2b">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
       <td><div class="t1">${esc(r.veiculo)}</div><div class="t2">${esc(r.proprietario)}</div></td>
-      <td class="c st">${esc(r.status)}${r.dataPagamento ? `<div class="t2">${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
       ${showPeso ? `<td class="r ${peso > 0 ? "" : "mut"}">${peso > 0 ? fmtKg(peso) : "—"}</td>` : ""}
+      ${showLitros ? `<td class="r ${litros > 0 ? "neg" : "mut"}">${litros > 0 ? fmtL(litros) : "—"}</td>` : ""}
       ${showDesconto ? `<td class="r ${desc > 0 ? "neg" : "mut"}">${desc > 0 ? "− " + formatCurrency(desc) : "—"}</td>` : ""}
       ${showValor ? `<td class="r val">${formatCurrency(r.valor)}</td>` : ""}
     </tr>`;
       })
       .join("");
 
-    const trailingCols = (showPeso ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
+    const trailingCols = (showPeso ? 1 : 0) + (showLitros ? 1 : 0) + (showDesconto ? 1 : 0) + (showValor ? 1 : 0);
     const labelColspan = colCount - trailingCols;
     const totalLine = `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
           ${showPeso ? `<td class="r val">${fmtKg(totals.pesoKg)}<div class="t2" style="color:#2B4C7E">${fmtTon(totals.pesoKg)}</div></td>` : ""}
+          ${showLitros ? `<td class="r neg">${fmtL(totals.litros)}</td>` : ""}
           ${showDesconto ? `<td class="r neg">− ${formatCurrency(totals.desconto)}</td>` : ""}
           ${showValor ? `<td class="r val">${formatCurrency(totals.total)}</td>` : ""}
         </tr>`;
@@ -701,8 +711,8 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
       <th>Descrição</th>
       <th>Origem → Destino</th>
       <th>Veículo / Proprietário</th>
-      <th class="c" style="width:80px">Status</th>
       ${showPeso ? `<th class="r" style="width:90px">Peso</th>` : ""}
+      ${showLitros ? `<th class="r" style="width:80px">Litros</th>` : ""}
       ${showDesconto ? `<th class="r" style="width:90px">Desconto</th>` : ""}
       ${showValor ? `<th class="r" style="width:100px">Valor Líquido</th>` : ""}
     </tr></thead>
@@ -736,7 +746,7 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
-    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", "Status", ...(showPeso ? ["Peso (kg)"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
+    const header = ["Data", "Título", "Detalhes", "Pessoa", "Origem", "Destino", "Veículo", "Proprietário", ...(showPeso ? ["Peso (kg)"] : []), ...(showLitros ? ["Litros"] : []), ...(showDesconto ? ["Desconto"] : []), "Valor"];
     const lines = [header.join(";")];
     rows.forEach((r) => {
       lines.push([
@@ -748,8 +758,8 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
         r.destino.replace(/;/g, ","),
         r.veiculo,
         r.proprietario.replace(/;/g, ","),
-        r.status,
         ...(showPeso ? [(r.pesoKg || 0).toFixed(0)] : []),
+        ...(showLitros ? [(r.litrosDesconto || 0).toString().replace(".", ",")] : []),
         ...(showDesconto ? [(r.desconto || 0).toFixed(2).replace(".", ",")] : []),
         r.valor.toFixed(2).replace(".", ","),
       ].join(";"));
@@ -919,8 +929,8 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
                           <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
-                          <SortableTh className="px-2 py-2 font-medium text-center w-[110px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                           {showPeso && <th className="px-2 py-2 font-medium text-right w-[100px]">Peso</th>}
+                          {showLitros && <th className="px-2 py-2 font-medium text-right w-[90px]">Litros</th>}
                           {showDesconto && <th className="px-2 py-2 font-medium text-right w-[120px]">Desconto</th>}
                           {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor Líquido</SortableTh>}
                         </tr>
@@ -941,12 +951,14 @@ tr.tot td.val{color:#2B4C7E;font-size:12px}
                               <div className="font-medium">{r.veiculo}</div>
                               <div className="text-[10px] text-muted-foreground">{r.proprietario}</div>
                             </td>
-                            <td className="px-2 py-2 text-center">
-                              <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
-                            </td>
                             {showPeso && (
                               <td className={`px-2 py-2 text-right tabular-nums ${(r.pesoKg || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
                                 {(r.pesoKg || 0) > 0 ? fmtKg(r.pesoKg || 0) : "—"}
+                              </td>
+                            )}
+                            {showLitros && (
+                              <td className={`px-2 py-2 text-right tabular-nums ${(r.litrosDesconto || 0) > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                                {(r.litrosDesconto || 0) > 0 ? fmtL(r.litrosDesconto || 0) : "—"}
                               </td>
                             )}
                             {showDesconto && (
