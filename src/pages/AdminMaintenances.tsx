@@ -224,11 +224,16 @@ export default function AdminMaintenances() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h1 className="text-2xl font-bold text-foreground">Manutenções</h1>
-          <Button size="sm" onClick={() => navigate("/admin/financial/payables")} variant="outline" className="gap-1.5 text-xs">
-            <Wrench className="h-3.5 w-3.5" /> Nova via Contas a Pagar
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin/financial/payables")} className="gap-1.5 text-xs">
+              <FileText className="h-3.5 w-3.5" /> Via Contas a Pagar
+            </Button>
+            <Button size="sm" onClick={() => { setEditId(null); setFormOpen(true); }} className="gap-1.5 text-xs">
+              <Plus className="h-3.5 w-3.5" /> Nova Manutenção
+            </Button>
+          </div>
         </div>
 
         {/* Summary */}
