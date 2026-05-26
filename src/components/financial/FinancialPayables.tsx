@@ -615,6 +615,7 @@ export function FinancialPayables() {
         const instId = id.replace("inst-", "");
         await supabase.from("expense_installments").delete().eq("id", instId);
       } else {
+        await restoreGroupedOriginals(id);
         await supabase.from("expenses").update({ deleted_at: getLocalDateISO() } as any).eq("id", id);
       }
     }
