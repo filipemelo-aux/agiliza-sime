@@ -558,6 +558,7 @@ export function TransportReports() {
   const showDesconto = reportType === "contratos" || reportType === "cte";
   const showPeso = ["cte", "contratos", "cotacoes", "ordens_carregamento"].includes(reportType);
   const showLitros = showDesconto && rows.some((r) => (r.litrosDesconto || 0) > 0);
+  const showProduto = rows.some((r) => !!(r.produto && r.produto.trim() && r.produto !== "—"));
   const fmtTon = (kg: number) => `${(kg / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} t`;
   const fmtKg = (kg: number) => `${Number(kg || 0).toLocaleString("pt-BR")} kg`;
   const fmtL = (l: number) => `${Number(l || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} L`;
