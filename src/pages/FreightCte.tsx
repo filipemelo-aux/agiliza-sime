@@ -26,6 +26,8 @@ import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { CteBatchImportDialog } from "@/components/freight/CteBatchImportDialog";
 import { CteInconsistencyDialog } from "@/components/freight/CteInconsistencyDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 
 export interface Cte {
@@ -136,6 +138,21 @@ export default function FreightCte() {
       c.placa_veiculo?.toLowerCase().includes(q)
     );
   });
+
+  type CteSortKey = "numero" | "talao" | "data" | "cliente" | "placa" | "valor" | "status";
+  const { sort, toggle, sorted } = useSortableTable<Cte, CteSortKey>(
+    filtered,
+    { key: "data", direction: "desc" },
+    {
+      numero: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
+      talao: (c) => (c.tipo_talao === "servico" ? "Serviço" : "Produção"),
+      data: (c) => getEmissaoDate(c) || "",
+      cliente: (c) => c.destinatario_nome || c.remetente_nome || "",
+      placa: (c) => c.placa_veiculo || "",
+      valor: (c) => Number(c.valor_frete) || 0,
+      status: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
+    },
+  );
 
   const handleNew = () => {
     setEditingCte(null);
@@ -393,7 +410,7 @@ export default function FreightCte() {
               <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="text-center py-16">
             <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Nenhum CT-e encontrado</h3>
@@ -401,7 +418,7 @@ export default function FreightCte() {
           </div>
         ) : isMobile ? (
           <div className="grid grid-cols-1 gap-2">
-            {filtered.map((cte) => {
+            {sorted.map((cte) => {
               const isServico = cte.tipo_talao === "servico";
               const numeroDisplay = isServico
                 ? cte.numero_interno ?? "—"
@@ -466,21 +483,21 @@ export default function FreightCte() {
           <div className="border border-border rounded-md overflow-hidden bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-muted/40 text-muted-foreground">
+              <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
                     <th className="px-3 py-2 font-medium w-10"></th>
-                    <th className="px-3 py-2 font-medium">N.º</th>
-                    <th className="px-3 py-2 font-medium">Talão</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data Emissão</th>
-                    <th className="px-3 py-2 font-medium">Cliente</th>
-                    <th className="px-2 py-2 font-medium w-[90px]">Placa</th>
-                    <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
-                    <th className="px-2 py-2 font-medium text-center w-[90px]">Status</th>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>N.º</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "talao"} direction={sort.direction} onSort={() => toggle("talao")}>Talão</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data Emissão</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")}>Cliente</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium w-[90px]" active={sort.key === "placa"} direction={sort.direction} onSort={() => toggle("placa")}>Placa</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-center w-[90px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                     <th className="px-2 py-2 font-medium text-right w-[70px]"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((cte) => {
+                  {sorted.map((cte) => {
                     const isServico = cte.tipo_talao === "servico";
                     const numeroDisplay = isServico
                       ? cte.numero_interno ?? "—"

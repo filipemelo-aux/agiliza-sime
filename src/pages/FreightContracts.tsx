@@ -21,6 +21,8 @@ import { buildFullContractHtml, openPrintWindow } from "@/components/freight/fre
 import { FreightContractDialog } from "@/components/freight/FreightContractDialog";
 import { CteDetailDialog } from "@/components/freight/CteDetailDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 import type { Cte } from "@/pages/FreightCte";
 
 interface FreightContractRow {
@@ -97,6 +99,7 @@ export default function FreightContracts() {
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao, remetente_nome, recebedor_nome, destinatario_nome),
           payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
         `)
+        .order("data_contrato", { ascending: false })
         .order("numero", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -143,6 +146,21 @@ export default function FreightContracts() {
       return hay.includes(s);
     });
   }, [rows, search, statusFilter, dateFrom, dateTo]);
+
+  type ContractSortKey = "numero" | "data" | "contratado" | "trecho" | "placa" | "valor" | "status";
+  const { sort, toggle, sorted } = useSortableTable<FreightContractRow, ContractSortKey>(
+    filtered,
+    { key: "data", direction: "desc" },
+    {
+      numero: (r) => r.numero,
+      data: (r) => r.data_contrato || "",
+      contratado: (r) => r.contratado_nome || "",
+      trecho: (r) => `${r.cte?.remetente_nome || r.municipio_origem || ""} ${r.cte?.recebedor_nome || r.cte?.destinatario_nome || r.municipio_destino || ""}`,
+      placa: (r) => r.placa_veiculo || "",
+      valor: (r) => Number(r.valor_total) || 0,
+      status: (r) => r.payable?.status || "sem_titulo",
+    },
+  );
 
   const totals = useMemo(() => {
     const totalValor = filtered.reduce((sum, r) => sum + Number(r.valor_total || 0), 0);
@@ -282,7 +300,7 @@ export default function FreightContracts() {
         {/* Lista */}
         {loading ? (
           <div className="text-center text-sm text-muted-foreground py-10">Carregando...</div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
               Nenhum contrato encontrado.
@@ -290,7 +308,7 @@ export default function FreightContracts() {
           </Card>
         ) : isMobile ? (
           <div className="grid grid-cols-1 gap-2">
-            {filtered.map((r) => {
+            {sorted.map((r) => {
               const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
               return (
                 <Card key={r.id}>
@@ -343,18 +361,18 @@ export default function FreightContracts() {
               <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <th className="px-3 py-2 font-medium w-[90px]">Nº</th>
-                    <th className="px-3 py-2 font-medium whitespace-nowrap">Data</th>
-                    <th className="px-3 py-2 font-medium">Contratado</th>
-                    <th className="px-3 py-2 font-medium">Trecho</th>
-                    <th className="px-2 py-2 font-medium w-[90px]">Placa</th>
-                    <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
-                    <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
+                    <SortableTh className="px-3 py-2 font-medium w-[90px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contratado"} direction={sort.direction} onSort={() => toggle("contratado")}>Contratado</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "trecho"} direction={sort.direction} onSort={() => toggle("trecho")}>Trecho</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium w-[90px]" active={sort.key === "placa"} direction={sort.direction} onSort={() => toggle("placa")}>Placa</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-center w-[100px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                     <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((r) => {
+                  {sorted.map((r) => {
                     const editDisabled = r.payable?.status === "pago" || r.payable?.status === "parcial";
                     return (
                       <tr key={r.id} className="border-t border-border hover:bg-muted/30">

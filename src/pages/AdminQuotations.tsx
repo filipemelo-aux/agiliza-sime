@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Sprout, Download, Trash2, Eye, CheckCircle, Clock, Send, Pencil } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, FileText, Sprout, Download, Trash2, Eye, CheckCircle, Clock, Send, Pencil, ArrowUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,7 @@ export default function AdminQuotations() {
   const [formType, setFormType] = useState<"frete" | "colheita">("frete");
   const [detailQuotation, setDetailQuotation] = useState<Quotation | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
+  const [sortBy, setSortBy] = useState<string>("data_desc");
   const { matrizId, unifiedLabel, unifiedCnpjs, establishments } = useUnifiedCompany();
 
   const fetchQuotations = async () => {
@@ -142,8 +144,32 @@ export default function AdminQuotations() {
   const formatCurrency = (v: number | null) =>
     v != null ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 
-  const freteQuotations = quotations.filter((q) => q.type === "frete");
-  const colheitaQuotations = quotations.filter((q) => q.type === "colheita");
+  const sortQuotations = (items: Quotation[]) => {
+    const copy = [...items];
+    const dir = sortBy.endsWith("_desc") ? -1 : 1;
+    const field = sortBy.replace(/_(asc|desc)$/, "");
+    copy.sort((a, b) => {
+      let av: any, bv: any;
+      if (field === "data") { av = a.created_at; bv = b.created_at; }
+      else if (field === "numero") { av = a.numero; bv = b.numero; }
+      else if (field === "valor") {
+        av = a.valor_frete ?? a.valor_mensal_por_caminhao ?? 0;
+        bv = b.valor_frete ?? b.valor_mensal_por_caminhao ?? 0;
+      } else if (field === "cliente") {
+        av = a.client?.razao_social || a.client?.full_name || "";
+        bv = b.client?.razao_social || b.client?.full_name || "";
+      } else { av = a.created_at; bv = b.created_at; }
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    return copy;
+  };
+
+  const sortedAll = sortQuotations(quotations);
+  const freteQuotations = sortQuotations(quotations.filter((q) => q.type === "frete"));
+  const colheitaQuotations = sortQuotations(quotations.filter((q) => q.type === "colheita"));
 
   const openNewForm = (type: "frete" | "colheita") => {
     setFormType(type);
@@ -306,6 +332,22 @@ export default function AdminQuotations() {
                 <Sprout className="h-4 w-4" /> Colheita <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-xs">{colheitaQuotations.length}</Badge>
               </TabsTrigger>
             </TabsList>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-9 w-[210px] text-xs gap-2">
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="data_desc">Data emissão (mais recente)</SelectItem>
+                <SelectItem value="data_asc">Data emissão (mais antiga)</SelectItem>
+                <SelectItem value="numero_desc">Nº (maior)</SelectItem>
+                <SelectItem value="numero_asc">Nº (menor)</SelectItem>
+                <SelectItem value="valor_desc">Valor (maior)</SelectItem>
+                <SelectItem value="valor_asc">Valor (menor)</SelectItem>
+                <SelectItem value="cliente_asc">Cliente (A→Z)</SelectItem>
+                <SelectItem value="cliente_desc">Cliente (Z→A)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <TabsContent value="todos">
@@ -313,7 +355,7 @@ export default function AdminQuotations() {
               <div className="text-center text-muted-foreground py-12">Nenhuma cotação criada</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {quotations.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
+                {sortedAll.map((q) => q.type === "colheita" ? renderColheitaCard(q) : renderFreteCard(q))}
               </div>
             )}
           </TabsContent>

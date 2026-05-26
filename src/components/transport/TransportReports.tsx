@@ -12,6 +12,8 @@ import { Printer, Loader2, FileSpreadsheet, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 import { toast } from "sonner";
 
 type ReportType =
@@ -506,6 +508,21 @@ export function TransportReports() {
 
   const totals = useMemo(() => ({ total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length }), [rows]);
 
+  type RowSortKey = "data" | "titulo" | "pessoa" | "rota" | "veiculo" | "status" | "valor";
+  const { sort, toggle, sorted } = useSortableTable<Row, RowSortKey>(
+    rows,
+    { key: "data", direction: "desc" },
+    {
+      data: (r) => r.data || "",
+      titulo: (r) => r.titulo || "",
+      pessoa: (r) => r.pessoa || "",
+      rota: (r) => `${r.origem} ${r.destino}`,
+      veiculo: (r) => `${r.veiculo} ${r.proprietario}`,
+      status: (r) => r.status || "",
+      valor: (r) => r.valor || 0,
+    },
+  );
+
   const showCliente = ["cte", "colheita", "cotacoes"].includes(reportType);
   const showMotorista = ["cte", "mdfe", "contratos", "abastecimentos"].includes(reportType);
   const showVehicle = ["cte", "mdfe", "contratos", "ordens_carregamento", "ordens_abastecimento", "manutencoes", "abastecimentos"].includes(reportType);
@@ -845,7 +862,7 @@ ${totalLine}
 
               {isMobile ? (
                 <div className="grid grid-cols-1 gap-2">
-                  {rows.map((r) => (
+                  {sorted.map((r) => (
                     <Card key={r.id}>
                       <CardContent className="p-3 space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
@@ -873,17 +890,17 @@ ${totalLine}
                     <table className="w-full text-xs">
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
-                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[100px]">Data</th>
-                          <th className="px-3 py-2 font-medium">Descrição</th>
-                          <th className="px-3 py-2 font-medium">Pessoa</th>
-                          <th className="px-3 py-2 font-medium">Origem → Destino</th>
-                          <th className="px-3 py-2 font-medium">Veículo / Proprietário</th>
-                          <th className="px-2 py-2 font-medium text-center w-[110px]">Status</th>
-                          {showValor && <th className="px-2 py-2 font-medium text-right w-[130px]">Valor</th>}
+                          <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[100px]" active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")}>Data</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "titulo"} direction={sort.direction} onSort={() => toggle("titulo")}>Descrição</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "pessoa"} direction={sort.direction} onSort={() => toggle("pessoa")}>Pessoa</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "rota"} direction={sort.direction} onSort={() => toggle("rota")}>Origem → Destino</SortableTh>
+                          <SortableTh className="px-3 py-2 font-medium" active={sort.key === "veiculo"} direction={sort.direction} onSort={() => toggle("veiculo")}>Veículo / Proprietário</SortableTh>
+                          <SortableTh className="px-2 py-2 font-medium text-center w-[110px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                          {showValor && <SortableTh className="px-2 py-2 font-medium text-right w-[130px]" align="right" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>}
                         </tr>
                       </thead>
                       <tbody>
-                        {rows.map((r) => (
+                        {sorted.map((r) => (
                           <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                             <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
                             <td className="px-3 py-2">
