@@ -609,6 +609,13 @@ export default function AdminMaintenances() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <MaintenanceFormDialog
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          editId={editId}
+          onSaved={() => { fetchData(); setEditId(null); }}
+        />
       </div>
     </AdminLayout>
   );
