@@ -519,7 +519,7 @@ export function FinancialPayables() {
     setPaymentInstallment({
       installmentId: inst.id,
       numeroParcela: inst.numero_parcela,
-      totalParcelas: allInst.length,
+      totalParcelas: inst.total_parcelas ?? allInst.length,
       valorParcela: Number(inst.valor),
       dataVencimentoParcela: inst.data_vencimento,
     });
