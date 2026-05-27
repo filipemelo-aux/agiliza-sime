@@ -364,16 +364,22 @@ export function FinancialReports() {
         const subtotal = g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0);
         const tableRows = g.rows
           .map(
-            (r, i) => `<tr style="border-bottom:1px solid #f0f2f5">
+            (r, i) => {
+              const parcialInfo = r.status === "parcial"
+                ? `<div style="font-size:10px;color:#004085;margin-top:2px;font-weight:600">Pago: ${formatCurrency(r.valorPago || 0)} • Saldo: ${formatCurrency(r.saldo || 0)}</div>`
+                : "";
+              return `<tr style="border-bottom:1px solid #f0f2f5">
         <td style="padding:8px 10px;font-size:11px;color:#888;text-align:center;width:28px">${i + 1}</td>
         <td style="padding:8px;font-size:11px;color:#555;white-space:nowrap">${formatDateBR(r.data)}</td>
         <td style="padding:8px;font-size:11px;color:#333">
           <div style="font-weight:600">${r.pessoa}</div>
           <div style="font-size:10px;color:#888;margin-top:1px">${r.descricao}</div>
+          ${parcialInfo}
         </td>
         <td style="padding:8px;text-align:center">${statusBadge(r.status)}</td>
         <td style="padding:8px 12px;text-align:right;font-weight:700;color:${r.tipo === "saida" ? "#c0392b" : "#2B4C7E"};white-space:nowrap;font-size:12px">${r.tipo === "saida" ? "-" : ""}${formatCurrency(r.valor)}</td>
-      </tr>`,
+      </tr>`;
+            },
           )
           .join("");
         const groupHeader =
