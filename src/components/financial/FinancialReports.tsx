@@ -452,8 +452,9 @@ html,body{margin:0;padding:0;background:#f4f6f8;font-family:${FONT};color:#1f293
 .head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
 .head .per{font-size:9px;color:#666;text-align:right;margin-top:1px}
 table.sheet{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
-table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
-table.sheet thead th.r{text-align:right}
+table.sheet thead th, table.sheet tr.hdr th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
+table.sheet thead th.r, table.sheet tr.hdr th.r{text-align:right}
+table.sheet tbody tr.hdr td, table.sheet tbody tr.hdr:nth-child(even) td{background:#eef2f6}
 table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
 table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
