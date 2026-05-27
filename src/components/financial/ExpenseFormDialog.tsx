@@ -890,6 +890,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           await supabase.from("expense_installments" as any).insert(nfseParcelas.map((p, i) => ({
             expense_id: nfseData.id,
             numero_parcela: p.numero,
+            total_parcelas: nfseParcelas.length,
             valor: Number(p.valor) || 0,
             data_vencimento: p.data_vencimento,
             status: "pendente",
