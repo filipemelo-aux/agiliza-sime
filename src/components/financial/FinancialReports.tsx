@@ -398,17 +398,28 @@ export function FinancialReports() {
       </tr>`;
     };
 
+    const headerRow = `<tr class="hdr">
+      <th style="width:60px">Data</th>
+      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
+      <th>Descrição</th>
+      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      <th style="width:70px">Status</th>
+      <th class="r" style="width:90px">Valor</th>
+    </tr>`;
+
     const sectionsHtml = grouped
-      .map((g) => {
-        const subtotal = g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0);
+      .map((g, idx) => {
         const tableRows = g.rows.map(renderRow).join("");
         const groupHeader =
           filters.groupBy !== "none"
             ? `<tr class="grp"><td colspan="${colCount}">${esc(g.key)} <span style="color:#6b7280;font-weight:500">(${g.rows.length})</span></td></tr>`
             : "";
-        return groupHeader + tableRows;
+        // Repeat column header below each group title; for ungrouped, show once at top
+        const localHeader = filters.groupBy !== "none" ? headerRow : (idx === 0 ? headerRow : "");
+        return groupHeader + localHeader + tableRows;
       })
       .join("");
+
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
@@ -441,8 +452,9 @@ html,body{margin:0;padding:0;background:#f4f6f8;font-family:${FONT};color:#1f293
 .head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
 .head .per{font-size:9px;color:#666;text-align:right;margin-top:1px}
 table.sheet{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
-table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
-table.sheet thead th.r{text-align:right}
+table.sheet thead th, table.sheet tr.hdr th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
+table.sheet thead th.r, table.sheet tr.hdr th.r{text-align:right}
+table.sheet tbody tr.hdr td, table.sheet tbody tr.hdr:nth-child(even) td{background:#eef2f6}
 table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
 table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
@@ -476,14 +488,6 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
   </div>
   <table class="sheet">
-    <thead><tr>
-      <th style="width:60px">Data</th>
-      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
-      <th>${isCashflow ? "Descrição" : "Descrição"}</th>
-      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
-      <th style="width:70px">Status</th>
-      <th class="r" style="width:90px">Valor</th>
-    </tr></thead>
     <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
