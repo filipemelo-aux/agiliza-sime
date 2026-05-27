@@ -159,6 +159,25 @@ export function FinancialReports() {
             (installmentsByExp[i.expense_id] ||= []).push(i);
           });
         }
+        // Enriquecer descrição com Remetente → Recebedor para despesas vinculadas a Contratos de Frete
+        const contractDescByExp: Record<string, string> = {};
+        if (expIds.length > 0) {
+          const { data: contracts } = await supabase
+            .from("freight_contracts")
+            .select("accounts_payable_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
+            .in("accounts_payable_id", expIds);
+          const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+          const truncTo = (s?: string | null, n = 60) => {
+            const t = (s || "").trim();
+            return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
+          };
+          (contracts || []).forEach((c: any) => {
+            if (!c.accounts_payable_id) return;
+            const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
+            const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
+            contractDescByExp[c.accounts_payable_id] = `Contrato de Frete Nº ${c.numero} - ${remet} → ${destin}`;
+          });
+        }
         const chartMap = new Map(chartAccounts.map((c) => [c.id, c]));
         const today = format(new Date(), "yyyy-MM-dd");
         const inRange = (d: string | null) => {
@@ -173,6 +192,10 @@ export function FinancialReports() {
           const c = e.plano_contas_id ? chartMap.get(e.plano_contas_id) : null;
           const planoLabel = c ? `${c.codigo} ${c.nome}` : "—";
           const installs = installmentsByExp[e.id] || [];
+          const baseDescricao = contractDescByExp[e.id] || e.descricao;
+          const valorTotal = Number(e.valor_total);
+          const valorPagoExp = Number(e.valor_pago || 0);
+          const expIsParcial = valorPagoExp > 0 && valorPagoExp < valorTotal;
           if (installs.length > 0) {
             installs.forEach((inst: any) => {
               const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
@@ -182,34 +205,33 @@ export function FinancialReports() {
               out.push({
                 id: `${e.id}-${inst.id}`,
                 data: inst.data_vencimento,
-                descricao: `${e.descricao} (P${inst.numero_parcela}/${installs.length})`,
+                descricao: `${baseDescricao} (P${inst.numero_parcela}/${installs.length})`,
                 pessoa: e.favorecido_nome || "—",
                 status,
                 valor: Number(inst.valor),
                 origem: e.origem,
                 plano: planoLabel,
                 centro: e.centro_custo,
+                valorPago: expIsParcial ? valorPagoExp : undefined,
+                saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
               });
             });
           } else {
             const d = e.data_vencimento || e.data_emissao;
             if (!inRange(d)) return;
             if (!matchStatus(e.status)) return;
-            const valor = Number(e.valor_total);
-            const valorPago = Number(e.valor_pago || 0);
-            const isParcial = e.status === "parcial";
             out.push({
               id: e.id,
               data: d,
-              descricao: e.descricao,
+              descricao: baseDescricao,
               pessoa: e.favorecido_nome || "—",
               status: e.status,
-              valor,
+              valor: valorTotal,
               origem: e.origem,
               plano: planoLabel,
               centro: e.centro_custo,
-              valorPago: isParcial ? valorPago : undefined,
-              saldo: isParcial ? Math.max(valor - valorPago, 0) : undefined,
+              valorPago: expIsParcial ? valorPagoExp : undefined,
+              saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
             });
           }
         });
