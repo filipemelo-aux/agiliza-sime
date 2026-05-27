@@ -394,6 +394,11 @@ export function FinancialReports() {
       })
       .join("");
 
+    const saldoRestanteLine =
+      reportType === "payables" && (totals as any).saldoRestante > 0
+        ? `<tr style="background:#e7f1ff"><td colspan="4" style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#004085;text-transform:uppercase">Saldo Restante a Pagar (parciais)</td><td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:800;color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        : "";
+
     const totalLine =
       reportType === "cashflow"
         ? `<tr style="background:#f0f4f8"><td colspan="4" style="padding:12px;text-align:right;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Entradas: ${formatCurrency((totals as any).entradas)} | Saídas: ${formatCurrency((totals as any).saidas)} | Saldo</td><td style="padding:12px;text-align:right;font-size:15px;font-weight:800;color:${totals.total >= 0 ? "#2B4C7E" : "#c0392b"}">${formatCurrency(totals.total)}</td></tr>`
