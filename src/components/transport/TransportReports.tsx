@@ -350,8 +350,22 @@ export function TransportReports() {
           const dpStr = rawDp ? String(rawDp).slice(0, 10) : null;
           let descRaw: any = c.cte?.desconto;
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
-          const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
-          const litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
+          let descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
+          let litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
+          // Fallback: parsear observacoes quando o CT-e não tem o JSON de desconto preenchido
+          // (acontece em contratos importados via lote antes da padronização do campo desconto).
+          if (descontoValor === 0 && typeof c.observacoes === "string" && /desconto/i.test(c.observacoes)) {
+            const obs = c.observacoes as string;
+            const parseBR = (s: string) => Number(s.replace(/\./g, "").replace(",", ".")) || 0;
+            const mDiesel = obs.match(/Desconto\s+Diesel\s*:\s*([\d.,]+)\s*L\s*[×x*]\s*R\$\s*([\d.,]+)\s*=\s*R\$\s*([\d.,]+)/i);
+            if (mDiesel) {
+              litrosDesconto = parseBR(mDiesel[1]);
+              descontoValor = parseBR(mDiesel[3]);
+            } else {
+              const mGen = obs.match(/Desconto[^=\n]*=\s*R\$\s*([\d.,]+)/i) || obs.match(/Desconto[^:\n]*:\s*R\$\s*([\d.,]+)/i);
+              if (mGen) descontoValor = parseBR(mGen[1]);
+            }
+          }
           return {
             id: c.id,
             data: c.data_contrato,
