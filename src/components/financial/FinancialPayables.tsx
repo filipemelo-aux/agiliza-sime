@@ -580,7 +580,7 @@ export function FinancialPayables() {
               expenseId: expId,
               installmentId: instId,
               numeroParcela: foundInst.numero_parcela,
-              totalParcelas: installs.length,
+              totalParcelas: foundInst.total_parcelas ?? installs.length,
               dataVencimento: foundInst.data_vencimento,
             });
             break;
