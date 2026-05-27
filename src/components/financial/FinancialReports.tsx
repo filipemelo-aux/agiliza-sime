@@ -425,7 +425,7 @@ export function FinancialReports() {
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          <td colspan="${labelColspan}" style="text-align:left">TOTAL GERAL — ${rows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
