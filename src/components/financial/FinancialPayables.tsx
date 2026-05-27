@@ -1540,7 +1540,7 @@ export function FinancialPayables() {
                             {item.documento_fiscal_importado && <FileText className="h-3 w-3 text-primary shrink-0" />}
                             {descDisplay && <span className="text-xs text-muted-foreground truncate">{descDisplay}</span>}
                             <Badge variant="secondary" className="text-[10px]">
-                              P{inst.numero_parcela}/{installs.length}
+                              P{inst.numero_parcela}/{inst.total_parcelas ?? installs.length}
                             </Badge>
                             <Badge variant={STATUS_MAP[instStatus]?.variant || "outline"} className="text-[10px]">
                               {STATUS_MAP[instStatus]?.label || inst.status}
