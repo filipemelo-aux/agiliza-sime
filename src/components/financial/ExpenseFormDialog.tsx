@@ -748,15 +748,23 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         }
 
         // Insert only pending installments (paid ones are preserved)
+        const totalParcelasFinal = parcelas.length;
         if (pendingParcelas.length > 0) {
           await supabase.from("expense_installments" as any).insert(pendingParcelas.map((p, i) => ({
             expense_id: expenseId,
             numero_parcela: p.numero,
+            total_parcelas: totalParcelasFinal,
             valor: Number(p.valor) || 0,
             data_vencimento: p.data_vencimento,
             status: "pendente",
             boleto_url: boletoPaths[i],
           })));
+        }
+        // Keep paid parcelas total_parcelas in sync with the current configuration
+        if (paidParcelas.length > 0) {
+          await supabase.from("expense_installments" as any)
+            .update({ total_parcelas: totalParcelasFinal } as any)
+            .in("id", paidParcelas.map(p => p.id!));
         }
       } else {
         // If parcelas disabled, only delete pending ones
@@ -882,6 +890,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
           await supabase.from("expense_installments" as any).insert(nfseParcelas.map((p, i) => ({
             expense_id: nfseData.id,
             numero_parcela: p.numero,
+            total_parcelas: nfseParcelas.length,
             valor: Number(p.valor) || 0,
             data_vencimento: p.data_vencimento,
             status: "pendente",
