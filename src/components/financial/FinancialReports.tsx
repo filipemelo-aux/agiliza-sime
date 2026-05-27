@@ -41,6 +41,8 @@ interface Row {
   plano: string;
   centro: string;
   tipo?: "entrada" | "saida";
+  valorPago?: number;
+  saldo?: number;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
@@ -193,16 +195,21 @@ export function FinancialReports() {
             const d = e.data_vencimento || e.data_emissao;
             if (!inRange(d)) return;
             if (!matchStatus(e.status)) return;
+            const valor = Number(e.valor_total);
+            const valorPago = Number(e.valor_pago || 0);
+            const isParcial = e.status === "parcial";
             out.push({
               id: e.id,
               data: d,
               descricao: e.descricao,
               pessoa: e.favorecido_nome || "—",
               status: e.status,
-              valor: Number(e.valor_total),
+              valor,
               origem: e.origem,
               plano: planoLabel,
               centro: e.centro_custo,
+              valorPago: isParcial ? valorPago : undefined,
+              saldo: isParcial ? Math.max(valor - valorPago, 0) : undefined,
             });
           }
         });
@@ -297,9 +304,10 @@ export function FinancialReports() {
     if (reportType === "cashflow") {
       const entradas = rows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
       const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
-      return { total: entradas - saidas, count: rows.length, entradas, saidas };
+      return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
     }
-    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length };
+    const saldoRestante = rows.reduce((s, r) => s + (r.status === "parcial" ? (r.saldo || 0) : 0), 0);
+    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
   }, [rows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
@@ -356,16 +364,22 @@ export function FinancialReports() {
         const subtotal = g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0);
         const tableRows = g.rows
           .map(
-            (r, i) => `<tr style="border-bottom:1px solid #f0f2f5">
+            (r, i) => {
+              const parcialInfo = r.status === "parcial"
+                ? `<div style="font-size:10px;color:#004085;margin-top:2px;font-weight:600">Pago: ${formatCurrency(r.valorPago || 0)} • Saldo: ${formatCurrency(r.saldo || 0)}</div>`
+                : "";
+              return `<tr style="border-bottom:1px solid #f0f2f5">
         <td style="padding:8px 10px;font-size:11px;color:#888;text-align:center;width:28px">${i + 1}</td>
         <td style="padding:8px;font-size:11px;color:#555;white-space:nowrap">${formatDateBR(r.data)}</td>
         <td style="padding:8px;font-size:11px;color:#333">
           <div style="font-weight:600">${r.pessoa}</div>
           <div style="font-size:10px;color:#888;margin-top:1px">${r.descricao}</div>
+          ${parcialInfo}
         </td>
         <td style="padding:8px;text-align:center">${statusBadge(r.status)}</td>
         <td style="padding:8px 12px;text-align:right;font-weight:700;color:${r.tipo === "saida" ? "#c0392b" : "#2B4C7E"};white-space:nowrap;font-size:12px">${r.tipo === "saida" ? "-" : ""}${formatCurrency(r.valor)}</td>
-      </tr>`,
+      </tr>`;
+            },
           )
           .join("");
         const groupHeader =
@@ -379,6 +393,11 @@ export function FinancialReports() {
         return groupHeader + tableRows + subtotalRow;
       })
       .join("");
+
+    const saldoRestanteLine =
+      reportType === "payables" && (totals as any).saldoRestante > 0
+        ? `<tr style="background:#e7f1ff"><td colspan="4" style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#004085;text-transform:uppercase">Saldo Restante a Pagar (parciais)</td><td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:800;color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        : "";
 
     const totalLine =
       reportType === "cashflow"
@@ -417,6 +436,7 @@ ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#6
 <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor</td>
 </tr>
 ${sectionsHtml}
+${saldoRestanteLine}
 ${totalLine}
 </table></td></tr>
 <tr><td style="height:10px"></td></tr>
