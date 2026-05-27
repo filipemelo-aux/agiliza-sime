@@ -394,7 +394,7 @@ export function FinancialReports() {
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
-        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar (parciais)</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
     const totalLine = isCashflow
