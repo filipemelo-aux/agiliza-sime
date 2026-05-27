@@ -436,6 +436,7 @@ ${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#6
 <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor</td>
 </tr>
 ${sectionsHtml}
+${saldoRestanteLine}
 ${totalLine}
 </table></td></tr>
 <tr><td style="height:10px"></td></tr>
