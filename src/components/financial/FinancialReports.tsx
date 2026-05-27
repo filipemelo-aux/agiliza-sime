@@ -422,7 +422,7 @@ export function FinancialReports() {
         </tr>`
       : `<tr class="tot">
           <td colspan="${labelColspan}" style="text-align:left">TOTAL GERAL — ${rows.length} registro(s)</td>
-          <td class="r val">SUBTOTAL ${formatCurrency(totals.total)}</td>
+          <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${REPORT_TITLE[reportType]}</title>
