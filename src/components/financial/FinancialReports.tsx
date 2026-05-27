@@ -41,6 +41,8 @@ interface Row {
   plano: string;
   centro: string;
   tipo?: "entrada" | "saida";
+  valorPago?: number;
+  saldo?: number;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
