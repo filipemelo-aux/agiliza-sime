@@ -306,7 +306,11 @@ export function FinancialReports() {
       const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
       return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
     }
-    const saldoRestante = rows.reduce((s, r) => s + (r.status === "parcial" ? (r.saldo || 0) : 0), 0);
+    const saldoRestante = rows.reduce((s, r) => {
+      if (r.saldo !== undefined) return s + r.saldo;
+      if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
+      return s;
+    }, 0);
     return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
   }, [rows, reportType]);
 
