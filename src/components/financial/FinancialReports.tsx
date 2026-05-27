@@ -386,7 +386,7 @@ export function FinancialReports() {
             : "";
         const subtotalRow =
           filters.groupBy !== "none"
-            ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
+            ? `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
             : "";
         return groupHeader + tableRows + subtotalRow;
       })
@@ -394,16 +394,16 @@ export function FinancialReports() {
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
-        ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r" style="color:#004085">Saldo Restante a Pagar (parciais)</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar (parciais)</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
     const totalLine = isCashflow
       ? `<tr class="tot">
-          <td colspan="${grouped3Span + 1}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
+          <td colspan="${labelColspan}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${grouped3Span + 1}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
