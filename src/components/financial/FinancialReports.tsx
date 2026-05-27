@@ -195,16 +195,21 @@ export function FinancialReports() {
             const d = e.data_vencimento || e.data_emissao;
             if (!inRange(d)) return;
             if (!matchStatus(e.status)) return;
+            const valor = Number(e.valor_total);
+            const valorPago = Number(e.valor_pago || 0);
+            const isParcial = e.status === "parcial";
             out.push({
               id: e.id,
               data: d,
               descricao: e.descricao,
               pessoa: e.favorecido_nome || "—",
               status: e.status,
-              valor: Number(e.valor_total),
+              valor,
               origem: e.origem,
               plano: planoLabel,
               centro: e.centro_custo,
+              valorPago: isParcial ? valorPago : undefined,
+              saldo: isParcial ? Math.max(valor - valorPago, 0) : undefined,
             });
           }
         });
