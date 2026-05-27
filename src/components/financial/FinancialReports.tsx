@@ -484,7 +484,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
     </tr></thead>
-    <tbody>${sectionsHtml}${saldoRestanteLine}${totalLine}</tbody>
+    <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
     <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
