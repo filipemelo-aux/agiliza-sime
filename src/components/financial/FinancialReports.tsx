@@ -425,8 +425,7 @@ export function FinancialReports() {
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${labelColspan}" style="text-align:left">TOTAL GERAL — ${rows.length} registro(s)</td>
-          <td class="r val">${formatCurrency(totals.total)}</td>
+          <td colspan="${colCount}" style="text-align:left">TOTAL GERAL — ${rows.length} registro(s) • ${formatCurrency(totals.total)}</td>
         </tr>`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${REPORT_TITLE[reportType]}</title>
