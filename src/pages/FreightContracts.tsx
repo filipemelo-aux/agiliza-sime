@@ -429,6 +429,7 @@ export default function FreightContracts() {
           onDeleted={() => { setDetailCte(null); fetchData(); }}
         />
       )}
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
