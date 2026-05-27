@@ -381,7 +381,7 @@ export function FinancialReports() {
       const valorPrefix = r.tipo === "saida" ? "− " : "";
       const isParcial = r.status === "parcial" || r.valorPago !== undefined;
       const parcialInfo = isParcial
-        ? `<div class="t2" style="color:#004085;font-weight:600">Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
+        ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "";
       const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
