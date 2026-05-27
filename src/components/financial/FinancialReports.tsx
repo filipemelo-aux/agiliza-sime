@@ -406,11 +406,7 @@ export function FinancialReports() {
           filters.groupBy !== "none"
             ? `<tr class="grp"><td colspan="${colCount}">${esc(g.key)} <span style="color:#6b7280;font-weight:500">(${g.rows.length})</span></td></tr>`
             : "";
-        const subtotalRow =
-          filters.groupBy !== "none"
-            ? `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
-            : "";
-        return groupHeader + tableRows + subtotalRow;
+        return groupHeader + tableRows;
       })
       .join("");
 
