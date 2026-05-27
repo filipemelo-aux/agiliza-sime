@@ -398,17 +398,28 @@ export function FinancialReports() {
       </tr>`;
     };
 
+    const headerRow = `<tr class="hdr">
+      <th style="width:60px">Data</th>
+      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
+      <th>Descrição</th>
+      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      <th style="width:70px">Status</th>
+      <th class="r" style="width:90px">Valor</th>
+    </tr>`;
+
     const sectionsHtml = grouped
-      .map((g) => {
-        const subtotal = g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0);
+      .map((g, idx) => {
         const tableRows = g.rows.map(renderRow).join("");
         const groupHeader =
           filters.groupBy !== "none"
             ? `<tr class="grp"><td colspan="${colCount}">${esc(g.key)} <span style="color:#6b7280;font-weight:500">(${g.rows.length})</span></td></tr>`
             : "";
-        return groupHeader + tableRows;
+        // Repeat column header below each group title; for ungrouped, show once at top
+        const localHeader = filters.groupBy !== "none" ? headerRow : (idx === 0 ? headerRow : "");
+        return groupHeader + localHeader + tableRows;
       })
       .join("");
+
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
