@@ -57,6 +57,7 @@ interface Installment {
   id: string;
   expense_id: string;
   numero_parcela: number;
+  total_parcelas: number | null;
   valor: number;
   data_vencimento: string;
   status: string;
