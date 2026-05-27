@@ -304,9 +304,10 @@ export function FinancialReports() {
     if (reportType === "cashflow") {
       const entradas = rows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
       const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
-      return { total: entradas - saidas, count: rows.length, entradas, saidas };
+      return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
     }
-    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length };
+    const saldoRestante = rows.reduce((s, r) => s + (r.status === "parcial" ? (r.saldo || 0) : 0), 0);
+    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
   }, [rows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
