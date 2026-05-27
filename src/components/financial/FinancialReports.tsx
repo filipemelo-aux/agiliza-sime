@@ -406,11 +406,7 @@ export function FinancialReports() {
           filters.groupBy !== "none"
             ? `<tr class="grp"><td colspan="${colCount}">${esc(g.key)} <span style="color:#6b7280;font-weight:500">(${g.rows.length})</span></td></tr>`
             : "";
-        const subtotalRow =
-          filters.groupBy !== "none"
-            ? `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
-            : "";
-        return groupHeader + tableRows + subtotalRow;
+        return groupHeader + tableRows;
       })
       .join("");
 
@@ -426,7 +422,7 @@ export function FinancialReports() {
         </tr>`
       : `<tr class="tot">
           <td colspan="${labelColspan}" style="text-align:left">TOTAL GERAL — ${rows.length} registro(s)</td>
-          <td class="r val">SUBTOTAL ${formatCurrency(totals.total)}</td>
+          <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${REPORT_TITLE[reportType]}</title>
@@ -488,7 +484,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
     </tr></thead>
-    <tbody>${sectionsHtml}${saldoRestanteLine}${totalLine}</tbody>
+    <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
     <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
