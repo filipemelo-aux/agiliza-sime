@@ -340,55 +340,44 @@ export function FinancialReports() {
     } catch {}
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
-    const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
+    const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 
-    const statusBadge = (s: string) => {
-      const colors: Record<string, { bg: string; fg: string }> = {
-        pago: { bg: "#d4edda", fg: "#155724" },
-        recebido: { bg: "#d4edda", fg: "#155724" },
-        entrada: { bg: "#d4edda", fg: "#155724" },
-        atrasado: { bg: "#f8d7da", fg: "#721c24" },
-        saida: { bg: "#f8d7da", fg: "#721c24" },
-        pendente: { bg: "#fff3cd", fg: "#856404" },
-        aberto: { bg: "#fff3cd", fg: "#856404" },
-        parcial: { bg: "#cce5ff", fg: "#004085" },
-        faturado: { bg: "#cce5ff", fg: "#004085" },
-      };
-      const c = colors[s] || { bg: "#e9ecef", fg: "#495057" };
-      return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${s}</span>`;
+    const isCashflow = reportType === "cashflow";
+    // Columns: Data | Pessoa/Descrição | Plano | Status | Valor  (cashflow: Data | Descrição | Origem | Tipo | Valor)
+    const colCount = 5;
+    const grouped3Span = 3; // colspan before the value column for subtotal label
+
+    const renderRow = (r: Row) => {
+      const parcialInfo = r.status === "parcial"
+        ? `<div class="t2" style="color:#004085;font-weight:600">Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo || 0)}</div>`
+        : "";
+      const valorColor = r.tipo === "saida" ? "neg" : "val";
+      const valorPrefix = r.tipo === "saida" ? "− " : "";
+      return `<tr>
+        <td class="nowrap">${formatDateBR(r.data)}</td>
+        <td>
+          <div class="t1">${esc(r.pessoa)}</div>
+          ${r.descricao ? `<div class="t2">${esc(r.descricao)}</div>` : ""}
+          ${parcialInfo}
+        </td>
+        <td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>
+        <td class="st">${esc(r.status)}</td>
+        <td class="r ${valorColor}">${valorPrefix}${formatCurrency(r.valor)}</td>
+      </tr>`;
     };
 
     const sectionsHtml = grouped
       .map((g) => {
         const subtotal = g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0);
-        const tableRows = g.rows
-          .map(
-            (r, i) => {
-              const parcialInfo = r.status === "parcial"
-                ? `<div style="font-size:10px;color:#004085;margin-top:2px;font-weight:600">Pago: ${formatCurrency(r.valorPago || 0)} • Saldo: ${formatCurrency(r.saldo || 0)}</div>`
-                : "";
-              return `<tr style="border-bottom:1px solid #f0f2f5">
-        <td style="padding:8px 10px;font-size:11px;color:#888;text-align:center;width:28px">${i + 1}</td>
-        <td style="padding:8px;font-size:11px;color:#555;white-space:nowrap">${formatDateBR(r.data)}</td>
-        <td style="padding:8px;font-size:11px;color:#333">
-          <div style="font-weight:600">${r.pessoa}</div>
-          <div style="font-size:10px;color:#888;margin-top:1px">${r.descricao}</div>
-          ${parcialInfo}
-        </td>
-        <td style="padding:8px;text-align:center">${statusBadge(r.status)}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${r.tipo === "saida" ? "#c0392b" : "#2B4C7E"};white-space:nowrap;font-size:12px">${r.tipo === "saida" ? "-" : ""}${formatCurrency(r.valor)}</td>
-      </tr>`;
-            },
-          )
-          .join("");
+        const tableRows = g.rows.map(renderRow).join("");
         const groupHeader =
           filters.groupBy !== "none"
-            ? `<tr style="background:#eef2f7"><td colspan="5" style="padding:8px 12px;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:0.3px">${g.key} <span style="color:#888;font-weight:400">(${g.rows.length})</span></td></tr>`
+            ? `<tr class="grp"><td colspan="${colCount}">${esc(g.key)} <span style="color:#6b7280;font-weight:500">(${g.rows.length})</span></td></tr>`
             : "";
         const subtotalRow =
           filters.groupBy !== "none"
-            ? `<tr style="background:#fafbfc"><td colspan="4" style="padding:6px 12px;text-align:right;font-size:11px;color:#666;font-weight:600">Subtotal</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#2B4C7E;font-size:12px">${formatCurrency(subtotal)}</td></tr>`
+            ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
             : "";
         return groupHeader + tableRows + subtotalRow;
       })
@@ -396,64 +385,97 @@ export function FinancialReports() {
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
-        ? `<tr style="background:#e7f1ff"><td colspan="4" style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:#004085;text-transform:uppercase">Saldo Restante a Pagar (parciais)</td><td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:800;color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r" style="color:#004085">Saldo Restante a Pagar (parciais)</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
-    const totalLine =
-      reportType === "cashflow"
-        ? `<tr style="background:#f0f4f8"><td colspan="4" style="padding:12px;text-align:right;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Entradas: ${formatCurrency((totals as any).entradas)} | Saídas: ${formatCurrency((totals as any).saidas)} | Saldo</td><td style="padding:12px;text-align:right;font-size:15px;font-weight:800;color:${totals.total >= 0 ? "#2B4C7E" : "#c0392b"}">${formatCurrency(totals.total)}</td></tr>`
-        : `<tr style="background:#f0f4f8"><td colspan="4" style="padding:12px;text-align:right;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase">Total Geral</td><td style="padding:12px;text-align:right;font-size:15px;font-weight:800;color:#2B4C7E">${formatCurrency(totals.total)}</td></tr>`;
+    const totalLine = isCashflow
+      ? `<tr class="tot">
+          <td colspan="${grouped3Span + 1}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
+          <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
+        </tr>`
+      : `<tr class="tot">
+          <td colspan="${grouped3Span + 1}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          <td class="r val">${formatCurrency(totals.total)}</td>
+        </tr>`;
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${REPORT_TITLE[reportType]}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${REPORT_TITLE[reportType]}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
-@media print { @page { margin: 8mm 6mm; size: A4; } html,body{margin:0!important;padding:0!important;background:#fff!important} }
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box}
+@media print { @page { margin: 6mm 5mm; size: A4 portrait; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} .sheet{box-shadow:none!important;border:none!important} tr{page-break-inside:avoid} thead{display:table-header-group} }
+html,body{margin:0;padding:0;background:#f4f6f8;font-family:${FONT};color:#1f2937}
+.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
+.toolbar button{font-family:${FONT};font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#fff;color:#2B4C7E;cursor:pointer}
+.toolbar button.primary{background:#2B4C7E;color:#fff;border-color:#2B4C7E}
+.wrap{max-width:900px;margin:6px auto;padding:0 8px}
+.head{display:flex;align-items:center;gap:10px;padding:4px 2px 6px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
+.head img{height:30px;width:auto;display:block}
+.head .est{font-size:9px;color:#555;line-height:1.25}
+.head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:9px;color:#666;text-align:right;margin-top:1px}
+table.sheet{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:auto}
+table.sheet thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left}
+table.sheet thead th.r{text-align:right}
+table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
+table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
+.nowrap{white-space:nowrap}
+.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t1{font-weight:600;color:#111827}
+.t2{font-size:7.5px;color:#6b7280;margin-top:1px}
+.t2b{font-size:8.5px;color:#374151}
+.st{font-size:8.5px;font-weight:600;color:#374151;text-transform:capitalize}
+.neg{color:#b91c1c;font-weight:700}
+.val{font-weight:700;color:#111827}
+tr.grp td{background:#eef2f6!important;font-weight:700;font-size:9px;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;padding:3px 5px}
+tr.sub td{background:#fafbfc!important;font-weight:700;font-size:9px;color:#374151;padding:3px 5px}
+tr.tot td{background:#eef2f6!important;font-weight:800;font-size:9.5px;color:#2B4C7E;padding:4px 5px;border-top:1.5px solid #2B4C7E}
+tr.tot td.val{color:#2B4C7E;font-size:10px}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:8px;color:#6b7280;padding:0 2px}
 </style></head>
-<body style="margin:0;padding:0;background:#f4f6f8;font-family:${FONT}">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:10px 8px">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px;font-family:${FONT}">
-<tr><td style="background:#fff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
-<table width="100%"><tr>
-<td style="width:48px"><img src="${logoUrl}" width="42" height="42" style="border-radius:6px"/></td>
-<td><div style="font-weight:800;font-size:18px;color:#2B4C7E">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-<div style="font-size:11px;color:#666">${estName}</div>
-${estCnpj ? estCnpj.split(" / ").map((c) => `<div style="font-size:11px;color:#666">CNPJ: ${c}</div>`).join("") : ""}
-</td></tr></table></td></tr>
-<tr><td style="height:8px"></td></tr>
-<tr><td style="background:#fff;border-radius:10px;padding:10px 20px;text-align:center">
-<div style="font-size:17px;font-weight:700;color:#2B4C7E">${REPORT_TITLE[reportType]}</div>
-<div style="font-size:11px;color:#888;margin-top:4px">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
-</td></tr>
-<tr><td style="height:8px"></td></tr>
-<tr><td style="background:#fff;border-radius:10px;overflow:hidden">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr style="background:#f5f7fa">
-<td style="padding:8px 10px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;text-align:center;width:28px">#</td>
-<td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Data</td>
-<td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase">Pessoa / Descrição</td>
-<td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;text-align:center">Status</td>
-<td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;text-align:right">Valor</td>
-</tr>
-${sectionsHtml}
-${saldoRestanteLine}
-${totalLine}
-</table></td></tr>
-<tr><td style="height:10px"></td></tr>
-<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-<div style="font-size:10px;color:rgba(255,255,255,0.85)">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
-<div style="font-size:10px;color:rgba(255,255,255,0.85)">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
-</td></tr>
-</table></td></tr></table></body></html>`;
+<body>
+<div class="toolbar no-print">
+  <button onclick="window.print()" class="primary">🖨️ Imprimir</button>
+</div>
+<div class="wrap">
+  <div class="head">
+    <img src="${window.location.origin}/logo.png" alt="" />
+    <div class="est">
+      <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
+      ${estCnpj ? estCnpj.split(" / ").map((c) => `<div>CNPJ ${esc(c)}</div>`).join("") : ""}
+    </div>
+    <div style="flex:1">
+      <h1>${REPORT_TITLE[reportType]}</h1>
+      <div class="per">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
+    </div>
+  </div>
+  <table class="sheet">
+    <thead><tr>
+      <th style="width:60px">Data</th>
+      <th>${isCashflow ? "Descrição" : "Pessoa / Descrição"}</th>
+      <th style="width:160px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      <th style="width:70px">Status</th>
+      <th class="r" style="width:90px">Valor</th>
+    </tr></thead>
+    <tbody>${sectionsHtml}${saldoRestanteLine}${totalLine}</tbody>
+  </table>
+  <div class="foot">
+    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
+    <div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+  </div>
+</div>
+</body></html>`;
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => { win.focus(); win.print(); };
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Não foi possível abrir a impressão", { description: "Libere pop-ups para gerar o PDF na tela." });
+      return;
     }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
   };
+
 
   const exportCsv = () => {
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
