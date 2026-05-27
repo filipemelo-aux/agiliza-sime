@@ -63,6 +63,7 @@ interface FreightContractRow {
 }
 
 export default function FreightContracts() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const { toast } = useToast();
   const [rows, setRows] = useState<FreightContractRow[]>([]);
   const [loading, setLoading] = useState(true);
