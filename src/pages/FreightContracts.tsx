@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, FileSignature, Printer, ExternalLink, X, Pencil } from "lucide-react";
+import { Search, FileSignature, Printer, ExternalLink, X, Pencil, Trash2 } from "lucide-react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/masks";
@@ -62,6 +63,7 @@ interface FreightContractRow {
 }
 
 export default function FreightContracts() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const { toast } = useToast();
   const [rows, setRows] = useState<FreightContractRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,6 +371,30 @@ export default function FreightContracts() {
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openCteDetail(r.cte_id)} title="CT-e vinculado">
                               <ExternalLink className="w-3.5 h-3.5" />
                             </Button>
+                            <Button
+                              size="sm" variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              disabled={editDisabled}
+                              title={editDisabled ? "Estorne o pagamento antes de excluir" : "Excluir contrato (não afeta o CT-e)"}
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: "Excluir contrato de frete",
+                                  description: `Excluir o contrato Nº ${String(r.numero).padStart(6, "0")}?\n\nA conta a pagar pendente vinculada será removida.\nO CT-e ${r.cte?.numero ?? ""} NÃO será afetado.`,
+                                  variant: "destructive",
+                                  confirmLabel: "Excluir",
+                                });
+                                if (!ok) return;
+                                const { error } = await supabase.from("freight_contracts").delete().eq("id", r.id);
+                                if (error) {
+                                  toast({ title: "Erro ao excluir contrato", description: error.message, variant: "destructive" });
+                                  return;
+                                }
+                                toast({ title: "Contrato excluído" });
+                                fetchData();
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -403,6 +429,7 @@ export default function FreightContracts() {
           onDeleted={() => { setDetailCte(null); fetchData(); }}
         />
       )}
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
