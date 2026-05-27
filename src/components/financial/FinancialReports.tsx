@@ -306,7 +306,11 @@ export function FinancialReports() {
       const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
       return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
     }
-    const saldoRestante = rows.reduce((s, r) => s + (r.status === "parcial" ? (r.saldo || 0) : 0), 0);
+    const saldoRestante = rows.reduce((s, r) => {
+      if (r.saldo !== undefined) return s + r.saldo;
+      if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
+      return s;
+    }, 0);
     return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
   }, [rows, reportType]);
 
@@ -344,24 +348,29 @@ export function FinancialReports() {
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 
     const isCashflow = reportType === "cashflow";
-    // Columns: Data | Pessoa/Descrição | Plano | Status | Valor  (cashflow: Data | Descrição | Origem | Tipo | Valor)
-    const colCount = 5;
-    const grouped3Span = 3; // colspan before the value column for subtotal label
+    const showFavor = !isCashflow;
+    // Columns: Data | [Favorecido] | Descrição | Plano | Status | Valor
+    // Cashflow: Data | Descrição | Origem | Status | Valor
+    const colCount = showFavor ? 6 : 5;
+    const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
 
     const renderRow = (r: Row) => {
-      const parcialInfo = r.status === "parcial"
-        ? `<div class="t2" style="color:#004085;font-weight:600">Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo || 0)}</div>`
-        : "";
       const valorColor = r.tipo === "saida" ? "neg" : "val";
       const valorPrefix = r.tipo === "saida" ? "− " : "";
+      const isParcial = r.status === "parcial" || r.valorPago !== undefined;
+      const parcialInfo = isParcial
+        ? `<div class="t2" style="color:#004085;font-weight:600">Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
+        : "";
+      const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
+      const descCell = showFavor
+        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`
+        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`;
+      const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
-        <td>
-          <div class="t1">${esc(r.pessoa)}</div>
-          ${r.descricao ? `<div class="t2">${esc(r.descricao)}</div>` : ""}
-          ${parcialInfo}
-        </td>
-        <td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>
+        ${favorCell}
+        ${descCell}
+        ${planoCell}
         <td class="st">${esc(r.status)}</td>
         <td class="r ${valorColor}">${valorPrefix}${formatCurrency(r.valor)}</td>
       </tr>`;
@@ -377,7 +386,7 @@ export function FinancialReports() {
             : "";
         const subtotalRow =
           filters.groupBy !== "none"
-            ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
+            ? `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal</td><td class="r val">${formatCurrency(subtotal)}</td></tr>`
             : "";
         return groupHeader + tableRows + subtotalRow;
       })
@@ -385,16 +394,16 @@ export function FinancialReports() {
 
     const saldoRestanteLine =
       reportType === "payables" && (totals as any).saldoRestante > 0
-        ? `<tr class="sub"><td colspan="${grouped3Span + 1}" class="r" style="color:#004085">Saldo Restante a Pagar (parciais)</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
     const totalLine = isCashflow
       ? `<tr class="tot">
-          <td colspan="${grouped3Span + 1}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
+          <td colspan="${labelColspan}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${grouped3Span + 1}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
@@ -451,8 +460,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   <table class="sheet">
     <thead><tr>
       <th style="width:60px">Data</th>
-      <th>${isCashflow ? "Descrição" : "Pessoa / Descrição"}</th>
-      <th style="width:160px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
+      <th>${isCashflow ? "Descrição" : "Descrição"}</th>
+      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
     </tr></thead>
