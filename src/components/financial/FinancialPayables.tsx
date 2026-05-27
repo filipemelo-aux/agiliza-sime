@@ -1080,7 +1080,7 @@ export function FinancialPayables() {
             const chart = item?.plano_contas_id ? chartIdMap[item.plano_contas_id] : null;
             rows.push({
               favorecido: item?.favorecido_nome || "Sem favorecido",
-              descricao: `${item?.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ` : ""}${item?.descricao || "Serviço"} (P${inst.numero_parcela}/${installs.length})`,
+              descricao: `${item?.documento_fiscal_numero ? `NF ${item.documento_fiscal_numero} — ` : ""}${item?.descricao || "Serviço"} (P${inst.numero_parcela}/${inst.total_parcelas ?? installs.length})`,
               vencimento: inst.data_vencimento,
               valor: Number(inst.valor),
               status: isOverdue ? "atrasado" : inst.status,
