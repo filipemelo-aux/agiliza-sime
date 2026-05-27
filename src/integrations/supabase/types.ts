@@ -1140,6 +1140,7 @@ export type Database = {
           id: string
           numero_parcela: number
           status: string
+          total_parcelas: number | null
           valor: number
         }
         Insert: {
@@ -1150,6 +1151,7 @@ export type Database = {
           id?: string
           numero_parcela?: number
           status?: string
+          total_parcelas?: number | null
           valor?: number
         }
         Update: {
@@ -1160,6 +1162,7 @@ export type Database = {
           id?: string
           numero_parcela?: number
           status?: string
+          total_parcelas?: number | null
           valor?: number
         }
         Relationships: [
