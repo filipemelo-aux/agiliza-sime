@@ -487,14 +487,6 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
   </div>
   <table class="sheet">
-    <thead><tr>
-      <th style="width:60px">Data</th>
-      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
-      <th>${isCashflow ? "Descrição" : "Descrição"}</th>
-      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
-      <th style="width:70px">Status</th>
-      <th class="r" style="width:90px">Valor</th>
-    </tr></thead>
     <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
