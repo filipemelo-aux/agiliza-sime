@@ -69,10 +69,8 @@ const initial = (): Filters => ({
 const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
   cte: [
     { value: "todos", label: "Todos" },
-    { value: "rascunho", label: "Rascunho" },
-    { value: "autorizado", label: "Autorizado" },
-    { value: "rejeitado", label: "Rejeitado" },
-    { value: "cancelado", label: "Cancelado" },
+    { value: "recebido", label: "Recebidos" },
+    { value: "aberto", label: "Em aberto" },
   ],
   mdfe: [
     { value: "todos", label: "Todos" },
