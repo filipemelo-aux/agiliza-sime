@@ -214,13 +214,66 @@ export function TransportReports() {
         let q: any = supabase.from("ctes").select("*");
         if (filters.dataInicio) q = q.gte("data_emissao", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_emissao", filters.dataFim + "T23:59:59");
-        if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.clienteId !== "todos") q = q.eq("tomador_id", filters.clienteId);
         if (filters.motoristaId !== "todos") q = q.eq("motorista_id", filters.motoristaId);
         if (filters.vehicleId !== "todos") q = q.eq("veiculo_id", filters.vehicleId);
         if (ownedPlates && ownedPlates.size > 0) q = q.in("placa_veiculo", Array.from(ownedPlates));
         const { data, error } = await q.order("data_emissao", { ascending: true }).limit(2000);
         if (error) throw error;
+
+        // Resolver status de recebimento: CT-e → previsão → fatura → conta a receber.
+        const cteIds = (data || []).map((c: any) => c.id);
+        const recebMap = new Map<string, { recebido: boolean; data: string | null }>();
+        if (cteIds.length > 0) {
+          const { data: previsoes } = await supabase
+            .from("previsoes_recebimento")
+            .select("id, origem_id")
+            .eq("origem_tipo", "cte")
+            .in("origem_id", cteIds);
+          const prevByCte = new Map<string, string>(); // cte_id -> previsao_id
+          const prevIds: string[] = [];
+          ((previsoes as any) || []).forEach((p: any) => {
+            prevByCte.set(p.origem_id, p.id);
+            prevIds.push(p.id);
+          });
+          if (prevIds.length > 0) {
+            const { data: links } = await supabase
+              .from("fatura_previsoes")
+              .select("previsao_id, fatura_id")
+              .in("previsao_id", prevIds);
+            const faturaByPrev = new Map<string, string>();
+            const faturaIds: string[] = [];
+            ((links as any) || []).forEach((l: any) => {
+              faturaByPrev.set(l.previsao_id, l.fatura_id);
+              faturaIds.push(l.fatura_id);
+            });
+            if (faturaIds.length > 0) {
+              const { data: contas } = await supabase
+                .from("contas_receber")
+                .select("fatura_id, status, data_recebimento")
+                .in("fatura_id", faturaIds);
+              const contaByFatura = new Map<string, { status: string; data_recebimento: string | null }>();
+              ((contas as any) || []).forEach((cr: any) => {
+                const prev = contaByFatura.get(cr.fatura_id);
+                // Prioriza um registro recebido caso exista mais de uma conta por fatura.
+                if (!prev || cr.status === "recebido") {
+                  contaByFatura.set(cr.fatura_id, { status: cr.status, data_recebimento: cr.data_recebimento });
+                }
+              });
+              prevByCte.forEach((prevId, cteId) => {
+                const faturaId = faturaByPrev.get(prevId);
+                const conta = faturaId ? contaByFatura.get(faturaId) : undefined;
+                if (conta) {
+                  recebMap.set(cteId, {
+                    recebido: conta.status === "recebido",
+                    data: conta.status === "recebido" ? conta.data_recebimento : null,
+                  });
+                }
+              });
+            }
+          }
+        }
+
         result = (data || []).map((c: any) => {
           const trunc = (s?: string | null, n = 22) => {
             const t = (s || "").trim();
@@ -239,6 +292,9 @@ export function TransportReports() {
           if (typeof descRaw === "string") { try { descRaw = JSON.parse(descRaw); } catch { descRaw = null; } }
           const descontoValor = descRaw && typeof descRaw === "object" ? Number(descRaw.valor || 0) : 0;
           const litrosDesconto = descRaw && typeof descRaw === "object" && descRaw.tipo === "diesel" ? Number(descRaw.litros || 0) : 0;
+          const receb = recebMap.get(c.id);
+          const isRecebido = !!receb?.recebido;
+          const dpStr = isRecebido && receb?.data ? String(receb.data).slice(0, 10) : null;
           return {
             id: c.id,
             data: c.data_emissao,
@@ -250,13 +306,17 @@ export function TransportReports() {
             proprietario: ownerByPlate.get(placa) || "—",
             origem,
             destino,
-            status: c.status,
+            status: isRecebido ? "recebido" : "aberto",
+            dataPagamento: dpStr,
             valor: Number(c.valor_frete || c.valor_receber || 0),
             desconto: descontoValor,
             litrosDesconto,
             pesoKg,
           };
         });
+        if (filters.status !== "todos") {
+          result = result.filter((r) => r.status === filters.status);
+        }
       } else if (reportType === "mdfe") {
         let q: any = supabase.from("mdfe").select("*");
         if (filters.dataInicio) q = q.gte("data_emissao", filters.dataInicio);
