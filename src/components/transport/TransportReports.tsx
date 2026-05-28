@@ -446,6 +446,9 @@ export function TransportReports() {
             pesoKg: Number(c.peso_kg || 0),
           };
         });
+        if (filters.status !== "todos") {
+          result = result.filter((r) => r.status === filters.status);
+        }
       } else if (reportType === "colheita") {
         let q: any = supabase.from("harvest_jobs").select("*");
         if (filters.dataInicio) q = q.gte("harvest_period_start", filters.dataInicio);
