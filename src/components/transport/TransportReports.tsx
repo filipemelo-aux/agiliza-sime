@@ -79,7 +79,11 @@ const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
     { value: "encerrado", label: "Encerrado" },
     { value: "cancelado", label: "Cancelado" },
   ],
-  contratos: [{ value: "todos", label: "Todos" }],
+  contratos: [
+    { value: "todos", label: "Todos" },
+    { value: "pago", label: "Pago" },
+    { value: "pendente", label: "A pagar" },
+  ],
   colheita: [
     { value: "todos", label: "Todos" },
     { value: "ativa", label: "Ativa" },
