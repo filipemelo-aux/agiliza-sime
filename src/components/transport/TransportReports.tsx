@@ -726,7 +726,7 @@ export function TransportReports() {
         const peso = r.pesoKg || 0;
         const litros = r.litrosDesconto || 0;
         return `<tr>
-       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">Pago ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
+       <td class="nowrap">${formatDateBR(r.data)}${r.dataPagamento ? `<div class="t2">${reportType === "cte" ? "Recebido" : "Pago"} ${formatDateBR(r.dataPagamento)}</div>` : ""}</td>
        <td class="nowrap"><div class="t1">${esc(r.titulo)}</div>${r.subtitulo ? `<div class="t2">${esc(r.subtitulo)}</div>` : ""}</td>
        ${showProduto ? `<td class="t2b nowrap">${esc(r.produto || "—")}</td>` : ""}
        <td class="t2b nowrap">${r.origem !== "—" || r.destino !== "—" ? `${esc(r.origem)} → ${esc(r.destino)}` : "—"}</td>
