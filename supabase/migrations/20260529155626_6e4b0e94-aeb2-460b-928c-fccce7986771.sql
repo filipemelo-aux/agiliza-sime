@@ -1,0 +1,1 @@
+CREATE POLICY "Operadores can select profiles" ON public.profiles FOR SELECT USING (has_role(auth.uid(), 'operador'::app_role));
