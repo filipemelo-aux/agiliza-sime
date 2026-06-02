@@ -162,18 +162,12 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
           {leafAccounts.length > 0 && (
             <div>
               <Label className="text-xs text-muted-foreground">Conta Contábil</Label>
-              <Select value={planoContasId} onValueChange={setPlanoContasId}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {leafAccounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.codigo} - {acc.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PlanoContasCombobox
+                value={planoContasId}
+                onChange={setPlanoContasId}
+                options={leafAccounts}
+                placeholder="Selecione..."
+              />
             </div>
           )}
 
