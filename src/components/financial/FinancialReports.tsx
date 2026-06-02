@@ -14,6 +14,7 @@ import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -598,13 +599,16 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                 {showPlanoContas && (
                   <div className="space-y-1">
                     <Label className="text-xs">Plano de Contas</Label>
-                    <Select value={filters.planoContasId} onValueChange={(v) => updateFilter("planoContasId", v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos" className="text-xs">Todos</SelectItem>
-                        {chartAccounts.map((c) => <SelectItem key={c.id} value={c.id} className="text-xs">{c.codigo} {c.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <PlanoContasCombobox
+                      value={filters.planoContasId}
+                      onChange={(v) => updateFilter("planoContasId", v)}
+                      options={chartAccounts}
+                      size="sm"
+                      includeAll
+                      allValue="todos"
+                      allLabel="Todos"
+                      placeholder="Todos"
+                    />
                   </div>
                 )}
                 {showCentroCusto && (
