@@ -1361,19 +1361,18 @@ export function FinancialPayables() {
             );
           })}
 
-          <Select value={filterPlanoContas} onValueChange={setFilterPlanoContas}>
-            <SelectTrigger className="h-7 text-[11px] w-auto min-w-[140px] max-w-[200px] rounded-full">
-              <SelectValue placeholder="Plano de Contas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {chartAccounts.filter(a => a.tipo === "despesa").map(a => (
-                <SelectItem key={a.id} value={a.id}>
-                  <span className="font-mono text-[10px] mr-1">{a.codigo}</span> {a.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="min-w-[200px] max-w-[260px]">
+            <PlanoContasCombobox
+              value={filterPlanoContas}
+              onChange={setFilterPlanoContas}
+              options={chartAccounts.filter((a: any) => a.tipo === "despesa")}
+              size="sm"
+              includeAll
+              allValue="all"
+              placeholder="Plano de Contas"
+              className="rounded-full"
+            />
+          </div>
 
           {(quickFilter !== "all" || filterPlanoContas !== "all" || search !== "" || filterPeriodoFim !== "" || filterPeriodoInicio !== format(new Date(), "yyyy-MM-dd")) && (
             <Button
