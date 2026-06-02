@@ -40,7 +40,7 @@ const parseReferenceToYM = (label: string): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
-// Plano de contas combobox with typeahead
+// Plano de contas combobox (compartilhado)
 function PlanoContasCombobox({
   value, onChange, options, disabled,
 }: {
@@ -49,46 +49,15 @@ function PlanoContasCombobox({
   options: ChartAccount[];
   disabled?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const selected = options.find((o) => o.id === value);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="h-8 w-full justify-between text-xs font-normal px-2"
-          disabled={disabled}
-        >
-          <span className="truncate">
-            {selected ? `${selected.codigo} — ${selected.nome}` : "Selecionar..."}
-          </span>
-          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[340px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Digite para buscar..." className="h-9 text-xs" />
-          <CommandList>
-            <CommandEmpty>Nenhum plano encontrado.</CommandEmpty>
-            <CommandGroup>
-              {options.map((opt) => (
-                <CommandItem
-                  key={opt.id}
-                  value={`${opt.codigo} ${opt.nome}`}
-                  onSelect={() => { onChange(opt.id); setOpen(false); }}
-                  className="text-xs"
-                >
-                  <Check className={cn("mr-2 h-3 w-3", value === opt.id ? "opacity-100" : "opacity-0")} />
-                  {opt.codigo} — {opt.nome}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <SharedPlanoContasCombobox
+      value={value}
+      onChange={onChange}
+      options={options}
+      disabled={disabled}
+      size="sm"
+      placeholder="Selecionar..."
+    />
   );
 }
 
