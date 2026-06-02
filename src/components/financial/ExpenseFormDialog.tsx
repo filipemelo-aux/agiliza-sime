@@ -24,6 +24,7 @@ import { maskName, maskSentence, maskCurrency, unmaskCurrency, formatCurrency, m
 import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
 import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
