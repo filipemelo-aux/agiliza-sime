@@ -14,6 +14,7 @@ import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
