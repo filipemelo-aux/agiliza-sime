@@ -19,6 +19,7 @@ import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
+import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
 
 const MONTHS_PT_LONG = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
