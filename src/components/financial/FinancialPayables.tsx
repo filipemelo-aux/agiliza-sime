@@ -23,6 +23,7 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischargeDialog";
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 
 /**
  * Flexible value matching: digits-only comparison + numeric equality.
