@@ -1116,6 +1116,7 @@ export function BankReconciliation() {
           observacoes: "Pagamento via conciliação bancária (OFX)",
           created_by: user?.id,
           juros: 0,
+          installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
         } as any);
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
