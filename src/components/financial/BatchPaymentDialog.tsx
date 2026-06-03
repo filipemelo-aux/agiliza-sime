@@ -145,6 +145,7 @@ export function BatchPaymentDialog({ open, onOpenChange, items, onSaved, consoli
           juros,
           lote_id: loteId,
           skip_cashflow: consolidated,
+          installment_id: item.tipo === "installment" ? (item.installmentId ?? null) : null,
         } as any);
         if (payErr) throw payErr;
 

@@ -773,6 +773,7 @@ export function BankReconciliation() {
             : `Quitação via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
           created_by: user?.id,
           juros: 0,
+          installment_id: isInstallment ? (linkSelectedAccount.installment_id ?? null) : null,
         } as any);
 
         if (isInstallment) {
@@ -1115,6 +1116,7 @@ export function BankReconciliation() {
           observacoes: "Pagamento via conciliação bancária (OFX)",
           created_by: user?.id,
           juros: 0,
+          installment_id: confirmMatch.isInstallment ? (confirmMatch.installmentId ?? null) : null,
         } as any);
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
