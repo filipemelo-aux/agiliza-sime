@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { FinancialPayables } from "@/components/financial/FinancialPayables";
 import { FinancialReceipts } from "@/components/financial/FinancialReceipts";
+import { FinancialReceived } from "@/components/financial/FinancialReceived";
 
 import { ChartOfAccounts } from "@/components/financial/ChartOfAccounts";
 import { RevenueForecasts } from "@/components/financial/RevenueForecasts";
@@ -20,6 +21,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "forecasts" && <RevenueForecasts />}
         
         {section === "paid" && <FinancialPaid />}
+        {section === "received" && <FinancialReceived />}
         {section === "receipts" && (
           <>
             <h1 className="text-lg font-bold text-foreground">Recibos</h1>

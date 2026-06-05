@@ -92,6 +92,7 @@ const App = () => (
             
             <Route path="/admin/financial/payables" element={<AdminFinancial section="payables" />} />
             <Route path="/admin/financial/paid" element={<AdminFinancial section="paid" />} />
+            <Route path="/admin/financial/received" element={<AdminFinancial section="received" />} />
             <Route path="/admin/financial/cashflow" element={<AdminFinancial section="cashflow" />} />
             <Route path="/admin/financial/credit-card" element={<AdminFinancial section="credit-card" />} />
             <Route path="/admin/financial/reconciliation" element={<AdminFinancial section="reconciliation" />} />
