@@ -93,7 +93,11 @@ const ORIGEM_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
     { value: "colheita", label: "Colheita" },
     { value: "xml_import", label: "XML Importado" },
   ],
-  receivables: [{ value: "todos", label: "Todas" }],
+  receivables: [
+    { value: "todos", label: "Todas" },
+    { value: "fatura", label: "Faturas" },
+    { value: "manual", label: "Entradas Manuais" },
+  ],
   cashflow: [
     { value: "todos", label: "Todas" },
     { value: "contas_pagar", label: "Contas a Pagar" },
