@@ -435,8 +435,10 @@ export function FinancialReports() {
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 
     const isCashflow = reportType === "cashflow";
+    const isReceivable = reportType === "receivables" || reportType === "forecasts";
     const showFavor = !isCashflow;
-    // Columns: Data | [Favorecido] | Descrição | Plano | Status | Valor
+    const favorLabel = isReceivable ? "Cliente" : "Favorecido";
+    // Columns: Data | [Favorecido/Cliente] | Descrição | Plano | Status | Valor
     // Cashflow: Data | Descrição | Origem | Status | Valor
     const colCount = showFavor ? 6 : 5;
     const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
@@ -465,7 +467,7 @@ export function FinancialReports() {
 
     const headerRow = `<tr class="hdr">
       <th style="width:60px">Data</th>
-      ${showFavor ? `<th style="width:160px">Favorecido</th>` : ""}
+      ${showFavor ? `<th style="width:160px">${favorLabel}</th>` : ""}
       <th>Descrição</th>
       <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
       <th style="width:70px">Status</th>
