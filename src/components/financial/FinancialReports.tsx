@@ -40,6 +40,7 @@ interface Row {
   valor: number;
   origem: string;
   plano: string;
+  planoId?: string | null;
   centro: string;
   tipo?: "entrada" | "saida";
   valorPago?: number;
