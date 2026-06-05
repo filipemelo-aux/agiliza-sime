@@ -21,7 +21,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
         {section === "forecasts" && <RevenueForecasts />}
         
         {section === "paid" && <FinancialPaid />}
-        {section === "received" && <FinancialReceived />}
+        
         {section === "receipts" && (
           <>
             <h1 className="text-lg font-bold text-foreground">Recibos</h1>
