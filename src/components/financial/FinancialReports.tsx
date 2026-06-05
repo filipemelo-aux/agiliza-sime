@@ -240,8 +240,19 @@ export function FinancialReports() {
         result = out;
       } else if (reportType === "receivables") {
         let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
-        if (filters.dataInicio) q = q.gte("data_vencimento", filters.dataInicio);
-        if (filters.dataFim) q = q.lte("data_vencimento", filters.dataFim);
+        // Date range matches if vencimento OR recebimento OR lancamento falls inside the period.
+        // This avoids hiding received accounts whose vencimento is outside the selected month.
+        if (filters.dataInicio && filters.dataFim) {
+          q = q.or(
+            `and(data_vencimento.gte.${filters.dataInicio},data_vencimento.lte.${filters.dataFim}),` +
+            `and(data_recebimento.gte.${filters.dataInicio},data_recebimento.lte.${filters.dataFim}),` +
+            `and(data_lancamento.gte.${filters.dataInicio},data_lancamento.lte.${filters.dataFim})`
+          );
+        } else if (filters.dataInicio) {
+          q = q.or(`data_vencimento.gte.${filters.dataInicio},data_recebimento.gte.${filters.dataInicio},data_lancamento.gte.${filters.dataInicio}`);
+        } else if (filters.dataFim) {
+          q = q.or(`data_vencimento.lte.${filters.dataFim},data_recebimento.lte.${filters.dataFim},data_lancamento.lte.${filters.dataFim}`);
+        }
         if (filters.status !== "todos") q = q.eq("status", filters.status);
         if (filters.clienteId !== "todos") q = q.eq("cliente_id", filters.clienteId);
         const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
