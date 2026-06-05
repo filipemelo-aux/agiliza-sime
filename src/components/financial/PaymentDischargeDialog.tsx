@@ -275,7 +275,7 @@ export function PaymentDischargeDialog({
                   <TableBody>
                     {history.map(p => (
                       <TableRow key={p.id}>
-                        <TableCell className="text-xs">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                        <TableCell className="text-xs">{formatDateBR(p.data_pagamento)}</TableCell>
                         <TableCell className="text-xs font-mono">{formatCurrency(Number(p.valor))}</TableCell>
                         <TableCell className="text-xs">{formaLabel(p.forma_pagamento)}</TableCell>
                         <TableCell className="text-xs max-w-[100px] truncate">{p.observacoes || "—"}</TableCell>
