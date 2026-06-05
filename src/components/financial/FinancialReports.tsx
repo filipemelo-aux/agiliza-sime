@@ -592,9 +592,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
 
   const showFavorecido = reportType === "payables";
   const showCliente = reportType === "receivables" || reportType === "forecasts";
-  const showPlanoContas = reportType === "payables";
+  const showPlanoContas = true;
   const showCentroCusto = reportType === "payables";
-  const showOrigem = reportType !== "receivables";
+  const showOrigem = true;
 
   const groupOptions: { value: GroupBy; label: string }[] = useMemo(() => {
     const base: { value: GroupBy; label: string }[] = [{ value: "none", label: "Sem agrupamento" }, { value: "status", label: "Status" }];
