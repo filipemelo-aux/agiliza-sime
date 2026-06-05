@@ -242,55 +242,95 @@ export function FinancialReports() {
         out.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
         result = out;
       } else if (reportType === "receivables") {
-        let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
-        // Date range matches if vencimento OR recebimento OR lancamento falls inside the period.
-        // This avoids hiding received accounts whose vencimento is outside the selected month.
-        if (filters.dataInicio && filters.dataFim) {
-          q = q.or(
-            `and(data_vencimento.gte.${filters.dataInicio},data_vencimento.lte.${filters.dataFim}),` +
-            `and(data_recebimento.gte.${filters.dataInicio},data_recebimento.lte.${filters.dataFim}),` +
-            `and(data_lancamento.gte.${filters.dataInicio},data_lancamento.lte.${filters.dataFim})`
-          );
-        } else if (filters.dataInicio) {
-          q = q.or(`data_vencimento.gte.${filters.dataInicio},data_recebimento.gte.${filters.dataInicio},data_lancamento.gte.${filters.dataInicio}`);
-        } else if (filters.dataFim) {
-          q = q.or(`data_vencimento.lte.${filters.dataFim},data_recebimento.lte.${filters.dataFim},data_lancamento.lte.${filters.dataFim}`);
+        const chartMap = new Map(chartAccounts.map((c: any) => [c.id, c]));
+        const out: Row[] = [];
+
+        // 1) Contas a receber formais (apenas se origem = todos ou manual? - sempre incluímos)
+        if (filters.origem === "todos" || filters.origem === "fatura") {
+          let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
+          if (filters.dataInicio && filters.dataFim) {
+            q = q.or(
+              `and(data_vencimento.gte.${filters.dataInicio},data_vencimento.lte.${filters.dataFim}),` +
+              `and(data_recebimento.gte.${filters.dataInicio},data_recebimento.lte.${filters.dataFim}),` +
+              `and(data_lancamento.gte.${filters.dataInicio},data_lancamento.lte.${filters.dataFim})`
+            );
+          } else if (filters.dataInicio) {
+            q = q.or(`data_vencimento.gte.${filters.dataInicio},data_recebimento.gte.${filters.dataInicio},data_lancamento.gte.${filters.dataInicio}`);
+          } else if (filters.dataFim) {
+            q = q.or(`data_vencimento.lte.${filters.dataFim},data_recebimento.lte.${filters.dataFim},data_lancamento.lte.${filters.dataFim}`);
+          }
+          if (filters.status !== "todos") q = q.eq("status", filters.status);
+          if (filters.clienteId !== "todos") q = q.eq("cliente_id", filters.clienteId);
+          const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
+          if (error) throw error;
+          (data || []).forEach((c: any) => out.push({
+            id: c.id,
+            data: c.data_recebimento || c.data_vencimento,
+            descricao: `Fatura ${c.faturas_recebimento?.numero || "—"}`,
+            pessoa: c.profile?.nome_fantasia || c.profile?.full_name || "—",
+            status: c.status,
+            valor: Number(c.valor),
+            origem: "fatura",
+            plano: "—",
+            planoId: null,
+            centro: "—",
+          }));
         }
-        if (filters.status !== "todos") q = q.eq("status", filters.status);
-        if (filters.clienteId !== "todos") q = q.eq("cliente_id", filters.clienteId);
-        const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
-        if (error) throw error;
-        result = (data || []).map((c: any) => ({
-          id: c.id,
-          data: c.data_vencimento,
-          descricao: `Fatura ${c.faturas_recebimento?.numero || "—"}`,
-          pessoa: c.profile?.nome_fantasia || c.profile?.full_name || "—",
-          status: c.status,
-          valor: Number(c.valor),
-          origem: "fatura",
-          plano: "—",
-          centro: "—",
-        }));
+
+        // 2) Entradas manuais do fluxo de caixa (status "recebido" sempre)
+        const statusAllowsRecebido = filters.status === "todos" || filters.status === "recebido";
+        const clienteAllows = filters.clienteId === "todos"; // manuais não têm cliente
+        const origemAllows = filters.origem === "todos" || filters.origem === "manual";
+        if (statusAllowsRecebido && clienteAllows && origemAllows) {
+          let qm: any = supabase.from("movimentacoes_bancarias").select("*").eq("tipo", "entrada").eq("origem", "manual");
+          if (filters.dataInicio) qm = qm.gte("data_movimentacao", filters.dataInicio);
+          if (filters.dataFim) qm = qm.lte("data_movimentacao", filters.dataFim);
+          const { data: mans, error: errM } = await qm.order("data_movimentacao", { ascending: true }).limit(2000);
+          if (errM) throw errM;
+          (mans || []).forEach((m: any) => {
+            const c = m.plano_contas_id ? chartMap.get(m.plano_contas_id) : null;
+            out.push({
+              id: `mov-${m.id}`,
+              data: m.data_movimentacao,
+              descricao: m.descricao || "Entrada manual",
+              pessoa: "Entrada manual",
+              status: "recebido",
+              valor: Number(m.valor),
+              origem: "manual",
+              plano: c ? `${c.codigo} ${c.nome}` : "—",
+              planoId: m.plano_contas_id || null,
+              centro: "—",
+            });
+          });
+        }
+        out.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+        result = out;
       } else if (reportType === "cashflow") {
+        const chartMap = new Map(chartAccounts.map((c: any) => [c.id, c]));
         let q: any = supabase.from("movimentacoes_bancarias").select("*");
         if (filters.dataInicio) q = q.gte("data_movimentacao", filters.dataInicio);
         if (filters.dataFim) q = q.lte("data_movimentacao", filters.dataFim);
         if (filters.status !== "todos") q = q.eq("tipo", filters.status);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
+        if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
         const { data, error } = await q.order("data_movimentacao", { ascending: false }).limit(2000);
         if (error) throw error;
-        result = (data || []).map((m: any) => ({
-          id: m.id,
-          data: m.data_movimentacao,
-          descricao: m.descricao || "—",
-          pessoa: "—",
-          status: m.tipo,
-          valor: Number(m.valor),
-          origem: m.origem,
-          plano: "—",
-          centro: "—",
-          tipo: m.tipo,
-        }));
+        result = (data || []).map((m: any) => {
+          const c = m.plano_contas_id ? chartMap.get(m.plano_contas_id) : null;
+          return {
+            id: m.id,
+            data: m.data_movimentacao,
+            descricao: m.descricao || "—",
+            pessoa: "—",
+            status: m.tipo,
+            valor: Number(m.valor),
+            origem: m.origem,
+            plano: c ? `${c.codigo} ${c.nome}` : "—",
+            planoId: m.plano_contas_id || null,
+            centro: "—",
+            tipo: m.tipo,
+          };
+        });
       } else if (reportType === "forecasts") {
         let q: any = supabase.from("previsoes_recebimento").select("*, profile:cliente_id(full_name, nome_fantasia)");
         if (filters.dataInicio) q = q.gte("data_prevista", filters.dataInicio);
@@ -309,8 +349,14 @@ export function FinancialReports() {
           valor: Number(p.valor),
           origem: p.origem_tipo,
           plano: "—",
+          planoId: null,
           centro: "—",
         }));
+      }
+
+      // Filtro adicional por plano de contas (client-side) para tabelas sem plano_contas_id próprio
+      if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
+        result = result.filter((r) => r.planoId === filters.planoContasId);
       }
       setRows(result);
     } catch (e: any) {
