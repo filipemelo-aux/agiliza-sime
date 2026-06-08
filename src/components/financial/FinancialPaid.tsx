@@ -176,8 +176,10 @@ export function FinancialPaid() {
             documento_fiscal_numero
           ),
           installment:installment_id (
+            id,
             data_vencimento,
-            numero_parcela
+            numero_parcela,
+            total_parcelas
           )
         `)
         .order("data_pagamento", { ascending: false }),
@@ -212,22 +214,81 @@ export function FinancialPaid() {
       }
     });
 
-    const expenseItems: PaidItem[] = individualPayments.map((p: any) => ({
-      id: p.id,
-      description: p.installment?.numero_parcela
-        ? `${p.expenses?.descricao || "Pagamento de despesa"} (parcela ${p.installment.numero_parcela})`
-        : (p.expenses?.descricao || "Pagamento de despesa"),
-      amount: Number(p.valor || 0),
-      paid_at: toDateOnly(p.data_pagamento),
-      due_date: toDateOnly(p.installment?.data_vencimento || p.expenses?.data_vencimento || p.expenses?.data_emissao),
-      creditor_name: p.expenses?.favorecido_nome || null,
-      source: "expense_payment" as const,
-      expense_id: p.expense_id,
-      forma_pagamento: p.forma_pagamento || null,
-      created_by_name: creatorsMap[p.created_by] || null,
-      created_at: p.created_at || null,
-      documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
-    }));
+    const expenseIds = [...new Set(individualPayments.map((p: any) => p.expense_id).filter(Boolean))];
+    const installmentsByExpense: Record<string, any[]> = {};
+    if (expenseIds.length > 0) {
+      const { data: paidInstallments } = await supabase
+        .from("expense_installments")
+        .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
+        .in("expense_id", expenseIds)
+        .eq("status", "pago" as any)
+        .order("numero_parcela");
+
+      ((paidInstallments as any[]) || []).forEach((inst) => {
+        if (!installmentsByExpense[inst.expense_id]) installmentsByExpense[inst.expense_id] = [];
+        installmentsByExpense[inst.expense_id].push(inst);
+      });
+    }
+
+    const resolvedInstallmentByPayment: Record<string, any> = {};
+    const paymentsByExpense = new Map<string, any[]>();
+    individualPayments.forEach((p: any) => {
+      if (!p.expense_id) return;
+      const rows = paymentsByExpense.get(p.expense_id) || [];
+      rows.push(p);
+      paymentsByExpense.set(p.expense_id, rows);
+    });
+
+    paymentsByExpense.forEach((payments, expenseId) => {
+      const installments = (installmentsByExpense[expenseId] || []).sort((a, b) => {
+        if (Number(a.numero_parcela) !== Number(b.numero_parcela)) return Number(a.numero_parcela) - Number(b.numero_parcela);
+        return String(a.data_vencimento || "").localeCompare(String(b.data_vencimento || ""));
+      });
+      if (installments.length === 0) return;
+
+      const linkCounts = payments.reduce((acc: Record<string, number>, p: any) => {
+        if (p.installment_id) acc[p.installment_id] = (acc[p.installment_id] || 0) + 1;
+        return acc;
+      }, {});
+      const hasAmbiguousLinks = payments.some((p: any) => !p.installment_id || (p.installment_id && linkCounts[p.installment_id] > 1));
+
+      if (hasAmbiguousLinks) {
+        [...payments]
+          .sort((a: any, b: any) => {
+            const dateCmp = String(a.data_pagamento || "").localeCompare(String(b.data_pagamento || ""));
+            if (dateCmp !== 0) return dateCmp;
+            return String(a.created_at || "").localeCompare(String(b.created_at || ""));
+          })
+          .forEach((payment: any, index) => {
+            resolvedInstallmentByPayment[payment.id] = installments[index] || installments.find((inst) => inst.id === payment.installment_id) || null;
+          });
+        return;
+      }
+
+      payments.forEach((payment: any) => {
+        resolvedInstallmentByPayment[payment.id] = installments.find((inst) => inst.id === payment.installment_id) || payment.installment || null;
+      });
+    });
+
+    const expenseItems: PaidItem[] = individualPayments.map((p: any) => {
+      const resolvedInstallment = resolvedInstallmentByPayment[p.id] || p.installment;
+      return {
+        id: p.id,
+        description: resolvedInstallment?.numero_parcela
+          ? `${p.expenses?.descricao || "Pagamento de despesa"} (parcela ${resolvedInstallment.numero_parcela})`
+          : (p.expenses?.descricao || "Pagamento de despesa"),
+        amount: Number(p.valor || 0),
+        paid_at: toDateOnly(p.data_pagamento),
+        due_date: toDateOnly(resolvedInstallment?.data_vencimento || p.expenses?.data_vencimento || p.expenses?.data_emissao),
+        creditor_name: p.expenses?.favorecido_nome || null,
+        source: "expense_payment" as const,
+        expense_id: p.expense_id,
+        forma_pagamento: p.forma_pagamento || null,
+        created_by_name: creatorsMap[p.created_by] || null,
+        created_at: p.created_at || null,
+        documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
+      };
+    });
 
     const groupItems: PaidItem[] = Array.from(groupedMap.entries()).map(([loteId, payments]) => {
       const total = payments.reduce((s, p) => s + Number(p.valor || 0), 0);
