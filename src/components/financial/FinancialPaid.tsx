@@ -172,6 +172,7 @@ export function FinancialPaid() {
             descricao,
             favorecido_nome,
             data_vencimento,
+            data_emissao,
             documento_fiscal_numero
           ),
           installment:installment_id (
