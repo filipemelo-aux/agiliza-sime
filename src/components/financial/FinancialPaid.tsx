@@ -371,19 +371,38 @@ export function FinancialPaid() {
     setDetailPayments([]);
     setDetailChart(null);
 
-    const [{ data: exp }, { data: payments }] = await Promise.all([
+    const [expRes, payRes] = await Promise.all([
       supabase.from("expenses").select("*").eq("id", item.expense_id).maybeSingle(),
       supabase.from("expense_payments" as any).select("id, valor, forma_pagamento, data_pagamento, observacoes").eq("expense_id", item.expense_id).order("data_pagamento"),
     ]);
 
-    if (exp) {
-      setDetailExpense(exp as any);
-      if (exp.plano_contas_id) {
-        const chart = chartAccounts.find(c => c.id === exp.plano_contas_id);
-        setDetailChart(chart || null);
-      }
+    if (expRes.error) console.error("[FinancialPaid] erro ao buscar despesa", item.expense_id, expRes.error);
+    if (payRes.error) console.error("[FinancialPaid] erro ao buscar pagamentos", item.expense_id, payRes.error);
+
+    let exp = expRes.data as any;
+
+    // Fallback: if expense fetch returned nothing (e.g. soft-deleted/RLS edge case),
+    // synthesize a minimal expense view from the clicked item so the dialog still renders.
+    if (!exp) {
+      exp = {
+        id: item.expense_id,
+        favorecido_nome: item.creditor_name,
+        descricao: item.description,
+        valor_total: item.amount,
+        valor_pago: item.amount,
+        status: "pago",
+        data_emissao: item.paid_at,
+        data_vencimento: item.due_date,
+        documento_fiscal_numero: item.documento_fiscal_numero,
+        centro_custo: null,
+        observacoes: "(Conta original removida ou inacessível — exibindo dados do pagamento)",
+      };
+    } else if (exp.plano_contas_id) {
+      const chart = chartAccounts.find(c => c.id === exp.plano_contas_id);
+      setDetailChart(chart || null);
     }
-    setDetailPayments((payments || []) as unknown as PaymentRecord[]);
+    setDetailExpense(exp);
+    setDetailPayments((payRes.data || []) as unknown as PaymentRecord[]);
     setDetailLoading(false);
   };
 
