@@ -219,7 +219,7 @@ export function FinancialPaid() {
         : (p.expenses?.descricao || "Pagamento de despesa"),
       amount: Number(p.valor || 0),
       paid_at: toDateOnly(p.data_pagamento),
-      due_date: toDateOnly(p.installment?.data_vencimento || p.expenses?.data_vencimento),
+      due_date: toDateOnly(p.installment?.data_vencimento || p.expenses?.data_vencimento || p.expenses?.data_emissao),
       creditor_name: p.expenses?.favorecido_nome || null,
       source: "expense_payment" as const,
       expense_id: p.expense_id,
