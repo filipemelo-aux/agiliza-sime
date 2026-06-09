@@ -521,13 +521,16 @@ export function FinancialReports() {
       const parcialInfo = reportType === "payables" ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "");
+      const pagoInfo = reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0
+        ? `<div class="t2" style="color:#059669;font-weight:700">Pago ${formatCurrency(r.valorPago)}</div>`
+        : "";
       const vencInfo = r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
       const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
+        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${pagoInfo}${parcialInfo}</td>`
+        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${pagoInfo}${parcialInfo}</td>`;
       const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
@@ -931,6 +934,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             {r.dataVencimento && (
                               <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                             )}
+                            {reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0 && (
+                              <div className="text-[10px] text-green-600 font-semibold">Pago: {formatCurrency(r.valorPago)}</div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -967,6 +973,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                   <div className="text-[10px] text-muted-foreground truncate max-w-[420px]">{r.descricao}</div>
                                   {r.dataVencimento && (
                                     <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                                  )}
+                                  {reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0 && (
+                                    <div className="text-[10px] text-green-600 font-semibold">Pago: {formatCurrency(r.valorPago)}</div>
                                   )}
                                 </td>
                                 <td className="px-2 py-2 text-center">
