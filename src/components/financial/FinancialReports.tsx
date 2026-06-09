@@ -276,7 +276,8 @@ export function FinancialReports() {
               out.push({
                 id: `${e.id}-${inst.id}`,
                 data: dataRef!,
-                descricao: `${baseDescricao} (P${inst.numero_parcela}/${installs.length})`,
+                descricao: baseDescricao,
+                parcela: `${inst.numero_parcela}/${installs.length}`,
                 pessoa: e.favorecido_nome || "—",
                 status,
                 valor: Number(inst.valor),
