@@ -266,6 +266,7 @@ export function FinancialReports() {
                 centro: e.centro_custo,
                 valorPago: expIsParcial ? valorPagoExp : undefined,
                 saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
+                dataVencimento: inst.data_vencimento,
               });
             });
           } else {
