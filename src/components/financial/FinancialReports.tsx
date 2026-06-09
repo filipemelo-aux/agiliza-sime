@@ -22,6 +22,7 @@ type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem"
 interface Filters {
   dataInicio: string;
   dataFim: string;
+  tipoData: string; // payables: emissao|vencimento|pagamento; receivables: emissao|vencimento|recebimento
   status: string;
   planoContasId: string;
   centroCusto: string;
@@ -50,6 +51,7 @@ interface Row {
 const initialFilters = (type: ReportType): Filters => ({
   dataInicio: format(startOfMonth(new Date()), "yyyy-MM-dd"),
   dataFim: format(endOfMonth(new Date()), "yyyy-MM-dd"),
+  tipoData: "vencimento",
   status: "todos",
   planoContasId: "todos",
   centroCusto: "todos",
@@ -58,6 +60,19 @@ const initialFilters = (type: ReportType): Filters => ({
   origem: "todos",
   groupBy: type === "payables" ? "plano" : type === "receivables" ? "cliente" : type === "cashflow" ? "origem" : "status",
 });
+
+const TIPO_DATA_OPTIONS: Partial<Record<ReportType, { value: string; label: string }[]>> = {
+  payables: [
+    { value: "emissao", label: "Data de Emissão" },
+    { value: "vencimento", label: "Data de Vencimento" },
+    { value: "pagamento", label: "Data de Pagamento" },
+  ],
+  receivables: [
+    { value: "emissao", label: "Data de Emissão" },
+    { value: "vencimento", label: "Data de Vencimento" },
+    { value: "recebimento", label: "Data de Recebimento" },
+  ],
+};
 
 const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
   payables: [
@@ -119,6 +134,7 @@ export function FinancialReports() {
   const [reportType, setReportType] = useState<ReportType>("payables");
   const [favorecidoSearch, setFavorecidoSearch] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
+  const [nameSearch, setNameSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,6 +151,7 @@ export function FinancialReports() {
     setReportType(tt);
     setFilters(initialFilters(tt));
     setRows([]);
+    setNameSearch("");
   };
 
   const updateFilter = (k: keyof Filters, v: string) => setFilters((f) => ({ ...f, [k]: v }));
@@ -144,12 +161,18 @@ export function FinancialReports() {
     try {
       let result: Row[] = [];
       if (reportType === "payables") {
+        const tipoData = filters.tipoData || "vencimento";
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
         if (filters.centroCusto !== "todos") q = q.eq("centro_custo", filters.centroCusto);
         if (filters.favorecidoId !== "todos") q = q.eq("favorecido_id", filters.favorecidoId);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
+        // Quando filtro por emissão, restringe na query principal
+        if (tipoData === "emissao") {
+          if (filters.dataInicio) q = q.gte("data_emissao", filters.dataInicio);
+          if (filters.dataFim) q = q.lte("data_emissao", filters.dataFim);
+        }
         const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
         if (error) throw error;
         const expenses = data || [];
@@ -163,6 +186,22 @@ export function FinancialReports() {
             .order("numero_parcela");
           (insts || []).forEach((i: any) => {
             (installmentsByExp[i.expense_id] ||= []).push(i);
+          });
+        }
+        // Mapa de pagamentos por installment_id (data mais recente)
+        const paymentByInst: Record<string, string> = {};
+        const paymentByExp: Record<string, string> = {};
+        if (expIds.length > 0 && tipoData === "pagamento") {
+          const { data: pays } = await supabase
+            .from("expense_payments")
+            .select("expense_id, installment_id, data_pagamento")
+            .in("expense_id", expIds)
+            .order("data_pagamento", { ascending: false });
+          (pays || []).forEach((p: any) => {
+            const d = (p.data_pagamento || "").slice(0, 10);
+            if (!d) return;
+            if (p.installment_id && !paymentByInst[p.installment_id]) paymentByInst[p.installment_id] = d;
+            if (!paymentByExp[p.expense_id]) paymentByExp[p.expense_id] = d;
           });
         }
         // Enriquecer descrição com Remetente → Recebedor para despesas vinculadas a Contratos de Frete
@@ -206,11 +245,16 @@ export function FinancialReports() {
             installs.forEach((inst: any) => {
               const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
               const status = isOverdue ? "atrasado" : inst.status;
-              if (!inRange(inst.data_vencimento)) return;
+              // Data de referência conforme tipoData
+              let dataRef: string | null = inst.data_vencimento;
+              if (tipoData === "emissao") dataRef = e.data_emissao || inst.data_vencimento;
+              else if (tipoData === "pagamento") dataRef = paymentByInst[inst.id] || paymentByExp[e.id] || null;
+              if (tipoData === "pagamento" && !dataRef) return; // só parcelas com pagamento
+              if (!inRange(dataRef)) return;
               if (!matchStatus(status)) return;
               out.push({
                 id: `${e.id}-${inst.id}`,
-                data: inst.data_vencimento,
+                data: dataRef!,
                 descricao: `${baseDescricao} (P${inst.numero_parcela}/${installs.length})`,
                 pessoa: e.favorecido_nome || "—",
                 status,
@@ -224,12 +268,15 @@ export function FinancialReports() {
               });
             });
           } else {
-            const d = e.data_vencimento || e.data_emissao;
+            let d: string | null = e.data_vencimento || e.data_emissao;
+            if (tipoData === "emissao") d = e.data_emissao || e.data_vencimento;
+            else if (tipoData === "pagamento") d = paymentByExp[e.id] || null;
+            if (tipoData === "pagamento" && !d) return;
             if (!inRange(d)) return;
             if (!matchStatus(e.status)) return;
             out.push({
               id: e.id,
-              data: d,
+              data: d!,
               descricao: baseDescricao,
               pessoa: e.favorecido_nome || "—",
               status: e.status,
@@ -246,30 +293,23 @@ export function FinancialReports() {
         out.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
         result = out;
       } else if (reportType === "receivables") {
+        const tipoData = filters.tipoData || "vencimento";
+        const dateCol = tipoData === "emissao" ? "data_lancamento" : tipoData === "recebimento" ? "data_recebimento" : "data_vencimento";
         const chartMap = new Map(chartAccounts.map((c: any) => [c.id, c]));
         const out: Row[] = [];
 
-        // 1) Contas a receber formais (apenas se origem = todos ou manual? - sempre incluímos)
+        // 1) Contas a receber formais
         if (filters.origem === "todos" || filters.origem === "fatura") {
           let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
-          if (filters.dataInicio && filters.dataFim) {
-            q = q.or(
-              `and(data_vencimento.gte.${filters.dataInicio},data_vencimento.lte.${filters.dataFim}),` +
-              `and(data_recebimento.gte.${filters.dataInicio},data_recebimento.lte.${filters.dataFim}),` +
-              `and(data_lancamento.gte.${filters.dataInicio},data_lancamento.lte.${filters.dataFim})`
-            );
-          } else if (filters.dataInicio) {
-            q = q.or(`data_vencimento.gte.${filters.dataInicio},data_recebimento.gte.${filters.dataInicio},data_lancamento.gte.${filters.dataInicio}`);
-          } else if (filters.dataFim) {
-            q = q.or(`data_vencimento.lte.${filters.dataFim},data_recebimento.lte.${filters.dataFim},data_lancamento.lte.${filters.dataFim}`);
-          }
+          if (filters.dataInicio) q = q.gte(dateCol, filters.dataInicio);
+          if (filters.dataFim) q = q.lte(dateCol, filters.dataFim);
           if (filters.status !== "todos") q = q.eq("status", filters.status);
           if (filters.clienteId !== "todos") q = q.eq("cliente_id", filters.clienteId);
-          const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
+          const { data, error } = await q.order(dateCol, { ascending: true }).limit(2000);
           if (error) throw error;
           (data || []).forEach((c: any) => out.push({
             id: c.id,
-            data: c.data_recebimento || c.data_vencimento,
+            data: (c as any)[dateCol] || c.data_recebimento || c.data_vencimento,
             descricao: `Fatura ${c.faturas_recebimento?.numero || "—"}`,
             pessoa: c.profile?.nome_fantasia || c.profile?.full_name || "—",
             status: c.status,
@@ -370,11 +410,17 @@ export function FinancialReports() {
     }
   }, [reportType, filters, chartAccounts]);
 
+  const filteredRows = useMemo(() => {
+    const term = nameSearch.trim().toLowerCase();
+    if (!term) return rows;
+    return rows.filter((r) => (r.pessoa || "").toLowerCase().includes(term) || (r.descricao || "").toLowerCase().includes(term));
+  }, [rows, nameSearch]);
+
   const grouped = useMemo(() => {
     const gb = filters.groupBy;
-    if (gb === "none") return [{ key: "Todos", rows }];
+    if (gb === "none") return [{ key: "Todos", rows: filteredRows }];
     const map = new Map<string, Row[]>();
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       let k = "—";
       if (gb === "plano") k = r.plano;
       else if (gb === "centro") k = r.centro;
@@ -385,21 +431,21 @@ export function FinancialReports() {
       map.get(k)!.push(r);
     });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([key, rs]) => ({ key, rows: rs }));
-  }, [rows, filters.groupBy]);
+  }, [filteredRows, filters.groupBy]);
 
   const totals = useMemo(() => {
     if (reportType === "cashflow") {
-      const entradas = rows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
-      const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
-      return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
+      const entradas = filteredRows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
+      const saidas = filteredRows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
+      return { total: entradas - saidas, count: filteredRows.length, entradas, saidas, saldoRestante: 0 };
     }
-    const saldoRestante = rows.reduce((s, r) => {
+    const saldoRestante = filteredRows.reduce((s, r) => {
       if (r.saldo !== undefined) return s + r.saldo;
       if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
       return s;
     }, 0);
-    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
-  }, [rows, reportType]);
+    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante };
+  }, [filteredRows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
     payables: "RELATÓRIO DE CONTAS A PAGAR",
@@ -499,7 +545,7 @@ export function FinancialReports() {
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${rows.length} registro(s)</td>
+          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${filteredRows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
@@ -551,7 +597,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
     <div style="flex:1">
       <h1>${REPORT_TITLE[reportType]}</h1>
-      <div class="per">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
+      <div class="per">Período: ${periodoLabel} • ${filteredRows.length} registro(s)</div>
     </div>
   </div>
   <table class="sheet">
@@ -580,7 +626,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
     const header = ["Data", "Pessoa", "Descrição", "Plano de Contas", "Centro de Custo", "Origem", "Status", "Valor"];
     const lines = [header.join(";")];
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       lines.push([formatDateBR(r.data), r.pessoa, r.descricao.replace(/;/g, ","), r.plano, r.centro, r.origem, r.status, r.valor.toFixed(2).replace(".", ",")].join(";"));
     });
     const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -633,6 +679,25 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
         <TabsContent value={reportType} className="mt-4">
           <Card>
             <CardContent className="p-3 space-y-3">
+              {TIPO_DATA_OPTIONS[reportType] && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Filtrar período por</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TIPO_DATA_OPTIONS[reportType]!.map((o) => (
+                      <Button
+                        key={o.value}
+                        type="button"
+                        size="sm"
+                        variant={filters.tipoData === o.value ? "default" : "outline"}
+                        className="h-7 text-xs"
+                        onClick={() => updateFilter("tipoData", o.value)}
+                      >
+                        {o.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Data Inicial</Label>
@@ -770,13 +835,27 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   </Button>
                 </div>
               </div>
+              {rows.length > 0 && (
+                <div className="pt-1">
+                  <Label className="text-xs">Buscar por nome</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      value={nameSearch}
+                      onChange={(e) => setNameSearch(e.target.value)}
+                      placeholder="Filtrar em tempo real por favorecido, cliente ou descrição..."
+                      className="h-8 text-xs pl-7"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {rows.length > 0 && (
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="text-xs text-muted-foreground">{rows.length} registro(s)</div>
+                <div className="text-xs text-muted-foreground">{filteredRows.length} de {rows.length} registro(s)</div>
                 {reportType === "cashflow" ? (
                   <div className="flex gap-3 text-xs">
                     <span className="text-green-600 font-semibold">Entradas: {formatCurrency((totals as any).entradas)}</span>
