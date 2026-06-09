@@ -972,7 +972,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             {reportType === "payables" && ((r.valorPago || 0) + (r.jurosPago || 0)) > 0 && (
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className="text-muted-foreground">Pago{(r.jurosPago || 0) > 0 ? ` (+ juros ${formatCurrency(r.jurosPago || 0)})` : ""}:</span>
-                                <span className="text-green-600 font-semibold tabular-nums">{formatCurrency((r.valorPago || 0) + (r.jurosPago || 0))}</span>
+                                <span className="text-green-600 font-semibold tabular-nums">{formatCurrency(r.valorPago || 0)}</span>
                               </div>
                             )}
                           </CardContent>
