@@ -46,6 +46,7 @@ interface Row {
   tipo?: "entrada" | "saida";
   valorPago?: number;
   saldo?: number;
+  dataVencimento?: string | null;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
