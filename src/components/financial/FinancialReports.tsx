@@ -159,12 +159,18 @@ export function FinancialReports() {
     try {
       let result: Row[] = [];
       if (reportType === "payables") {
+        const tipoData = filters.tipoData || "vencimento";
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
         if (filters.centroCusto !== "todos") q = q.eq("centro_custo", filters.centroCusto);
         if (filters.favorecidoId !== "todos") q = q.eq("favorecido_id", filters.favorecidoId);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
+        // Quando filtro por emissão, restringe na query principal
+        if (tipoData === "emissao") {
+          if (filters.dataInicio) q = q.gte("data_emissao", filters.dataInicio);
+          if (filters.dataFim) q = q.lte("data_emissao", filters.dataFim);
+        }
         const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
         if (error) throw error;
         const expenses = data || [];
@@ -178,6 +184,22 @@ export function FinancialReports() {
             .order("numero_parcela");
           (insts || []).forEach((i: any) => {
             (installmentsByExp[i.expense_id] ||= []).push(i);
+          });
+        }
+        // Mapa de pagamentos por installment_id (data mais recente)
+        const paymentByInst: Record<string, string> = {};
+        const paymentByExp: Record<string, string> = {};
+        if (expIds.length > 0 && tipoData === "pagamento") {
+          const { data: pays } = await supabase
+            .from("expense_payments")
+            .select("expense_id, installment_id, data_pagamento")
+            .in("expense_id", expIds)
+            .order("data_pagamento", { ascending: false });
+          (pays || []).forEach((p: any) => {
+            const d = (p.data_pagamento || "").slice(0, 10);
+            if (!d) return;
+            if (p.installment_id && !paymentByInst[p.installment_id]) paymentByInst[p.installment_id] = d;
+            if (!paymentByExp[p.expense_id]) paymentByExp[p.expense_id] = d;
           });
         }
         // Enriquecer descrição com Remetente → Recebedor para despesas vinculadas a Contratos de Frete
@@ -221,11 +243,16 @@ export function FinancialReports() {
             installs.forEach((inst: any) => {
               const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
               const status = isOverdue ? "atrasado" : inst.status;
-              if (!inRange(inst.data_vencimento)) return;
+              // Data de referência conforme tipoData
+              let dataRef: string | null = inst.data_vencimento;
+              if (tipoData === "emissao") dataRef = e.data_emissao || inst.data_vencimento;
+              else if (tipoData === "pagamento") dataRef = paymentByInst[inst.id] || paymentByExp[e.id] || null;
+              if (tipoData === "pagamento" && !dataRef) return; // só parcelas com pagamento
+              if (!inRange(dataRef)) return;
               if (!matchStatus(status)) return;
               out.push({
                 id: `${e.id}-${inst.id}`,
-                data: inst.data_vencimento,
+                data: dataRef!,
                 descricao: `${baseDescricao} (P${inst.numero_parcela}/${installs.length})`,
                 pessoa: e.favorecido_nome || "—",
                 status,
@@ -239,12 +266,15 @@ export function FinancialReports() {
               });
             });
           } else {
-            const d = e.data_vencimento || e.data_emissao;
+            let d: string | null = e.data_vencimento || e.data_emissao;
+            if (tipoData === "emissao") d = e.data_emissao || e.data_vencimento;
+            else if (tipoData === "pagamento") d = paymentByExp[e.id] || null;
+            if (tipoData === "pagamento" && !d) return;
             if (!inRange(d)) return;
             if (!matchStatus(e.status)) return;
             out.push({
               id: e.id,
-              data: d,
+              data: d!,
               descricao: baseDescricao,
               pessoa: e.favorecido_nome || "—",
               status: e.status,
@@ -261,30 +291,23 @@ export function FinancialReports() {
         out.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
         result = out;
       } else if (reportType === "receivables") {
+        const tipoData = filters.tipoData || "vencimento";
+        const dateCol = tipoData === "emissao" ? "data_lancamento" : tipoData === "recebimento" ? "data_recebimento" : "data_vencimento";
         const chartMap = new Map(chartAccounts.map((c: any) => [c.id, c]));
         const out: Row[] = [];
 
-        // 1) Contas a receber formais (apenas se origem = todos ou manual? - sempre incluímos)
+        // 1) Contas a receber formais
         if (filters.origem === "todos" || filters.origem === "fatura") {
           let q: any = supabase.from("contas_receber").select("*, faturas_recebimento(numero, cliente_id), profile:cliente_id(full_name, nome_fantasia)");
-          if (filters.dataInicio && filters.dataFim) {
-            q = q.or(
-              `and(data_vencimento.gte.${filters.dataInicio},data_vencimento.lte.${filters.dataFim}),` +
-              `and(data_recebimento.gte.${filters.dataInicio},data_recebimento.lte.${filters.dataFim}),` +
-              `and(data_lancamento.gte.${filters.dataInicio},data_lancamento.lte.${filters.dataFim})`
-            );
-          } else if (filters.dataInicio) {
-            q = q.or(`data_vencimento.gte.${filters.dataInicio},data_recebimento.gte.${filters.dataInicio},data_lancamento.gte.${filters.dataInicio}`);
-          } else if (filters.dataFim) {
-            q = q.or(`data_vencimento.lte.${filters.dataFim},data_recebimento.lte.${filters.dataFim},data_lancamento.lte.${filters.dataFim}`);
-          }
+          if (filters.dataInicio) q = q.gte(dateCol, filters.dataInicio);
+          if (filters.dataFim) q = q.lte(dateCol, filters.dataFim);
           if (filters.status !== "todos") q = q.eq("status", filters.status);
           if (filters.clienteId !== "todos") q = q.eq("cliente_id", filters.clienteId);
-          const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
+          const { data, error } = await q.order(dateCol, { ascending: true }).limit(2000);
           if (error) throw error;
           (data || []).forEach((c: any) => out.push({
             id: c.id,
-            data: c.data_recebimento || c.data_vencimento,
+            data: (c as any)[dateCol] || c.data_recebimento || c.data_vencimento,
             descricao: `Fatura ${c.faturas_recebimento?.numero || "—"}`,
             pessoa: c.profile?.nome_fantasia || c.profile?.full_name || "—",
             status: c.status,
