@@ -451,6 +451,17 @@ export function FinancialReports() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nameSearch, filters.favorecidoId, filters.clienteId, reportType]);
 
+  // Após uma busca inicial (período aplicado), refazer pesquisa em tempo real ao mudar filtros
+  const hasInitialSearchRef = useRef(false);
+  useEffect(() => { hasInitialSearchRef.current = false; }, [reportType]);
+  useEffect(() => { if (rows.length > 0) hasInitialSearchRef.current = true; }, [rows]);
+  useEffect(() => {
+    if (!hasInitialSearchRef.current) return;
+    const t = setTimeout(() => { fetchData(); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
   const filteredRows = useMemo(() => {
     const term = nameSearch.trim().toLowerCase();
     if (!term) return rows;
