@@ -586,19 +586,25 @@ export function FinancialReports() {
 
 
     const saldoRestanteLine =
-      reportType === "payables" && (totals as any).saldoRestante > 0
-        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
+      isPayables && (totals as any).saldoRestante > 0
+        ? `<tr class="sub"><td colspan="${colCount - 1}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
     const pagoComJurosLine =
-      reportType === "payables" && filters.status === "pago"
-        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#059669">TOTAL PAGO (com juros ${formatCurrency((totals as any).totalJuros || 0)})</td><td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td></tr>`
+      isPayables && filters.status === "pago"
+        ? `<tr class="sub"><td colspan="${colCount - 1}" class="r" style="color:#059669">Juros pagos no período</td><td class="r val" style="color:#059669">${formatCurrency((totals as any).totalJuros || 0)}</td></tr>`
         : "";
 
     const totalLine = isCashflow
       ? `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
+        </tr>`
+      : isPayables
+      ? `<tr class="tot">
+          <td colspan="${colCount - 2}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
+          <td class="r val">${formatCurrency(totals.total)}</td>
+          <td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td>
         </tr>`
       : `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
