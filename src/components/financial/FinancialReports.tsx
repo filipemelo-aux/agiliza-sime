@@ -45,6 +45,7 @@ interface Row {
   centro: string;
   tipo?: "entrada" | "saida";
   valorPago?: number;
+  jurosPago?: number;
   saldo?: number;
   dataVencimento?: string | null;
 }
@@ -199,17 +200,28 @@ export function FinancialReports() {
         // Mapa de pagamentos por installment_id (data mais recente)
         const paymentByInst: Record<string, string> = {};
         const paymentByExp: Record<string, string> = {};
-        if (expIds.length > 0 && tipoData === "pagamento") {
+        const jurosByInst: Record<string, number> = {};
+        const jurosByExp: Record<string, number> = {};
+        const pagoByInst: Record<string, number> = {};
+        const pagoByExp: Record<string, number> = {};
+        if (expIds.length > 0) {
           const { data: pays } = await supabase
             .from("expense_payments")
-            .select("expense_id, installment_id, data_pagamento")
+            .select("expense_id, installment_id, data_pagamento, valor, juros")
             .in("expense_id", expIds)
             .order("data_pagamento", { ascending: false });
           (pays || []).forEach((p: any) => {
             const d = (p.data_pagamento || "").slice(0, 10);
-            if (!d) return;
-            if (p.installment_id && !paymentByInst[p.installment_id]) paymentByInst[p.installment_id] = d;
-            if (!paymentByExp[p.expense_id]) paymentByExp[p.expense_id] = d;
+            const juros = Number(p.juros || 0);
+            const valor = Number(p.valor || 0);
+            if (p.installment_id) {
+              if (d && !paymentByInst[p.installment_id]) paymentByInst[p.installment_id] = d;
+              jurosByInst[p.installment_id] = (jurosByInst[p.installment_id] || 0) + juros;
+              pagoByInst[p.installment_id] = (pagoByInst[p.installment_id] || 0) + valor;
+            }
+            if (d && !paymentByExp[p.expense_id]) paymentByExp[p.expense_id] = d;
+            jurosByExp[p.expense_id] = (jurosByExp[p.expense_id] || 0) + juros;
+            pagoByExp[p.expense_id] = (pagoByExp[p.expense_id] || 0) + valor;
           });
         }
         // Enriquecer descrição com Remetente → Recebedor para despesas vinculadas a Contratos de Frete
@@ -271,7 +283,8 @@ export function FinancialReports() {
                 plano: planoLabel,
                 planoId: e.plano_contas_id,
                 centro: e.centro_custo,
-                valorPago: expIsParcial ? valorPagoExp : undefined,
+                valorPago: expIsParcial ? valorPagoExp : (pagoByInst[inst.id] || undefined),
+                jurosPago: jurosByInst[inst.id] || 0,
                 saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
                 dataVencimento: inst.data_vencimento,
               });
@@ -294,7 +307,8 @@ export function FinancialReports() {
               plano: planoLabel,
               planoId: e.plano_contas_id,
               centro: e.centro_custo,
-              valorPago: expIsParcial ? valorPagoExp : undefined,
+              valorPago: expIsParcial ? valorPagoExp : (pagoByExp[e.id] || undefined),
+              jurosPago: jurosByExp[e.id] || 0,
               saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
               dataVencimento: e.data_vencimento || e.data_emissao,
             });
@@ -469,7 +483,9 @@ export function FinancialReports() {
       if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
       return s;
     }, 0);
-    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante };
+    const totalJuros = filteredRows.reduce((s, r) => s + (r.jurosPago || 0), 0);
+    const totalPagoComJuros = filteredRows.reduce((s, r) => s + (r.valorPago || 0) + (r.jurosPago || 0), 0);
+    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPagoComJuros };
   }, [filteredRows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
@@ -570,13 +586,18 @@ export function FinancialReports() {
         ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
+    const pagoComJurosLine =
+      reportType === "payables" && filters.status === "pago"
+        ? `<tr class="sub"><td colspan="${labelColspan}" class="r" style="color:#059669">TOTAL PAGO (com juros ${formatCurrency((totals as any).totalJuros || 0)})</td><td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td></tr>`
+        : "";
+
     const totalLine = isCashflow
       ? `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL — Entradas ${formatCurrency((totals as any).entradas)} • Saídas ${formatCurrency((totals as any).saidas)} • Saldo</td>
           <td class="r val" style="color:${totals.total >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(totals.total)}</td>
         </tr>`
       : `<tr class="tot">
-          <td colspan="${labelColspan}" class="r">TOTAL GERAL — ${filteredRows.length} registro(s)</td>
+          <td colspan="${labelColspan}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
         </tr>`;
 
@@ -632,7 +653,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
   </div>
   <table class="sheet">
-    <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
+    <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
     <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
