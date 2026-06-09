@@ -22,6 +22,7 @@ type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem"
 interface Filters {
   dataInicio: string;
   dataFim: string;
+  tipoData: string; // payables: emissao|vencimento|pagamento; receivables: emissao|vencimento|recebimento
   status: string;
   planoContasId: string;
   centroCusto: string;
@@ -50,6 +51,7 @@ interface Row {
 const initialFilters = (type: ReportType): Filters => ({
   dataInicio: format(startOfMonth(new Date()), "yyyy-MM-dd"),
   dataFim: format(endOfMonth(new Date()), "yyyy-MM-dd"),
+  tipoData: "vencimento",
   status: "todos",
   planoContasId: "todos",
   centroCusto: "todos",
@@ -58,6 +60,19 @@ const initialFilters = (type: ReportType): Filters => ({
   origem: "todos",
   groupBy: type === "payables" ? "plano" : type === "receivables" ? "cliente" : type === "cashflow" ? "origem" : "status",
 });
+
+const TIPO_DATA_OPTIONS: Partial<Record<ReportType, { value: string; label: string }[]>> = {
+  payables: [
+    { value: "emissao", label: "Data de Emissão" },
+    { value: "vencimento", label: "Data de Vencimento" },
+    { value: "pagamento", label: "Data de Pagamento" },
+  ],
+  receivables: [
+    { value: "emissao", label: "Data de Emissão" },
+    { value: "vencimento", label: "Data de Vencimento" },
+    { value: "recebimento", label: "Data de Recebimento" },
+  ],
+};
 
 const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
   payables: [
