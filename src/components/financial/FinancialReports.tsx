@@ -321,6 +321,7 @@ export function FinancialReports() {
             plano: "—",
             planoId: null,
             centro: "—",
+            dataVencimento: c.data_vencimento,
           }));
         }
 
