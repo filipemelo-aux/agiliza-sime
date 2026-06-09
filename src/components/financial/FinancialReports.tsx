@@ -138,6 +138,13 @@ export function FinancialReports() {
   const [nameSearch, setNameSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
+
+  // Lock status to "pago" when payables report uses "data de pagamento"
+  useEffect(() => {
+    if (reportType === "payables" && filters.tipoData === "pagamento" && filters.status !== "pago") {
+      setFilters((f) => ({ ...f, status: "pago" }));
+    }
+  }, [reportType, filters.tipoData, filters.status]);
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
