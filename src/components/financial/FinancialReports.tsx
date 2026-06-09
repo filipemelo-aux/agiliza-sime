@@ -409,11 +409,17 @@ export function FinancialReports() {
     }
   }, [reportType, filters, chartAccounts]);
 
+  const filteredRows = useMemo(() => {
+    const term = nameSearch.trim().toLowerCase();
+    if (!term) return rows;
+    return rows.filter((r) => (r.pessoa || "").toLowerCase().includes(term) || (r.descricao || "").toLowerCase().includes(term));
+  }, [rows, nameSearch]);
+
   const grouped = useMemo(() => {
     const gb = filters.groupBy;
-    if (gb === "none") return [{ key: "Todos", rows }];
+    if (gb === "none") return [{ key: "Todos", rows: filteredRows }];
     const map = new Map<string, Row[]>();
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       let k = "—";
       if (gb === "plano") k = r.plano;
       else if (gb === "centro") k = r.centro;
@@ -424,21 +430,21 @@ export function FinancialReports() {
       map.get(k)!.push(r);
     });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([key, rs]) => ({ key, rows: rs }));
-  }, [rows, filters.groupBy]);
+  }, [filteredRows, filters.groupBy]);
 
   const totals = useMemo(() => {
     if (reportType === "cashflow") {
-      const entradas = rows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
-      const saidas = rows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
-      return { total: entradas - saidas, count: rows.length, entradas, saidas, saldoRestante: 0 };
+      const entradas = filteredRows.filter((r) => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
+      const saidas = filteredRows.filter((r) => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
+      return { total: entradas - saidas, count: filteredRows.length, entradas, saidas, saldoRestante: 0 };
     }
-    const saldoRestante = rows.reduce((s, r) => {
+    const saldoRestante = filteredRows.reduce((s, r) => {
       if (r.saldo !== undefined) return s + r.saldo;
       if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
       return s;
     }, 0);
-    return { total: rows.reduce((s, r) => s + r.valor, 0), count: rows.length, saldoRestante };
-  }, [rows, reportType]);
+    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante };
+  }, [filteredRows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
     payables: "RELATÓRIO DE CONTAS A PAGAR",
