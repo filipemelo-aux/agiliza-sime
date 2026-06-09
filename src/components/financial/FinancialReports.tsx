@@ -546,9 +546,10 @@ export function FinancialReports() {
         ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
         : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
       const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
-      const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+      const pagoPrincipal = r.valorPago || 0;
+      const pagoJuros = r.jurosPago || 0;
       const pagoCell = isPayables
-        ? `<td class="r" style="color:#059669;font-weight:700">${pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}</td>`
+        ? `<td class="r" style="color:#059669;font-weight:700">${pagoPrincipal > 0 || pagoJuros > 0 ? formatCurrency(pagoPrincipal) : "—"}${pagoJuros > 0 ? `<div style="font-size:9px;font-weight:500;color:#6b7280">+ juros ${formatCurrency(pagoJuros)}</div>` : ""}</td>`
         : "";
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
