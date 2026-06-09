@@ -917,6 +917,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
                               </span>
                             </div>
+                            {r.dataVencimento && (
+                              <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
