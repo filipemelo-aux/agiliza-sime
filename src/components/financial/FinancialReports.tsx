@@ -151,6 +151,7 @@ export function FinancialReports() {
     setReportType(tt);
     setFilters(initialFilters(tt));
     setRows([]);
+    setNameSearch("");
   };
 
   const updateFilter = (k: keyof Filters, v: string) => setFilters((f) => ({ ...f, [k]: v }));
