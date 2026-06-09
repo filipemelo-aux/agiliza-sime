@@ -987,6 +987,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           <th className="px-3 py-2 font-medium">Pessoa / Descrição</th>
                           <th className="px-2 py-2 font-medium text-center w-[110px]">Status</th>
                           <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
+                          {reportType === "payables" && (
+                            <th className="px-2 py-2 font-medium text-right w-[140px]">Pago</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -994,12 +997,14 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           <Fragment key={g.key}>
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/40 border-t border-border">
-                                <td colSpan={4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
+                                <td colSpan={reportType === "payables" ? 5 : 4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
                                   {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
                                 </td>
                               </tr>
                             )}
-                            {g.rows.map((r) => (
+                            {g.rows.map((r) => {
+                              const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+                              return (
                               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                                 <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
                                 <td className="px-3 py-2">
@@ -1008,9 +1013,6 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                   {r.dataVencimento && (
                                     <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                                   )}
-                                  {reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0 && (
-                                    <div className="text-[10px] text-green-600 font-semibold">Pago: {formatCurrency(r.valorPago)}</div>
-                                  )}
                                 </td>
                                 <td className="px-2 py-2 text-center">
                                   <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
@@ -1018,14 +1020,28 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 <td className={`px-2 py-2 text-right tabular-nums font-medium ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
                                   {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
                                 </td>
+                                {reportType === "payables" && (
+                                  <td className="px-2 py-2 text-right tabular-nums font-semibold text-green-600">
+                                    {pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}
+                                    {(r.jurosPago || 0) > 0 && (
+                                      <div className="text-[9px] font-normal text-muted-foreground">juros {formatCurrency(r.jurosPago || 0)}</div>
+                                    )}
+                                  </td>
+                                )}
                               </tr>
-                            ))}
+                              );
+                            })}
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/20 border-t border-border">
                                 <td colSpan={3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
                                 <td className="px-2 py-1.5 text-right text-xs font-bold text-primary tabular-nums">
                                   {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
                                 </td>
+                                {reportType === "payables" && (
+                                  <td className="px-2 py-1.5 text-right text-xs font-bold text-green-600 tabular-nums">
+                                    {formatCurrency(g.rows.reduce((s, r) => s + (r.valorPago || 0) + (r.jurosPago || 0), 0))}
+                                  </td>
+                                )}
                               </tr>
                             )}
                           </Fragment>
