@@ -410,6 +410,20 @@ export function FinancialReports() {
     }
   }, [reportType, filters, chartAccounts]);
 
+  // Quando o usuário digita uma busca por nome, limpa qualquer favorecido/cliente selecionado
+  // e dispara a busca automaticamente (debounce) para garantir abrangência total.
+  useEffect(() => {
+    if (!nameSearch.trim()) return;
+    const needsClear = filters.favorecidoId !== "todos" || filters.clienteId !== "todos";
+    if (needsClear) {
+      setFilters((f) => ({ ...f, favorecidoId: "todos", clienteId: "todos" }));
+      return; // próximo efeito re-dispara após o estado mudar
+    }
+    const t = setTimeout(() => { fetchData(); }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nameSearch, filters.favorecidoId, filters.clienteId, reportType]);
+
   const filteredRows = useMemo(() => {
     const term = nameSearch.trim().toLowerCase();
     if (!term) return rows;
