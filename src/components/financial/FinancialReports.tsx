@@ -45,6 +45,7 @@ interface Row {
   centro: string;
   tipo?: "entrada" | "saida";
   valorPago?: number;
+  jurosPago?: number;
   saldo?: number;
   dataVencimento?: string | null;
 }
