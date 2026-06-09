@@ -679,6 +679,25 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
         <TabsContent value={reportType} className="mt-4">
           <Card>
             <CardContent className="p-3 space-y-3">
+              {TIPO_DATA_OPTIONS[reportType] && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Filtrar período por</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TIPO_DATA_OPTIONS[reportType]!.map((o) => (
+                      <Button
+                        key={o.value}
+                        type="button"
+                        size="sm"
+                        variant={filters.tipoData === o.value ? "default" : "outline"}
+                        className="h-7 text-xs"
+                        onClick={() => updateFilter("tipoData", o.value)}
+                      >
+                        {o.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Data Inicial</Label>
