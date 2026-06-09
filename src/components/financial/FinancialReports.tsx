@@ -48,6 +48,7 @@ interface Row {
   jurosPago?: number;
   saldo?: number;
   dataVencimento?: string | null;
+  parcela?: string | null;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
