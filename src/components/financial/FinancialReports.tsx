@@ -521,6 +521,9 @@ export function FinancialReports() {
       const parcialInfo = reportType === "payables" ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "");
+      const pagoInfo = reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0
+        ? `<div class="t2" style="color:#059669;font-weight:700">Pago ${formatCurrency(r.valorPago)}</div>`
+        : "";
       const vencInfo = r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
