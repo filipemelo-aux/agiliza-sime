@@ -521,8 +521,8 @@ export function FinancialReports() {
       return s;
     }, 0);
     const totalJuros = filteredRows.reduce((s, r) => s + (r.jurosPago || 0), 0);
-    const totalPagoComJuros = filteredRows.reduce((s, r) => s + (r.valorPago || 0), 0);
-    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPagoComJuros };
+    const totalPago = filteredRows.reduce((s, r) => s + (r.valorPago || 0), 0);
+    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPago };
   }, [filteredRows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
@@ -652,7 +652,7 @@ export function FinancialReports() {
       ? `<tr class="tot">
           <td colspan="${colCount - 2}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
-          <td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td>
+          <td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPago || 0)}</td>
         </tr>`
       : `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
@@ -1018,7 +1018,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             )}
                             {reportType === "payables" && (r.valorPago || 0) > 0 && (
                               <div className="flex items-center justify-between text-[10px]">
-                                <span className="text-muted-foreground">Pago{(r.jurosPago || 0) > 0 ? ` (+ juros ${formatCurrency(r.jurosPago || 0)})` : ""}:</span>
+                                <span className="text-muted-foreground">Pago:</span>
                                 <span className="text-green-600 font-semibold tabular-nums">{formatCurrency(r.valorPago || 0)}</span>
                               </div>
                             )}
