@@ -514,10 +514,13 @@ export function FinancialReports() {
       const parcialInfo = isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "";
+      const vencInfo = r.dataVencimento
+        ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
+        : "";
       const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`;
+        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
+        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
       const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
