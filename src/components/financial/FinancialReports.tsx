@@ -625,7 +625,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     if (!rows.length) return toast.warning("Nenhum dado para exportar");
     const header = ["Data", "Pessoa", "Descrição", "Plano de Contas", "Centro de Custo", "Origem", "Status", "Valor"];
     const lines = [header.join(";")];
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       lines.push([formatDateBR(r.data), r.pessoa, r.descricao.replace(/;/g, ","), r.plano, r.centro, r.origem, r.status, r.valor.toFixed(2).replace(".", ",")].join(";"));
     });
     const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
