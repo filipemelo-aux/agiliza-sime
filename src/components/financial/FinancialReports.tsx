@@ -134,6 +134,7 @@ export function FinancialReports() {
   const [reportType, setReportType] = useState<ReportType>("payables");
   const [favorecidoSearch, setFavorecidoSearch] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
+  const [nameSearch, setNameSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
