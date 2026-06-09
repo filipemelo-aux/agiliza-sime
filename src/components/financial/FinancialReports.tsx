@@ -591,9 +591,12 @@ export function FinancialReports() {
         ? `<tr class="sub"><td colspan="${colCount - 1}" class="r" style="color:#004085">Saldo Restante a Pagar</td><td class="r val" style="color:#004085">${formatCurrency((totals as any).saldoRestante)}</td></tr>`
         : "";
 
+    const totalPagoPrincipal = filteredRows.reduce((s, r) => s + (r.valorPago || 0), 0);
+
     const pagoComJurosLine =
-      isPayables && filters.status === "pago"
-        ? `<tr class="sub"><td colspan="${colCount - 1}" class="r" style="color:#059669">Juros pagos no período</td><td class="r val" style="color:#059669">${formatCurrency((totals as any).totalJuros || 0)}</td></tr>`
+      isPayables && ((totals as any).totalJuros || 0) > 0
+        ? `<tr class="sub"><td colspan="${colCount - 2}" class="r" style="color:#059669">Juros pagos no período</td><td class="r val"></td><td class="r val" style="color:#059669">+ ${formatCurrency((totals as any).totalJuros || 0)}</td></tr>
+           <tr class="sub"><td colspan="${colCount - 2}" class="r" style="color:#059669;font-weight:700">TOTAL PAGO (com juros)</td><td class="r val"></td><td class="r val" style="color:#059669;font-weight:700">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td></tr>`
         : "";
 
     const totalLine = isCashflow
@@ -605,7 +608,7 @@ export function FinancialReports() {
       ? `<tr class="tot">
           <td colspan="${colCount - 2}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
           <td class="r val">${formatCurrency(totals.total)}</td>
-          <td class="r val" style="color:#059669">${formatCurrency((totals as any).totalPagoComJuros || 0)}</td>
+          <td class="r val" style="color:#059669">${formatCurrency(totalPagoPrincipal)}</td>
         </tr>`
       : `<tr class="tot">
           <td colspan="${labelColspan}" class="r">TOTAL DO FILTRO — ${filteredRows.length} registro(s)</td>
