@@ -984,6 +984,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             <div className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1 text-muted-foreground truncate">
                                 <span>{formatDateBR(r.data)}</span>
+                                {r.parcela && <span className="shrink-0 font-medium text-foreground">· P{r.parcela}</span>}
                                 <span className="truncate">· {r.descricao}</span>
                               </div>
                               <span className={`font-mono font-bold tabular-nums ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
@@ -991,7 +992,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                               </span>
                             </div>
                             {r.dataVencimento && (
-                              <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                              <div className="text-[10px] text-muted-foreground">Vencimento: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                             )}
                             {reportType === "payables" && ((r.valorPago || 0) + (r.jurosPago || 0)) > 0 && (
                               <div className="flex items-center justify-between text-[10px]">
