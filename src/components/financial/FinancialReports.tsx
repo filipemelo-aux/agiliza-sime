@@ -307,7 +307,8 @@ export function FinancialReports() {
               plano: planoLabel,
               planoId: e.plano_contas_id,
               centro: e.centro_custo,
-              valorPago: expIsParcial ? valorPagoExp : undefined,
+              valorPago: expIsParcial ? valorPagoExp : (pagoByExp[e.id] || undefined),
+              jurosPago: jurosByExp[e.id] || 0,
               saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
               dataVencimento: e.data_vencimento || e.data_emissao,
             });
