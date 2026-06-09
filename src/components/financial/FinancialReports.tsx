@@ -483,7 +483,9 @@ export function FinancialReports() {
       if (r.status !== "pago" && r.status !== "recebido") return s + r.valor;
       return s;
     }, 0);
-    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante };
+    const totalJuros = filteredRows.reduce((s, r) => s + (r.jurosPago || 0), 0);
+    const totalPagoComJuros = filteredRows.reduce((s, r) => s + (r.valorPago || 0) + (r.jurosPago || 0), 0);
+    return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPagoComJuros };
   }, [filteredRows, reportType]);
 
   const REPORT_TITLE: Record<ReportType, string> = {
