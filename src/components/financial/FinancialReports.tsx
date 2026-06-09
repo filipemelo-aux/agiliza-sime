@@ -518,9 +518,9 @@ export function FinancialReports() {
       const valorColor = r.tipo === "saida" ? "neg" : "val";
       const valorPrefix = r.tipo === "saida" ? "− " : "";
       const isParcial = r.status === "parcial" || r.valorPago !== undefined;
-      const parcialInfo = isParcial
+      const parcialInfo = reportType === "payables" ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
-        : "";
+        : "");
       const vencInfo = r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
