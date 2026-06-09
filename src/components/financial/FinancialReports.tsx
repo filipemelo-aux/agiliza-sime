@@ -835,20 +835,19 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                   </Button>
                 </div>
               </div>
-              {rows.length > 0 && (
-                <div className="pt-1">
-                  <Label className="text-xs">Buscar por nome</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                    <Input
-                      value={nameSearch}
-                      onChange={(e) => setNameSearch(e.target.value)}
-                      placeholder="Filtrar em tempo real por favorecido, cliente ou descrição..."
-                      className="h-8 text-xs pl-7"
-                    />
-                  </div>
+              <div className="pt-1">
+                <Label className="text-xs">Buscar por nome</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    value={nameSearch}
+                    onChange={(e) => setNameSearch(e.target.value)}
+                    placeholder="Filtrar em tempo real por favorecido, cliente ou descrição..."
+                    className="h-8 text-xs pl-7"
+                    disabled={rows.length === 0}
+                  />
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
