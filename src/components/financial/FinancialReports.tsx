@@ -263,6 +263,24 @@ export function FinancialReports() {
           const valorPagoExp = Number(e.valor_pago || 0);
           const expIsParcial = valorPagoExp > 0 && valorPagoExp < valorTotal;
           if (installs.length > 0) {
+            // Distribuir pagamentos sem installment_id entre as parcelas pagas que não têm pagoByInst próprio
+            const totalAttributed = installs.reduce((s: number, i: any) => s + (pagoByInst[i.id] || 0), 0);
+            const leftover = Math.max(0, (pagoByExp[e.id] || 0) - totalAttributed);
+            const unattributedPaid = installs.filter((i: any) => i.status === "pago" && pagoByInst[i.id] === undefined);
+            const sumFace = unattributedPaid.reduce((s: number, i: any) => s + Number(i.valor), 0);
+            const distributedPago: Record<string, number> = {};
+            if (leftover > 0 && unattributedPaid.length > 0 && sumFace > 0) {
+              let acc = 0;
+              unattributedPaid.forEach((i: any, idx: number) => {
+                if (idx === unattributedPaid.length - 1) {
+                  distributedPago[i.id] = Math.round((leftover - acc) * 100) / 100;
+                } else {
+                  const share = Math.round((leftover * Number(i.valor) / sumFace) * 100) / 100;
+                  distributedPago[i.id] = share;
+                  acc += share;
+                }
+              });
+            }
             installs.forEach((inst: any) => {
               const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
               const status = isOverdue ? "atrasado" : inst.status;
@@ -273,6 +291,11 @@ export function FinancialReports() {
               if (tipoData === "pagamento" && !dataRef) return; // só parcelas com pagamento
               if (!inRange(dataRef)) return;
               if (!matchStatus(status)) return;
+              const pagoEfetivo = pagoByInst[inst.id] !== undefined
+                ? pagoByInst[inst.id]
+                : (distributedPago[inst.id] !== undefined
+                    ? distributedPago[inst.id]
+                    : (inst.status === "pago" ? Number(inst.valor) : undefined));
               out.push({
                 id: `${e.id}-${inst.id}`,
                 data: dataRef!,
@@ -285,14 +308,13 @@ export function FinancialReports() {
                 plano: planoLabel,
                 planoId: e.plano_contas_id,
                 centro: e.centro_custo,
-                valorPago: pagoByInst[inst.id] !== undefined
-                  ? pagoByInst[inst.id]
-                  : (inst.status === "pago" ? Number(inst.valor) : undefined),
+                valorPago: pagoEfetivo,
                 jurosPago: jurosByInst[inst.id] || 0,
-                saldo: pagoByInst[inst.id] !== undefined && pagoByInst[inst.id] < Number(inst.valor) ? Math.max(Number(inst.valor) - pagoByInst[inst.id], 0) : undefined,
+                saldo: pagoEfetivo !== undefined && pagoEfetivo < Number(inst.valor) ? Math.max(Number(inst.valor) - pagoEfetivo, 0) : undefined,
                 dataVencimento: inst.data_vencimento,
               });
             });
+
           } else {
             let d: string | null = e.data_vencimento || e.data_emissao;
             if (tipoData === "emissao") d = e.data_emissao || e.data_vencimento;
