@@ -659,6 +659,8 @@ table.sheet tbody tr.hdr td, table.sheet tbody tr.hdr:nth-child(even) td{backgro
 table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
 table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+table.sheet tbody td.ell{max-width:1px}
 .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .t1{font-weight:600;color:#111827}
 .t2{font-size:7.5px;color:#6b7280;margin-top:1px}
