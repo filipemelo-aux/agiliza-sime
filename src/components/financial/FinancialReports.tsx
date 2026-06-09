@@ -1074,7 +1074,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             })}
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/20 border-t border-border">
-                                <td colSpan={3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
+                                <td colSpan={reportType === "payables" ? 5 : 3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
                                 <td className="px-2 py-1.5 text-right text-xs font-bold text-primary tabular-nums">
                                   {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
                                 </td>
