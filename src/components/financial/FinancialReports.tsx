@@ -954,6 +954,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 <td className="px-3 py-2">
                                   <div className="font-medium truncate max-w-[420px]">{r.pessoa}</div>
                                   <div className="text-[10px] text-muted-foreground truncate max-w-[420px]">{r.descricao}</div>
+                                  {r.dataVencimento && (
+                                    <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                                  )}
                                 </td>
                                 <td className="px-2 py-2 text-center">
                                   <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
