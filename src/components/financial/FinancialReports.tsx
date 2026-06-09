@@ -283,9 +283,11 @@ export function FinancialReports() {
                 plano: planoLabel,
                 planoId: e.plano_contas_id,
                 centro: e.centro_custo,
-                valorPago: pagoByInst[inst.id] || undefined,
+                valorPago: pagoByInst[inst.id] !== undefined
+                  ? pagoByInst[inst.id]
+                  : (inst.status === "pago" ? Number(inst.valor) : undefined),
                 jurosPago: jurosByInst[inst.id] || 0,
-                saldo: pagoByInst[inst.id] && pagoByInst[inst.id] < Number(inst.valor) ? Math.max(Number(inst.valor) - pagoByInst[inst.id], 0) : undefined,
+                saldo: pagoByInst[inst.id] !== undefined && pagoByInst[inst.id] < Number(inst.valor) ? Math.max(Number(inst.valor) - pagoByInst[inst.id], 0) : undefined,
                 dataVencimento: inst.data_vencimento,
               });
             });
