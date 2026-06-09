@@ -48,6 +48,7 @@ interface Row {
   jurosPago?: number;
   saldo?: number;
   dataVencimento?: string | null;
+  parcela?: string | null;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
@@ -275,7 +276,8 @@ export function FinancialReports() {
               out.push({
                 id: `${e.id}-${inst.id}`,
                 data: dataRef!,
-                descricao: `${baseDescricao} (P${inst.numero_parcela}/${installs.length})`,
+                descricao: baseDescricao,
+                parcela: `${inst.numero_parcela}/${installs.length}`,
                 pessoa: e.favorecido_nome || "—",
                 status,
                 valor: Number(inst.valor),
@@ -541,7 +543,8 @@ export function FinancialReports() {
     // Columns: Data | [Favorecido/Cliente] | Descrição | Plano | Status | Valor
     // Cashflow: Data | Descrição | Origem | Status | Valor
     const isPayables = reportType === "payables";
-    const colCount = (showFavor ? 6 : 5) + (isPayables ? 1 : 0);
+    // Payables ganha 3 colunas extras: Vencimento, Parcela e Pago
+    const colCount = (showFavor ? 6 : 5) + (isPayables ? 3 : 0);
     const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
 
     const renderRow = (r: Row) => {
@@ -551,15 +554,21 @@ export function FinancialReports() {
       const parcialInfo = isPayables ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "");
-      const vencInfo = r.dataVencimento
+      const vencInfo = !isPayables && r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
-      const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
+      const favorCell = showFavor ? `<td class="t1 nowrap ell">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
-      const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
+        ? `<td class="ell"><div class="t2b ell">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
+        : `<td class="ell"><div class="t1 ell">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
+      const planoCell = `<td class="t2b nowrap ell">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+      const vencCell = isPayables
+        ? `<td class="nowrap">${r.dataVencimento ? formatDateBR(r.dataVencimento) : "—"}</td>`
+        : "";
+      const parcelaCell = isPayables
+        ? `<td class="nowrap" style="text-align:center">${r.parcela ? esc(r.parcela) : "—"}</td>`
+        : "";
       const pagoCell = isPayables
         ? `<td class="r" style="color:#059669;font-weight:700">${pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}</td>`
         : "";
@@ -567,6 +576,8 @@ export function FinancialReports() {
         <td class="nowrap">${formatDateBR(r.data)}</td>
         ${favorCell}
         ${descCell}
+        ${vencCell}
+        ${parcelaCell}
         ${planoCell}
         <td class="st">${esc(r.status)}</td>
         <td class="r ${valorColor}">${valorPrefix}${formatCurrency(r.valor)}</td>
@@ -576,9 +587,11 @@ export function FinancialReports() {
 
     const headerRow = `<tr class="hdr">
       <th style="width:60px">Data</th>
-      ${showFavor ? `<th style="width:160px">${favorLabel}</th>` : ""}
+      ${showFavor ? `<th style="width:140px">${favorLabel}</th>` : ""}
       <th>Descrição</th>
-      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      ${isPayables ? `<th style="width:65px">Vencimento</th>` : ""}
+      ${isPayables ? `<th style="width:50px;text-align:center">Parcela</th>` : ""}
+      <th style="width:130px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
       ${isPayables ? `<th class="r" style="width:90px">Pago</th>` : ""}
@@ -646,6 +659,8 @@ table.sheet tbody tr.hdr td, table.sheet tbody tr.hdr:nth-child(even) td{backgro
 table.sheet tbody td{padding:2px 4px;border:1px solid #e5e7eb;vertical-align:top;font-size:8.5px;line-height:1.2}
 table.sheet tbody tr:nth-child(even) td{background:#fafbfc}
 .nowrap{white-space:nowrap}
+table.sheet.fixed{table-layout:fixed}
+table.sheet.fixed td.ell,table.sheet.fixed td.ell *{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .t1{font-weight:600;color:#111827}
 .t2{font-size:7.5px;color:#6b7280;margin-top:1px}
@@ -675,7 +690,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       <div class="per">Período: ${periodoLabel} • ${filteredRows.length} registro(s)</div>
     </div>
   </div>
-  <table class="sheet">
+  <table class="sheet${isPayables ? " fixed" : ""}">
     <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
@@ -969,6 +984,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             <div className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1 text-muted-foreground truncate">
                                 <span>{formatDateBR(r.data)}</span>
+                                {r.parcela && <span className="shrink-0 font-medium text-foreground">· P{r.parcela}</span>}
                                 <span className="truncate">· {r.descricao}</span>
                               </div>
                               <span className={`font-mono font-bold tabular-nums ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
@@ -976,7 +992,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                               </span>
                             </div>
                             {r.dataVencimento && (
-                              <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                              <div className="text-[10px] text-muted-foreground">Vencimento: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                             )}
                             {reportType === "payables" && ((r.valorPago || 0) + (r.jurosPago || 0)) > 0 && (
                               <div className="flex items-center justify-between text-[10px]">
@@ -996,12 +1012,18 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     <table className="w-full text-xs">
                       <thead className="bg-muted/40 text-muted-foreground">
                         <tr className="text-left">
-                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[110px]">Data</th>
+                          <th className="px-3 py-2 font-medium whitespace-nowrap w-[100px]">Data</th>
                           <th className="px-3 py-2 font-medium">Pessoa / Descrição</th>
-                          <th className="px-2 py-2 font-medium text-center w-[110px]">Status</th>
-                          <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
                           {reportType === "payables" && (
-                            <th className="px-2 py-2 font-medium text-right w-[140px]">Pago</th>
+                            <>
+                              <th className="px-2 py-2 font-medium whitespace-nowrap w-[100px]">Vencimento</th>
+                              <th className="px-2 py-2 font-medium text-center whitespace-nowrap w-[70px]">Parcela</th>
+                            </>
+                          )}
+                          <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
+                          <th className="px-2 py-2 font-medium text-right w-[130px]">Valor</th>
+                          {reportType === "payables" && (
+                            <th className="px-2 py-2 font-medium text-right w-[130px]">Pago</th>
                           )}
                         </tr>
                       </thead>
@@ -1010,31 +1032,38 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           <Fragment key={g.key}>
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/40 border-t border-border">
-                                <td colSpan={reportType === "payables" ? 5 : 4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
+                                <td colSpan={reportType === "payables" ? 7 : 4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
                                   {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
                                 </td>
                               </tr>
                             )}
                             {g.rows.map((r) => {
                               const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+                              const isPayables = reportType === "payables";
                               return (
                               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                                <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                                <td className="px-3 py-2">
-                                  <div className="font-medium truncate max-w-[420px]">{r.pessoa}</div>
-                                  <div className="text-[10px] text-muted-foreground truncate max-w-[420px]">{r.descricao}</div>
-                                  {r.dataVencimento && (
+                                <td className="px-3 py-2 whitespace-nowrap tabular-nums align-top">{formatDateBR(r.data)}</td>
+                                <td className="px-3 py-2 align-top max-w-0">
+                                  <div className="font-medium truncate">{r.pessoa}</div>
+                                  <div className="text-[10px] text-muted-foreground truncate" title={r.descricao}>{r.descricao}</div>
+                                  {!isPayables && r.dataVencimento && (
                                     <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                                   )}
                                 </td>
-                                <td className="px-2 py-2 text-center">
+                                {isPayables && (
+                                  <>
+                                    <td className="px-2 py-2 whitespace-nowrap tabular-nums align-top">{r.dataVencimento ? formatDateBR(r.dataVencimento) : "—"}</td>
+                                    <td className="px-2 py-2 text-center whitespace-nowrap tabular-nums align-top">{r.parcela || "—"}</td>
+                                  </>
+                                )}
+                                <td className="px-2 py-2 text-center align-top">
                                   <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
                                 </td>
-                                <td className={`px-2 py-2 text-right tabular-nums font-medium ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
+                                <td className={`px-2 py-2 text-right tabular-nums font-medium align-top ${r.tipo === "saida" ? "text-red-600" : "text-foreground"}`}>
                                   {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
                                 </td>
-                                {reportType === "payables" && (
-                                  <td className="px-2 py-2 text-right tabular-nums font-semibold text-green-600">
+                                {isPayables && (
+                                  <td className="px-2 py-2 text-right tabular-nums font-semibold text-green-600 align-top">
                                     {pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}
                                     {(r.jurosPago || 0) > 0 && (
                                       <div className="text-[9px] font-normal text-muted-foreground">juros {formatCurrency(r.jurosPago || 0)}</div>
@@ -1046,7 +1075,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             })}
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/20 border-t border-border">
-                                <td colSpan={3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
+                                <td colSpan={reportType === "payables" ? 5 : 3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
                                 <td className="px-2 py-1.5 text-right text-xs font-bold text-primary tabular-nums">
                                   {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
                                 </td>
