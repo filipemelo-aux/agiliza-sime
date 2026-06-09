@@ -527,27 +527,29 @@ export function FinancialReports() {
     const favorLabel = isReceivable ? "Cliente" : "Favorecido";
     // Columns: Data | [Favorecido/Cliente] | Descrição | Plano | Status | Valor
     // Cashflow: Data | Descrição | Origem | Status | Valor
-    const colCount = showFavor ? 6 : 5;
+    const isPayables = reportType === "payables";
+    const colCount = (showFavor ? 6 : 5) + (isPayables ? 1 : 0);
     const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
 
     const renderRow = (r: Row) => {
       const valorColor = r.tipo === "saida" ? "neg" : "val";
       const valorPrefix = r.tipo === "saida" ? "− " : "";
       const isParcial = r.status === "parcial" || r.valorPago !== undefined;
-      const parcialInfo = reportType === "payables" ? "" : (isParcial
+      const parcialInfo = isPayables ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "");
-      const pagoInfo = reportType === "payables" && r.valorPago !== undefined && r.valorPago > 0
-        ? `<div class="t2" style="color:#059669;font-weight:700">Pago ${formatCurrency(r.valorPago)}</div>`
-        : "";
       const vencInfo = r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
       const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${pagoInfo}${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${pagoInfo}${parcialInfo}</td>`;
+        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
+        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
       const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
+      const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+      const pagoCell = isPayables
+        ? `<td class="r" style="color:#059669;font-weight:700">${pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}</td>`
+        : "";
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
         ${favorCell}
@@ -555,6 +557,7 @@ export function FinancialReports() {
         ${planoCell}
         <td class="st">${esc(r.status)}</td>
         <td class="r ${valorColor}">${valorPrefix}${formatCurrency(r.valor)}</td>
+        ${pagoCell}
       </tr>`;
     };
 
@@ -565,6 +568,7 @@ export function FinancialReports() {
       <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
+      ${isPayables ? `<th class="r" style="width:90px">Pago</th>` : ""}
     </tr>`;
 
     const sectionsHtml = grouped
