@@ -46,6 +46,7 @@ interface Row {
   tipo?: "entrada" | "saida";
   valorPago?: number;
   saldo?: number;
+  dataVencimento?: string | null;
 }
 
 const initialFilters = (type: ReportType): Filters => ({
@@ -265,6 +266,7 @@ export function FinancialReports() {
                 centro: e.centro_custo,
                 valorPago: expIsParcial ? valorPagoExp : undefined,
                 saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
+                dataVencimento: inst.data_vencimento,
               });
             });
           } else {
@@ -287,6 +289,7 @@ export function FinancialReports() {
               centro: e.centro_custo,
               valorPago: expIsParcial ? valorPagoExp : undefined,
               saldo: expIsParcial ? Math.max(valorTotal - valorPagoExp, 0) : undefined,
+              dataVencimento: e.data_vencimento || e.data_emissao,
             });
           }
         });
@@ -318,6 +321,7 @@ export function FinancialReports() {
             plano: "—",
             planoId: null,
             centro: "—",
+            dataVencimento: c.data_vencimento,
           }));
         }
 
@@ -510,10 +514,13 @@ export function FinancialReports() {
       const parcialInfo = isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "";
+      const vencInfo = r.dataVencimento
+        ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
+        : "";
       const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${parcialInfo}</td>`;
+        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
+        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
       const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       return `<tr>
         <td class="nowrap">${formatDateBR(r.data)}</td>
@@ -910,6 +917,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 {r.tipo === "saida" ? "-" : ""}{formatCurrency(r.valor)}
                               </span>
                             </div>
+                            {r.dataVencimento && (
+                              <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -944,6 +954,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 <td className="px-3 py-2">
                                   <div className="font-medium truncate max-w-[420px]">{r.pessoa}</div>
                                   <div className="text-[10px] text-muted-foreground truncate max-w-[420px]">{r.descricao}</div>
+                                  {r.dataVencimento && (
+                                    <div className="text-[10px] text-muted-foreground">Venc. original: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
+                                  )}
                                 </td>
                                 <td className="px-2 py-2 text-center">
                                   <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
