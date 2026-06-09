@@ -596,7 +596,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
     <div style="flex:1">
       <h1>${REPORT_TITLE[reportType]}</h1>
-      <div class="per">Período: ${periodoLabel} • ${rows.length} registro(s)</div>
+      <div class="per">Período: ${periodoLabel} • ${filteredRows.length} registro(s)</div>
     </div>
   </div>
   <table class="sheet">
