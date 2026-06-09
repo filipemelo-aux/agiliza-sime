@@ -690,7 +690,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       <div class="per">Período: ${periodoLabel} • ${filteredRows.length} registro(s)</div>
     </div>
   </div>
-  <table class="sheet">
+  <table class="sheet${isPayables ? " fixed" : ""}">
     <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
