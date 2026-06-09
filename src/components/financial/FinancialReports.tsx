@@ -1007,7 +1007,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                               </tr>
                             )}
                             {g.rows.map((r) => {
-                              const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+                              const pagoPrincipal = r.valorPago || 0;
+                              const pagoJuros = r.jurosPago || 0;
                               return (
                               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                                 <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
@@ -1026,9 +1027,9 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 </td>
                                 {reportType === "payables" && (
                                   <td className="px-2 py-2 text-right tabular-nums font-semibold text-green-600">
-                                    {pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}
-                                    {(r.jurosPago || 0) > 0 && (
-                                      <div className="text-[9px] font-normal text-muted-foreground">juros {formatCurrency(r.jurosPago || 0)}</div>
+                                    {pagoPrincipal > 0 || pagoJuros > 0 ? formatCurrency(pagoPrincipal) : "—"}
+                                    {pagoJuros > 0 && (
+                                      <div className="text-[9px] font-normal text-muted-foreground">+ juros {formatCurrency(pagoJuros)}</div>
                                     )}
                                   </td>
                                 )}
@@ -1043,7 +1044,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 </td>
                                 {reportType === "payables" && (
                                   <td className="px-2 py-1.5 text-right text-xs font-bold text-green-600 tabular-nums">
-                                    {formatCurrency(g.rows.reduce((s, r) => s + (r.valorPago || 0) + (r.jurosPago || 0), 0))}
+                                    {formatCurrency(g.rows.reduce((s, r) => s + (r.valorPago || 0), 0))}
                                   </td>
                                 )}
                               </tr>
