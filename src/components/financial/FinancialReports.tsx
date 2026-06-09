@@ -138,6 +138,13 @@ export function FinancialReports() {
   const [nameSearch, setNameSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
   const [rows, setRows] = useState<Row[]>([]);
+
+  // Lock status to "pago" when payables report uses "data de pagamento"
+  useEffect(() => {
+    if (reportType === "payables" && filters.tipoData === "pagamento" && filters.status !== "pago") {
+      setFilters((f) => ({ ...f, status: "pago" }));
+    }
+  }, [reportType, filters.tipoData, filters.status]);
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -730,12 +737,16 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Status</Label>
-                  <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS[reportType].map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  {reportType === "payables" && filters.tipoData === "pagamento" ? (
+                    <Input value="Pago" disabled className="h-8 text-xs bg-muted" />
+                  ) : (
+                    <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS[reportType].map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 {showOrigem && (
                   <div className="space-y-1">
