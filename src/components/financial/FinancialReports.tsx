@@ -653,7 +653,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     </div>
   </div>
   <table class="sheet">
-    <tbody>${sectionsHtml}${totalLine}${saldoRestanteLine}</tbody>
+    <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
     <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
