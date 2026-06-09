@@ -543,7 +543,8 @@ export function FinancialReports() {
     // Columns: Data | [Favorecido/Cliente] | Descrição | Plano | Status | Valor
     // Cashflow: Data | Descrição | Origem | Status | Valor
     const isPayables = reportType === "payables";
-    const colCount = (showFavor ? 6 : 5) + (isPayables ? 1 : 0);
+    // Payables ganha 3 colunas extras: Vencimento, Parcela e Pago
+    const colCount = (showFavor ? 6 : 5) + (isPayables ? 3 : 0);
     const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
 
     const renderRow = (r: Row) => {
@@ -553,15 +554,21 @@ export function FinancialReports() {
       const parcialInfo = isPayables ? "" : (isParcial
         ? `<div class="t2" style="color:#004085;font-weight:700">Pagamento parcial — Pago ${formatCurrency(r.valorPago || 0)} • Saldo ${formatCurrency(r.saldo ?? Math.max(r.valor - (r.valorPago || 0), 0))}</div>`
         : "");
-      const vencInfo = r.dataVencimento
+      const vencInfo = !isPayables && r.dataVencimento
         ? `<div class="t2">Venc. original: ${formatDateBR(r.dataVencimento)}</div>`
         : "";
-      const favorCell = showFavor ? `<td class="t1 nowrap">${esc(r.pessoa)}</td>` : "";
+      const favorCell = showFavor ? `<td class="t1 nowrap ell">${esc(r.pessoa)}</td>` : "";
       const descCell = showFavor
-        ? `<td><div class="t2b">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
-        : `<td><div class="t1">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
-      const planoCell = `<td class="t2b nowrap">${esc(isCashflow ? r.origem : r.plano)}</td>`;
+        ? `<td class="ell"><div class="t2b ell">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`
+        : `<td class="ell"><div class="t1 ell">${esc(r.descricao || "—")}</div>${vencInfo}${parcialInfo}</td>`;
+      const planoCell = `<td class="t2b nowrap ell">${esc(isCashflow ? r.origem : r.plano)}</td>`;
       const pagoFinal = (r.valorPago || 0) + (r.jurosPago || 0);
+      const vencCell = isPayables
+        ? `<td class="nowrap">${r.dataVencimento ? formatDateBR(r.dataVencimento) : "—"}</td>`
+        : "";
+      const parcelaCell = isPayables
+        ? `<td class="nowrap" style="text-align:center">${r.parcela ? esc(r.parcela) : "—"}</td>`
+        : "";
       const pagoCell = isPayables
         ? `<td class="r" style="color:#059669;font-weight:700">${pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}</td>`
         : "";
@@ -569,6 +576,8 @@ export function FinancialReports() {
         <td class="nowrap">${formatDateBR(r.data)}</td>
         ${favorCell}
         ${descCell}
+        ${vencCell}
+        ${parcelaCell}
         ${planoCell}
         <td class="st">${esc(r.status)}</td>
         <td class="r ${valorColor}">${valorPrefix}${formatCurrency(r.valor)}</td>
@@ -578,9 +587,11 @@ export function FinancialReports() {
 
     const headerRow = `<tr class="hdr">
       <th style="width:60px">Data</th>
-      ${showFavor ? `<th style="width:160px">${favorLabel}</th>` : ""}
+      ${showFavor ? `<th style="width:140px">${favorLabel}</th>` : ""}
       <th>Descrição</th>
-      <th style="width:150px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
+      ${isPayables ? `<th style="width:65px">Vencimento</th>` : ""}
+      ${isPayables ? `<th style="width:50px;text-align:center">Parcela</th>` : ""}
+      <th style="width:130px">${isCashflow ? "Origem" : "Plano de Contas"}</th>
       <th style="width:70px">Status</th>
       <th class="r" style="width:90px">Valor</th>
       ${isPayables ? `<th class="r" style="width:90px">Pago</th>` : ""}
