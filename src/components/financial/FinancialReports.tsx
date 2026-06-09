@@ -1087,9 +1087,6 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                                 {isPayables && (
                                   <td className="px-2 py-2 text-right tabular-nums font-semibold text-green-600 align-top">
                                     {pagoFinal > 0 ? formatCurrency(pagoFinal) : "—"}
-                                    {(r.jurosPago || 0) > 0 && (
-                                      <div className="text-[9px] font-normal text-muted-foreground">juros {formatCurrency(r.jurosPago || 0)}</div>
-                                    )}
                                   </td>
                                 )}
                               </tr>
