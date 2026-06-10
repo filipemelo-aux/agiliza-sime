@@ -227,11 +227,17 @@ export function FinancialReports() {
         const pagoByInst: Record<string, number> = {};
         const pagoByExp: Record<string, number> = {};
         if (expIds.length > 0) {
-          const { data: pays } = await supabase
+          let payQ: any = supabase
             .from("expense_payments")
             .select("expense_id, installment_id, data_pagamento, valor, juros")
-            .in("expense_id", expIds)
-            .order("data_pagamento", { ascending: false });
+            .in("expense_id", expIds);
+          // When filtering by payment date, restrict payments aggregation to the
+          // selected window so totals & dates match the "Contas Pagas" view.
+          if (tipoData === "pagamento") {
+            if (filters.dataInicio) payQ = payQ.gte("data_pagamento", filters.dataInicio);
+            if (filters.dataFim) payQ = payQ.lte("data_pagamento", filters.dataFim);
+          }
+          const { data: pays } = await payQ.order("data_pagamento", { ascending: false });
           (pays || []).forEach((p: any) => {
             const d = (p.data_pagamento || "").slice(0, 10);
             const juros = Number(p.juros || 0);
