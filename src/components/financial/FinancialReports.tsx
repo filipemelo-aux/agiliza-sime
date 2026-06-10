@@ -309,8 +309,13 @@ export function FinancialReports() {
               });
             }
             installs.forEach((inst: any) => {
-              const isOverdue = inst.data_vencimento && inst.data_vencimento < today && inst.status !== "pago";
-              const status = isOverdue ? "atrasado" : inst.status;
+              const hasOwnPayment = paymentByInst[inst.id] !== undefined;
+              // Quando filtramos por data de pagamento, a existência do registro de pagamento
+              // é a fonte da verdade — mesmo que o status da parcela esteja inconsistente
+              // (dado legado), tratamos como "pago" para fins do relatório.
+              const effectiveInstStatus = (tipoData === "pagamento" && hasOwnPayment) ? "pago" : inst.status;
+              const isOverdue = inst.data_vencimento && inst.data_vencimento < today && effectiveInstStatus !== "pago";
+              const status = isOverdue ? "atrasado" : effectiveInstStatus;
               // Data de referência conforme tipoData
               let dataRef: string | null = inst.data_vencimento;
               if (tipoData === "emissao") dataRef = e.data_emissao || inst.data_vencimento;
@@ -319,8 +324,6 @@ export function FinancialReports() {
                 // Não fazer fallback para paymentByExp (isso traria parcelas não pagas
                 // de uma mesma despesa que tenha outra parcela paga no período).
                 dataRef = paymentByInst[inst.id] || null;
-                // Se não há pagamento próprio mas a parcela está paga e existe pagamento
-                // sem installment_id atribuído a ela via distribuição, considerar.
                 if (!dataRef && inst.status === "pago" && (pagoByInst[inst.id] !== undefined || (distributedPago[inst.id] || 0) > 0)) {
                   dataRef = paymentByExp[e.id] || null;
                 }
