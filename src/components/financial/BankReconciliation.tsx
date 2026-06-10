@@ -677,7 +677,17 @@ export function BankReconciliation() {
     const timer = setTimeout(async () => {
       // Escape commas/parens that break PostgREST `or` syntax
       const safe = q.replace(/[,()]/g, " ").trim();
-      const { data: expData } = await supabase
+
+      // Detect a date in the query (dd/mm/yyyy or yyyy-mm-dd) → busca por data de vencimento
+      const parseQueryDate = (s: string): string | null => {
+        const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        return null;
+      };
+      const queryDate = parseQueryDate(safe);
+
+      const textSearch = supabase
         .from("expenses")
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
         .is("deleted_at", null)
@@ -687,9 +697,49 @@ export function BankReconciliation() {
         .order("data_vencimento", { ascending: false })
         .limit(50);
 
-      const expenses = (expData as any[]) || [];
-      // Fetch installments for these expenses
+      const dateExpensesSearch = queryDate
+        ? supabase
+            .from("expenses")
+            .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
+            .is("deleted_at", null)
+            .eq("data_vencimento", queryDate)
+            .limit(50)
+        : Promise.resolve({ data: [] as any[] });
+
+      const dateInstallmentsSearch = queryDate
+        ? supabase
+            .from("expense_installments")
+            .select("id, expense_id, numero_parcela, total_parcelas, valor, data_vencimento, status")
+            .eq("data_vencimento", queryDate)
+            .limit(100)
+        : Promise.resolve({ data: [] as any[] });
+
+      const [{ data: expData }, { data: dateExpData }, { data: dateInstData }] = await Promise.all([
+        textSearch,
+        dateExpensesSearch,
+        dateInstallmentsSearch,
+      ]);
+
+      // Merge expenses (dedup by id) + traz pais de parcelas encontradas por data
+      const expensesMap = new Map<string, any>();
+      for (const e of ((expData as any[]) || [])) expensesMap.set(e.id, e);
+      for (const e of ((dateExpData as any[]) || [])) expensesMap.set(e.id, e);
+
+      const missingExpIds = ((dateInstData as any[]) || [])
+        .map((i: any) => i.expense_id)
+        .filter((id: string) => !expensesMap.has(id));
+      if (missingExpIds.length > 0) {
+        const { data: extraExp } = await supabase
+          .from("expenses")
+          .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
+          .is("deleted_at", null)
+          .in("id", missingExpIds);
+        for (const e of ((extraExp as any[]) || [])) expensesMap.set(e.id, e);
+      }
+
+      const expenses = Array.from(expensesMap.values());
       const expIds = expenses.map((e) => e.id);
+
       let installments: any[] = [];
       if (expIds.length > 0) {
         const { data: instData } = await supabase
@@ -706,8 +756,24 @@ export function BankReconciliation() {
         instByExp.set(inst.expense_id, arr);
       }
 
-      // Build expanded results: one row per installment (when expense has parcelas),
-      // otherwise the expense itself.
+      // Valor real pago (vindo de expense_payments), por parcela e por despesa
+      const paidByInstallment = new Map<string, number>();
+      const paidByExpense = new Map<string, number>();
+      if (expIds.length > 0) {
+        const { data: payData } = await supabase
+          .from("expense_payments")
+          .select("expense_id, installment_id, valor")
+          .in("expense_id", expIds);
+        for (const p of ((payData as any[]) || [])) {
+          const v = Number(p.valor) || 0;
+          if (p.installment_id) {
+            paidByInstallment.set(p.installment_id, (paidByInstallment.get(p.installment_id) || 0) + v);
+          } else {
+            paidByExpense.set(p.expense_id, (paidByExpense.get(p.expense_id) || 0) + v);
+          }
+        }
+      }
+
       const results: any[] = [];
       for (const exp of expenses) {
         const insts = instByExp.get(exp.id);
@@ -716,6 +782,7 @@ export function BankReconciliation() {
           for (const inst of insts) {
             const isPaid = inst.status === "pago";
             const totalParcelas = inst.total_parcelas ?? fallbackTotal;
+            const paidReal = paidByInstallment.get(inst.id) || 0;
             results.push({
               id: `inst_${inst.id}`,
               expense_id: exp.id,
@@ -727,18 +794,30 @@ export function BankReconciliation() {
               favorecido_nome: exp.favorecido_nome,
               documento_fiscal_numero: exp.documento_fiscal_numero,
               valor_total: Number(inst.valor),
-              valor_pago: isPaid ? Number(inst.valor) : 0,
+              valor_pago: paidReal,
               status: isPaid ? "pago" : (exp.status === "atrasado" ? "atrasado" : "pendente"),
               data_vencimento: inst.data_vencimento,
               data_emissao: exp.data_emissao,
             });
           }
         } else {
+          const paidReal = paidByExpense.get(exp.id);
           results.push({
             ...exp,
+            valor_pago: paidReal != null ? paidReal : Number(exp.valor_pago || 0),
             is_installment: false,
           });
         }
+      }
+
+      // Quando o usuário busca por data, prioriza correspondências exatas
+      if (queryDate) {
+        results.sort((a, b) => {
+          const am = a.data_vencimento === queryDate ? 0 : 1;
+          const bm = b.data_vencimento === queryDate ? 0 : 1;
+          if (am !== bm) return am - bm;
+          return String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""));
+        });
       }
 
       if (!cancelled) {
