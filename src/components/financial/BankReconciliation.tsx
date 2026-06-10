@@ -810,15 +810,10 @@ export function BankReconciliation() {
         }
       }
 
-      // Quando o usuário busca por data, prioriza correspondências exatas
-      if (queryDate) {
-        results.sort((a, b) => {
-          const am = a.data_vencimento === queryDate ? 0 : 1;
-          const bm = b.data_vencimento === queryDate ? 0 : 1;
-          if (am !== bm) return am - bm;
-          return String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""));
-        });
-      }
+      // Ordena toda a listagem por data de vencimento (mais recente primeiro)
+      results.sort((a, b) =>
+        String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""))
+      );
 
       if (!cancelled) {
         setLinkSearchResults(results);
