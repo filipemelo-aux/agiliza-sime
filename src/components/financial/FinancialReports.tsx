@@ -172,6 +172,26 @@ export function FinancialReports() {
       let result: Row[] = [];
       if (reportType === "payables") {
         const tipoData = filters.tipoData || "vencimento";
+
+        // When filtering by payment date, first resolve the set of expense_ids
+        // that have payments in the selected window. This guarantees parity
+        // with "Contas Pagas" (which lists expense_payments directly) and
+        // avoids the 2000-row cap silently dropping older expenses.
+        let expenseIdsByPayment: string[] | null = null;
+        if (tipoData === "pagamento") {
+          let pq: any = supabase.from("expense_payments").select("expense_id, data_pagamento");
+          if (filters.dataInicio) pq = pq.gte("data_pagamento", filters.dataInicio);
+          if (filters.dataFim) pq = pq.lte("data_pagamento", filters.dataFim);
+          const { data: paysInRange, error: payErr } = await pq.limit(10000);
+          if (payErr) throw payErr;
+          expenseIdsByPayment = Array.from(new Set((paysInRange || []).map((p: any) => p.expense_id).filter(Boolean)));
+          if (expenseIdsByPayment.length === 0) {
+            setRows([]);
+            setLoading(false);
+            return;
+          }
+        }
+
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
@@ -183,7 +203,8 @@ export function FinancialReports() {
           if (filters.dataInicio) q = q.gte("data_emissao", filters.dataInicio);
           if (filters.dataFim) q = q.lte("data_emissao", filters.dataFim);
         }
-        const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(2000);
+        if (expenseIdsByPayment) q = q.in("id", expenseIdsByPayment);
+        const { data, error } = await q.order("data_vencimento", { ascending: true }).limit(10000);
         if (error) throw error;
         const expenses = data || [];
         const expIds = expenses.map((e: any) => e.id);
