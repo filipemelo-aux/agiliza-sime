@@ -1856,7 +1856,7 @@ export function BankReconciliation() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 autoFocus
-                placeholder="Buscar por descrição, favorecido ou número da nota..."
+                placeholder="Buscar por descrição, favorecido, nota ou data de vencimento (dd/mm/aaaa)..."
                 value={linkSearchText}
                 onChange={(e) => setLinkSearchText(e.target.value)}
                 className="h-9 pl-8 text-xs"
