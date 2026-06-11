@@ -121,7 +121,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const isEditing = !!invoiceId;
 
-  // Load chart of accounts (despesa, leaves only)
+  // Load chart of accounts (despesa, leaves only) + vehicles (frota própria)
   useEffect(() => {
     if (!open) return;
     supabase
@@ -131,7 +131,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .eq("tipo", "despesa")
       .order("codigo")
       .then(({ data }) => setChartAccounts((data as any) || []));
+    supabase
+      .from("vehicles")
+      .select("id, plate")
+      .eq("fleet_type", "propria")
+      .order("plate")
+      .then(({ data }) => setVehicles((data as any) || []));
   }, [open]);
+
 
   const despesaLeaves = useMemo(() => {
     const all = chartAccounts;
