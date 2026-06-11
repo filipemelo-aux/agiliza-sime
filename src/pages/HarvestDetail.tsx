@@ -1391,7 +1391,10 @@ export default function HarvestDetail() {
           cliente_id: job.client_id,
           veiculo_id: g.veiculo_id,
           valor: g.total,
-          data_prevista: getLocalDateISO(),
+          // Anchor the forecast date to the harvest period end so the Fleet Metrics
+          // dashboard (which filters previsoes_recebimento by data_prevista) finds
+          // the row when the user picks the same month the harvest was closed in.
+          data_prevista: filterEndDate,
           status: "pendente" as any,
           metadata: {
             periodo_inicio: filterStartDate,
