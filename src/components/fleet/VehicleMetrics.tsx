@@ -16,6 +16,7 @@ type Vehicle = { id: string; plate: string };
 type Cte = { id: string; numero: number | null; data_emissao: string | null; valor_frete: number | null; remetente_nome: string | null; destinatario_nome: string | null };
 type Fueling = { id: string; data_abastecimento: string; tipo_combustivel: string; quantidade_litros: number; valor_total: number; km_atual: number | null; posto_combustivel: string | null };
 type Maint = { id: string; data_manutencao: string; tipo_manutencao: string | null; descricao: string | null; custo_total: number | null; fornecedor: string | null; expense_id: string | null };
+type Colheita = { id: string; data_prevista: string; valor: number; status: string; metadata: any };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const monthStartISO = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); };
@@ -30,6 +31,7 @@ export default function VehicleMetrics() {
   const [ctes, setCtes] = useState<Cte[]>([]);
   const [fuelings, setFuelings] = useState<Fueling[]>([]);
   const [maints, setMaints] = useState<Maint[]>([]);
+  const [colheitas, setColheitas] = useState<Colheita[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -44,7 +46,7 @@ export default function VehicleMetrics() {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
       const endTs = `${dataFim}T23:59:59`;
-      const [cteRes, fuelRes, maintRes] = await Promise.all([
+      const [cteRes, fuelRes, maintRes, colheitaRes] = await Promise.all([
         supabase.from("ctes")
           .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome")
           .eq("veiculo_id", veiculoId)
@@ -60,16 +62,25 @@ export default function VehicleMetrics() {
           .eq("veiculo_id", veiculoId)
           .gte("data_manutencao", dataInicio).lte("data_manutencao", dataFim)
           .order("data_manutencao", { ascending: false }),
+        (supabase.from("previsoes_recebimento") as any)
+          .select("id, data_prevista, valor, status, metadata")
+          .eq("veiculo_id", veiculoId)
+          .eq("origem_tipo", "colheita")
+          .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
+          .order("data_prevista", { ascending: false }),
       ]);
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
+      setColheitas((colheitaRes.data as any) || []);
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
 
   const m = useMemo(() => {
-    const receita = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
+    const receitaCte = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
+    const receitaColheita = colheitas.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const receita = receitaCte + receitaColheita;
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
     const custoTotal = custoComb + custoMan;
@@ -86,7 +97,6 @@ export default function VehicleMetrics() {
       kml = litrosExclFirst > 0 ? kmDiff / litrosExclFirst : 0;
     }
 
-    // Data quality flags for KM/L
     const missingKm = fuelings.filter(f => f.km_atual == null || Number(f.km_atual) <= 0).length;
     const kmlImprecise = fuelings.length <= 1 || missingKm > 0;
     const kmlReason = fuelings.length === 0
@@ -97,11 +107,12 @@ export default function VehicleMetrics() {
           ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
           : "";
 
-    return { receita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas]);
 
   const chartData = [
-    { nome: "Receita", Receita: m.receita, Custo: 0 },
+    { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
+    { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
     { nome: "Combustível", Receita: 0, Custo: m.custoComb },
     { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
     { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
@@ -165,11 +176,18 @@ export default function VehicleMetrics() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <SummaryCard icon={DollarSign} label="Receita CT-e" value={formatCurrency(m.receitaCte)} />
+            <SummaryCard icon={DollarSign} label="Receita Colheita" value={formatCurrency(m.receitaColheita)} />
             <SummaryCard icon={Fuel} label="Custo Combustível" value={formatCurrency(m.custoComb)} />
             <SummaryCard icon={Wrench} label="Custo Manutenção" value={formatCurrency(m.custoMan)} />
-            <SummaryCard icon={Truck} label="Fretes (CT-e)" value={ctes.length} />
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            <SummaryCard icon={Truck} label="Fretes (CT-e)" value={ctes.length} />
+            <SummaryCard icon={Truck} label="Faturamentos Colheita" value={colheitas.length} />
+            <SummaryCard icon={Wrench} label="Manutenções" value={maints.length} />
+          </div>
+
 
           {/* Chart */}
           <Card>
@@ -197,7 +215,31 @@ export default function VehicleMetrics() {
               <TabsTrigger value="fretes">Fretes ({ctes.length})</TabsTrigger>
               <TabsTrigger value="abast">Abastecimentos ({fuelings.length})</TabsTrigger>
               <TabsTrigger value="manut">Manutenções ({maints.length})</TabsTrigger>
+              <TabsTrigger value="colheita">Colheita ({colheitas.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="colheita">
+              <Card><CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr><th className="p-2 text-left">Data</th><th className="p-2 text-left">Fazenda</th><th className="p-2 text-left">Período</th><th className="p-2 text-left">Status</th><th className="p-2 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {colheitas.length === 0 ? <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma receita de colheita no período</td></tr> :
+                      colheitas.map(c => (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="p-2">{fmtDate(c.data_prevista)}</td>
+                          <td className="p-2 truncate max-w-[220px]">{c.metadata?.fazenda || "—"}</td>
+                          <td className="p-2">{c.metadata?.periodo_inicio ? `${fmtDate(c.metadata.periodo_inicio)} → ${fmtDate(c.metadata.periodo_fim)}` : "—"}</td>
+                          <td className="p-2"><Badge variant="outline" className="text-[10px]">{c.status}</Badge></td>
+                          <td className="p-2 text-right font-mono">{formatCurrency(Number(c.valor || 0))}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </CardContent></Card>
+            </TabsContent>
+
 
             <TabsContent value="fretes">
               <Card><CardContent className="p-0 overflow-x-auto">
