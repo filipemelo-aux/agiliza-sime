@@ -614,6 +614,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+
 
                       <TableCell className="px-1 py-2 align-middle">
                         <Button
