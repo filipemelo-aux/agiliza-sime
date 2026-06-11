@@ -124,15 +124,15 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
   }, [open, editId]);
 
   const handleSave = async () => {
-    if (!veiculoId) return toast.error("Selecione o veículo");
+    if (!veiculoId) return toast.error("Selecione o veículo (Placa) — obrigatório para o histórico da frota.");
     if (!kmAtual) return toast.error("Informe o KM atual");
     if (!descricaoServico.trim() && itensManutencao.length === 0) {
       return toast.error("Informe a descrição ou adicione itens");
     }
 
     const custoTotal = total > 0 ? total : itensManutencao.reduce((s, i) => s + i.valor_total, 0);
-    if (custoTotal <= 0 && itensManutencao.length === 0) {
-      // allow zero-cost manual records but warn
+    if (!custoTotal || custoTotal <= 0) {
+      return toast.error("Informe o custo total da manutenção (valor maior que zero).");
     }
 
     setSaving(true);

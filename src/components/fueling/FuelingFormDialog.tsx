@@ -157,6 +157,38 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   const handleSave = async () => {
     if (!veiculoId) return toast.error("Selecione um veículo");
     if (!litros || parseFloat(litros) <= 0) return toast.error("Informe a quantidade de litros");
+    if (!kmAtual || parseFloat(kmAtual) <= 0) return toast.error("Informe o KM atual do odômetro");
+
+    const kmNum = parseFloat(kmAtual);
+
+    // Look up last KM registered for this vehicle (excluding current record on edit)
+    const { data: lastFuel } = await supabase
+      .from("fuelings")
+      .select("id, km_atual, data_abastecimento")
+      .eq("veiculo_id", veiculoId)
+      .not("km_atual", "is", null)
+      .is("deleted_at", null)
+      .order("data_abastecimento", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const previous = (lastFuel || []).find((f: any) => f.id !== fueling?.id);
+
+    if (previous && previous.km_atual != null) {
+      const lastKm = Number(previous.km_atual);
+      if (kmNum < lastKm) {
+        return toast.error(`O KM atual não pode ser menor que o último KM registrado (${lastKm.toLocaleString("pt-BR")} km).`);
+      }
+      // Outlier alert: >5000 km diff within 7 days
+      const daysDiff = Math.abs(
+        (new Date(dataAbastecimento).getTime() - new Date(previous.data_abastecimento).getTime()) / 86400000
+      );
+      if (kmNum - lastKm > 5000 && daysDiff <= 7) {
+        const ok = window.confirm(
+          `Atenção: A diferença de KM está muito alta (${(kmNum - lastKm).toLocaleString("pt-BR")} km em ${Math.ceil(daysDiff)} dia(s)). Você tem certeza que o KM é ${kmNum.toLocaleString("pt-BR")}?`
+        );
+        if (!ok) return;
+      }
+    }
 
     setSaving(true);
     const payload: any = {
@@ -168,7 +200,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       quantidade_litros: parseFloat(litros) || 0,
       valor_por_litro: parseFloat(valorLitro) || 0,
       valor_total: (parseFloat(valorTotal) || 0) + (temArla ? (parseFloat(arlaValorTotal) || 0) : 0) + (temOleo ? (parseFloat(oleoValorTotal) || 0) : 0),
-      km_atual: kmAtual ? parseFloat(kmAtual) : null,
+      km_atual: kmNum,
       posto_combustivel: fornecedorNome || null,
       fornecedor_id: fornecedorId || null,
       forma_pagamento: formaPagamento,
@@ -264,8 +296,8 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>KM Atual</Label>
-                <Input type="number" value={kmAtual} onChange={e => setKmAtual(e.target.value)} />
+                <Label>KM Atual *</Label>
+                <Input type="number" value={kmAtual} onChange={e => setKmAtual(e.target.value)} placeholder="Odômetro" />
               </div>
               <div>
                 <Label>Pagamento</Label>

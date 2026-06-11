@@ -491,6 +491,10 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       toast({ title: "Data obrigatória", description: "Informe a data de emissão.", variant: "destructive" });
       return;
     }
+    if (!form.veiculo_id) {
+      toast({ title: "Veículo obrigatório", description: "Selecione a placa do veículo da frota própria. Sem isso o CT-e não entra nos relatórios de receita por veículo.", variant: "destructive" });
+      return;
+    }
 
     // Se já existe previsão FATURADA para este CT-e, exigir confirmação
     let faturaIdParaRecalcular: string | null = null;
