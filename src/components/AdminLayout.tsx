@@ -64,6 +64,7 @@ const menuItems = [
       { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
+      { title: "Métricas por Veículo", url: "/admin/fleet/metrics", icon: FileSpreadsheet },
     ],
   },
   {
