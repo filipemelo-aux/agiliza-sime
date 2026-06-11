@@ -78,7 +78,9 @@ export default function VehicleMetrics() {
   }, [veiculoId, dataInicio, dataFim]);
 
   const m = useMemo(() => {
-    const receita = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
+    const receitaCte = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
+    const receitaColheita = colheitas.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const receita = receitaCte + receitaColheita;
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
     const custoTotal = custoComb + custoMan;
@@ -95,7 +97,6 @@ export default function VehicleMetrics() {
       kml = litrosExclFirst > 0 ? kmDiff / litrosExclFirst : 0;
     }
 
-    // Data quality flags for KM/L
     const missingKm = fuelings.filter(f => f.km_atual == null || Number(f.km_atual) <= 0).length;
     const kmlImprecise = fuelings.length <= 1 || missingKm > 0;
     const kmlReason = fuelings.length === 0
@@ -106,11 +107,12 @@ export default function VehicleMetrics() {
           ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
           : "";
 
-    return { receita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas]);
 
   const chartData = [
-    { nome: "Receita", Receita: m.receita, Custo: 0 },
+    { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
+    { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
     { nome: "Combustível", Receita: 0, Custo: m.custoComb },
     { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
     { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
