@@ -154,7 +154,15 @@ export default function VehicleMetrics() {
             <SummaryCard icon={DollarSign} label="Receita Bruta" value={formatCurrency(m.receita)} valueColor="primary" />
             <SummaryCard icon={TrendingDown} label="Custo Total" value={formatCurrency(m.custoTotal)} valueColor="red" />
             <SummaryCard icon={m.lucro >= 0 ? TrendingUp : TrendingDown} label="Resultado Líquido" value={formatCurrency(m.lucro)} valueColor={m.lucro >= 0 ? "green" : "red"} />
-            <SummaryCard icon={Gauge} label="Média KM/L" value={m.kml > 0 ? `${m.kml.toFixed(2)} km/L` : "—"} />
+            <div className="relative">
+              <SummaryCard icon={Gauge} label="Média KM/L" value={m.kml > 0 ? `${m.kml.toFixed(2)} km/L` : "—"} />
+              {m.kmlImprecise && (
+                <span
+                  className="absolute top-1 right-1 text-amber-500 cursor-help text-sm"
+                  title={`Métrica imprecisa: ${m.kmlReason}`}
+                >⚠️</span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
