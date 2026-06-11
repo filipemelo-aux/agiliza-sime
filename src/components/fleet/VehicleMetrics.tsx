@@ -50,7 +50,7 @@ export default function VehicleMetrics() {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
       const endTs = `${dataFim}T23:59:59`;
-      const [cteRes, fuelRes, maintRes, colheitaRes] = await Promise.all([
+      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes] = await Promise.all([
         supabase.from("ctes")
           .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome")
           .eq("veiculo_id", veiculoId)
@@ -72,14 +72,24 @@ export default function VehicleMetrics() {
           .eq("origem_tipo", "colheita")
           .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
           .order("data_prevista", { ascending: false }),
+        (supabase.from("credit_card_invoice_items") as any)
+          .select("id, posted_date, description, amount, plano_contas_id, invoice_id, plano:chart_of_accounts(nome)")
+          .eq("veiculo_id", veiculoId)
+          .gte("posted_date", dataInicio).lte("posted_date", dataFim)
+          .order("posted_date", { ascending: false }),
       ]);
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
       setColheitas((colheitaRes.data as any) || []);
+      setCardItems(((cardRes.data as any[]) || []).map((r: any) => ({
+        id: r.id, posted_date: r.posted_date, description: r.description, amount: Number(r.amount),
+        plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
+      })));
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
+
 
   const m = useMemo(() => {
     const receitaCte = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
