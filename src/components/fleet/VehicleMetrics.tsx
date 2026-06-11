@@ -33,7 +33,7 @@ export default function VehicleMetrics() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("vehicles").select("id, plate").order("plate");
+      const { data } = await supabase.from("vehicles").select("id, plate").eq("fleet_type", "propria").order("plate");
       setVehicles((data as any) || []);
     })();
   }, []);
