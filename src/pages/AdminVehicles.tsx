@@ -356,7 +356,7 @@ export default function AdminVehicles() {
       </AlertDialog>
 
       <Dialog open={!!viewVehicle} onOpenChange={(open) => !open && setViewVehicle(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do Veículo</DialogTitle>
           </DialogHeader>
@@ -382,6 +382,54 @@ export default function AdminVehicles() {
               })()}
               {viewVehicle.driver_name && <p><span className="text-muted-foreground">Motorista:</span> {viewVehicle.driver_name}</p>}
               {viewVehicle.owner_name && <p><span className="text-muted-foreground">Proprietário:</span> {viewVehicle.owner_name}</p>}
+
+              {(() => {
+                const m = metricsByVehicle[viewVehicle.id];
+                if (!m) return <p className="text-muted-foreground italic pt-2 border-t">Nenhum abastecimento registrado.</p>;
+                return (
+                  <div className="pt-3 border-t space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2"><Fuel className="h-4 w-4" /> Performance da Frota</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="rounded border p-2"><p className="text-[10px] uppercase text-muted-foreground">Média KM/L</p><p className="font-semibold">{m.avgKmL ? fmtNum(m.avgKmL, 2) : "—"}</p></div>
+                      <div className="rounded border p-2"><p className="text-[10px] uppercase text-muted-foreground">Litros (mês)</p><p className="font-semibold">{fmtNum(m.litersMonth, 1)} L</p></div>
+                      <div className="rounded border p-2"><p className="text-[10px] uppercase text-muted-foreground">Gasto (mês)</p><p className="font-semibold">{fmtBRL(m.spentMonth)}</p></div>
+                      <div className="rounded border p-2"><p className="text-[10px] uppercase text-muted-foreground">Último KM</p><p className="font-semibold">{m.lastKm != null ? fmtNum(m.lastKm, 0) : "—"}</p></div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-xs font-semibold mb-2 text-muted-foreground uppercase">Histórico de abastecimentos</h5>
+                      {m.history.length === 0 ? (
+                        <p className="text-muted-foreground italic text-xs">Sem registros.</p>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto rounded border">
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/50 sticky top-0">
+                              <tr>
+                                <th className="text-left p-2">Data</th>
+                                <th className="text-right p-2">KM</th>
+                                <th className="text-right p-2">Litros</th>
+                                <th className="text-right p-2">Valor</th>
+                                <th className="text-left p-2">Posto</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {m.history.slice(0, 50).map(f => (
+                                <tr key={f.id} className="border-t">
+                                  <td className="p-2">{f.data_abastecimento?.split("-").reverse().join("/")}</td>
+                                  <td className="p-2 text-right">{f.km_atual ? fmtNum(Number(f.km_atual), 0) : "—"}</td>
+                                  <td className="p-2 text-right">{fmtNum(Number(f.quantidade_litros), 1)}</td>
+                                  <td className="p-2 text-right">{fmtBRL(Number(f.valor_total))}</td>
+                                  <td className="p-2 truncate max-w-[140px]">{f.posto_combustivel || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
