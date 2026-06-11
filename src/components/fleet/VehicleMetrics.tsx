@@ -34,6 +34,8 @@ export default function VehicleMetrics() {
   const [fuelings, setFuelings] = useState<Fueling[]>([]);
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
+  const [cardItems, setCardItems] = useState<CardItem[]>([]);
+
 
   useEffect(() => {
     (async () => {
