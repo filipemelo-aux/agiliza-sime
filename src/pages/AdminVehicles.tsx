@@ -230,6 +230,29 @@ export default function AdminVehicles() {
           </TabsList>
         </Tabs>
 
+        {(() => {
+          const totals = Object.values(metricsByVehicle).reduce(
+            (acc, m) => {
+              acc.liters += m.litersMonth;
+              acc.spent += m.spentMonth;
+              return acc;
+            },
+            { liters: 0, spent: 0 }
+          );
+          const withAvg = Object.values(metricsByVehicle).filter(m => m.avgKmL && m.avgKmL > 0);
+          const fleetAvg = withAvg.length
+            ? withAvg.reduce((s, m) => s + (m.avgKmL || 0), 0) / withAvg.length
+            : null;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <Card><CardContent className="p-3 flex items-center gap-2"><Droplet className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Litros (mês)</p><p className="text-sm font-semibold">{fmtNum(totals.liters, 1)} L</p></div></CardContent></Card>
+              <Card><CardContent className="p-3 flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Gasto (mês)</p><p className="text-sm font-semibold">{fmtBRL(totals.spent)}</p></div></CardContent></Card>
+              <Card><CardContent className="p-3 flex items-center gap-2"><Gauge className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Média Frota</p><p className="text-sm font-semibold">{fleetAvg ? `${fmtNum(fleetAvg, 2)} km/L` : "—"}</p></div></CardContent></Card>
+              <Card><CardContent className="p-3 flex items-center gap-2"><Fuel className="h-4 w-4 text-primary" /><div><p className="text-[10px] uppercase text-muted-foreground">Veículos c/ Abast.</p><p className="text-sm font-semibold">{Object.keys(metricsByVehicle).length}</p></div></CardContent></Card>
+            </div>
+          );
+        })()}
+
         <div className="relative mb-6 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -239,6 +262,7 @@ export default function AdminVehicles() {
             className="pl-10"
           />
         </div>
+
 
         {loading ? (
           <div className="flex justify-center py-12">
