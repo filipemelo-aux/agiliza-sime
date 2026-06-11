@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Car, Plus, Search, Pencil, Trash2, Eye, Truck } from "lucide-react";
+import { Car, Plus, Search, Pencil, Trash2, Eye, Truck, Fuel, Gauge, DollarSign, Droplet } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
