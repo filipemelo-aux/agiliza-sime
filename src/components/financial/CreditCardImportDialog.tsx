@@ -190,8 +190,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         centro_custo: r.centro_custo || "operacional",
         favorecido_id: r.favorecido_id,
         favorecido_nome: r.favorecido_nome || "",
+        veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
       })));
+
     })();
   }, [open, invoiceId]);
 
