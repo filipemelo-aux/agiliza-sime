@@ -26,7 +26,6 @@ const menuItems = [
     title: "Financeiro",
     icon: DollarSign,
     children: [
-      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
@@ -61,6 +60,7 @@ const menuItems = [
     title: "Frota",
     icon: Car,
     children: [
+      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
