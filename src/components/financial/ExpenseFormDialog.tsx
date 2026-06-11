@@ -808,9 +808,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         data_manutencao: dataManutencao,
         odometro: Number(kmAtual) || 0,
         tipo_manutencao: tipoManutencao,
-        descricao: fullDesc,
+        descricao: fullDesc || descricao.trim() || "Manutenção",
         custo_total: custoTotal,
-        fornecedor: hasNfse ? (nfseFornecedorNome.trim() || null) : null,
+        fornecedor: hasNfse ? (nfseFornecedorNome.trim() || null) : (fornecedorMecanica.trim() || null),
         status: "realizada",
         proxima_manutencao_km: proximaManutencaoKm ? Number(proximaManutencaoKm) : null,
         data_proxima_manutencao: dataProximaManutencao || null,
@@ -824,9 +824,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         .maybeSingle();
 
       if (existingMaint) {
-        await supabase.from("maintenances" as any).update(maintenancePayload).eq("id", (existingMaint as any).id);
+        const { error: mErr } = await supabase.from("maintenances" as any).update(maintenancePayload).eq("id", (existingMaint as any).id);
+        if (mErr) { console.error("[maintenance update]", mErr); toast.warning("Despesa salva, mas falhou ao atualizar histórico de manutenção: " + mErr.message); }
       } else {
-        await supabase.from("maintenances" as any).insert(maintenancePayload);
+        const { error: mErr } = await supabase.from("maintenances" as any).insert(maintenancePayload);
+        if (mErr) { console.error("[maintenance insert]", mErr); toast.warning("Despesa salva, mas falhou ao registrar no histórico de manutenções: " + mErr.message); }
       }
     }
 
