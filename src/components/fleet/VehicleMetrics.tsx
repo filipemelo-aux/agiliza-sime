@@ -215,7 +215,31 @@ export default function VehicleMetrics() {
               <TabsTrigger value="fretes">Fretes ({ctes.length})</TabsTrigger>
               <TabsTrigger value="abast">Abastecimentos ({fuelings.length})</TabsTrigger>
               <TabsTrigger value="manut">Manutenções ({maints.length})</TabsTrigger>
+              <TabsTrigger value="colheita">Colheita ({colheitas.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="colheita">
+              <Card><CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr><th className="p-2 text-left">Data</th><th className="p-2 text-left">Fazenda</th><th className="p-2 text-left">Período</th><th className="p-2 text-left">Status</th><th className="p-2 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {colheitas.length === 0 ? <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhuma receita de colheita no período</td></tr> :
+                      colheitas.map(c => (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="p-2">{fmtDate(c.data_prevista)}</td>
+                          <td className="p-2 truncate max-w-[220px]">{c.metadata?.fazenda || "—"}</td>
+                          <td className="p-2">{c.metadata?.periodo_inicio ? `${fmtDate(c.metadata.periodo_inicio)} → ${fmtDate(c.metadata.periodo_fim)}` : "—"}</td>
+                          <td className="p-2"><Badge variant="outline" className="text-[10px]">{c.status}</Badge></td>
+                          <td className="p-2 text-right font-mono">{formatCurrency(Number(c.valor || 0))}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </CardContent></Card>
+            </TabsContent>
+
 
             <TabsContent value="fretes">
               <Card><CardContent className="p-0 overflow-x-auto">
