@@ -86,7 +86,18 @@ export default function VehicleMetrics() {
       kml = litrosExclFirst > 0 ? kmDiff / litrosExclFirst : 0;
     }
 
-    return { receita, custoComb, custoMan, custoTotal, lucro, kml };
+    // Data quality flags for KM/L
+    const missingKm = fuelings.filter(f => f.km_atual == null || Number(f.km_atual) <= 0).length;
+    const kmlImprecise = fuelings.length <= 1 || missingKm > 0;
+    const kmlReason = fuelings.length === 0
+      ? "Sem abastecimentos no período."
+      : fuelings.length === 1
+        ? "Apenas 1 abastecimento no período — são necessários ao menos 2 para calcular a média."
+        : missingKm > 0
+          ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
+          : "";
+
+    return { receita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
   }, [ctes, fuelings, maints]);
 
   const chartData = [
