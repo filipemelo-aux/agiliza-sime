@@ -29,6 +29,7 @@ import AdminFuelings from "./pages/AdminFuelings";
 import AdminMaintenances from "./pages/AdminMaintenances";
 import AdminReports from "./pages/AdminReports";
 import AdminTransportReports from "./pages/AdminTransportReports";
+import AdminFleetMetrics from "./pages/AdminFleetMetrics";
 import AdminRH from "./pages/AdminRH";
 import NotFound from "./pages/NotFound";
 import { UpdateNotification } from "./components/UpdateNotification";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/admin/fuel-orders" element={<AdminFuelOrders />} />
             <Route path="/admin/fuelings" element={<AdminFuelings />} />
             <Route path="/admin/maintenances" element={<AdminMaintenances />} />
+            <Route path="/admin/fleet/metrics" element={<AdminFleetMetrics />} />
             <Route path="/admin/people" element={<AdminPeople />} />
             <Route path="/admin/vehicles" element={<AdminVehicles />} />
             <Route path="/admin/drivers" element={<Navigate to="/admin/people" replace />} />
