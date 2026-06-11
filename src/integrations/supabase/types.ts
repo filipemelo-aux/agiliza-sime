@@ -508,6 +508,7 @@ export type Database = {
           plano_contas_id: string | null
           posted_date: string
           updated_at: string
+          veiculo_id: string | null
         }
         Insert: {
           amount: number
@@ -524,6 +525,7 @@ export type Database = {
           plano_contas_id?: string | null
           posted_date: string
           updated_at?: string
+          veiculo_id?: string | null
         }
         Update: {
           amount?: number
@@ -540,6 +542,7 @@ export type Database = {
           plano_contas_id?: string | null
           posted_date?: string
           updated_at?: string
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -561,6 +564,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_invoice_items_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
