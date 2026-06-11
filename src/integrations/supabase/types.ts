@@ -2212,7 +2212,6 @@ export type Database = {
       }
       freight_contracts: {
         Row: {
-          accounts_payable_id: string | null
           contratado_documento: string | null
           contratado_id: string | null
           contratado_nome: string
@@ -2222,6 +2221,7 @@ export type Database = {
           cte_id: string
           data_contrato: string
           establishment_id: string | null
+          expense_id: string | null
           id: string
           motorista_cpf: string | null
           motorista_id: string | null
@@ -2242,7 +2242,6 @@ export type Database = {
           veiculo_modelo: string | null
         }
         Insert: {
-          accounts_payable_id?: string | null
           contratado_documento?: string | null
           contratado_id?: string | null
           contratado_nome: string
@@ -2252,6 +2251,7 @@ export type Database = {
           cte_id: string
           data_contrato?: string
           establishment_id?: string | null
+          expense_id?: string | null
           id?: string
           motorista_cpf?: string | null
           motorista_id?: string | null
@@ -2272,7 +2272,6 @@ export type Database = {
           veiculo_modelo?: string | null
         }
         Update: {
-          accounts_payable_id?: string | null
           contratado_documento?: string | null
           contratado_id?: string | null
           contratado_nome?: string
@@ -2282,6 +2281,7 @@ export type Database = {
           cte_id?: string
           data_contrato?: string
           establishment_id?: string | null
+          expense_id?: string | null
           id?: string
           motorista_cpf?: string | null
           motorista_id?: string | null
@@ -2303,13 +2303,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "freight_contracts_accounts_payable_id_fkey"
-            columns: ["accounts_payable_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "freight_contracts_contratado_id_fkey"
             columns: ["contratado_id"]
             isOneToOne: false
@@ -2328,6 +2321,13 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "fiscal_establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_contracts_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
           {
