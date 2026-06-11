@@ -42,11 +42,62 @@ interface VehicleRow {
   driver_name?: string; owner_name?: string;
 }
 
+interface FuelingRow {
+  id: string; veiculo_id: string; data_abastecimento: string;
+  quantidade_litros: number; valor_total: number; km_atual: number | null;
+  posto_combustivel: string | null; tipo_combustivel: string;
+}
+
+interface VehicleMetrics {
+  lastKm: number | null;
+  litersMonth: number;
+  spentMonth: number;
+  avgKmL: number | null;
+  history: FuelingRow[];
+}
+
+function computeMetrics(fuelings: FuelingRow[]): VehicleMetrics {
+  const sorted = [...fuelings].sort((a, b) => {
+    const d = a.data_abastecimento.localeCompare(b.data_abastecimento);
+    if (d !== 0) return d;
+    return (Number(a.km_atual) || 0) - (Number(b.km_atual) || 0);
+  });
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  let litersMonth = 0, spentMonth = 0;
+  for (const f of sorted) {
+    if ((f.data_abastecimento || "").startsWith(ym)) {
+      litersMonth += Number(f.quantidade_litros) || 0;
+      spentMonth += Number(f.valor_total) || 0;
+    }
+  }
+  // avg km/L using consecutive pairs
+  let totalKm = 0, totalL = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1], cur = sorted[i];
+    const kmPrev = Number(prev.km_atual) || 0;
+    const kmCur = Number(cur.km_atual) || 0;
+    const liters = Number(cur.quantidade_litros) || 0;
+    if (kmPrev > 0 && kmCur > kmPrev && liters > 0) {
+      totalKm += kmCur - kmPrev;
+      totalL += liters;
+    }
+  }
+  const avgKmL = totalL > 0 ? totalKm / totalL : null;
+  const lastWithKm = [...sorted].reverse().find(f => Number(f.km_atual) > 0);
+  return {
+    lastKm: lastWithKm ? Number(lastWithKm.km_atual) : null,
+    litersMonth, spentMonth, avgKmL,
+    history: [...sorted].reverse(),
+  };
+}
+
 export default function AdminVehicles() {
   const { isAdmin, isModerator, isOperador, hasAdminAccess, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
+  const [fuelingsByVehicle, setFuelingsByVehicle] = useState<Record<string, FuelingRow[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("__all__");
