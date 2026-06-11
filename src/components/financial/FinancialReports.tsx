@@ -25,6 +25,7 @@ interface Filters {
   tipoData: string; // payables: emissao|vencimento|pagamento; receivables: emissao|vencimento|recebimento
   status: string;
   planoContasId: string;
+  planoContasExcetoId: string;
   centroCusto: string;
   favorecidoId: string;
   clienteId: string;
@@ -57,6 +58,7 @@ const initialFilters = (type: ReportType): Filters => ({
   tipoData: "vencimento",
   status: "todos",
   planoContasId: "todos",
+  planoContasExcetoId: "todos",
   centroCusto: "todos",
   favorecidoId: "todos",
   clienteId: "todos",
@@ -195,6 +197,7 @@ export function FinancialReports() {
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
+        else if (filters.planoContasExcetoId !== "todos") q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
         if (filters.centroCusto !== "todos") q = q.eq("centro_custo", filters.centroCusto);
         if (filters.favorecidoId !== "todos") q = q.eq("favorecido_id", filters.favorecidoId);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
@@ -448,6 +451,7 @@ export function FinancialReports() {
         if (filters.status !== "todos") q = q.eq("tipo", filters.status);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
         if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
+        else if (filters.planoContasExcetoId !== "todos") q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
         const { data, error } = await q.order("data_movimentacao", { ascending: false }).limit(2000);
         if (error) throw error;
         result = (data || []).map((m: any) => {
@@ -492,6 +496,8 @@ export function FinancialReports() {
       // Filtro adicional por plano de contas (client-side) para tabelas sem plano_contas_id próprio
       if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
         result = result.filter((r) => r.planoId === filters.planoContasId);
+      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos") {
+        result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
       }
       setRows(result);
     } catch (e: any) {
@@ -895,6 +901,21 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       allValue="todos"
                       allLabel="Todos"
                       placeholder="Todos"
+                    />
+                  </div>
+                )}
+                {showPlanoContas && filters.planoContasId === "todos" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Exceto</Label>
+                    <PlanoContasCombobox
+                      value={filters.planoContasExcetoId}
+                      onChange={(v) => updateFilter("planoContasExcetoId", v)}
+                      options={chartAccounts}
+                      size="sm"
+                      includeAll
+                      allValue="todos"
+                      allLabel="Nenhuma exceção"
+                      placeholder="Nenhuma exceção"
                     />
                   </div>
                 )}
