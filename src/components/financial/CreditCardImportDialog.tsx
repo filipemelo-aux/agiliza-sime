@@ -512,34 +512,35 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
           {items.length > 0 ? (
             <div className="border rounded-md overflow-x-auto">
-              <Table>
+              <Table className="table-fixed w-full min-w-[1200px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-24">Data</TableHead>
+                    <TableHead style={{ width: 90 }}>Data</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead className="w-28 text-right">Valor</TableHead>
-                    <TableHead className="w-56">Plano de Contas *</TableHead>
-                    <TableHead className="w-40">Centro de Custo</TableHead>
-                    <TableHead className="w-56">Favorecido</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
+                    <TableHead style={{ width: 280 }}>Plano de Contas *</TableHead>
+                    <TableHead style={{ width: 150 }}>Centro de Custo</TableHead>
+                    <TableHead style={{ width: 200 }}>Favorecido</TableHead>
+                    <TableHead style={{ width: 44 }}></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.fitid}-${idx}`}>
-                      <TableCell className="text-xs">{formatDateBR(it.posted_date)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(it.posted_date)}</TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
                         <Input
-                          className="h-8 text-xs"
+                          className="h-8 text-xs w-full"
                           value={it.description}
                           onChange={(e) => updateItem(idx, { description: e.target.value })}
                           disabled={isClosed}
+                          title={it.description}
                         />
                       </TableCell>
-                      <TableCell className="text-right text-xs font-medium">
+                      <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
                         {formatCurrency(it.amount)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
                         <PlanoContasCombobox
                           value={it.plano_contas_id}
                           onChange={(v) => updateItem(idx, { plano_contas_id: v })}
@@ -547,7 +548,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           disabled={isClosed}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
                         <Select
                           value={it.centro_custo}
                           onValueChange={(v) => updateItem(idx, { centro_custo: v })}
@@ -565,7 +566,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
                         <PersonSearchInput
                           categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
                           placeholder="Opcional..."
@@ -574,7 +575,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           onClear={() => updateItem(idx, { favorecido_nome: "", favorecido_id: null })}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-1 py-2 align-middle">
                         <Button
                           type="button"
                           variant="ghost"
