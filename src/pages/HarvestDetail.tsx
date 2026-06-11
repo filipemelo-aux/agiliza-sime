@@ -1272,11 +1272,24 @@ export default function HarvestDetail() {
         const periodoLabel = `${filterStartDate.split("-").reverse().join("/")} a ${filterEndDate.split("-").reverse().join("/")}`;
         const ownerNameForExpense = receiptOwnerInfo || "Proprietário";
         const descricao = `Colheita - ${job?.farm_name || "Serviço"} - ${periodoLabel}`;
+
+        // Look up default plano de contas for harvest payments (pagamento frete terceiro)
+        const { data: planoLookup } = await supabase
+          .from("chart_of_accounts")
+          .select("id, nome")
+          .eq("tipo", "despesa")
+          .eq("ativo", true);
+        const norm = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const planoColheita = (planoLookup as any[] || []).find((c) =>
+          norm(c.nome).includes("frete terceiro") || norm(c.nome).includes("colheita")
+        );
+
         await supabase.from("expenses").insert({
           empresa_id: estab.id,
           created_by: user.id,
           descricao,
           tipo_despesa: "outros" as any,
+          plano_contas_id: planoColheita?.id || null,
           centro_custo: "frota_terceiros" as any,
           origem: "manual" as any,
           valor_total: totalAmount,
