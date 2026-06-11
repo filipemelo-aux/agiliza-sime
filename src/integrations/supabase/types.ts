@@ -3137,6 +3137,7 @@ export type Database = {
           origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
           status: Database["public"]["Enums"]["previsao_status"]
           valor: number
+          veiculo_id: string | null
         }
         Insert: {
           cliente_id: string
@@ -3148,6 +3149,7 @@ export type Database = {
           origem_tipo: Database["public"]["Enums"]["previsao_origem_tipo"]
           status?: Database["public"]["Enums"]["previsao_status"]
           valor?: number
+          veiculo_id?: string | null
         }
         Update: {
           cliente_id?: string
@@ -3159,6 +3161,7 @@ export type Database = {
           origem_tipo?: Database["public"]["Enums"]["previsao_origem_tipo"]
           status?: Database["public"]["Enums"]["previsao_status"]
           valor?: number
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -3166,6 +3169,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previsoes_recebimento_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
