@@ -183,9 +183,9 @@ export default function FreightCte() {
   const removeLinkedFreightContract = async (cteId: string) => {
     const { data: contracts } = await supabase
       .from("freight_contracts")
-      .select("id, accounts_payable_id")
+      .select("id, expense_id")
       .eq("cte_id", cteId);
-    const expenseIds = (contracts || []).map((c: any) => c.accounts_payable_id).filter(Boolean);
+    const expenseIds = (contracts || []).map((c: any) => c.expense_id).filter(Boolean);
     const contractIds = (contracts || []).map((c: any) => c.id);
     if (contractIds.length) {
       await supabase.from("freight_contracts").delete().in("id", contractIds);

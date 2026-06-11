@@ -260,18 +260,18 @@ export function FinancialReports() {
         if (expIds.length > 0) {
           const { data: contracts } = await supabase
             .from("freight_contracts")
-            .select("accounts_payable_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
-            .in("accounts_payable_id", expIds);
+            .select("expense_id, numero, cte:ctes!freight_contracts_cte_id_fkey(remetente_nome, recebedor_nome, destinatario_nome)")
+            .in("expense_id", expIds);
           const firstTwoWords = (s?: string | null) => (s || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
           const truncTo = (s?: string | null, n = 60) => {
             const t = (s || "").trim();
             return t.length > n ? t.slice(0, n).trimEnd() + "…" : t;
           };
           (contracts || []).forEach((c: any) => {
-            if (!c.accounts_payable_id) return;
+            if (!c.expense_id) return;
             const remet = firstTwoWords(c.cte?.remetente_nome) || "—";
             const destin = truncTo(c.cte?.recebedor_nome || c.cte?.destinatario_nome) || "—";
-            contractDescByExp[c.accounts_payable_id] = `Contrato de Frete Nº ${c.numero} - ${remet} → ${destin}`;
+            contractDescByExp[c.expense_id] = `Contrato de Frete Nº ${c.numero} - ${remet} → ${destin}`;
           });
         }
         const chartMap = new Map(chartAccounts.map((c) => [c.id, c]));
