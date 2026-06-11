@@ -450,12 +450,52 @@ export function FinancialReports() {
         if (filters.dataFim) q = q.lte("data_movimentacao", filters.dataFim);
         if (filters.status !== "todos") q = q.eq("tipo", filters.status);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
-        if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
-        else if (filters.planoContasExcetoId !== "todos") q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
+        // Filtro por plano_contas_id aplicado client-side após enriquecimento (origens vinculadas a despesas não têm plano direto)
         const { data, error } = await q.order("data_movimentacao", { ascending: false }).limit(2000);
         if (error) throw error;
-        result = (data || []).map((m: any) => {
-          const c = m.plano_contas_id ? chartMap.get(m.plano_contas_id) : null;
+        const movs = data || [];
+
+        // Enriquecimento: busca plano_contas_id a partir da origem vinculada
+        const payPaymentIds = movs.filter((m: any) => m.origem === "pagamento_despesa").map((m: any) => m.origem_id);
+        const directExpenseIds = movs.filter((m: any) => m.origem === "despesas").map((m: any) => m.origem_id);
+        const apIds = movs.filter((m: any) => m.origem === "contas_pagar").map((m: any) => m.origem_id);
+        const loteIds = movs.filter((m: any) => m.origem === "pagamento_agrupado").map((m: any) => m.origem_id);
+
+        const [paysRes, apRes, loteRes, expRes] = await Promise.all([
+          payPaymentIds.length
+            ? supabase.from("expense_payments").select("id, expense_id, expenses:expense_id(plano_contas_id)").in("id", payPaymentIds)
+            : Promise.resolve({ data: [] as any[] } as any),
+          apIds.length
+            ? supabase.from("accounts_payable").select("id, category_id").in("id", apIds)
+            : Promise.resolve({ data: [] as any[] } as any),
+          loteIds.length
+            ? supabase.from("expense_payments").select("lote_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
+            : Promise.resolve({ data: [] as any[] } as any),
+          directExpenseIds.length
+            ? supabase.from("expenses").select("id, plano_contas_id").in("id", directExpenseIds)
+            : Promise.resolve({ data: [] as any[] } as any),
+        ]);
+
+        const planoByPaymentId = new Map<string, string | null>();
+        (paysRes.data || []).forEach((p: any) => planoByPaymentId.set(p.id, p.expenses?.plano_contas_id || null));
+        const planoByApId = new Map<string, string | null>();
+        (apRes.data || []).forEach((a: any) => planoByApId.set(a.id, a.category_id || null));
+        const planoByLote = new Map<string, string | null>();
+        (loteRes.data || []).forEach((p: any) => {
+          if (!planoByLote.has(p.lote_id)) planoByLote.set(p.lote_id, p.expenses?.plano_contas_id || null);
+        });
+        const planoByExpId = new Map<string, string | null>();
+        (expRes.data || []).forEach((e: any) => planoByExpId.set(e.id, e.plano_contas_id || null));
+
+        result = movs.map((m: any) => {
+          let pid: string | null = m.plano_contas_id || null;
+          if (!pid) {
+            if (m.origem === "pagamento_despesa") pid = planoByPaymentId.get(m.origem_id) || null;
+            else if (m.origem === "contas_pagar") pid = planoByApId.get(m.origem_id) || null;
+            else if (m.origem === "pagamento_agrupado") pid = planoByLote.get(m.origem_id) || null;
+            else if (m.origem === "despesas") pid = planoByExpId.get(m.origem_id) || null;
+          }
+          const c = pid ? chartMap.get(pid) : null;
           return {
             id: m.id,
             data: m.data_movimentacao,
@@ -465,11 +505,17 @@ export function FinancialReports() {
             valor: Number(m.valor),
             origem: m.origem,
             plano: c ? `${c.codigo} ${c.nome}` : "—",
-            planoId: m.plano_contas_id || null,
+            planoId: pid,
             centro: "—",
             tipo: m.tipo,
           };
         });
+
+        if (filters.planoContasId !== "todos") {
+          result = result.filter((r) => r.planoId === filters.planoContasId);
+        } else if (filters.planoContasExcetoId !== "todos") {
+          result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
+        }
       } else if (reportType === "forecasts") {
         let q: any = supabase.from("previsoes_recebimento").select("*, profile:cliente_id(full_name, nome_fantasia)");
         if (filters.dataInicio) q = q.gte("data_prevista", filters.dataInicio);
