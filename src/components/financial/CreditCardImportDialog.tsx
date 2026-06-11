@@ -596,6 +596,25 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           onClear={() => updateItem(idx, { favorecido_nome: "", favorecido_id: null })}
                         />
                       </TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
+                        <Select
+                          value={it.veiculo_id ?? "__none__"}
+                          onValueChange={(v) => updateItem(idx, { veiculo_id: v === "__none__" ? null : v })}
+                          disabled={isClosed}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__" className="text-xs text-muted-foreground">— Nenhum —</SelectItem>
+                            {vehicles.map((v) => (
+                              <SelectItem key={v.id} value={v.id} className="text-xs">
+                                {v.plate}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
                       <TableCell className="px-1 py-2 align-middle">
                         <Button
                           type="button"
