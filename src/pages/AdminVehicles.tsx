@@ -121,9 +121,14 @@ export default function AdminVehicles() {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const [vehiclesRes, profilesRes] = await Promise.all([
+      const [vehiclesRes, profilesRes, fuelingsRes] = await Promise.all([
         supabase.from("vehicles").select("*").order("brand"),
         supabase.from("profiles").select("user_id, full_name"),
+        supabase.from("fuelings")
+          .select("id, veiculo_id, data_abastecimento, quantidade_litros, valor_total, km_atual, posto_combustivel, tipo_combustivel")
+          .is("deleted_at", null)
+          .order("data_abastecimento", { ascending: false })
+          .limit(5000),
       ]);
       const profiles = profilesRes.data || [];
       const vehicleRows: VehicleRow[] = (vehiclesRes.data || []).map((v: any) => {
@@ -131,6 +136,12 @@ export default function AdminVehicles() {
         const owner = profiles.find((p: any) => p.user_id === v.owner_id);
         return { ...v, driver_name: driver?.full_name, owner_name: owner?.full_name };
       });
+      const fuelMap: Record<string, FuelingRow[]> = {};
+      for (const f of (fuelingsRes.data || []) as FuelingRow[]) {
+        if (!fuelMap[f.veiculo_id]) fuelMap[f.veiculo_id] = [];
+        fuelMap[f.veiculo_id].push(f);
+      }
+      setFuelingsByVehicle(fuelMap);
       setVehicles(vehicleRows);
     } catch (error: any) {
       console.error("Error fetching vehicles:", error);
@@ -138,6 +149,18 @@ export default function AdminVehicles() {
       setLoading(false);
     }
   };
+
+  const metricsByVehicle = useMemo(() => {
+    const out: Record<string, VehicleMetrics> = {};
+    for (const vid of Object.keys(fuelingsByVehicle)) {
+      out[vid] = computeMetrics(fuelingsByVehicle[vid] || []);
+    }
+    return out;
+  }, [fuelingsByVehicle]);
+
+  const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtNum = (v: number, d = 0) => v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
 
   const handleDeleteVehicle = async () => {
     if (!deleteVehicle) return;
