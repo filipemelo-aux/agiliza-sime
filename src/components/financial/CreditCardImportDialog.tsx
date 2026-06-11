@@ -250,7 +250,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         centro_custo: "operacional",
         favorecido_id: null,
         favorecido_nome: "",
+        veiculo_id: null,
         observacoes: "",
+
       }));
 
     // Merge: avoid duplicates by fitid against current dialog items as well
