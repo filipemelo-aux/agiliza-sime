@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2, CreditCard } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
