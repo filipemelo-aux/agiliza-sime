@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2, CreditCard } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -17,6 +17,8 @@ type Cte = { id: string; numero: number | null; data_emissao: string | null; val
 type Fueling = { id: string; data_abastecimento: string; tipo_combustivel: string; quantidade_litros: number; valor_total: number; km_atual: number | null; posto_combustivel: string | null };
 type Maint = { id: string; data_manutencao: string; tipo_manutencao: string | null; descricao: string | null; custo_total: number | null; fornecedor: string | null; expense_id: string | null };
 type Colheita = { id: string; data_prevista: string; valor: number; status: string; metadata: any };
+type CardItem = { id: string; posted_date: string; description: string; amount: number; plano_contas_id: string | null; invoice_id: string; plano_nome?: string | null };
+
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const monthStartISO = () => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); };
@@ -32,6 +34,8 @@ export default function VehicleMetrics() {
   const [fuelings, setFuelings] = useState<Fueling[]>([]);
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
+  const [cardItems, setCardItems] = useState<CardItem[]>([]);
+
 
   useEffect(() => {
     (async () => {
@@ -46,7 +50,7 @@ export default function VehicleMetrics() {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
       const endTs = `${dataFim}T23:59:59`;
-      const [cteRes, fuelRes, maintRes, colheitaRes] = await Promise.all([
+      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes] = await Promise.all([
         supabase.from("ctes")
           .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome")
           .eq("veiculo_id", veiculoId)
@@ -68,14 +72,24 @@ export default function VehicleMetrics() {
           .eq("origem_tipo", "colheita")
           .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
           .order("data_prevista", { ascending: false }),
+        (supabase.from("credit_card_invoice_items") as any)
+          .select("id, posted_date, description, amount, plano_contas_id, invoice_id, plano:chart_of_accounts(nome)")
+          .eq("veiculo_id", veiculoId)
+          .gte("posted_date", dataInicio).lte("posted_date", dataFim)
+          .order("posted_date", { ascending: false }),
       ]);
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
       setColheitas((colheitaRes.data as any) || []);
+      setCardItems(((cardRes.data as any[]) || []).map((r: any) => ({
+        id: r.id, posted_date: r.posted_date, description: r.description, amount: Number(r.amount),
+        plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
+      })));
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
+
 
   const m = useMemo(() => {
     const receitaCte = ctes.reduce((s, c) => s + Number(c.valor_frete || 0), 0);
@@ -83,7 +97,8 @@ export default function VehicleMetrics() {
     const receita = receitaCte + receitaColheita;
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
-    const custoTotal = custoComb + custoMan;
+    const custoCartao = cardItems.reduce((s, x) => s + Number(x.amount || 0), 0);
+    const custoTotal = custoComb + custoMan + custoCartao;
     const lucro = receita - custoTotal;
 
     // KM/L: ignore first fueling (baseline odometer); diff(max-min km) / sum(litros excluding first)
@@ -107,16 +122,18 @@ export default function VehicleMetrics() {
           ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
           : "";
 
-    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints, colheitas]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas, cardItems]);
 
   const chartData = [
     { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
     { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
     { nome: "Combustível", Receita: 0, Custo: m.custoComb },
     { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
+    { nome: "Cartão", Receita: 0, Custo: m.custoCartao },
     { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
   ];
+
 
   const fmtDate = (d?: string | null) => d ? format(new Date(d.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : "—";
   const placa = vehicles.find(v => v.id === veiculoId)?.plate;
@@ -176,17 +193,20 @@ export default function VehicleMetrics() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <SummaryCard icon={DollarSign} label="Receita CT-e" value={formatCurrency(m.receitaCte)} />
             <SummaryCard icon={DollarSign} label="Receita Colheita" value={formatCurrency(m.receitaColheita)} />
             <SummaryCard icon={Fuel} label="Custo Combustível" value={formatCurrency(m.custoComb)} />
             <SummaryCard icon={Wrench} label="Custo Manutenção" value={formatCurrency(m.custoMan)} />
+            <SummaryCard icon={CreditCard} label="Outros Custos (Cartão)" value={formatCurrency(m.custoCartao)} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <SummaryCard icon={Truck} label="Fretes (CT-e)" value={ctes.length} />
             <SummaryCard icon={Truck} label="Faturamentos Colheita" value={colheitas.length} />
             <SummaryCard icon={Wrench} label="Manutenções" value={maints.length} />
+            <SummaryCard icon={CreditCard} label="Lançamentos Cartão" value={cardItems.length} />
           </div>
+
 
 
           {/* Chart */}
@@ -216,7 +236,31 @@ export default function VehicleMetrics() {
               <TabsTrigger value="abast">Abastecimentos ({fuelings.length})</TabsTrigger>
               <TabsTrigger value="manut">Manutenções ({maints.length})</TabsTrigger>
               <TabsTrigger value="colheita">Colheita ({colheitas.length})</TabsTrigger>
+              <TabsTrigger value="cartao">Cartão de Crédito ({cardItems.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="cartao">
+              <Card><CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr><th className="p-2 text-left">Data</th><th className="p-2 text-left">Descrição</th><th className="p-2 text-left">Plano de Contas</th><th className="p-2 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {cardItems.length === 0 ? <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum lançamento de cartão no período</td></tr> :
+                      cardItems.map(c => (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="p-2">{fmtDate(c.posted_date)}</td>
+                          <td className="p-2 truncate max-w-[320px]">{c.description}</td>
+                          <td className="p-2 truncate max-w-[220px]">{c.plano_nome || "—"}</td>
+                          <td className="p-2 text-right font-mono">{formatCurrency(c.amount)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </CardContent></Card>
+            </TabsContent>
+
+
 
             <TabsContent value="colheita">
               <Card><CardContent className="p-0 overflow-x-auto">

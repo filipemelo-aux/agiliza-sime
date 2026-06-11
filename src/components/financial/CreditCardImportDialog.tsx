@@ -79,8 +79,12 @@ interface ItemRow {
   centro_custo: string;
   favorecido_id: string | null;
   favorecido_nome: string;
+  veiculo_id: string | null;
   observacoes: string;
 }
+
+interface VehicleOption { id: string; plate: string; }
+
 
 interface Props {
   open: boolean;
@@ -108,6 +112,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [ofxAccountId, setOfxAccountId] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [existingExpenseId, setExistingExpenseId] = useState<string | null>(null);
@@ -115,7 +121,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const isEditing = !!invoiceId;
 
-  // Load chart of accounts (despesa, leaves only)
+  // Load chart of accounts (despesa, leaves only) + vehicles (frota própria)
   useEffect(() => {
     if (!open) return;
     supabase
@@ -125,7 +131,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .eq("tipo", "despesa")
       .order("codigo")
       .then(({ data }) => setChartAccounts((data as any) || []));
+    supabase
+      .from("vehicles")
+      .select("id, plate")
+      .eq("fleet_type", "propria")
+      .order("plate")
+      .then(({ data }) => setVehicles((data as any) || []));
   }, [open]);
+
 
   const despesaLeaves = useMemo(() => {
     const all = chartAccounts;
@@ -177,8 +190,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         centro_custo: r.centro_custo || "operacional",
         favorecido_id: r.favorecido_id,
         favorecido_nome: r.favorecido_nome || "",
+        veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
       })));
+
     })();
   }, [open, invoiceId]);
 
@@ -235,7 +250,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         centro_custo: "operacional",
         favorecido_id: null,
         favorecido_nome: "",
+        veiculo_id: null,
         observacoes: "",
+
       }));
 
     // Merge: avoid duplicates by fitid against current dialog items as well
@@ -315,7 +332,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           centro_custo: it.centro_custo,
           favorecido_id: it.favorecido_id,
           favorecido_nome: it.favorecido_nome.trim() || null,
+          veiculo_id: it.veiculo_id,
           observacoes: it.observacoes.trim() || null,
+
         }));
         const { error: itemsErr } = await supabase.from("credit_card_invoice_items" as any).insert(rows);
         if (itemsErr) throw itemsErr;
@@ -512,18 +531,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
           {items.length > 0 ? (
             <div className="border rounded-md overflow-x-auto">
-              <Table className="table-fixed w-full min-w-[1200px]">
+              <Table className="table-fixed w-full min-w-[1340px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead style={{ width: 90 }}>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                    <TableHead style={{ width: 280 }}>Plano de Contas *</TableHead>
-                    <TableHead style={{ width: 150 }}>Centro de Custo</TableHead>
-                    <TableHead style={{ width: 200 }}>Favorecido</TableHead>
+                    <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
+                    <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
+                    <TableHead style={{ width: 180 }}>Favorecido</TableHead>
+                    <TableHead style={{ width: 130 }}>Veículo</TableHead>
                     <TableHead style={{ width: 44 }}></TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.fitid}-${idx}`}>
@@ -575,6 +596,27 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           onClear={() => updateItem(idx, { favorecido_nome: "", favorecido_id: null })}
                         />
                       </TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
+                        <Select
+                          value={it.veiculo_id ?? "__none__"}
+                          onValueChange={(v) => updateItem(idx, { veiculo_id: v === "__none__" ? null : v })}
+                          disabled={isClosed}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__" className="text-xs text-muted-foreground">— Nenhum —</SelectItem>
+                            {vehicles.map((v) => (
+                              <SelectItem key={v.id} value={v.id} className="text-xs">
+                                {v.plate}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+
+
                       <TableCell className="px-1 py-2 align-middle">
                         <Button
                           type="button"
