@@ -193,17 +193,20 @@ export default function VehicleMetrics() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <SummaryCard icon={DollarSign} label="Receita CT-e" value={formatCurrency(m.receitaCte)} />
             <SummaryCard icon={DollarSign} label="Receita Colheita" value={formatCurrency(m.receitaColheita)} />
             <SummaryCard icon={Fuel} label="Custo Combustível" value={formatCurrency(m.custoComb)} />
             <SummaryCard icon={Wrench} label="Custo Manutenção" value={formatCurrency(m.custoMan)} />
+            <SummaryCard icon={CreditCard} label="Outros Custos (Cartão)" value={formatCurrency(m.custoCartao)} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <SummaryCard icon={Truck} label="Fretes (CT-e)" value={ctes.length} />
             <SummaryCard icon={Truck} label="Faturamentos Colheita" value={colheitas.length} />
             <SummaryCard icon={Wrench} label="Manutenções" value={maints.length} />
+            <SummaryCard icon={CreditCard} label="Lançamentos Cartão" value={cardItems.length} />
           </div>
+
 
 
           {/* Chart */}
