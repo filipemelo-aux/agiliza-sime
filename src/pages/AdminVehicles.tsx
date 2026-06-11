@@ -305,6 +305,18 @@ export default function AdminVehicles() {
                           {v.owner_name && <span>Proprietário: <strong className="text-foreground">{v.owner_name}</strong></span>}
                           {!v.driver_name && !v.owner_name && <span className="italic">Sem vínculo</span>}
                         </div>
+                        {(() => {
+                          const m = metricsByVehicle[v.id];
+                          if (!m) return null;
+                          return (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-border/40 text-xs">
+                              <span className="flex items-center gap-1"><Gauge className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Média:</span> <strong>{m.avgKmL ? `${fmtNum(m.avgKmL, 2)} km/L` : "—"}</strong></span>
+                              <span className="flex items-center gap-1"><Droplet className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Mês:</span> <strong>{fmtNum(m.litersMonth, 1)} L</strong></span>
+                              <span className="flex items-center gap-1"><DollarSign className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Gasto:</span> <strong>{fmtBRL(m.spentMonth)}</strong></span>
+                              {m.lastKm != null && <span className="flex items-center gap-1"><Fuel className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Últ. KM:</span> <strong>{fmtNum(m.lastKm, 0)}</strong></span>}
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewVehicle(v)} title="Visualizar">
