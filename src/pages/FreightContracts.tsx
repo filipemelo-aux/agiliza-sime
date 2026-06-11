@@ -50,7 +50,7 @@ interface FreightContractRow {
   valor_total: number;
   observacoes: string | null;
   cte_id: string;
-  accounts_payable_id: string | null;
+  expense_id: string | null;
   cte?: {
     numero: number | null;
     serie: number | null;
@@ -96,9 +96,9 @@ export default function FreightContracts() {
           vehicle_id, placa_veiculo, veiculo_modelo,
           municipio_origem, uf_origem, municipio_destino, uf_destino,
           natureza_carga, peso_kg, valor_tonelada, valor_total, observacoes,
-          cte_id, accounts_payable_id, establishment_id,
+          cte_id, expense_id, establishment_id,
           cte:ctes!freight_contracts_cte_id_fkey(numero, serie, tipo_talao, remetente_nome, recebedor_nome, destinatario_nome),
-          payable:expenses!freight_contracts_accounts_payable_id_fkey(status, data_pagamento)
+          payable:expenses!freight_contracts_expense_id_fkey(status, data_pagamento)
         `)
         .order("data_contrato", { ascending: false })
         .order("numero", { ascending: false })

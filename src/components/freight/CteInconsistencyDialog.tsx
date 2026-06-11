@@ -117,10 +117,10 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
       // Buscar contratos vinculados
       const { data: contracts } = await supabase
         .from("freight_contracts")
-        .select("id, accounts_payable_id, cte_id")
+        .select("id, expense_id, cte_id")
         .in("cte_id", ids);
 
-      const expenseIds = (contracts || []).map((c: any) => c.accounts_payable_id).filter(Boolean);
+      const expenseIds = (contracts || []).map((c: any) => c.expense_id).filter(Boolean);
       const contractIds = (contracts || []).map((c: any) => c.id);
 
       // Deletar contratos
