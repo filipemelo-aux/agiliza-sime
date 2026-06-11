@@ -10,6 +10,7 @@ import { Loader2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { MaintenanceFields, MaintenanceItem } from "@/components/financial/MaintenanceFields";
 import { maskName, formatCurrency } from "@/lib/masks";
+import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ interface Props {
 
 export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: Props) {
   const { user } = useAuth();
+  const { matrizId } = useUnifiedCompany();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -139,21 +141,17 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
 
       // Optionally create expense first
       if (gerarDespesa && !editId) {
-        const { data: estab } = await supabase
-          .from("fiscal_establishments")
-          .select("id")
-          .order("created_at")
-          .limit(1)
-          .maybeSingle();
+        const empresaId = matrizId;
         const { data: plano } = await supabase
           .from("chart_of_accounts")
           .select("id")
-          .ilike("nome", "%manuten%")
+          .eq("tipo_operacional", "manutencao")
+          .eq("ativo", true)
           .limit(1)
           .maybeSingle();
 
-        if (!estab) throw new Error("Nenhum estabelecimento cadastrado.");
-        if (!plano) throw new Error('Plano de contas "Manutenção" não encontrado.');
+        if (!empresaId) throw new Error("Nenhum estabelecimento ativo encontrado para vincular a despesa.");
+        if (!plano) throw new Error('Plano de contas com tipo operacional "manutencao" não encontrado. Configure-o no Plano de Contas.');
 
         const partsDesc = itensManutencao.length > 0
           ? itensManutencao.map(i => i.descricao).join(", ")
@@ -162,7 +160,7 @@ export function MaintenanceFormDialog({ open, onOpenChange, onSaved, editId }: P
         const { data: exp, error: expErr } = await supabase
           .from("expenses")
           .insert({
-            empresa_id: estab.id,
+            empresa_id: empresaId,
             descricao: partsDesc || "Manutenção",
             tipo_despesa: "manutencao",
             plano_contas_id: plano.id,
