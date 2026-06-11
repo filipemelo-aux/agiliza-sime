@@ -97,7 +97,8 @@ export default function VehicleMetrics() {
     const receita = receitaCte + receitaColheita;
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
-    const custoTotal = custoComb + custoMan;
+    const custoCartao = cardItems.reduce((s, x) => s + Number(x.amount || 0), 0);
+    const custoTotal = custoComb + custoMan + custoCartao;
     const lucro = receita - custoTotal;
 
     // KM/L: ignore first fueling (baseline odometer); diff(max-min km) / sum(litros excluding first)
@@ -121,16 +122,18 @@ export default function VehicleMetrics() {
           ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
           : "";
 
-    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints, colheitas]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas, cardItems]);
 
   const chartData = [
     { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
     { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
     { nome: "Combustível", Receita: 0, Custo: m.custoComb },
     { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
+    { nome: "Cartão", Receita: 0, Custo: m.custoCartao },
     { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
   ];
+
 
   const fmtDate = (d?: string | null) => d ? format(new Date(d.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : "—";
   const placa = vehicles.find(v => v.id === veiculoId)?.plate;
