@@ -46,7 +46,7 @@ export default function VehicleMetrics() {
       setLoading(true);
       const startTs = `${dataInicio}T00:00:00`;
       const endTs = `${dataFim}T23:59:59`;
-      const [cteRes, fuelRes, maintRes] = await Promise.all([
+      const [cteRes, fuelRes, maintRes, colheitaRes] = await Promise.all([
         supabase.from("ctes")
           .select("id, numero, data_emissao, valor_frete, remetente_nome, destinatario_nome")
           .eq("veiculo_id", veiculoId)
@@ -62,10 +62,17 @@ export default function VehicleMetrics() {
           .eq("veiculo_id", veiculoId)
           .gte("data_manutencao", dataInicio).lte("data_manutencao", dataFim)
           .order("data_manutencao", { ascending: false }),
+        supabase.from("previsoes_recebimento")
+          .select("id, data_prevista, valor, status, metadata")
+          .eq("veiculo_id" as any, veiculoId)
+          .eq("origem_tipo" as any, "colheita")
+          .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
+          .order("data_prevista", { ascending: false }),
       ]);
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
+      setColheitas((colheitaRes.data as any) || []);
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
