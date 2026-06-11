@@ -26,7 +26,6 @@ const menuItems = [
     title: "Financeiro",
     icon: DollarSign,
     children: [
-      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Contas a Pagar", url: "/admin/financial/payables", icon: DollarSign },
       
       { title: "Contas Pagas", url: "/admin/financial/paid", icon: CheckCircle2 },
@@ -61,6 +60,7 @@ const menuItems = [
     title: "Frota",
     icon: Car,
     children: [
+      { title: "Abastecimentos", url: "/admin/fuelings", icon: Fuel },
       { title: "Ordens de Abastecimento", url: "/admin/fuel-orders", icon: Fuel },
       { title: "Ordens de Carregamento", url: "/admin/applications", icon: FileText },
       { title: "Manutenções", url: "/admin/maintenances", icon: Wrench },
@@ -103,7 +103,7 @@ function SidebarNav() {
   const isTransporteActive = location.pathname.startsWith("/admin/freight") || location.pathname.startsWith("/admin/harvest") || location.pathname.startsWith("/admin/applications") || location.pathname.startsWith("/admin/quotations") || location.pathname.startsWith("/admin/fuel-orders");
   const isCadastrosActive = location.pathname.startsWith("/admin/people") || location.pathname.startsWith("/admin/vehicles") || location.pathname.startsWith("/admin/cargas") || location.pathname === "/admin/financial/chart" || location.pathname.startsWith("/admin/reports");
   
-  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/forecasts", "/admin/financial/receipts", "/admin/fuelings", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
+  const isContasPagarActive = ["/admin/financial/payables", "/admin/financial/forecasts", "/admin/financial/receipts", "/admin/maintenances"].some(p => location.pathname.startsWith(p));
 
   // These variables are used for styling purposes only
 
