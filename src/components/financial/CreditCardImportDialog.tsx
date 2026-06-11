@@ -531,18 +531,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
           {items.length > 0 ? (
             <div className="border rounded-md overflow-x-auto">
-              <Table className="table-fixed w-full min-w-[1200px]">
+              <Table className="table-fixed w-full min-w-[1340px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead style={{ width: 90 }}>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                    <TableHead style={{ width: 280 }}>Plano de Contas *</TableHead>
-                    <TableHead style={{ width: 150 }}>Centro de Custo</TableHead>
-                    <TableHead style={{ width: 200 }}>Favorecido</TableHead>
+                    <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
+                    <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
+                    <TableHead style={{ width: 180 }}>Favorecido</TableHead>
+                    <TableHead style={{ width: 130 }}>Veículo</TableHead>
                     <TableHead style={{ width: 44 }}></TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {items.map((it, idx) => (
                     <TableRow key={`${it.fitid}-${idx}`}>
