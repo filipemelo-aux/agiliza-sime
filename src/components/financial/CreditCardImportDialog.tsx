@@ -112,6 +112,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [ofxAccountId, setOfxAccountId] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [existingExpenseId, setExistingExpenseId] = useState<string | null>(null);
