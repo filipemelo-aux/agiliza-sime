@@ -1350,7 +1350,6 @@ export type Database = {
           fornecedor_mecanica: string | null
           id: string
           km_atual: number | null
-          km_odometro: number | null
           litros: number | null
           motorista_id: string | null
           numero_multa: string | null
@@ -1369,7 +1368,6 @@ export type Database = {
           valor_total: number
           veiculo_id: string | null
           veiculo_placa: string | null
-          viagem_id: string | null
           xml_original: string | null
         }
         Insert: {
@@ -1398,7 +1396,6 @@ export type Database = {
           fornecedor_mecanica?: string | null
           id?: string
           km_atual?: number | null
-          km_odometro?: number | null
           litros?: number | null
           motorista_id?: string | null
           numero_multa?: string | null
@@ -1417,7 +1414,6 @@ export type Database = {
           valor_total?: number
           veiculo_id?: string | null
           veiculo_placa?: string | null
-          viagem_id?: string | null
           xml_original?: string | null
         }
         Update: {
@@ -1446,7 +1442,6 @@ export type Database = {
           fornecedor_mecanica?: string | null
           id?: string
           km_atual?: number | null
-          km_odometro?: number | null
           litros?: number | null
           motorista_id?: string | null
           numero_multa?: string | null
@@ -1465,7 +1460,6 @@ export type Database = {
           valor_total?: number
           veiculo_id?: string | null
           veiculo_placa?: string | null
-          viagem_id?: string | null
           xml_original?: string | null
         }
         Relationships: [
@@ -1474,6 +1468,13 @@ export type Database = {
             columns: ["categoria_financeira_id"]
             isOneToOne: false
             referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_payments"
             referencedColumns: ["id"]
           },
           {
@@ -2126,6 +2127,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "folhas_pagamento_itens_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "folhas_pagamento_itens_folha_id_fkey"
             columns: ["folha_id"]
