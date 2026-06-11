@@ -70,7 +70,7 @@ interface Expense {
   observacoes: string | null;
   veiculo_placa: string | null;
   litros: number | null;
-  km_odometro: number | null;
+  
   numero_multa: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
@@ -142,7 +142,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [observacoes, setObservacoes] = useState("");
   const [veiculoPlaca, setVeiculoPlaca] = useState("");
   const [litros, setLitros] = useState("");
-  const [kmOdometro, setKmOdometro] = useState("");
+  
   const [numeroMulta, setNumeroMulta] = useState("");
   const [saving, setSaving] = useState(false);
   const [showCreateFornecedor, setShowCreateFornecedor] = useState(false);
@@ -286,7 +286,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setObservacoes(expense.observacoes || "");
       setVeiculoPlaca(expense.veiculo_placa || "");
       setLitros(expense.litros ? String(expense.litros) : "");
-      setKmOdometro(expense.km_odometro ? String(expense.km_odometro) : "");
+      
       setNumeroMulta(expense.numero_multa || "");
       setFornecedorCnpj(expense.fornecedor_cnpj || "");
       setDocumentoImportado(expense.documento_fiscal_importado || false);
@@ -459,7 +459,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
     setDescricao(initialValues?.descricao || ""); setPlanoContasId(""); setCentroCusto("");
     setValorTotal(initialValues?.valorTotal || ""); setDataEmissao(initialValues?.dataEmissao || getLocalDateISO()); setDataVencimento(initialValues?.dataVencimento || "");
     setFormaPagamento(""); setFavorecidoNome(""); setFavorecidoId(null); setFavorecidoCategory(null); setDocFiscal("");
-    setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros(""); setKmOdometro("");
+    setChaveNfe(""); setObservacoes(""); setVeiculoPlaca(""); setLitros("");
     setNumeroMulta(""); setFornecedorCnpj(""); setXmlOriginal(null); setDocumentoImportado(false);
     setItensNota([]); setInputMode("manual");
     setManualItemsEnabled(false); setNewItemDesc(""); setNewItemQtd("1"); setNewItemValor("");
@@ -661,7 +661,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       documento_fiscal_numero: docFiscal.trim() || null, chave_nfe: trimmedChave || null,
       origem: documentoImportado ? "xml" : "manual",
       observacoes: observacoes.trim() || null, veiculo_placa: veiculoPlaca.trim() || null,
-      litros: litros ? Number(litros) : null, km_odometro: kmOdometro ? Number(kmOdometro) : null,
+      litros: litros ? Number(litros) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
       veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
@@ -1389,10 +1389,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
               <div>
                 <Label className="text-xs">Placa Veículo</Label>
                 <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
-              </div>
-              <div>
-                <Label className="text-xs">Km Odômetro</Label>
-                <Input type="number" value={kmOdometro} onChange={e => setKmOdometro(e.target.value)} placeholder="0" className="h-9" />
               </div>
             </div>
           )}

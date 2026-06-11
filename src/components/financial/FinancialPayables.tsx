@@ -85,7 +85,7 @@ interface Expense {
   veiculo_placa: string | null;
   veiculo_id: string | null;
   litros: number | null;
-  km_odometro: number | null;
+  
   numero_multa: string | null;
   origem: string;
   created_at: string;
@@ -342,7 +342,7 @@ export function FinancialPayables() {
           veiculo_placa: null,
           veiculo_id: null,
           litros: null,
-          km_odometro: null,
+          
           numero_multa: null,
           origem: "colheita",
           created_at: payment.created_at,

@@ -52,7 +52,7 @@ interface ExpenseDetail {
   veiculo_placa: string | null;
   veiculo_id: string | null;
   litros: number | null;
-  km_odometro: number | null;
+  
   numero_multa: string | null;
   origem: string;
   created_at: string;
