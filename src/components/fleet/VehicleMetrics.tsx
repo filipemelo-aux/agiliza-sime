@@ -236,7 +236,31 @@ export default function VehicleMetrics() {
               <TabsTrigger value="abast">Abastecimentos ({fuelings.length})</TabsTrigger>
               <TabsTrigger value="manut">Manutenções ({maints.length})</TabsTrigger>
               <TabsTrigger value="colheita">Colheita ({colheitas.length})</TabsTrigger>
+              <TabsTrigger value="cartao">Cartão de Crédito ({cardItems.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="cartao">
+              <Card><CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr><th className="p-2 text-left">Data</th><th className="p-2 text-left">Descrição</th><th className="p-2 text-left">Plano de Contas</th><th className="p-2 text-right">Valor</th></tr>
+                  </thead>
+                  <tbody>
+                    {cardItems.length === 0 ? <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Nenhum lançamento de cartão no período</td></tr> :
+                      cardItems.map(c => (
+                        <tr key={c.id} className="border-t border-border">
+                          <td className="p-2">{fmtDate(c.posted_date)}</td>
+                          <td className="p-2 truncate max-w-[320px]">{c.description}</td>
+                          <td className="p-2 truncate max-w-[220px]">{c.plano_nome || "—"}</td>
+                          <td className="p-2 text-right font-mono">{formatCurrency(c.amount)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </CardContent></Card>
+            </TabsContent>
+
+
 
             <TabsContent value="colheita">
               <Card><CardContent className="p-0 overflow-x-auto">
