@@ -79,8 +79,12 @@ interface ItemRow {
   centro_custo: string;
   favorecido_id: string | null;
   favorecido_nome: string;
+  veiculo_id: string | null;
   observacoes: string;
 }
+
+interface VehicleOption { id: string; plate: string; }
+
 
 interface Props {
   open: boolean;
