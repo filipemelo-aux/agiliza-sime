@@ -492,7 +492,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] xl:max-w-[1400px] max-h-[92vh] overflow-y-auto p-4" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-[95vw] xl:max-w-[1400px] max-h-[92vh] overflow-auto p-4" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader className="pb-2">
           <DialogTitle className="text-base">{isEditing ? "Editar Fatura de Cartão" : "Nova Fatura de Cartão"}</DialogTitle>
         </DialogHeader>
@@ -619,7 +619,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 )}
               </div>
 
-              <div className="border rounded-md overflow-x-auto">
+              <div className="border rounded-md">
                 <Table className="table-fixed w-full min-w-[1380px]">
                   <TableHeader>
                     <TableRow>
