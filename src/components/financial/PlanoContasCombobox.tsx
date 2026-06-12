@@ -213,6 +213,7 @@ export function PlanoContasCombobox({
           setExtras((prev) => [...prev, opt]);
           onChange(opt.id);
           onCreated?.(opt);
+          reloadFromDb();
         }}
       />
     </div>
