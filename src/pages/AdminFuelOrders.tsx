@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { FuelOrderFormDialog } from "@/components/fuel/FuelOrderFormDialog";
 import { FuelOrderEmailDialog } from "@/components/fuel/FuelOrderEmailDialog";
 import { printFuelOrderPDF } from "@/components/fuel/exportFuelOrderPdf";
+import { resolveSupplierEmail, sendFuelOrderEmail } from "@/components/fuel/sendFuelOrderEmail";
 
 const FUEL_LABELS: Record<string, string> = {
   gasolina: "Gasolina",
