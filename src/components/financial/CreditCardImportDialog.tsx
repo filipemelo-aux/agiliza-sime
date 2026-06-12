@@ -468,7 +468,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           <DialogTitle>{isEditing ? "Editar Fatura de Cartão" : "Nova Fatura de Cartão"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 uppercase">
+        <div className="space-y-4 uppercase [&_input]:uppercase [&_textarea]:uppercase [&_input]:placeholder:normal-case [&_textarea]:placeholder:normal-case">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
             <div className="space-y-1 flex flex-col">
               <Label className="text-xs">Cartão (Banco) *</Label>
