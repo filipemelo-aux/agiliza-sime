@@ -826,7 +826,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-8 text-xs w-full"
+              className="h-7 text-[11px] w-full"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
@@ -873,7 +873,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-7 w-7 shrink-0"
                 disabled={isClosed}
                 title="Vincular cadastro existente"
               >
@@ -895,7 +895,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             type="button"
             variant="outline"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-7 w-7 shrink-0"
             disabled={isClosed}
             onClick={onOpenCreate}
             title="Cadastrar novo favorecido"
@@ -906,7 +906,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
         <Input
-          className="h-8 text-xs w-full"
+          className="h-7 text-[11px] w-full"
           value={descriptionLocal}
           onChange={(e) => setDescriptionLocal(e.target.value)}
           onBlur={() => {
