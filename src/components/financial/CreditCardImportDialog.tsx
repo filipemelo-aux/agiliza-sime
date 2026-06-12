@@ -562,132 +562,19 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
                 <TableBody>
                   {items.map((it, idx) => (
-                    <TableRow key={`${it.fitid}-${idx}`}>
-                      <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(it.posted_date)}</TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
-                        <div className="flex items-center gap-1">
-                          <Input
-                            className="h-8 text-xs flex-1 min-w-0"
-                            value={it.favorecido_nome}
-                            onChange={(e) => updateItem(idx, { favorecido_nome: e.target.value, favorecido_id: null })}
-                            disabled={isClosed}
-                            title={it.favorecido_nome}
-                            placeholder="Favorecido"
-                          />
-                          <Popover
-                            open={searchPersonOpenIdx === idx}
-                            onOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 shrink-0"
-                                disabled={isClosed}
-                                title="Vincular cadastro existente"
-                              >
-                                <Search className="w-3 h-3" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80 p-2" align="end">
-                              <PersonSearchInput
-                                categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
-                                placeholder="Buscar..."
-                                onSelect={(p) => {
-                                  updateItem(idx, { favorecido_nome: p.full_name, favorecido_id: p.id });
-                                  setSearchPersonOpenIdx(null);
-                                }}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            disabled={isClosed}
-                            onClick={() => setCreatePersonOpenIdx(idx)}
-                            title="Cadastrar novo favorecido"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
-                        <Input
-                          className="h-8 text-xs w-full"
-                          value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
-                          disabled={isClosed}
-                          title={it.description}
-                          placeholder="Descrição do gasto"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
-                        {formatCurrency(it.amount)}
-                      </TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
-                        <PlanoContasCombobox
-                          value={it.plano_contas_id}
-                          onChange={(v) => updateItem(idx, { plano_contas_id: v })}
-                          options={despesaLeaves}
-                          disabled={isClosed}
-                        />
-                      </TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
-                        <Select
-                          value={it.centro_custo}
-                          onValueChange={(v) => updateItem(idx, { centro_custo: v })}
-                          disabled={isClosed}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CENTRO_CUSTO_OPTIONS.map((c) => (
-                              <SelectItem key={c.value} value={c.value} className="text-xs">
-                                {c.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
-                        <Select
-                          value={it.veiculo_id ?? "__none__"}
-                          onValueChange={(v) => updateItem(idx, { veiculo_id: v === "__none__" ? null : v })}
-                          disabled={isClosed}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__" className="text-xs text-muted-foreground">— Nenhum —</SelectItem>
-                            {vehicles.map((v) => (
-                              <SelectItem key={v.id} value={v.id} className="text-xs">
-                                {v.plate}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-
-
-
-                      <TableCell className="px-1 py-2 align-middle">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => removeItem(idx)}
-                          disabled={isClosed}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <InvoiceItemRow
+                      key={`${it.fitid}-${idx}`}
+                      idx={idx}
+                      item={it}
+                      isClosed={isClosed}
+                      despesaLeaves={despesaLeaves}
+                      vehicles={vehicles}
+                      onUpdate={updateItem}
+                      onRemove={removeItem}
+                      searchOpen={searchPersonOpenIdx === idx}
+                      onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
+                      onOpenCreate={() => setCreatePersonOpenIdx(idx)}
+                    />
                   ))}
                 </TableBody>
               </Table>
