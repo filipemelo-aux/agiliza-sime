@@ -573,40 +573,97 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
 
           {items.length > 0 ? (
-            <div className="border rounded-md overflow-x-auto">
-              <Table className="table-fixed w-full min-w-[1340px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead style={{ width: 90 }}>Data</TableHead>
-                    <TableHead style={{ width: 240 }}>Favorecido</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                    <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
-                    <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
-                    <TableHead style={{ width: 130 }}>Veículo</TableHead>
-                    <TableHead style={{ width: 44 }}></TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {items.map((it, idx) => (
-                    <InvoiceItemRow
-                      key={`${it.fitid}-${idx}`}
-                      idx={idx}
-                      item={it}
-                      isClosed={isClosed}
-                      despesaLeaves={despesaLeaves}
-                      vehicles={vehicles}
-                      onUpdate={updateItem}
-                      onRemove={removeItem}
-                      searchOpen={searchPersonOpenIdx === idx}
-                      onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
-                      onOpenCreate={() => setCreatePersonOpenIdx(idx)}
-                      wasEdited={hasRowChanged(idx)}
+            <div className="space-y-2">
+              {/* Batch toolbar */}
+              <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIdxs.size > 0
+                    ? `${selectedIdxs.size} selecionado(s)`
+                    : "Marque lançamentos para editar em lote"}
+                </span>
+                <Popover open={batchPickerOpen} onOpenChange={setBatchPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs ml-auto"
+                      disabled={isClosed || selectedIdxs.size === 0}
+                      title="Aplicar favorecido aos selecionados"
+                    >
+                      <Search className="w-3 h-3 mr-1" /> Aplicar Favorecido em Lote
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-2" align="end">
+                    <PersonSearchInput
+                      categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
+                      placeholder="Buscar favorecido..."
+                      onSelect={(p) => {
+                        const nome = (p as any).razao_social || p.full_name || (p as any).nome_fantasia || "";
+                        applyFavorecidoToSelected(p.id, nome);
+                      }}
                     />
-                  ))}
-                </TableBody>
-              </Table>
+                  </PopoverContent>
+                </Popover>
+                {selectedIdxs.size > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setSelectedIdxs(new Set())}
+                  >
+                    Limpar seleção
+                  </Button>
+                )}
+              </div>
+
+              <div className="border rounded-md overflow-x-auto">
+                <Table className="table-fixed w-full min-w-[1380px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ width: 40 }} className="px-2">
+                        <Checkbox
+                          checked={items.length > 0 && selectedIdxs.size === items.length}
+                          onCheckedChange={toggleSelectAll}
+                          disabled={isClosed}
+                          aria-label="Selecionar todos"
+                        />
+                      </TableHead>
+                      <TableHead style={{ width: 90 }}>Data</TableHead>
+                      <TableHead style={{ width: 240 }}>Favorecido</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
+                      <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
+                      <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
+                      <TableHead style={{ width: 130 }}>Veículo</TableHead>
+                      <TableHead style={{ width: 44 }}></TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {items.map((it, idx) => (
+                      <InvoiceItemRow
+                        key={`${it.fitid}-${idx}`}
+                        idx={idx}
+                        item={it}
+                        isClosed={isClosed}
+                        despesaLeaves={despesaLeaves}
+                        vehicles={vehicles}
+                        onUpdate={updateItem}
+                        onRemove={removeItem}
+                        searchOpen={searchPersonOpenIdx === idx}
+                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
+                        onOpenCreate={() => setCreatePersonOpenIdx(idx)}
+                        wasEdited={hasRowChanged(idx)}
+                        selected={selectedIdxs.has(idx)}
+                        onToggleSelected={() => toggleSelected(idx)}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="text-center py-10 border border-dashed rounded-md text-xs text-muted-foreground">
