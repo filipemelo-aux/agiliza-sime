@@ -618,7 +618,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         <Input
                           className="h-8 text-xs w-full"
                           value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
+                          onChange={(e) => updateItem(idx, { description: e.target.value, favorecido_nome: e.target.value })}
                           disabled={isClosed}
                           title={it.description}
                           placeholder="Descrição do gasto"
