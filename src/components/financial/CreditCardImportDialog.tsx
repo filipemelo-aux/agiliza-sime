@@ -278,6 +278,31 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  const toggleSelected = useCallback((idx: number) => {
+    setSelectedIdxs((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIdxs((prev) => {
+      if (prev.size === items.length) return new Set();
+      return new Set(items.map((_, i) => i));
+    });
+  }, [items]);
+
+  const applyFavorecidoToSelected = useCallback((favorecidoId: string | null, favorecidoNome: string) => {
+    if (selectedIdxs.size === 0) return;
+    setItems((prev) => prev.map((it, i) => (
+      selectedIdxs.has(i) ? { ...it, favorecido_id: favorecidoId, favorecido_nome: favorecidoNome } : it
+    )));
+    toast.success(`Favorecido aplicado em ${selectedIdxs.size} lançamento(s).`);
+    setSelectedIdxs(new Set());
+    setBatchPickerOpen(false);
+  }, [selectedIdxs]);
+
   const hasRowChanged = useCallback((idx: number) => {
     const current = items[idx];
     const original = originalItems[idx];
