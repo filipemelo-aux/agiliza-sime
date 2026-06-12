@@ -201,7 +201,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         description: r.description,
         amount: Number(r.amount),
         plano_contas_id: r.plano_contas_id,
-        centro_custo: r.centro_custo || "operacional",
+        centro_custo: r.centro_custo || "",
         favorecido_id: r.favorecido_id,
         favorecido_nome: r.favorecido_nome || r.description || "",
         veiculo_id: r.veiculo_id || null,
@@ -248,7 +248,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         description: desc,
         amount: Math.abs(t.amount),
         plano_contas_id: null,
-        centro_custo: "operacional",
+        centro_custo: "",
         favorecido_id: null,
         favorecido_nome: desc,
         veiculo_id: null,
@@ -761,9 +761,10 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           disabled={isClosed}
         >
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue />
+            <SelectValue placeholder="Selecionar..." />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="" className="text-xs text-muted-foreground">—</SelectItem>
             {CENTRO_CUSTO_OPTIONS.map((c) => (
               <SelectItem key={c.value} value={c.value} className="text-xs">
                 {c.label}
