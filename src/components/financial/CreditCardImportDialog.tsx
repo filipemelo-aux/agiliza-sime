@@ -608,11 +608,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableCell className="px-2 py-2 align-middle">
                         <Input
                           className="h-8 text-xs w-full"
-                          value={it.observacoes}
-                          onChange={(e) => updateItem(idx, { observacoes: e.target.value })}
+                          value={it.description}
+                          onChange={(e) => updateItem(idx, { description: e.target.value })}
                           disabled={isClosed}
-                          title={it.observacoes}
-                          placeholder="Detalhe do gasto (ex: Parcela 03/10)"
+                          title={it.description}
+                          placeholder="Descrição do gasto"
                         />
                       </TableCell>
                       <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
