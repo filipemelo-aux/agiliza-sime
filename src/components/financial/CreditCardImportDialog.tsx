@@ -722,19 +722,49 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <div className="flex items-center gap-1">
-          <Input
-            className="h-8 text-xs flex-1 min-w-0"
-            value={favorecidoLocal}
-            onChange={(e) => setFavorecidoLocal(e.target.value)}
-            onBlur={() => {
-              if (favorecidoLocal !== item.favorecido_nome) {
-                onUpdate(idx, { favorecido_nome: favorecidoLocal, favorecido_id: null });
-              }
-            }}
-            disabled={isClosed}
-            title={favorecidoLocal}
-            placeholder="Favorecido"
-          />
+          <div ref={wrapperRef} className="relative flex-1 min-w-0">
+            <Input
+              className="h-8 text-xs w-full"
+              value={favorecidoLocal}
+              onChange={(e) => {
+                const v = e.target.value;
+                setFavorecidoLocal(v);
+                runAutoSearch(v);
+              }}
+              onFocus={() => { if (autoResults.length > 0) setAutoOpen(true); }}
+              onBlur={() => {
+                if (favorecidoLocal !== item.favorecido_nome) {
+                  onUpdate(idx, { favorecido_nome: favorecidoLocal, favorecido_id: null });
+                }
+              }}
+              disabled={isClosed}
+              title={favorecidoLocal}
+              placeholder="Favorecido"
+            />
+            {autoOpen && (autoResults.length > 0 || autoLoading) && (
+              <div className="absolute z-50 top-full mt-1 left-0 w-72 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {autoLoading && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Buscando...</div>
+                )}
+                {!autoLoading && autoResults.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setFavorecidoLocal(p.full_name);
+                      setAutoOpen(false);
+                      onUpdate(idx, { favorecido_nome: p.full_name, favorecido_id: p.id });
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-accent text-xs border-b border-border last:border-0"
+                  >
+                    <div className="font-medium truncate">{p.full_name}</div>
+                    <div className="text-[10px] text-muted-foreground capitalize">{p.category}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Popover open={searchOpen} onOpenChange={onSearchOpenChange}>
             <PopoverTrigger asChild>
               <Button
