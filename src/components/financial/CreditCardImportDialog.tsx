@@ -292,6 +292,21 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  const hasRowChanged = useCallback((idx: number) => {
+    const current = items[idx];
+    const original = originalItems[idx];
+    if (!current || !original) return false;
+    return (
+      current.description !== original.description ||
+      current.favorecido_nome !== original.favorecido_nome ||
+      current.favorecido_id !== original.favorecido_id ||
+      current.plano_contas_id !== original.plano_contas_id ||
+      current.centro_custo !== original.centro_custo ||
+      current.veiculo_id !== original.veiculo_id ||
+      current.observacoes !== original.observacoes
+    );
+  }, [items, originalItems]);
+
   const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }, []);
