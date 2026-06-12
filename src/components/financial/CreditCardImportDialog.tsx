@@ -672,6 +672,7 @@ interface InvoiceItemRowProps {
   searchOpen: boolean;
   onSearchOpenChange: (o: boolean) => void;
   onOpenCreate: () => void;
+  wasEdited: boolean;
 }
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
