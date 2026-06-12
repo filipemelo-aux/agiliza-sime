@@ -22,25 +22,6 @@ import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
 
-/**
- * Tries to detect an installment pattern like "05/10", "PARC 5/10", "PARCELA 1/3" in the OFX memo.
- * Returns "Parcela NN/MM" or null. Avoids dates (4-digit year) and is conservative.
- */
-function detectParcela(memo: string): string | null {
-  if (!memo) return null;
-  // Look for N/M where both numbers are 1-2 digits and not followed by another /digits (date guard)
-  const re = /(?<![\d\/])(\d{1,2})\s*\/\s*(\d{1,2})(?!\s*\/?\s*\d)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(memo)) !== null) {
-    const a = parseInt(m[1], 10);
-    const b = parseInt(m[2], 10);
-    if (!a || !b) continue;
-    if (b < 2 || b > 36) continue;
-    if (a < 1 || a > b) continue;
-    return `Parcela ${String(a).padStart(2, "0")}/${String(b).padStart(2, "0")}`;
-  }
-  return null;
-}
 
 const MONTHS_PT_LONG = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -266,7 +247,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .filter((t) => !t.fitid || !alreadyImported.has(t.fitid))
       .map((t) => {
         const desc = t.description || "Lançamento";
-        const parcela = detectParcela(desc);
         return {
           fitid: t.fitid,
           posted_date: t.date,
@@ -277,7 +257,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           favorecido_id: null,
           favorecido_nome: desc,
           veiculo_id: null,
-          observacoes: parcela || "",
+          observacoes: "",
         };
       });
 
@@ -628,11 +608,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableCell className="px-2 py-2 align-middle">
                         <Input
                           className="h-8 text-xs w-full"
-                          value={it.observacoes}
-                          onChange={(e) => updateItem(idx, { observacoes: e.target.value })}
+                          value={it.description}
+                          onChange={(e) => updateItem(idx, { description: e.target.value })}
                           disabled={isClosed}
-                          title={it.observacoes}
-                          placeholder="Detalhe do gasto (ex: Parcela 03/10)"
+                          title={it.description}
+                          placeholder="Descrição do gasto"
                         />
                       </TableCell>
                       <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
