@@ -274,14 +274,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       });
 
     // Merge: avoid duplicates by fitid against current dialog items as well
-    let addedCount = 0;
-    setItems((prev) => {
-      const existing = new Set(prev.map((p) => p.fitid).filter(Boolean));
-      const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
-      addedCount = filtered.length;
-      const merged = [...prev, ...filtered];
-      return merged.sort((a, b) => a.posted_date.localeCompare(b.posted_date));
-    });
+    const existing = new Set(items.map((p) => p.fitid).filter(Boolean));
+    const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
+    const merged = [...items, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
+    setItems(merged);
+    setOriginalItems(merged);
 
     const skipped = debits.length - newRows.length;
     if (skipped > 0) {
