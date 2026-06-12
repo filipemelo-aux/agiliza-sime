@@ -761,7 +761,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           disabled={isClosed}
         >
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue />
+            <SelectValue placeholder="Selecionar..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="" className="text-xs text-muted-foreground">—</SelectItem>
