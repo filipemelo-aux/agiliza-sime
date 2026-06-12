@@ -222,6 +222,7 @@ function CreatePlanoContaDialog({
   const [ativo, setAtivo] = useState(true);
   const [empresaId, setEmpresaId] = useState<string>("");
   const [establishments, setEstablishments] = useState<{ id: string; razao_social: string; type?: string }[]>([]);
+  const [allAccounts, setAllAccounts] = useState<Array<{ id: string; codigo: string; nome: string; tipo: string; empresa_id: string; nivel: number }>>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -233,21 +234,21 @@ function CreatePlanoContaDialog({
     setAtivo(true);
 
     (async () => {
-      const { data } = await supabase
-        .from("fiscal_establishments")
-        .select("id, razao_social, type")
-        .eq("active", true)
-        .order("razao_social");
-      const list = data || [];
+      const [estRes, accRes] = await Promise.all([
+        supabase.from("fiscal_establishments").select("id, razao_social, type").eq("active", true).order("razao_social"),
+        supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, empresa_id, nivel").eq("ativo", true).order("codigo"),
+      ]);
+      const list = estRes.data || [];
       setEstablishments(list);
       const matriz = list.find((e: any) => e.type === "matriz") || list[0];
       if (matriz) setEmpresaId(matriz.id);
+      setAllAccounts((accRes.data as any) || []);
     })();
   }, [open, defaultNome, defaultTipo]);
 
   const parentOptions = useMemo(
-    () => existingOptions.filter((o) => !o.tipo || o.tipo === tipo),
-    [existingOptions, tipo]
+    () => allAccounts.filter((o) => o.tipo === tipo && (!empresaId || o.empresa_id === empresaId)),
+    [allAccounts, tipo, empresaId]
   );
 
   const handleSave = async () => {
@@ -255,17 +256,10 @@ function CreatePlanoContaDialog({
     if (!nome.trim()) return toast.error("Informe o nome da conta");
     if (!empresaId) return toast.error("Empresa não disponível");
 
-    const parent = contaPaiId !== "none" ? existingOptions.find((o) => o.id === contaPaiId) : null;
-    // best-effort nivel; parent may not have nivel in option shape — query if needed
-    let nivel = 1;
-    if (parent) {
-      const { data: p } = await supabase
-        .from("chart_of_accounts")
-        .select("nivel")
-        .eq("id", parent.id)
-        .maybeSingle();
-      nivel = ((p as any)?.nivel || 1) + 1;
-    }
+    const parent = contaPaiId !== "none" ? allAccounts.find((o) => o.id === contaPaiId) : null;
+    const nivel = parent ? (parent.nivel || 1) + 1 : 1;
+
+
 
     setSaving(true);
     const { data, error } = await supabase
