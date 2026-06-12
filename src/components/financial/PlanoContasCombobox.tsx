@@ -126,12 +126,24 @@ export function PlanoContasCombobox({
           sideOffset={4}
         >
           <Command shouldFilter={false}>
-            <CommandInput
-              placeholder="Digite código ou nome..."
-              className="h-9"
-              value={search}
-              onValueChange={setSearch}
-            />
+            <div className="relative">
+              <CommandInput
+                placeholder="Digite código ou nome..."
+                className="h-9 pr-9"
+                value={search}
+                onValueChange={setSearch}
+              />
+              {allowCreate && !disabled && (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setCreateOpen(true); }}
+                  title={search ? `Criar "${search}"` : "Criar nova conta"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
             <CommandList className="max-h-[320px]">
               {filtered.length === 0 ? (
                 <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
@@ -164,18 +176,7 @@ export function PlanoContasCombobox({
               )}
             </CommandList>
           </Command>
-          {allowCreate && !disabled && (
-            <div className="border-t bg-popover">
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setCreateOpen(true); }}
-                className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {search ? `Criar "${search}"` : "Criar nova conta contábil"}
-              </button>
-            </div>
-          )}
+
         </PopoverContent>
       </Popover>
 
