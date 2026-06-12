@@ -561,11 +561,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 <TableHeader>
                   <TableRow>
                     <TableHead style={{ width: 90 }}>Data</TableHead>
+                    <TableHead style={{ width: 240 }}>Favorecido</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
                     <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
                     <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
-                    <TableHead style={{ width: 180 }}>Favorecido</TableHead>
                     <TableHead style={{ width: 130 }}>Veículo</TableHead>
                     <TableHead style={{ width: 44 }}></TableHead>
                   </TableRow>
@@ -576,12 +576,63 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     <TableRow key={`${it.fitid}-${idx}`}>
                       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(it.posted_date)}</TableCell>
                       <TableCell className="px-2 py-2 align-middle">
+                        <div className="flex items-center gap-1">
+                          <Input
+                            className="h-8 text-xs flex-1 min-w-0"
+                            value={it.favorecido_nome}
+                            onChange={(e) => updateItem(idx, { favorecido_nome: e.target.value, favorecido_id: null })}
+                            disabled={isClosed}
+                            title={it.favorecido_nome}
+                            placeholder="Favorecido"
+                          />
+                          <Popover
+                            open={searchPersonOpenIdx === idx}
+                            onOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                disabled={isClosed}
+                                title="Vincular cadastro existente"
+                              >
+                                <Search className="w-3 h-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-2" align="end">
+                              <PersonSearchInput
+                                categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
+                                placeholder="Buscar..."
+                                onSelect={(p) => {
+                                  updateItem(idx, { favorecido_nome: p.full_name, favorecido_id: p.id });
+                                  setSearchPersonOpenIdx(null);
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            disabled={isClosed}
+                            onClick={() => setCreatePersonOpenIdx(idx)}
+                            title="Cadastrar novo favorecido"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-2 align-middle">
                         <Input
                           className="h-8 text-xs w-full"
-                          value={it.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
+                          value={it.observacoes}
+                          onChange={(e) => updateItem(idx, { observacoes: e.target.value })}
                           disabled={isClosed}
-                          title={it.description}
+                          title={it.observacoes}
+                          placeholder="Detalhe do gasto (ex: Parcela 03/10)"
                         />
                       </TableCell>
                       <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
@@ -614,15 +665,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         </Select>
                       </TableCell>
                       <TableCell className="px-2 py-2 align-middle">
-                        <PersonSearchInput
-                          categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
-                          placeholder="Opcional..."
-                          selectedName={it.favorecido_nome}
-                          onSelect={(p) => updateItem(idx, { favorecido_nome: p.full_name, favorecido_id: p.id })}
-                          onClear={() => updateItem(idx, { favorecido_nome: "", favorecido_id: null })}
-                        />
-                      </TableCell>
-                      <TableCell className="px-2 py-2 align-middle">
                         <Select
                           value={it.veiculo_id ?? "__none__"}
                           onValueChange={(v) => updateItem(idx, { veiculo_id: v === "__none__" ? null : v })}
@@ -641,6 +683,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           </SelectContent>
                         </Select>
                       </TableCell>
+
 
 
                       <TableCell className="px-1 py-2 align-middle">
