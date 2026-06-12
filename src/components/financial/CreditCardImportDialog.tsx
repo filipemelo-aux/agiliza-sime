@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
@@ -123,6 +124,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [existingStatus, setExistingStatus] = useState<string>("aberta");
   const [createPersonOpenIdx, setCreatePersonOpenIdx] = useState<number | null>(null);
   const [searchPersonOpenIdx, setSearchPersonOpenIdx] = useState<number | null>(null);
+  const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
+  const [batchPickerOpen, setBatchPickerOpen] = useState(false);
 
   const isEditing = !!invoiceId;
 
@@ -275,6 +278,31 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  const toggleSelected = useCallback((idx: number) => {
+    setSelectedIdxs((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIdxs((prev) => {
+      if (prev.size === items.length) return new Set();
+      return new Set(items.map((_, i) => i));
+    });
+  }, [items]);
+
+  const applyFavorecidoToSelected = useCallback((favorecidoId: string | null, favorecidoNome: string) => {
+    if (selectedIdxs.size === 0) return;
+    setItems((prev) => prev.map((it, i) => (
+      selectedIdxs.has(i) ? { ...it, favorecido_id: favorecidoId, favorecido_nome: favorecidoNome } : it
+    )));
+    toast.success(`Favorecido aplicado em ${selectedIdxs.size} lançamento(s).`);
+    setSelectedIdxs(new Set());
+    setBatchPickerOpen(false);
+  }, [selectedIdxs]);
+
   const hasRowChanged = useCallback((idx: number) => {
     const current = items[idx];
     const original = originalItems[idx];
@@ -293,6 +321,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
     setOriginalItems((prev) => prev.filter((_, i) => i !== idx));
+    setSelectedIdxs(new Set());
   }, []);
 
   const persistInvoice = async (closeNow: boolean) => {
@@ -544,40 +573,97 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
 
           {items.length > 0 ? (
-            <div className="border rounded-md overflow-x-auto">
-              <Table className="table-fixed w-full min-w-[1340px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead style={{ width: 90 }}>Data</TableHead>
-                    <TableHead style={{ width: 240 }}>Favorecido</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                    <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
-                    <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
-                    <TableHead style={{ width: 130 }}>Veículo</TableHead>
-                    <TableHead style={{ width: 44 }}></TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {items.map((it, idx) => (
-                    <InvoiceItemRow
-                      key={`${it.fitid}-${idx}`}
-                      idx={idx}
-                      item={it}
-                      isClosed={isClosed}
-                      despesaLeaves={despesaLeaves}
-                      vehicles={vehicles}
-                      onUpdate={updateItem}
-                      onRemove={removeItem}
-                      searchOpen={searchPersonOpenIdx === idx}
-                      onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
-                      onOpenCreate={() => setCreatePersonOpenIdx(idx)}
-                      wasEdited={hasRowChanged(idx)}
+            <div className="space-y-2">
+              {/* Batch toolbar */}
+              <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIdxs.size > 0
+                    ? `${selectedIdxs.size} selecionado(s)`
+                    : "Marque lançamentos para editar em lote"}
+                </span>
+                <Popover open={batchPickerOpen} onOpenChange={setBatchPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs ml-auto"
+                      disabled={isClosed || selectedIdxs.size === 0}
+                      title="Aplicar favorecido aos selecionados"
+                    >
+                      <Search className="w-3 h-3 mr-1" /> Aplicar Favorecido em Lote
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-2" align="end">
+                    <PersonSearchInput
+                      categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
+                      placeholder="Buscar favorecido..."
+                      onSelect={(p) => {
+                        const nome = (p as any).razao_social || p.full_name || (p as any).nome_fantasia || "";
+                        applyFavorecidoToSelected(p.id, nome);
+                      }}
                     />
-                  ))}
-                </TableBody>
-              </Table>
+                  </PopoverContent>
+                </Popover>
+                {selectedIdxs.size > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setSelectedIdxs(new Set())}
+                  >
+                    Limpar seleção
+                  </Button>
+                )}
+              </div>
+
+              <div className="border rounded-md overflow-x-auto">
+                <Table className="table-fixed w-full min-w-[1380px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ width: 40 }} className="px-2">
+                        <Checkbox
+                          checked={items.length > 0 && selectedIdxs.size === items.length}
+                          onCheckedChange={toggleSelectAll}
+                          disabled={isClosed}
+                          aria-label="Selecionar todos"
+                        />
+                      </TableHead>
+                      <TableHead style={{ width: 90 }}>Data</TableHead>
+                      <TableHead style={{ width: 240 }}>Favorecido</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
+                      <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
+                      <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
+                      <TableHead style={{ width: 130 }}>Veículo</TableHead>
+                      <TableHead style={{ width: 44 }}></TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {items.map((it, idx) => (
+                      <InvoiceItemRow
+                        key={`${it.fitid}-${idx}`}
+                        idx={idx}
+                        item={it}
+                        isClosed={isClosed}
+                        despesaLeaves={despesaLeaves}
+                        vehicles={vehicles}
+                        onUpdate={updateItem}
+                        onRemove={removeItem}
+                        searchOpen={searchPersonOpenIdx === idx}
+                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
+                        onOpenCreate={() => setCreatePersonOpenIdx(idx)}
+                        wasEdited={hasRowChanged(idx)}
+                        selected={selectedIdxs.has(idx)}
+                        onToggleSelected={() => toggleSelected(idx)}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="text-center py-10 border border-dashed rounded-md text-xs text-muted-foreground">
@@ -658,11 +744,14 @@ interface InvoiceItemRowProps {
   onSearchOpenChange: (o: boolean) => void;
   onOpenCreate: () => void;
   wasEdited: boolean;
+  selected: boolean;
+  onToggleSelected: () => void;
 }
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
+  selected, onToggleSelected,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
@@ -718,7 +807,15 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   }, []);
 
   return (
-    <TableRow className={wasEdited ? "bg-success/10" : "bg-warning/10"}>
+    <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
+      <TableCell className="px-2 py-2 align-middle">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onToggleSelected}
+          disabled={isClosed}
+          aria-label="Selecionar lançamento"
+        />
+      </TableCell>
       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <div className="flex items-center gap-1">
