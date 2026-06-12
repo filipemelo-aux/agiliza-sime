@@ -690,7 +690,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   useEffect(() => { setDescriptionLocal(item.description); }, [item.description]);
 
   return (
-    <TableRow>
+    <TableRow className={wasEdited ? "bg-success/10" : "bg-warning/10"}>
       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <div className="flex items-center gap-1">
