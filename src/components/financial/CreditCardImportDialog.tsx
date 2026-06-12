@@ -140,7 +140,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .select("id, plate")
       .eq("fleet_type", "propria")
       .order("plate")
-      .then(({ data }) => setVehicles((data as any) || []));
+      .then(({ data }) => {
+        const seen = new Set<string>();
+        const unique = ((data as any[]) || []).filter((v) => {
+          const key = (v.plate || "").toUpperCase().trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setVehicles(unique as any);
+      });
   }, [open]);
 
 
