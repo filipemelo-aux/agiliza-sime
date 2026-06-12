@@ -98,8 +98,64 @@ export default function AdminFuelOrders() {
 
   const handleCreated = async (order: any) => {
     setShowForm(false);
-    fetchData();
     toast({ title: "Ordem criada", description: `Ordem #${order.order_number} gerada com sucesso.` });
+
+    // Resolve driver_name for PDF
+    let driverName = "";
+    if (order.vehicle_id) {
+      const { data: veh } = await supabase
+        .from("vehicles")
+        .select("driver_id")
+        .eq("id", order.vehicle_id)
+        .maybeSingle();
+      if ((veh as any)?.driver_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", (veh as any).driver_id)
+          .maybeSingle();
+        driverName = (prof as any)?.full_name || "";
+      }
+    }
+    const orderWithDriver = { ...order, driver_name: driverName };
+
+    // Auto-send by email if supplier has email registered
+    const supplierEmail = await resolveSupplierEmail(order);
+    if (supplierEmail) {
+      const sendingToast = toast({
+        title: "Enviando e-mail...",
+        description: `Enviando ordem #${order.order_number} para ${supplierEmail}`,
+      });
+      try {
+        await sendFuelOrderEmail({
+          order: orderWithDriver,
+          to: supplierEmail,
+          unifiedLabel,
+          unifiedCnpjs,
+        });
+        sendingToast.dismiss();
+        toast({
+          title: "E-mail enviado!",
+          description: `Ordem #${order.order_number} enviada para ${supplierEmail}.`,
+        });
+      } catch (err: any) {
+        sendingToast.dismiss();
+        toast({
+          title: "Falha no envio automático",
+          description: err?.message || "Você pode tentar reenviar manualmente.",
+          variant: "destructive",
+        });
+        setEmailOrder(orderWithDriver);
+      }
+    } else {
+      toast({
+        title: "Fornecedor sem e-mail cadastrado",
+        description: "Abrindo envio manual para você informar o destinatário.",
+      });
+      setEmailOrder(orderWithDriver);
+    }
+
+    fetchData();
   };
 
   return (
