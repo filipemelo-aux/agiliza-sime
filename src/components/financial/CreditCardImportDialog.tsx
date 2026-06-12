@@ -589,6 +589,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       searchOpen={searchPersonOpenIdx === idx}
                       onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
                       onOpenCreate={() => setCreatePersonOpenIdx(idx)}
+                      wasEdited={hasRowChanged(idx)}
                     />
                   ))}
                 </TableBody>
