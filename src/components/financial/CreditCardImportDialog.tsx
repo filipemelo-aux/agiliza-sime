@@ -820,6 +820,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           onCheckedChange={onToggleSelected}
           disabled={isClosed}
           aria-label="Selecionar lançamento"
+          className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
       <TableCell className="text-xs px-1 py-1.5 align-middle">{formatDateBR(item.posted_date)}</TableCell>
