@@ -247,7 +247,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       .filter((t) => !t.fitid || !alreadyImported.has(t.fitid))
       .map((t) => {
         const desc = t.description || "Lançamento";
-        const parcela = detectParcela(desc);
         return {
           fitid: t.fitid,
           posted_date: t.date,
@@ -258,7 +257,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           favorecido_id: null,
           favorecido_nome: desc,
           veiculo_id: null,
-          observacoes: parcela || "",
+          observacoes: "",
         };
       });
 
