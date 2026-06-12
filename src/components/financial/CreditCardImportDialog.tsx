@@ -303,6 +303,24 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setBatchPickerOpen(false);
   }, [selectedIdxs]);
 
+  const applyPlanoContasToSelected = useCallback((planoContasId: string) => {
+    if (selectedIdxs.size === 0 || !planoContasId) return;
+    setItems((prev) => prev.map((it, i) => (
+      selectedIdxs.has(i) ? { ...it, plano_contas_id: planoContasId } : it
+    )));
+    toast.success(`Plano de contas aplicado em ${selectedIdxs.size} lançamento(s).`);
+    setSelectedIdxs(new Set());
+  }, [selectedIdxs]);
+
+  const applyCentroCustoToSelected = useCallback((centroCusto: string) => {
+    if (selectedIdxs.size === 0 || !centroCusto) return;
+    setItems((prev) => prev.map((it, i) => (
+      selectedIdxs.has(i) ? { ...it, centro_custo: centroCusto } : it
+    )));
+    toast.success(`Centro de custo aplicado em ${selectedIdxs.size} lançamento(s).`);
+    setSelectedIdxs(new Set());
+  }, [selectedIdxs]);
+
   const hasRowChanged = useCallback((idx: number) => {
     const current = items[idx];
     const original = originalItems[idx];
