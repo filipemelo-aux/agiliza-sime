@@ -764,6 +764,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="" className="text-xs text-muted-foreground">—</SelectItem>
             {CENTRO_CUSTO_OPTIONS.map((c) => (
               <SelectItem key={c.value} value={c.value} className="text-xs">
                 {c.label}
