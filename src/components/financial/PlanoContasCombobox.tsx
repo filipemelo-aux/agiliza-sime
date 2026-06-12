@@ -163,21 +163,22 @@ export function PlanoContasCombobox({
                 </CommandGroup>
               )}
             </CommandList>
-            {allowCreate && !disabled && (
-              <div className="border-t">
-                <button
-                  type="button"
-                  onClick={() => { setOpen(false); setCreateOpen(true); }}
-                  className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  <Plus className="h-3 w-3" />
-                  {search ? `Criar "${search}"` : "Criar nova conta"}
-                </button>
-              </div>
-            )}
           </Command>
+          {allowCreate && !disabled && (
+            <div className="border-t bg-popover">
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setCreateOpen(true); }}
+                className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {search ? `Criar "${search}"` : "Criar nova conta contábil"}
+              </button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
+
 
       <CreatePlanoContaDialog
         open={createOpen}
