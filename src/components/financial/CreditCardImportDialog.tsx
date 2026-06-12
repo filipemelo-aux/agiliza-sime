@@ -319,14 +319,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const hasRowChanged = useCallback((idx: number) => {
     const current = items[idx];
+    if (!current) return false;
+    // Persistent classification: row stays green if já foi classificada (favorecido, plano de contas ou centro de custo)
+    const isClassified = !!(current.favorecido_id || current.plano_contas_id || (current.centro_custo && current.centro_custo.trim()));
+    if (isClassified) return true;
+    // Fallback: alterações na sessão atual (descrição/observações) ainda destacam
     const original = originalItems[idx];
-    if (!current || !original) return false;
+    if (!original) return false;
     return (
       current.description !== original.description ||
       current.favorecido_nome !== original.favorecido_nome ||
-      current.favorecido_id !== original.favorecido_id ||
-      current.plano_contas_id !== original.plano_contas_id ||
-      current.centro_custo !== original.centro_custo ||
       current.veiculo_id !== original.veiculo_id ||
       current.observacoes !== original.observacoes
     );
