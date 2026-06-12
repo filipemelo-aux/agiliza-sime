@@ -299,8 +299,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, favorecido_id: favorecidoId, favorecido_nome: favorecidoNome } : it
     )));
     toast.success(`Favorecido aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
-    setBatchPickerOpen(false);
   }, [selectedIdxs]);
 
   const applyPlanoContasToSelected = useCallback((planoContasId: string) => {
@@ -309,7 +307,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, plano_contas_id: planoContasId } : it
     )));
     toast.success(`Plano de contas aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
   }, [selectedIdxs]);
 
   const applyCentroCustoToSelected = useCallback((centroCusto: string) => {
@@ -318,7 +315,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, centro_custo: centroCusto } : it
     )));
     toast.success(`Centro de custo aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
   }, [selectedIdxs]);
 
   const hasRowChanged = useCallback((idx: number) => {
