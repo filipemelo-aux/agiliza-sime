@@ -807,7 +807,15 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   }, []);
 
   return (
-    <TableRow className={wasEdited ? "bg-success/10" : "bg-warning/10"}>
+    <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
+      <TableCell className="px-2 py-2 align-middle">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onToggleSelected}
+          disabled={isClosed}
+          aria-label="Selecionar lançamento"
+        />
+      </TableCell>
       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <div className="flex items-center gap-1">
