@@ -248,7 +248,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         description: desc,
         amount: Math.abs(t.amount),
         plano_contas_id: null,
-        centro_custo: "operacional",
+        centro_custo: "",
         favorecido_id: null,
         favorecido_nome: desc,
         veiculo_id: null,
