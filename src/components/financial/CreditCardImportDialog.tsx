@@ -677,7 +677,7 @@ interface InvoiceItemRowProps {
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
-  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate,
+  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
