@@ -288,13 +288,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const updateItem = (idx: number, patch: Partial<ItemRow>) => {
+  const updateItem = useCallback((idx: number, patch: Partial<ItemRow>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  };
+  }, []);
 
-  const removeItem = (idx: number) => {
+  const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
-  };
+  }, []);
 
   const persistInvoice = async (closeNow: boolean) => {
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
