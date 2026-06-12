@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -66,6 +66,26 @@ export function PlanoContasCombobox({
   const [search, setSearch] = useState("");
   const [extras, setExtras] = useState<PlanoContaOption[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const reloadFromDb = useCallback(async () => {
+    const tipos = [...new Set(options.map((o) => o.tipo).filter(Boolean))];
+    let query = supabase
+      .from("chart_of_accounts")
+      .select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional")
+      .eq("ativo", true)
+      .order("codigo");
+    if (tipos.length === 1) {
+      query = query.eq("tipo", tipos[0]);
+    }
+    const { data } = await query;
+    const fetched = (data as PlanoContaOption[]) || [];
+    const seen = new Set(options.map((o) => o.id));
+    setExtras((prev) => {
+      const prevIds = new Set(prev.map((p) => p.id));
+      const fresh = fetched.filter((f) => !seen.has(f.id) && !prevIds.has(f.id));
+      return [...prev, ...fresh];
+    });
+  }, [options]);
 
   const merged = useMemo(() => {
     const seen = new Set(options.map((o) => o.id));
@@ -193,6 +213,7 @@ export function PlanoContasCombobox({
           setExtras((prev) => [...prev, opt]);
           onChange(opt.id);
           onCreated?.(opt);
+          reloadFromDb();
         }}
       />
     </div>
