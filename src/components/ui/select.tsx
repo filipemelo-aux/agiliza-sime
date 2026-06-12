@@ -75,17 +75,16 @@ const SelectContent = React.forwardRef<
       collisionPadding={16}
       {...props}
     >
-      <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          "p-1",
+          "p-1 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-y-auto scrollbar-thin-custom",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            "w-full min-w-[var(--radix-select-trigger-width)]",
         )}
       >
         {children}
       </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
+
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
