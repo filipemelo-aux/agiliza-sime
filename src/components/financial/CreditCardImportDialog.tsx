@@ -756,7 +756,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
       </TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <Select
-          value={item.centro_custo}
+          value={item.centro_custo || undefined}
           onValueChange={(v) => onUpdate(idx, { centro_custo: v })}
           disabled={isClosed}
         >
@@ -764,7 +764,6 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             <SelectValue placeholder="Selecionar..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="" className="text-xs text-muted-foreground">—</SelectItem>
             {CENTRO_CUSTO_OPTIONS.map((c) => (
               <SelectItem key={c.value} value={c.value} className="text-xs">
                 {c.label}
