@@ -113,6 +113,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [ofxBank, setOfxBank] = useState("");
   const [ofxAccountId, setOfxAccountId] = useState("");
   const [items, setItems] = useState<ItemRow[]>([]);
+  const [originalItems, setOriginalItems] = useState<ItemRow[]>([]);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
 
@@ -166,7 +167,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // reset
       setCardName(""); setBankPersonId(null); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
-      setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
+      setItems([]); setOriginalItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
     }
     (async () => {
@@ -194,7 +195,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .select("*")
         .eq("invoice_id", invoiceId)
         .order("posted_date");
-      setItems(((rows as any[]) || []).map((r) => ({
+      const mapped = ((rows as any[]) || []).map((r) => ({
         fitid: r.fitid || "",
         posted_date: r.posted_date,
         description: r.description,
@@ -205,7 +206,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: r.favorecido_nome || r.description || "",
         veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
-      })));
+      }));
+      setItems(mapped);
+      setOriginalItems(mapped);
 
     })();
   }, [open, invoiceId]);
@@ -271,14 +274,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       });
 
     // Merge: avoid duplicates by fitid against current dialog items as well
-    let addedCount = 0;
-    setItems((prev) => {
-      const existing = new Set(prev.map((p) => p.fitid).filter(Boolean));
-      const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
-      addedCount = filtered.length;
-      const merged = [...prev, ...filtered];
-      return merged.sort((a, b) => a.posted_date.localeCompare(b.posted_date));
-    });
+    const existing = new Set(items.map((p) => p.fitid).filter(Boolean));
+    const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
+    const merged = [...items, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
+    setItems(merged);
+    setOriginalItems(merged);
 
     const skipped = debits.length - newRows.length;
     if (skipped > 0) {
@@ -292,8 +292,24 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  const hasRowChanged = useCallback((idx: number) => {
+    const current = items[idx];
+    const original = originalItems[idx];
+    if (!current || !original) return false;
+    return (
+      current.description !== original.description ||
+      current.favorecido_nome !== original.favorecido_nome ||
+      current.favorecido_id !== original.favorecido_id ||
+      current.plano_contas_id !== original.plano_contas_id ||
+      current.centro_custo !== original.centro_custo ||
+      current.veiculo_id !== original.veiculo_id ||
+      current.observacoes !== original.observacoes
+    );
+  }, [items, originalItems]);
+
   const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
+    setOriginalItems((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
   const persistInvoice = async (closeNow: boolean) => {
@@ -574,6 +590,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       searchOpen={searchPersonOpenIdx === idx}
                       onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
                       onOpenCreate={() => setCreatePersonOpenIdx(idx)}
+                      wasEdited={hasRowChanged(idx)}
                     />
                   ))}
                 </TableBody>
@@ -657,11 +674,12 @@ interface InvoiceItemRowProps {
   searchOpen: boolean;
   onSearchOpenChange: (o: boolean) => void;
   onOpenCreate: () => void;
+  wasEdited: boolean;
 }
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
-  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate,
+  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
@@ -673,7 +691,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   useEffect(() => { setDescriptionLocal(item.description); }, [item.description]);
 
   return (
-    <TableRow>
+    <TableRow className={wasEdited ? "bg-success/10" : "bg-warning/10"}>
       <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
       <TableCell className="px-2 py-2 align-middle">
         <div className="flex items-center gap-1">
