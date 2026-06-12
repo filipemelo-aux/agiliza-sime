@@ -620,10 +620,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               </div>
 
               <div className="border rounded-md">
-                <Table className="table-fixed w-full min-w-[1380px]">
+                <Table className="table-fixed w-full text-[11px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ width: 40 }} className="px-2">
+                      <TableHead style={{ width: 32 }} className="px-1">
                         <Checkbox
                           checked={items.length > 0 && selectedIdxs.size === items.length}
                           onCheckedChange={toggleSelectAll}
@@ -631,16 +631,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           aria-label="Selecionar todos"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 90 }}>Data</TableHead>
-                      <TableHead style={{ width: 240 }}>Favorecido</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                      <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
-                      <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
-                      <TableHead style={{ width: 130 }}>Veículo</TableHead>
-                      <TableHead style={{ width: 44 }}></TableHead>
+                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
+                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">Favorecido</TableHead>
+                      <TableHead className="px-1 text-[11px]">Descrição</TableHead>
+                      <TableHead style={{ width: 88 }} className="px-1 text-right text-[11px]">Valor</TableHead>
+                      <TableHead style={{ width: 200 }} className="px-1 text-[11px]">Plano de Contas *</TableHead>
+                      <TableHead style={{ width: 110 }} className="px-1 text-[11px]">C. Custo</TableHead>
+                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">Veículo</TableHead>
+                      <TableHead style={{ width: 32 }} className="px-1"></TableHead>
                     </TableRow>
                   </TableHeader>
+
 
                   <TableBody>
                     {items.map((it, idx) => (
