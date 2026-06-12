@@ -122,9 +122,11 @@ export function PlanoContasCombobox({
         <PopoverContent
           className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]"
           align="start"
-          side="bottom"
           sideOffset={4}
+          collisionPadding={12}
+          avoidCollisions
         >
+
           <Command shouldFilter={false}>
             <div className="relative">
               <CommandInput
