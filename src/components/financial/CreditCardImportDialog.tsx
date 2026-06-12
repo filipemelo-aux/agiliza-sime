@@ -202,7 +202,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         plano_contas_id: r.plano_contas_id,
         centro_custo: r.centro_custo || "operacional",
         favorecido_id: r.favorecido_id,
-        favorecido_nome: r.favorecido_nome || "",
+        favorecido_nome: r.favorecido_nome || r.description || "",
         veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
       })));
