@@ -620,10 +620,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               </div>
 
               <div className="border rounded-md">
-                <Table className="table-fixed w-full min-w-[1380px]">
+                <Table className="table-fixed w-full text-[11px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ width: 40 }} className="px-2">
+                      <TableHead style={{ width: 32 }} className="px-1">
                         <Checkbox
                           checked={items.length > 0 && selectedIdxs.size === items.length}
                           onCheckedChange={toggleSelectAll}
@@ -631,16 +631,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           aria-label="Selecionar todos"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 90 }}>Data</TableHead>
-                      <TableHead style={{ width: 240 }}>Favorecido</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead style={{ width: 110 }} className="text-right">Valor</TableHead>
-                      <TableHead style={{ width: 260 }}>Plano de Contas *</TableHead>
-                      <TableHead style={{ width: 140 }}>Centro de Custo</TableHead>
-                      <TableHead style={{ width: 130 }}>Veículo</TableHead>
-                      <TableHead style={{ width: 44 }}></TableHead>
+                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
+                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">Favorecido</TableHead>
+                      <TableHead className="px-1 text-[11px]">Descrição</TableHead>
+                      <TableHead style={{ width: 88 }} className="px-1 text-right text-[11px]">Valor</TableHead>
+                      <TableHead style={{ width: 200 }} className="px-1 text-[11px]">Plano de Contas *</TableHead>
+                      <TableHead style={{ width: 110 }} className="px-1 text-[11px]">C. Custo</TableHead>
+                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">Veículo</TableHead>
+                      <TableHead style={{ width: 32 }} className="px-1"></TableHead>
                     </TableRow>
                   </TableHeader>
+
 
                   <TableBody>
                     {items.map((it, idx) => (
@@ -812,7 +813,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
 
   return (
     <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Checkbox
           checked={selected}
           onCheckedChange={onToggleSelected}
@@ -820,12 +821,12 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           aria-label="Selecionar lançamento"
         />
       </TableCell>
-      <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="text-xs px-1 py-1.5 align-middle">{formatDateBR(item.posted_date)}</TableCell>
+      <TableCell className="px-1 py-1.5 align-middle">
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-8 text-xs w-full"
+              className="h-7 text-[11px] w-full"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
@@ -872,7 +873,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-7 w-7 shrink-0"
                 disabled={isClosed}
                 title="Vincular cadastro existente"
               >
@@ -894,7 +895,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             type="button"
             variant="outline"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-7 w-7 shrink-0"
             disabled={isClosed}
             onClick={onOpenCreate}
             title="Cadastrar novo favorecido"
@@ -903,9 +904,9 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Input
-          className="h-8 text-xs w-full"
+          className="h-7 text-[11px] w-full"
           value={descriptionLocal}
           onChange={(e) => setDescriptionLocal(e.target.value)}
           onBlur={() => {
@@ -918,10 +919,10 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           placeholder="Descrição do gasto"
         />
       </TableCell>
-      <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
+      <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap">
         {formatCurrency(item.amount)}
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <PlanoContasCombobox
           value={item.plano_contas_id}
           onChange={(v) => onUpdate(idx, { plano_contas_id: v })}
@@ -929,13 +930,13 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           disabled={isClosed}
         />
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Select
           value={item.centro_custo || undefined}
           onValueChange={(v) => onUpdate(idx, { centro_custo: v })}
           disabled={isClosed}
         >
-          <SelectTrigger className="h-8 text-xs">
+          <SelectTrigger className="h-7 text-[11px] px-2 min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
             <SelectValue placeholder="Selecionar..." />
           </SelectTrigger>
           <SelectContent>
@@ -947,13 +948,13 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Select
           value={item.veiculo_id ?? "__none__"}
           onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
           disabled={isClosed}
         >
-          <SelectTrigger className="h-8 text-xs min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
+          <SelectTrigger className="h-7 text-[11px] px-2 min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
@@ -966,7 +967,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-1 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Button
           type="button"
           variant="ghost"
