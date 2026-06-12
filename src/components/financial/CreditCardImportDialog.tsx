@@ -492,15 +492,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] xl:max-w-[1400px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Fatura de Cartão" : "Nova Fatura de Cartão"}</DialogTitle>
+      <DialogContent className="max-w-[95vw] xl:max-w-[1400px] max-h-[92vh] overflow-y-auto p-4" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-base">{isEditing ? "Editar Fatura de Cartão" : "Nova Fatura de Cartão"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 uppercase [&_input]:uppercase [&_textarea]:uppercase [&_input]:placeholder:normal-case [&_textarea]:placeholder:normal-case">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+        <div className="space-y-2 uppercase [&_input]:uppercase [&_textarea]:uppercase [&_input]:placeholder:normal-case [&_textarea]:placeholder:normal-case">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-start">
             <div className="space-y-1 flex flex-col">
-              <Label className="text-xs">Cartão (Banco) *</Label>
+              <Label className="text-[11px]">Cartão (Banco) *</Label>
               <PersonSearchInput
                 categories={["banco"]}
                 placeholder="Buscar banco cadastrado..."
@@ -514,28 +514,28 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               />
             </div>
             <div className="space-y-1 flex flex-col">
-              <Label className="text-xs">Referência</Label>
+              <Label className="text-[11px]">Referência</Label>
               <MonthPicker
                 value={referenceYM}
                 onChange={(v) => setReferenceYM(v)}
-                className="w-full !h-10 text-xs px-3"
+                className="w-full !h-8 text-xs px-2"
               />
             </div>
             <div className="space-y-1 flex flex-col">
-              <Label className="text-xs">Fechamento</Label>
+              <Label className="text-[11px]">Fechamento</Label>
               <Input
                 type="date"
-                className="h-10 text-xs"
+                className="h-8 text-xs"
                 value={closingDate}
                 onChange={(e) => setClosingDate(e.target.value)}
                 disabled={isClosed}
               />
             </div>
             <div className="space-y-1 flex flex-col">
-              <Label className="text-xs">Vencimento *</Label>
+              <Label className="text-[11px]">Vencimento *</Label>
               <Input
                 type="date"
-                className="h-10 text-xs"
+                className="h-8 text-xs"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 disabled={isClosed}
@@ -543,7 +543,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <input
               type="file"
               accept=".ofx,.qfx,.OFX,.QFX"
@@ -555,22 +555,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               type="button"
               variant="outline"
               size="sm"
-              className="h-9"
+              className="h-8 text-xs"
               onClick={() => fileRef.current?.click()}
               disabled={isClosed}
             >
-              <Upload className="w-4 h-4 mr-2" /> Importar OFX
+              <Upload className="w-3 h-3 mr-1" /> Importar OFX
             </Button>
             {ofxFileName && (
-              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                <FileText className="w-3 h-3" /> {ofxFileName}
-                {ofxBank ? ` • ${ofxBank}` : ""}
+              <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 truncate max-w-[40%]">
+                <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
               </span>
             )}
-            <div className="ml-auto text-xs text-muted-foreground">
-              Total da fatura: <span className="text-base font-semibold text-foreground">{formatCurrency(total)}</span>
+            <div className="ml-auto text-[11px] text-muted-foreground">
+              Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
             </div>
           </div>
+
 
           {items.length > 0 ? (
             <div className="space-y-2">
