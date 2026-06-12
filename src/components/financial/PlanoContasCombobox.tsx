@@ -1,9 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, FolderTree } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Check, ChevronsUpDown, FolderTree, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface PlanoContaOption {
   id: string;
@@ -28,6 +35,12 @@ interface PlanoContasComboboxProps {
   allValue?: string;
   /** Limita opções exibidas (default: 200) */
   maxResults?: number;
+  /** Habilita botão "+" para criar conta diretamente */
+  allowCreate?: boolean;
+  /** Tipo padrão ao criar nova conta */
+  defaultTipo?: "receita" | "despesa";
+  /** Callback após criação - útil para parent atualizar lista */
+  onCreated?: (option: PlanoContaOption) => void;
 }
 
 const normalize = (s: string) =>
@@ -45,13 +58,23 @@ export function PlanoContasCombobox({
   allLabel = "Todas as contas",
   allValue = "all",
   maxResults = 200,
+  allowCreate = true,
+  defaultTipo = "despesa",
+  onCreated,
 }: PlanoContasComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [extras, setExtras] = useState<PlanoContaOption[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const merged = useMemo(() => {
+    const seen = new Set(options.map((o) => o.id));
+    return [...options, ...extras.filter((e) => !seen.has(e.id))];
+  }, [options, extras]);
 
   const sorted = useMemo(
-    () => [...options].sort((a, b) => a.codigo.localeCompare(b.codigo)),
-    [options]
+    () => [...merged].sort((a, b) => a.codigo.localeCompare(b.codigo)),
+    [merged]
   );
 
   const filtered = useMemo(() => {
@@ -63,84 +86,291 @@ export function PlanoContasCombobox({
   }, [sorted, search, maxResults]);
 
   const selected =
-    value && value !== allValue ? options.find((o) => o.id === value) : null;
+    value && value !== allValue ? merged.find((o) => o.id === value) : null;
 
   const heightCls = size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
   const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
-      <PopoverTrigger asChild>
+    <div className={cn("flex items-center gap-1", className)}>
+      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn("flex-1 justify-between font-normal", heightCls)}
+          >
+            {selected ? (
+              <span className="truncate text-left">
+                <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
+                {selected.nome}
+              </span>
+            ) : includeAll && (value === allValue || !value) ? (
+              <span className="flex items-center gap-1 text-left">
+                <FolderTree className="h-3 w-3 text-muted-foreground" />
+                {allLabel}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{placeholder}</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]"
+          align="start"
+          side="bottom"
+          sideOffset={4}
+        >
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Digite código ou nome..."
+              className="h-9"
+              value={search}
+              onValueChange={setSearch}
+            />
+            <CommandList className="max-h-[320px]">
+              {filtered.length === 0 ? (
+                <CommandEmpty>
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <span>Nenhuma conta encontrada.</span>
+                    {allowCreate && !disabled && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => { setOpen(false); setCreateOpen(true); }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Criar "{search || "nova conta"}"
+                      </Button>
+                    )}
+                  </div>
+                </CommandEmpty>
+              ) : (
+                <CommandGroup>
+                  {includeAll && (
+                    <CommandItem
+                      value={allValue}
+                      onSelect={() => { onChange(allValue); setOpen(false); setSearch(""); }}
+                      className={itemTextCls}
+                    >
+                      <Check className={cn("mr-2 h-3 w-3", value === allValue || !value ? "opacity-100" : "opacity-0")} />
+                      <FolderTree className="h-3 w-3 mr-2 text-muted-foreground" />
+                      {allLabel}
+                    </CommandItem>
+                  )}
+                  {filtered.map((o) => (
+                    <CommandItem
+                      key={o.id}
+                      value={o.id}
+                      onSelect={() => { onChange(o.id); setOpen(false); setSearch(""); }}
+                      className={itemTextCls}
+                    >
+                      <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
+                      <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
+                      <span className="truncate">{o.nome}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {allowCreate && (
         <Button
           type="button"
           variant="outline"
-          role="combobox"
-          aria-expanded={open}
+          size="icon"
           disabled={disabled}
-          className={cn("w-full justify-between font-normal", heightCls, className)}
+          className={cn("shrink-0", size === "sm" ? "h-8 w-8" : "h-9 w-9")}
+          title="Criar nova conta contábil"
+          onClick={() => setCreateOpen(true)}
         >
-          {selected ? (
-            <span className="truncate text-left">
-              <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
-              {selected.nome}
-            </span>
-          ) : includeAll && (value === allValue || !value) ? (
-            <span className="flex items-center gap-1 text-left">
-              <FolderTree className="h-3 w-3 text-muted-foreground" />
-              {allLabel}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
-          )}
-          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+          <Plus className="h-4 w-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]"
-        align="start"
-        side="bottom"
-        sideOffset={4}
-      >
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Digite código ou nome..."
-            className="h-9"
-            value={search}
-            onValueChange={setSearch}
-          />
-          <CommandList className="max-h-[320px]">
-            {filtered.length === 0 ? (
-              <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-            ) : (
-              <CommandGroup>
-                {includeAll && (
-                  <CommandItem
-                    value={allValue}
-                    onSelect={() => { onChange(allValue); setOpen(false); setSearch(""); }}
-                    className={itemTextCls}
-                  >
-                    <Check className={cn("mr-2 h-3 w-3", value === allValue || !value ? "opacity-100" : "opacity-0")} />
-                    <FolderTree className="h-3 w-3 mr-2 text-muted-foreground" />
-                    {allLabel}
-                  </CommandItem>
-                )}
-                {filtered.map((o) => (
-                  <CommandItem
-                    key={o.id}
-                    value={o.id}
-                    onSelect={() => { onChange(o.id); setOpen(false); setSearch(""); }}
-                    className={itemTextCls}
-                  >
-                    <Check className={cn("mr-2 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
-                    <span className="font-mono text-[10px] mr-2 text-muted-foreground">{o.codigo}</span>
-                    <span className="truncate">{o.nome}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      )}
+
+      <CreatePlanoContaDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultTipo={defaultTipo}
+        defaultNome={search}
+        existingOptions={merged}
+        onCreated={(opt) => {
+          setExtras((prev) => [...prev, opt]);
+          onChange(opt.id);
+          onCreated?.(opt);
+        }}
+      />
+    </div>
+  );
+}
+
+function CreatePlanoContaDialog({
+  open,
+  onOpenChange,
+  defaultTipo,
+  defaultNome,
+  existingOptions,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  defaultTipo: "receita" | "despesa";
+  defaultNome: string;
+  existingOptions: PlanoContaOption[];
+  onCreated: (opt: PlanoContaOption) => void;
+}) {
+  const [codigo, setCodigo] = useState("");
+  const [nome, setNome] = useState("");
+  const [tipo, setTipo] = useState<"receita" | "despesa">(defaultTipo);
+  const [contaPaiId, setContaPaiId] = useState<string>("none");
+  const [ativo, setAtivo] = useState(true);
+  const [empresaId, setEmpresaId] = useState<string>("");
+  const [establishments, setEstablishments] = useState<{ id: string; razao_social: string; type?: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setNome(defaultNome || "");
+    setCodigo("");
+    setTipo(defaultTipo);
+    setContaPaiId("none");
+    setAtivo(true);
+
+    (async () => {
+      const { data } = await supabase
+        .from("fiscal_establishments")
+        .select("id, razao_social, type")
+        .eq("active", true)
+        .order("razao_social");
+      const list = data || [];
+      setEstablishments(list);
+      const matriz = list.find((e: any) => e.type === "matriz") || list[0];
+      if (matriz) setEmpresaId(matriz.id);
+    })();
+  }, [open, defaultNome, defaultTipo]);
+
+  const parentOptions = useMemo(
+    () => existingOptions.filter((o) => !o.tipo || o.tipo === tipo),
+    [existingOptions, tipo]
+  );
+
+  const handleSave = async () => {
+    if (!codigo.trim()) return toast.error("Informe o código da conta");
+    if (!nome.trim()) return toast.error("Informe o nome da conta");
+    if (!empresaId) return toast.error("Empresa não disponível");
+
+    const parent = contaPaiId !== "none" ? existingOptions.find((o) => o.id === contaPaiId) : null;
+    // best-effort nivel; parent may not have nivel in option shape — query if needed
+    let nivel = 1;
+    if (parent) {
+      const { data: p } = await supabase
+        .from("chart_of_accounts")
+        .select("nivel")
+        .eq("id", parent.id)
+        .maybeSingle();
+      nivel = ((p as any)?.nivel || 1) + 1;
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("chart_of_accounts")
+      .insert({
+        codigo: codigo.trim(),
+        nome: nome.trim(),
+        tipo,
+        conta_pai_id: parent?.id || null,
+        nivel,
+        ativo,
+        empresa_id: empresaId,
+        tipo_operacional: null,
+      } as any)
+      .select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional")
+      .single();
+    setSaving(false);
+
+    if (error) {
+      if (error.message.includes("unique")) return toast.error("Código já existe para esta empresa");
+      return toast.error(error.message);
+    }
+    toast.success("Conta criada");
+    onCreated(data as any);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nova Conta Contábil</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <Label className="text-xs">Código</Label>
+              <Input className="h-9" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="1.1.01" />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Nome</Label>
+              <Input className="h-9" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Combustível" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Tipo</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as any)}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="receita">Receita</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Conta Pai</Label>
+              <Select value={contaPaiId} onValueChange={setContaPaiId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma (raiz)</SelectItem>
+                  {parentOptions.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="font-mono text-xs mr-2">{a.codigo}</span>{a.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {establishments.length > 1 && (
+            <div>
+              <Label className="text-xs">Empresa</Label>
+              <Select value={empresaId} onValueChange={setEmpresaId}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {establishments.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Switch checked={ativo} onCheckedChange={setAtivo} />
+            <Label className="text-xs">Conta ativa</Label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
