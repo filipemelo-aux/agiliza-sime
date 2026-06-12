@@ -299,8 +299,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, favorecido_id: favorecidoId, favorecido_nome: favorecidoNome } : it
     )));
     toast.success(`Favorecido aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
-    setBatchPickerOpen(false);
   }, [selectedIdxs]);
 
   const applyPlanoContasToSelected = useCallback((planoContasId: string) => {
@@ -309,7 +307,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, plano_contas_id: planoContasId } : it
     )));
     toast.success(`Plano de contas aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
   }, [selectedIdxs]);
 
   const applyCentroCustoToSelected = useCallback((centroCusto: string) => {
@@ -318,7 +315,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       selectedIdxs.has(i) ? { ...it, centro_custo: centroCusto } : it
     )));
     toast.success(`Centro de custo aplicado em ${selectedIdxs.size} lançamento(s).`);
-    setSelectedIdxs(new Set());
   }, [selectedIdxs]);
 
   const hasRowChanged = useCallback((idx: number) => {
@@ -595,36 +591,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               {/* Batch toolbar */}
               <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
                   {selectedIdxs.size > 0
                     ? `${selectedIdxs.size} selecionado(s)`
                     : "Marque lançamentos para editar em lote"}
                 </span>
-                <Popover open={batchPickerOpen} onOpenChange={setBatchPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs ml-auto"
-                      disabled={isClosed || selectedIdxs.size === 0}
-                      title="Aplicar favorecido aos selecionados"
-                    >
-                      <Search className="w-3 h-3 mr-1" /> Favorecido
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-2" align="end">
-                    <PersonSearchInput
-                      categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
-                      placeholder="Buscar favorecido..."
-                      onSelect={(p) => {
-                        const nome = (p as any).razao_social || p.full_name || (p as any).nome_fantasia || "";
-                        applyFavorecidoToSelected(p.id, nome);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div className="w-[220px]">
+                <div className={cn("flex-1 min-w-[200px]", (isClosed || selectedIdxs.size === 0) && "pointer-events-none opacity-50")}>
+                  <PersonSearchInput
+                    categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
+                    placeholder="Favorecido em lote..."
+                    onSelect={(p) => {
+                      const nome = (p as any).razao_social || p.full_name || (p as any).nome_fantasia || "";
+                      applyFavorecidoToSelected(p.id, nome);
+                    }}
+                  />
+                </div>
+                <div className="w-[200px]">
                   <SharedPlanoContasCombobox
                     value={null}
                     onChange={(v) => applyPlanoContasToSelected(v)}
