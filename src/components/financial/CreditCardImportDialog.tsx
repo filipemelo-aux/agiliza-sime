@@ -669,9 +669,53 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   const [favorecidoLocal, setFavorecidoLocal] = useState(item.favorecido_nome);
   const [descriptionLocal, setDescriptionLocal] = useState(item.description);
 
+  // Auto-search state for favorecido
+  const [autoResults, setAutoResults] = useState<Array<{ id: string; full_name: string; category: string }>>([]);
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const autoDebounce = useRef<ReturnType<typeof setTimeout>>();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   // Sync if parent updates (e.g. pick from search, create new)
   useEffect(() => { setFavorecidoLocal(item.favorecido_nome); }, [item.favorecido_nome]);
   useEffect(() => { setDescriptionLocal(item.description); }, [item.description]);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setAutoOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const runAutoSearch = useCallback((q: string) => {
+    if (autoDebounce.current) clearTimeout(autoDebounce.current);
+    if (q.trim().length < 2) {
+      setAutoResults([]);
+      setAutoOpen(false);
+      return;
+    }
+    autoDebounce.current = setTimeout(async () => {
+      setAutoLoading(true);
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name, category, razao_social, nome_fantasia, cnpj, is_owner")
+          .or(`category.in.(cliente,proprietario,fornecedor,colaborador),is_owner.eq.true`)
+          .or(`full_name.ilike.%${q}%,razao_social.ilike.%${q}%,nome_fantasia.ilike.%${q}%,cnpj.ilike.%${q}%`)
+          .order("full_name")
+          .limit(8);
+        setAutoResults((data as any) || []);
+        setAutoOpen(true);
+      } catch {
+        setAutoResults([]);
+      } finally {
+        setAutoLoading(false);
+      }
+    }, 300);
+  }, []);
 
   return (
     <TableRow className={wasEdited ? "bg-success/10" : "bg-warning/10"}>
