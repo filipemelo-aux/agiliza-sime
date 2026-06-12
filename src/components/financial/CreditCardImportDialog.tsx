@@ -167,7 +167,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // reset
       setCardName(""); setBankPersonId(null); setReferenceYM(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`); setDueDate(getLocalDateISO()); setClosingDate("");
       setObservacoes(""); setOfxFileName(""); setOfxBank(""); setOfxAccountId("");
-      setItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
+      setItems([]); setOriginalItems([]); setExistingExpenseId(null); setExistingStatus("aberta");
       return;
     }
     (async () => {
