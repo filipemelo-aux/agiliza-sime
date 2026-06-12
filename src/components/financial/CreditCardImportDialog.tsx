@@ -11,15 +11,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
+import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
+
+/**
+ * Tries to detect an installment pattern like "05/10", "PARC 5/10", "PARCELA 1/3" in the OFX memo.
+ * Returns "Parcela NN/MM" or null. Avoids dates (4-digit year) and is conservative.
+ */
+function detectParcela(memo: string): string | null {
+  if (!memo) return null;
+  // Look for N/M where both numbers are 1-2 digits and not followed by another /digits (date guard)
+  const re = /(?<![\d\/])(\d{1,2})\s*\/\s*(\d{1,2})(?!\s*\/?\s*\d)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(memo)) !== null) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    if (!a || !b) continue;
+    if (b < 2 || b > 36) continue;
+    if (a < 1 || a > b) continue;
+    return `Parcela ${String(a).padStart(2, "0")}/${String(b).padStart(2, "0")}`;
+  }
+  return null;
+}
 
 const MONTHS_PT_LONG = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
