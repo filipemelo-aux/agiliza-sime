@@ -610,7 +610,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       disabled={isClosed || selectedIdxs.size === 0}
                       title="Aplicar favorecido aos selecionados"
                     >
-                      <Search className="w-3 h-3 mr-1" /> Aplicar Favorecido em Lote
+                      <Search className="w-3 h-3 mr-1" /> Favorecido
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-2" align="end">
@@ -624,6 +624,29 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     />
                   </PopoverContent>
                 </Popover>
+                <div className="w-[220px]">
+                  <SharedPlanoContasCombobox
+                    value={null}
+                    onChange={(v) => applyPlanoContasToSelected(v)}
+                    options={chartAccounts as any}
+                    disabled={isClosed || selectedIdxs.size === 0}
+                    size="sm"
+                    placeholder="Plano de Contas..."
+                  />
+                </div>
+                <Select
+                  disabled={isClosed || selectedIdxs.size === 0}
+                  onValueChange={(v) => applyCentroCustoToSelected(v)}
+                >
+                  <SelectTrigger className="h-8 w-[150px] text-xs px-2">
+                    <SelectValue placeholder="C. Custo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CENTRO_CUSTO_OPTIONS.map((c) => (
+                      <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {selectedIdxs.size > 0 && (
                   <Button
                     type="button"
