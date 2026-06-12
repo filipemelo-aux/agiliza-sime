@@ -629,6 +629,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           onCheckedChange={toggleSelectAll}
                           disabled={isClosed}
                           aria-label="Selecionar todos"
+                          className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
                       <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
@@ -819,6 +820,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           onCheckedChange={onToggleSelected}
           disabled={isClosed}
           aria-label="Selecionar lançamento"
+          className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
       <TableCell className="text-xs px-1 py-1.5 align-middle">{formatDateBR(item.posted_date)}</TableCell>
