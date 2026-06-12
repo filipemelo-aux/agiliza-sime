@@ -92,7 +92,7 @@ export function PlanoContasCombobox({
   const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("w-full", className)}>
       <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
         <PopoverTrigger asChild>
           <Button
@@ -101,7 +101,7 @@ export function PlanoContasCombobox({
             role="combobox"
             aria-expanded={open}
             disabled={disabled}
-            className={cn("flex-1 justify-between font-normal", heightCls)}
+            className={cn("w-full justify-between font-normal", heightCls)}
           >
             {selected ? (
               <span className="truncate text-left">
@@ -134,22 +134,7 @@ export function PlanoContasCombobox({
             />
             <CommandList className="max-h-[320px]">
               {filtered.length === 0 ? (
-                <CommandEmpty>
-                  <div className="flex flex-col items-center gap-2 py-2">
-                    <span>Nenhuma conta encontrada.</span>
-                    {allowCreate && !disabled && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => { setOpen(false); setCreateOpen(true); }}
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Criar "{search || "nova conta"}"
-                      </Button>
-                    )}
-                  </div>
-                </CommandEmpty>
+                <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
               ) : (
                 <CommandGroup>
                   {includeAll && (
@@ -178,23 +163,21 @@ export function PlanoContasCombobox({
                 </CommandGroup>
               )}
             </CommandList>
+            {allowCreate && !disabled && (
+              <div className="border-t">
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setCreateOpen(true); }}
+                  className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                  {search ? `Criar "${search}"` : "Criar nova conta"}
+                </button>
+              </div>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
-
-      {allowCreate && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          disabled={disabled}
-          className={cn("shrink-0", size === "sm" ? "h-8 w-8" : "h-9 w-9")}
-          title="Criar nova conta contábil"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      )}
 
       <CreatePlanoContaDialog
         open={createOpen}
@@ -211,6 +194,7 @@ export function PlanoContasCombobox({
     </div>
   );
 }
+
 
 function CreatePlanoContaDialog({
   open,
