@@ -813,7 +813,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
 
   return (
     <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Checkbox
           checked={selected}
           onCheckedChange={onToggleSelected}
@@ -821,8 +821,8 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           aria-label="Selecionar lançamento"
         />
       </TableCell>
-      <TableCell className="text-xs px-2 py-2 align-middle">{formatDateBR(item.posted_date)}</TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="text-xs px-1 py-1.5 align-middle">{formatDateBR(item.posted_date)}</TableCell>
+      <TableCell className="px-1 py-1.5 align-middle">
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
@@ -904,7 +904,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Input
           className="h-8 text-xs w-full"
           value={descriptionLocal}
@@ -919,10 +919,10 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           placeholder="Descrição do gasto"
         />
       </TableCell>
-      <TableCell className="text-right text-xs font-medium px-2 py-2 align-middle whitespace-nowrap">
+      <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap">
         {formatCurrency(item.amount)}
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <PlanoContasCombobox
           value={item.plano_contas_id}
           onChange={(v) => onUpdate(idx, { plano_contas_id: v })}
@@ -930,7 +930,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           disabled={isClosed}
         />
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Select
           value={item.centro_custo || undefined}
           onValueChange={(v) => onUpdate(idx, { centro_custo: v })}
@@ -948,7 +948,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-2 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Select
           value={item.veiculo_id ?? "__none__"}
           onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
@@ -967,7 +967,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="px-1 py-2 align-middle">
+      <TableCell className="px-1 py-1.5 align-middle">
         <Button
           type="button"
           variant="ghost"
