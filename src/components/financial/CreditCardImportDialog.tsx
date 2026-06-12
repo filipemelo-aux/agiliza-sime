@@ -629,6 +629,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           onCheckedChange={toggleSelectAll}
                           disabled={isClosed}
                           aria-label="Selecionar todos"
+                          className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 people-none"
                         />
                       </TableHead>
                       <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
