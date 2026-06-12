@@ -745,6 +745,28 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
         </div>
       </DialogContent>
+
+      <PersonCreateDialog
+        open={createPersonOpenIdx !== null}
+        onOpenChange={(o) => { if (!o) setCreatePersonOpenIdx(null); }}
+        defaultCategory="fornecedor"
+        onCreated={async (createdUserId) => {
+          const idx = createPersonOpenIdx;
+          setCreatePersonOpenIdx(null);
+          if (idx === null || !createdUserId) return;
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name, razao_social, nome_fantasia")
+            .eq("user_id", createdUserId)
+            .maybeSingle();
+          if (data) {
+            const nome = (data as any).razao_social || (data as any).full_name || (data as any).nome_fantasia || "";
+            updateItem(idx, { favorecido_id: (data as any).id, favorecido_nome: nome });
+            toast.success("Favorecido cadastrado e vinculado.");
+          }
+        }}
+      />
     </Dialog>
   );
 }
+
