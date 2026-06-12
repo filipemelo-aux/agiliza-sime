@@ -309,6 +309,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const removeItem = useCallback((idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
+    setOriginalItems((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
   const persistInvoice = async (closeNow: boolean) => {
