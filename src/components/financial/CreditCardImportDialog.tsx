@@ -672,9 +672,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           )}
 
           <div className="space-y-1">
-            <Label className="text-xs">Observações</Label>
+            <Label className="text-[11px]">Observações</Label>
             <Textarea
-              className="text-xs min-h-[60px]"
+              className="text-xs min-h-[40px]"
+              rows={2}
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               disabled={isClosed}
@@ -682,29 +683,32 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-10">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="h-9 text-xs">
               {isClosed ? "Fechar" : "Cancelar"}
             </Button>
             {!isClosed && (
               <>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => persistInvoice(false)}
                   disabled={saving || closing}
-                  className="h-10"
+                  className="h-9 text-xs"
                 >
                   {saving ? "Salvando..." : "Salvar rascunho"}
                 </Button>
                 <Button
+                  size="sm"
                   onClick={() => persistInvoice(true)}
                   disabled={saving || closing || items.length === 0}
-                  className="h-10"
+                  className="h-9 text-xs"
                 >
                   {closing ? "Fechando..." : "Fechar fatura e enviar ao Contas a Pagar"}
                 </Button>
               </>
             )}
           </div>
+
         </div>
       </DialogContent>
 
