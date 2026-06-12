@@ -619,7 +619,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 )}
               </div>
 
-              <div className="border rounded-md overflow-x-auto">
+              <div className="border rounded-md">
                 <Table className="table-fixed w-full min-w-[1380px]">
                   <TableHeader>
                     <TableRow>
