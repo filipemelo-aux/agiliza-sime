@@ -954,7 +954,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           onValueChange={(v) => onUpdate(idx, { veiculo_id: v === "__none__" ? null : v })}
           disabled={isClosed}
         >
-          <SelectTrigger className="h-8 text-xs min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
+          <SelectTrigger className="h-7 text-[11px] px-2 min-w-0 w-full [&>span]:truncate [&>span]:block [&>span]:min-w-0">
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
