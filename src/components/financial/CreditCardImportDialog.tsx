@@ -262,19 +262,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
     const newRows: ItemRow[] = debits
       .filter((t) => !t.fitid || !alreadyImported.has(t.fitid))
-      .map((t) => ({
-        fitid: t.fitid,
-        posted_date: t.date,
-        description: t.description || "Lançamento",
-        amount: Math.abs(t.amount),
-        plano_contas_id: null,
-        centro_custo: "operacional",
-        favorecido_id: null,
-        favorecido_nome: "",
-        veiculo_id: null,
-        observacoes: "",
-
-      }));
+      .map((t) => {
+        const desc = t.description || "Lançamento";
+        const parcela = detectParcela(desc);
+        return {
+          fitid: t.fitid,
+          posted_date: t.date,
+          description: desc,
+          amount: Math.abs(t.amount),
+          plano_contas_id: null,
+          centro_custo: "operacional",
+          favorecido_id: null,
+          favorecido_nome: desc,
+          veiculo_id: null,
+          observacoes: parcela || "",
+        };
+      });
 
     // Merge: avoid duplicates by fitid against current dialog items as well
     let addedCount = 0;
