@@ -13,6 +13,8 @@ import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { useSortableTable } from "@/hooks/useSortableTable";
 
 interface ContaReceber {
   id: string;
