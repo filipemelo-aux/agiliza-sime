@@ -1109,6 +1109,20 @@ ${hasRecebimentos ? `
     }
   };
 
+  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao" | "cliente_nome" | "valor_total" | "num_parcelas" | "status" | "origem">(
+    faturas,
+    { key: "numero", direction: "desc" },
+    {
+      numero: (r) => r.numero,
+      data_emissao: (r) => r.data_emissao,
+      cliente_nome: (r) => r.cliente_nome || "",
+      valor_total: (r) => Number(r.valor_total),
+      num_parcelas: (r) => r.num_parcelas,
+      status: (r) => (r.has_partial ? "parcial" : r.status),
+      origem: (r) => r.origem_sort || "zzz",
+    },
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
