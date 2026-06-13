@@ -780,9 +780,10 @@ export function RevenueForecasts() {
                             <TableCell className="pl-8">
                               <div className="flex items-center gap-1.5">
                                 <Icon className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemLabel(p)}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemTipoLabel(p)}</span>
                               </div>
                             </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground tabular-nums">{getDocumentoLabel(p)}</TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">
                               {p.metadata?.placa || "—"}
                               {p.metadata?.motorista ? ` · ${p.metadata.motorista}` : ""}
