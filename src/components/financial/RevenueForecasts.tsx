@@ -620,6 +620,9 @@ export function RevenueForecasts() {
                     <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-xs">
                       Origem
                     </SortableTh>
+                    <SortableTh active={sort.key === "documento"} direction={sort.direction} onSort={() => toggle("documento")} className="text-xs">
+                      Documento
+                    </SortableTh>
                     <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-xs">
                       Cliente
                     </SortableTh>
