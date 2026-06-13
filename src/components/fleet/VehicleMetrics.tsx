@@ -220,8 +220,15 @@ export default function VehicleMetrics() {
       descricao: x.description, fornecedor: x.plano_nome || "—",
       placa: plateOf(x.veiculo_id), valor: Number(x.amount || 0),
     }));
-    return [...a, ...b, ...c];
-  }, [fuelings, maints, cardItems, plateById]);
+    const all = [...a, ...b, ...c];
+    const q = busca.trim().toLowerCase();
+    return all.filter(r => {
+      if (!tiposDespesa.has(r.tipo)) return false;
+      if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [fuelings, maints, cardItems, plateById, busca, tiposDespesa]);
+  const despesasTotal = useMemo(() => despesas.reduce((s, r) => s + r.valor, 0), [despesas]);
 
   // Sortable tables
   const despSort = useSortableTable<DespesaRow, "data" | "tipo" | "descricao" | "fornecedor" | "placa" | "valor">(
