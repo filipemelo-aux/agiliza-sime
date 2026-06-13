@@ -643,7 +643,7 @@ export function RevenueForecasts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...pendentesGroups, ...faturadasGroups].map((g) => {
+                  {combinedGroups.map((g) => {
                     if (g.kind === "single") {
                       const p = g.previsao;
                       const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
