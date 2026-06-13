@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { SummaryCard } from "@/components/SummaryCard";
@@ -20,6 +20,8 @@ import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 import { ManualForecastDialog } from "./ManualForecastDialog";
 
 interface Previsao {
@@ -135,8 +137,20 @@ export function RevenueForecasts() {
     return p.origem_tipo.toUpperCase();
   };
 
-  const pendentes = previsoes.filter((p) => p.status === "pendente");
-  const faturadas = previsoes.filter((p) => p.status === "faturado");
+  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "status">(
+    previsoes,
+    { key: "data", direction: "asc" },
+    {
+      cliente: (row) => row.cliente_nome || "",
+      data: (row) => row.data_prevista,
+      valor: (row) => Number(row.valor),
+      origem: (row) => row.origem_tipo,
+      status: (row) => row.status,
+    }
+  );
+
+  const pendentes = sorted.filter((p) => p.status === "pendente");
+  const faturadas = sorted.filter((p) => p.status === "faturado");
 
   const selectedItems = pendentes.filter((p) => selected.has(p.id));
   const selectedTotal = selectedItems.reduce((s, p) => s + Number(p.valor), 0);
@@ -575,11 +589,21 @@ export function RevenueForecasts() {
                       />
                     </TableHead>
                     <TableHead className="w-6"></TableHead>
-                    <TableHead className="text-xs">Origem</TableHead>
-                    <TableHead className="text-xs">Cliente</TableHead>
-                    <TableHead className="text-xs">Data Prevista</TableHead>
-                    <TableHead className="text-xs text-right">Valor</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
+                    <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-xs">
+                      Origem
+                    </SortableTh>
+                    <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-xs">
+                      Cliente
+                    </SortableTh>
+                    <SortableTh active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")} className="text-xs">
+                      Data Prevista
+                    </SortableTh>
+                    <SortableTh active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")} className="text-xs" align="right">
+                      Valor
+                    </SortableTh>
+                    <SortableTh active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")} className="text-xs">
+                      Status
+                    </SortableTh>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
