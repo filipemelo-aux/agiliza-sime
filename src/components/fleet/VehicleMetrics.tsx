@@ -66,9 +66,10 @@ export default function VehicleMetrics() {
           .eq("veiculo_id", veiculoId)
           .gte("data_manutencao", dataInicio).lte("data_manutencao", dataFim)
           .order("data_manutencao", { ascending: false }),
+        // Fetch ALL harvest forecasts in the period (unified rows have veiculo_id=null).
+        // We filter per-vehicle client-side using metadata.detalhamento.
         (supabase.from("previsoes_recebimento") as any)
-          .select("id, data_prevista, valor, status, metadata")
-          .eq("veiculo_id", veiculoId)
+          .select("id, data_prevista, valor, veiculo_id, status, metadata")
           .eq("origem_tipo", "colheita")
           .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
           .order("data_prevista", { ascending: false }),
