@@ -220,6 +220,11 @@ export function RevenueForecasts() {
 
   const pendentesGroups = useMemo(() => buildGroups(pendentes), [pendentes]);
   const faturadasGroups = useMemo(() => buildGroups(faturadas), [faturadas]);
+  // When sorting by status, render rows in the global sorted order so the column actually reorders the table.
+  const combinedGroups = useMemo(
+    () => (sort.key === "status" ? buildGroups(sorted) : [...pendentesGroups, ...faturadasGroups]),
+    [sort.key, sorted, pendentesGroups, faturadasGroups]
+  );
 
   const [expandedLotes, setExpandedLotes] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) => {
@@ -638,7 +643,7 @@ export function RevenueForecasts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[...pendentesGroups, ...faturadasGroups].map((g) => {
+                  {combinedGroups.map((g) => {
                     if (g.kind === "single") {
                       const p = g.previsao;
                       const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
