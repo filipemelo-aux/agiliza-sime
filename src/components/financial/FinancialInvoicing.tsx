@@ -214,6 +214,29 @@ export function FinancialInvoicing() {
         f.valor_recebido_total = sums[f.id] || 0;
         f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
       });
+
+
+      // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
+      const { data: links } = await supabase
+        .from("fatura_previsoes")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .in("fatura_id", ids);
+      const origemMap: Record<string, Set<string>> = {};
+      (links || []).forEach((l: any) => {
+        const tipo = l.previsoes_recebimento?.origem_tipo;
+        if (!tipo) return;
+        if (!origemMap[l.fatura_id]) origemMap[l.fatura_id] = new Set();
+        origemMap[l.fatura_id].add(tipo);
+      });
+      const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
+      faturasList.forEach((f: any) => {
+        const set = origemMap[f.id];
+        if (!set || set.size === 0) { f.origem_label = "—"; f.origem_sort = "zzz"; return; }
+        if (set.size > 1) { f.origem_label = "Misto"; f.origem_sort = "misto"; return; }
+        const t = Array.from(set)[0];
+        f.origem_label = tipoLabel(t);
+        f.origem_sort = t;
+      });
     }
 
     setFaturas(faturasList);
