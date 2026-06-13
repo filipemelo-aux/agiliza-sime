@@ -130,14 +130,41 @@ export function RevenueForecasts() {
     fetchPrevisoes();
   }, []);
 
-  const getOrigemLabel = (p: Previsao) => {
-    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
-      return `CT-e ${cteMap[p.origem_id]}`;
-    }
+  const getOrigemTipoLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte") return "CT-e";
+    if (p.origem_tipo === "colheita") return "Colheita";
+    if (p.origem_tipo === "manual") return "Manual";
     return p.origem_tipo.toUpperCase();
   };
 
-  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "status">(
+  const getDocumentoLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return String(cteMap[p.origem_id]);
+    }
+    const docMeta = p.metadata?.documento || p.metadata?.numero_documento || p.metadata?.numero;
+    if (docMeta) return String(docMeta);
+    return "—";
+  };
+
+  const getDocumentoSortValue = (p: Previsao): number | string => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return Number(cteMap[p.origem_id]) || 0;
+    }
+    const docMeta = p.metadata?.documento || p.metadata?.numero_documento || p.metadata?.numero;
+    if (docMeta != null) {
+      const n = Number(docMeta);
+      return Number.isFinite(n) ? n : String(docMeta);
+    }
+    return "";
+  };
+
+  // Backward-compat: combined label used in mobile cards
+  const getOrigemLabel = (p: Previsao) => {
+    const doc = getDocumentoLabel(p);
+    return doc && doc !== "—" ? `${getOrigemTipoLabel(p)} ${doc}` : getOrigemTipoLabel(p);
+  };
+
+  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "documento" | "status">(
     previsoes,
     { key: "data", direction: "asc" },
     {
@@ -145,6 +172,7 @@ export function RevenueForecasts() {
       data: (row) => row.data_prevista,
       valor: (row) => Number(row.valor),
       origem: (row) => row.origem_tipo,
+      documento: (row) => getDocumentoSortValue(row),
       status: (row) => row.status,
     }
   );
