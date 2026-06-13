@@ -3,16 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SummaryCard } from "@/components/SummaryCard";
 import { Badge } from "@/components/ui/badge";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
-import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2, CreditCard } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Fuel, Wrench, Truck, Gauge, Loader2, CreditCard, Search, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { format } from "date-fns";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
 type Vehicle = { id: string; plate: string };
 type Cte = { id: string; numero: number | null; data_emissao: string | null; valor_frete: number | null; remetente_nome: string | null; destinatario_nome: string | null; veiculo_id?: string | null };
@@ -30,6 +31,11 @@ export default function VehicleMetrics() {
   const [veiculoId, setVeiculoId] = useState<string>(ALL);
   const [dataInicio, setDataInicio] = useState<string>(monthStartISO());
   const [dataFim, setDataFim] = useState<string>(todayISO());
+  const [busca, setBusca] = useState<string>("");
+  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão">>(
+    new Set(["Combustível", "Manutenção", "Cartão"])
+  );
+  const [vehicleSearch, setVehicleSearch] = useState<string>("");
 
   const [loading, setLoading] = useState(false);
   const [ctes, setCtes] = useState<Cte[]>([]);
@@ -37,6 +43,31 @@ export default function VehicleMetrics() {
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
   const [cardItems, setCardItems] = useState<CardItem[]>([]);
+
+  const setPeriodPreset = (preset: "hoje" | "7d" | "30d" | "mes" | "mes_ant" | "ano") => {
+    const now = new Date();
+    const toISO = (d: Date) => d.toISOString().slice(0, 10);
+    if (preset === "hoje") { setDataInicio(toISO(now)); setDataFim(toISO(now)); return; }
+    if (preset === "7d") { const d = new Date(now); d.setDate(d.getDate() - 6); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "30d") { const d = new Date(now); d.setDate(d.getDate() - 29); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "mes") { const d = new Date(now.getFullYear(), now.getMonth(), 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "mes_ant") {
+      const ini = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const fim = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDataInicio(toISO(ini)); setDataFim(toISO(fim)); return;
+    }
+    if (preset === "ano") { const d = new Date(now.getFullYear(), 0, 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); }
+  };
+  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão") => {
+    setTiposDespesa(prev => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t); else next.add(t);
+      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão"]);
+      return next;
+    });
+  };
+  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 3 || veiculoId !== ALL;
+  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão"])); setVeiculoId(ALL); };
 
   useEffect(() => {
     (async () => {
@@ -154,13 +185,18 @@ export default function VehicleMetrics() {
   }, [ctes, fuelings, maints, colheitas, cardItems, veiculoId]);
 
   const chartData = [
-    { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
-    { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
-    { nome: "Combustível", Receita: 0, Custo: m.custoComb },
-    { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
-    { nome: "Cartão", Receita: 0, Custo: m.custoCartao },
-    { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
+    { nome: "Receita CT-e", value: m.receitaCte, kind: "receita" as const },
+    { nome: "Receita Colheita", value: m.receitaColheita, kind: "receita" as const },
+    { nome: "Combustível", value: -m.custoComb, kind: "custo" as const },
+    { nome: "Manutenção", value: -m.custoMan, kind: "custo" as const },
+    { nome: "Cartão", value: -m.custoCartao, kind: "custo" as const },
+    { nome: "Resultado", value: m.lucro, kind: "resultado" as const },
   ];
+  const barColor = (d: { kind: "receita" | "custo" | "resultado"; value: number }) => {
+    if (d.kind === "receita") return "hsl(var(--primary))";
+    if (d.kind === "custo") return "hsl(var(--destructive))";
+    return d.value >= 0 ? "hsl(142 71% 45%)" : "hsl(var(--destructive))";
+  };
 
   const fmtDate = (d?: string | null) => d ? format(new Date(d.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : "—";
   const placa = veiculoId === ALL ? "Toda a Frota" : vehicles.find(v => v.id === veiculoId)?.plate;
@@ -184,8 +220,15 @@ export default function VehicleMetrics() {
       descricao: x.description, fornecedor: x.plano_nome || "—",
       placa: plateOf(x.veiculo_id), valor: Number(x.amount || 0),
     }));
-    return [...a, ...b, ...c];
-  }, [fuelings, maints, cardItems, plateById]);
+    const all = [...a, ...b, ...c];
+    const q = busca.trim().toLowerCase();
+    return all.filter(r => {
+      if (!tiposDespesa.has(r.tipo)) return false;
+      if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [fuelings, maints, cardItems, plateById, busca, tiposDespesa]);
+  const despesasTotal = useMemo(() => despesas.reduce((s, r) => s + r.valor, 0), [despesas]);
 
   // Sortable tables
   const despSort = useSortableTable<DespesaRow, "data" | "tipo" | "descricao" | "fornecedor" | "placa" | "valor">(
@@ -228,24 +271,80 @@ export default function VehicleMetrics() {
       </div>
 
       <Card>
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <Label className="text-xs">Veículo (Placa)</Label>
-            <Select value={veiculoId} onValueChange={setVeiculoId}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Todos os veículos</SelectItem>
-                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <CardContent className="p-4 space-y-3">
+          {/* Linha 1 — período + datas */}
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+            <div>
+              <Label className="text-xs">Período rápido</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {[
+                  { k: "hoje", l: "Hoje" }, { k: "7d", l: "7 dias" }, { k: "30d", l: "30 dias" },
+                  { k: "mes", l: "Mês atual" }, { k: "mes_ant", l: "Mês anterior" }, { k: "ano", l: "Ano" },
+                ].map(p => (
+                  <Button key={p.k} type="button" size="sm" variant="outline" className="h-7 text-xs px-2"
+                    onClick={() => setPeriodPreset(p.k as any)}>{p.l}</Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Data Inicial</Label>
+              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9 w-40" />
+            </div>
+            <div>
+              <Label className="text-xs">Data Final</Label>
+              <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9 w-40" />
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Data Inicial</Label>
-            <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9" />
+
+          {/* Linha 2 — veículo + busca + subfiltros */}
+          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr_auto] gap-3 items-end">
+            <div>
+              <Label className="text-xs">Veículo</Label>
+              <Select value={veiculoId} onValueChange={setVeiculoId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <div className="p-2 sticky top-0 bg-popover border-b border-border">
+                    <Input placeholder="Buscar placa..." value={vehicleSearch}
+                      onChange={e => setVehicleSearch(e.target.value)}
+                      onKeyDown={e => e.stopPropagation()} className="h-8" />
+                  </div>
+                  <SelectItem value={ALL}>Todos os veículos ({vehicles.length})</SelectItem>
+                  {vehicles
+                    .filter(v => v.plate.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                    .map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Busca (descrição, fornecedor, placa)</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Filtrar despesas..."
+                  className="h-9 pl-7" />
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <Button type="button" size="sm" variant="ghost" className="h-9 text-xs" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar
+              </Button>
+            )}
           </div>
-          <div>
-            <Label className="text-xs">Data Final</Label>
-            <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9" />
+
+          {/* Linha 3 — chips de tipo de despesa */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Tipos de despesa:</Label>
+            {(["Combustível", "Manutenção", "Cartão"] as const).map(t => {
+              const active = tiposDespesa.has(t);
+              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : CreditCard;
+              return (
+                <button key={t} type="button" onClick={() => toggleTipo(t)}
+                  className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition ${
+                    active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  }`}>
+                  <Icon className="h-3 w-3" /> {t}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -282,17 +381,29 @@ export default function VehicleMetrics() {
 
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">Receita vs Custos {placa ? `— ${placa}` : ""}</p>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <p className="text-sm font-semibold text-foreground">Receita vs Custos {placa ? `— ${placa}` : ""}</p>
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary" /> Receita</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive" /> Custo</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "hsl(142 71% 45%)" }} /> Resultado +</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive" /> Resultado −</span>
+                </div>
+              </div>
               <div style={{ width: "100%", height: 280 }}>
                 <ResponsiveContainer>
                   <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="nome" fontSize={11} stroke="hsl(var(--muted-foreground))" />
                     <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: any) => formatCurrency(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Custo" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                    <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                    <Tooltip
+                      formatter={(v: any, _n: any, p: any) => [formatCurrency(Math.abs(Number(v))), p?.payload?.kind === "resultado" ? "Resultado" : p?.payload?.kind === "custo" ? "Custo" : "Receita"]}
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {chartData.map((d, i) => <Cell key={i} fill={barColor(d)} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -339,7 +450,7 @@ export default function VehicleMetrics() {
                     <tfoot className="bg-muted/30 font-semibold">
                       <tr>
                         <td className="p-2" colSpan={isAll ? 5 : 4}>Total ({despesas.length} lançamento{despesas.length === 1 ? "" : "s"})</td>
-                        <td className="p-2 text-right font-mono">{formatCurrency(m.custoTotal)}</td>
+                        <td className="p-2 text-right font-mono">{formatCurrency(despesasTotal)}</td>
                       </tr>
                     </tfoot>
                   )}
