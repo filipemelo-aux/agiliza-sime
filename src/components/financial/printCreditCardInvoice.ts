@@ -43,8 +43,8 @@ export async function printCreditCardInvoice(invoiceId: string) {
       return `
         <tr class="${rowClass}">
           <td>${formatDateBR(r.posted_date)}</td>
-          <td>${escapeHtml(r.favorecido_nome || r.description || "—")}</td>
-          <td>${escapeHtml(r.description || "—")}</td>
+          <td style="text-transform: uppercase">${escapeHtml(r.favorecido_nome || r.description || "—")}</td>
+          <td style="text-transform: uppercase">${escapeHtml(r.description || "—")}</td>
           <td class="num">${formatCurrency(Number(r.amount || 0))}</td>
           <td>${escapeHtml(planoLabel)}</td>
           <td>${escapeHtml(ccLabel)}</td>
