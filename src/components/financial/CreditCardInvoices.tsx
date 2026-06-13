@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Plus, CreditCard, Pencil, Trash2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
+import { printCreditCardInvoice } from "./printCreditCardInvoice";
 
 interface InvoiceRow {
   id: string;
