@@ -155,13 +155,18 @@ export default function VehicleMetrics() {
   }, [ctes, fuelings, maints, colheitas, cardItems, veiculoId]);
 
   const chartData = [
-    { nome: "Receita CT-e", Receita: m.receitaCte, Custo: 0 },
-    { nome: "Receita Colheita", Receita: m.receitaColheita, Custo: 0 },
-    { nome: "Combustível", Receita: 0, Custo: m.custoComb },
-    { nome: "Manutenção", Receita: 0, Custo: m.custoMan },
-    { nome: "Cartão", Receita: 0, Custo: m.custoCartao },
-    { nome: "Resultado", Receita: m.lucro >= 0 ? m.lucro : 0, Custo: m.lucro < 0 ? Math.abs(m.lucro) : 0 },
+    { nome: "Receita CT-e", value: m.receitaCte, kind: "receita" as const },
+    { nome: "Receita Colheita", value: m.receitaColheita, kind: "receita" as const },
+    { nome: "Combustível", value: -m.custoComb, kind: "custo" as const },
+    { nome: "Manutenção", value: -m.custoMan, kind: "custo" as const },
+    { nome: "Cartão", value: -m.custoCartao, kind: "custo" as const },
+    { nome: "Resultado", value: m.lucro, kind: "resultado" as const },
   ];
+  const barColor = (d: { kind: "receita" | "custo" | "resultado"; value: number }) => {
+    if (d.kind === "receita") return "hsl(var(--primary))";
+    if (d.kind === "custo") return "hsl(var(--destructive))";
+    return d.value >= 0 ? "hsl(142 71% 45%)" : "hsl(var(--destructive))";
+  };
 
   const fmtDate = (d?: string | null) => d ? format(new Date(d.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : "—";
   const placa = veiculoId === ALL ? "Toda a Frota" : vehicles.find(v => v.id === veiculoId)?.plate;
