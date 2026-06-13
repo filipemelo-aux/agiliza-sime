@@ -137,8 +137,20 @@ export function RevenueForecasts() {
     return p.origem_tipo.toUpperCase();
   };
 
-  const pendentes = previsoes.filter((p) => p.status === "pendente");
-  const faturadas = previsoes.filter((p) => p.status === "faturado");
+  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "status">(
+    previsoes,
+    { key: "data", direction: "asc" },
+    {
+      cliente: (row) => row.cliente_nome || "",
+      data: (row) => row.data_prevista,
+      valor: (row) => Number(row.valor),
+      origem: (row) => row.origem_tipo,
+      status: (row) => row.status,
+    }
+  );
+
+  const pendentes = sorted.filter((p) => p.status === "pendente");
+  const faturadas = sorted.filter((p) => p.status === "faturado");
 
   const selectedItems = pendentes.filter((p) => selected.has(p.id));
   const selectedTotal = selectedItems.reduce((s, p) => s + Number(p.valor), 0);
