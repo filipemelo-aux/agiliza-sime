@@ -36,6 +36,8 @@ interface Fatura {
   cliente_nome?: string;
   valor_recebido_total?: number;
   has_partial?: boolean;
+  origem_label?: string;
+  origem_sort?: string;
 }
 
 interface Previsao {
