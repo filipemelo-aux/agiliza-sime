@@ -188,31 +188,37 @@ export default function VehicleMetrics() {
   }, [fuelings, maints, cardItems, plateById]);
 
   // Sortable tables
-  const despSort = useSortableTable(despesas, { key: "data", direction: "desc" }, {
-    data: r => r.data, tipo: r => r.tipo, descricao: r => r.descricao,
-    fornecedor: r => r.fornecedor, placa: r => r.placa, valor: r => r.valor,
-  });
-  const cteSort = useSortableTable(ctes, { key: "data_emissao", direction: "desc" }, {
-    data_emissao: r => r.data_emissao, numero: r => r.numero, remetente_nome: r => r.remetente_nome,
-    destinatario_nome: r => r.destinatario_nome, valor_frete: r => Number(r.valor_frete || 0), placa: r => plateOf(r.veiculo_id),
-  });
-  const fuelSort = useSortableTable(fuelings, { key: "data_abastecimento", direction: "desc" }, {
-    data_abastecimento: r => r.data_abastecimento, tipo_combustivel: r => r.tipo_combustivel,
-    posto_combustivel: r => r.posto_combustivel, km_atual: r => Number(r.km_atual || 0),
-    quantidade_litros: r => Number(r.quantidade_litros), valor_total: r => Number(r.valor_total), placa: r => plateOf(r.veiculo_id),
-  });
-  const maintSort = useSortableTable(maints, { key: "data_manutencao", direction: "desc" }, {
-    data_manutencao: r => r.data_manutencao, tipo_manutencao: r => r.tipo_manutencao,
-    descricao: r => r.descricao, fornecedor: r => r.fornecedor, custo_total: r => Number(r.custo_total || 0), placa: r => plateOf(r.veiculo_id),
-  });
-  const colhSort = useSortableTable(colheitas, { key: "data_prevista", direction: "desc" }, {
-    data_prevista: r => r.data_prevista, fazenda: r => r.metadata?.fazenda || "",
-    status: r => r.status, valor: r => Number(r.valor || 0),
-  });
-  const cardSort = useSortableTable(cardItems, { key: "posted_date", direction: "desc" }, {
-    posted_date: r => r.posted_date, description: r => r.description,
-    plano_nome: r => r.plano_nome || "", amount: r => Number(r.amount), placa: r => plateOf(r.veiculo_id),
-  });
+  const despSort = useSortableTable<DespesaRow, "data" | "tipo" | "descricao" | "fornecedor" | "placa" | "valor">(
+    despesas, { key: "data", direction: "desc" }, {
+      data: r => r.data, tipo: r => r.tipo, descricao: r => r.descricao,
+      fornecedor: r => r.fornecedor, placa: r => r.placa, valor: r => r.valor,
+    });
+  const cteSort = useSortableTable<Cte, "data_emissao" | "numero" | "remetente_nome" | "destinatario_nome" | "valor_frete" | "placa">(
+    ctes, { key: "data_emissao", direction: "desc" }, {
+      data_emissao: r => r.data_emissao, numero: r => r.numero, remetente_nome: r => r.remetente_nome,
+      destinatario_nome: r => r.destinatario_nome, valor_frete: r => Number(r.valor_frete || 0), placa: r => plateOf(r.veiculo_id),
+    });
+  const fuelSort = useSortableTable<Fueling, "data_abastecimento" | "tipo_combustivel" | "posto_combustivel" | "km_atual" | "quantidade_litros" | "valor_total" | "placa">(
+    fuelings, { key: "data_abastecimento", direction: "desc" }, {
+      data_abastecimento: r => r.data_abastecimento, tipo_combustivel: r => r.tipo_combustivel,
+      posto_combustivel: r => r.posto_combustivel, km_atual: r => Number(r.km_atual || 0),
+      quantidade_litros: r => Number(r.quantidade_litros), valor_total: r => Number(r.valor_total), placa: r => plateOf(r.veiculo_id),
+    });
+  const maintSort = useSortableTable<Maint, "data_manutencao" | "tipo_manutencao" | "descricao" | "fornecedor" | "custo_total" | "placa">(
+    maints, { key: "data_manutencao", direction: "desc" }, {
+      data_manutencao: r => r.data_manutencao, tipo_manutencao: r => r.tipo_manutencao,
+      descricao: r => r.descricao, fornecedor: r => r.fornecedor, custo_total: r => Number(r.custo_total || 0), placa: r => plateOf(r.veiculo_id),
+    });
+  const colhSort = useSortableTable<Colheita, "data_prevista" | "fazenda" | "status" | "valor">(
+    colheitas, { key: "data_prevista", direction: "desc" }, {
+      data_prevista: r => r.data_prevista, fazenda: r => r.metadata?.fazenda || "",
+      status: r => r.status, valor: r => Number(r.valor || 0),
+    });
+  const cardSort = useSortableTable<CardItem, "posted_date" | "description" | "plano_nome" | "amount" | "placa">(
+    cardItems, { key: "posted_date", direction: "desc" }, {
+      posted_date: r => r.posted_date, description: r => r.description,
+      plano_nome: r => r.plano_nome || "", amount: r => Number(r.amount), placa: r => plateOf(r.veiculo_id),
+    });
 
   return (
     <div className="space-y-4">
