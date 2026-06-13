@@ -22,6 +22,9 @@ import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { useSortableTable } from "@/hooks/useSortableTable";
+
 
 interface Fatura {
   id: string;
