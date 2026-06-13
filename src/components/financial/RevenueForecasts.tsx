@@ -736,6 +736,7 @@ export function RevenueForecasts() {
                               <span className="text-xs uppercase font-semibold text-primary">Lote · {g.items.length}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">—</TableCell>
                           <TableCell className="text-xs font-medium">{g.items[0].cliente_nome}</TableCell>
                           <TableCell className="text-xs">{dateRange}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
