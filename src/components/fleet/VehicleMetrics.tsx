@@ -31,6 +31,11 @@ export default function VehicleMetrics() {
   const [veiculoId, setVeiculoId] = useState<string>(ALL);
   const [dataInicio, setDataInicio] = useState<string>(monthStartISO());
   const [dataFim, setDataFim] = useState<string>(todayISO());
+  const [busca, setBusca] = useState<string>("");
+  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão">>(
+    new Set(["Combustível", "Manutenção", "Cartão"])
+  );
+  const [vehicleSearch, setVehicleSearch] = useState<string>("");
 
   const [loading, setLoading] = useState(false);
   const [ctes, setCtes] = useState<Cte[]>([]);
@@ -38,6 +43,31 @@ export default function VehicleMetrics() {
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
   const [cardItems, setCardItems] = useState<CardItem[]>([]);
+
+  const setPeriodPreset = (preset: "hoje" | "7d" | "30d" | "mes" | "mes_ant" | "ano") => {
+    const now = new Date();
+    const toISO = (d: Date) => d.toISOString().slice(0, 10);
+    if (preset === "hoje") { setDataInicio(toISO(now)); setDataFim(toISO(now)); return; }
+    if (preset === "7d") { const d = new Date(now); d.setDate(d.getDate() - 6); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "30d") { const d = new Date(now); d.setDate(d.getDate() - 29); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "mes") { const d = new Date(now.getFullYear(), now.getMonth(), 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); return; }
+    if (preset === "mes_ant") {
+      const ini = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const fim = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDataInicio(toISO(ini)); setDataFim(toISO(fim)); return;
+    }
+    if (preset === "ano") { const d = new Date(now.getFullYear(), 0, 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); }
+  };
+  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão") => {
+    setTiposDespesa(prev => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t); else next.add(t);
+      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão"]);
+      return next;
+    });
+  };
+  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 3 || veiculoId !== ALL;
+  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão"])); setVeiculoId(ALL); };
 
   useEffect(() => {
     (async () => {
