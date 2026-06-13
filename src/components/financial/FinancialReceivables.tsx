@@ -90,6 +90,20 @@ export function FinancialReceivables() {
 
   const filtered = contas.filter(c => filterStatus === "todos" || c.status === filterStatus);
 
+  const { sort, toggle, sorted: filteredSorted } = useSortableTable<ContaReceber, "cliente_nome" | "data_vencimento" | "valor" | "valor_recebido" | "status" | "data_recebimento" | "origem">(
+    filtered,
+    { key: "data_vencimento", direction: "asc" },
+    {
+      cliente_nome: (r) => r.cliente_nome || "",
+      data_vencimento: (r) => r.data_vencimento,
+      valor: (r) => Number(r.valor),
+      valor_recebido: (r) => Number(r.valor_recebido || 0),
+      status: (r) => (r.status !== "recebido" && Number(r.valor_recebido || 0) > 0 ? "parcial" : r.status),
+      data_recebimento: (r) => r.data_recebimento,
+      origem: (r) => r.origem_sort || "zzz",
+    },
+  );
+
   const totals = {
     aberto: contas.filter(c => c.status === "aberto").reduce((s, c) => s + Number(c.valor), 0),
     recebido: contas.filter(c => c.status === "recebido").reduce((s, c) => s + Number(c.valor), 0),
