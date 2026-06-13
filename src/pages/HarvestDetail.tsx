@@ -1362,64 +1362,57 @@ export default function HarvestDetail() {
     }
     setSavingPrevisao(true);
     try {
-      // Group assignments by vehicle so each forecast row carries veiculo_id
-      // (enables vehicle-level revenue attribution in the Fleet Metrics panel).
-      const grupos = new Map<string, { veiculo_id: string | null; placa: string; total: number; itens: any[] }>();
-      sortedCliente.forEach((a) => {
+      // Unified forecast: aggregate all vehicles into a SINGLE previsão row
+      // to keep the invoice clean. Per-vehicle detail stays in metadata.detalhamento.
+      const itens = sortedCliente.map((a) => {
         const c = getClienteData(a);
-        const key = a.vehicle_id || `__sem_veiculo__${a.id}`;
-        const g = grupos.get(key) || { veiculo_id: a.vehicle_id || null, placa: a.vehicle_plate || "—", total: 0, itens: [] };
-        g.total += c.totalLiquido;
-        g.itens.push({
+        return {
           motorista: a.driver_name || "—",
           placa: a.vehicle_plate || "—",
           proprietario: a.owner_name || "—",
+          veiculo_id: a.vehicle_id || null,
           dias: c.days,
           diaria: c.dvCliente,
           bruto: c.totalBruto,
           descontos: c.totalDescontos,
           liquido: c.totalLiquido,
-        });
-        grupos.set(key, g);
-      });
+        };
+      }).filter((i) => i.liquido > 0);
 
-      const rows = Array.from(grupos.values())
-        .filter((g) => g.total > 0)
-        .map((g) => ({
-          origem_tipo: "colheita" as any,
-          origem_id: id,
-          cliente_id: job.client_id,
-          veiculo_id: g.veiculo_id,
-          valor: g.total,
-          // Anchor the forecast date to the harvest period end so the Fleet Metrics
-          // dashboard (which filters previsoes_recebimento by data_prevista) finds
-          // the row when the user picks the same month the harvest was closed in.
-          data_prevista: filterEndDate,
-          status: "pendente" as any,
-          metadata: {
-            periodo_inicio: filterStartDate,
-            periodo_fim: filterEndDate,
-            fazenda: job.farm_name,
-            localizacao: job.location || "",
-            diaria_cliente: job.monthly_value / 30,
-            valor_mensal: job.monthly_value,
-            placa: g.placa,
-            detalhamento: g.itens,
-          },
-        }));
-
-      if (rows.length === 0) {
+      if (itens.length === 0) {
         toast({ title: "Nenhum valor líquido para faturar", variant: "destructive" });
         return;
       }
 
-      const { error } = await supabase.from("previsoes_recebimento").insert(rows as any);
+      const total = itens.reduce((s, i) => s + i.liquido, 0);
+      const placas = Array.from(new Set(itens.map((i) => i.placa).filter((p) => p && p !== "—")));
+
+      const row = {
+        origem_tipo: "colheita" as any,
+        origem_id: id,
+        cliente_id: job.client_id,
+        veiculo_id: null,
+        valor: total,
+        data_prevista: filterEndDate,
+        status: "pendente" as any,
+        metadata: {
+          periodo_inicio: filterStartDate,
+          periodo_fim: filterEndDate,
+          fazenda: job.farm_name,
+          localizacao: job.location || "",
+          diaria_cliente: job.monthly_value / 30,
+          valor_mensal: job.monthly_value,
+          placa: placas.join(", "),
+          placas,
+          detalhamento: itens,
+        },
+      };
+
+      const { error } = await supabase.from("previsoes_recebimento").insert([row] as any);
       if (error) throw error;
-      const totalGerado = rows.reduce((s, r) => s + Number(r.valor), 0);
-      const semPlaca = rows.filter((r) => !r.veiculo_id).length;
       toast({
-        title: `${rows.length} previsão(ões) gerada(s) por veículo`,
-        description: `Total: ${formatCurrency(totalGerado)} — ${formatDate(filterStartDate)} a ${formatDate(filterEndDate)}${semPlaca ? ` — ${semPlaca} sem placa vinculada` : ""}`,
+        title: "Previsão unificada gerada",
+        description: `Total: ${formatCurrency(total)} — ${formatDate(filterStartDate)} a ${formatDate(filterEndDate)} (${itens.length} veículo(s))`,
       });
     } catch (err: any) {
       toast({ title: "Erro ao gerar previsão", description: err.message, variant: "destructive" });
