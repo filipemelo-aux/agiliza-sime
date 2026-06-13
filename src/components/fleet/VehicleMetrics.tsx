@@ -66,9 +66,10 @@ export default function VehicleMetrics() {
           .eq("veiculo_id", veiculoId)
           .gte("data_manutencao", dataInicio).lte("data_manutencao", dataFim)
           .order("data_manutencao", { ascending: false }),
+        // Fetch ALL harvest forecasts in the period (unified rows have veiculo_id=null).
+        // We filter per-vehicle client-side using metadata.detalhamento.
         (supabase.from("previsoes_recebimento") as any)
-          .select("id, data_prevista, valor, status, metadata")
-          .eq("veiculo_id", veiculoId)
+          .select("id, data_prevista, valor, veiculo_id, status, metadata")
           .eq("origem_tipo", "colheita")
           .gte("data_prevista", dataInicio).lte("data_prevista", dataFim)
           .order("data_prevista", { ascending: false }),
@@ -81,7 +82,18 @@ export default function VehicleMetrics() {
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
       setMaints((maintRes.data as any) || []);
-      setColheitas((colheitaRes.data as any) || []);
+      const plate = vehicles.find(v => v.id === veiculoId)?.plate || "";
+      const rawColheitas = ((colheitaRes.data as any[]) || []);
+      const colheitasForVehicle = rawColheitas.flatMap((r: any) => {
+        // Legacy per-vehicle rows: keep as-is when veiculo_id matches.
+        if (r.veiculo_id === veiculoId) return [{ ...r, valor: Number(r.valor || 0) }];
+        // Unified rows: extract this vehicle's share from metadata.detalhamento.
+        const det: any[] = Array.isArray(r.metadata?.detalhamento) ? r.metadata.detalhamento : [];
+        const item = det.find((d: any) => d?.veiculo_id === veiculoId || (plate && d?.placa === plate));
+        if (!item) return [];
+        return [{ ...r, valor: Number(item.liquido || 0) }];
+      });
+      setColheitas(colheitasForVehicle as any);
       setCardItems(((cardRes.data as any[]) || []).map((r: any) => ({
         id: r.id, posted_date: r.posted_date, description: r.description, amount: Number(r.amount),
         plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
