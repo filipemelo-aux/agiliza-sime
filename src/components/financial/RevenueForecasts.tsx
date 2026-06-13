@@ -661,9 +661,10 @@ export function RevenueForecasts() {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs uppercase">{getOrigemLabel(p)}</span>
+                              <span className="text-xs uppercase">{getOrigemTipoLabel(p)}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="text-xs tabular-nums">{getDocumentoLabel(p)}</TableCell>
                           <TableCell className="text-xs">{p.cliente_nome}</TableCell>
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
