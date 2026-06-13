@@ -1211,23 +1211,25 @@ ${hasRecebimentos ? `
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-medium w-[80px]">Nº</th>
-                  <th className="px-3 py-2 font-medium whitespace-nowrap">Emissão</th>
-                  <th className="px-3 py-2 font-medium">Cliente</th>
-                  <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
-                  <th className="px-2 py-2 font-medium text-center w-[110px]">Condição</th>
-                  <th className="px-2 py-2 font-medium text-center w-[90px]">Status</th>
+                  <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
+                  <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
+                  <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "num_parcelas"} direction={sort.direction} onSort={() => toggle("num_parcelas")}>Condição</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
               </thead>
               <tbody>
-                {faturas.map((f) => {
+                {faturasSorted.map((f) => {
                   const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                   return (
                     <tr key={f.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(f)}>
                       <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
+                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">
                         {formatCurrency(Number(f.valor_total))}
                         {f.has_partial && (
