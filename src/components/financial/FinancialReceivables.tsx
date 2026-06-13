@@ -52,7 +52,37 @@ export function FinancialReceivables() {
       .select("*, profiles:cliente_id(full_name)")
       .order("data_vencimento", { ascending: true });
     if (error) { toast.error("Erro ao carregar contas a receber"); setLoading(false); return; }
-    setContas((data || []).map((c: any) => ({ ...c, cliente_nome: c.profiles?.full_name || "—" })));
+    const list: ContaReceber[] = (data || []).map((c: any) => ({ ...c, cliente_nome: c.profiles?.full_name || "—" }));
+
+    // Origem via fatura_previsoes -> previsoes_recebimento.origem_tipo
+    const faturaIds = Array.from(new Set(list.map(c => c.fatura_id).filter(Boolean)));
+    const origemMap: Record<string, { label: string; sort: string }> = {};
+    if (faturaIds.length) {
+      const { data: links } = await supabase
+        .from("fatura_previsoes")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .in("fatura_id", faturaIds);
+      const sets: Record<string, Set<string>> = {};
+      (links || []).forEach((l: any) => {
+        const t = l.previsoes_recebimento?.origem_tipo;
+        if (!t) return;
+        if (!sets[l.fatura_id]) sets[l.fatura_id] = new Set();
+        sets[l.fatura_id].add(t);
+      });
+      const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
+      Object.entries(sets).forEach(([fid, set]) => {
+        if (set.size > 1) { origemMap[fid] = { label: "Misto", sort: "misto" }; return; }
+        const t = Array.from(set)[0];
+        origemMap[fid] = { label: tipoLabel(t), sort: t };
+      });
+    }
+    list.forEach(c => {
+      const o = origemMap[c.fatura_id];
+      c.origem_label = o?.label || "—";
+      c.origem_sort = o?.sort || "zzz";
+    });
+
+    setContas(list);
     setLoading(false);
   };
 
