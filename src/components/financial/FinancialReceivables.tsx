@@ -13,6 +13,8 @@ import { formatDateBR } from "@/lib/date";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { useSortableTable } from "@/hooks/useSortableTable";
 
 interface ContaReceber {
   id: string;
@@ -25,6 +27,8 @@ interface ContaReceber {
   data_recebimento: string | null;
   created_at: string;
   cliente_nome?: string;
+  origem_label?: string;
+  origem_sort?: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Clock }> = {
@@ -48,13 +52,57 @@ export function FinancialReceivables() {
       .select("*, profiles:cliente_id(full_name)")
       .order("data_vencimento", { ascending: true });
     if (error) { toast.error("Erro ao carregar contas a receber"); setLoading(false); return; }
-    setContas((data || []).map((c: any) => ({ ...c, cliente_nome: c.profiles?.full_name || "—" })));
+    const list: ContaReceber[] = (data || []).map((c: any) => ({ ...c, cliente_nome: c.profiles?.full_name || "—" }));
+
+    // Origem via fatura_previsoes -> previsoes_recebimento.origem_tipo
+    const faturaIds = Array.from(new Set(list.map(c => c.fatura_id).filter(Boolean)));
+    const origemMap: Record<string, { label: string; sort: string }> = {};
+    if (faturaIds.length) {
+      const { data: links } = await supabase
+        .from("fatura_previsoes")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .in("fatura_id", faturaIds);
+      const sets: Record<string, Set<string>> = {};
+      (links || []).forEach((l: any) => {
+        const t = l.previsoes_recebimento?.origem_tipo;
+        if (!t) return;
+        if (!sets[l.fatura_id]) sets[l.fatura_id] = new Set();
+        sets[l.fatura_id].add(t);
+      });
+      const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
+      Object.entries(sets).forEach(([fid, set]) => {
+        if (set.size > 1) { origemMap[fid] = { label: "Misto", sort: "misto" }; return; }
+        const t = Array.from(set)[0];
+        origemMap[fid] = { label: tipoLabel(t), sort: t };
+      });
+    }
+    list.forEach(c => {
+      const o = origemMap[c.fatura_id];
+      c.origem_label = o?.label || "—";
+      c.origem_sort = o?.sort || "zzz";
+    });
+
+    setContas(list);
     setLoading(false);
   };
 
   useEffect(() => { fetchContas(); }, []);
 
   const filtered = contas.filter(c => filterStatus === "todos" || c.status === filterStatus);
+
+  const { sort, toggle, sorted: filteredSorted } = useSortableTable<ContaReceber, "cliente_nome" | "data_vencimento" | "valor" | "valor_recebido" | "status" | "data_recebimento" | "origem">(
+    filtered,
+    { key: "data_vencimento", direction: "asc" },
+    {
+      cliente_nome: (r) => r.cliente_nome || "",
+      data_vencimento: (r) => r.data_vencimento,
+      valor: (r) => Number(r.valor),
+      valor_recebido: (r) => Number(r.valor_recebido || 0),
+      status: (r) => (r.status !== "recebido" && Number(r.valor_recebido || 0) > 0 ? "parcial" : r.status),
+      data_recebimento: (r) => r.data_recebimento,
+      origem: (r) => r.origem_sort || "zzz",
+    },
+  );
 
   const totals = {
     aberto: contas.filter(c => c.status === "aberto").reduce((s, c) => s + Number(c.valor), 0),
@@ -148,17 +196,18 @@ export function FinancialReceivables() {
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-medium">Cliente</th>
-                  <th className="px-3 py-2 font-medium whitespace-nowrap">Vencimento</th>
-                  <th className="px-2 py-2 font-medium text-right w-[110px]">Valor</th>
-                  <th className="px-2 py-2 font-medium text-right w-[110px]">Recebido</th>
-                  <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
-                  <th className="px-3 py-2 font-medium whitespace-nowrap">Recebimento</th>
+                  <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
+                  <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_vencimento"} direction={sort.direction} onSort={() => toggle("data_vencimento")}>Vencimento</SortableTh>
+                  <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[110px]" active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")}>Valor</SortableTh>
+                  <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[110px]" active={sort.key === "valor_recebido"} direction={sort.direction} onSort={() => toggle("valor_recebido")}>Recebido</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[100px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_recebimento"} direction={sort.direction} onSort={() => toggle("data_recebimento")}>Recebimento</SortableTh>
                   <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(c => {
+                {filteredSorted.map(c => {
                   const st = STATUS_MAP[c.status] || STATUS_MAP.aberto;
                   const Icon = st.icon;
                   const recebido = Number(c.valor_recebido || 0);
@@ -166,6 +215,7 @@ export function FinancialReceivables() {
                   return (
                     <tr key={c.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openPayment(c)}>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{c.cliente_nome}</td>
+                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{c.origem_label || "—"}</td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(c.data_vencimento)}</td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">{formatCurrency(Number(c.valor))}</td>
                       <td className={`px-2 py-2 text-right tabular-nums ${isParcial ? "text-amber-600" : "text-muted-foreground"}`}>

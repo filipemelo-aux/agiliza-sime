@@ -22,6 +22,9 @@ import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { useSortableTable } from "@/hooks/useSortableTable";
+
 
 interface Fatura {
   id: string;
@@ -36,6 +39,8 @@ interface Fatura {
   cliente_nome?: string;
   valor_recebido_total?: number;
   has_partial?: boolean;
+  origem_label?: string;
+  origem_sort?: string;
 }
 
 interface Previsao {
@@ -208,6 +213,29 @@ export function FinancialInvoicing() {
       faturasList.forEach((f: any) => {
         f.valor_recebido_total = sums[f.id] || 0;
         f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
+      });
+
+
+      // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
+      const { data: links } = await supabase
+        .from("fatura_previsoes")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .in("fatura_id", ids);
+      const origemMap: Record<string, Set<string>> = {};
+      (links || []).forEach((l: any) => {
+        const tipo = l.previsoes_recebimento?.origem_tipo;
+        if (!tipo) return;
+        if (!origemMap[l.fatura_id]) origemMap[l.fatura_id] = new Set();
+        origemMap[l.fatura_id].add(tipo);
+      });
+      const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
+      faturasList.forEach((f: any) => {
+        const set = origemMap[f.id];
+        if (!set || set.size === 0) { f.origem_label = "—"; f.origem_sort = "zzz"; return; }
+        if (set.size > 1) { f.origem_label = "Misto"; f.origem_sort = "misto"; return; }
+        const t = Array.from(set)[0];
+        f.origem_label = tipoLabel(t);
+        f.origem_sort = t;
       });
     }
 
@@ -1081,6 +1109,20 @@ ${hasRecebimentos ? `
     }
   };
 
+  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao" | "cliente_nome" | "valor_total" | "num_parcelas" | "status" | "origem">(
+    faturas,
+    { key: "numero", direction: "desc" },
+    {
+      numero: (r) => r.numero,
+      data_emissao: (r) => r.data_emissao,
+      cliente_nome: (r) => r.cliente_nome || "",
+      valor_total: (r) => Number(r.valor_total),
+      num_parcelas: (r) => r.num_parcelas,
+      status: (r) => (r.has_partial ? "parcial" : r.status),
+      origem: (r) => r.origem_sort || "zzz",
+    },
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1169,23 +1211,25 @@ ${hasRecebimentos ? `
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-medium w-[80px]">Nº</th>
-                  <th className="px-3 py-2 font-medium whitespace-nowrap">Emissão</th>
-                  <th className="px-3 py-2 font-medium">Cliente</th>
-                  <th className="px-2 py-2 font-medium text-right w-[140px]">Valor</th>
-                  <th className="px-2 py-2 font-medium text-center w-[110px]">Condição</th>
-                  <th className="px-2 py-2 font-medium text-center w-[90px]">Status</th>
+                  <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
+                  <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
+                  <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "num_parcelas"} direction={sort.direction} onSort={() => toggle("num_parcelas")}>Condição</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
               </thead>
               <tbody>
-                {faturas.map((f) => {
+                {faturasSorted.map((f) => {
                   const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                   return (
                     <tr key={f.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(f)}>
                       <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
+                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">
                         {formatCurrency(Number(f.valor_total))}
                         {f.has_partial && (
