@@ -129,6 +129,9 @@ export function CreditCardInvoices() {
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => handleEdit(inv.id)}>
                     <Pencil className="w-3 h-3 mr-1" /> Editar
                   </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => printCreditCardInvoice(inv.id)}>
+                    <Printer className="w-3 h-3 mr-1" /> Imprimir
+                  </Button>
                   <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" onClick={() => handleDelete(inv)}>
                     <Trash2 className="w-3 h-3 mr-1" /> Excluir
                   </Button>
