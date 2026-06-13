@@ -27,6 +27,8 @@ interface ContaReceber {
   data_recebimento: string | null;
   created_at: string;
   cliente_nome?: string;
+  origem_label?: string;
+  origem_sort?: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Clock }> = {
