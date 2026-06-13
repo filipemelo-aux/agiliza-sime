@@ -271,24 +271,80 @@ export default function VehicleMetrics() {
       </div>
 
       <Card>
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <Label className="text-xs">Veículo (Placa)</Label>
-            <Select value={veiculoId} onValueChange={setVeiculoId}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Todos os veículos</SelectItem>
-                {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <CardContent className="p-4 space-y-3">
+          {/* Linha 1 — período + datas */}
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+            <div>
+              <Label className="text-xs">Período rápido</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {[
+                  { k: "hoje", l: "Hoje" }, { k: "7d", l: "7 dias" }, { k: "30d", l: "30 dias" },
+                  { k: "mes", l: "Mês atual" }, { k: "mes_ant", l: "Mês anterior" }, { k: "ano", l: "Ano" },
+                ].map(p => (
+                  <Button key={p.k} type="button" size="sm" variant="outline" className="h-7 text-xs px-2"
+                    onClick={() => setPeriodPreset(p.k as any)}>{p.l}</Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Data Inicial</Label>
+              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9 w-40" />
+            </div>
+            <div>
+              <Label className="text-xs">Data Final</Label>
+              <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9 w-40" />
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Data Inicial</Label>
-            <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9" />
+
+          {/* Linha 2 — veículo + busca + subfiltros */}
+          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr_auto] gap-3 items-end">
+            <div>
+              <Label className="text-xs">Veículo</Label>
+              <Select value={veiculoId} onValueChange={setVeiculoId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <div className="p-2 sticky top-0 bg-popover border-b border-border">
+                    <Input placeholder="Buscar placa..." value={vehicleSearch}
+                      onChange={e => setVehicleSearch(e.target.value)}
+                      onKeyDown={e => e.stopPropagation()} className="h-8" />
+                  </div>
+                  <SelectItem value={ALL}>Todos os veículos ({vehicles.length})</SelectItem>
+                  {vehicles
+                    .filter(v => v.plate.toLowerCase().includes(vehicleSearch.toLowerCase()))
+                    .map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Busca (descrição, fornecedor, placa)</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Filtrar despesas..."
+                  className="h-9 pl-7" />
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <Button type="button" size="sm" variant="ghost" className="h-9 text-xs" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar
+              </Button>
+            )}
           </div>
-          <div>
-            <Label className="text-xs">Data Final</Label>
-            <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-9" />
+
+          {/* Linha 3 — chips de tipo de despesa */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Tipos de despesa:</Label>
+            {(["Combustível", "Manutenção", "Cartão"] as const).map(t => {
+              const active = tiposDespesa.has(t);
+              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : CreditCard;
+              return (
+                <button key={t} type="button" onClick={() => toggleTipo(t)}
+                  className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition ${
+                    active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  }`}>
+                  <Icon className="h-3 w-3" /> {t}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
