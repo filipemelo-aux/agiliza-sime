@@ -450,7 +450,7 @@ export default function VehicleMetrics() {
                     <tfoot className="bg-muted/30 font-semibold">
                       <tr>
                         <td className="p-2" colSpan={isAll ? 5 : 4}>Total ({despesas.length} lançamento{despesas.length === 1 ? "" : "s"})</td>
-                        <td className="p-2 text-right font-mono">{formatCurrency(m.custoTotal)}</td>
+                        <td className="p-2 text-right font-mono">{formatCurrency(despesasTotal)}</td>
                       </tr>
                     </tfoot>
                   )}
