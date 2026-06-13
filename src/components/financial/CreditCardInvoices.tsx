@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Plus, CreditCard, Pencil, Trash2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { CreditCardImportDialog } from "./CreditCardImportDialog";
+import { printCreditCardInvoice } from "./printCreditCardInvoice";
 
 interface InvoiceRow {
   id: string;
@@ -127,6 +128,9 @@ export function CreditCardInvoices() {
                 <div className="flex items-center gap-1 pt-2 border-t">
                   <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => handleEdit(inv.id)}>
                     <Pencil className="w-3 h-3 mr-1" /> Editar
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => printCreditCardInvoice(inv.id)}>
+                    <Printer className="w-3 h-3 mr-1" /> Imprimir
                   </Button>
                   <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" onClick={() => handleDelete(inv)}>
                     <Trash2 className="w-3 h-3 mr-1" /> Excluir
