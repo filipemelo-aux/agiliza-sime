@@ -589,11 +589,21 @@ export function RevenueForecasts() {
                       />
                     </TableHead>
                     <TableHead className="w-6"></TableHead>
-                    <TableHead className="text-xs">Origem</TableHead>
-                    <TableHead className="text-xs">Cliente</TableHead>
-                    <TableHead className="text-xs">Data Prevista</TableHead>
-                    <TableHead className="text-xs text-right">Valor</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
+                    <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-xs">
+                      Origem
+                    </SortableTh>
+                    <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-xs">
+                      Cliente
+                    </SortableTh>
+                    <SortableTh active={sort.key === "data"} direction={sort.direction} onSort={() => toggle("data")} className="text-xs">
+                      Data Prevista
+                    </SortableTh>
+                    <SortableTh active={sort.key === "valor"} direction={sort.direction} onSort={() => toggle("valor")} className="text-xs" align="right">
+                      Valor
+                    </SortableTh>
+                    <SortableTh active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")} className="text-xs">
+                      Status
+                    </SortableTh>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
