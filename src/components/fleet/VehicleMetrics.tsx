@@ -381,17 +381,29 @@ export default function VehicleMetrics() {
 
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">Receita vs Custos {placa ? `— ${placa}` : ""}</p>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <p className="text-sm font-semibold text-foreground">Receita vs Custos {placa ? `— ${placa}` : ""}</p>
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary" /> Receita</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive" /> Custo</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "hsl(142 71% 45%)" }} /> Resultado +</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive" /> Resultado −</span>
+                </div>
+              </div>
               <div style={{ width: "100%", height: 280 }}>
                 <ResponsiveContainer>
                   <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="nome" fontSize={11} stroke="hsl(var(--muted-foreground))" />
                     <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: any) => formatCurrency(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Custo" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                    <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                    <Tooltip
+                      formatter={(v: any, _n: any, p: any) => [formatCurrency(Math.abs(Number(v))), p?.payload?.kind === "resultado" ? "Resultado" : p?.payload?.kind === "custo" ? "Custo" : "Receita"]}
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {chartData.map((d, i) => <Cell key={i} fill={barColor(d)} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
