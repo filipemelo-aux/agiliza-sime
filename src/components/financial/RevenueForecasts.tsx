@@ -130,14 +130,41 @@ export function RevenueForecasts() {
     fetchPrevisoes();
   }, []);
 
-  const getOrigemLabel = (p: Previsao) => {
-    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
-      return `CT-e ${cteMap[p.origem_id]}`;
-    }
+  const getOrigemTipoLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte") return "CT-e";
+    if (p.origem_tipo === "colheita") return "Colheita";
+    if (p.origem_tipo === "manual") return "Manual";
     return p.origem_tipo.toUpperCase();
   };
 
-  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "status">(
+  const getDocumentoLabel = (p: Previsao) => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return String(cteMap[p.origem_id]);
+    }
+    const docMeta = p.metadata?.documento || p.metadata?.numero_documento || p.metadata?.numero;
+    if (docMeta) return String(docMeta);
+    return "—";
+  };
+
+  const getDocumentoSortValue = (p: Previsao): number | string => {
+    if (p.origem_tipo === "cte" && p.origem_id && cteMap[p.origem_id]) {
+      return Number(cteMap[p.origem_id]) || 0;
+    }
+    const docMeta = p.metadata?.documento || p.metadata?.numero_documento || p.metadata?.numero;
+    if (docMeta != null) {
+      const n = Number(docMeta);
+      return Number.isFinite(n) ? n : String(docMeta);
+    }
+    return "";
+  };
+
+  // Backward-compat: combined label used in mobile cards
+  const getOrigemLabel = (p: Previsao) => {
+    const doc = getDocumentoLabel(p);
+    return doc && doc !== "—" ? `${getOrigemTipoLabel(p)} ${doc}` : getOrigemTipoLabel(p);
+  };
+
+  const { sort, toggle, sorted } = useSortableTable<Previsao, "cliente" | "data" | "valor" | "origem" | "documento" | "status">(
     previsoes,
     { key: "data", direction: "asc" },
     {
@@ -145,6 +172,7 @@ export function RevenueForecasts() {
       data: (row) => row.data_prevista,
       valor: (row) => Number(row.valor),
       origem: (row) => row.origem_tipo,
+      documento: (row) => getDocumentoSortValue(row),
       status: (row) => row.status,
     }
   );
@@ -592,6 +620,9 @@ export function RevenueForecasts() {
                     <SortableTh active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")} className="text-xs">
                       Origem
                     </SortableTh>
+                    <SortableTh active={sort.key === "documento"} direction={sort.direction} onSort={() => toggle("documento")} className="text-xs">
+                      Documento
+                    </SortableTh>
                     <SortableTh active={sort.key === "cliente"} direction={sort.direction} onSort={() => toggle("cliente")} className="text-xs">
                       Cliente
                     </SortableTh>
@@ -630,9 +661,10 @@ export function RevenueForecasts() {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs uppercase">{getOrigemLabel(p)}</span>
+                              <span className="text-xs uppercase">{getOrigemTipoLabel(p)}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="text-xs tabular-nums">{getDocumentoLabel(p)}</TableCell>
                           <TableCell className="text-xs">{p.cliente_nome}</TableCell>
                           <TableCell className="text-xs">{formatDateBR(p.data_prevista)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(Number(p.valor))}</TableCell>
@@ -704,6 +736,7 @@ export function RevenueForecasts() {
                               <span className="text-xs uppercase font-semibold text-primary">Lote · {g.items.length}</span>
                             </div>
                           </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">—</TableCell>
                           <TableCell className="text-xs font-medium">{g.items[0].cliente_nome}</TableCell>
                           <TableCell className="text-xs">{dateRange}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-semibold">{formatCurrency(total)}</TableCell>
@@ -747,9 +780,10 @@ export function RevenueForecasts() {
                             <TableCell className="pl-8">
                               <div className="flex items-center gap-1.5">
                                 <Icon className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemLabel(p)}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">{getOrigemTipoLabel(p)}</span>
                               </div>
                             </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground tabular-nums">{getDocumentoLabel(p)}</TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">
                               {p.metadata?.placa || "—"}
                               {p.metadata?.motorista ? ` · ${p.metadata.motorista}` : ""}
