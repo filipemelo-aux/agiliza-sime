@@ -188,9 +188,11 @@ export function BankReconciliation() {
           .not("matched_movimentacao_id", "is", null),
       ]);
 
+      // Exclude movements already linked to ANY reconciliation item (including
+      // items inside the current reconciliation), so a single paid/reconciled
+      // entry is never suggested as a close-date match for a different OFX line.
       const alreadyMatchedIds = new Set(
         (alreadyMatched || [])
-          .filter((r: any) => r.reconciliation_id !== rec.id)
           .map((r: any) => r.matched_movimentacao_id)
           .filter(Boolean)
       );
