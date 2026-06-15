@@ -171,7 +171,8 @@ export default function VehicleMetrics() {
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
     const custoCartao = cardItems.reduce((s, x) => s + Number(x.amount || 0), 0);
-    const custoTotal = custoComb + custoMan + custoCartao;
+    const custoOutros = expensesV.reduce((s, x) => s + Number(x.valor_total || 0), 0);
+    const custoTotal = custoComb + custoMan + custoCartao + custoOutros;
     const lucro = receita - custoTotal;
 
     const fuelOrdered = [...fuelings]
@@ -196,8 +197,8 @@ export default function VehicleMetrics() {
             ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
             : "";
 
-    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints, colheitas, cardItems, veiculoId]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoOutros, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas, cardItems, expensesV, veiculoId]);
 
   const chartData = [
     { nome: "Receita CT-e", value: m.receitaCte, kind: "receita" as const },
@@ -205,6 +206,7 @@ export default function VehicleMetrics() {
     { nome: "Combustível", value: -m.custoComb, kind: "custo" as const },
     { nome: "Manutenção", value: -m.custoMan, kind: "custo" as const },
     { nome: "Cartão", value: -m.custoCartao, kind: "custo" as const },
+    { nome: "Outras Despesas", value: -m.custoOutros, kind: "custo" as const },
     { nome: "Resultado", value: m.lucro, kind: "resultado" as const },
   ];
   const barColor = (d: { kind: "receita" | "custo" | "resultado"; value: number }) => {
