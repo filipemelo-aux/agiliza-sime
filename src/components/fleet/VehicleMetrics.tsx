@@ -60,7 +60,7 @@ export default function VehicleMetrics() {
     }
     if (preset === "ano") { const d = new Date(now.getFullYear(), 0, 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); }
   };
-  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão") => {
+  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão" | "Despesa") => {
     setTiposDespesa(prev => {
       const next = new Set(prev);
       if (next.has(t)) next.delete(t); else next.add(t);
