@@ -64,12 +64,12 @@ export default function VehicleMetrics() {
     setTiposDespesa(prev => {
       const next = new Set(prev);
       if (next.has(t)) next.delete(t); else next.add(t);
-      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão"]);
+      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão", "Despesa"]);
       return next;
     });
   };
-  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 3 || veiculoId !== ALL;
-  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão"])); setVeiculoId(ALL); };
+  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 4 || veiculoId !== ALL;
+  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão", "Despesa"])); setVeiculoId(ALL); };
 
   useEffect(() => {
     (async () => {
