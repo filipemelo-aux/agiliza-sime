@@ -44,6 +44,7 @@ export default function VehicleMetrics() {
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
   const [cardItems, setCardItems] = useState<CardItem[]>([]);
+  const [expensesV, setExpensesV] = useState<Expense[]>([]);
 
   const setPeriodPreset = (preset: "hoje" | "7d" | "30d" | "mes" | "mes_ant" | "ano") => {
     const now = new Date();
