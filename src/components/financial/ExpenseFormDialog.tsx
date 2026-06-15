@@ -667,7 +667,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       litros: litros ? Number(litros) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
+      veiculo_id: veiculoId || null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
