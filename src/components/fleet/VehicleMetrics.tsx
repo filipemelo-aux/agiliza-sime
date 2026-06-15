@@ -21,6 +21,7 @@ type Fueling = { id: string; data_abastecimento: string; tipo_combustivel: strin
 type Maint = { id: string; data_manutencao: string; tipo_manutencao: string | null; descricao: string | null; custo_total: number | null; fornecedor: string | null; expense_id: string | null; veiculo_id?: string | null };
 type Colheita = { id: string; data_prevista: string; valor: number; status: string; metadata: any; veiculo_id?: string | null };
 type CardItem = { id: string; posted_date: string; description: string; amount: number; plano_contas_id: string | null; invoice_id: string; plano_nome?: string | null; veiculo_id?: string | null };
+type Expense = { id: string; data_emissao: string; descricao: string; favorecido_nome: string | null; valor_total: number; veiculo_id?: string | null; plano_nome?: string | null };
 
 const ALL = "__all__";
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -32,8 +33,8 @@ export default function VehicleMetrics() {
   const [dataInicio, setDataInicio] = useState<string>(monthStartISO());
   const [dataFim, setDataFim] = useState<string>(todayISO());
   const [busca, setBusca] = useState<string>("");
-  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão">>(
-    new Set(["Combustível", "Manutenção", "Cartão"])
+  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão" | "Despesa">>(
+    new Set(["Combustível", "Manutenção", "Cartão", "Despesa"])
   );
   const [vehicleSearch, setVehicleSearch] = useState<string>("");
 
@@ -43,6 +44,7 @@ export default function VehicleMetrics() {
   const [maints, setMaints] = useState<Maint[]>([]);
   const [colheitas, setColheitas] = useState<Colheita[]>([]);
   const [cardItems, setCardItems] = useState<CardItem[]>([]);
+  const [expensesV, setExpensesV] = useState<Expense[]>([]);
 
   const setPeriodPreset = (preset: "hoje" | "7d" | "30d" | "mes" | "mes_ant" | "ano") => {
     const now = new Date();
@@ -58,16 +60,16 @@ export default function VehicleMetrics() {
     }
     if (preset === "ano") { const d = new Date(now.getFullYear(), 0, 1); setDataInicio(toISO(d)); setDataFim(toISO(now)); }
   };
-  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão") => {
+  const toggleTipo = (t: "Combustível" | "Manutenção" | "Cartão" | "Despesa") => {
     setTiposDespesa(prev => {
       const next = new Set(prev);
       if (next.has(t)) next.delete(t); else next.add(t);
-      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão"]);
+      if (next.size === 0) return new Set(["Combustível", "Manutenção", "Cartão", "Despesa"]);
       return next;
     });
   };
-  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 3 || veiculoId !== ALL;
-  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão"])); setVeiculoId(ALL); };
+  const hasActiveFilters = busca.trim() !== "" || tiposDespesa.size < 4 || veiculoId !== ALL;
+  const clearFilters = () => { setBusca(""); setTiposDespesa(new Set(["Combustível", "Manutenção", "Cartão", "Despesa"])); setVeiculoId(ALL); };
 
   useEffect(() => {
     (async () => {
@@ -106,15 +108,23 @@ export default function VehicleMetrics() {
         .select("id, posted_date, description, amount, plano_contas_id, invoice_id, veiculo_id, plano:chart_of_accounts(nome)")
         .gte("posted_date", dataInicio).lte("posted_date", dataFim)
         .order("posted_date", { ascending: false });
+      const expQ = (supabase.from("expenses") as any)
+        .select("id, data_emissao, descricao, favorecido_nome, valor_total, veiculo_id, plano:chart_of_accounts(nome)")
+        .is("deleted_at", null)
+        .not("veiculo_id", "is", null)
+        .neq("tipo_despesa", "manutencao")
+        .gte("data_emissao", dataInicio).lte("data_emissao", dataFim)
+        .order("data_emissao", { ascending: false });
 
       if (!isAll) {
         cteQ.eq("veiculo_id", veiculoId);
         fuelQ.eq("veiculo_id", veiculoId);
         maintQ.eq("veiculo_id", veiculoId);
         cardQ.eq("veiculo_id", veiculoId);
+        expQ.eq("veiculo_id", veiculoId);
       }
 
-      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ]);
+      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes, expRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ, expQ]);
 
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
@@ -138,6 +148,11 @@ export default function VehicleMetrics() {
         plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
         veiculo_id: r.veiculo_id,
       })));
+      setExpensesV(((expRes.data as any[]) || []).map((r: any) => ({
+        id: r.id, data_emissao: r.data_emissao, descricao: r.descricao,
+        favorecido_nome: r.favorecido_nome, valor_total: Number(r.valor_total || 0),
+        veiculo_id: r.veiculo_id, plano_nome: r.plano?.nome || null,
+      })));
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
@@ -156,7 +171,8 @@ export default function VehicleMetrics() {
     const custoComb = fuelings.reduce((s, f) => s + Number(f.valor_total || 0), 0);
     const custoMan = maints.reduce((s, x) => s + Number(x.custo_total || 0), 0);
     const custoCartao = cardItems.reduce((s, x) => s + Number(x.amount || 0), 0);
-    const custoTotal = custoComb + custoMan + custoCartao;
+    const custoOutros = expensesV.reduce((s, x) => s + Number(x.valor_total || 0), 0);
+    const custoTotal = custoComb + custoMan + custoCartao + custoOutros;
     const lucro = receita - custoTotal;
 
     const fuelOrdered = [...fuelings]
@@ -181,8 +197,8 @@ export default function VehicleMetrics() {
             ? `${missingKm} abastecimento(s) sem KM preenchido — média parcial.`
             : "";
 
-    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoTotal, lucro, kml, kmlImprecise, kmlReason };
-  }, [ctes, fuelings, maints, colheitas, cardItems, veiculoId]);
+    return { receita, receitaCte, receitaColheita, custoComb, custoMan, custoCartao, custoOutros, custoTotal, lucro, kml, kmlImprecise, kmlReason };
+  }, [ctes, fuelings, maints, colheitas, cardItems, expensesV, veiculoId]);
 
   const chartData = [
     { nome: "Receita CT-e", value: m.receitaCte, kind: "receita" as const },
@@ -190,6 +206,7 @@ export default function VehicleMetrics() {
     { nome: "Combustível", value: -m.custoComb, kind: "custo" as const },
     { nome: "Manutenção", value: -m.custoMan, kind: "custo" as const },
     { nome: "Cartão", value: -m.custoCartao, kind: "custo" as const },
+    { nome: "Outras Despesas", value: -m.custoOutros, kind: "custo" as const },
     { nome: "Resultado", value: m.lucro, kind: "resultado" as const },
   ];
   const barColor = (d: { kind: "receita" | "custo" | "resultado"; value: number }) => {
@@ -203,7 +220,7 @@ export default function VehicleMetrics() {
   const isAll = veiculoId === ALL;
 
   // Unified "all expenses" rows
-  type DespesaRow = { id: string; data: string; tipo: "Combustível" | "Manutenção" | "Cartão"; descricao: string; fornecedor: string; placa: string; valor: number };
+  type DespesaRow = { id: string; data: string; tipo: "Combustível" | "Manutenção" | "Cartão" | "Despesa"; descricao: string; fornecedor: string; placa: string; valor: number };
   const despesas: DespesaRow[] = useMemo(() => {
     const a: DespesaRow[] = fuelings.map(f => ({
       id: `f-${f.id}`, data: f.data_abastecimento, tipo: "Combustível",
@@ -220,14 +237,19 @@ export default function VehicleMetrics() {
       descricao: x.description, fornecedor: x.plano_nome || "—",
       placa: plateOf(x.veiculo_id), valor: Number(x.amount || 0),
     }));
-    const all = [...a, ...b, ...c];
+    const d: DespesaRow[] = expensesV.map(x => ({
+      id: `e-${x.id}`, data: x.data_emissao, tipo: "Despesa",
+      descricao: x.descricao, fornecedor: x.favorecido_nome || x.plano_nome || "—",
+      placa: plateOf(x.veiculo_id), valor: Number(x.valor_total || 0),
+    }));
+    const all = [...a, ...b, ...c, ...d];
     const q = busca.trim().toLowerCase();
     return all.filter(r => {
       if (!tiposDespesa.has(r.tipo)) return false;
       if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [fuelings, maints, cardItems, plateById, busca, tiposDespesa]);
+  }, [fuelings, maints, cardItems, expensesV, plateById, busca, tiposDespesa]);
   const despesasTotal = useMemo(() => despesas.reduce((s, r) => s + r.valor, 0), [despesas]);
 
   // Sortable tables
@@ -333,9 +355,9 @@ export default function VehicleMetrics() {
           {/* Linha 3 — chips de tipo de despesa */}
           <div className="flex flex-wrap items-center gap-2">
             <Label className="text-xs text-muted-foreground">Tipos de despesa:</Label>
-            {(["Combustível", "Manutenção", "Cartão"] as const).map(t => {
+            {(["Combustível", "Manutenção", "Cartão", "Despesa"] as const).map(t => {
               const active = tiposDespesa.has(t);
-              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : CreditCard;
+              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : t === "Cartão" ? CreditCard : DollarSign;
               return (
                 <button key={t} type="button" onClick={() => toggleTipo(t)}
                   className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition ${
