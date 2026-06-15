@@ -840,8 +840,8 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
   <div>
     <div class="company">${companyName}</div>
     <div class="company-sub">${cnpjLines}</div>
-    ${companyAddress ? `<div class="company-addr">${companyAddress}</div>` : ""}
   </div>
+
   <div class="doc-info">
     <div class="doc-title">Fatura #${String(fatura.numero).padStart(4, '0')}</div>
     <div class="doc-number">${formatDateBR(fatura.data_emissao)} · ${fatura.num_parcelas === 1 ? 'À Vista' : fatura.num_parcelas + 'x'} · ${(STATUS_MAP[fatura.status] || STATUS_MAP.rascunho).label}</div>
