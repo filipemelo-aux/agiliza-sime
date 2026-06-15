@@ -220,7 +220,7 @@ export default function VehicleMetrics() {
   const isAll = veiculoId === ALL;
 
   // Unified "all expenses" rows
-  type DespesaRow = { id: string; data: string; tipo: "Combustível" | "Manutenção" | "Cartão"; descricao: string; fornecedor: string; placa: string; valor: number };
+  type DespesaRow = { id: string; data: string; tipo: "Combustível" | "Manutenção" | "Cartão" | "Despesa"; descricao: string; fornecedor: string; placa: string; valor: number };
   const despesas: DespesaRow[] = useMemo(() => {
     const a: DespesaRow[] = fuelings.map(f => ({
       id: `f-${f.id}`, data: f.data_abastecimento, tipo: "Combustível",
@@ -237,14 +237,19 @@ export default function VehicleMetrics() {
       descricao: x.description, fornecedor: x.plano_nome || "—",
       placa: plateOf(x.veiculo_id), valor: Number(x.amount || 0),
     }));
-    const all = [...a, ...b, ...c];
+    const d: DespesaRow[] = expensesV.map(x => ({
+      id: `e-${x.id}`, data: x.data_emissao, tipo: "Despesa",
+      descricao: x.descricao, fornecedor: x.favorecido_nome || x.plano_nome || "—",
+      placa: plateOf(x.veiculo_id), valor: Number(x.valor_total || 0),
+    }));
+    const all = [...a, ...b, ...c, ...d];
     const q = busca.trim().toLowerCase();
     return all.filter(r => {
       if (!tiposDespesa.has(r.tipo)) return false;
       if (q && !`${r.descricao} ${r.fornecedor} ${r.placa}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [fuelings, maints, cardItems, plateById, busca, tiposDespesa]);
+  }, [fuelings, maints, cardItems, expensesV, plateById, busca, tiposDespesa]);
   const despesasTotal = useMemo(() => despesas.reduce((s, r) => s + r.valor, 0), [despesas]);
 
   // Sortable tables
