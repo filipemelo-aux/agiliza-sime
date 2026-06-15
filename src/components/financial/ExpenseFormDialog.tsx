@@ -176,6 +176,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
+  const [fleetVehicles, setFleetVehicles] = useState<Array<{ id: string; plate: string; brand: string | null; model: string | null }>>([]);
 
   // NFSe / Ordem de Serviço linked to maintenance
   const [hasNfse, setHasNfse] = useState(false);
@@ -209,6 +210,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo")
         .then(({ data }) => setChartAccounts((data as any) || []));
     }
+    supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria").order("plate")
+      .then(({ data }) => setFleetVehicles((data as any) || []));
   }, [open, externalChartAccounts]);
 
   // Build hierarchical path for a chart account
@@ -664,7 +667,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       litros: litros ? Number(litros) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
-      veiculo_id: isMaintenanceType ? (veiculoId || null) : null,
+      veiculo_id: veiculoId || null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
       km_atual: isMaintenanceType && kmAtual ? Number(kmAtual) : null,
       fornecedor_mecanica: isMaintenanceType ? (fornecedorMecanica.trim() || null) : null,
@@ -1383,13 +1386,37 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
            </div>
 
 
-          {/* ── Vehicle-specific fields (for combustivel category) ── */}
-          {isCategoryWithVehicle && (
+          {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
+          {!isMaintenanceType && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Placa Veículo</Label>
-                <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+                <Label className="text-xs">Veículo (opcional)</Label>
+                <Select
+                  value={veiculoId || "__none__"}
+                  onValueChange={(v) => {
+                    if (v === "__none__") { setVeiculoId(null); setVeiculoPlaca(""); return; }
+                    setVeiculoId(v);
+                    const found = fleetVehicles.find(x => x.id === v);
+                    if (found) setVeiculoPlaca(found.plate);
+                  }}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Sem vínculo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem vínculo</SelectItem>
+                    {fleetVehicles.map(v => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.plate}{v.brand || v.model ? ` - ${[v.brand, v.model].filter(Boolean).join(" ")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              {isCategoryWithVehicle && !veiculoId && (
+                <div>
+                  <Label className="text-xs">Placa Veículo</Label>
+                  <Input value={veiculoPlaca} onChange={e => setVeiculoPlaca(e.target.value)} placeholder="ABC1D23" className="h-9" />
+                </div>
+              )}
             </div>
           )}
           {showFuelFields && (
