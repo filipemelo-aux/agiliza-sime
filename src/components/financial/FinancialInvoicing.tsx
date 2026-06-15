@@ -685,12 +685,38 @@ export function FinancialInvoicing() {
     const issuingEst =
       (dominantEstId && establishments.find(e => e.id === dominantEstId)) || matriz;
 
-    // Company header: use issuing establishment's razão social + CNPJ.
-    // Keeps the original visual format (just name + single CNPJ line).
-    const companyName = issuingEst?.razao_social || unifiedLabel;
-    const cnpjLines = issuingEst
-      ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}`
-      : unifiedCnpjLines.join("<br/>");
+    // Company header: complete data from issuing establishment (matriz or filial).
+    const companyName = (issuingEst?.razao_social || unifiedLabel || "").toUpperCase();
+    let companyCnpj = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join(" · ");
+    let companyAddress = "";
+    let companyContact = "";
+    if (issuingEst) {
+      const { data: estData } = await supabase
+        .from("fiscal_establishments")
+        .select("inscricao_estadual, inscricao_municipal, endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, telefone, email")
+        .eq("id", issuingEst.id)
+        .maybeSingle();
+      if (estData) {
+        if (estData.inscricao_estadual) companyCnpj += ` · IE: ${estData.inscricao_estadual}`;
+        if (estData.inscricao_municipal) companyCnpj += ` · IM: ${estData.inscricao_municipal}`;
+        const line1 = [
+          estData.endereco_logradouro,
+          estData.endereco_numero ? `nº ${estData.endereco_numero}` : null,
+          estData.endereco_complemento,
+          estData.endereco_bairro,
+        ].filter(Boolean).join(", ");
+        const line2 = [
+          estData.endereco_municipio && estData.endereco_uf ? `${estData.endereco_municipio}/${estData.endereco_uf}` : null,
+          estData.endereco_cep ? `CEP: ${estData.endereco_cep}` : null,
+        ].filter(Boolean).join(" · ");
+        companyAddress = [line1, line2].filter(Boolean).join(" — ");
+        companyContact = [
+          estData.telefone ? `Tel: ${estData.telefone}` : null,
+          estData.email ? `E-mail: ${estData.email}` : null,
+        ].filter(Boolean).join(" · ");
+      }
+    }
+
 
 
     // Client display info
