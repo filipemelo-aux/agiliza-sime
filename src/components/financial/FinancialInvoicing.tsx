@@ -689,20 +689,17 @@ export function FinancialInvoicing() {
     const companyName = (issuingEst?.razao_social || unifiedLabel || "").toUpperCase();
     let companyCnpj = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join(" · ");
     let companyAddress = "";
-    let companyContact = "";
     if (issuingEst) {
       const { data: estData } = await supabase
         .from("fiscal_establishments")
-        .select("inscricao_estadual, inscricao_municipal, endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, telefone, email")
+        .select("inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
         .eq("id", issuingEst.id)
         .maybeSingle();
       if (estData) {
         if (estData.inscricao_estadual) companyCnpj += ` · IE: ${estData.inscricao_estadual}`;
-        if (estData.inscricao_municipal) companyCnpj += ` · IM: ${estData.inscricao_municipal}`;
         const line1 = [
           estData.endereco_logradouro,
           estData.endereco_numero ? `nº ${estData.endereco_numero}` : null,
-          estData.endereco_complemento,
           estData.endereco_bairro,
         ].filter(Boolean).join(", ");
         const line2 = [
@@ -710,12 +707,9 @@ export function FinancialInvoicing() {
           estData.endereco_cep ? `CEP: ${estData.endereco_cep}` : null,
         ].filter(Boolean).join(" · ");
         companyAddress = [line1, line2].filter(Boolean).join(" — ");
-        companyContact = [
-          estData.telefone ? `Tel: ${estData.telefone}` : null,
-          estData.email ? `E-mail: ${estData.email}` : null,
-        ].filter(Boolean).join(" · ");
       }
     }
+
 
 
 
