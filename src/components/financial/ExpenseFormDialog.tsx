@@ -176,6 +176,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [proximaManutencaoKm, setProximaManutencaoKm] = useState("");
   const [dataProximaManutencao, setDataProximaManutencao] = useState("");
   const [itensManutencao, setItensManutencao] = useState<MaintenanceItem[]>([]);
+  const [fleetVehicles, setFleetVehicles] = useState<Array<{ id: string; plate: string; brand: string | null; model: string | null }>>([]);
 
   // NFSe / Ordem de Serviço linked to maintenance
   const [hasNfse, setHasNfse] = useState(false);
