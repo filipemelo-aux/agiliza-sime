@@ -574,6 +574,23 @@ export function FinancialInvoicing() {
 
   // --- Print ---
   const handlePrintFatura = async (fatura: Fatura) => {
+    // Load logo as data URL so it appears in blob-printed invoices
+    let logoDataUrl = "";
+    try {
+      const logoRes = await fetch(`${window.location.origin}/logo.png`);
+      if (logoRes.ok) {
+        const logoBlob = await logoRes.blob();
+        logoDataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(logoBlob);
+        });
+      }
+    } catch {
+      // fallback to absolute path if fetch fails
+    }
+    const logoSrc = logoDataUrl || `${window.location.origin}/logo.png`;
+
     // Load linked previsões
     const { data: links } = await supabase
       .from("fatura_previsoes")
