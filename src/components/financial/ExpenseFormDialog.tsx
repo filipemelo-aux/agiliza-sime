@@ -210,6 +210,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       supabase.from("chart_of_accounts").select("id, codigo, nome, tipo, conta_pai_id, tipo_operacional").eq("ativo", true).order("codigo")
         .then(({ data }) => setChartAccounts((data as any) || []));
     }
+    supabase.from("vehicles").select("id, plate, brand, model").eq("is_active", true).eq("fleet_type", "propria").order("plate")
+      .then(({ data }) => setFleetVehicles((data as any) || []));
   }, [open, externalChartAccounts]);
 
   // Build hierarchical path for a chart account
