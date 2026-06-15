@@ -686,7 +686,7 @@ export function FinancialInvoicing() {
       (dominantEstId && establishments.find(e => e.id === dominantEstId)) || matriz;
 
     // Company header: complete data from issuing establishment (matriz or filial).
-    const companyName = (issuingEst?.razao_social || unifiedLabel || "").toUpperCase();
+    const companyName = issuingEst?.razao_social || unifiedLabel || "";
     let companyCnpj = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join(" · ");
     let companyAddress = "";
     if (issuingEst) {
