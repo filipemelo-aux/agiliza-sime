@@ -21,6 +21,7 @@ type Fueling = { id: string; data_abastecimento: string; tipo_combustivel: strin
 type Maint = { id: string; data_manutencao: string; tipo_manutencao: string | null; descricao: string | null; custo_total: number | null; fornecedor: string | null; expense_id: string | null; veiculo_id?: string | null };
 type Colheita = { id: string; data_prevista: string; valor: number; status: string; metadata: any; veiculo_id?: string | null };
 type CardItem = { id: string; posted_date: string; description: string; amount: number; plano_contas_id: string | null; invoice_id: string; plano_nome?: string | null; veiculo_id?: string | null };
+type Expense = { id: string; data_emissao: string; descricao: string; favorecido_nome: string | null; valor_total: number; veiculo_id?: string | null; plano_nome?: string | null };
 
 const ALL = "__all__";
 const todayISO = () => new Date().toISOString().slice(0, 10);
