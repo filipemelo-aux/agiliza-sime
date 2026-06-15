@@ -685,32 +685,13 @@ export function FinancialInvoicing() {
     const issuingEst =
       (dominantEstId && establishments.find(e => e.id === dominantEstId)) || matriz;
 
-    // Fetch full data (address + IE) of the issuing establishment
-    let companyName = issuingEst?.razao_social || unifiedLabel;
-    let cnpjLines = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join("<br/>");
-    let companyAddress = "";
-    let companyIE = "";
-    if (issuingEst) {
-      const { data: estData } = await supabase
-        .from("fiscal_establishments")
-        .select("inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
-        .eq("id", issuingEst.id)
-        .single();
-      if (estData) {
-        companyIE = estData.inscricao_estadual || "";
-        const parts = [
-          estData.endereco_logradouro,
-          estData.endereco_numero ? `nº ${estData.endereco_numero}` : null,
-          estData.endereco_bairro,
-          estData.endereco_municipio && estData.endereco_uf ? `${estData.endereco_municipio}/${estData.endereco_uf}` : null,
-          estData.endereco_cep ? `CEP: ${estData.endereco_cep}` : null,
-        ].filter(Boolean);
-        companyAddress = parts.join(", ");
-      }
-      if (companyIE) {
-        cnpjLines += ` · IE: ${companyIE}`;
-      }
-    }
+    // Company header: use issuing establishment's razão social + CNPJ.
+    // Keeps the original visual format (just name + single CNPJ line).
+    const companyName = issuingEst?.razao_social || unifiedLabel;
+    const cnpjLines = issuingEst
+      ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}`
+      : unifiedCnpjLines.join("<br/>");
+
 
     // Client display info
     const cli = clienteProfile;
