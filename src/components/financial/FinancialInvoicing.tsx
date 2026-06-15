@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2 } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCNPJ } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -650,7 +650,7 @@ export function FinancialInvoicing() {
     if (cteIds.length > 0) {
       const { data: cteData } = await supabase
         .from("ctes")
-        .select("id, numero, numero_interno, tipo_talao, serie, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante, data_emissao")
+        .select("id, numero, numero_interno, tipo_talao, serie, peso_bruto, valor_carga, valor_frete, valor_tonelada, valor_receber, desconto, placa_veiculo, produto_predominante, data_emissao, establishment_id")
         .in("id", [...new Set(cteIds)]);
       if (cteData) {
         cteData.forEach((c: any) => { ctesById[c.id] = c; });
@@ -674,20 +674,30 @@ export function FinancialInvoicing() {
       return getDate(a).localeCompare(getDate(b));
     });
 
-    // Company info
-    const companyName = unifiedLabel;
-    const cnpjLines = unifiedCnpjLines.join("<br/>");
+    // Determine the issuing establishment for this fatura.
+    // Priority: dominant establishment_id among CT-es referenced; fallback to matriz.
     const matriz = establishments.find(e => e.type === "matriz") || establishments[0];
+    const estCounts: Record<string, number> = {};
+    Object.values(ctesById).forEach((c: any) => {
+      if (c?.establishment_id) estCounts[c.establishment_id] = (estCounts[c.establishment_id] || 0) + 1;
+    });
+    const dominantEstId = Object.keys(estCounts).sort((a, b) => estCounts[b] - estCounts[a])[0];
+    const issuingEst =
+      (dominantEstId && establishments.find(e => e.id === dominantEstId)) || matriz;
 
-    // Build company address from establishment
+    // Fetch full data (address + IE) of the issuing establishment
+    let companyName = issuingEst?.razao_social || unifiedLabel;
+    let cnpjLines = issuingEst ? `CNPJ: ${maskCNPJ(issuingEst.cnpj)}` : unifiedCnpjLines.join("<br/>");
     let companyAddress = "";
-    if (matriz) {
+    let companyIE = "";
+    if (issuingEst) {
       const { data: estData } = await supabase
         .from("fiscal_establishments")
-        .select("endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
-        .eq("id", matriz.id)
+        .select("inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep")
+        .eq("id", issuingEst.id)
         .single();
       if (estData) {
+        companyIE = estData.inscricao_estadual || "";
         const parts = [
           estData.endereco_logradouro,
           estData.endereco_numero ? `nº ${estData.endereco_numero}` : null,
@@ -696,6 +706,9 @@ export function FinancialInvoicing() {
           estData.endereco_cep ? `CEP: ${estData.endereco_cep}` : null,
         ].filter(Boolean);
         companyAddress = parts.join(", ");
+      }
+      if (companyIE) {
+        cnpjLines += ` · IE: ${companyIE}`;
       }
     }
 
