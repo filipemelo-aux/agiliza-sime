@@ -355,9 +355,9 @@ export default function VehicleMetrics() {
           {/* Linha 3 — chips de tipo de despesa */}
           <div className="flex flex-wrap items-center gap-2">
             <Label className="text-xs text-muted-foreground">Tipos de despesa:</Label>
-            {(["Combustível", "Manutenção", "Cartão"] as const).map(t => {
+            {(["Combustível", "Manutenção", "Cartão", "Despesa"] as const).map(t => {
               const active = tiposDespesa.has(t);
-              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : CreditCard;
+              const Icon = t === "Combustível" ? Fuel : t === "Manutenção" ? Wrench : t === "Cartão" ? CreditCard : DollarSign;
               return (
                 <button key={t} type="button" onClick={() => toggleTipo(t)}
                   className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition ${
