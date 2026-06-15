@@ -148,6 +148,11 @@ export default function VehicleMetrics() {
         plano_contas_id: r.plano_contas_id, invoice_id: r.invoice_id, plano_nome: r.plano?.nome || null,
         veiculo_id: r.veiculo_id,
       })));
+      setExpensesV(((expRes.data as any[]) || []).map((r: any) => ({
+        id: r.id, data_emissao: r.data_emissao, descricao: r.descricao,
+        favorecido_nome: r.favorecido_nome, valor_total: Number(r.valor_total || 0),
+        veiculo_id: r.veiculo_id, plano_nome: r.plano?.nome || null,
+      })));
       setLoading(false);
     })();
   }, [veiculoId, dataInicio, dataFim]);
