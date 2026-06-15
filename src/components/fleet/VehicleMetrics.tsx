@@ -33,8 +33,8 @@ export default function VehicleMetrics() {
   const [dataInicio, setDataInicio] = useState<string>(monthStartISO());
   const [dataFim, setDataFim] = useState<string>(todayISO());
   const [busca, setBusca] = useState<string>("");
-  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão">>(
-    new Set(["Combustível", "Manutenção", "Cartão"])
+  const [tiposDespesa, setTiposDespesa] = useState<Set<"Combustível" | "Manutenção" | "Cartão" | "Despesa">>(
+    new Set(["Combustível", "Manutenção", "Cartão", "Despesa"])
   );
   const [vehicleSearch, setVehicleSearch] = useState<string>("");
 
