@@ -108,15 +108,23 @@ export default function VehicleMetrics() {
         .select("id, posted_date, description, amount, plano_contas_id, invoice_id, veiculo_id, plano:chart_of_accounts(nome)")
         .gte("posted_date", dataInicio).lte("posted_date", dataFim)
         .order("posted_date", { ascending: false });
+      const expQ = (supabase.from("expenses") as any)
+        .select("id, data_emissao, descricao, favorecido_nome, valor_total, veiculo_id, plano:chart_of_accounts(nome)")
+        .is("deleted_at", null)
+        .not("veiculo_id", "is", null)
+        .neq("tipo_despesa", "manutencao")
+        .gte("data_emissao", dataInicio).lte("data_emissao", dataFim)
+        .order("data_emissao", { ascending: false });
 
       if (!isAll) {
         cteQ.eq("veiculo_id", veiculoId);
         fuelQ.eq("veiculo_id", veiculoId);
         maintQ.eq("veiculo_id", veiculoId);
         cardQ.eq("veiculo_id", veiculoId);
+        expQ.eq("veiculo_id", veiculoId);
       }
 
-      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ]);
+      const [cteRes, fuelRes, maintRes, colheitaRes, cardRes, expRes] = await Promise.all([cteQ, fuelQ, maintQ, colheitaQ, cardQ, expQ]);
 
       setCtes((cteRes.data as any) || []);
       setFuelings((fuelRes.data as any) || []);
