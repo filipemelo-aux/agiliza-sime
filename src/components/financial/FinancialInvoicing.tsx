@@ -857,9 +857,13 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 </style></head><body>
 
 <div class="header">
-  <div>
-    <div class="company">${companyName}</div>
-    <div class="company-sub">${cnpjLines}</div>
+  <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+    <img src="${window.location.origin}/logo.png" alt="" style="height:54px;width:auto;object-fit:contain;flex-shrink:0" />
+    <div style="min-width:0">
+      <div class="company">${companyName}</div>
+      <div class="company-sub">${companyCnpj}</div>
+      ${companyAddress ? `<div class="company-addr">${companyAddress}</div>` : ""}
+    </div>
   </div>
 
   <div class="doc-info">
@@ -868,6 +872,7 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
     <div style="font-size:14px;font-weight:800;margin-top:2px">${formatCurrency(Number(fatura.valor_total))}</div>
   </div>
 </div>
+
 
 <div class="section">
   <div class="section-title">Dados do Cliente</div>
