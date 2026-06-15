@@ -838,7 +838,7 @@ export function FinancialInvoicing() {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1a1a2e;background:#fff;padding:40px 48px;font-size:13px;line-height:1.5}
-.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:2px solid #1a1a2e;margin-bottom:24px}
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #1a1a2e;margin-bottom:14px}
 .company{font-size:18px;font-weight:700;letter-spacing:-0.3px;color:#1a1a2e}
 .company-sub{font-size:11px;color:#6b7280;margin-top:4px}
 .company-addr{font-size:10px;color:#9ca3af;margin-top:2px}
@@ -869,13 +869,13 @@ td{padding:4px 6px;font-size:11px;border-bottom:1px solid #f3f4f6}
 .summary-item{text-align:center}
 .summary-item .value{font-size:14px;font-weight:800;color:#1a1a2e}
 .summary-item .label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px}
-.divider{border:none;border-top:1px dashed #e5e7eb;margin:10px 0}
-@media print{body{padding:6px 10px;font-size:9px}@page{margin:5mm;size:A4 portrait}table{font-size:9px}th{padding:2px 4px;font-size:8px}td{padding:1px 4px;font-size:9px;line-height:1.15}.header{margin-bottom:6px;padding-bottom:5px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:11px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:5px;padding-top:4px;font-size:7px}h2{font-size:11px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:8px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:16px}.doc-number{font-size:9px}.badge{padding:1px 4px;font-size:8px}}
+.divider{border:none;border-top:1px dashed #e5e7eb;margin:6px 0}
+@media print{body{padding:6px 10px;font-size:9px}@page{margin:5mm;size:A4 portrait}table{font-size:9px}th{padding:2px 4px;font-size:8px}td{padding:1px 4px;font-size:9px;line-height:1.15}.header{margin-bottom:4px;padding-bottom:4px}.summary-box{padding:4px 6px;gap:4px;margin-bottom:6px}.summary-item .value{font-size:11px}.summary-item .label{font-size:7px}.divider{margin:4px 0}.footer{margin-top:5px;padding-top:4px;font-size:7px}h2{font-size:11px;margin-bottom:3px}.section{margin-bottom:6px}.section-title{font-size:8px;margin-bottom:3px;padding-bottom:2px}.info-item label{font-size:7px}.info-item span{font-size:9px}.info-grid,.info-grid-3,.info-grid-4{gap:2px 12px}.company{font-size:13px}.company-sub,.company-addr{font-size:8px}.doc-title{font-size:16px}.doc-number{font-size:9px}.badge{padding:1px 4px;font-size:8px}}
 </style></head><body>
 
 <div class="header">
   <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
-    <img src="${window.location.origin}/logo.png" alt="" style="height:54px;width:auto;object-fit:contain;flex-shrink:0" />
+    <img src="${logoSrc}" alt="" style="height:54px;width:auto;object-fit:contain;flex-shrink:0" />
     <div style="min-width:0">
       <div class="company">${companyName}</div>
       <div class="company-sub">${companyCnpj}</div>
