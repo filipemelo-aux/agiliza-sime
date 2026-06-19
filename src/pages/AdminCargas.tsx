@@ -141,14 +141,14 @@ export default function AdminCargas() {
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[640px]">
+              <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "produto"} direction={sort.direction} onSort={() => toggle("produto")}>Produto</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "tipo"} direction={sort.direction} onSort={() => toggle("tipo")}>Tipo</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[120px]" active={sort.key === "ncm"} direction={sort.direction} onSort={() => toggle("ncm")}>NCM</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium text-center w-[90px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[60px]"></th>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "produto"} direction={sort.direction} onSort={() => toggle("produto")}>Produto</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "tipo"} direction={sort.direction} onSort={() => toggle("tipo")}>Tipo</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[110px]" active={sort.key === "ncm"} direction={sort.direction} onSort={() => toggle("ncm")}>NCM</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium text-center w-[80px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                    <th className="px-1.5 py-1.5 font-medium text-right w-[50px]"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,22 +158,22 @@ export default function AdminCargas() {
                       className="border-t border-border hover:bg-muted/30 cursor-pointer"
                       onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
                     >
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-1.5">
                         <div className="font-medium">{carga.produto_predominante}</div>
                         {carga.sinonimos && (
-                          <div className="text-[11px] text-muted-foreground truncate max-w-[320px]">{carga.sinonimos}</div>
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{carga.sinonimos}</div>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground">{carga.tipo || "—"}</td>
-                      <td className="px-3 py-2 tabular-nums text-muted-foreground">{carga.ncm || "—"}</td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-2 py-1.5 text-muted-foreground">{carga.tipo || "—"}</td>
+                      <td className="px-2 py-1.5 tabular-nums text-muted-foreground">{carga.ncm || "—"}</td>
+                      <td className="px-2 py-1.5 text-center">
                         {carga.ativo ? (
                           <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">Ativo</Badge>
                         ) : (
                           <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-right">
+                      <td className="px-1.5 py-1.5 text-right">
                         <Button
                           size="sm"
                           variant="ghost"

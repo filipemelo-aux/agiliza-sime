@@ -277,14 +277,14 @@ export default function AdminPeople() {
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[760px]">
+              <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[140px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[160px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[150px]"></th>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[120px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[130px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
+                    <th className="px-1.5 py-1.5 font-medium text-right w-[120px]"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -294,10 +294,10 @@ export default function AdminPeople() {
                       : [];
                     return (
                       <tr key={driver.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1.5">
                           <div className="font-medium">{driver.full_name}</div>
                           {driver.person_type === "cnpj" && driver.razao_social && (
-                            <div className="text-[11px] text-muted-foreground truncate max-w-[320px]">{driver.razao_social}</div>
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{driver.razao_social}</div>
                           )}
                           {driverVehicles.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0 mt-0.5 text-[11px] text-muted-foreground">
@@ -311,7 +311,7 @@ export default function AdminPeople() {
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1.5">
                           <div className="flex items-center gap-1 flex-wrap">
                             <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                               {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
@@ -321,17 +321,17 @@ export default function AdminPeople() {
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {driver.email && <div className="truncate max-w-[260px]">{driver.email}</div>}
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {driver.email && <div className="truncate max-w-[200px]">{driver.email}</div>}
                           {driver.phone && <div>{maskPhone(driver.phone)}</div>}
                           {!driver.email && !driver.phone && <span>—</span>}
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                        <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
                           {driver.address_city && driver.address_state
                             ? `${driver.address_city}/${driver.address_state}`
                             : "—"}
                         </td>
-                        <td className="px-2 py-2 text-right">
+                        <td className="px-1.5 py-1.5 text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => {
                               setViewPerson(driver);
