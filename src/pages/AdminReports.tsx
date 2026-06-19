@@ -49,7 +49,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
-function printPdf(title: string, headers: string[], rows: string[][], companyName: string, companyCnpjs: string) {
+function printPdf(title: string, headers: string[], rows: string[][], matriz: any, cnpjsFooter: string) {
   const now = format(new Date(), "dd/MM/yyyy HH:mm");
   const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
@@ -58,6 +58,23 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
     const bg = i % 2 === 0 ? "#ffffff" : "#f8f9fb";
     return `<tr style="background:${bg}">${r.map(c => `<td style="font-family:${FONT};font-size:11px;color:#333;padding:7px 10px;border-bottom:1px solid #e8ecf0">${c ?? ""}</td>`).join("")}</tr>`;
   }).join("");
+
+  const esc = (s: any) => String(s ?? "");
+  const matrizName = matriz?.razao_social || "Sime Transporte Ltda";
+  const matrizCnpj = matriz?.cnpj
+    ? `${matriz.cnpj.slice(0,2)}.${matriz.cnpj.slice(2,5)}.${matriz.cnpj.slice(5,8)}/${matriz.cnpj.slice(8,12)}-${matriz.cnpj.slice(12)}`
+    : "";
+  const addrParts = [
+    matriz?.endereco_logradouro,
+    matriz?.endereco_numero,
+    matriz?.endereco_bairro,
+  ].filter(Boolean).join(", ");
+  const cityParts = [matriz?.endereco_municipio, matriz?.endereco_uf].filter(Boolean).join("/");
+  const cep = matriz?.endereco_cep ? `CEP ${matriz.endereco_cep}` : "";
+  const addrLine = [addrParts, cityParts, cep].filter(Boolean).join(" — ");
+  const ieLine = matriz?.inscricao_estadual ? `IE: ${matriz.inscricao_estadual}` : "";
+  const cnpjLine = matrizCnpj ? `CNPJ: ${matrizCnpj}` : "";
+  const docLine = [cnpjLine, ieLine].filter(Boolean).join("  •  ");
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style type="text/css">
@@ -85,11 +102,13 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
-      ${companyCnpjs.split(" / ").map(c => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ")}
+      <div style="font-size:11px;color:#444;line-height:1.4;margin-top:2px;font-weight:600">${esc(matrizName)}</div>
+      ${addrLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${esc(addrLine)}</div>` : ""}
+      ${docLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${esc(docLine)}</div>` : ""}
     </td>
   </tr></table>
 </td></tr>
+
 
 <tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
