@@ -295,6 +295,7 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
 function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [trailers, setTrailers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
@@ -304,14 +305,19 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
 
   const fetchData = async () => {
     setLoading(true);
-    const [vRes, pRes] = await Promise.all([
+    const [vRes, pRes, tRes] = await Promise.all([
       supabase.from("vehicles").select("*").order("brand"),
       supabase.from("profiles").select("user_id, full_name"),
+      supabase.from("trailers").select("vehicle_id, plate"),
     ]);
     setData(vRes.data || []);
     setProfiles(pRes.data || []);
+    setTrailers(tRes.data || []);
     setLoading(false);
   };
+
+  const getTrailerPlates = (vehicleId: string) =>
+    trailers.filter(t => t.vehicle_id === vehicleId).map(t => t.plate).join(" / ");
 
   const getName = (userId: string | null) => {
     if (!userId) return "—";
@@ -344,11 +350,12 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return result;
   }, [data, typeFilter, fleetFilter, search, profiles]);
 
-  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
+  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "trailers" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
     filtered,
     { key: "plate", direction: "asc" },
     {
       plate: r => (r.plate || "").toLowerCase(),
+      trailers: r => getTrailerPlates(r.id).toLowerCase(),
       renavam: r => r.renavam || "",
       brand: r => `${r.brand || ""} ${r.model || ""}`.toLowerCase(),
       year: r => Number(r.year) || 0,
@@ -359,9 +366,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     },
   );
 
-  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
+  const getHeaders = () => ["Placa", "Placas do Conjunto", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
-    v.plate, v.renavam || "", v.brand, v.model, String(v.year),
+    v.plate, getTrailerPlates(v.id) || "—", v.renavam || "", v.brand, v.model, String(v.year),
     VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
     fleetLabel(v.fleet_type),
     getName(v.driver_id), getName(v.owner_id),
@@ -403,6 +410,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           <TableHeader>
             <TableRow className="h-7">
               <SortableTh active={sort.key==="plate"} direction={sort.direction} onSort={()=>toggle("plate")} className="py-1 px-2 text-[10px]">Placa</SortableTh>
+              <SortableTh active={sort.key==="trailers"} direction={sort.direction} onSort={()=>toggle("trailers")} className="py-1 px-2 text-[10px]">Placas do Conjunto</SortableTh>
               <SortableTh active={sort.key==="renavam"} direction={sort.direction} onSort={()=>toggle("renavam")} className="py-1 px-2 text-[10px]">RENAVAM</SortableTh>
               <SortableTh active={sort.key==="brand"} direction={sort.direction} onSort={()=>toggle("brand")} className="py-1 px-2 text-[10px]">Marca/Modelo</SortableTh>
               <SortableTh active={sort.key==="year"} direction={sort.direction} onSort={()=>toggle("year")} className="py-1 px-2 text-[10px]">Ano</SortableTh>
@@ -414,12 +422,13 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : sorted.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : sorted.map(v => (
               <TableRow key={v.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{v.plate}</TableCell>
+                <TableCell className="py-1 px-2 font-mono text-[11px]">{getTrailerPlates(v.id) || "—"}</TableCell>
                 <TableCell className="py-1 px-2 font-mono text-[11px]">{v.renavam || "—"}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.brand} {v.model}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.year}</TableCell>
