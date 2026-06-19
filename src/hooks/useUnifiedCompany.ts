@@ -35,7 +35,7 @@ export function useUnifiedCompany() {
   useEffect(() => {
     supabase
       .from("fiscal_establishments")
-      .select("id, razao_social, nome_fantasia, cnpj, type")
+      .select("id, razao_social, nome_fantasia, cnpj, type, inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, rntrc")
       .eq("active", true)
       .order("type")
       .order("razao_social")
