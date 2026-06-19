@@ -803,7 +803,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <img src="${window.location.origin}/logo.png" alt="" />
     <div class="est">
       <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
-      ${estCnpj ? estCnpj.split(" / ").map((c) => `<div>CNPJ ${esc(c)}</div>`).join("") : ""}
+      ${matrizAddrLine ? `<div>${esc(matrizAddrLine)}</div>` : ""}
+      ${matrizDocLine ? `<div>${esc(matrizDocLine)}</div>` : ""}
     </div>
     <div style="flex:1">
       <h1>${REPORT_TITLE[reportType]}</h1>
@@ -814,7 +815,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
-    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
+    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}${estCnpjFooter ? ` — CNPJ ${esc(estCnpjFooter)}` : ""}</div>
     <div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
   </div>
 </div>
