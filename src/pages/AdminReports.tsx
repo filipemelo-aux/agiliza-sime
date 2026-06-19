@@ -263,19 +263,19 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Nome</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Categoria</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">CNPJ</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Telefone</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Cidade/UF</TableHead>
+              <SortableTh active={sort.key==="full_name"} direction={sort.direction} onSort={()=>toggle("full_name")} className="py-1 px-2 text-[10px]">Nome</SortableTh>
+              <SortableTh active={sort.key==="category"} direction={sort.direction} onSort={()=>toggle("category")} className="py-1 px-2 text-[10px]">Categoria</SortableTh>
+              <SortableTh active={sort.key==="cnpj"} direction={sort.direction} onSort={()=>toggle("cnpj")} className="py-1 px-2 text-[10px]">CNPJ</SortableTh>
+              <SortableTh active={sort.key==="phone"} direction={sort.direction} onSort={()=>toggle("phone")} className="py-1 px-2 text-[10px]">Telefone</SortableTh>
+              <SortableTh active={sort.key==="city"} direction={sort.direction} onSort={()=>toggle("city")} className="py-1 px-2 text-[10px]">Cidade/UF</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(p => (
+            ) : sorted.map(p => (
               <TableRow key={p.id} className="h-7">
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{p.full_name}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{PERSON_CAT_LABELS[p.category] || p.category}</Badge></TableCell>
