@@ -417,6 +417,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
               <SortableTh active={sort.key==="brand"} direction={sort.direction} onSort={()=>toggle("brand")} className="py-1 px-2 text-[10px]">Marca/Modelo</SortableTh>
               <SortableTh active={sort.key==="year"} direction={sort.direction} onSort={()=>toggle("year")} className="py-1 px-2 text-[10px]">Ano</SortableTh>
               <SortableTh active={sort.key==="type"} direction={sort.direction} onSort={()=>toggle("type")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <TableHead className="py-1 px-2 text-[10px]">Conjunto</TableHead>
               <SortableTh active={sort.key==="fleet"} direction={sort.direction} onSort={()=>toggle("fleet")} className="py-1 px-2 text-[10px]">Frota</SortableTh>
               <SortableTh active={sort.key==="driver"} direction={sort.direction} onSort={()=>toggle("driver")} className="py-1 px-2 text-[10px]">Motorista</SortableTh>
               <SortableTh active={sort.key==="owner"} direction={sort.direction} onSort={()=>toggle("owner")} className="py-1 px-2 text-[10px]">Proprietário</SortableTh>
