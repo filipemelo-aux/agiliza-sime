@@ -190,6 +190,21 @@ export default function AdminVehicles() {
     return matchType && matchSearch;
   });
 
+  type VehicleSortKey = "plate" | "vehicle" | "type" | "driver" | "owner" | "avg" | "spent";
+  const { sort, toggle, sorted } = useSortableTable<VehicleRow, VehicleSortKey>(
+    filteredVehicles,
+    { key: "plate", direction: "asc" },
+    {
+      plate: (v) => v.plate || "",
+      vehicle: (v) => `${v.brand || ""} ${v.model || ""}`,
+      type: (v) => VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type || "",
+      driver: (v) => v.driver_name || "",
+      owner: (v) => v.owner_name || "",
+      avg: (v) => metricsByVehicle[v.id]?.avgKmL ?? 0,
+      spent: (v) => metricsByVehicle[v.id]?.spentMonth ?? 0,
+    },
+  );
+
   const countByFilter = (f: string) => {
     if (f === "__all__") return vehicles.length;
     if (f === "caminhao") return vehicles.filter(v => TRUCK_TYPES.has(v.vehicle_type)).length;
