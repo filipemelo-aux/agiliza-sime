@@ -295,17 +295,17 @@ export default function AdminVehicles() {
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[860px]">
+              <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <SortableTh className="px-3 py-2 font-medium w-[110px]" active={sort.key === "plate"} direction={sort.direction} onSort={() => toggle("plate")}>Placa</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "vehicle"} direction={sort.direction} onSort={() => toggle("vehicle")}>Veículo</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[110px]" active={sort.key === "type"} direction={sort.direction} onSort={() => toggle("type")}>Tipo</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "driver"} direction={sort.direction} onSort={() => toggle("driver")}>Motorista</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "owner"} direction={sort.direction} onSort={() => toggle("owner")}>Proprietário</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-right w-[90px]" align="right" active={sort.key === "avg"} direction={sort.direction} onSort={() => toggle("avg")}>Média</SortableTh>
-                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "spent"} direction={sort.direction} onSort={() => toggle("spent")}>Gasto (mês)</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[90px]" active={sort.key === "plate"} direction={sort.direction} onSort={() => toggle("plate")}>Placa</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "vehicle"} direction={sort.direction} onSort={() => toggle("vehicle")}>Veículo</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[90px]" active={sort.key === "type"} direction={sort.direction} onSort={() => toggle("type")}>Tipo</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "driver"} direction={sort.direction} onSort={() => toggle("driver")}>Motorista</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "owner"} direction={sort.direction} onSort={() => toggle("owner")}>Proprietário</SortableTh>
+                    <SortableTh className="px-1.5 py-1.5 font-medium text-right w-[80px]" align="right" active={sort.key === "avg"} direction={sort.direction} onSort={() => toggle("avg")}>Média</SortableTh>
+                    <SortableTh className="px-1.5 py-1.5 font-medium text-right w-[95px]" align="right" active={sort.key === "spent"} direction={sort.direction} onSort={() => toggle("spent")}>Gasto (mês)</SortableTh>
+                    <th className="px-1.5 py-1.5 font-medium text-right w-[88px]"></th>
                   </tr>
                 </thead>
                 <tbody>
