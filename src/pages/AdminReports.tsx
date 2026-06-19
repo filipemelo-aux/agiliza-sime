@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTh } from "@/components/ui/sortable-th";
+import { useSortableTable } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -219,6 +221,18 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
     return result;
   }, [data, category, search]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "full_name" | "category" | "cnpj" | "phone" | "city">(
+    filtered,
+    { key: "full_name", direction: "asc" },
+    {
+      full_name: r => (r.full_name || "").toLowerCase(),
+      category: r => PERSON_CAT_LABELS[r.category] || r.category || "",
+      cnpj: r => r.cnpj || "",
+      phone: r => r.phone || "",
+      city: r => `${r.address_city || ""}/${r.address_state || ""}`,
+    },
+  );
+
   const getHeaders = () => ["Nome", "Categoria", "CNPJ", "Telefone", "Cidade", "UF"];
   const getRows = () => filtered.map(p => [
     p.full_name || "", PERSON_CAT_LABELS[p.category] || p.category || "",
@@ -249,19 +263,19 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Nome</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Categoria</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">CNPJ</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Telefone</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Cidade/UF</TableHead>
+              <SortableTh active={sort.key==="full_name"} direction={sort.direction} onSort={()=>toggle("full_name")} className="py-1 px-2 text-[10px]">Nome</SortableTh>
+              <SortableTh active={sort.key==="category"} direction={sort.direction} onSort={()=>toggle("category")} className="py-1 px-2 text-[10px]">Categoria</SortableTh>
+              <SortableTh active={sort.key==="cnpj"} direction={sort.direction} onSort={()=>toggle("cnpj")} className="py-1 px-2 text-[10px]">CNPJ</SortableTh>
+              <SortableTh active={sort.key==="phone"} direction={sort.direction} onSort={()=>toggle("phone")} className="py-1 px-2 text-[10px]">Telefone</SortableTh>
+              <SortableTh active={sort.key==="city"} direction={sort.direction} onSort={()=>toggle("city")} className="py-1 px-2 text-[10px]">Cidade/UF</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(p => (
+            ) : sorted.map(p => (
               <TableRow key={p.id} className="h-7">
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{p.full_name}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{PERSON_CAT_LABELS[p.category] || p.category}</Badge></TableCell>
@@ -324,6 +338,21 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return result;
   }, [data, typeFilter, fleetFilter, search, profiles]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
+    filtered,
+    { key: "plate", direction: "asc" },
+    {
+      plate: r => (r.plate || "").toLowerCase(),
+      renavam: r => r.renavam || "",
+      brand: r => `${r.brand || ""} ${r.model || ""}`.toLowerCase(),
+      year: r => Number(r.year) || 0,
+      type: r => VEHICLE_TYPES[r.vehicle_type] || r.vehicle_type || "",
+      fleet: r => fleetLabel(r.fleet_type),
+      driver: r => getName(r.driver_id).toLowerCase(),
+      owner: r => getName(r.owner_id).toLowerCase(),
+    },
+  );
+
   const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
     v.plate, v.renavam || "", v.brand, v.model, String(v.year),
@@ -365,22 +394,22 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Placa</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">RENAVAM</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Marca/Modelo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Ano</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Frota</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Motorista</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Proprietário</TableHead>
+              <SortableTh active={sort.key==="plate"} direction={sort.direction} onSort={()=>toggle("plate")} className="py-1 px-2 text-[10px]">Placa</SortableTh>
+              <SortableTh active={sort.key==="renavam"} direction={sort.direction} onSort={()=>toggle("renavam")} className="py-1 px-2 text-[10px]">RENAVAM</SortableTh>
+              <SortableTh active={sort.key==="brand"} direction={sort.direction} onSort={()=>toggle("brand")} className="py-1 px-2 text-[10px]">Marca/Modelo</SortableTh>
+              <SortableTh active={sort.key==="year"} direction={sort.direction} onSort={()=>toggle("year")} className="py-1 px-2 text-[10px]">Ano</SortableTh>
+              <SortableTh active={sort.key==="type"} direction={sort.direction} onSort={()=>toggle("type")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <SortableTh active={sort.key==="fleet"} direction={sort.direction} onSort={()=>toggle("fleet")} className="py-1 px-2 text-[10px]">Frota</SortableTh>
+              <SortableTh active={sort.key==="driver"} direction={sort.direction} onSort={()=>toggle("driver")} className="py-1 px-2 text-[10px]">Motorista</SortableTh>
+              <SortableTh active={sort.key==="owner"} direction={sort.direction} onSort={()=>toggle("owner")} className="py-1 px-2 text-[10px]">Proprietário</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(v => (
+            ) : sorted.map(v => (
               <TableRow key={v.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{v.plate}</TableCell>
                 <TableCell className="py-1 px-2 font-mono text-[11px]">{v.renavam || "—"}</TableCell>
@@ -439,6 +468,19 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
     return result;
   }, [data, tipoFilter, statusFilter, search]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "produto" | "tipo" | "ncm" | "sinonimos" | "tol" | "status">(
+    filtered,
+    { key: "produto", direction: "asc" },
+    {
+      produto: r => (r.produto_predominante || "").toLowerCase(),
+      tipo: r => (r.tipo || "").toLowerCase(),
+      ncm: r => r.ncm || "",
+      sinonimos: r => (r.sinonimos || "").toLowerCase(),
+      tol: r => r.tolerancia_quebra ?? -1,
+      status: r => (r.ativo ? 1 : 0),
+    },
+  );
+
   const getHeaders = () => ["Produto", "Tipo", "NCM", "Sinônimos", "Tolerância Quebra", "Status"];
   const getRows = () => filtered.map(c => [
     c.produto_predominante, c.tipo || "", c.ncm || "", c.sinonimos || "",
@@ -477,20 +519,20 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Produto</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">NCM</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Sinônimos</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Toler. Quebra</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Status</TableHead>
+              <SortableTh active={sort.key==="produto"} direction={sort.direction} onSort={()=>toggle("produto")} className="py-1 px-2 text-[10px]">Produto</SortableTh>
+              <SortableTh active={sort.key==="tipo"} direction={sort.direction} onSort={()=>toggle("tipo")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <SortableTh active={sort.key==="ncm"} direction={sort.direction} onSort={()=>toggle("ncm")} className="py-1 px-2 text-[10px]">NCM</SortableTh>
+              <SortableTh active={sort.key==="sinonimos"} direction={sort.direction} onSort={()=>toggle("sinonimos")} className="py-1 px-2 text-[10px]">Sinônimos</SortableTh>
+              <SortableTh active={sort.key==="tol"} direction={sort.direction} onSort={()=>toggle("tol")} className="py-1 px-2 text-[10px]">Toler. Quebra</SortableTh>
+              <SortableTh active={sort.key==="status"} direction={sort.direction} onSort={()=>toggle("status")} className="py-1 px-2 text-[10px]">Status</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(c => (
+            ) : sorted.map(c => (
               <TableRow key={c.id} className="h-7">
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{c.produto_predominante}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{c.tipo || "—"}</Badge></TableCell>
@@ -556,6 +598,20 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
     return grandParent ? `${grandParent} > ${parent.nome}` : parent.nome;
   };
 
+  const { sort, toggle, sorted } = useSortableTable<any, "codigo" | "nome" | "caminho" | "tipo" | "nivel" | "tipoOper" | "status">(
+    filtered,
+    { key: "codigo", direction: "asc" },
+    {
+      codigo: r => r.codigo || "",
+      nome: r => (r.nome || "").toLowerCase(),
+      caminho: r => getParentPath(r).toLowerCase(),
+      tipo: r => r.tipo || "",
+      nivel: r => Number(r.nivel) || 0,
+      tipoOper: r => r.tipo_operacional || "",
+      status: r => (r.ativo ? 1 : 0),
+    },
+  );
+
   const getHeaders = () => ["Código", "Nome", "Tipo", "Nível", "Tipo Operacional", "Caminho", "Status"];
   const getRows = () => filtered.map(c => [
     c.codigo, c.nome, c.tipo, String(c.nivel),
@@ -594,21 +650,21 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Código</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Nome</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Caminho</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Nível</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo Oper.</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Status</TableHead>
+              <SortableTh active={sort.key==="codigo"} direction={sort.direction} onSort={()=>toggle("codigo")} className="py-1 px-2 text-[10px]">Código</SortableTh>
+              <SortableTh active={sort.key==="nome"} direction={sort.direction} onSort={()=>toggle("nome")} className="py-1 px-2 text-[10px]">Nome</SortableTh>
+              <SortableTh active={sort.key==="caminho"} direction={sort.direction} onSort={()=>toggle("caminho")} className="py-1 px-2 text-[10px]">Caminho</SortableTh>
+              <SortableTh active={sort.key==="tipo"} direction={sort.direction} onSort={()=>toggle("tipo")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <SortableTh active={sort.key==="nivel"} direction={sort.direction} onSort={()=>toggle("nivel")} className="py-1 px-2 text-[10px]">Nível</SortableTh>
+              <SortableTh active={sort.key==="tipoOper"} direction={sort.direction} onSort={()=>toggle("tipoOper")} className="py-1 px-2 text-[10px]">Tipo Oper.</SortableTh>
+              <SortableTh active={sort.key==="status"} direction={sort.direction} onSort={()=>toggle("status")} className="py-1 px-2 text-[10px]">Status</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(c => (
+            ) : sorted.map(c => (
               <TableRow key={c.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{c.codigo}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{c.nome}</TableCell>
