@@ -75,11 +75,19 @@ export function useUnifiedCompany() {
     [establishments]
   );
 
+  /** All CNPJs masked, joined by " | " (for compact footers) */
+  const unifiedCnpjsPipe = useMemo(
+    () => establishments.map((e) => maskCNPJ(e.cnpj)).join(" | "),
+    [establishments]
+  );
+
   return {
     matrizId,
+    matriz,
     allIds,
     unifiedLabel,
     unifiedCnpjs,
+    unifiedCnpjsPipe,
     unifiedCnpjLines,
     unifiedCnpjsRaw,
     establishments,
