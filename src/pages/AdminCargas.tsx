@@ -10,6 +10,8 @@ import { Plus, Search, Package, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CargaFormDialog } from "@/components/freight/CargaFormDialog";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 export interface Carga {
   id: string;
