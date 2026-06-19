@@ -221,6 +221,18 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
     return result;
   }, [data, category, search]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "full_name" | "category" | "cnpj" | "phone" | "city">(
+    filtered,
+    { key: "full_name", direction: "asc" },
+    {
+      full_name: r => (r.full_name || "").toLowerCase(),
+      category: r => PERSON_CAT_LABELS[r.category] || r.category || "",
+      cnpj: r => r.cnpj || "",
+      phone: r => r.phone || "",
+      city: r => `${r.address_city || ""}/${r.address_state || ""}`,
+    },
+  );
+
   const getHeaders = () => ["Nome", "Categoria", "CNPJ", "Telefone", "Cidade", "UF"];
   const getRows = () => filtered.map(p => [
     p.full_name || "", PERSON_CAT_LABELS[p.category] || p.category || "",
