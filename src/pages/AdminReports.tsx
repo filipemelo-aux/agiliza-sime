@@ -189,7 +189,7 @@ function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: (
 }
 
 // ─── People Report ───
-function PeopleReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -240,7 +240,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -278,7 +278,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Vehicles Report ───
-function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -342,7 +342,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -384,7 +384,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
 }
 
 // ─── Cargas Report ───
-function CargasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -452,7 +452,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -494,7 +494,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Chart of Accounts Report ───
-function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -569,7 +569,7 @@ function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string;
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
