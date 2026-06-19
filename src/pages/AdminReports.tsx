@@ -468,6 +468,19 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
     return result;
   }, [data, tipoFilter, statusFilter, search]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "produto" | "tipo" | "ncm" | "sinonimos" | "tol" | "status">(
+    filtered,
+    { key: "produto", direction: "asc" },
+    {
+      produto: r => (r.produto_predominante || "").toLowerCase(),
+      tipo: r => (r.tipo || "").toLowerCase(),
+      ncm: r => r.ncm || "",
+      sinonimos: r => (r.sinonimos || "").toLowerCase(),
+      tol: r => r.tolerancia_quebra ?? -1,
+      status: r => (r.ativo ? 1 : 0),
+    },
+  );
+
   const getHeaders = () => ["Produto", "Tipo", "NCM", "Sinônimos", "Tolerância Quebra", "Status"];
   const getRows = () => filtered.map(c => [
     c.produto_predominante, c.tipo || "", c.ncm || "", c.sinonimos || "",
