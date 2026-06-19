@@ -295,6 +295,7 @@ export default function AdminFuelOrders() {
               setOrders((prev) =>
                 prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
               );
+              fetchData();
             }}
           />
         )}
