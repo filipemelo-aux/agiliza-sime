@@ -295,6 +295,7 @@ function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
 function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [trailers, setTrailers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
@@ -304,14 +305,19 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
 
   const fetchData = async () => {
     setLoading(true);
-    const [vRes, pRes] = await Promise.all([
+    const [vRes, pRes, tRes] = await Promise.all([
       supabase.from("vehicles").select("*").order("brand"),
       supabase.from("profiles").select("user_id, full_name"),
+      supabase.from("trailers").select("vehicle_id, plate"),
     ]);
     setData(vRes.data || []);
     setProfiles(pRes.data || []);
+    setTrailers(tRes.data || []);
     setLoading(false);
   };
+
+  const getTrailerPlates = (vehicleId: string) =>
+    trailers.filter(t => t.vehicle_id === vehicleId).map(t => t.plate).join(" / ");
 
   const getName = (userId: string | null) => {
     if (!userId) return "—";
