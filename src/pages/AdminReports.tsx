@@ -154,9 +154,9 @@ function printPdf(title: string, headers: string[], rows: string[][], matriz: an
 
 <!-- FOOTER -->
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName}</div>
-  ${companyCnpjs.split(" / ").map(c => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${now}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.9);margin:2px 0;font-weight:600">SIME TRANSPORTES — ${esc(matrizName)}</div>
+  ${cnpjsFooter ? `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${esc(cnpjsFooter)}</div>` : ""}
+  <div style="font-size:10px;color:rgba(255,255,255,0.75);margin:2px 0">Documento gerado em ${now}</div>
 </td></tr>
 
 </table>
