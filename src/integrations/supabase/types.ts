@@ -2434,6 +2434,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          email_sent_at: string | null
+          email_sent_to: string | null
           establishment_id: string
           fill_mode: string
           fuel_type: string
@@ -2453,6 +2455,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          email_sent_at?: string | null
+          email_sent_to?: string | null
           establishment_id: string
           fill_mode?: string
           fuel_type: string
@@ -2472,6 +2476,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          email_sent_at?: string | null
+          email_sent_to?: string | null
           establishment_id?: string
           fill_mode?: string
           fuel_type?: string
