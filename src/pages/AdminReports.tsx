@@ -284,6 +284,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
+  const [fleetFilter, setFleetFilter] = useState("__all__");
 
   useEffect(() => { fetchData(); }, []);
 
@@ -303,9 +304,12 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return profiles.find(p => p.user_id === userId)?.full_name || "—";
   };
 
+  const fleetLabel = (f: string) => f === "frota_propria" ? "Própria" : f === "frota_terceiros" ? "Terceiros" : (f || "—");
+
   const filtered = useMemo(() => {
     let result = data;
     if (typeFilter !== "__all__") result = result.filter(v => v.vehicle_type === typeFilter);
+    if (fleetFilter !== "__all__") result = result.filter(v => v.fleet_type === fleetFilter);
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(v =>
@@ -318,12 +322,13 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
       );
     }
     return result;
-  }, [data, typeFilter, search, profiles]);
+  }, [data, typeFilter, fleetFilter, search, profiles]);
 
-  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Motorista", "Proprietário"];
+  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
     v.plate, v.renavam || "", v.brand, v.model, String(v.year),
     VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
+    fleetLabel(v.fleet_type),
     getName(v.driver_id), getName(v.owner_id),
   ]);
 
@@ -337,7 +342,16 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__all__">Todos os tipos</SelectItem>
             {Object.entries(VEHICLE_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={fleetFilter} onValueChange={setFleetFilter}>
+          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Frota" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas as frotas</SelectItem>
+            <SelectItem value="frota_propria">Própria</SelectItem>
+            <SelectItem value="frota_terceiros">Terceiros</SelectItem>
           </SelectContent>
         </Select>
         <ExportButtons
@@ -356,15 +370,16 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
               <TableHead className="py-1 px-2 text-[10px]">Marca/Modelo</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Ano</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Frota</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Motorista</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Proprietário</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : filtered.map(v => (
               <TableRow key={v.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{v.plate}</TableCell>
@@ -372,6 +387,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
                 <TableCell className="py-1 px-2 text-[11px]">{v.brand} {v.model}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.year}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type}</Badge></TableCell>
+                <TableCell className="py-1 px-2 text-[11px]">{fleetLabel(v.fleet_type)}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{getName(v.driver_id)}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{getName(v.owner_id)}</TableCell>
               </TableRow>
