@@ -230,7 +230,16 @@ export default function AdminFuelOrders() {
                       <span className="text-muted-foreground">Quantidade</span>
                       <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
                     </div>
+                    {o.email_sent_at && (
+                      <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed border-border/60">
+                        <span>E-mail enviado</span>
+                        <span className="text-right truncate max-w-[60%]" title={o.email_sent_to || ""}>
+                          {format(new Date(o.email_sent_at), "dd/MM/yyyy HH:mm")}
+                        </span>
+                      </div>
+                    )}
                   </div>
+
 
                   <div className="flex gap-2 pt-2 border-t border-border">
                     <Button
