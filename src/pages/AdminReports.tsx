@@ -49,7 +49,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
-function printPdf(title: string, headers: string[], rows: string[][], companyName: string, companyCnpjs: string) {
+function printPdf(title: string, headers: string[], rows: string[][], matriz: any, cnpjsFooter: string) {
   const now = format(new Date(), "dd/MM/yyyy HH:mm");
   const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
   const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
@@ -58,6 +58,23 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
     const bg = i % 2 === 0 ? "#ffffff" : "#f8f9fb";
     return `<tr style="background:${bg}">${r.map(c => `<td style="font-family:${FONT};font-size:11px;color:#333;padding:7px 10px;border-bottom:1px solid #e8ecf0">${c ?? ""}</td>`).join("")}</tr>`;
   }).join("");
+
+  const esc = (s: any) => String(s ?? "");
+  const matrizName = matriz?.razao_social || "Sime Transporte Ltda";
+  const matrizCnpj = matriz?.cnpj
+    ? `${matriz.cnpj.slice(0,2)}.${matriz.cnpj.slice(2,5)}.${matriz.cnpj.slice(5,8)}/${matriz.cnpj.slice(8,12)}-${matriz.cnpj.slice(12)}`
+    : "";
+  const addrParts = [
+    matriz?.endereco_logradouro,
+    matriz?.endereco_numero,
+    matriz?.endereco_bairro,
+  ].filter(Boolean).join(", ");
+  const cityParts = [matriz?.endereco_municipio, matriz?.endereco_uf].filter(Boolean).join("/");
+  const cep = matriz?.endereco_cep ? `CEP ${matriz.endereco_cep}` : "";
+  const addrLine = [addrParts, cityParts, cep].filter(Boolean).join(" — ");
+  const ieLine = matriz?.inscricao_estadual ? `IE: ${matriz.inscricao_estadual}` : "";
+  const cnpjLine = matrizCnpj ? `CNPJ: ${matrizCnpj}` : "";
+  const docLine = [cnpjLine, ieLine].filter(Boolean).join("  •  ");
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style type="text/css">
@@ -85,11 +102,13 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${companyName}</div>
-      ${companyCnpjs.split(" / ").map(c => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ")}
+      <div style="font-size:11px;color:#444;line-height:1.4;margin-top:2px;font-weight:600">${esc(matrizName)}</div>
+      ${addrLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${esc(addrLine)}</div>` : ""}
+      ${docLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${esc(docLine)}</div>` : ""}
     </td>
   </tr></table>
 </td></tr>
+
 
 <tr><td style="height:6px;font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;line-height:0;height:1px">&nbsp;</td></tr>
@@ -135,9 +154,9 @@ function printPdf(title: string, headers: string[], rows: string[][], companyNam
 
 <!-- FOOTER -->
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES — ${companyName}</div>
-  ${companyCnpjs.split(" / ").map(c => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ")}
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${now}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.9);margin:2px 0;font-weight:600">SIME TRANSPORTES — ${esc(matrizName)}</div>
+  ${cnpjsFooter ? `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${esc(cnpjsFooter)}</div>` : ""}
+  <div style="font-size:10px;color:rgba(255,255,255,0.75);margin:2px 0">Documento gerado em ${now}</div>
 </td></tr>
 
 </table>
@@ -170,7 +189,7 @@ function ExportButtons({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: (
 }
 
 // ─── People Report ───
-function PeopleReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function PeopleReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -221,7 +240,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_pessoas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Pessoas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -259,7 +278,7 @@ function PeopleReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Vehicles Report ───
-function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,7 +342,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_veiculos.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Veículos", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -365,7 +384,7 @@ function VehiclesReport({ companyName, companyCnpjs }: { companyName: string; co
 }
 
 // ─── Cargas Report ───
-function CargasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -433,7 +452,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_cargas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório de Natureza de Cargas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -475,7 +494,7 @@ function CargasReport({ companyName, companyCnpjs }: { companyName: string; comp
 }
 
 // ─── Chart of Accounts Report ───
-function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string; companyCnpjs: string }) {
+function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -550,7 +569,7 @@ function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string;
         </Select>
         <ExportButtons
           onCsv={() => downloadCsv("relatorio_plano_contas.csv", getHeaders(), getRows())}
-          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), companyName, companyCnpjs)}
+          onPdf={() => printPdf("Relatório do Plano de Contas", getHeaders(), getRows(), matriz, cnpjsFooter)}
           disabled={filtered.length === 0}
         />
       </div>
@@ -596,7 +615,7 @@ function PlanoContasReport({ companyName, companyCnpjs }: { companyName: string;
 // ─── Main Page ───
 export default function AdminReports() {
   const { hasAdminAccess, loading: roleLoading } = useUserRole();
-  const { unifiedLabel, unifiedCnpjs } = useUnifiedCompany();
+  const { matriz, unifiedCnpjsPipe } = useUnifiedCompany();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ReportType>("pessoas");
 
@@ -629,10 +648,10 @@ export default function AdminReports() {
 
         <Card>
           <CardContent className="pt-3 pb-3 px-3">
-            {activeTab === "pessoas" && <PeopleReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
-            {activeTab === "veiculos" && <VehiclesReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
-            {activeTab === "cargas" && <CargasReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
-            {activeTab === "plano_contas" && <PlanoContasReport companyName={unifiedLabel} companyCnpjs={unifiedCnpjs} />}
+            {activeTab === "pessoas" && <PeopleReport matriz={matriz} cnpjsFooter={unifiedCnpjsPipe} />}
+            {activeTab === "veiculos" && <VehiclesReport matriz={matriz} cnpjsFooter={unifiedCnpjsPipe} />}
+            {activeTab === "cargas" && <CargasReport matriz={matriz} cnpjsFooter={unifiedCnpjsPipe} />}
+            {activeTab === "plano_contas" && <PlanoContasReport matriz={matriz} cnpjsFooter={unifiedCnpjsPipe} />}
           </CardContent>
         </Card>
       </div>

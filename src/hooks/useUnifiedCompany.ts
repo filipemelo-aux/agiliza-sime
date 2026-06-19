@@ -8,6 +8,14 @@ export interface EstablishmentInfo {
   nome_fantasia: string | null;
   cnpj: string;
   type: string;
+  inscricao_estadual?: string | null;
+  endereco_logradouro?: string | null;
+  endereco_numero?: string | null;
+  endereco_bairro?: string | null;
+  endereco_municipio?: string | null;
+  endereco_uf?: string | null;
+  endereco_cep?: string | null;
+  rntrc?: string | null;
 }
 
 /**
@@ -27,7 +35,7 @@ export function useUnifiedCompany() {
   useEffect(() => {
     supabase
       .from("fiscal_establishments")
-      .select("id, razao_social, nome_fantasia, cnpj, type")
+      .select("id, razao_social, nome_fantasia, cnpj, type, inscricao_estadual, endereco_logradouro, endereco_numero, endereco_bairro, endereco_municipio, endereco_uf, endereco_cep, rntrc")
       .eq("active", true)
       .order("type")
       .order("razao_social")
@@ -67,11 +75,19 @@ export function useUnifiedCompany() {
     [establishments]
   );
 
+  /** All CNPJs masked, joined by " | " (for compact footers) */
+  const unifiedCnpjsPipe = useMemo(
+    () => establishments.map((e) => maskCNPJ(e.cnpj)).join(" | "),
+    [establishments]
+  );
+
   return {
     matrizId,
+    matriz,
     allIds,
     unifiedLabel,
     unifiedCnpjs,
+    unifiedCnpjsPipe,
     unifiedCnpjLines,
     unifiedCnpjsRaw,
     establishments,

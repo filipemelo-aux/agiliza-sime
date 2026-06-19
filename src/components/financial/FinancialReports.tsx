@@ -630,21 +630,27 @@ export function FinancialReports() {
       return;
     }
     let estName = "";
-    let estCnpj = "";
+    let estCnpjFooter = "";
+    let matrizInfo: any = null;
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
+      const { data } = await supabase
+        .from("fiscal_establishments")
+        .select("razao_social,cnpj,type,inscricao_estadual,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep")
+        .eq("active", true)
+        .order("type");
       if (data && data.length > 0) {
-        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
-        estName = matriz?.razao_social || "";
-        estCnpj = data
-          .map((e: any) => {
-            const c = e.cnpj;
-            return c ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : "";
-          })
-          .filter(Boolean)
-          .join(" / ");
+        matrizInfo = data.find((e: any) => e.type === "matriz") || data[0];
+        estName = matrizInfo?.razao_social || "";
+        const fmtCnpj = (c: string) => c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
+        estCnpjFooter = data.map((e: any) => fmtCnpj(e.cnpj)).filter(Boolean).join(" | ");
       }
     } catch {}
+    const matrizCnpjFmt = matrizInfo?.cnpj ? `${matrizInfo.cnpj.slice(0,2)}.${matrizInfo.cnpj.slice(2,5)}.${matrizInfo.cnpj.slice(5,8)}/${matrizInfo.cnpj.slice(8,12)}-${matrizInfo.cnpj.slice(12)}` : "";
+    const matrizAddr = [matrizInfo?.endereco_logradouro, matrizInfo?.endereco_numero, matrizInfo?.endereco_bairro].filter(Boolean).join(", ");
+    const matrizCity = [matrizInfo?.endereco_municipio, matrizInfo?.endereco_uf].filter(Boolean).join("/");
+    const matrizCep = matrizInfo?.endereco_cep ? `CEP ${matrizInfo.endereco_cep}` : "";
+    const matrizAddrLine = [matrizAddr, matrizCity, matrizCep].filter(Boolean).join(" — ");
+    const matrizDocLine = [matrizCnpjFmt ? `CNPJ ${matrizCnpjFmt}` : "", matrizInfo?.inscricao_estadual ? `IE ${matrizInfo.inscricao_estadual}` : ""].filter(Boolean).join("  •  ");
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
@@ -797,7 +803,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <img src="${window.location.origin}/logo.png" alt="" />
     <div class="est">
       <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
-      ${estCnpj ? estCnpj.split(" / ").map((c) => `<div>CNPJ ${esc(c)}</div>`).join("") : ""}
+      ${matrizAddrLine ? `<div>${esc(matrizAddrLine)}</div>` : ""}
+      ${matrizDocLine ? `<div>${esc(matrizDocLine)}</div>` : ""}
     </div>
     <div style="flex:1">
       <h1>${REPORT_TITLE[reportType]}</h1>
@@ -808,7 +815,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <tbody>${sectionsHtml}${totalLine}${pagoComJurosLine}${saldoRestanteLine}</tbody>
   </table>
   <div class="foot">
-    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
+    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}${estCnpjFooter ? ` — CNPJ ${esc(estCnpjFooter)}` : ""}</div>
     <div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
   </div>
 </div>

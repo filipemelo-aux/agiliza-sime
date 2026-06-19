@@ -1122,19 +1122,26 @@ export function FinancialPayables() {
       return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${statusLabel(s)}</span>`;
     };
 
-    // Fetch establishment info (unified company - show both CNPJs)
-    let estName = ""; let estCnpj = "";
+    // Fetch establishment info: header = matriz completa, footer = todos CNPJs separados por |
+    let estName = ""; let estCnpjFooter = ""; let matrizInfo: any = null;
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
+      const { data } = await supabase
+        .from("fiscal_establishments")
+        .select("razao_social,cnpj,type,inscricao_estadual,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep")
+        .eq("active", true).order("type");
       if (data && data.length > 0) {
-        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
-        estName = matriz?.razao_social || "";
-        estCnpj = data.map((e: any) => {
-          const c = e.cnpj;
-          return c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
-        }).filter(Boolean).join(" / ");
+        matrizInfo = data.find((e: any) => e.type === "matriz") || data[0];
+        estName = matrizInfo?.razao_social || "";
+        const fmtC = (c: string) => c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
+        estCnpjFooter = data.map((e: any) => fmtC(e.cnpj)).filter(Boolean).join(" | ");
       }
     } catch {}
+    const matrizCnpjFmt = matrizInfo?.cnpj ? `${matrizInfo.cnpj.slice(0,2)}.${matrizInfo.cnpj.slice(2,5)}.${matrizInfo.cnpj.slice(5,8)}/${matrizInfo.cnpj.slice(8,12)}-${matrizInfo.cnpj.slice(12)}` : "";
+    const matrizAddr = [matrizInfo?.endereco_logradouro, matrizInfo?.endereco_numero, matrizInfo?.endereco_bairro].filter(Boolean).join(", ");
+    const matrizCity = [matrizInfo?.endereco_municipio, matrizInfo?.endereco_uf].filter(Boolean).join("/");
+    const matrizCep = matrizInfo?.endereco_cep ? `CEP ${matrizInfo.endereco_cep}` : "";
+    const matrizAddrLine = [matrizAddr, matrizCity, matrizCep].filter(Boolean).join(" — ");
+    const matrizDocLine = [matrizCnpjFmt ? `CNPJ: ${matrizCnpjFmt}` : "", matrizInfo?.inscricao_estadual ? `IE: ${matrizInfo.inscricao_estadual}` : ""].filter(Boolean).join("  •  ");
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
@@ -1190,8 +1197,9 @@ export function FinancialPayables() {
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${estName}</div>
-      ${estCnpj ? estCnpj.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ") : ""}
+      <div style="font-size:11px;color:#444;line-height:1.4;margin-top:2px;font-weight:600">${estName}</div>
+      ${matrizAddrLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizAddrLine}</div>` : ""}
+      ${matrizDocLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizDocLine}</div>` : ""}
     </td>
   </tr></table>
 </td></tr>
@@ -1243,9 +1251,9 @@ export function FinancialPayables() {
 
 <!-- FOOTER -->
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
-  ${estCnpj ? estCnpj.split(" / ").map((c: string) => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ") : ""}
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.9);margin:2px 0;font-weight:600">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
+  ${estCnpjFooter ? `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${estCnpjFooter}</div>` : ""}
+  <div style="font-size:10px;color:rgba(255,255,255,0.75);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
 </td></tr>
 
 </table>
