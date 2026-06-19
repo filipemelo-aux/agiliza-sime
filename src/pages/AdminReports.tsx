@@ -598,6 +598,20 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
     return grandParent ? `${grandParent} > ${parent.nome}` : parent.nome;
   };
 
+  const { sort, toggle, sorted } = useSortableTable<any, "codigo" | "nome" | "caminho" | "tipo" | "nivel" | "tipoOper" | "status">(
+    filtered,
+    { key: "codigo", direction: "asc" },
+    {
+      codigo: r => r.codigo || "",
+      nome: r => (r.nome || "").toLowerCase(),
+      caminho: r => getParentPath(r).toLowerCase(),
+      tipo: r => r.tipo || "",
+      nivel: r => Number(r.nivel) || 0,
+      tipoOper: r => r.tipo_operacional || "",
+      status: r => (r.ativo ? 1 : 0),
+    },
+  );
+
   const getHeaders = () => ["Código", "Nome", "Tipo", "Nível", "Tipo Operacional", "Caminho", "Status"];
   const getRows = () => filtered.map(c => [
     c.codigo, c.nome, c.tipo, String(c.nivel),
