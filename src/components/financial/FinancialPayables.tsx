@@ -1251,9 +1251,9 @@ export function FinancialPayables() {
 
 <!-- FOOTER -->
 <tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
-  ${estCnpj ? estCnpj.split(" / ").map((c: string) => `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${c}</div>`).join("\n  ") : ""}
-  <div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.9);margin:2px 0;font-weight:600">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
+  ${estCnpjFooter ? `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${estCnpjFooter}</div>` : ""}
+  <div style="font-size:10px;color:rgba(255,255,255,0.75);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
 </td></tr>
 
 </table>
