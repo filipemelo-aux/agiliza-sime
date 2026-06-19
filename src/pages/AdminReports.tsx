@@ -342,7 +342,16 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__all__">Todos os tipos</SelectItem>
             {Object.entries(VEHICLE_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={fleetFilter} onValueChange={setFleetFilter}>
+          <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Frota" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas as frotas</SelectItem>
+            <SelectItem value="frota_propria">Própria</SelectItem>
+            <SelectItem value="frota_terceiros">Terceiros</SelectItem>
           </SelectContent>
         </Select>
         <ExportButtons
