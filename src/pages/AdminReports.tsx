@@ -314,7 +314,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   };
 
   const getTrailerPlates = (v: any) =>
-    [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" · ");
+    [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" ");
+  const getAllPlates = (v: any) =>
+    [v.plate, v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" ");
 
   const getName = (userId: string | null) => {
     if (!userId) return "—";
@@ -366,7 +368,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   const getRows = () => filtered.map(v => {
     const tp = getTrailerPlates(v);
     return [
-      tp ? `${v.plate} (${tp})` : v.plate,
+      getAllPlates(v),
       v.renavam || "", v.brand, v.model, String(v.year),
       VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
       fleetLabel(v.fleet_type),
@@ -427,10 +429,10 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
               <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : sorted.map(v => (
               <TableRow key={v.id} className="h-7">
-                <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">
+                <TableCell className="py-1 px-2 font-mono text-[11px] font-medium whitespace-nowrap">
                   {v.plate}
                   {getTrailerPlates(v) && (
-                    <div className="text-[9px] text-muted-foreground font-normal">{getTrailerPlates(v)}</div>
+                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">{getTrailerPlates(v)}</span>
                   )}
                 </TableCell>
                 <TableCell className="py-1 px-2 font-mono text-[11px]">{v.renavam || "—"}</TableCell>
