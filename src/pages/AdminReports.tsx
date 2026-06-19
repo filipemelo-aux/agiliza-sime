@@ -615,7 +615,7 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
 // ─── Main Page ───
 export default function AdminReports() {
   const { hasAdminAccess, loading: roleLoading } = useUserRole();
-  const { unifiedLabel, unifiedCnpjs } = useUnifiedCompany();
+  const { matriz, unifiedCnpjsPipe } = useUnifiedCompany();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ReportType>("pessoas");
 
