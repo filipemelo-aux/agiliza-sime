@@ -425,21 +425,17 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : sorted.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : sorted.map(v => (
               <TableRow key={v.id} className="h-7">
-                <TableCell className="py-1 px-2 font-mono text-[11px] font-medium whitespace-nowrap">
-                  {v.plate}
-                  {getTrailerPlates(v) && (
-                    <span className="ml-1 text-[10px] text-muted-foreground font-normal">{getTrailerPlates(v)}</span>
-                  )}
-                </TableCell>
+                <TableCell className="py-1 px-2 font-mono text-[11px] font-medium whitespace-nowrap">{v.plate}</TableCell>
                 <TableCell className="py-1 px-2 font-mono text-[11px]">{v.renavam || "—"}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.brand} {v.model}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.year}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type}</Badge></TableCell>
+                <TableCell className="py-1 px-2 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{getTrailerPlates(v) || "—"}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{fleetLabel(v.fleet_type)}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{getName(v.driver_id)}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{getName(v.owner_id)}</TableCell>
