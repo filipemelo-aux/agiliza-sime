@@ -192,6 +192,18 @@ export default function AdminPeople() {
     return matchCategory && matchRole && matchSearch;
   });
 
+  type PersonSortKey = "nome" | "categoria" | "contato" | "cidade";
+  const { sort, toggle, sorted } = useSortableTable<PersonProfile, PersonSortKey>(
+    filteredDrivers,
+    { key: "nome", direction: "asc" },
+    {
+      nome: (d) => d.full_name || "",
+      categoria: (d) => d.category || "",
+      contato: (d) => d.email || d.phone || "",
+      cidade: (d) => `${d.address_state || ""} ${d.address_city || ""}`,
+    },
+  );
+
   const countByTab = (tab: string) => {
     return drivers.filter((d) => filterByTab(d, tab)).length;
   };
