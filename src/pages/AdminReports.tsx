@@ -650,21 +650,21 @@ function PlanoContasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: 
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Código</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Nome</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Caminho</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Nível</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo Oper.</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Status</TableHead>
+              <SortableTh active={sort.key==="codigo"} direction={sort.direction} onSort={()=>toggle("codigo")} className="py-1 px-2 text-[10px]">Código</SortableTh>
+              <SortableTh active={sort.key==="nome"} direction={sort.direction} onSort={()=>toggle("nome")} className="py-1 px-2 text-[10px]">Nome</SortableTh>
+              <SortableTh active={sort.key==="caminho"} direction={sort.direction} onSort={()=>toggle("caminho")} className="py-1 px-2 text-[10px]">Caminho</SortableTh>
+              <SortableTh active={sort.key==="tipo"} direction={sort.direction} onSort={()=>toggle("tipo")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <SortableTh active={sort.key==="nivel"} direction={sort.direction} onSort={()=>toggle("nivel")} className="py-1 px-2 text-[10px]">Nível</SortableTh>
+              <SortableTh active={sort.key==="tipoOper"} direction={sort.direction} onSort={()=>toggle("tipoOper")} className="py-1 px-2 text-[10px]">Tipo Oper.</SortableTh>
+              <SortableTh active={sort.key==="status"} direction={sort.direction} onSort={()=>toggle("status")} className="py-1 px-2 text-[10px]">Status</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(c => (
+            ) : sorted.map(c => (
               <TableRow key={c.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{c.codigo}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{c.nome}</TableCell>
