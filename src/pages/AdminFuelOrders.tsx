@@ -100,6 +100,9 @@ export default function AdminFuelOrders() {
     setShowForm(false);
     toast({ title: "Ordem criada", description: `Ordem #${order.order_number} gerada com sucesso.` });
 
+    // Refresh the list immediately so the new order appears right away
+    await fetchData();
+
     // Resolve driver_name for PDF
     let driverName = "";
     if (order.vehicle_id) {
@@ -138,6 +141,8 @@ export default function AdminFuelOrders() {
           title: "E-mail enviado!",
           description: `Ordem #${order.order_number} enviada para ${supplierEmail}.`,
         });
+        // Refresh again to reflect the "enviada" status and email_sent_at
+        await fetchData();
       } catch (err: any) {
         sendingToast.dismiss();
         toast({
@@ -154,9 +159,8 @@ export default function AdminFuelOrders() {
       });
       setEmailOrder(orderWithDriver);
     }
-
-    fetchData();
   };
+
 
   return (
     <AdminLayout>
@@ -226,7 +230,16 @@ export default function AdminFuelOrders() {
                       <span className="text-muted-foreground">Quantidade</span>
                       <span>{o.fill_mode === "completar" ? "Completar" : `${o.liters} L`}</span>
                     </div>
+                    {o.email_sent_at && (
+                      <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed border-border/60">
+                        <span>E-mail enviado</span>
+                        <span className="text-right truncate max-w-[60%]" title={o.email_sent_to || ""}>
+                          {format(new Date(o.email_sent_at), "dd/MM/yyyy HH:mm")}
+                        </span>
+                      </div>
+                    )}
                   </div>
+
 
                   <div className="flex gap-2 pt-2 border-t border-border">
                     <Button
@@ -282,6 +295,7 @@ export default function AdminFuelOrders() {
               setOrders((prev) =>
                 prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
               );
+              fetchData();
             }}
           />
         )}

@@ -150,12 +150,16 @@ export function FuelOrderEmailDialog({ open, onOpenChange, order, unifiedLabel, 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Update status to "enviada" on first send
+      // Update status to "enviada" on first send and record sent metadata
+      const updatePayload: any = { email_sent_at: new Date().toISOString(), email_sent_to: to };
       if (order.status === "pendente") {
-        await supabase
-          .from("fuel_orders")
-          .update({ status: "enviada" } as any)
-          .eq("id", order.id);
+        updatePayload.status = "enviada";
+      }
+      await supabase
+        .from("fuel_orders")
+        .update(updatePayload)
+        .eq("id", order.id);
+      if (order.status === "pendente") {
         onStatusChanged?.(order.id, "enviada");
       }
 
