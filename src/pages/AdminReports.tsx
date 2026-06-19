@@ -284,6 +284,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
+  const [fleetFilter, setFleetFilter] = useState("__all__");
 
   useEffect(() => { fetchData(); }, []);
 
@@ -303,9 +304,12 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return profiles.find(p => p.user_id === userId)?.full_name || "—";
   };
 
+  const fleetLabel = (f: string) => f === "frota_propria" ? "Própria" : f === "frota_terceiros" ? "Terceiros" : (f || "—");
+
   const filtered = useMemo(() => {
     let result = data;
     if (typeFilter !== "__all__") result = result.filter(v => v.vehicle_type === typeFilter);
+    if (fleetFilter !== "__all__") result = result.filter(v => v.fleet_type === fleetFilter);
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(v =>
@@ -318,12 +322,13 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
       );
     }
     return result;
-  }, [data, typeFilter, search, profiles]);
+  }, [data, typeFilter, fleetFilter, search, profiles]);
 
-  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Motorista", "Proprietário"];
+  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
     v.plate, v.renavam || "", v.brand, v.model, String(v.year),
     VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
+    fleetLabel(v.fleet_type),
     getName(v.driver_id), getName(v.owner_id),
   ]);
 
