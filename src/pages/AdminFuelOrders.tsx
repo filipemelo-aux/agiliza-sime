@@ -100,6 +100,9 @@ export default function AdminFuelOrders() {
     setShowForm(false);
     toast({ title: "Ordem criada", description: `Ordem #${order.order_number} gerada com sucesso.` });
 
+    // Refresh the list immediately so the new order appears right away
+    await fetchData();
+
     // Resolve driver_name for PDF
     let driverName = "";
     if (order.vehicle_id) {
@@ -138,6 +141,8 @@ export default function AdminFuelOrders() {
           title: "E-mail enviado!",
           description: `Ordem #${order.order_number} enviada para ${supplierEmail}.`,
         });
+        // Refresh again to reflect the "enviada" status and email_sent_at
+        await fetchData();
       } catch (err: any) {
         sendingToast.dismiss();
         toast({
@@ -154,9 +159,8 @@ export default function AdminFuelOrders() {
       });
       setEmailOrder(orderWithDriver);
     }
-
-    fetchData();
   };
+
 
   return (
     <AdminLayout>
