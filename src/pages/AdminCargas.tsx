@@ -132,47 +132,63 @@ export default function AdminCargas() {
               <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Nenhuma natureza cadastrada</h3>
             <p className="text-muted-foreground">Clique em "Nova Natureza" para cadastrar.</p>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            {filtered.map((carga) => (
-              <Card
-                key={carga.id}
-                className="border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
-                onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
-              >
-                <CardContent className="py-3 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Package className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold font-display">{carga.produto_predominante}</span>
-                        {!carga.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {carga.tipo || "Tipo não informado"}
-                        {carga.ncm ? ` • NCM: ${carga.ncm}` : ""}
-                        {carga.sinonimos ? ` • ${carga.sinonimos}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(carga.id); }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="border border-border rounded-md overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[640px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr className="text-left">
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "produto"} direction={sort.direction} onSort={() => toggle("produto")}>Produto</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "tipo"} direction={sort.direction} onSort={() => toggle("tipo")}>Tipo</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium w-[120px]" active={sort.key === "ncm"} direction={sort.direction} onSort={() => toggle("ncm")}>NCM</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium text-center w-[90px]" align="center" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                    <th className="px-2 py-2 font-medium text-right w-[60px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((carga) => (
+                    <tr
+                      key={carga.id}
+                      className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                      onClick={() => { setEditingCarga(carga); setFormOpen(true); }}
+                    >
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{carga.produto_predominante}</div>
+                        {carga.sinonimos && (
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[320px]">{carga.sinonimos}</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{carga.tipo || "—"}</td>
+                      <td className="px-3 py-2 tabular-nums text-muted-foreground">{carga.ncm || "—"}</td>
+                      <td className="px-3 py-2 text-center">
+                        {carga.ativo ? (
+                          <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">Ativo</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">Inativo</Badge>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(carga.id); }}
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
