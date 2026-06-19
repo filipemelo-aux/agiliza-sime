@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { PersonEditDialog, PersonCreateDialog, type PersonProfile } from "@/components/PersonEditDialog";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import { SortableTh } from "@/components/ui/sortable-th";
 
 const TAB_LABELS: Record<string, string> = {
   __all__: "Todos",
