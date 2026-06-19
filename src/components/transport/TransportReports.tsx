@@ -682,23 +682,23 @@ export function TransportReports() {
 
   const getReportMeta = async () => {
     let estName = "";
-    let estCnpj = "";
+    let estCnpjFooter = "";
+    let matrizInfo: any = null;
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
+      const { data } = await supabase
+        .from("fiscal_establishments")
+        .select("razao_social,cnpj,type,inscricao_estadual,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep")
+        .eq("active", true)
+        .order("type");
       if (data && data.length > 0) {
-        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
-        estName = matriz?.razao_social || "";
-        estCnpj = data
-          .map((e: any) => {
-            const c = e.cnpj;
-            return c ? `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}` : "";
-          })
-          .filter(Boolean)
-          .join(" / ");
+        matrizInfo = data.find((e: any) => e.type === "matriz") || data[0];
+        estName = matrizInfo?.razao_social || "";
+        const fmtCnpj = (c: string) => c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
+        estCnpjFooter = data.map((e: any) => fmtCnpj(e.cnpj)).filter(Boolean).join(" | ");
       }
     } catch {}
 
-    return { estName, estCnpj };
+    return { estName, estCnpjFooter, matrizInfo };
   };
 
   const buildReportHtml = ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
