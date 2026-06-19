@@ -304,7 +304,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return profiles.find(p => p.user_id === userId)?.full_name || "—";
   };
 
-  const fleetLabel = (f: string) => f === "frota_propria" ? "Própria" : f === "frota_terceiros" ? "Terceiros" : (f || "—");
+  const fleetLabel = (f: string) => f === "propria" ? "Própria" : f === "terceiros" ? "Terceiros" : (f || "—");
 
   const filtered = useMemo(() => {
     let result = data;
@@ -350,8 +350,8 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Frota" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todas as frotas</SelectItem>
-            <SelectItem value="frota_propria">Própria</SelectItem>
-            <SelectItem value="frota_terceiros">Terceiros</SelectItem>
+            <SelectItem value="propria">Própria</SelectItem>
+            <SelectItem value="terceiros">Terceiros</SelectItem>
           </SelectContent>
         </Select>
         <ExportButtons
