@@ -277,14 +277,14 @@ export default function AdminPeople() {
         ) : (
           <div className="border border-border rounded-md overflow-hidden bg-card">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[760px]">
+              <table className="w-full text-xs">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[140px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
-                    <SortableTh className="px-3 py-2 font-medium w-[160px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
-                    <th className="px-2 py-2 font-medium text-right w-[150px]"></th>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[120px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
+                    <SortableTh className="px-2 py-1.5 font-medium w-[130px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
+                    <th className="px-1.5 py-1.5 font-medium text-right w-[120px]"></th>
                   </tr>
                 </thead>
                 <tbody>
