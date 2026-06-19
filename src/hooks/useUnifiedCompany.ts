@@ -8,6 +8,14 @@ export interface EstablishmentInfo {
   nome_fantasia: string | null;
   cnpj: string;
   type: string;
+  inscricao_estadual?: string | null;
+  endereco_logradouro?: string | null;
+  endereco_numero?: string | null;
+  endereco_bairro?: string | null;
+  endereco_municipio?: string | null;
+  endereco_uf?: string | null;
+  endereco_cep?: string | null;
+  rntrc?: string | null;
 }
 
 /**
