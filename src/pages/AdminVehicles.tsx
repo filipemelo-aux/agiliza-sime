@@ -285,7 +285,7 @@ export default function AdminVehicles() {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : filteredVehicles.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -293,64 +293,63 @@ export default function AdminVehicles() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredVehicles.map((v) => {
-              const trailerLabels = TRAILER_LABELS[v.vehicle_type] || [];
-              const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
-              return (
-                <Card key={v.id} className="border-border">
-                  <CardContent className="py-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"} {v.plate}</h3>
-                          <Badge variant="outline" className="text-xs">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
-                          {v.cargo_type && <Badge variant="secondary" className="text-xs capitalize">{v.cargo_type}</Badge>}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{v.brand} {v.model} • {v.year}</p>
-                        {trailerPlates.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {trailerPlates.map((plate, i) => (
-                              <Badge key={i} variant="outline" className="text-xs gap-1 bg-muted/50">
-                                {trailerLabels[i] || `Impl. ${i+1}`}: {plate}
-                              </Badge>
-                            ))}
+          <div className="border border-border rounded-md overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[860px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr className="text-left">
+                    <SortableTh className="px-3 py-2 font-medium w-[110px]" active={sort.key === "plate"} direction={sort.direction} onSort={() => toggle("plate")}>Placa</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "vehicle"} direction={sort.direction} onSort={() => toggle("vehicle")}>Veículo</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium w-[110px]" active={sort.key === "type"} direction={sort.direction} onSort={() => toggle("type")}>Tipo</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "driver"} direction={sort.direction} onSort={() => toggle("driver")}>Motorista</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "owner"} direction={sort.direction} onSort={() => toggle("owner")}>Proprietário</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-right w-[90px]" align="right" active={sort.key === "avg"} direction={sort.direction} onSort={() => toggle("avg")}>Média</SortableTh>
+                    <SortableTh className="px-2 py-2 font-medium text-right w-[110px]" align="right" active={sort.key === "spent"} direction={sort.direction} onSort={() => toggle("spent")}>Gasto (mês)</SortableTh>
+                    <th className="px-2 py-2 font-medium text-right w-[110px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((v) => {
+                    const trailerPlates = [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean);
+                    const m = metricsByVehicle[v.id];
+                    return (
+                      <tr key={v.id} className="border-t border-border hover:bg-muted/30">
+                        <td className="px-3 py-2 font-medium whitespace-nowrap">
+                          <span className="mr-1">{TRUCK_TYPES.has(v.vehicle_type) ? "🚛" : "🚗"}</span>{v.plate}
+                          {trailerPlates.length > 0 && (
+                            <div className="text-[10px] text-muted-foreground font-normal">{trailerPlates.join(" · ")}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div>{v.brand} {v.model}</div>
+                          <div className="text-[11px] text-muted-foreground">{v.year}{v.cargo_type ? ` · ${v.cargo_type}` : ""}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <Badge variant="outline" className="text-[10px]">{VEHICLE_TYPE_LABELS[v.vehicle_type] || v.vehicle_type}</Badge>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px]">{v.driver_name || "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground truncate max-w-[200px]">{v.owner_name || "—"}</td>
+                        <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">{m?.avgKmL ? `${fmtNum(m.avgKmL, 2)} km/L` : "—"}</td>
+                        <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap">{m ? fmtBRL(m.spentMonth) : "—"}</td>
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setViewVehicle(v)} title="Visualizar">
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }} title="Editar">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteVehicle(v)} title="Excluir">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                        )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-0 mt-1.5 text-xs text-muted-foreground">
-                          {v.driver_name && <span>Motorista: <strong className="text-foreground">{v.driver_name}</strong></span>}
-                          {v.owner_name && <span>Proprietário: <strong className="text-foreground">{v.owner_name}</strong></span>}
-                          {!v.driver_name && !v.owner_name && <span className="italic">Sem vínculo</span>}
-                        </div>
-                        {(() => {
-                          const m = metricsByVehicle[v.id];
-                          if (!m) return null;
-                          return (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-border/40 text-xs">
-                              <span className="flex items-center gap-1"><Gauge className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Média:</span> <strong>{m.avgKmL ? `${fmtNum(m.avgKmL, 2)} km/L` : "—"}</strong></span>
-                              <span className="flex items-center gap-1"><Droplet className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Mês:</span> <strong>{fmtNum(m.litersMonth, 1)} L</strong></span>
-                              <span className="flex items-center gap-1"><DollarSign className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Gasto:</span> <strong>{fmtBRL(m.spentMonth)}</strong></span>
-                              {m.lastKm != null && <span className="flex items-center gap-1"><Fuel className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Últ. KM:</span> <strong>{fmtNum(m.lastKm, 0)}</strong></span>}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setViewVehicle(v)} title="Visualizar">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditVehicleId(v.id); setVehicleModalOpen(true); }} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteVehicle(v)} title="Excluir">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
