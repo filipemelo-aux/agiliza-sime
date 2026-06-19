@@ -826,7 +826,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <tbody>${tableRows}${totalLine}</tbody>
   </table>
   <div class="foot">
-    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}</div>
+    <div>SIME TRANSPORTES${estName ? ` — ${esc(estName)}` : ""}${estCnpjFooter ? ` — CNPJ ${esc(estCnpjFooter)}` : ""}</div>
     <div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
   </div>
 </div>
