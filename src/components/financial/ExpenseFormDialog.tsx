@@ -1054,7 +1054,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             <div>
               <Label className="text-xs">Favorecido</Label>
               <PersonSearchInput
-                categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador"]}
+                categories={["fornecedor", "cliente", "proprietario", "motorista", "colaborador", "banco"]}
                 placeholder="Buscar pessoa..."
                 selectedName={favorecidoNome || undefined}
                 onSelect={p => { setFavorecidoNome(p.full_name); setFavorecidoId(p.id); setFavorecidoCategory(p.category || null); if (p.cnpj) setFornecedorCnpj(maskCNPJ(p.cnpj)); }}
