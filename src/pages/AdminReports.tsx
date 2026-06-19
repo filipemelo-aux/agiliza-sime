@@ -364,13 +364,13 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     },
   );
 
-  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
+  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Conjunto", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => {
-    const tp = getTrailerPlates(v);
     return [
-      getAllPlates(v),
+      v.plate || "",
       v.renavam || "", v.brand, v.model, String(v.year),
       VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
+      getTrailerPlates(v) || "—",
       fleetLabel(v.fleet_type),
       getName(v.driver_id), getName(v.owner_id),
     ];
