@@ -802,7 +802,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     <img src="${window.location.origin}/logo.png" alt="" />
     <div class="est">
       <div style="font-weight:700;color:#2B4C7E">${esc(estName)}</div>
-      ${estCnpj ? estCnpj.split(" / ").map((c) => `<div>CNPJ ${esc(c)}</div>`).join("") : ""}
+      ${matrizAddrLine ? `<div>${esc(matrizAddrLine)}</div>` : ""}
+      ${matrizDocLine ? `<div>${esc(matrizDocLine)}</div>` : ""}
     </div>
     <div style="flex:1">
       <h1>${TITLES[reportType]}</h1>
