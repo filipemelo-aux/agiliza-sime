@@ -1197,8 +1197,9 @@ export function FinancialPayables() {
     </td>
     <td style="vertical-align:middle">
       <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#666;line-height:1.4;margin-top:2px">${estName}</div>
-      ${estCnpj ? estCnpj.split(" / ").map((c: string) => `<div style="font-size:11px;color:#666;line-height:1.4">CNPJ: ${c}</div>`).join("\n      ") : ""}
+      <div style="font-size:11px;color:#444;line-height:1.4;margin-top:2px;font-weight:600">${estName}</div>
+      ${matrizAddrLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizAddrLine}</div>` : ""}
+      ${matrizDocLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizDocLine}</div>` : ""}
     </td>
   </tr></table>
 </td></tr>
