@@ -708,6 +708,13 @@ export function TransportReports() {
     // Compact spreadsheet style — sem badges coloridos, sem cards arredondados
     const esc = (s: any) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string));
 
+    const matrizCnpjFmt = matrizInfo?.cnpj ? `${matrizInfo.cnpj.slice(0,2)}.${matrizInfo.cnpj.slice(2,5)}.${matrizInfo.cnpj.slice(5,8)}/${matrizInfo.cnpj.slice(8,12)}-${matrizInfo.cnpj.slice(12)}` : "";
+    const matrizAddr = [matrizInfo?.endereco_logradouro, matrizInfo?.endereco_numero, matrizInfo?.endereco_bairro].filter(Boolean).join(", ");
+    const matrizCity = [matrizInfo?.endereco_municipio, matrizInfo?.endereco_uf].filter(Boolean).join("/");
+    const matrizCep = matrizInfo?.endereco_cep ? `CEP ${matrizInfo.endereco_cep}` : "";
+    const matrizAddrLine = [matrizAddr, matrizCity, matrizCep].filter(Boolean).join(" — ");
+    const matrizDocLine = [matrizCnpjFmt ? `CNPJ ${matrizCnpjFmt}` : "", matrizInfo?.inscricao_estadual ? `IE ${matrizInfo.inscricao_estadual}` : ""].filter(Boolean).join("  •  ");
+
     const colCount =
       1 /* Data */ +
       1 /* Número */ +
