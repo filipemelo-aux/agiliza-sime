@@ -519,20 +519,20 @@ function CargasReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: strin
         <Table>
           <TableHeader>
             <TableRow className="h-7">
-              <TableHead className="py-1 px-2 text-[10px]">Produto</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">NCM</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Sinônimos</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Toler. Quebra</TableHead>
-              <TableHead className="py-1 px-2 text-[10px]">Status</TableHead>
+              <SortableTh active={sort.key==="produto"} direction={sort.direction} onSort={()=>toggle("produto")} className="py-1 px-2 text-[10px]">Produto</SortableTh>
+              <SortableTh active={sort.key==="tipo"} direction={sort.direction} onSort={()=>toggle("tipo")} className="py-1 px-2 text-[10px]">Tipo</SortableTh>
+              <SortableTh active={sort.key==="ncm"} direction={sort.direction} onSort={()=>toggle("ncm")} className="py-1 px-2 text-[10px]">NCM</SortableTh>
+              <SortableTh active={sort.key==="sinonimos"} direction={sort.direction} onSort={()=>toggle("sinonimos")} className="py-1 px-2 text-[10px]">Sinônimos</SortableTh>
+              <SortableTh active={sort.key==="tol"} direction={sort.direction} onSort={()=>toggle("tol")} className="py-1 px-2 text-[10px]">Toler. Quebra</SortableTh>
+              <SortableTh active={sort.key==="status"} direction={sort.direction} onSort={()=>toggle("status")} className="py-1 px-2 text-[10px]">Status</SortableTh>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
-            ) : filtered.map(c => (
+            ) : sorted.map(c => (
               <TableRow key={c.id} className="h-7">
                 <TableCell className="py-1 px-2 text-[11px] font-medium">{c.produto_predominante}</TableCell>
                 <TableCell className="py-1 px-2"><Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-tight">{c.tipo || "—"}</Badge></TableCell>
