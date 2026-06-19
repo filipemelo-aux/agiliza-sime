@@ -314,7 +314,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   };
 
   const getTrailerPlates = (v: any) =>
-    [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" · ");
+    [v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" ");
+  const getAllPlates = (v: any) =>
+    [v.plate, v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).join(" ");
 
   const getName = (userId: string | null) => {
     if (!userId) return "—";
