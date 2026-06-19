@@ -370,6 +370,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
               <TableHead className="py-1 px-2 text-[10px]">Marca/Modelo</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Ano</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Tipo</TableHead>
+              <TableHead className="py-1 px-2 text-[10px]">Frota</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Motorista</TableHead>
               <TableHead className="py-1 px-2 text-[10px]">Proprietário</TableHead>
             </TableRow>
