@@ -378,7 +378,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           <SelectTrigger className="w-[130px] h-7 text-[11px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todos os tipos</SelectItem>
-            {Object.entries(VEHICLE_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            <SelectItem value="caminhao">Caminhão</SelectItem>
+            <SelectItem value="passeio">Passeio</SelectItem>
+            <SelectItem value="utilitario">Utilitário</SelectItem>
           </SelectContent>
         </Select>
         <Select value={fleetFilter} onValueChange={setFleetFilter}>
