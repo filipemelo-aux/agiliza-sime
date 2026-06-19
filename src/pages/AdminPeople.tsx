@@ -294,10 +294,10 @@ export default function AdminPeople() {
                       : [];
                     return (
                       <tr key={driver.id} className="border-t border-border hover:bg-muted/30">
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1.5">
                           <div className="font-medium">{driver.full_name}</div>
                           {driver.person_type === "cnpj" && driver.razao_social && (
-                            <div className="text-[11px] text-muted-foreground truncate max-w-[320px]">{driver.razao_social}</div>
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[260px]">{driver.razao_social}</div>
                           )}
                           {driverVehicles.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0 mt-0.5 text-[11px] text-muted-foreground">
@@ -311,7 +311,7 @@ export default function AdminPeople() {
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1.5">
                           <div className="flex items-center gap-1 flex-wrap">
                             <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                               {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
@@ -321,17 +321,17 @@ export default function AdminPeople() {
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {driver.email && <div className="truncate max-w-[260px]">{driver.email}</div>}
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {driver.email && <div className="truncate max-w-[200px]">{driver.email}</div>}
                           {driver.phone && <div>{maskPhone(driver.phone)}</div>}
                           {!driver.email && !driver.phone && <span>—</span>}
                         </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                        <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
                           {driver.address_city && driver.address_state
                             ? `${driver.address_city}/${driver.address_state}`
                             : "—"}
                         </td>
-                        <td className="px-2 py-2 text-right">
+                        <td className="px-1.5 py-1.5 text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => {
                               setViewPerson(driver);
