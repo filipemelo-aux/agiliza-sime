@@ -701,7 +701,7 @@ export function TransportReports() {
     return { estName, estCnpjFooter, matrizInfo };
   };
 
-  const buildReportHtml = ({ estName, estCnpj }: { estName: string; estCnpj: string }) => {
+  const buildReportHtml = ({ estName, estCnpjFooter, matrizInfo }: { estName: string; estCnpjFooter: string; matrizInfo: any }) => {
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const periodoLabel = `${formatDateBR(filters.dataInicio)} a ${formatDateBR(filters.dataFim)}`;
 
