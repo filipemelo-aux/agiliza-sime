@@ -422,13 +422,12 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : sorted.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-3 text-[11px] text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
             ) : sorted.map(v => (
               <TableRow key={v.id} className="h-7">
                 <TableCell className="py-1 px-2 font-mono text-[11px] font-medium">{v.plate}</TableCell>
-                <TableCell className="py-1 px-2 font-mono text-[11px]">{getTrailerPlates(v.id) || "—"}</TableCell>
                 <TableCell className="py-1 px-2 font-mono text-[11px]">{v.renavam || "—"}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.brand} {v.model}</TableCell>
                 <TableCell className="py-1 px-2 text-[11px]">{v.year}</TableCell>
