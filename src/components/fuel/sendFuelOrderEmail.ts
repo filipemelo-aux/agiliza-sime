@@ -68,6 +68,14 @@ export async function sendFuelOrderEmail(params: {
   if ((data as any)?.error) throw new Error((data as any).error);
 
   if (order.status === "pendente") {
-    await supabase.from("fuel_orders").update({ status: "enviada" } as any).eq("id", order.id);
+    await supabase
+      .from("fuel_orders")
+      .update({ status: "enviada", email_sent_at: new Date().toISOString(), email_sent_to: to } as any)
+      .eq("id", order.id);
+  } else {
+    await supabase
+      .from("fuel_orders")
+      .update({ email_sent_at: new Date().toISOString(), email_sent_to: to } as any)
+      .eq("id", order.id);
   }
 }
