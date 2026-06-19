@@ -350,11 +350,12 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return result;
   }, [data, typeFilter, fleetFilter, search, profiles]);
 
-  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
+  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "trailers" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
     filtered,
     { key: "plate", direction: "asc" },
     {
       plate: r => (r.plate || "").toLowerCase(),
+      trailers: r => getTrailerPlates(r.id).toLowerCase(),
       renavam: r => r.renavam || "",
       brand: r => `${r.brand || ""} ${r.model || ""}`.toLowerCase(),
       year: r => Number(r.year) || 0,
@@ -365,9 +366,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     },
   );
 
-  const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
+  const getHeaders = () => ["Placa", "Placas do Conjunto", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
-    v.plate, v.renavam || "", v.brand, v.model, String(v.year),
+    v.plate, getTrailerPlates(v.id) || "—", v.renavam || "", v.brand, v.model, String(v.year),
     VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
     fleetLabel(v.fleet_type),
     getName(v.driver_id), getName(v.owner_id),
