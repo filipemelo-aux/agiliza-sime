@@ -1122,19 +1122,26 @@ export function FinancialPayables() {
       return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${statusLabel(s)}</span>`;
     };
 
-    // Fetch establishment info (unified company - show both CNPJs)
-    let estName = ""; let estCnpj = "";
+    // Fetch establishment info: header = matriz completa, footer = todos CNPJs separados por |
+    let estName = ""; let estCnpjFooter = ""; let matrizInfo: any = null;
     try {
-      const { data } = await supabase.from("fiscal_establishments").select("razao_social,cnpj,type").eq("active", true).order("type");
+      const { data } = await supabase
+        .from("fiscal_establishments")
+        .select("razao_social,cnpj,type,inscricao_estadual,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep")
+        .eq("active", true).order("type");
       if (data && data.length > 0) {
-        const matriz = data.find((e: any) => e.type === "matriz") || data[0];
-        estName = matriz?.razao_social || "";
-        estCnpj = data.map((e: any) => {
-          const c = e.cnpj;
-          return c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
-        }).filter(Boolean).join(" / ");
+        matrizInfo = data.find((e: any) => e.type === "matriz") || data[0];
+        estName = matrizInfo?.razao_social || "";
+        const fmtC = (c: string) => c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
+        estCnpjFooter = data.map((e: any) => fmtC(e.cnpj)).filter(Boolean).join(" | ");
       }
     } catch {}
+    const matrizCnpjFmt = matrizInfo?.cnpj ? `${matrizInfo.cnpj.slice(0,2)}.${matrizInfo.cnpj.slice(2,5)}.${matrizInfo.cnpj.slice(5,8)}/${matrizInfo.cnpj.slice(8,12)}-${matrizInfo.cnpj.slice(12)}` : "";
+    const matrizAddr = [matrizInfo?.endereco_logradouro, matrizInfo?.endereco_numero, matrizInfo?.endereco_bairro].filter(Boolean).join(", ");
+    const matrizCity = [matrizInfo?.endereco_municipio, matrizInfo?.endereco_uf].filter(Boolean).join("/");
+    const matrizCep = matrizInfo?.endereco_cep ? `CEP ${matrizInfo.endereco_cep}` : "";
+    const matrizAddrLine = [matrizAddr, matrizCity, matrizCep].filter(Boolean).join(" — ");
+    const matrizDocLine = [matrizCnpjFmt ? `CNPJ: ${matrizCnpjFmt}` : "", matrizInfo?.inscricao_estadual ? `IE: ${matrizInfo.inscricao_estadual}` : ""].filter(Boolean).join("  •  ");
 
     const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
     const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
