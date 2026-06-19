@@ -338,6 +338,21 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
     return result;
   }, [data, typeFilter, fleetFilter, search, profiles]);
 
+  const { sort, toggle, sorted } = useSortableTable<any, "plate" | "renavam" | "brand" | "year" | "type" | "fleet" | "driver" | "owner">(
+    filtered,
+    { key: "plate", direction: "asc" },
+    {
+      plate: r => (r.plate || "").toLowerCase(),
+      renavam: r => r.renavam || "",
+      brand: r => `${r.brand || ""} ${r.model || ""}`.toLowerCase(),
+      year: r => Number(r.year) || 0,
+      type: r => VEHICLE_TYPES[r.vehicle_type] || r.vehicle_type || "",
+      fleet: r => fleetLabel(r.fleet_type),
+      driver: r => getName(r.driver_id).toLowerCase(),
+      owner: r => getName(r.owner_id).toLowerCase(),
+    },
+  );
+
   const getHeaders = () => ["Placa", "RENAVAM", "Marca", "Modelo", "Ano", "Tipo", "Frota", "Motorista", "Proprietário"];
   const getRows = () => filtered.map(v => [
     v.plate, v.renavam || "", v.brand, v.model, String(v.year),
