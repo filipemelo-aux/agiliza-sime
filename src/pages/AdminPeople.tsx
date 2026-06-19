@@ -267,7 +267,7 @@ export default function AdminPeople() {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : filteredDrivers.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -275,96 +275,112 @@ export default function AdminPeople() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredDrivers.map((driver) => (
-              <Card key={driver.id} className="border-border">
-                <CardContent className="py-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-semibold truncate">{driver.full_name}</h3>
-                        <Badge className={`text-xs shrink-0 ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
-                          {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
-                        </Badge>
-                        {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
-                          <Badge variant="outline" className="text-xs shrink-0 border-teal-500/40 text-teal-400">
-                            Colaborador
-                          </Badge>
-                        )}
-                      </div>
-                      {driver.person_type === "cnpj" && driver.razao_social && (
-                        <p className="text-sm text-muted-foreground">{driver.razao_social}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-4 gap-y-0 text-sm text-muted-foreground">
-                        {driver.phone && <span>{maskPhone(driver.phone)}</span>}
-                        {driver.email && <span>{driver.email}</span>}
-                        {driver.address_city && driver.address_state && (
-                          <span>{driver.address_city}/{driver.address_state}</span>
-                        )}
-                      </div>
-                      {driver.category === "motorista" && (() => {
-                        const driverVehicles = vehicles.filter(v => v.driver_id === driver.user_id);
-                        if (driverVehicles.length === 0) return null;
-                        return (
-                          <div className="flex flex-wrap gap-x-4 gap-y-0 mt-1 text-xs text-muted-foreground">
-                            {driverVehicles.map(v => (
-                              <span key={v.id}>
-                                <Car className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                                {v.plate} ({v.brand} {v.model})
-                                {v.owner_name && <> · Patrão: <strong className="text-foreground">{v.owner_name}</strong></>}
-                              </span>
-                            ))}
+          <div className="border border-border rounded-md overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[760px]">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr className="text-left">
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "nome"} direction={sort.direction} onSort={() => toggle("nome")}>Nome</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium w-[140px]" active={sort.key === "categoria"} direction={sort.direction} onSort={() => toggle("categoria")}>Categoria</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium" active={sort.key === "contato"} direction={sort.direction} onSort={() => toggle("contato")}>Contato</SortableTh>
+                    <SortableTh className="px-3 py-2 font-medium w-[160px]" active={sort.key === "cidade"} direction={sort.direction} onSort={() => toggle("cidade")}>Cidade/UF</SortableTh>
+                    <th className="px-2 py-2 font-medium text-right w-[150px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((driver) => {
+                    const driverVehicles = driver.category === "motorista"
+                      ? vehicles.filter(v => v.driver_id === driver.user_id)
+                      : [];
+                    return (
+                      <tr key={driver.id} className="border-t border-border hover:bg-muted/30">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{driver.full_name}</div>
+                          {driver.person_type === "cnpj" && driver.razao_social && (
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[320px]">{driver.razao_social}</div>
+                          )}
+                          {driverVehicles.length > 0 && (
+                            <div className="flex flex-wrap gap-x-2 gap-y-0 mt-0.5 text-[11px] text-muted-foreground">
+                              {driverVehicles.map(v => (
+                                <span key={v.id}>
+                                  <Car className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                                  {v.plate}
+                                  {v.owner_name && <> · {v.owner_name}</>}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
+                              {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
+                            </Badge>
+                            {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
+                              <Badge variant="outline" className="text-[10px] border-teal-500/40 text-teal-400">RH</Badge>
+                            )}
                           </div>
-                        );
-                      })()}
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={async () => {
-                        setViewPerson(driver);
-                        setViewPersonDocs(null);
-                        setViewPersonHarvests([]);
-                        if (driver.category === "motorista" || driver.category === "colaborador") {
-                          const [docsRes, assignmentsRes] = await Promise.all([
-                            supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
-                            supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
-                          ]);
-                          setViewPersonDocs(docsRes.data || null);
-                          const assignments = assignmentsRes.data || [];
-                          if (assignments.length > 0) {
-                            const jobIds = assignments.map((a: any) => a.harvest_job_id);
-                            const { data: jobs } = await supabase.from("harvest_jobs").select("farm_name, client_id").in("id", jobIds);
-                            const clientIds = (jobs || []).map((j: any) => j.client_id).filter(Boolean);
-                            let clientMap: Record<string, string> = {};
-                            if (clientIds.length > 0) {
-                              const { data: clients } = await supabase.from("profiles").select("id, full_name").in("id", clientIds);
-                              (clients || []).forEach((c: any) => { clientMap[c.id] = c.full_name; });
-                            }
-                            setViewPersonHarvests((jobs || []).map((j: any) => ({
-                              farm_name: j.farm_name,
-                              client_name: j.client_id ? clientMap[j.client_id] || null : null,
-                            })));
-                          }
-                        }
-                      }} title="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {isAdmin && driver.category === "colaborador" && driver.user_id && (
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
-                          <KeyRound className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePerson(driver)} title="Excluir">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {driver.email && <div className="truncate max-w-[260px]">{driver.email}</div>}
+                          {driver.phone && <div>{maskPhone(driver.phone)}</div>}
+                          {!driver.email && !driver.phone && <span>—</span>}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                          {driver.address_city && driver.address_state
+                            ? `${driver.address_city}/${driver.address_state}`
+                            : "—"}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={async () => {
+                              setViewPerson(driver);
+                              setViewPersonDocs(null);
+                              setViewPersonHarvests([]);
+                              if (driver.category === "motorista" || driver.category === "colaborador") {
+                                const [docsRes, assignmentsRes] = await Promise.all([
+                                  supabase.from("driver_documents").select("cpf, cnh_number, cnh_category, cnh_expiry").eq("user_id", driver.user_id).maybeSingle(),
+                                  supabase.from("harvest_assignments").select("harvest_job_id").eq("user_id", driver.user_id).eq("status", "active"),
+                                ]);
+                                setViewPersonDocs(docsRes.data || null);
+                                const assignments = assignmentsRes.data || [];
+                                if (assignments.length > 0) {
+                                  const jobIds = assignments.map((a: any) => a.harvest_job_id);
+                                  const { data: jobs } = await supabase.from("harvest_jobs").select("farm_name, client_id").in("id", jobIds);
+                                  const clientIds = (jobs || []).map((j: any) => j.client_id).filter(Boolean);
+                                  let clientMap: Record<string, string> = {};
+                                  if (clientIds.length > 0) {
+                                    const { data: clients } = await supabase.from("profiles").select("id, full_name").in("id", clientIds);
+                                    (clients || []).forEach((c: any) => { clientMap[c.id] = c.full_name; });
+                                  }
+                                  setViewPersonHarvests((jobs || []).map((j: any) => ({
+                                    farm_name: j.farm_name,
+                                    client_name: j.client_id ? clientMap[j.client_id] || null : null,
+                                  })));
+                                }
+                              }
+                            }} title="Visualizar">
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditPerson(driver); setEditOpen(true); }} title="Editar">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            {isAdmin && driver.category === "colaborador" && driver.user_id && (
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-500 hover:text-amber-600" onClick={() => setResetPerson(driver)} title="Resetar Senha">
+                                <KeyRound className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletePerson(driver)} title="Excluir">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
