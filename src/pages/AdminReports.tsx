@@ -370,7 +370,9 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
       v.plate || "",
       v.renavam || "", v.brand, v.model, String(v.year),
       VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
-      getTrailerPlates(v) || "—",
+      getTrailerPlates(v)
+        ? `<span style="font-family:'Courier New',monospace;letter-spacing:1px;white-space:pre">${[v.trailer_plate_1, v.trailer_plate_2, v.trailer_plate_3].filter(Boolean).map((p: string) => p.padEnd(7)).join("  ")}</span>`
+        : "—",
       fleetLabel(v.fleet_type),
       getName(v.driver_id), getName(v.owner_id),
     ];
