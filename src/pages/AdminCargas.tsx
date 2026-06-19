@@ -92,6 +92,18 @@ export default function AdminCargas() {
     );
   });
 
+  type CargaSortKey = "produto" | "tipo" | "ncm" | "status";
+  const { sort, toggle, sorted } = useSortableTable<Carga, CargaSortKey>(
+    filtered,
+    { key: "produto", direction: "asc" },
+    {
+      produto: (c) => c.produto_predominante || "",
+      tipo: (c) => c.tipo || "",
+      ncm: (c) => c.ncm || "",
+      status: (c) => (c.ativo ? "1" : "0"),
+    },
+  );
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
