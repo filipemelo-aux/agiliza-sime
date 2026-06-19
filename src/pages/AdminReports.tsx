@@ -322,7 +322,13 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
 
   const filtered = useMemo(() => {
     let result = data;
-    if (typeFilter !== "__all__") result = result.filter(v => v.vehicle_type === typeFilter);
+    if (typeFilter !== "__all__") {
+      const truckTypes = ["truck","bitruck","carreta","carreta_ls","rodotrem","bitrem","treminhao"];
+      result = result.filter(v => {
+        if (typeFilter === "caminhao") return truckTypes.includes(v.vehicle_type);
+        return v.vehicle_type === typeFilter;
+      });
+    }
     if (fleetFilter !== "__all__") result = result.filter(v => v.fleet_type === fleetFilter);
     if (search) {
       const s = search.toLowerCase();
