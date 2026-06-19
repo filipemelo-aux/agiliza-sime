@@ -368,7 +368,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
   const getRows = () => filtered.map(v => {
     const tp = getTrailerPlates(v);
     return [
-      tp ? `${v.plate} (${tp})` : v.plate,
+      getAllPlates(v),
       v.renavam || "", v.brand, v.model, String(v.year),
       VEHICLE_TYPES[v.vehicle_type] || v.vehicle_type,
       fleetLabel(v.fleet_type),
