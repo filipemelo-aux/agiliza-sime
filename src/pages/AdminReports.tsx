@@ -410,7 +410,7 @@ function VehiclesReport({ matriz, cnpjsFooter }: { matriz: any; cnpjsFooter: str
           <TableHeader>
             <TableRow className="h-7">
               <SortableTh active={sort.key==="plate"} direction={sort.direction} onSort={()=>toggle("plate")} className="py-1 px-2 text-[10px]">Placa</SortableTh>
-              <SortableTh active={sort.key==="trailers"} direction={sort.direction} onSort={()=>toggle("trailers")} className="py-1 px-2 text-[10px]">Placas do Conjunto</SortableTh>
+              
               <SortableTh active={sort.key==="renavam"} direction={sort.direction} onSort={()=>toggle("renavam")} className="py-1 px-2 text-[10px]">RENAVAM</SortableTh>
               <SortableTh active={sort.key==="brand"} direction={sort.direction} onSort={()=>toggle("brand")} className="py-1 px-2 text-[10px]">Marca/Modelo</SortableTh>
               <SortableTh active={sort.key==="year"} direction={sort.direction} onSort={()=>toggle("year")} className="py-1 px-2 text-[10px]">Ano</SortableTh>
