@@ -513,12 +513,17 @@ export function RevenueForecasts() {
               const Icon = ORIGEM_ICON[p.origem_tipo] || FileText;
               const isPendente = p.status === "pendente";
               return (
-                <Card key={p.id}>
+                <Card
+                  key={p.id}
+                  className={cn(isPendente && "cursor-pointer", selected.has(p.id) && "ring-2 ring-primary/40 bg-accent/20")}
+                  onClick={isPendente ? () => toggleSelect(p.id) : undefined}
+                >
+
                   <CardContent className="p-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         {isPendente && (
-                          <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
+                          <Checkbox checked={selected.has(p.id)} onClick={(e) => e.stopPropagation()} onCheckedChange={() => toggleSelect(p.id)} />
                         )}
                         <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
                       </div>
@@ -529,7 +534,8 @@ export function RevenueForecasts() {
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6"
-                            onClick={() => openEditDialog(p)}
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
+
                             title="Editar previsão"
                           >
                             <PencilLine className="h-3 w-3" />
