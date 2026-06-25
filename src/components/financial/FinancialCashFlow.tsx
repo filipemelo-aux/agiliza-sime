@@ -45,6 +45,7 @@ interface MovimentacaoEnriquecida extends Movimentacao {
 
 export function FinancialCashFlow() {
   const isMobile = useIsMobile();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
