@@ -392,6 +392,7 @@ export function FinancialCashFlow() {
                     <TableHead className="text-xs">Cliente / Fornecedor</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
