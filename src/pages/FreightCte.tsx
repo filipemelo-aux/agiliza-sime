@@ -117,6 +117,23 @@ export default function FreightCte() {
 
   const getEmissaoDate = (c: Cte) => c.data_emissao || c.created_at;
 
+  const getClienteTomador = (c: Cte) => {
+    if (c.tomador_nome) return c.tomador_nome;
+
+    switch (Number(c.tomador_tipo)) {
+      case 0:
+        return c.remetente_nome || "";
+      case 1:
+        return c.expedidor_nome || "";
+      case 2:
+        return c.recebedor_nome || "";
+      case 3:
+        return c.destinatario_nome || "";
+      default:
+        return c.remetente_nome || c.destinatario_nome || "";
+    }
+  };
+
   const filtered = ctes.filter((c) => {
     const isServico = c.tipo_talao === "servico";
     if (tipoFilter === "producao" && isServico) return false;
@@ -129,7 +146,10 @@ export default function FreightCte() {
     const q = search.toLowerCase();
     return (
       !q ||
+      c.tomador_nome?.toLowerCase().includes(q) ||
       c.remetente_nome?.toLowerCase().includes(q) ||
+      c.expedidor_nome?.toLowerCase().includes(q) ||
+      c.recebedor_nome?.toLowerCase().includes(q) ||
       c.destinatario_nome?.toLowerCase().includes(q) ||
       String(c.numero).includes(q) ||
       String(c.numero_interno).includes(q) ||
@@ -146,7 +166,7 @@ export default function FreightCte() {
       numero: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
       talao: (c) => (c.tipo_talao === "servico" ? "Serviço" : "Produção"),
       data: (c) => getEmissaoDate(c) || "",
-      cliente: (c) => c.tomador_nome || c.remetente_nome || c.destinatario_nome || "",
+      cliente: getClienteTomador,
       placa: (c) => c.placa_veiculo || "",
       valor: (c) => Number(c.valor_frete) || 0,
       status: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
@@ -438,9 +458,7 @@ export default function FreightCte() {
                     const numeroDisplay = isServico
                       ? cte.numero_interno ?? "—"
                       : cte.numero ?? "—";
-                    const cliente = isServico
-                      ? (cte.tomador_nome || cte.destinatario_nome)
-                      : (cte.tomador_nome || cte.remetente_nome || cte.destinatario_nome);
+                    const cliente = getClienteTomador(cte);
                     return (
                       <tr
                         key={cte.id}
