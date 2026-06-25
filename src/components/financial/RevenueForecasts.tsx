@@ -495,19 +495,20 @@ export function RevenueForecasts() {
       {/* Action bar - fixed at top when items selected */}
       {pendentes.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap p-2.5 bg-muted/50 rounded-lg border border-border">
-          <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1.5 shadow-sm">
+          <Button onClick={openIndividualDialog} disabled={selected.size === 0} className="gap-1.5 shadow-sm">
             <Receipt className="h-4 w-4" />
-            Gerar Fatura ({selected.size})
+            Gerar Faturas ({selected.size})
           </Button>
           <Button
-            onClick={handleGroupSelected}
+            onClick={openInvoiceDialog}
             disabled={selected.size < 2 || !sameClient}
             variant="outline"
             size="sm"
             className="gap-1.5"
+            title={selected.size < 2 ? "Selecione 2 ou mais previsões" : !sameClient ? "Todas devem ser do mesmo cliente" : "Consolidar em uma única fatura"}
           >
             <Layers className="h-4 w-4" />
-            Agrupar em lote
+            Gerar Fatura Única
           </Button>
           <Button
             onClick={handleUngroupSelected}
