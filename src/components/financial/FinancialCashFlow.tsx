@@ -9,11 +9,13 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -43,6 +45,7 @@ interface MovimentacaoEnriquecida extends Movimentacao {
 
 export function FinancialCashFlow() {
   const isMobile = useIsMobile();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEnriquecida[]>([]);
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -237,6 +240,22 @@ export function FinancialCashFlow() {
     return o;
   };
 
+  const handleReverseManual = async (m: MovimentacaoEnriquecida) => {
+    if (m.origem !== "manual") return;
+    const ok = await confirm({
+      title: "Estornar movimentação manual",
+      description: `Confirma o estorno de ${formatCurrency(Number(m.valor))} (${m.descricao || "sem descrição"})? Esta ação não pode ser desfeita.`,
+      variant: "destructive",
+      confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("movimentacoes_bancarias").delete().eq("id", m.id).eq("origem", "manual");
+    if (error) { toast.error("Erro ao estornar: " + error.message); return; }
+    toast.success("Movimentação estornada");
+    loadMovimentacoes();
+  };
+
+
 
   return (
     <div className="space-y-4">
@@ -352,6 +371,13 @@ export function FinancialCashFlow() {
                       {m.pessoa_nome || m.descricao}
                     </p>
                   )}
+                  {m.origem === "manual" && (
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1" onClick={() => handleReverseManual(m)}>
+                        <Undo2 className="h-3 w-3" /> Estornar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -366,6 +392,7 @@ export function FinancialCashFlow() {
                     <TableHead className="text-xs">Cliente / Fornecedor</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,6 +410,13 @@ export function FinancialCashFlow() {
                       <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
+                      <TableCell className="py-2 text-right">
+                        {m.origem === "manual" && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleReverseManual(m)} title="Estornar">
+                            <Undo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -398,6 +432,7 @@ export function FinancialCashFlow() {
         onSaved={loadMovimentacoes}
         chartAccounts={chartAccounts}
       />
+      {ConfirmDialog}
     </div>
   );
 }
