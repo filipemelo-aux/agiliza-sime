@@ -946,6 +946,23 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     </div>
                   )}
 
+                  {hasMissingWeightWarnings && (
+                    <div className="border border-amber-400/60 rounded-md p-2 bg-amber-50 dark:bg-amber-500/10 space-y-1.5">
+                      <p className="text-[11px] font-semibold flex items-center gap-1 text-amber-900 dark:text-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Linhas sem peso informado
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Foram detectadas <strong>{rows.filter((r) => r._missingWeight && !r._error).length}</strong> linha(s) sem peso. Caso prossiga, o CT-e será importado com peso zero e considerará apenas o valor do frete.
+                      </p>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox checked={ignoreMissingWeight} onCheckedChange={(v) => setIgnoreMissingWeight(!!v)} />
+                        Estou ciente e desejo importar mesmo assim (peso será gravado como 0)
+                      </label>
+                    </div>
+                  )}
+
+
+
 
                   {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
                     <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
