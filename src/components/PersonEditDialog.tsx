@@ -113,6 +113,7 @@ const emptyForm: FormState = {
   razao_social: "",
   nome_fantasia: "",
   category: "motorista",
+  categories_extra: [],
   cnh_number: "",
   cnh_category: "",
   cnh_expiry: "",
