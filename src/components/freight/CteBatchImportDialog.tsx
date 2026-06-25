@@ -788,7 +788,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
   };
 
-  const totalValorFrete = rows.reduce((s, r) => s + (r._error ? 0 : r.valorFrete), 0);
+  const totalValorFrete = rows.reduce((s, r) => s + (isImportable(r) ? r.valorFrete : 0), 0);
   const internalCount = validation ? Object.keys(validation.internalDups).length : 0;
   const dbCount = validation ? Object.keys(validation.dbDups).length : 0;
   const missingPlatesCount = validation ? validation.missingPlates.length : 0;
