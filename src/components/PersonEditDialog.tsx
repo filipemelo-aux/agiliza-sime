@@ -41,6 +41,7 @@ export interface PersonProfile {
   razao_social: string | null;
   nome_fantasia: string | null;
   category: string;
+  categories_extra?: string[] | null;
   email: string | null;
   address_street: string | null;
   address_number: string | null;
