@@ -469,8 +469,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           address_city: cnpjData.municipio,
           address_state: cnpjData.uf,
           address_zip: cnpjData.cep,
-          phone: cnpjData.ddd_telefone_1,
-          email: cnpjData.email,
+          phone: (() => {
+            const digits = String(cnpjData.ddd_telefone_1 || "").replace(/\D/g, "");
+            return digits.length === 10 || digits.length === 11 ? digits : null;
+          })(),
+          email: cnpjData.email || null,
         };
       } catch {
         // CNPJ lookup failed — proceed with simple cadastro
