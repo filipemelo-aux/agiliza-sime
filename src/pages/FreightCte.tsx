@@ -439,8 +439,8 @@ export default function FreightCte() {
                       ? cte.numero_interno ?? "—"
                       : cte.numero ?? "—";
                     const cliente = isServico
-                      ? cte.destinatario_nome
-                      : cte.destinatario_nome || cte.remetente_nome;
+                      ? (cte.tomador_nome || cte.destinatario_nome)
+                      : (cte.tomador_nome || cte.remetente_nome || cte.destinatario_nome);
                     return (
                       <tr
                         key={cte.id}
