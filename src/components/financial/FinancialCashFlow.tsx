@@ -432,6 +432,7 @@ export function FinancialCashFlow() {
         onSaved={loadMovimentacoes}
         chartAccounts={chartAccounts}
       />
+      {ConfirmDialog}
     </div>
   );
 }
