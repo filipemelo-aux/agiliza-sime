@@ -309,6 +309,7 @@ function personToForm(person: PersonProfile): FormState {
     razao_social: person.razao_social ? maskName(person.razao_social) : "",
     nome_fantasia: person.nome_fantasia ? maskName(person.nome_fantasia) : "",
     category: person.category || "motorista",
+    categories_extra: Array.isArray((person as any).categories_extra) ? (person as any).categories_extra : [],
     cnh_number: "",
     cnh_category: "",
     cnh_expiry: "",
