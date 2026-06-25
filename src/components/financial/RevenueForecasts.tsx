@@ -991,6 +991,57 @@ export function RevenueForecasts() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Individual invoices dialog: one fatura per previsao with editable due date */}
+      <Dialog open={individualDialogOpen} onOpenChange={setIndividualDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Faturas Individuais</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Será gerada uma fatura para cada previsão. Defina o vencimento de cada uma.
+            </p>
+            <div className="max-h-[50vh] overflow-y-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Cliente</TableHead>
+                    <TableHead className="text-xs">Origem</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs">Vencimento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedItems.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-xs">{p.cliente_nome}</TableCell>
+                      <TableCell className="text-xs">{getOrigemLabel(p)}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          className="h-8 text-xs"
+                          value={individualVencimentos[p.id] || ""}
+                          onChange={(e) =>
+                            setIndividualVencimentos((prev) => ({ ...prev, [p.id]: e.target.value }))
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-between text-xs px-1">
+              <span className="text-muted-foreground">{selectedItems.length} fatura(s) — total {formatCurrency(selectedTotal)}</span>
+            </div>
+            <Button onClick={handleCreateIndividualInvoices} className="w-full" disabled={saving}>
+              {saving ? "Criando..." : `Confirmar ${selectedItems.length} Fatura(s)`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
