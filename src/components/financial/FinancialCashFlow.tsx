@@ -9,11 +9,13 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/masks";
-import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
