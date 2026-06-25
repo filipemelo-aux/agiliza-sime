@@ -1096,7 +1096,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                 disabled={importing || rows.length === 0 || validating || hasBlockingIssues}
               >
                 {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                Importar {rows.filter((r) => !r._error).length} CT-e(s)
+                Importar {rows.filter(isImportable).length} CT-e(s)
               </Button>
             </div>
           </div>
