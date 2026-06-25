@@ -741,6 +741,31 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
         </Select>
       </div>
 
+      {/* Categorias adicionais (multi-categoria) */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">Categorias adicionais</Label>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-border bg-muted/30 p-2.5">
+          {CATEGORIES.filter((c) => c.value !== form.category).map((c) => {
+            const checked = (form.categories_extra || []).includes(c.value);
+            return (
+              <label key={c.value} className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(v) =>
+                    setForm((p) => {
+                      const base = (p.categories_extra || []).filter((x) => x !== c.value);
+                      return { ...p, categories_extra: v ? [...base, c.value] : base };
+                    })
+                  }
+                />
+                <span>{c.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground">A pessoa será encontrada nas buscas/filtros de qualquer categoria marcada.</p>
+      </div>
+
       {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}
       {!isMotorista && !isColaborador && (
         <div className="space-y-1.5">
