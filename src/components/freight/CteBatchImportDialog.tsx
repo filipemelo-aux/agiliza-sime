@@ -537,7 +537,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       toast({ title: "Estabelecimento obrigatório", variant: "destructive" });
       return;
     }
-    const validRows = rows.filter((r) => !r._error);
+    const validRows = rows.filter(isImportable);
     if (validRows.length === 0) {
       toast({ title: "Nenhuma linha válida para importar", variant: "destructive" });
       return;
