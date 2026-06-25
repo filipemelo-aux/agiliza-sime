@@ -110,6 +110,7 @@ export default function AdminPeople() {
         id: p.id, user_id: p.user_id, full_name: p.full_name, phone: p.phone,
         person_type: p.person_type, cnpj: p.cnpj, razao_social: p.razao_social,
         nome_fantasia: p.nome_fantasia, category: p.category || "motorista",
+        categories_extra: Array.isArray(p.categories_extra) ? p.categories_extra : [],
         email: p.email, address_street: p.address_street, address_number: p.address_number,
         address_complement: p.address_complement, address_neighborhood: p.address_neighborhood,
         address_city: p.address_city, address_state: p.address_state, address_zip: p.address_zip,
