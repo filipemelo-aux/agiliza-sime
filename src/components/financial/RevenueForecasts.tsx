@@ -611,7 +611,15 @@ export function RevenueForecasts() {
                   {isOpen && (
                     <div className="mt-2 pt-2 border-t border-border space-y-1">
                       {g.items.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between gap-2 text-[11px] pl-5">
+                        <div
+                          key={p.id}
+                          className={cn(
+                            "flex items-center justify-between gap-2 text-[11px] pl-5 rounded",
+                            p.status === "pendente" && "cursor-pointer hover:bg-accent/30",
+                            selected.has(p.id) && "bg-accent/40 ring-1 ring-primary/40"
+                          )}
+                          onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
+                        >
                           <span className="text-muted-foreground truncate">
                             {formatDateBR(p.data_prevista)}
                             {p.metadata?.placa ? ` · ${p.metadata.placa}` : ""}
@@ -624,7 +632,7 @@ export function RevenueForecasts() {
                                 size="icon"
                                 variant="ghost"
                                 className="h-5 w-5"
-                                onClick={() => openEditDialog(p)}
+                                onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
                                 title="Editar previsão"
                               >
                                 <PencilLine className="h-2.5 w-2.5" />
