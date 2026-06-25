@@ -408,34 +408,6 @@ export function RevenueForecasts() {
     }
   };
 
-  const handleUngroupSelected = async () => {
-    // Find all selected items that have a lote_id
-    const itemsWithLote = selectedItems.filter((p) => p.metadata?.lote_id);
-    if (itemsWithLote.length === 0) return toast.error("Nenhuma previsão selecionada faz parte de um lote");
-    const confirmed = await confirm({
-      description: `Desagrupar ${itemsWithLote.length} previsão(ões)? Elas voltarão a aparecer individualmente.`,
-      confirmLabel: "Desagrupar",
-    });
-    if (!confirmed) return;
-    try {
-      const updates = itemsWithLote.map((p) => {
-        const { lote_id, lote_total, ...rest } = p.metadata || {};
-        return supabase
-          .from("previsoes_recebimento")
-          .update({ metadata: rest })
-          .eq("id", p.id);
-      });
-      const results = await Promise.all(updates);
-      const firstError = results.find((r) => r.error);
-      if (firstError?.error) throw firstError.error;
-      toast.success(`${itemsWithLote.length} previsões desagrupadas`);
-      fetchPrevisoes();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao desagrupar previsões");
-    }
-  };
-
-  const selectedHasLote = selectedItems.some((p) => p.metadata?.lote_id);
 
   const handleDeleteSelected = async () => {
     if (selectedItems.length === 0) return;
