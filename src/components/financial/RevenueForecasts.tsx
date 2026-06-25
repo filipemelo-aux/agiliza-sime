@@ -268,12 +268,64 @@ export function RevenueForecasts() {
   };
 
   const openInvoiceDialog = () => {
-    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    if (selectedItems.length < 2) return toast.error("Selecione ao menos 2 previsões para gerar fatura única");
     if (!sameClient) return toast.error("Todas as previsões devem ser do mesmo cliente");
     setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
     setInvoiceDialogOpen(true);
+  };
+
+  const openIndividualDialog = () => {
+    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    const initial: Record<string, string> = {};
+    selectedItems.forEach((p) => {
+      initial[p.id] = p.data_prevista;
+    });
+    setIndividualVencimentos(initial);
+    setIndividualDialogOpen(true);
+  };
+
+  const handleCreateIndividualInvoices = async () => {
+    if (selectedItems.length === 0) return;
+    // Validate all dates set
+    for (const p of selectedItems) {
+      if (!individualVencimentos[p.id]) {
+        return toast.error("Defina o vencimento de todas as previsões");
+      }
+    }
+    setSaving(true);
+    try {
+      let created = 0;
+      for (const p of selectedItems) {
+        const venc = individualVencimentos[p.id];
+        const { data: fatura, error: faturaErr } = await supabase
+          .from("faturas_recebimento")
+          .insert({
+            cliente_id: p.cliente_id,
+            valor_total: Number(p.valor),
+            num_parcelas: 1,
+            intervalo_dias: 0,
+            data_emissao: venc,
+            status: "faturada" as any,
+          })
+          .select()
+          .single();
+        if (faturaErr) throw faturaErr;
+        const { error: linkErr } = await supabase
+          .from("fatura_previsoes")
+          .insert({ fatura_id: fatura.id, previsao_id: p.id });
+        if (linkErr) throw linkErr;
+        created++;
+      }
+      toast.success(`${created} fatura(s) individual(is) criada(s)!`);
+      setIndividualDialogOpen(false);
+      fetchPrevisoes();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar faturas");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
