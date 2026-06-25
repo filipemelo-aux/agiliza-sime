@@ -371,6 +371,13 @@ export function FinancialCashFlow() {
                       {m.pessoa_nome || m.descricao}
                     </p>
                   )}
+                  {m.origem === "manual" && (
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1" onClick={() => handleReverseManual(m)}>
+                        <Undo2 className="h-3 w-3" /> Estornar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
