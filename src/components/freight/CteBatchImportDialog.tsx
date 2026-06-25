@@ -520,12 +520,17 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     );
   }, [validation]);
 
+  const hasMissingWeightWarnings = useMemo(() => rows.some((r) => r._missingWeight && !r._error), [rows]);
+
+  const isImportable = (r: ParsedRow) => !r._error && (!r._missingWeight || ignoreMissingWeight);
+
   const hasBlockingIssues = useMemo(() => {
     if (!validation) return false;
     if (validation.missingPlates.length > 0) return true;
     if (!ignoreDuplicates && hasDuplicateWarnings) return true;
+    if (!ignoreMissingWeight && hasMissingWeightWarnings) return true;
     return false;
-  }, [validation, ignoreDuplicates, hasDuplicateWarnings]);
+  }, [validation, ignoreDuplicates, hasDuplicateWarnings, ignoreMissingWeight, hasMissingWeightWarnings]);
 
   const handleImport = async () => {
     if (!selectedEstId) {
