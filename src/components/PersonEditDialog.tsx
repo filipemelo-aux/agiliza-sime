@@ -77,6 +77,7 @@ interface FormState {
   razao_social: string;
   nome_fantasia: string;
   category: string;
+  categories_extra: string[];
   cnh_number: string;
   cnh_category: string;
   cnh_expiry: string;
