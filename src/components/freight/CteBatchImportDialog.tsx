@@ -510,14 +510,20 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     cache.set(key, true);
   };
 
-  const hasBlockingIssues = useMemo(() => {
+  const hasDuplicateWarnings = useMemo(() => {
     if (!validation) return false;
     return (
       Object.keys(validation.internalDups).length > 0 ||
-      Object.keys(validation.dbDups).length > 0 ||
-      validation.missingPlates.length > 0
+      Object.keys(validation.dbDups).length > 0
     );
   }, [validation]);
+
+  const hasBlockingIssues = useMemo(() => {
+    if (!validation) return false;
+    if (validation.missingPlates.length > 0) return true;
+    if (!ignoreDuplicates && hasDuplicateWarnings) return true;
+    return false;
+  }, [validation, ignoreDuplicates, hasDuplicateWarnings]);
 
   const handleImport = async () => {
     if (!selectedEstId) {
