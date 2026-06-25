@@ -59,6 +59,9 @@ export function RevenueForecasts() {
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
   const [cteMap, setCteMap] = useState<Record<string, number>>({});
+  // Individual invoice dialog: per-previsao due dates
+  const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
+  const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
