@@ -23,21 +23,20 @@ import {
   Loader2,
   Upload,
   Building2,
-  Users,
   FileSpreadsheet,
   AlertTriangle,
   Trash2,
   PlusCircle,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { PersonSearchInput } from "./PersonSearchInput";
 import { maskName } from "@/lib/masks";
-import { NaturezaCargaSearchInput } from "./NaturezaCargaSearchInput";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
+import { lookupCnpj } from "@/lib/cnpjLookup";
 
 interface Props {
   open: boolean;
@@ -45,37 +44,24 @@ interface Props {
   onImported: () => void;
 }
 
-interface ActorState {
-  id: string | null;
-  nome: string;
-  cnpj: string | null;
-  ie: string | null;
-  endereco: string | null;
-  municipio_ibge: string | null;
-  uf: string | null;
-}
+type ActorRole = "remetente" | "expedidor" | "destinatario" | "recebedor";
 
-const emptyActor: ActorState = {
-  id: null,
-  nome: "",
-  cnpj: null,
-  ie: null,
-  endereco: null,
-  municipio_ibge: null,
-  uf: null,
-};
+interface ParsedActor {
+  nome: string;
+  doc: string; // digits only (CPF/CNPJ) — may be empty
+}
 
 interface ParsedRow {
   _key: string;
   data: string; // YYYY-MM-DD
+  remetente: ParsedActor;
+  expedidor: ParsedActor;
+  destinatario: ParsedActor;
+  recebedor: ParsedActor;
+  natureza: string;
   placa: string;
-  motorista: string;
   pesoTon: number;
-  valorCte: number;
-  valorContrato: number;
-  valorDiesel: number;
-  litros: number;
-  totalDescontado: number;
+  valorFrete: number;
   _error?: string;
 }
 
@@ -90,9 +76,11 @@ interface DbDupInfo {
 }
 
 interface ValidationState {
-  internalDups: Record<string, { reason: "peso_data" | "peso_placa"; with: number[] }>; // key -> conflict rows (1-based)
+  internalDups: Record<string, { reason: "peso_data" | "peso_placa"; with: number[] }>;
   dbDups: Record<string, DbDupInfo[]>;
-  missingPlates: string[]; // uppercased
+  missingPlates: string[];
+  missingActors: { key: string; nome: string; doc: string }[]; // unique
+  missingNaturezas: string[];
 }
 
 function excelDateToISO(v: any): string {
@@ -125,7 +113,17 @@ function parseNum(v: any): number {
   return isNaN(n) ? 0 : n;
 }
 
+const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
+const normName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
 const pesoKgOf = (r: ParsedRow) => +(r.pesoTon * 1000).toFixed(3);
+
+const ROLE_LABEL: Record<ActorRole, string> = {
+  remetente: "Remetente",
+  expedidor: "Expedidor",
+  destinatario: "Destinatário",
+  recebedor: "Recebedor",
+};
 
 export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) {
   const { user } = useAuth();
@@ -133,23 +131,16 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const { matrizId } = useUnifiedCompany();
   const [establishments, setEstablishments] = useState<Array<{ id: string; razao_social: string; cnpj: string }>>([]);
   const [selectedEstId, setSelectedEstId] = useState<string>("");
-  const [remetente, setRemetente] = useState<ActorState>(emptyActor);
-  const [destinatario, setDestinatario] = useState<ActorState>(emptyActor);
-  const [expedidor, setExpedidor] = useState<ActorState>(emptyActor);
-  const [recebedor, setRecebedor] = useState<ActorState>(emptyActor);
-  const [tomadorTipo, setTomadorTipo] = useState<number>(0);
-  const [naturezaCarga, setNaturezaCarga] = useState("");
-  const [gerarContrato, setGerarContrato] = useState(true);
+  const [tomadorRole, setTomadorRole] = useState<ActorRole>("destinatario");
+  const [gerarContrato, setGerarContrato] = useState(false);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
+  const [progress, setProgress] = useState<{ done: number; total: number; errors: string[]; step: string }>({ done: 0, total: 0, errors: [], step: "" });
 
-  // validation
   const [validation, setValidation] = useState<ValidationState | null>(null);
   const [validating, setValidating] = useState(false);
 
-  // vehicle registration modal
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
 
   useEffect(() => {
@@ -172,7 +163,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const reset = () => {
     setRows([]);
     setFileName("");
-    setProgress({ done: 0, total: 0, errors: [] });
+    setProgress({ done: 0, total: 0, errors: [], step: "" });
     setValidation(null);
   };
 
@@ -183,38 +174,65 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       const wb = XLSX.read(buf, { cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, raw: true });
-      const parsed: ParsedRow[] = [];
-      let started = false;
-      let idx = 0;
-      for (const row of aoa) {
-        if (!row || row.length === 0) continue;
-        const first = row[0];
-        if (!started) {
-          if (typeof first === "string" && /data/i.test(first)) {
-            started = true;
-          }
-          continue;
+
+      // Locate header row: row containing "DATA" in column 0
+      let headerIdx = -1;
+      for (let i = 0; i < aoa.length; i++) {
+        const cell = aoa[i]?.[0];
+        if (typeof cell === "string" && /^\s*data\s*$/i.test(cell)) {
+          headerIdx = i;
+          break;
         }
-        if (!first) continue;
+      }
+      if (headerIdx === -1) {
+        toast({ title: "Cabeçalho não encontrado", description: "A planilha deve ter 'DATA' como primeira coluna.", variant: "destructive" });
+        return;
+      }
+
+      // Expected column order (per template):
+      // 0 DATA | 1 REMETENTE | 2 CNPJ | 3 EXPEDIDOR | 4 CNPJ | 5 DESTINATARIO | 6 CNPJ | 7 RECEBEDOR | 8 CNPJ | 9 NATUREZA | 10 PLACA | 11 PESO | 12 VALOR DO FRETE
+      const parsed: ParsedRow[] = [];
+      let idx = 0;
+      for (let i = headerIdx + 1; i < aoa.length; i++) {
+        const row = aoa[i];
+        if (!row || row.length === 0) continue;
         const data = excelDateToISO(row[0]);
         if (!data) continue;
+
+        const remetente: ParsedActor = { nome: String(row[1] || "").trim(), doc: onlyDigits(row[2]) };
+        const expedidor: ParsedActor = { nome: String(row[3] || "").trim(), doc: onlyDigits(row[4]) };
+        const destinatario: ParsedActor = { nome: String(row[5] || "").trim(), doc: onlyDigits(row[6]) };
+        const recebedor: ParsedActor = { nome: String(row[7] || "").trim(), doc: onlyDigits(row[8]) };
+        const natureza = String(row[9] || "").trim();
+        const placa = String(row[10] || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const pesoTon = parseNum(row[11]);
+        const valorFrete = parseNum(row[12]);
+
         const r: ParsedRow = {
           _key: `r${++idx}-${Math.random().toString(36).slice(2, 8)}`,
           data,
-          placa: String(row[1] || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, ""),
-          motorista: String(row[2] || "").trim(),
-          pesoTon: parseNum(row[3]),
-          valorCte: parseNum(row[4]),
-          valorContrato: parseNum(row[5]),
-          valorDiesel: parseNum(row[6]),
-          litros: parseNum(row[7]),
-          totalDescontado: parseNum(row[8]),
+          remetente,
+          expedidor,
+          destinatario,
+          recebedor,
+          natureza,
+          placa,
+          pesoTon,
+          valorFrete,
         };
-        if (r.pesoTon <= 0 || r.valorCte <= 0) {
-          r._error = "Peso/Valor inválido";
-        }
+
+        const missing: string[] = [];
+        if (!remetente.nome) missing.push("remetente");
+        if (!destinatario.nome) missing.push("destinatário");
+        if (!natureza) missing.push("natureza");
+        if (!placa) missing.push("placa");
+        if (pesoTon <= 0) missing.push("peso");
+        if (valorFrete <= 0) missing.push("valor frete");
+        if (missing.length) r._error = `Faltando: ${missing.join(", ")}`;
+
         parsed.push(r);
       }
+
       setRows(parsed);
       setValidation(null);
       toast({ title: "Arquivo lido", description: `${parsed.length} linha(s) detectada(s).` });
@@ -231,7 +249,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
     const handle = setTimeout(() => {
       runValidation(rows);
-    }, 250);
+    }, 300);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
@@ -241,7 +259,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     try {
       const valid = currentRows.filter((r) => !r._error);
 
-      // 1) Internal duplicates
+      // 1) Internal duplicates (same as before)
       const internalDups: ValidationState["internalDups"] = {};
       for (let i = 0; i < valid.length; i++) {
         const a = valid[i];
@@ -256,24 +274,17 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           if (!reason) continue;
           const idxA = currentRows.indexOf(a) + 1;
           const idxB = currentRows.indexOf(b) + 1;
-          internalDups[a._key] = {
-            reason,
-            with: [...(internalDups[a._key]?.with || []), idxB],
-          };
-          internalDups[b._key] = {
-            reason,
-            with: [...(internalDups[b._key]?.with || []), idxA],
-          };
+          internalDups[a._key] = { reason, with: [...(internalDups[a._key]?.with || []), idxB] };
+          internalDups[b._key] = { reason, with: [...(internalDups[b._key]?.with || []), idxA] };
         }
       }
 
-      // 2) DB duplicates — fetch existing ctes for relevant dates OR plates
+      // 2) DB duplicates
       const dates = Array.from(new Set(valid.map((r) => r.data).filter(Boolean)));
       const plates = Array.from(new Set(valid.map((r) => r.placa).filter(Boolean)));
       const dbDups: ValidationState["dbDups"] = {};
 
       if (dates.length > 0 || plates.length > 0) {
-        // We need either same date OR same plate; do two queries to keep filters simple.
         const queries: Promise<any>[] = [];
         if (dates.length > 0) {
           queries.push(
@@ -334,10 +345,57 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         }
       }
 
-      setValidation({ internalDups, dbDups, missingPlates });
+      // 4) Missing actors & naturezas (informational — auto-created on import)
+      const actorMap = new Map<string, { nome: string; doc: string }>();
+      const naturezaSet = new Set<string>();
+      for (const r of valid) {
+        for (const a of [r.remetente, r.expedidor, r.destinatario, r.recebedor]) {
+          if (!a.nome) continue;
+          const key = a.doc ? `d:${a.doc}` : `n:${normName(a.nome)}`;
+          if (!actorMap.has(key)) actorMap.set(key, { nome: a.nome, doc: a.doc });
+        }
+        if (r.natureza) naturezaSet.add(r.natureza.trim());
+      }
+
+      const allDocs = Array.from(actorMap.values()).map((a) => a.doc).filter(Boolean);
+      const allNames = Array.from(actorMap.values()).filter((a) => !a.doc).map((a) => a.nome);
+
+      const foundDocs = new Set<string>();
+      const foundNames = new Set<string>();
+      if (allDocs.length > 0) {
+        const { data } = await supabase.from("profiles").select("cnpj").in("cnpj", allDocs);
+        (data || []).forEach((p: any) => p.cnpj && foundDocs.add(String(p.cnpj)));
+      }
+      if (allNames.length > 0) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .in("category", ["cliente", "fornecedor"] as any)
+          .in("full_name", allNames);
+        (data || []).forEach((p: any) => p.full_name && foundNames.add(normName(String(p.full_name))));
+      }
+
+      const missingActors: ValidationState["missingActors"] = [];
+      for (const [key, a] of actorMap.entries()) {
+        const exists = a.doc ? foundDocs.has(a.doc) : foundNames.has(normName(a.nome));
+        if (!exists) missingActors.push({ key, nome: a.nome, doc: a.doc });
+      }
+
+      const naturezas = Array.from(naturezaSet);
+      const foundNat = new Set<string>();
+      if (naturezas.length > 0) {
+        const { data } = await supabase
+          .from("cargas")
+          .select("produto_predominante")
+          .in("produto_predominante", naturezas);
+        (data || []).forEach((c: any) => foundNat.add(String(c.produto_predominante).toLowerCase()));
+      }
+      const missingNaturezas = naturezas.filter((n) => !foundNat.has(n.toLowerCase()));
+
+      setValidation({ internalDups, dbDups, missingPlates, missingActors, missingNaturezas });
     } catch (err: any) {
       console.warn("validação falhou:", err.message);
-      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [] });
+      setValidation({ internalDups: {}, dbDups: {}, missingPlates: [], missingActors: [], missingNaturezas: [] });
     } finally {
       setValidating(false);
     }
@@ -347,14 +405,108 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     setRows((rs) => rs.filter((r) => r._key !== key));
   };
 
-  const actorByTipo = (tipo: number): ActorState => {
-    switch (tipo) {
-      case 0: return remetente;
-      case 1: return expedidor;
-      case 2: return recebedor;
-      case 3: return destinatario;
-      default: return remetente;
+  // Resolve or create profile actor, caching results.
+  const resolveActor = async (
+    actor: ParsedActor,
+    cache: Map<string, any>
+  ): Promise<any | null> => {
+    if (!actor.nome) return null;
+    const cacheKey = actor.doc ? `d:${actor.doc}` : `n:${normName(actor.nome)}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    // 1) Try DB lookup
+    let profile: any = null;
+    if (actor.doc) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, razao_social, cnpj, person_type, address_state")
+        .eq("cnpj", actor.doc)
+        .maybeSingle();
+      profile = data;
     }
+    if (!profile) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, razao_social, cnpj, person_type, address_state")
+        .in("category", ["cliente", "fornecedor"] as any)
+        .ilike("full_name", actor.nome)
+        .limit(1)
+        .maybeSingle();
+      profile = data;
+    }
+
+    if (profile) {
+      cache.set(cacheKey, profile);
+      return profile;
+    }
+
+    // 2) Create profile
+    const isPJ = actor.doc.length === 14;
+    const isPF = actor.doc.length === 11;
+    let payload: any = {
+      user_id: crypto.randomUUID(),
+      full_name: actor.nome,
+      category: "cliente",
+      person_type: isPF ? "cpf" : "cnpj",
+      cnpj: actor.doc || null,
+    };
+
+    if (isPJ) {
+      try {
+        const cnpjData = await lookupCnpj(actor.doc);
+        payload = {
+          ...payload,
+          razao_social: cnpjData.razao_social || actor.nome,
+          full_name: cnpjData.razao_social || actor.nome,
+          nome_fantasia: cnpjData.nome_fantasia,
+          address_street: cnpjData.logradouro,
+          address_number: cnpjData.numero,
+          address_complement: cnpjData.complemento,
+          address_neighborhood: cnpjData.bairro,
+          address_city: cnpjData.municipio,
+          address_state: cnpjData.uf,
+          address_zip: cnpjData.cep,
+          phone: cnpjData.ddd_telefone_1,
+          email: cnpjData.email,
+        };
+      } catch {
+        // CNPJ lookup failed — proceed with simple cadastro
+      }
+    }
+
+    const { data: inserted, error } = await supabase
+      .from("profiles")
+      .insert(payload)
+      .select("id, user_id, full_name, razao_social, cnpj, person_type, address_state")
+      .single();
+    if (error) throw new Error(`Falha ao cadastrar ${actor.nome}: ${error.message}`);
+    cache.set(cacheKey, inserted);
+    return inserted;
+  };
+
+  const resolveNatureza = async (nome: string, cache: Map<string, boolean>) => {
+    const key = nome.trim().toLowerCase();
+    if (cache.has(key)) return;
+    const { data } = await supabase
+      .from("cargas")
+      .select("id")
+      .ilike("produto_predominante", nome.trim())
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      cache.set(key, true);
+      return;
+    }
+    const { error } = await supabase.from("cargas").insert({
+      produto_predominante: nome.trim(),
+      peso_bruto: 0,
+      valor_carga: 0,
+      unidade: "KG",
+      ativo: true,
+      created_by: user?.id,
+    } as any);
+    if (error) throw new Error(`Falha ao cadastrar natureza "${nome}": ${error.message}`);
+    cache.set(key, true);
   };
 
   const hasBlockingIssues = useMemo(() => {
@@ -371,14 +523,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       toast({ title: "Estabelecimento obrigatório", variant: "destructive" });
       return;
     }
-    if (!remetente.id || !destinatario.id) {
-      toast({ title: "Atores obrigatórios", description: "Selecione ao menos remetente e destinatário.", variant: "destructive" });
-      return;
-    }
-    if (!naturezaCarga.trim()) {
-      toast({ title: "Natureza da carga obrigatória", variant: "destructive" });
-      return;
-    }
     const validRows = rows.filter((r) => !r._error);
     if (validRows.length === 0) {
       toast({ title: "Nenhuma linha válida para importar", variant: "destructive" });
@@ -387,81 +531,128 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     if (hasBlockingIssues) {
       toast({
         title: "Resolva os avisos antes de importar",
-        description: "Há duplicidades ou placas sem cadastro. Use os botões abaixo para corrigir.",
+        description: "Há duplicidades ou placas sem cadastro.",
         variant: "destructive",
       });
       return;
     }
 
-    const tomador = actorByTipo(tomadorTipo);
-    if (!tomador.id) {
-      toast({ title: "Tomador inválido", description: "O ator selecionado como tomador precisa estar cadastrado.", variant: "destructive" });
-      return;
+    setImporting(true);
+    setProgress({ done: 0, total: validRows.length, errors: [], step: "Cadastrando atores ausentes..." });
+    const errors: string[] = [];
+
+    const actorCache = new Map<string, any>();
+    const naturezaCache = new Map<string, boolean>();
+
+    // Pre-create missing actors & naturezas
+    try {
+      const uniqueActors = new Map<string, ParsedActor>();
+      const uniqueNats = new Set<string>();
+      for (const r of validRows) {
+        for (const a of [r.remetente, r.expedidor, r.destinatario, r.recebedor]) {
+          if (!a.nome) continue;
+          const k = a.doc ? `d:${a.doc}` : `n:${normName(a.nome)}`;
+          if (!uniqueActors.has(k)) uniqueActors.set(k, a);
+        }
+        if (r.natureza) uniqueNats.add(r.natureza);
+      }
+      let i = 0;
+      for (const [, a] of uniqueActors) {
+        i++;
+        setProgress((p) => ({ ...p, step: `Resolvendo atores ${i}/${uniqueActors.size}: ${a.nome}` }));
+        try {
+          await resolveActor(a, actorCache);
+        } catch (err: any) {
+          errors.push(err.message);
+        }
+      }
+      i = 0;
+      for (const n of uniqueNats) {
+        i++;
+        setProgress((p) => ({ ...p, step: `Naturezas ${i}/${uniqueNats.size}: ${n}` }));
+        try {
+          await resolveNatureza(n, naturezaCache);
+        } catch (err: any) {
+          errors.push(err.message);
+        }
+      }
+    } catch (err: any) {
+      errors.push(`Pre-processo: ${err.message}`);
     }
 
-    setImporting(true);
-    setProgress({ done: 0, total: validRows.length, errors: [] });
-    const errors: string[] = [];
+    setProgress((p) => ({ ...p, step: "Gerando CT-e..." }));
 
     for (let i = 0; i < validRows.length; i++) {
       const r = validRows[i];
       try {
+        const remetente = await resolveActor(r.remetente, actorCache);
+        const expedidor = r.expedidor.nome ? await resolveActor(r.expedidor, actorCache) : null;
+        const destinatario = await resolveActor(r.destinatario, actorCache);
+        const recebedor = r.recebedor.nome ? await resolveActor(r.recebedor, actorCache) : null;
+
+        const tomadorMap: Record<ActorRole, any> = {
+          remetente,
+          expedidor: expedidor || remetente,
+          destinatario,
+          recebedor: recebedor || destinatario,
+        };
+        const tomador = tomadorMap[tomadorRole];
+        if (!tomador?.id) throw new Error(`Tomador (${tomadorRole}) não pôde ser resolvido.`);
+
         const { data: nextNum, error: numErr } = await supabase.rpc("next_cte_servico_number", {
           _establishment_id: selectedEstId,
         });
         if (numErr) throw numErr;
 
+        // Vehicle / driver / owner
         let vehicleId: string | null = null;
         let ownerProfile: any = null;
         let driverProfile: any = null;
-        if (r.placa) {
-          const { data: v } = await supabase
-            .from("vehicles")
-            .select("id, owner_id, driver_id, brand, model")
-            .eq("plate", r.placa)
-            .maybeSingle();
-          if (v) {
-            vehicleId = (v as any).id;
-            if ((v as any).owner_id) {
-              const { data: p } = await supabase
-                .from("profiles")
-                .select("id, user_id, full_name, razao_social, cnpj, person_type")
-                .eq("user_id", (v as any).owner_id)
-                .maybeSingle();
-              ownerProfile = p;
-            }
-            if ((v as any).driver_id) {
-              const { data: d } = await supabase
-                .from("profiles")
-                .select("id, user_id, full_name, cnpj")
-                .eq("user_id", (v as any).driver_id)
-                .maybeSingle();
-              driverProfile = d;
-            }
+        const { data: v } = await supabase
+          .from("vehicles")
+          .select("id, owner_id, driver_id")
+          .eq("plate", r.placa)
+          .maybeSingle();
+        if (v) {
+          vehicleId = (v as any).id;
+          if ((v as any).owner_id) {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("id, user_id, full_name, razao_social, cnpj, person_type")
+              .eq("user_id", (v as any).owner_id)
+              .maybeSingle();
+            ownerProfile = p;
+          }
+          if ((v as any).driver_id) {
+            const { data: d } = await supabase
+              .from("profiles")
+              .select("id, user_id, full_name, cnpj")
+              .eq("user_id", (v as any).driver_id)
+              .maybeSingle();
+            driverProfile = d;
           }
         }
 
-        if (!driverProfile && r.motorista) {
-          const { data: m } = await supabase
-            .from("profiles")
-            .select("id, user_id, full_name, cnpj")
-            .eq("category", "motorista")
-            .ilike("full_name", r.motorista)
-            .limit(1)
-            .maybeSingle();
-          driverProfile = m;
-        }
-
-        const dieselTotal = r.totalDescontado > 0
-          ? r.totalDescontado
-          : (r.litros > 0 && r.valorDiesel > 0 ? +(r.litros * r.valorDiesel).toFixed(2) : 0);
-
-        const desconto = dieselTotal > 0
-          ? { tipo: "diesel", litros: r.litros, valor_litro: r.valorDiesel, valor: dieselTotal }
-          : null;
-
         const pesoKg = pesoKgOf(r);
-        const valorTon = pesoKg > 0 ? +(r.valorCte / (pesoKg / 1000)).toFixed(2) : 0;
+        const valorTon = pesoKg > 0 ? +(r.valorFrete / (pesoKg / 1000)).toFixed(2) : 0;
+
+        const actorPayload = (p: any) => p ? {
+          nome: maskName(p.razao_social || p.full_name || ""),
+          cnpj: p.cnpj || null,
+          ie: p.inscricao_estadual || null,
+          endereco: null,
+          uf: p.address_state || null,
+        } : { nome: null, cnpj: null, ie: null, endereco: null, uf: null };
+
+        const rem = actorPayload(remetente);
+        const dst = actorPayload(destinatario);
+        const exp = actorPayload(expedidor);
+        const rec = actorPayload(recebedor);
+
+        const tomadorTipoNum =
+          tomadorRole === "remetente" ? 0 :
+          tomadorRole === "expedidor" ? 1 :
+          tomadorRole === "recebedor" ? 2 : 3;
 
         const cteInsert: Record<string, any> = {
           tipo_talao: "servico",
@@ -469,42 +660,34 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           establishment_id: selectedEstId,
           numero_interno: nextNum,
           tomador_id: tomador.id,
-          tomador_tipo: tomadorTipo,
-          remetente_nome: maskName(remetente.nome),
-          remetente_cnpj: remetente.cnpj,
-          remetente_ie: remetente.ie,
-          remetente_endereco: remetente.endereco,
-          remetente_municipio_ibge: remetente.municipio_ibge,
-          remetente_uf: remetente.uf,
-          destinatario_nome: maskName(destinatario.nome),
-          destinatario_cnpj: destinatario.cnpj,
-          destinatario_ie: destinatario.ie,
-          destinatario_endereco: destinatario.endereco,
-          destinatario_municipio_ibge: destinatario.municipio_ibge,
-          destinatario_uf: destinatario.uf,
-          expedidor_nome: expedidor.nome ? maskName(expedidor.nome) : null,
-          expedidor_cnpj: expedidor.cnpj,
-          expedidor_ie: expedidor.ie,
-          expedidor_endereco: expedidor.endereco,
-          expedidor_municipio_ibge: expedidor.municipio_ibge,
-          expedidor_uf: expedidor.uf,
-          recebedor_nome: recebedor.nome ? maskName(recebedor.nome) : null,
-          recebedor_cnpj: recebedor.cnpj,
-          recebedor_ie: recebedor.ie,
-          recebedor_endereco: recebedor.endereco,
-          recebedor_municipio_ibge: recebedor.municipio_ibge,
-          recebedor_uf: recebedor.uf,
-          natureza_operacao: naturezaCarga,
-          produto_predominante: naturezaCarga,
+          tomador_tipo: tomadorTipoNum,
+          remetente_nome: rem.nome,
+          remetente_cnpj: rem.cnpj,
+          remetente_ie: rem.ie,
+          remetente_uf: rem.uf,
+          destinatario_nome: dst.nome,
+          destinatario_cnpj: dst.cnpj,
+          destinatario_ie: dst.ie,
+          destinatario_uf: dst.uf,
+          expedidor_nome: exp.nome,
+          expedidor_cnpj: exp.cnpj,
+          expedidor_ie: exp.ie,
+          expedidor_uf: exp.uf,
+          recebedor_nome: rec.nome,
+          recebedor_cnpj: rec.cnpj,
+          recebedor_ie: rec.ie,
+          recebedor_uf: rec.uf,
+          natureza_operacao: r.natureza,
+          produto_predominante: r.natureza,
           data_carregamento: r.data,
           data_emissao: `${r.data}T12:00:00`,
           motorista_id: driverProfile?.id ?? null,
-          motorista_nome: r.motorista ? maskName(r.motorista) : (driverProfile?.full_name ?? null),
-          placa_veiculo: r.placa || null,
+          motorista_nome: driverProfile?.full_name ? maskName(driverProfile.full_name) : null,
+          placa_veiculo: r.placa,
           peso_bruto: pesoKg,
           valor_tonelada: valorTon,
-          valor_frete: r.valorCte,
-          valor_carga: r.valorCte,
+          valor_frete: r.valorFrete,
+          valor_carga: r.valorFrete,
           cfop: "0000",
           modal: "01",
           tp_cte: 0,
@@ -513,7 +696,6 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           aliquota_icms: 0,
           valor_icms: 0,
           cst_icms: "00",
-          desconto,
           created_by: user?.id ?? null,
         };
 
@@ -529,53 +711,45 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           origem_tipo: "cte" as any,
           origem_id: cteId,
           cliente_id: tomador.id,
-          valor: r.valorCte,
+          valor: r.valorFrete,
           data_prevista: r.data,
           status: "pendente" as any,
         });
         if (prevErr) console.warn("Previsão não gerada:", prevErr.message);
 
-        if (gerarContrato && r.valorContrato > 0) {
+        if (gerarContrato) {
           if (!ownerProfile?.id) {
             errors.push(`Linha ${i + 1} (${r.placa}): contrato não gerado — proprietário do veículo não encontrado.`);
           } else {
-            const valorContratoFinal = +(r.valorContrato - dieselTotal).toFixed(2);
-            if (valorContratoFinal !== 0) {
-              const ownerName = ownerProfile.razao_social || ownerProfile.full_name || "";
-              const ownerDoc = ownerProfile.cnpj || "";
-              const isPJ = (ownerProfile.person_type || "").toLowerCase().startsWith("p")
-                ? ownerProfile.person_type.toLowerCase() === "pj"
-                : ownerDoc.replace(/\D/g, "").length === 14;
-              const { error: rpcErr } = await supabase.rpc("create_freight_contract_with_payable", {
-                _cte_id: cteId,
-                _establishment_id: selectedEstId,
-                _contratado_id: ownerProfile.id,
-                _contratado_nome: maskName(ownerName),
-                _contratado_documento: ownerDoc || null,
-                _contratado_tipo: isPJ ? "PJ" : "PF",
-                _motorista_id: driverProfile?.id ?? null,
-                _motorista_nome: driverProfile?.full_name ? maskName(driverProfile.full_name) : (r.motorista ? maskName(r.motorista) : null),
-                _motorista_cpf: driverProfile?.cnpj || null,
-                _vehicle_id: vehicleId,
-                _placa_veiculo: r.placa || null,
-                _veiculo_modelo: null,
-                _municipio_origem: null,
-                _uf_origem: remetente.uf,
-                _municipio_destino: null,
-                _uf_destino: destinatario.uf,
-                _natureza_carga: naturezaCarga,
-                _peso_kg: pesoKg,
-                _valor_tonelada: pesoKg > 0 ? +(r.valorContrato / (pesoKg / 1000)).toFixed(2) : 0,
-                _valor_total: valorContratoFinal,
-                _observacoes: dieselTotal > 0
-                  ? `Importação lote. Desconto diesel: ${r.litros}L × R$ ${r.valorDiesel.toFixed(2)} = R$ ${dieselTotal.toFixed(2)}`
-                  : "Importação lote.",
-                _user_id: user?.id ?? null,
-              });
-              if (rpcErr) {
-                errors.push(`Linha ${i + 1} (${r.placa}): contrato falhou — ${rpcErr.message}`);
-              }
-            }
+            const ownerName = ownerProfile.razao_social || ownerProfile.full_name || "";
+            const ownerDoc = ownerProfile.cnpj || "";
+            const isPJ = (ownerProfile.person_type || "").toLowerCase() === "cnpj"
+              || ownerDoc.replace(/\D/g, "").length === 14;
+            const { error: rpcErr } = await supabase.rpc("create_freight_contract_with_payable", {
+              _cte_id: cteId,
+              _establishment_id: selectedEstId,
+              _contratado_id: ownerProfile.id,
+              _contratado_nome: maskName(ownerName),
+              _contratado_documento: ownerDoc || null,
+              _contratado_tipo: isPJ ? "PJ" : "PF",
+              _motorista_id: driverProfile?.id ?? null,
+              _motorista_nome: driverProfile?.full_name ? maskName(driverProfile.full_name) : null,
+              _motorista_cpf: driverProfile?.cnpj || null,
+              _vehicle_id: vehicleId,
+              _placa_veiculo: r.placa,
+              _veiculo_modelo: null,
+              _municipio_origem: null,
+              _uf_origem: rem.uf,
+              _municipio_destino: null,
+              _uf_destino: dst.uf,
+              _natureza_carga: r.natureza,
+              _peso_kg: pesoKg,
+              _valor_tonelada: valorTon,
+              _valor_total: r.valorFrete,
+              _observacoes: "Importação em lote.",
+              _user_id: user?.id ?? null,
+            });
+            if (rpcErr) errors.push(`Linha ${i + 1} (${r.placa}): contrato falhou — ${rpcErr.message}`);
           }
         }
 
@@ -586,11 +760,11 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       }
     }
 
-    setProgress((p) => ({ ...p, errors }));
+    setProgress((p) => ({ ...p, errors, step: "" }));
     setImporting(false);
     toast({
       title: "Importação concluída",
-      description: `${validRows.length - errors.length} de ${validRows.length} CT-e(s) importado(s).${errors.length ? ` ${errors.length} erro(s).` : ""}`,
+      description: `${validRows.length - errors.length} de ${validRows.length} CT-e(s) importado(s).${errors.length ? ` ${errors.length} aviso(s).` : ""}`,
       variant: errors.length ? "destructive" : "default",
     });
     onImported();
@@ -600,98 +774,64 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
   };
 
-  const totalValorCte = rows.reduce((s, r) => s + (r._error ? 0 : r.valorCte), 0);
-  const totalValorContrato = rows.reduce((s, r) => s + (r._error ? 0 : r.valorContrato), 0);
-
+  const totalValorFrete = rows.reduce((s, r) => s + (r._error ? 0 : r.valorFrete), 0);
   const internalCount = validation ? Object.keys(validation.internalDups).length : 0;
   const dbCount = validation ? Object.keys(validation.dbDups).length : 0;
-  const missingCount = validation ? validation.missingPlates.length : 0;
+  const missingPlatesCount = validation ? validation.missingPlates.length : 0;
+  const missingActorsCount = validation ? validation.missingActors.length : 0;
+  const missingNatCount = validation ? validation.missingNaturezas.length : 0;
 
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!importing) { if (!v) reset(); onOpenChange(v); } }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-display">
               <FileSpreadsheet className="w-5 h-5" /> Importar CT-e em Lote (Serviço)
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Cria talões de serviço a partir de uma planilha. Antes, defina os atores fiscais e o tomador — eles serão aplicados a todos os CT-e do lote.
+              Cada linha da planilha já traz remetente, expedidor, destinatário, recebedor, natureza e placa.
+              Atores ou naturezas não cadastrados serão criados automaticamente. Você só precisa escolher o emitente,
+              qual papel é o tomador e se deve gerar contrato de frete.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Emitente */}
+            {/* Emitente + opções globais */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" /> Emitente</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedEstId} onValueChange={setSelectedEstId}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
-                  <SelectContent>
-                    {establishments.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            {/* Atores */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2"><Users className="w-4 h-4" /> Atores (válidos para todo o lote)</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><Building2 className="w-4 h-4" /> Emitente & opções</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { label: "Remetente *", state: remetente, set: setRemetente },
-                  { label: "Destinatário *", state: destinatario, set: setDestinatario },
-                  { label: "Expedidor", state: expedidor, set: setExpedidor },
-                  { label: "Recebedor", state: recebedor, set: setRecebedor },
-                ].map((a) => (
-                  <div key={a.label}>
-                    <Label className="text-xs">{a.label}</Label>
-                    <PersonSearchInput
-                      placeholder={`Buscar ${a.label.replace(" *", "").toLowerCase()}...`}
-                      selectedName={a.state.nome}
-                      categories={["cliente", "fornecedor"]}
-                      onSelect={(p) => a.set({
-                        id: p.id,
-                        nome: p.razao_social || p.full_name,
-                        cnpj: p.cnpj,
-                        ie: p.inscricao_estadual,
-                        endereco: [p.address_street, p.address_number, p.address_neighborhood, p.address_city].filter(Boolean).join(", ") || null,
-                        municipio_ibge: null,
-                        uf: p.address_state,
-                      })}
-                      onClear={() => a.set(emptyActor)}
-                    />
-                  </div>
-                ))}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Tomador do serviço *</Label>
-                    <Select value={String(tomadorTipo)} onValueChange={(v) => setTomadorTipo(Number(v))}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Remetente</SelectItem>
-                        <SelectItem value="1">Expedidor</SelectItem>
-                        <SelectItem value="2">Recebedor</SelectItem>
-                        <SelectItem value="3">Destinatário</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Natureza da carga *</Label>
-                    <NaturezaCargaSearchInput value={naturezaCarga} onChange={setNaturezaCarga} />
-                  </div>
+                <div>
+                  <Label className="text-xs">Emitente *</Label>
+                  <Select value={selectedEstId} onValueChange={setSelectedEstId}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o emitente" /></SelectTrigger>
+                    <SelectContent>
+                      {establishments.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
+                <div>
+                  <Label className="text-xs">Quem é o tomador/cliente em cada CT-e? *</Label>
+                  <Select value={tomadorRole} onValueChange={(v) => setTomadorRole(v as ActorRole)}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="remetente">Remetente</SelectItem>
+                      <SelectItem value="expedidor">Expedidor</SelectItem>
+                      <SelectItem value="destinatario">Destinatário</SelectItem>
+                      <SelectItem value="recebedor">Recebedor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    O sistema usará o ator dessa coluna em cada linha como tomador/cliente da nota.
+                  </p>
+                </div>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
                   <Checkbox checked={gerarContrato} onCheckedChange={(v) => setGerarContrato(!!v)} />
-                  Gerar contrato de frete (conta a pagar) para linhas com valor de contrato &gt; 0
+                  Gerar contrato de frete (conta a pagar) usando o valor do frete e o proprietário do veículo
                 </label>
               </CardContent>
             </Card>
@@ -712,7 +852,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                   className="text-xs"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Colunas esperadas: DATA, PLACA, MOTORISTA, PESO (ton), VALOR DO CT-E, CONTRATO DE FRETE, VALOR DO DIESEL, LITROS, TOTAL DESCONTO.
+                  Colunas esperadas (cabeçalho começa com "DATA"): DATA, REMETENTE, CPF/CNPJ, EXPEDIDOR, CPF/CNPJ,
+                  DESTINATÁRIO, CPF/CNPJ, RECEBEDOR, CPF/CNPJ, NATUREZA DA CARGA, PLACA, PESO, VALOR DO FRETE.
                 </p>
                 {fileName && <p className="text-xs">{fileName} — <strong>{rows.length}</strong> linhas</p>}
               </CardContent>
@@ -726,9 +867,9 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     {validating ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Validando…</>
                     ) : hasBlockingIssues ? (
-                      <><AlertTriangle className="w-4 h-4 text-destructive" /> Avisos de duplicidade / cadastro</>
+                      <><AlertTriangle className="w-4 h-4 text-destructive" /> Há avisos a revisar</>
                     ) : (
-                      <><ShieldCheck className="w-4 h-4 text-emerald-600" /> Nenhum aviso detectado</>
+                      <><ShieldCheck className="w-4 h-4 text-emerald-600" /> Pronto para importar</>
                     )}
                   </CardTitle>
                 </CardHeader>
@@ -741,8 +882,14 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                       <span className={dbCount ? "text-destructive font-medium" : "text-muted-foreground"}>
                         Já existem no sistema: <strong>{dbCount}</strong>
                       </span>
-                      <span className={missingCount ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        Placas sem cadastro: <strong>{missingCount}</strong>
+                      <span className={missingPlatesCount ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        Placas sem cadastro: <strong>{missingPlatesCount}</strong>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Atores a cadastrar: <strong>{missingActorsCount}</strong>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Naturezas a cadastrar: <strong>{missingNatCount}</strong>
                       </span>
                     </div>
                   )}
@@ -764,8 +911,43 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                         className="h-8 mt-1"
                         onClick={() => setVehicleModalOpen(true)}
                       >
-                        <PlusCircle className="w-3.5 h-3.5 mr-1" /> Cadastrar placa/motorista/proprietário
+                        <PlusCircle className="w-3.5 h-3.5 mr-1" /> Cadastrar placa
                       </Button>
+                    </div>
+                  )}
+
+                  {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
+                    <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
+                      <p className="text-[11px] font-semibold flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" /> Serão cadastrados automaticamente:
+                      </p>
+                      {validation.missingActors.length > 0 && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-1">Atores (clientes/fornecedores):</p>
+                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">
+                            {validation.missingActors.slice(0, 50).map((a) => (
+                              <span key={a.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border text-[10px]">
+                                {a.nome}{a.doc ? ` (${a.doc.length === 14 ? "CNPJ" : "CPF"})` : ""}
+                              </span>
+                            ))}
+                            {validation.missingActors.length > 50 && (
+                              <span className="text-[10px] text-muted-foreground">+{validation.missingActors.length - 50}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {validation.missingNaturezas.length > 0 && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground mb-1">Naturezas de carga:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {validation.missingNaturezas.map((n) => (
+                              <span key={n} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-background border text-[10px]">
+                                {n}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -779,18 +961,19 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                   <CardTitle className="text-sm">Pré-visualização ({rows.filter((r) => !r._error).length} válidas)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="max-h-72 overflow-auto border rounded-md">
+                  <div className="max-h-80 overflow-auto border rounded-md">
                     <table className="w-full text-[11px]">
                       <thead className="bg-muted/40 sticky top-0">
                         <tr className="text-left">
                           <th className="px-2 py-1">#</th>
                           <th className="px-2 py-1">Data</th>
+                          <th className="px-2 py-1">Remetente</th>
+                          <th className="px-2 py-1">Destinatário</th>
+                          <th className="px-2 py-1">Tomador ({ROLE_LABEL[tomadorRole]})</th>
+                          <th className="px-2 py-1">Natureza</th>
                           <th className="px-2 py-1">Placa</th>
-                          <th className="px-2 py-1">Motorista</th>
                           <th className="px-2 py-1 text-right">Ton</th>
-                          <th className="px-2 py-1 text-right">CT-E</th>
-                          <th className="px-2 py-1 text-right">Contrato</th>
-                          <th className="px-2 py-1 text-right">Diesel</th>
+                          <th className="px-2 py-1 text-right">Valor Frete</th>
                           <th className="px-2 py-1">Avisos</th>
                           <th className="px-2 py-1"></th>
                         </tr>
@@ -801,25 +984,23 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                           const dbHits = validation?.dbDups[r._key];
                           const missingPlate = validation?.missingPlates.includes(r.placa);
                           const flagged = !!internal || !!dbHits || missingPlate;
+                          const tomadorActor = r[tomadorRole];
                           return (
                             <tr
                               key={r._key}
                               className={`border-t ${
-                                r._error
-                                  ? "bg-destructive/10"
-                                  : flagged
-                                  ? "bg-amber-100/40 dark:bg-amber-500/10"
-                                  : ""
+                                r._error ? "bg-destructive/10" : flagged ? "bg-amber-100/40 dark:bg-amber-500/10" : ""
                               }`}
                             >
                               <td className="px-2 py-1">{i + 1}</td>
-                              <td className="px-2 py-1">{r.data || "?"}</td>
+                              <td className="px-2 py-1 whitespace-nowrap">{r.data || "?"}</td>
+                              <td className="px-2 py-1 truncate max-w-[140px]" title={r.remetente.nome}>{r.remetente.nome}</td>
+                              <td className="px-2 py-1 truncate max-w-[140px]" title={r.destinatario.nome}>{r.destinatario.nome}</td>
+                              <td className="px-2 py-1 truncate max-w-[140px]" title={tomadorActor.nome}>{tomadorActor.nome || "—"}</td>
+                              <td className="px-2 py-1 truncate max-w-[120px]" title={r.natureza}>{r.natureza}</td>
                               <td className="px-2 py-1 font-mono">{r.placa}</td>
-                              <td className="px-2 py-1 truncate max-w-[120px]">{r.motorista}</td>
                               <td className="px-2 py-1 text-right">{r.pesoTon.toFixed(2)}</td>
-                              <td className="px-2 py-1 text-right">{r.valorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                              <td className="px-2 py-1 text-right">{r.valorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                              <td className="px-2 py-1 text-right">{(r.totalDescontado || r.litros * r.valorDiesel).toFixed(2)}</td>
+                              <td className="px-2 py-1 text-right">{r.valorFrete.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                               <td className="px-2 py-1 text-[10px] text-destructive whitespace-nowrap">
                                 {r._error && <div>{r._error}</div>}
                                 {internal && (
@@ -854,8 +1035,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     </table>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span>Total CT-E: <strong>R$ {totalValorCte.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
-                    <span>Total Contrato: <strong>R$ {totalValorContrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
+                    <span>{rows.filter((r) => !r._error).length} válidas / {rows.length} totais</span>
+                    <span>Total Frete: <strong>R$ {totalValorFrete.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
                   </div>
                 </CardContent>
               </Card>
@@ -863,7 +1044,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
             {importing && (
               <div className="p-3 rounded-md border bg-muted/30 text-xs space-y-1">
-                <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Importando {progress.done}/{progress.total}...</div>
+                <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {progress.step || `Importando ${progress.done}/${progress.total}...`}</div>
+                {progress.total > 0 && <div className="text-[10px] text-muted-foreground">CT-e: {progress.done}/{progress.total}</div>}
               </div>
             )}
 
