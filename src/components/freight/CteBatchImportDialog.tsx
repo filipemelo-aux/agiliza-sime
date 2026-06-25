@@ -144,6 +144,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(false);
+  const [ignoreMissingWeight, setIgnoreMissingWeight] = useState(false);
 
   useEffect(() => {
     if (!open) return;
