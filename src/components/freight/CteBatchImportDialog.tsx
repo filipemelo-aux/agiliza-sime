@@ -63,6 +63,7 @@ interface ParsedRow {
   pesoTon: number;
   valorFrete: number;
   _error?: string;
+  _missingWeight?: boolean;
 }
 
 interface DbDupInfo {
@@ -143,6 +144,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
 
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(false);
+  const [ignoreMissingWeight, setIgnoreMissingWeight] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -227,7 +229,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (!destinatario.nome) missing.push("destinatário");
         if (!natureza) missing.push("natureza");
         if (!placa) missing.push("placa");
-        if (pesoTon <= 0) missing.push("peso");
+        if (pesoTon <= 0) r._missingWeight = true;
         if (valorFrete <= 0) missing.push("valor frete");
         if (missing.length) r._error = `Faltando: ${missing.join(", ")}`;
 
@@ -518,19 +520,24 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     );
   }, [validation]);
 
+  const hasMissingWeightWarnings = useMemo(() => rows.some((r) => r._missingWeight && !r._error), [rows]);
+
+  const isImportable = (r: ParsedRow) => !r._error && (!r._missingWeight || ignoreMissingWeight);
+
   const hasBlockingIssues = useMemo(() => {
     if (!validation) return false;
     if (validation.missingPlates.length > 0) return true;
     if (!ignoreDuplicates && hasDuplicateWarnings) return true;
+    if (!ignoreMissingWeight && hasMissingWeightWarnings) return true;
     return false;
-  }, [validation, ignoreDuplicates, hasDuplicateWarnings]);
+  }, [validation, ignoreDuplicates, hasDuplicateWarnings, ignoreMissingWeight, hasMissingWeightWarnings]);
 
   const handleImport = async () => {
     if (!selectedEstId) {
       toast({ title: "Estabelecimento obrigatório", variant: "destructive" });
       return;
     }
-    const validRows = rows.filter((r) => !r._error);
+    const validRows = rows.filter(isImportable);
     if (validRows.length === 0) {
       toast({ title: "Nenhuma linha válida para importar", variant: "destructive" });
       return;
@@ -781,7 +788,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     }
   };
 
-  const totalValorFrete = rows.reduce((s, r) => s + (r._error ? 0 : r.valorFrete), 0);
+  const totalValorFrete = rows.reduce((s, r) => s + (isImportable(r) ? r.valorFrete : 0), 0);
   const internalCount = validation ? Object.keys(validation.internalDups).length : 0;
   const dbCount = validation ? Object.keys(validation.dbDups).length : 0;
   const missingPlatesCount = validation ? validation.missingPlates.length : 0;
@@ -939,6 +946,23 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     </div>
                   )}
 
+                  {hasMissingWeightWarnings && (
+                    <div className="border border-amber-400/60 rounded-md p-2 bg-amber-50 dark:bg-amber-500/10 space-y-1.5">
+                      <p className="text-[11px] font-semibold flex items-center gap-1 text-amber-900 dark:text-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Linhas sem peso informado
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Foram detectadas <strong>{rows.filter((r) => r._missingWeight && !r._error).length}</strong> linha(s) sem peso. Caso prossiga, o CT-e será importado com peso zero e considerará apenas o valor do frete.
+                      </p>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox checked={ignoreMissingWeight} onCheckedChange={(v) => setIgnoreMissingWeight(!!v)} />
+                        Estou ciente e desejo importar mesmo assim (peso será gravado como 0)
+                      </label>
+                    </div>
+                  )}
+
+
+
 
                   {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
                     <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
@@ -982,7 +1006,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             {rows.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Pré-visualização ({rows.filter((r) => !r._error).length} válidas)</CardTitle>
+                  <CardTitle className="text-sm">Pré-visualização ({rows.filter(isImportable).length} válidas)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="max-h-80 overflow-auto border rounded-md">
@@ -1059,7 +1083,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     </table>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span>{rows.filter((r) => !r._error).length} válidas / {rows.length} totais</span>
+                    <span>{rows.filter(isImportable).length} válidas / {rows.length} totais</span>
                     <span>Total Frete: <strong>R$ {totalValorFrete.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
                   </div>
                 </CardContent>
@@ -1089,7 +1113,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                 disabled={importing || rows.length === 0 || validating || hasBlockingIssues}
               >
                 {importing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                Importar {rows.filter((r) => !r._error).length} CT-e(s)
+                Importar {rows.filter(isImportable).length} CT-e(s)
               </Button>
             </div>
           </div>
