@@ -63,6 +63,7 @@ interface ParsedRow {
   pesoTon: number;
   valorFrete: number;
   _error?: string;
+  _missingWeight?: boolean;
 }
 
 interface DbDupInfo {
