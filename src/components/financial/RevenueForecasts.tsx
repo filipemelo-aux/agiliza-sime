@@ -482,16 +482,6 @@ export function RevenueForecasts() {
             <Layers className="h-4 w-4" />
             Gerar Fatura Única
           </Button>
-          <Button
-            onClick={handleUngroupSelected}
-            disabled={!selectedHasLote}
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-          >
-            <Layers className="h-4 w-4" />
-            Desagrupar
-          </Button>
           <Button onClick={handleDeleteSelected} disabled={selected.size === 0} variant="destructive" size="sm" className="gap-1.5">
             <Trash2 className="h-4 w-4" />
             Excluir ({selected.size})
