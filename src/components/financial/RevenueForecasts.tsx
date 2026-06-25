@@ -89,6 +89,7 @@ export function RevenueForecasts() {
     const { data, error } = await supabase
       .from("previsoes_recebimento")
       .select("*, profiles:cliente_id(full_name)")
+      .neq("status", "faturado")
       .order("data_prevista", { ascending: true });
 
     if (error) {
