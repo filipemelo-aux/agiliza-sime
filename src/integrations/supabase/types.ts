@@ -3211,6 +3211,7 @@ export type Database = {
           bank_agency: string | null
           bank_name: string | null
           cargo: string | null
+          categories_extra: string[]
           category: string
           cnpj: string | null
           created_at: string
@@ -3252,6 +3253,7 @@ export type Database = {
           bank_agency?: string | null
           bank_name?: string | null
           cargo?: string | null
+          categories_extra?: string[]
           category?: string
           cnpj?: string | null
           created_at?: string
@@ -3293,6 +3295,7 @@ export type Database = {
           bank_agency?: string | null
           bank_name?: string | null
           cargo?: string | null
+          categories_extra?: string[]
           category?: string
           cnpj?: string | null
           created_at?: string

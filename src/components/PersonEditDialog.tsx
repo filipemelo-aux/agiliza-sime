@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName, maskSentence, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const CATEGORIES = [
@@ -40,6 +41,7 @@ export interface PersonProfile {
   razao_social: string | null;
   nome_fantasia: string | null;
   category: string;
+  categories_extra?: string[] | null;
   email: string | null;
   address_street: string | null;
   address_number: string | null;
@@ -75,6 +77,7 @@ interface FormState {
   razao_social: string;
   nome_fantasia: string;
   category: string;
+  categories_extra: string[];
   cnh_number: string;
   cnh_category: string;
   cnh_expiry: string;
@@ -110,6 +113,7 @@ const emptyForm: FormState = {
   razao_social: "",
   nome_fantasia: "",
   category: "motorista",
+  categories_extra: [],
   cnh_number: "",
   cnh_category: "",
   cnh_expiry: "",
@@ -305,6 +309,7 @@ function personToForm(person: PersonProfile): FormState {
     razao_social: person.razao_social ? maskName(person.razao_social) : "",
     nome_fantasia: person.nome_fantasia ? maskName(person.nome_fantasia) : "",
     category: person.category || "motorista",
+    categories_extra: Array.isArray((person as any).categories_extra) ? (person as any).categories_extra : [],
     cnh_number: "",
     cnh_category: "",
     cnh_expiry: "",
@@ -347,6 +352,7 @@ function formToPayload(form: FormState) {
     razao_social: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
     nome_fantasia: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
     category: form.category,
+    categories_extra: (form.categories_extra || []).filter((c) => c && c !== form.category),
     address_street: form.address_street.trim() || null,
     address_number: form.address_number.trim() || null,
     address_complement: form.address_complement.trim() || null,
@@ -733,6 +739,31 @@ function PersonFormFields({ form, setForm, isEdit, onAddVehicle }: { form: FormS
             {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Categorias adicionais (multi-categoria) */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">Categorias adicionais</Label>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-border bg-muted/30 p-2.5">
+          {CATEGORIES.filter((c) => c.value !== form.category).map((c) => {
+            const checked = (form.categories_extra || []).includes(c.value);
+            return (
+              <label key={c.value} className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(v) =>
+                    setForm((p) => {
+                      const base = (p.categories_extra || []).filter((x) => x !== c.value);
+                      return { ...p, categories_extra: v ? [...base, c.value] : base };
+                    })
+                  }
+                />
+                <span>{c.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground">A pessoa será encontrada nas buscas/filtros de qualquer categoria marcada.</p>
       </div>
 
       {/* Person Type toggle buttons - only for non-motorista and non-colaborador */}

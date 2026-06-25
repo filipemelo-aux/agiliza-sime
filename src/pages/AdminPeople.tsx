@@ -110,6 +110,7 @@ export default function AdminPeople() {
         id: p.id, user_id: p.user_id, full_name: p.full_name, phone: p.phone,
         person_type: p.person_type, cnpj: p.cnpj, razao_social: p.razao_social,
         nome_fantasia: p.nome_fantasia, category: p.category || "motorista",
+        categories_extra: Array.isArray(p.categories_extra) ? p.categories_extra : [],
         email: p.email, address_street: p.address_street, address_number: p.address_number,
         address_complement: p.address_complement, address_neighborhood: p.address_neighborhood,
         address_city: p.address_city, address_state: p.address_state, address_zip: p.address_zip,
@@ -174,9 +175,9 @@ export default function AdminPeople() {
   const filterByTab = (d: PersonProfile, tab: string) => {
     if (tab === "__all__") return true;
     // Regra GLOBAL: colaborador é definido EXCLUSIVAMENTE pelo flag is_colaborador_rh.
-    // Independe da categoria e de qualquer vínculo com frota/veículos.
     if (tab === "colaborador") return !!(d as any).is_colaborador_rh;
-    return d.category === tab;
+    const extras: string[] = Array.isArray((d as any).categories_extra) ? (d as any).categories_extra : [];
+    return d.category === tab || extras.includes(tab);
   };
 
   const filteredDrivers = drivers.filter((d) => {
@@ -316,6 +317,11 @@ export default function AdminPeople() {
                             <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                               {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                             </Badge>
+                            {Array.isArray((driver as any).categories_extra) && (driver as any).categories_extra.map((cat: string) => (
+                              <Badge key={cat} variant="outline" className={`text-[10px] ${CATEGORY_COLORS[cat] || "border-border text-muted-foreground"}`}>
+                                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                              </Badge>
+                            ))}
                             {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
                               <Badge variant="outline" className="text-[10px] border-teal-500/40 text-teal-400">RH</Badge>
                             )}
