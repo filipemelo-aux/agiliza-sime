@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { maskPhone, unmaskPhone, maskCNPJ, unmaskCNPJ, maskCPF, unmaskCPF, maskCEP, unmaskCEP, maskCNH, maskName, maskSentence, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Loader2, Car } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { VehicleFormModal } from "@/components/VehicleFormModal";
 
 const CATEGORIES = [
