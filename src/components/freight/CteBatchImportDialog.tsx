@@ -116,6 +116,14 @@ function parseNum(v: any): number {
 
 const onlyDigits = (s: any) => String(s ?? "").replace(/\D/g, "");
 const normName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+const phoneForProfile = (value: any): string | null => {
+  const digits = onlyDigits(value);
+  return digits.length === 10 || digits.length === 11 ? digits : null;
+};
+const emailForProfile = (value: any): string | null => {
+  const email = String(value ?? "").trim().toLowerCase();
+  return email && email !== "null" ? email : null;
+};
 
 const pesoKgOf = (r: ParsedRow) => +(r.pesoTon * 1000).toFixed(3);
 
@@ -452,6 +460,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
       category: "cliente",
       person_type: isPF ? "cpf" : "cnpj",
       cnpj: actor.doc || null,
+      phone: null,
+      email: null,
     };
 
     if (isPJ) {
@@ -469,11 +479,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           address_city: cnpjData.municipio,
           address_state: cnpjData.uf,
           address_zip: cnpjData.cep,
-          phone: (() => {
-            const digits = String(cnpjData.ddd_telefone_1 || "").replace(/\D/g, "");
-            return digits.length === 10 || digits.length === 11 ? digits : null;
-          })(),
-          email: cnpjData.email || null,
+          phone: phoneForProfile(cnpjData.ddd_telefone_1),
+          email: emailForProfile(cnpjData.email),
         };
       } catch {
         // CNPJ lookup failed — proceed with simple cadastro
