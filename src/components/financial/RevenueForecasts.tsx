@@ -632,7 +632,7 @@ export function RevenueForecasts() {
                                 size="icon"
                                 variant="ghost"
                                 className="h-5 w-5"
-                                onClick={() => openEditDialog(p)}
+                                onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
                                 title="Editar previsão"
                               >
                                 <PencilLine className="h-2.5 w-2.5" />
