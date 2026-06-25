@@ -523,7 +523,7 @@ export function RevenueForecasts() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         {isPendente && (
-                          <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
+                          <Checkbox checked={selected.has(p.id)} onClick={(e) => e.stopPropagation()} onCheckedChange={() => toggleSelect(p.id)} />
                         )}
                         <p className="text-sm font-semibold text-foreground truncate">{p.cliente_nome}</p>
                       </div>
