@@ -240,6 +240,22 @@ export function FinancialCashFlow() {
     return o;
   };
 
+  const handleReverseManual = async (m: MovimentacaoEnriquecida) => {
+    if (m.origem !== "manual") return;
+    const ok = await confirm({
+      title: "Estornar movimentação manual",
+      description: `Confirma o estorno de ${formatCurrency(Number(m.valor))} (${m.descricao || "sem descrição"})? Esta ação não pode ser desfeita.`,
+      variant: "destructive",
+      confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("movimentacoes_bancarias").delete().eq("id", m.id).eq("origem", "manual");
+    if (error) { toast.error("Erro ao estornar: " + error.message); return; }
+    toast.success("Movimentação estornada");
+    loadMovimentacoes();
+  };
+
+
 
   return (
     <div className="space-y-4">
