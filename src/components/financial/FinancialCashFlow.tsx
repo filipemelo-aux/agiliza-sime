@@ -410,6 +410,13 @@ export function FinancialCashFlow() {
                       <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
+                      <TableCell className="py-2 text-right">
+                        {m.origem === "manual" && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleReverseManual(m)} title="Estornar">
+                            <Undo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
