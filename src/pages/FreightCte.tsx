@@ -146,7 +146,7 @@ export default function FreightCte() {
       numero: (c) => (c.tipo_talao === "servico" ? c.numero_interno ?? 0 : c.numero ?? 0),
       talao: (c) => (c.tipo_talao === "servico" ? "Serviço" : "Produção"),
       data: (c) => getEmissaoDate(c) || "",
-      cliente: (c) => c.destinatario_nome || c.remetente_nome || "",
+      cliente: (c) => c.tomador_nome || c.remetente_nome || c.destinatario_nome || "",
       placa: (c) => c.placa_veiculo || "",
       valor: (c) => Number(c.valor_frete) || 0,
       status: (c) => (c.tipo_talao === "servico" ? "interno" : c.status),
@@ -439,8 +439,8 @@ export default function FreightCte() {
                       ? cte.numero_interno ?? "—"
                       : cte.numero ?? "—";
                     const cliente = isServico
-                      ? cte.destinatario_nome
-                      : cte.destinatario_nome || cte.remetente_nome;
+                      ? (cte.tomador_nome || cte.destinatario_nome)
+                      : (cte.tomador_nome || cte.remetente_nome || cte.destinatario_nome);
                     return (
                       <tr
                         key={cte.id}
