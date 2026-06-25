@@ -989,7 +989,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             {rows.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Pré-visualização ({rows.filter((r) => !r._error).length} válidas)</CardTitle>
+                  <CardTitle className="text-sm">Pré-visualização ({rows.filter(isImportable).length} válidas)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="max-h-80 overflow-auto border rounded-md">
