@@ -142,6 +142,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
   const [validating, setValidating] = useState(false);
 
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
+  const [ignoreDuplicates, setIgnoreDuplicates] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -509,14 +510,20 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
     cache.set(key, true);
   };
 
-  const hasBlockingIssues = useMemo(() => {
+  const hasDuplicateWarnings = useMemo(() => {
     if (!validation) return false;
     return (
       Object.keys(validation.internalDups).length > 0 ||
-      Object.keys(validation.dbDups).length > 0 ||
-      validation.missingPlates.length > 0
+      Object.keys(validation.dbDups).length > 0
     );
   }, [validation]);
+
+  const hasBlockingIssues = useMemo(() => {
+    if (!validation) return false;
+    if (validation.missingPlates.length > 0) return true;
+    if (!ignoreDuplicates && hasDuplicateWarnings) return true;
+    return false;
+  }, [validation, ignoreDuplicates, hasDuplicateWarnings]);
 
   const handleImport = async () => {
     if (!selectedEstId) {
@@ -915,6 +922,23 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                       </Button>
                     </div>
                   )}
+
+                  {validation && hasDuplicateWarnings && (
+                    <div className="border border-amber-400/60 rounded-md p-2 bg-amber-50 dark:bg-amber-500/10 space-y-1.5">
+                      <p className="text-[11px] font-semibold flex items-center gap-1 text-amber-900 dark:text-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Foram detectadas possíveis duplicidades
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {internalCount > 0 && <>Duplicatas dentro da planilha: <strong>{internalCount}</strong>. </>}
+                        {dbCount > 0 && <>Linhas que já existem no sistema: <strong>{dbCount}</strong>.</>}
+                      </p>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox checked={ignoreDuplicates} onCheckedChange={(v) => setIgnoreDuplicates(!!v)} />
+                        Estou ciente e desejo importar mesmo assim (duplicidades serão criadas)
+                      </label>
+                    </div>
+                  )}
+
 
                   {validation && (validation.missingActors.length > 0 || validation.missingNaturezas.length > 0) && (
                     <div className="border rounded-md p-2 bg-blue-50 dark:bg-blue-950/20 space-y-2">
