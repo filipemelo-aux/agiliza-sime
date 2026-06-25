@@ -175,9 +175,9 @@ export default function AdminPeople() {
   const filterByTab = (d: PersonProfile, tab: string) => {
     if (tab === "__all__") return true;
     // Regra GLOBAL: colaborador é definido EXCLUSIVAMENTE pelo flag is_colaborador_rh.
-    // Independe da categoria e de qualquer vínculo com frota/veículos.
     if (tab === "colaborador") return !!(d as any).is_colaborador_rh;
-    return d.category === tab;
+    const extras: string[] = Array.isArray((d as any).categories_extra) ? (d as any).categories_extra : [];
+    return d.category === tab || extras.includes(tab);
   };
 
   const filteredDrivers = drivers.filter((d) => {
