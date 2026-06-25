@@ -1066,7 +1066,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                     </table>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span>{rows.filter((r) => !r._error).length} válidas / {rows.length} totais</span>
+                    <span>{rows.filter(isImportable).length} válidas / {rows.length} totais</span>
                     <span>Total Frete: <strong>R$ {totalValorFrete.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
                   </div>
                 </CardContent>
