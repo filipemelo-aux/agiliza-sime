@@ -59,6 +59,9 @@ export function RevenueForecasts() {
   const [appendToLote, setAppendToLote] = useState<{ loteId: string; clienteId: string } | null>(null);
   const [editForecast, setEditForecast] = useState<Previsao | null>(null);
   const [cteMap, setCteMap] = useState<Record<string, number>>({});
+  // Individual invoice dialog: per-previsao due dates
+  const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
+  const [individualVencimentos, setIndividualVencimentos] = useState<Record<string, string>>({});
 
   const openAppendDialog = (loteId: string, clienteId: string) => {
     setAppendToLote({ loteId, clienteId });
@@ -265,12 +268,64 @@ export function RevenueForecasts() {
   };
 
   const openInvoiceDialog = () => {
-    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    if (selectedItems.length < 2) return toast.error("Selecione ao menos 2 previsões para gerar fatura única");
     if (!sameClient) return toast.error("Todas as previsões devem ser do mesmo cliente");
     setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
     setInvoiceDialogOpen(true);
+  };
+
+  const openIndividualDialog = () => {
+    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    const initial: Record<string, string> = {};
+    selectedItems.forEach((p) => {
+      initial[p.id] = p.data_prevista;
+    });
+    setIndividualVencimentos(initial);
+    setIndividualDialogOpen(true);
+  };
+
+  const handleCreateIndividualInvoices = async () => {
+    if (selectedItems.length === 0) return;
+    // Validate all dates set
+    for (const p of selectedItems) {
+      if (!individualVencimentos[p.id]) {
+        return toast.error("Defina o vencimento de todas as previsões");
+      }
+    }
+    setSaving(true);
+    try {
+      let created = 0;
+      for (const p of selectedItems) {
+        const venc = individualVencimentos[p.id];
+        const { data: fatura, error: faturaErr } = await supabase
+          .from("faturas_recebimento")
+          .insert({
+            cliente_id: p.cliente_id,
+            valor_total: Number(p.valor),
+            num_parcelas: 1,
+            intervalo_dias: 0,
+            data_emissao: venc,
+            status: "faturada" as any,
+          })
+          .select()
+          .single();
+        if (faturaErr) throw faturaErr;
+        const { error: linkErr } = await supabase
+          .from("fatura_previsoes")
+          .insert({ fatura_id: fatura.id, previsao_id: p.id });
+        if (linkErr) throw linkErr;
+        created++;
+      }
+      toast.success(`${created} fatura(s) individual(is) criada(s)!`);
+      setIndividualDialogOpen(false);
+      fetchPrevisoes();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar faturas");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
@@ -440,19 +495,20 @@ export function RevenueForecasts() {
       {/* Action bar - fixed at top when items selected */}
       {pendentes.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap p-2.5 bg-muted/50 rounded-lg border border-border">
-          <Button onClick={openInvoiceDialog} disabled={selected.size === 0 || !sameClient} className="gap-1.5 shadow-sm">
+          <Button onClick={openIndividualDialog} disabled={selected.size === 0} className="gap-1.5 shadow-sm">
             <Receipt className="h-4 w-4" />
-            Gerar Fatura ({selected.size})
+            Gerar Faturas ({selected.size})
           </Button>
           <Button
-            onClick={handleGroupSelected}
+            onClick={openInvoiceDialog}
             disabled={selected.size < 2 || !sameClient}
             variant="outline"
             size="sm"
             className="gap-1.5"
+            title={selected.size < 2 ? "Selecione 2 ou mais previsões" : !sameClient ? "Todas devem ser do mesmo cliente" : "Consolidar em uma única fatura"}
           >
             <Layers className="h-4 w-4" />
-            Agrupar em lote
+            Gerar Fatura Única
           </Button>
           <Button
             onClick={handleUngroupSelected}
@@ -931,6 +987,57 @@ export function RevenueForecasts() {
 
             <Button onClick={handleCreateInvoice} className="w-full" disabled={saving}>
               {saving ? "Criando..." : "Confirmar Fatura"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Individual invoices dialog: one fatura per previsao with editable due date */}
+      <Dialog open={individualDialogOpen} onOpenChange={setIndividualDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gerar Faturas Individuais</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Será gerada uma fatura para cada previsão. Defina o vencimento de cada uma.
+            </p>
+            <div className="max-h-[50vh] overflow-y-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Cliente</TableHead>
+                    <TableHead className="text-xs">Origem</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs">Vencimento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedItems.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-xs">{p.cliente_nome}</TableCell>
+                      <TableCell className="text-xs">{getOrigemLabel(p)}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">{formatCurrency(Number(p.valor))}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          className="h-8 text-xs"
+                          value={individualVencimentos[p.id] || ""}
+                          onChange={(e) =>
+                            setIndividualVencimentos((prev) => ({ ...prev, [p.id]: e.target.value }))
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-between text-xs px-1">
+              <span className="text-muted-foreground">{selectedItems.length} fatura(s) — total {formatCurrency(selectedTotal)}</span>
+            </div>
+            <Button onClick={handleCreateIndividualInvoices} className="w-full" disabled={saving}>
+              {saving ? "Criando..." : `Confirmar ${selectedItems.length} Fatura(s)`}
             </Button>
           </div>
         </DialogContent>
