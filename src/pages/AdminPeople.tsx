@@ -317,6 +317,11 @@ export default function AdminPeople() {
                             <Badge className={`text-[10px] ${CATEGORY_COLORS[driver.category] || "bg-muted text-muted-foreground"}`}>
                               {driver.category.charAt(0).toUpperCase() + driver.category.slice(1)}
                             </Badge>
+                            {Array.isArray((driver as any).categories_extra) && (driver as any).categories_extra.map((cat: string) => (
+                              <Badge key={cat} variant="outline" className={`text-[10px] ${CATEGORY_COLORS[cat] || "border-border text-muted-foreground"}`}>
+                                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                              </Badge>
+                            ))}
                             {(driver as any).is_colaborador_rh && driver.category !== "colaborador" && (
                               <Badge variant="outline" className="text-[10px] border-teal-500/40 text-teal-400">RH</Badge>
                             )}
