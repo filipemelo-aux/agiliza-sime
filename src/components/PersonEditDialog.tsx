@@ -352,6 +352,7 @@ function formToPayload(form: FormState) {
     razao_social: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.razao_social.trim() || null : null,
     nome_fantasia: !isMotorista && !isColaborador && form.person_type === "cnpj" ? form.nome_fantasia.trim() || null : null,
     category: form.category,
+    categories_extra: (form.categories_extra || []).filter((c) => c && c !== form.category),
     address_street: form.address_street.trim() || null,
     address_number: form.address_number.trim() || null,
     address_complement: form.address_complement.trim() || null,
