@@ -275,7 +275,14 @@ export function RevenueForecasts() {
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
-  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : undefined;
+  // À vista: usa a data de emissão da previsão (a menor entre as selecionadas)
+  // Único (data específica): usa a data escolhida pelo usuário
+  const avistaDataEmissao =
+    condicaoPagamento === "avista" && selectedItems.length > 0
+      ? selectedItems.map((p) => p.data_prevista).sort()[0]
+      : undefined;
+  const effectiveDataEmissao =
+    condicaoPagamento === "unico" ? dataVencimentoUnico : avistaDataEmissao;
 
   const handleCreateInvoice = async () => {
     if (selectedItems.length === 0 || !sameClient) return;
