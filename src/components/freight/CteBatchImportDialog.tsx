@@ -228,7 +228,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
         if (!destinatario.nome) missing.push("destinatário");
         if (!natureza) missing.push("natureza");
         if (!placa) missing.push("placa");
-        if (pesoTon <= 0) missing.push("peso");
+        if (pesoTon <= 0) r._missingWeight = true;
         if (valorFrete <= 0) missing.push("valor frete");
         if (missing.length) r._error = `Faltando: ${missing.join(", ")}`;
 
