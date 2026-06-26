@@ -295,7 +295,7 @@ export function BankReconciliation() {
         if (saldo <= 0.005) continue;
         const fat = r.faturas_recebimento;
         const cli = fat?.profiles;
-        const cliNome = cli?.razao_social || cli?.nome || null;
+        const cliNome = cli?.razao_social || cli?.full_name || null;
         receivables.push({
           id: `rec_${r.id}`,
           contaReceberId: r.id,
@@ -889,7 +889,7 @@ export function BankReconciliation() {
             fatura_id: cr.fatura_id,
             fatura_numero: fat?.numero || null,
             descricao: fat ? `Fatura #${fat.numero}` : "Conta a Receber",
-            favorecido_nome: cli?.razao_social || cli?.nome || "Cliente",
+            favorecido_nome: cli?.razao_social || cli?.full_name || "Cliente",
             documento_fiscal_numero: fat?.numero ? String(fat.numero) : null,
             valor_total: valor,
             valor_pago: recebido,
@@ -1341,7 +1341,7 @@ export function BankReconciliation() {
         if (saldo <= 0.005) continue;
         const fat = r.faturas_recebimento;
         const cli = fat?.profiles;
-        const cliNome = cli?.razao_social || cli?.nome || null;
+        const cliNome = cli?.razao_social || cli?.full_name || null;
         receivables.push({
           id: `rec_${r.id}`,
           contaReceberId: r.id,
