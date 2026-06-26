@@ -2112,6 +2112,18 @@ export function BankReconciliation() {
                       fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
+                  {item.matchedReceivableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={`${item.matchedReceivableDesc || ""}${item.matchedReceivableFaturaNumero ? ` (Fatura #${item.matchedReceivableFaturaNumero})` : ""}`}
+                      date={item.matchedReceivableDue}
+                      valor={item.matchedReceivableValor}
+                      origem="Conta a Receber (pendente)"
+                      variant="green"
+                      label="Conta a Receber encontrada"
+                      precision={item.matchedReceivablePrecision}
+                      fornecedor={item.matchedReceivableCliente}
+                    />
+                  )}
                   {item.status === "conciliado" && item.matchedMovId && (
                     <MatchBox
                       desc={item.matchedMovDesc}
