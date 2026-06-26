@@ -763,11 +763,14 @@ export function BankReconciliation() {
     }
     let cancelled = false;
     setLinkSearching(true);
-    const timer = setTimeout(async () => {
-      // Escape commas/parens that break PostgREST `or` syntax
-      const safe = q.replace(/[,()]/g, " ").trim();
 
-      // Detect a date in the query (dd/mm/yyyy or yyyy-mm-dd) → busca por data de vencimento
+    // Detecta se os itens alvo são créditos (entradas) → buscar em contas a receber
+    const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
+    const allEntradas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada");
+    const allSaidas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "saida");
+
+    const timer = setTimeout(async () => {
+      const safe = q.replace(/[,()]/g, " ").trim();
       const parseQueryDate = (s: string): string | null => {
         const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (br) return `${br[3]}-${br[2]}-${br[1]}`;
@@ -776,6 +779,120 @@ export function BankReconciliation() {
       };
       const queryDate = parseQueryDate(safe);
 
+      // ───────────── BUSCA DE RECEBÍVEIS (créditos) ─────────────
+      if (allEntradas) {
+        // Procura faturas pelo número (#123 ou 123) ou pelo cliente (razão social/nome)
+        const faturaNum = (() => {
+          const m = safe.match(/^#?(\d+)$/);
+          return m ? Number(m[1]) : null;
+        })();
+
+        // 1) Faturas por número
+        let faturas: any[] = [];
+        if (faturaNum) {
+          const { data } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .eq("numero", faturaNum)
+            .limit(20);
+          faturas = (data as any[]) || [];
+        }
+
+        // 2) Faturas pelo cliente (nome / razão social)
+        const { data: clients } = await supabase
+          .from("profiles")
+          .select("id")
+          .or(`nome.ilike.%${safe}%,razao_social.ilike.%${safe}%,documento.ilike.%${safe}%`)
+          .limit(40);
+        const clientIds = ((clients as any[]) || []).map((c: any) => c.id);
+        if (clientIds.length > 0) {
+          const { data: faturasByClient } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .in("cliente_id", clientIds)
+            .order("data_emissao", { ascending: false })
+            .limit(80);
+          for (const f of ((faturasByClient as any[]) || [])) {
+            if (!faturas.find((x) => x.id === f.id)) faturas.push(f);
+          }
+        }
+
+        // 3) Contas a receber das faturas encontradas + buscar contas por data de vencimento
+        const faturaIds = faturas.map((f) => f.id);
+        const receberQueries: Promise<any>[] = [];
+        if (faturaIds.length > 0) {
+          receberQueries.push(
+            supabase
+              .from("contas_receber")
+              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+              .in("fatura_id", faturaIds)
+              .limit(200)
+          );
+        }
+        if (queryDate) {
+          receberQueries.push(
+            supabase
+              .from("contas_receber")
+              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+              .eq("data_vencimento", queryDate)
+              .limit(100)
+          );
+        }
+        const receberResults = await Promise.all(receberQueries);
+        const allReceber = new Map<string, any>();
+        for (const r of receberResults) {
+          for (const row of (((r as any).data as any[]) || [])) {
+            allReceber.set(row.id, row);
+          }
+        }
+
+        // Para contas encontradas por data mas sem fatura na lista, carregar a fatura
+        const missingFatIds = Array.from(allReceber.values())
+          .map((r) => r.fatura_id)
+          .filter((id) => !faturas.find((f) => f.id === id));
+        if (missingFatIds.length > 0) {
+          const { data: extraFat } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .in("id", missingFatIds);
+          for (const f of ((extraFat as any[]) || [])) faturas.push(f);
+        }
+        const faturaById = new Map(faturas.map((f) => [f.id, f]));
+
+        const results: any[] = [];
+        for (const cr of allReceber.values()) {
+          const fat = faturaById.get(cr.fatura_id);
+          const cli = fat?.profiles;
+          const valor = Number(cr.valor) || 0;
+          const recebido = Number(cr.valor_recebido) || 0;
+          const saldo = Math.max(0, valor - recebido);
+          const statusMap: any = { aberto: "pendente", atrasado: "atrasado", recebido: "pago", parcial: "parcial" };
+          results.push({
+            id: `rec_${cr.id}`,
+            is_receivable: true,
+            conta_receber_id: cr.id,
+            fatura_id: cr.fatura_id,
+            fatura_numero: fat?.numero || null,
+            descricao: fat ? `Fatura #${fat.numero}` : "Conta a Receber",
+            favorecido_nome: cli?.razao_social || cli?.nome || "Cliente",
+            documento_fiscal_numero: fat?.numero ? String(fat.numero) : null,
+            valor_total: valor,
+            valor_pago: recebido,
+            saldo,
+            status: statusMap[cr.status] || cr.status,
+            data_vencimento: cr.data_vencimento,
+            data_emissao: fat?.data_emissao,
+          });
+        }
+        results.sort((a, b) => String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || "")));
+        if (!cancelled) {
+          setLinkSearchResults(results);
+          setLinkSearching(false);
+        }
+        return;
+      }
+
+      // ───────────── BUSCA DE DESPESAS (débitos) ─────────────
       const textSearch = supabase
         .from("expenses")
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
@@ -809,7 +926,6 @@ export function BankReconciliation() {
         dateInstallmentsSearch,
       ]);
 
-      // Merge expenses (dedup by id) + traz pais de parcelas encontradas por data
       const expensesMap = new Map<string, any>();
       for (const e of ((expData as any[]) || [])) expensesMap.set(e.id, e);
       for (const e of ((dateExpData as any[]) || [])) expensesMap.set(e.id, e);
@@ -845,7 +961,6 @@ export function BankReconciliation() {
         instByExp.set(inst.expense_id, arr);
       }
 
-      // Valor real pago (vindo de expense_payments), por parcela e por despesa
       const paidByInstallment = new Map<string, number>();
       const paidByExpense = new Map<string, number>();
       if (expIds.length > 0) {
@@ -899,7 +1014,6 @@ export function BankReconciliation() {
         }
       }
 
-      // Ordena toda a listagem por data de vencimento (mais recente primeiro)
       results.sort((a, b) =>
         String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""))
       );
@@ -910,7 +1024,7 @@ export function BankReconciliation() {
       }
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [linkSearchText, linkAccountDialogOpen]);
+  }, [linkSearchText, linkAccountDialogOpen, linkTargetItemIds, items]);
 
   const handleLinkConfirm = useCallback(async () => {
     if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
