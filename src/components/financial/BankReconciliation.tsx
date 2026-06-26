@@ -1334,14 +1334,10 @@ export function BankReconciliation() {
         } as any);
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
-          // Update installment status
           await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
-
-          // Recalculate expense totals
           const { data: allInst } = await supabase.from("expense_installments").select("valor, status").eq("expense_id", confirmMatch.expenseId);
           const totalPagoNow = ((allInst as any) || []).filter((i: any) => i.status === "pago").reduce((s: number, i: any) => s + Number(i.valor), 0);
           const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
-
           await supabase.from("expenses").update({
             valor_pago: totalPagoNow,
             status: allPaid ? "pago" : "parcial",
@@ -1349,12 +1345,10 @@ export function BankReconciliation() {
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
         } else {
-          // Regular expense: update directly
           const { data: expData } = await supabase.from("expenses").select("valor_total, valor_pago").eq("id", confirmMatch.expenseId).single();
           const novoValorPago = Number(expData?.valor_pago || 0) + valorPag;
           const valorTotal = Number(expData?.valor_total || 0);
           const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-
           await supabase.from("expenses").update({
             valor_pago: novoValorPago,
             status: novoStatus,
@@ -1362,13 +1356,30 @@ export function BankReconciliation() {
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
         }
+      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+        // Registrar recebimento na conta a receber
+        const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+          conta_receber_id: confirmMatch.contaReceberId,
+          valor: confirmMatch.valor,
+          forma_recebimento: "transferencia",
+          data_recebimento: confirmItem.date,
+          observacoes: "Recebimento via conciliação bancária (OFX)",
+          created_by: user?.id,
+        });
+        if (rpErr) throw rpErr;
       }
 
-      // Resolver vínculo: se isPayable, buscar a movimentação criada pelo trigger
-      let movIdToLink: string | null = confirmMatch.isPayable ? null : confirmMatch.id;
+      // Resolver vínculo: buscar a movimentação criada pelo trigger
+      let movIdToLink: string | null = (confirmMatch.isPayable || confirmMatch.isReceivable) ? null : confirmMatch.id;
       if (confirmMatch.isPayable && confirmMatch.expenseId) {
         movIdToLink = await findCreatedMovId({
           expenseId: confirmMatch.expenseId,
+          amount: Math.abs(confirmItem.amount),
+          tipo: confirmItem.tipo,
+          referenceDate: confirmItem.date,
+        });
+      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+        movIdToLink = await findCreatedMovId({
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
@@ -1385,7 +1396,13 @@ export function BankReconciliation() {
           i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
         )
       );
-      toast.success(confirmMatch.isPayable ? "Conta paga e conciliada com sucesso" : "Transação conciliada com sucesso");
+      toast.success(
+        confirmMatch.isPayable
+          ? "Conta paga e conciliada com sucesso"
+          : confirmMatch.isReceivable
+            ? "Recebimento registrado e conciliado"
+            : "Transação conciliada com sucesso"
+      );
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
       toast.error("Erro ao conciliar: " + (err.message || ""));
@@ -1419,6 +1436,20 @@ export function BankReconciliation() {
         installmentId: item.matchedPayableInstallmentId || undefined,
         fornecedor: item.matchedPayableFornecedor || null,
       });
+    } else if (item.matchedReceivableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedReceivableId,
+        descricao: item.matchedReceivableDesc,
+        data_movimentacao: item.matchedReceivableDue || item.date,
+        valor: item.matchedReceivableValor || Math.abs(item.amount),
+        origem: "contas_receber_pendente",
+        isReceivable: true,
+        contaReceberId: item.matchedReceivableContaId || undefined,
+        receivableDueDate: item.matchedReceivableDue || undefined,
+        cliente: item.matchedReceivableCliente || null,
+        faturaNumero: item.matchedReceivableFaturaNumero || null,
+      });
     }
   }, []);
 
@@ -1437,6 +1468,20 @@ export function BankReconciliation() {
         isInstallment: item.matchedPayableIsInstallment,
         installmentId: item.matchedPayableInstallmentId || undefined,
         fornecedor: item.matchedPayableFornecedor || null,
+      });
+    } else if (item.matchedReceivableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedReceivableId,
+        descricao: item.matchedReceivableDesc,
+        data_movimentacao: item.matchedReceivableDue || item.date,
+        valor: item.matchedReceivableValor || Math.abs(item.amount),
+        origem: "contas_receber_pendente",
+        isReceivable: true,
+        contaReceberId: item.matchedReceivableContaId || undefined,
+        receivableDueDate: item.matchedReceivableDue || undefined,
+        cliente: item.matchedReceivableCliente || null,
+        faturaNumero: item.matchedReceivableFaturaNumero || null,
       });
     }
   }, []);
