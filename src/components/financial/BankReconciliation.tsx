@@ -81,6 +81,14 @@ interface OfxItem extends OfxTransaction {
   matchedPayableExpenseId: string | null;
   matchedPayableIsInstallment: boolean;
   matchedPayableInstallmentId: string | null;
+  matchedReceivableId: string | null;
+  matchedReceivableDesc: string | null;
+  matchedReceivableCliente: string | null;
+  matchedReceivableDue: string | null;
+  matchedReceivableValor: number | null;
+  matchedReceivablePrecision: MatchPrecision | null;
+  matchedReceivableContaId: string | null;
+  matchedReceivableFaturaNumero: number | null;
 }
 
 interface MatchCandidate {
@@ -96,6 +104,11 @@ interface MatchCandidate {
   isInstallment?: boolean;
   installmentId?: string;
   fornecedor?: string | null;
+  isReceivable?: boolean;
+  contaReceberId?: string;
+  receivableDueDate?: string;
+  cliente?: string | null;
+  faturaNumero?: number | null;
 }
 
 interface ReconciliationSummary {
