@@ -1229,6 +1229,23 @@ export function BankReconciliation() {
             usedMovIds.add(matchedMov.id);
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
+
+          // E também em contas a receber pendentes — valor + data referência ±10 dias
+          let rCandidates = receivables.filter(
+            (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01 && r.referenceDate && daysDiff(txDate, r.referenceDate) <= 10
+          );
+          if (rCandidates.length === 0) {
+            rCandidates = receivables.filter(
+              (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01
+            );
+          }
+          const rExact = rCandidates.find((r) => r.referenceDate === txDate);
+          const rm = rExact || (rCandidates.length > 0 ? (rCandidates[0].referenceDate ? rCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : rCandidates[0]) : undefined);
+          if (rm) {
+            receivableMatch = rm;
+            usedReceivableIds.add(rm.id);
+            matchedReceivablePrecision = rm.referenceDate && rm.referenceDate === txDate ? "exato" : "proximo";
+          }
         }
 
         return {
@@ -1251,6 +1268,14 @@ export function BankReconciliation() {
           matchedPayableExpenseId: payableMatch?.expenseId || null,
           matchedPayableIsInstallment: payableMatch?.isInstallment || false,
           matchedPayableInstallmentId: payableMatch?.installmentId || null,
+          matchedReceivableId: receivableMatch?.id || null,
+          matchedReceivableDesc: receivableMatch?.description || null,
+          matchedReceivableCliente: receivableMatch?.cliente || null,
+          matchedReceivableDue: receivableMatch?.referenceDate || null,
+          matchedReceivableValor: receivableMatch ? receivableMatch.amount : null,
+          matchedReceivablePrecision,
+          matchedReceivableContaId: receivableMatch?.contaReceberId || null,
+          matchedReceivableFaturaNumero: receivableMatch?.faturaNumero || null,
         };
       });
 
