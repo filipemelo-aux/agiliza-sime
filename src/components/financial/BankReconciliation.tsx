@@ -1901,7 +1901,7 @@ export function BankReconciliation() {
               >
                 <Link2 className="h-3 w-3" /> Vincular a uma conta
               </Button>
-              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId) && (
+              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId || i.matchedReceivableId) && (
                 <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBatchConciliate} disabled={loading}>
                   {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
                   Conciliar {selectedIds.size} em lote
