@@ -2401,6 +2401,11 @@ function ItemActions({
           <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
         </Button>
       )}
+      {item.matchedReceivableId && !item.matchedPayableId && (
+        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-green-300 text-green-700 hover:bg-green-50" onClick={onConfirmPayable || onConfirmMatch}>
+          <CheckCircle2 className="h-3 w-3" /> Receber e Conciliar
+        </Button>
+      )}
       {onLinkAccount && (
         <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 text-blue-600" onClick={onLinkAccount}>
           <Link2 className="h-3 w-3" /> Vincular a conta
