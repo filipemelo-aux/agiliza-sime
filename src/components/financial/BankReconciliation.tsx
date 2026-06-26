@@ -2252,12 +2252,12 @@ export function BankReconciliation() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando...
                 </div>
               )}
-              {!linkSearching && linkSearchText.trim().length < 2 && (
+              {!linkSearching && linkSearchText.trim().length < 2 && linkSearchResults.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  Digite ao menos 2 caracteres para buscar contas (pagas ou a pagar).
+                  Digite ao menos 2 caracteres para buscar contas. Para créditos, os recebíveis em aberto já são listados automaticamente.
                 </div>
               )}
-              {!linkSearching && linkSearchText.trim().length >= 2 && linkSearchResults.length === 0 && (
+              {!linkSearching && linkSearchResults.length === 0 && linkSearchText.trim().length >= 2 && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">
                   Nenhuma conta encontrada.
                 </div>
