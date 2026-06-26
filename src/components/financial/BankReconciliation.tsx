@@ -374,6 +374,29 @@ export function BankReconciliation() {
         usedItemForPay.add(p.idx);
       }
 
+      // ── Assign receivable matches (entrada only) ──
+      const recPairs: Pair[] = [];
+      rawItems.forEach((raw, idx) => {
+        if (raw.status !== "pendente" || raw.tipo !== "entrada") return;
+        for (const r of receivables) {
+          if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
+          const dist = r.referenceDate ? daysDiff(raw.txDate, r.referenceDate) : 9999;
+          if (dist <= 10 || !r.referenceDate) {
+            recPairs.push({ idx, candId: r.id, dist });
+          }
+        }
+      });
+      recPairs.sort((a, b) => a.dist - b.dist);
+      const assignedRecByIdx = new Map<number, string>();
+      const usedRecCands = new Set<string>();
+      const usedItemForRec = new Set<number>();
+      for (const p of recPairs) {
+        if (usedItemForRec.has(p.idx) || usedRecCands.has(p.candId)) continue;
+        assignedRecByIdx.set(p.idx, p.candId);
+        usedRecCands.add(p.candId);
+        usedItemForRec.add(p.idx);
+      }
+
       // 3) Build final OfxItem list
       const ofxItems: OfxItem[] = rawItems.map((raw, idx) => {
         const { dbItem, absVal, tipo, status, txDate } = raw;
@@ -394,9 +417,16 @@ export function BankReconciliation() {
         let matchedPayableIsInstallment = false;
         let matchedPayableInstallmentId: string | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
+        let matchedReceivableId: string | null = null;
+        let matchedReceivableDesc: string | null = null;
+        let matchedReceivableCliente: string | null = null;
+        let matchedReceivableDue: string | null = null;
+        let matchedReceivableValor: number | null = null;
+        let matchedReceivablePrecision: MatchPrecision | null = null;
+        let matchedReceivableContaId: string | null = null;
+        let matchedReceivableFaturaNumero: number | null = null;
 
         if (status === "pendente") {
-          // Cash flow match
           const movCandId = assignedMovByIdx.get(idx);
           if (movCandId) {
             const match = movs.find((m) => m.id === movCandId)!;
@@ -409,7 +439,6 @@ export function BankReconciliation() {
             matchedMovFavorecido = movFavorecidoMap.get(match.id) || null;
           }
 
-          // Payable match
           const payCandId = assignedPayByIdx.get(idx);
           if (payCandId) {
             const pm = payables.find((p) => p.id === payCandId)!;
@@ -422,6 +451,19 @@ export function BankReconciliation() {
             matchedPayableIsInstallment = pm.isInstallment;
             matchedPayableInstallmentId = pm.installmentId || null;
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
+          }
+
+          const recCandId = assignedRecByIdx.get(idx);
+          if (recCandId) {
+            const rm = receivables.find((r) => r.id === recCandId)!;
+            matchedReceivableId = rm.id;
+            matchedReceivableDesc = rm.description;
+            matchedReceivableCliente = rm.cliente;
+            matchedReceivableDue = rm.referenceDate;
+            matchedReceivableValor = rm.amount;
+            matchedReceivableContaId = rm.contaReceberId;
+            matchedReceivableFaturaNumero = rm.faturaNumero;
+            matchedReceivablePrecision = rm.referenceDate && rm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
           const mov = (existingMovs || []).find((m: any) => m.id === matchedMovId);
@@ -460,6 +502,14 @@ export function BankReconciliation() {
           matchedPayableExpenseId,
           matchedPayableIsInstallment,
           matchedPayableInstallmentId,
+          matchedReceivableId,
+          matchedReceivableDesc,
+          matchedReceivableCliente,
+          matchedReceivableDue,
+          matchedReceivableValor,
+          matchedReceivablePrecision,
+          matchedReceivableContaId,
+          matchedReceivableFaturaNumero,
         };
       });
 
