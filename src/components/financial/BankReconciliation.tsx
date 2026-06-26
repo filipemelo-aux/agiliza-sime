@@ -819,7 +819,7 @@ export function BankReconciliation() {
 
         // 3) Contas a receber das faturas encontradas + buscar contas por data de vencimento
         const faturaIds = faturas.map((f) => f.id);
-        const receberQueries: Promise<any>[] = [];
+        const receberQueries: any[] = [];
         if (faturaIds.length > 0) {
           receberQueries.push(
             supabase
