@@ -287,6 +287,26 @@ export function BankReconciliation() {
         });
       }
 
+      // Build receivables list (pending contas_receber) for credit matching
+      const recRows = (pendingReceivables || []) as any[];
+      const receivables: { id: string; contaReceberId: string; amount: number; description: string; cliente: string | null; referenceDate: string | null; faturaNumero: number | null }[] = [];
+      for (const r of recRows) {
+        const saldo = Number(r.valor) - Number(r.valor_recebido || 0);
+        if (saldo <= 0.005) continue;
+        const fat = r.faturas_recebimento;
+        const cli = fat?.profiles;
+        const cliNome = cli?.razao_social || cli?.nome || null;
+        receivables.push({
+          id: `rec_${r.id}`,
+          contaReceberId: r.id,
+          amount: saldo,
+          description: fat?.numero ? `Fatura #${fat.numero}` : "Conta a Receber",
+          cliente: cliNome,
+          referenceDate: r.data_vencimento || null,
+          faturaNumero: fat?.numero || null,
+        });
+      }
+
       // ── Two-pass optimal matching ──
       // 1) Build raw items with basic info
       const rawItems = dbItems.map((dbItem) => ({
