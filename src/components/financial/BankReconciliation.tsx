@@ -817,7 +817,7 @@ export function BankReconciliation() {
         const { data: clients } = await supabase
           .from("profiles")
           .select("id")
-          .or(`nome.ilike.%${safe}%,razao_social.ilike.%${safe}%,documento.ilike.%${safe}%`)
+          .or(`full_name.ilike.%${safe}%,razao_social.ilike.%${safe}%,documento.ilike.%${safe}%`)
           .limit(40);
         const clientIds = ((clients as any[]) || []).map((c: any) => c.id);
         if (clientIds.length > 0) {
