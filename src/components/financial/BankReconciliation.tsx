@@ -558,7 +558,7 @@ export function BankReconciliation() {
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
   const selectableItems = useMemo(() =>
-    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
+    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
     [items]
   );
 
