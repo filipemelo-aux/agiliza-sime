@@ -684,10 +684,25 @@ export function BankReconciliation() {
             .from("accounts_payable")
             .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
-          // Resolve movimento criado para gravar o vínculo
           movIdToLink = await findCreatedMovId({
             accountsPayableId: item.matchedPayableId,
             expenseId: item.matchedPayableExpenseId || undefined,
+            amount: Math.abs(item.amount),
+            tipo: item.tipo,
+            referenceDate: item.date,
+          });
+        }
+        if (item.matchedReceivableId && item.matchedReceivableContaId && !item.matchedMovId) {
+          // Registrar recebimento na conta a receber pendente
+          await supabase.from("receivable_payments" as any).insert({
+            conta_receber_id: item.matchedReceivableContaId,
+            valor: item.matchedReceivableValor || Math.abs(item.amount),
+            forma_recebimento: "transferencia",
+            data_recebimento: item.date,
+            observacoes: "Recebimento via conciliação bancária (OFX em lote)",
+            created_by: user?.id,
+          });
+          movIdToLink = await findCreatedMovId({
             amount: Math.abs(item.amount),
             tipo: item.tipo,
             referenceDate: item.date,
@@ -709,7 +724,7 @@ export function BankReconciliation() {
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user]);
 
   // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
   const handleUndoReconcile = useCallback(async (item: OfxItem) => {
