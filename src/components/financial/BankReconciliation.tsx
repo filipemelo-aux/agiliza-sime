@@ -1096,7 +1096,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }, { data: pendingReceivables2 }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -1116,6 +1116,10 @@ export function BankReconciliation() {
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("contas_receber")
+          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(nome, razao_social))")
+          .in("status", ["aberto", "atrasado"]),
       ]);
 
       const alreadyMatchedIds2 = new Set(
