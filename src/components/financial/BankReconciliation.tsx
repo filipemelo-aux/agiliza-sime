@@ -1158,8 +1158,28 @@ export function BankReconciliation() {
         });
       }
 
+      const recRows2 = (pendingReceivables2 || []) as any[];
+      const receivables: { id: string; contaReceberId: string; amount: number; description: string; cliente: string | null; referenceDate: string | null; faturaNumero: number | null }[] = [];
+      for (const r of recRows2) {
+        const saldo = Number(r.valor) - Number(r.valor_recebido || 0);
+        if (saldo <= 0.005) continue;
+        const fat = r.faturas_recebimento;
+        const cli = fat?.profiles;
+        const cliNome = cli?.razao_social || cli?.nome || null;
+        receivables.push({
+          id: `rec_${r.id}`,
+          contaReceberId: r.id,
+          amount: saldo,
+          description: fat?.numero ? `Fatura #${fat.numero}` : "Conta a Receber",
+          cliente: cliNome,
+          referenceDate: r.data_vencimento || null,
+          faturaNumero: fat?.numero || null,
+        });
+      }
+
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
+      const usedReceivableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
         const txDate = tx.date;
@@ -1167,6 +1187,8 @@ export function BankReconciliation() {
         let matchedMovPrecision: MatchPrecision | null = null;
         let payableMatch: typeof payables[0] | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
+        let receivableMatch: typeof receivables[0] | null = null;
+        let matchedReceivablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
           // Débito: buscar no fluxo de caixa — mesmo tipo (saída) + valor idêntico + data ±5 dias
