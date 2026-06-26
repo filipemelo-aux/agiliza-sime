@@ -201,7 +201,7 @@ export function BankReconciliation() {
           .not("matched_movimentacao_id", "is", null),
         supabase
           .from("contas_receber")
-          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(nome, razao_social))")
+          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
           .in("status", ["aberto", "atrasado"]),
       ]);
 
@@ -807,7 +807,7 @@ export function BankReconciliation() {
         if (faturaNum) {
           const { data } = await supabase
             .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
             .eq("numero", faturaNum)
             .limit(20);
           faturas = (data as any[]) || [];
@@ -823,7 +823,7 @@ export function BankReconciliation() {
         if (clientIds.length > 0) {
           const { data: faturasByClient } = await supabase
             .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
             .in("cliente_id", clientIds)
             .order("data_emissao", { ascending: false })
             .limit(80);
@@ -868,7 +868,7 @@ export function BankReconciliation() {
         if (missingFatIds.length > 0) {
           const { data: extraFat } = await supabase
             .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
             .in("id", missingFatIds);
           for (const f of ((extraFat as any[]) || [])) faturas.push(f);
         }
@@ -1294,7 +1294,7 @@ export function BankReconciliation() {
           .not("matched_movimentacao_id", "is", null),
         supabase
           .from("contas_receber")
-          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(nome, razao_social))")
+          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(full_name, razao_social))")
           .in("status", ["aberto", "atrasado"]),
       ]);
 
