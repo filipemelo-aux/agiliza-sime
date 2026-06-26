@@ -81,6 +81,14 @@ interface OfxItem extends OfxTransaction {
   matchedPayableExpenseId: string | null;
   matchedPayableIsInstallment: boolean;
   matchedPayableInstallmentId: string | null;
+  matchedReceivableId: string | null;
+  matchedReceivableDesc: string | null;
+  matchedReceivableCliente: string | null;
+  matchedReceivableDue: string | null;
+  matchedReceivableValor: number | null;
+  matchedReceivablePrecision: MatchPrecision | null;
+  matchedReceivableContaId: string | null;
+  matchedReceivableFaturaNumero: number | null;
 }
 
 interface MatchCandidate {
@@ -96,6 +104,11 @@ interface MatchCandidate {
   isInstallment?: boolean;
   installmentId?: string;
   fornecedor?: string | null;
+  isReceivable?: boolean;
+  contaReceberId?: string;
+  receivableDueDate?: string;
+  cliente?: string | null;
+  faturaNumero?: number | null;
 }
 
 interface ReconciliationSummary {
@@ -166,7 +179,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses }, { data: pendingInstallments }, { data: alreadyMatched }, { data: pendingReceivables }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem, origem_id")
@@ -186,6 +199,10 @@ export function BankReconciliation() {
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id, reconciliation_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("contas_receber")
+          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(nome, razao_social))")
+          .in("status", ["aberto", "atrasado"]),
       ]);
 
       // Exclude movements already linked to ANY reconciliation item (including
@@ -270,6 +287,26 @@ export function BankReconciliation() {
         });
       }
 
+      // Build receivables list (pending contas_receber) for credit matching
+      const recRows = (pendingReceivables || []) as any[];
+      const receivables: { id: string; contaReceberId: string; amount: number; description: string; cliente: string | null; referenceDate: string | null; faturaNumero: number | null }[] = [];
+      for (const r of recRows) {
+        const saldo = Number(r.valor) - Number(r.valor_recebido || 0);
+        if (saldo <= 0.005) continue;
+        const fat = r.faturas_recebimento;
+        const cli = fat?.profiles;
+        const cliNome = cli?.razao_social || cli?.nome || null;
+        receivables.push({
+          id: `rec_${r.id}`,
+          contaReceberId: r.id,
+          amount: saldo,
+          description: fat?.numero ? `Fatura #${fat.numero}` : "Conta a Receber",
+          cliente: cliNome,
+          referenceDate: r.data_vencimento || null,
+          faturaNumero: fat?.numero || null,
+        });
+      }
+
       // ── Two-pass optimal matching ──
       // 1) Build raw items with basic info
       const rawItems = dbItems.map((dbItem) => ({
@@ -337,6 +374,29 @@ export function BankReconciliation() {
         usedItemForPay.add(p.idx);
       }
 
+      // ── Assign receivable matches (entrada only) ──
+      const recPairs: Pair[] = [];
+      rawItems.forEach((raw, idx) => {
+        if (raw.status !== "pendente" || raw.tipo !== "entrada") return;
+        for (const r of receivables) {
+          if (Math.abs(r.amount - raw.absVal) >= 0.01) continue;
+          const dist = r.referenceDate ? daysDiff(raw.txDate, r.referenceDate) : 9999;
+          if (dist <= 10 || !r.referenceDate) {
+            recPairs.push({ idx, candId: r.id, dist });
+          }
+        }
+      });
+      recPairs.sort((a, b) => a.dist - b.dist);
+      const assignedRecByIdx = new Map<number, string>();
+      const usedRecCands = new Set<string>();
+      const usedItemForRec = new Set<number>();
+      for (const p of recPairs) {
+        if (usedItemForRec.has(p.idx) || usedRecCands.has(p.candId)) continue;
+        assignedRecByIdx.set(p.idx, p.candId);
+        usedRecCands.add(p.candId);
+        usedItemForRec.add(p.idx);
+      }
+
       // 3) Build final OfxItem list
       const ofxItems: OfxItem[] = rawItems.map((raw, idx) => {
         const { dbItem, absVal, tipo, status, txDate } = raw;
@@ -357,9 +417,16 @@ export function BankReconciliation() {
         let matchedPayableIsInstallment = false;
         let matchedPayableInstallmentId: string | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
+        let matchedReceivableId: string | null = null;
+        let matchedReceivableDesc: string | null = null;
+        let matchedReceivableCliente: string | null = null;
+        let matchedReceivableDue: string | null = null;
+        let matchedReceivableValor: number | null = null;
+        let matchedReceivablePrecision: MatchPrecision | null = null;
+        let matchedReceivableContaId: string | null = null;
+        let matchedReceivableFaturaNumero: number | null = null;
 
         if (status === "pendente") {
-          // Cash flow match
           const movCandId = assignedMovByIdx.get(idx);
           if (movCandId) {
             const match = movs.find((m) => m.id === movCandId)!;
@@ -372,7 +439,6 @@ export function BankReconciliation() {
             matchedMovFavorecido = movFavorecidoMap.get(match.id) || null;
           }
 
-          // Payable match
           const payCandId = assignedPayByIdx.get(idx);
           if (payCandId) {
             const pm = payables.find((p) => p.id === payCandId)!;
@@ -385,6 +451,19 @@ export function BankReconciliation() {
             matchedPayableIsInstallment = pm.isInstallment;
             matchedPayableInstallmentId = pm.installmentId || null;
             matchedPayablePrecision = pm.referenceDate && pm.referenceDate === txDate ? "exato" : "proximo";
+          }
+
+          const recCandId = assignedRecByIdx.get(idx);
+          if (recCandId) {
+            const rm = receivables.find((r) => r.id === recCandId)!;
+            matchedReceivableId = rm.id;
+            matchedReceivableDesc = rm.description;
+            matchedReceivableCliente = rm.cliente;
+            matchedReceivableDue = rm.referenceDate;
+            matchedReceivableValor = rm.amount;
+            matchedReceivableContaId = rm.contaReceberId;
+            matchedReceivableFaturaNumero = rm.faturaNumero;
+            matchedReceivablePrecision = rm.referenceDate && rm.referenceDate === txDate ? "exato" : "proximo";
           }
         } else if (matchedMovId) {
           const mov = (existingMovs || []).find((m: any) => m.id === matchedMovId);
@@ -423,6 +502,14 @@ export function BankReconciliation() {
           matchedPayableExpenseId,
           matchedPayableIsInstallment,
           matchedPayableInstallmentId,
+          matchedReceivableId,
+          matchedReceivableDesc,
+          matchedReceivableCliente,
+          matchedReceivableDue,
+          matchedReceivableValor,
+          matchedReceivablePrecision,
+          matchedReceivableContaId,
+          matchedReceivableFaturaNumero,
         };
       });
 
@@ -471,7 +558,7 @@ export function BankReconciliation() {
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
   const selectableItems = useMemo(() =>
-    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId)),
+    items.filter((i) => i.status === "pendente" && (i.matchedMovId || i.matchedPayableId || i.matchedReceivableId)),
     [items]
   );
 
@@ -597,10 +684,25 @@ export function BankReconciliation() {
             .from("accounts_payable")
             .update({ status: "pago", paid_amount: item.matchedPayableValor || Math.abs(item.amount), paid_at: `${item.date}T12:00:00` })
             .eq("id", item.matchedPayableId);
-          // Resolve movimento criado para gravar o vínculo
           movIdToLink = await findCreatedMovId({
             accountsPayableId: item.matchedPayableId,
             expenseId: item.matchedPayableExpenseId || undefined,
+            amount: Math.abs(item.amount),
+            tipo: item.tipo,
+            referenceDate: item.date,
+          });
+        }
+        if (item.matchedReceivableId && item.matchedReceivableContaId && !item.matchedMovId) {
+          // Registrar recebimento na conta a receber pendente
+          await supabase.from("receivable_payments" as any).insert({
+            conta_receber_id: item.matchedReceivableContaId,
+            valor: item.matchedReceivableValor || Math.abs(item.amount),
+            forma_recebimento: "transferencia",
+            data_recebimento: item.date,
+            observacoes: "Recebimento via conciliação bancária (OFX em lote)",
+            created_by: user?.id,
+          });
+          movIdToLink = await findCreatedMovId({
             amount: Math.abs(item.amount),
             tipo: item.tipo,
             referenceDate: item.date,
@@ -622,7 +724,7 @@ export function BankReconciliation() {
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user]);
 
   // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
   const handleUndoReconcile = useCallback(async (item: OfxItem) => {
@@ -676,11 +778,14 @@ export function BankReconciliation() {
     }
     let cancelled = false;
     setLinkSearching(true);
-    const timer = setTimeout(async () => {
-      // Escape commas/parens that break PostgREST `or` syntax
-      const safe = q.replace(/[,()]/g, " ").trim();
 
-      // Detect a date in the query (dd/mm/yyyy or yyyy-mm-dd) → busca por data de vencimento
+    // Detecta se os itens alvo são créditos (entradas) → buscar em contas a receber
+    const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
+    const allEntradas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada");
+    const allSaidas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "saida");
+
+    const timer = setTimeout(async () => {
+      const safe = q.replace(/[,()]/g, " ").trim();
       const parseQueryDate = (s: string): string | null => {
         const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (br) return `${br[3]}-${br[2]}-${br[1]}`;
@@ -689,6 +794,120 @@ export function BankReconciliation() {
       };
       const queryDate = parseQueryDate(safe);
 
+      // ───────────── BUSCA DE RECEBÍVEIS (créditos) ─────────────
+      if (allEntradas) {
+        // Procura faturas pelo número (#123 ou 123) ou pelo cliente (razão social/nome)
+        const faturaNum = (() => {
+          const m = safe.match(/^#?(\d+)$/);
+          return m ? Number(m[1]) : null;
+        })();
+
+        // 1) Faturas por número
+        let faturas: any[] = [];
+        if (faturaNum) {
+          const { data } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .eq("numero", faturaNum)
+            .limit(20);
+          faturas = (data as any[]) || [];
+        }
+
+        // 2) Faturas pelo cliente (nome / razão social)
+        const { data: clients } = await supabase
+          .from("profiles")
+          .select("id")
+          .or(`nome.ilike.%${safe}%,razao_social.ilike.%${safe}%,documento.ilike.%${safe}%`)
+          .limit(40);
+        const clientIds = ((clients as any[]) || []).map((c: any) => c.id);
+        if (clientIds.length > 0) {
+          const { data: faturasByClient } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .in("cliente_id", clientIds)
+            .order("data_emissao", { ascending: false })
+            .limit(80);
+          for (const f of ((faturasByClient as any[]) || [])) {
+            if (!faturas.find((x) => x.id === f.id)) faturas.push(f);
+          }
+        }
+
+        // 3) Contas a receber das faturas encontradas + buscar contas por data de vencimento
+        const faturaIds = faturas.map((f) => f.id);
+        const receberQueries: any[] = [];
+        if (faturaIds.length > 0) {
+          receberQueries.push(
+            supabase
+              .from("contas_receber")
+              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+              .in("fatura_id", faturaIds)
+              .limit(200)
+          );
+        }
+        if (queryDate) {
+          receberQueries.push(
+            supabase
+              .from("contas_receber")
+              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+              .eq("data_vencimento", queryDate)
+              .limit(100)
+          );
+        }
+        const receberResults = await Promise.all(receberQueries);
+        const allReceber = new Map<string, any>();
+        for (const r of receberResults) {
+          for (const row of (((r as any).data as any[]) || [])) {
+            allReceber.set(row.id, row);
+          }
+        }
+
+        // Para contas encontradas por data mas sem fatura na lista, carregar a fatura
+        const missingFatIds = Array.from(allReceber.values())
+          .map((r) => r.fatura_id)
+          .filter((id) => !faturas.find((f) => f.id === id));
+        if (missingFatIds.length > 0) {
+          const { data: extraFat } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(nome, razao_social, documento)")
+            .in("id", missingFatIds);
+          for (const f of ((extraFat as any[]) || [])) faturas.push(f);
+        }
+        const faturaById = new Map(faturas.map((f) => [f.id, f]));
+
+        const results: any[] = [];
+        for (const cr of allReceber.values()) {
+          const fat = faturaById.get(cr.fatura_id);
+          const cli = fat?.profiles;
+          const valor = Number(cr.valor) || 0;
+          const recebido = Number(cr.valor_recebido) || 0;
+          const saldo = Math.max(0, valor - recebido);
+          const statusMap: any = { aberto: "pendente", atrasado: "atrasado", recebido: "pago", parcial: "parcial" };
+          results.push({
+            id: `rec_${cr.id}`,
+            is_receivable: true,
+            conta_receber_id: cr.id,
+            fatura_id: cr.fatura_id,
+            fatura_numero: fat?.numero || null,
+            descricao: fat ? `Fatura #${fat.numero}` : "Conta a Receber",
+            favorecido_nome: cli?.razao_social || cli?.nome || "Cliente",
+            documento_fiscal_numero: fat?.numero ? String(fat.numero) : null,
+            valor_total: valor,
+            valor_pago: recebido,
+            saldo,
+            status: statusMap[cr.status] || cr.status,
+            data_vencimento: cr.data_vencimento,
+            data_emissao: fat?.data_emissao,
+          });
+        }
+        results.sort((a, b) => String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || "")));
+        if (!cancelled) {
+          setLinkSearchResults(results);
+          setLinkSearching(false);
+        }
+        return;
+      }
+
+      // ───────────── BUSCA DE DESPESAS (débitos) ─────────────
       const textSearch = supabase
         .from("expenses")
         .select("id, descricao, favorecido_nome, valor_total, valor_pago, status, data_vencimento, data_emissao, documento_fiscal_numero")
@@ -722,7 +941,6 @@ export function BankReconciliation() {
         dateInstallmentsSearch,
       ]);
 
-      // Merge expenses (dedup by id) + traz pais de parcelas encontradas por data
       const expensesMap = new Map<string, any>();
       for (const e of ((expData as any[]) || [])) expensesMap.set(e.id, e);
       for (const e of ((dateExpData as any[]) || [])) expensesMap.set(e.id, e);
@@ -758,7 +976,6 @@ export function BankReconciliation() {
         instByExp.set(inst.expense_id, arr);
       }
 
-      // Valor real pago (vindo de expense_payments), por parcela e por despesa
       const paidByInstallment = new Map<string, number>();
       const paidByExpense = new Map<string, number>();
       if (expIds.length > 0) {
@@ -812,7 +1029,6 @@ export function BankReconciliation() {
         }
       }
 
-      // Ordena toda a listagem por data de vencimento (mais recente primeiro)
       results.sort((a, b) =>
         String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""))
       );
@@ -823,7 +1039,7 @@ export function BankReconciliation() {
       }
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [linkSearchText, linkAccountDialogOpen]);
+  }, [linkSearchText, linkAccountDialogOpen, linkTargetItemIds, items]);
 
   const handleLinkConfirm = useCallback(async () => {
     if (!linkSelectedAccount || !reconciliationId || linkTargetItemIds.length === 0) return;
@@ -832,6 +1048,56 @@ export function BankReconciliation() {
       const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
       const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
       const minDate = targetItems.map((i) => i.date).sort()[0];
+
+      const isReceivable = !!linkSelectedAccount.is_receivable;
+
+      if (isReceivable) {
+        const contaReceberId = linkSelectedAccount.conta_receber_id;
+        const valorTotalConta = Number(linkSelectedAccount.valor_total || 0);
+        const jaRecebido = Number(linkSelectedAccount.valor_pago || 0);
+        const saldo = Math.max(0, valorTotalConta - jaRecebido);
+        const valorPag = Math.min(totalSel, saldo);
+        if (linkSelectedAccount.status !== "pago" && valorPag > 0) {
+          const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+            conta_receber_id: contaReceberId,
+            valor: valorPag,
+            forma_recebimento: "transferencia",
+            data_recebimento: minDate,
+            observacoes: `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+            created_by: user?.id,
+          });
+          if (rpErr) throw rpErr;
+        }
+        for (const it of targetItems) {
+          const movIdToLink = await findCreatedMovId({
+            amount: Math.abs(it.amount),
+            tipo: it.tipo,
+            referenceDate: it.date,
+          });
+          const updateFilter = it.dbItemId
+            ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
+            : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+          await updateFilter;
+        }
+        setItems((prev) =>
+          prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+        );
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          linkTargetItemIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        toast.success(
+          linkSelectedAccount.status === "pago"
+            ? `${targetItems.length} lançamento(s) vinculado(s) à conta recebida`
+            : `Recebimento registrado e ${targetItems.length} lançamento(s) conciliado(s)`
+        );
+        setLinkAccountDialogOpen(false);
+        setLinkSelectedAccount(null);
+        setLinkTargetItemIds([]);
+        setTimeout(updateReconciliationCount, 500);
+        return;
+      }
 
       const isInstallment = !!linkSelectedAccount.is_installment;
       const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
@@ -853,7 +1119,6 @@ export function BankReconciliation() {
         } as any);
 
         if (isInstallment) {
-          // Mark this installment as paid, then recompute expense totals/status
           await supabase
             .from("expense_installments")
             .update({ status: "pago" } as any)
@@ -876,7 +1141,6 @@ export function BankReconciliation() {
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
         } else {
-          // Refresh totals on expense (no installments)
           const { data: expData } = await supabase
             .from("expenses")
             .select("valor_total, valor_pago")
@@ -894,7 +1158,6 @@ export function BankReconciliation() {
         }
       }
 
-      // Mark all selected OFX items as conciliado, gravando o vínculo com a movimentação criada
       for (const it of targetItems) {
         const movIdToLink = await findCreatedMovId({
           expenseId: expenseId,
@@ -1009,7 +1272,7 @@ export function BankReconciliation() {
       const minDate = d0.toISOString().slice(0, 10);
       const maxDate = d1.toISOString().slice(0, 10);
 
-      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }] = await Promise.all([
+      const [{ data: existingMovs }, { data: pendingExpenses2 }, { data: pendingInstallments2 }, { data: alreadyMatched2 }, { data: pendingReceivables2 }] = await Promise.all([
         supabase
           .from("movimentacoes_bancarias")
           .select("id, valor, data_movimentacao, tipo, descricao, origem")
@@ -1029,6 +1292,10 @@ export function BankReconciliation() {
           .from("bank_reconciliation_items")
           .select("matched_movimentacao_id")
           .not("matched_movimentacao_id", "is", null),
+        supabase
+          .from("contas_receber")
+          .select("id, valor, valor_recebido, data_vencimento, status, fatura_id, faturas_recebimento(numero, cliente_id, profiles:cliente_id(nome, razao_social))")
+          .in("status", ["aberto", "atrasado"]),
       ]);
 
       const alreadyMatchedIds2 = new Set(
@@ -1067,8 +1334,28 @@ export function BankReconciliation() {
         });
       }
 
+      const recRows2 = (pendingReceivables2 || []) as any[];
+      const receivables: { id: string; contaReceberId: string; amount: number; description: string; cliente: string | null; referenceDate: string | null; faturaNumero: number | null }[] = [];
+      for (const r of recRows2) {
+        const saldo = Number(r.valor) - Number(r.valor_recebido || 0);
+        if (saldo <= 0.005) continue;
+        const fat = r.faturas_recebimento;
+        const cli = fat?.profiles;
+        const cliNome = cli?.razao_social || cli?.nome || null;
+        receivables.push({
+          id: `rec_${r.id}`,
+          contaReceberId: r.id,
+          amount: saldo,
+          description: fat?.numero ? `Fatura #${fat.numero}` : "Conta a Receber",
+          cliente: cliNome,
+          referenceDate: r.data_vencimento || null,
+          faturaNumero: fat?.numero || null,
+        });
+      }
+
       const usedMovIds = new Set<string>();
       const usedPayableIds = new Set<string>();
+      const usedReceivableIds = new Set<string>();
       const ofxItems: OfxItem[] = parsed.transactions.map((tx) => {
         const absVal = Math.abs(tx.amount);
         const txDate = tx.date;
@@ -1076,6 +1363,8 @@ export function BankReconciliation() {
         let matchedMovPrecision: MatchPrecision | null = null;
         let payableMatch: typeof payables[0] | null = null;
         let matchedPayablePrecision: MatchPrecision | null = null;
+        let receivableMatch: typeof receivables[0] | null = null;
+        let matchedReceivablePrecision: MatchPrecision | null = null;
 
         if (tx.tipo === "saida") {
           // Débito: buscar no fluxo de caixa — mesmo tipo (saída) + valor idêntico + data ±5 dias
@@ -1116,6 +1405,23 @@ export function BankReconciliation() {
             usedMovIds.add(matchedMov.id);
             matchedMovPrecision = matchedMov.data_movimentacao === txDate ? "exato" : "proximo";
           }
+
+          // E também em contas a receber pendentes — valor + data referência ±10 dias
+          let rCandidates = receivables.filter(
+            (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01 && r.referenceDate && daysDiff(txDate, r.referenceDate) <= 10
+          );
+          if (rCandidates.length === 0) {
+            rCandidates = receivables.filter(
+              (r) => !usedReceivableIds.has(r.id) && Math.abs(r.amount - absVal) < 0.01
+            );
+          }
+          const rExact = rCandidates.find((r) => r.referenceDate === txDate);
+          const rm = rExact || (rCandidates.length > 0 ? (rCandidates[0].referenceDate ? rCandidates.sort((a, b) => daysDiff(txDate, a.referenceDate || "9999-12-31") - daysDiff(txDate, b.referenceDate || "9999-12-31"))[0] : rCandidates[0]) : undefined);
+          if (rm) {
+            receivableMatch = rm;
+            usedReceivableIds.add(rm.id);
+            matchedReceivablePrecision = rm.referenceDate && rm.referenceDate === txDate ? "exato" : "proximo";
+          }
         }
 
         return {
@@ -1138,6 +1444,14 @@ export function BankReconciliation() {
           matchedPayableExpenseId: payableMatch?.expenseId || null,
           matchedPayableIsInstallment: payableMatch?.isInstallment || false,
           matchedPayableInstallmentId: payableMatch?.installmentId || null,
+          matchedReceivableId: receivableMatch?.id || null,
+          matchedReceivableDesc: receivableMatch?.description || null,
+          matchedReceivableCliente: receivableMatch?.cliente || null,
+          matchedReceivableDue: receivableMatch?.referenceDate || null,
+          matchedReceivableValor: receivableMatch ? receivableMatch.amount : null,
+          matchedReceivablePrecision,
+          matchedReceivableContaId: receivableMatch?.contaReceberId || null,
+          matchedReceivableFaturaNumero: receivableMatch?.faturaNumero || null,
         };
       });
 
@@ -1196,14 +1510,10 @@ export function BankReconciliation() {
         } as any);
 
         if (confirmMatch.isInstallment && confirmMatch.installmentId) {
-          // Update installment status
           await supabase.from("expense_installments").update({ status: "pago" } as any).eq("id", confirmMatch.installmentId);
-
-          // Recalculate expense totals
           const { data: allInst } = await supabase.from("expense_installments").select("valor, status").eq("expense_id", confirmMatch.expenseId);
           const totalPagoNow = ((allInst as any) || []).filter((i: any) => i.status === "pago").reduce((s: number, i: any) => s + Number(i.valor), 0);
           const allPaid = ((allInst as any) || []).every((i: any) => i.status === "pago");
-
           await supabase.from("expenses").update({
             valor_pago: totalPagoNow,
             status: allPaid ? "pago" : "parcial",
@@ -1211,12 +1521,10 @@ export function BankReconciliation() {
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
         } else {
-          // Regular expense: update directly
           const { data: expData } = await supabase.from("expenses").select("valor_total, valor_pago").eq("id", confirmMatch.expenseId).single();
           const novoValorPago = Number(expData?.valor_pago || 0) + valorPag;
           const valorTotal = Number(expData?.valor_total || 0);
           const novoStatus = novoValorPago >= valorTotal ? "pago" : "parcial";
-
           await supabase.from("expenses").update({
             valor_pago: novoValorPago,
             status: novoStatus,
@@ -1224,13 +1532,30 @@ export function BankReconciliation() {
             data_pagamento: dataPagISO,
           } as any).eq("id", confirmMatch.expenseId);
         }
+      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+        // Registrar recebimento na conta a receber
+        const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+          conta_receber_id: confirmMatch.contaReceberId,
+          valor: confirmMatch.valor,
+          forma_recebimento: "transferencia",
+          data_recebimento: confirmItem.date,
+          observacoes: "Recebimento via conciliação bancária (OFX)",
+          created_by: user?.id,
+        });
+        if (rpErr) throw rpErr;
       }
 
-      // Resolver vínculo: se isPayable, buscar a movimentação criada pelo trigger
-      let movIdToLink: string | null = confirmMatch.isPayable ? null : confirmMatch.id;
+      // Resolver vínculo: buscar a movimentação criada pelo trigger
+      let movIdToLink: string | null = (confirmMatch.isPayable || confirmMatch.isReceivable) ? null : confirmMatch.id;
       if (confirmMatch.isPayable && confirmMatch.expenseId) {
         movIdToLink = await findCreatedMovId({
           expenseId: confirmMatch.expenseId,
+          amount: Math.abs(confirmItem.amount),
+          tipo: confirmItem.tipo,
+          referenceDate: confirmItem.date,
+        });
+      } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
+        movIdToLink = await findCreatedMovId({
           amount: Math.abs(confirmItem.amount),
           tipo: confirmItem.tipo,
           referenceDate: confirmItem.date,
@@ -1247,7 +1572,13 @@ export function BankReconciliation() {
           i.id === confirmItem.id ? { ...i, status: "conciliado" } : i
         )
       );
-      toast.success(confirmMatch.isPayable ? "Conta paga e conciliada com sucesso" : "Transação conciliada com sucesso");
+      toast.success(
+        confirmMatch.isPayable
+          ? "Conta paga e conciliada com sucesso"
+          : confirmMatch.isReceivable
+            ? "Recebimento registrado e conciliado"
+            : "Transação conciliada com sucesso"
+      );
       setTimeout(updateReconciliationCount, 500);
     } catch (err: any) {
       toast.error("Erro ao conciliar: " + (err.message || ""));
@@ -1281,6 +1612,20 @@ export function BankReconciliation() {
         installmentId: item.matchedPayableInstallmentId || undefined,
         fornecedor: item.matchedPayableFornecedor || null,
       });
+    } else if (item.matchedReceivableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedReceivableId,
+        descricao: item.matchedReceivableDesc,
+        data_movimentacao: item.matchedReceivableDue || item.date,
+        valor: item.matchedReceivableValor || Math.abs(item.amount),
+        origem: "contas_receber_pendente",
+        isReceivable: true,
+        contaReceberId: item.matchedReceivableContaId || undefined,
+        receivableDueDate: item.matchedReceivableDue || undefined,
+        cliente: item.matchedReceivableCliente || null,
+        faturaNumero: item.matchedReceivableFaturaNumero || null,
+      });
     }
   }, []);
 
@@ -1299,6 +1644,20 @@ export function BankReconciliation() {
         isInstallment: item.matchedPayableIsInstallment,
         installmentId: item.matchedPayableInstallmentId || undefined,
         fornecedor: item.matchedPayableFornecedor || null,
+      });
+    } else if (item.matchedReceivableId) {
+      setConfirmItem(item);
+      setConfirmMatch({
+        id: item.matchedReceivableId,
+        descricao: item.matchedReceivableDesc,
+        data_movimentacao: item.matchedReceivableDue || item.date,
+        valor: item.matchedReceivableValor || Math.abs(item.amount),
+        origem: "contas_receber_pendente",
+        isReceivable: true,
+        contaReceberId: item.matchedReceivableContaId || undefined,
+        receivableDueDate: item.matchedReceivableDue || undefined,
+        cliente: item.matchedReceivableCliente || null,
+        faturaNumero: item.matchedReceivableFaturaNumero || null,
       });
     }
   }, []);
@@ -1542,7 +1901,7 @@ export function BankReconciliation() {
               >
                 <Link2 className="h-3 w-3" /> Vincular a uma conta
               </Button>
-              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId) && (
+              {linkableSelectedItems.some((i) => i.matchedMovId || i.matchedPayableId || i.matchedReceivableId) && (
                 <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={handleBatchConciliate} disabled={loading}>
                   {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckSquare className="h-3 w-3" />}
                   Conciliar {selectedIds.size} em lote
@@ -1651,6 +2010,18 @@ export function BankReconciliation() {
                       fornecedor={item.matchedPayableFornecedor}
                     />
                   )}
+                  {item.matchedReceivableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={`${item.matchedReceivableDesc || ""}${item.matchedReceivableFaturaNumero ? ` (Fatura #${item.matchedReceivableFaturaNumero})` : ""}`}
+                      date={item.matchedReceivableDue}
+                      valor={item.matchedReceivableValor}
+                      origem="Conta a Receber (pendente)"
+                      variant="green"
+                      label="Conta a Receber encontrada"
+                      precision={item.matchedReceivablePrecision}
+                      fornecedor={item.matchedReceivableCliente}
+                    />
+                  )}
                   <ItemActions
                     item={item}
                     onConfirmMatch={() => openConfirm(item)}
@@ -1739,6 +2110,18 @@ export function BankReconciliation() {
                       label="Conta a Pagar encontrada"
                       precision={item.matchedPayablePrecision}
                       fornecedor={item.matchedPayableFornecedor}
+                    />
+                  )}
+                  {item.matchedReceivableId && item.status === "pendente" && (
+                    <MatchBox
+                      desc={`${item.matchedReceivableDesc || ""}${item.matchedReceivableFaturaNumero ? ` (Fatura #${item.matchedReceivableFaturaNumero})` : ""}`}
+                      date={item.matchedReceivableDue}
+                      valor={item.matchedReceivableValor}
+                      origem="Conta a Receber (pendente)"
+                      variant="green"
+                      label="Conta a Receber encontrada"
+                      precision={item.matchedReceivablePrecision}
+                      fornecedor={item.matchedReceivableCliente}
                     />
                   )}
                   {item.status === "conciliado" && item.matchedMovId && (
@@ -2016,6 +2399,11 @@ function ItemActions({
       {item.matchedPayableId && (
         <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-blue-300 text-blue-600 hover:bg-blue-50" onClick={onConfirmPayable || onConfirmMatch}>
           <CheckCircle2 className="h-3 w-3" /> Pagar e Conciliar
+        </Button>
+      )}
+      {item.matchedReceivableId && !item.matchedPayableId && (
+        <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 border-green-300 text-green-700 hover:bg-green-50" onClick={onConfirmPayable || onConfirmMatch}>
+          <CheckCircle2 className="h-3 w-3" /> Receber e Conciliar
         </Button>
       )}
       {onLinkAccount && (
