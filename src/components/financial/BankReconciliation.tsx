@@ -772,17 +772,20 @@ export function BankReconciliation() {
   useEffect(() => {
     if (!linkAccountDialogOpen) return;
     const q = linkSearchText.trim();
-    if (q.length < 2) {
-      setLinkSearchResults([]);
-      return;
-    }
-    let cancelled = false;
-    setLinkSearching(true);
 
     // Detecta se os itens alvo são créditos (entradas) → buscar em contas a receber
     const targetItems = items.filter((i) => linkTargetItemIds.includes(i.id));
     const allEntradas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "entrada");
     const allSaidas = targetItems.length > 0 && targetItems.every((i) => i.tipo === "saida");
+
+    // Para entradas: permite busca sem texto (carrega recebíveis em aberto compatíveis com o valor)
+    // Para saídas: exige ao menos 2 caracteres
+    if (!allEntradas && q.length < 2) {
+      setLinkSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setLinkSearching(true);
 
     const timer = setTimeout(async () => {
       const safe = q.replace(/[,()]/g, " ").trim();
@@ -796,92 +799,72 @@ export function BankReconciliation() {
 
       // ───────────── BUSCA DE RECEBÍVEIS (créditos) ─────────────
       if (allEntradas) {
-        // Procura faturas pelo número (#123 ou 123) ou pelo cliente (razão social/nome)
         const faturaNum = (() => {
           const m = safe.match(/^#?(\d+)$/);
           return m ? Number(m[1]) : null;
         })();
 
-        // 1) Faturas por número
-        let faturas: any[] = [];
+        // Valor total das entradas selecionadas — usado para pré-carregar candidatos
+        const targetValor = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
+
+        // 1) Carrega TODAS as contas_receber em aberto/atrasado (limite alto) como base
+        //    Isso garante que o usuário sempre veja recebíveis pendentes mesmo sem digitar nada.
+        const receberMap = new Map<string, any>();
+        const { data: openReceber } = await supabase
+          .from("contas_receber")
+          .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+          .in("status", ["aberto", "atrasado"])
+          .order("data_vencimento", { ascending: false })
+          .limit(500);
+        for (const row of ((openReceber as any[]) || [])) receberMap.set(row.id, row);
+
+        // 2) Se houver data na busca, garante carregamento por data
+        if (queryDate) {
+          const { data: byDate } = await supabase
+            .from("contas_receber")
+            .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+            .eq("data_vencimento", queryDate)
+            .limit(100);
+          for (const row of ((byDate as any[]) || [])) receberMap.set(row.id, row);
+        }
+
+        // 3) Carrega faturas dos recebíveis encontrados
+        const allFatIds = Array.from(new Set(Array.from(receberMap.values()).map((r) => r.fatura_id).filter(Boolean)));
+        const faturasMap = new Map<string, any>();
+        if (allFatIds.length > 0) {
+          const { data: fats } = await supabase
+            .from("faturas_recebimento")
+            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
+            .in("id", allFatIds);
+          for (const f of ((fats as any[]) || [])) faturasMap.set(f.id, f);
+        }
+
+        // 4) Se busca por número de fatura, garante inclusão
         if (faturaNum) {
-          const { data } = await supabase
+          const { data: fatByNum } = await supabase
             .from("faturas_recebimento")
             .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
             .eq("numero", faturaNum)
             .limit(20);
-          faturas = (data as any[]) || [];
-        }
-
-        // 2) Faturas pelo cliente (nome / razão social)
-        const { data: clients } = await supabase
-          .from("profiles")
-          .select("id")
-          .or(`full_name.ilike.%${safe}%,razao_social.ilike.%${safe}%,documento.ilike.%${safe}%`)
-          .limit(40);
-        const clientIds = ((clients as any[]) || []).map((c: any) => c.id);
-        if (clientIds.length > 0) {
-          const { data: faturasByClient } = await supabase
-            .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
-            .in("cliente_id", clientIds)
-            .order("data_emissao", { ascending: false })
-            .limit(80);
-          for (const f of ((faturasByClient as any[]) || [])) {
-            if (!faturas.find((x) => x.id === f.id)) faturas.push(f);
+          const extraIds = ((fatByNum as any[]) || []).map((f) => { faturasMap.set(f.id, f); return f.id; });
+          if (extraIds.length > 0) {
+            const { data: extraCr } = await supabase
+              .from("contas_receber")
+              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
+              .in("fatura_id", extraIds);
+            for (const row of ((extraCr as any[]) || [])) receberMap.set(row.id, row);
           }
         }
 
-        // 3) Contas a receber das faturas encontradas + buscar contas por data de vencimento
-        const faturaIds = faturas.map((f) => f.id);
-        const receberQueries: any[] = [];
-        if (faturaIds.length > 0) {
-          receberQueries.push(
-            supabase
-              .from("contas_receber")
-              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
-              .in("fatura_id", faturaIds)
-              .limit(200)
-          );
-        }
-        if (queryDate) {
-          receberQueries.push(
-            supabase
-              .from("contas_receber")
-              .select("id, fatura_id, valor, valor_recebido, data_vencimento, status, cliente_id")
-              .eq("data_vencimento", queryDate)
-              .limit(100)
-          );
-        }
-        const receberResults = await Promise.all(receberQueries);
-        const allReceber = new Map<string, any>();
-        for (const r of receberResults) {
-          for (const row of (((r as any).data as any[]) || [])) {
-            allReceber.set(row.id, row);
-          }
-        }
-
-        // Para contas encontradas por data mas sem fatura na lista, carregar a fatura
-        const missingFatIds = Array.from(allReceber.values())
-          .map((r) => r.fatura_id)
-          .filter((id) => !faturas.find((f) => f.id === id));
-        if (missingFatIds.length > 0) {
-          const { data: extraFat } = await supabase
-            .from("faturas_recebimento")
-            .select("id, numero, cliente_id, valor_total, status, data_emissao, profiles:cliente_id(full_name, razao_social, documento)")
-            .in("id", missingFatIds);
-          for (const f of ((extraFat as any[]) || [])) faturas.push(f);
-        }
-        const faturaById = new Map(faturas.map((f) => [f.id, f]));
-
-        const results: any[] = [];
-        for (const cr of allReceber.values()) {
-          const fat = faturaById.get(cr.fatura_id);
+        // 5) Monta resultados
+        const statusMap: any = { aberto: "pendente", atrasado: "atrasado", recebido: "pago", parcial: "parcial" };
+        let results: any[] = [];
+        for (const cr of receberMap.values()) {
+          const fat = faturasMap.get(cr.fatura_id);
           const cli = fat?.profiles;
           const valor = Number(cr.valor) || 0;
           const recebido = Number(cr.valor_recebido) || 0;
           const saldo = Math.max(0, valor - recebido);
-          const statusMap: any = { aberto: "pendente", atrasado: "atrasado", recebido: "pago", parcial: "parcial" };
           results.push({
             id: `rec_${cr.id}`,
             is_receivable: true,
@@ -890,6 +873,7 @@ export function BankReconciliation() {
             fatura_numero: fat?.numero || null,
             descricao: fat ? `Fatura #${fat.numero}` : "Conta a Receber",
             favorecido_nome: cli?.razao_social || cli?.full_name || "Cliente",
+            cliente_nome_lower: ((cli?.razao_social || cli?.full_name || "") as string).toLowerCase(),
             documento_fiscal_numero: fat?.numero ? String(fat.numero) : null,
             valor_total: valor,
             valor_pago: recebido,
@@ -899,9 +883,28 @@ export function BankReconciliation() {
             data_emissao: fat?.data_emissao,
           });
         }
-        results.sort((a, b) => String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || "")));
+
+        // 6) Filtro client-side por texto (nome cliente / número fatura / data)
+        if (safe.length >= 2) {
+          const needle = safe.toLowerCase();
+          results = results.filter((r) =>
+            (r.cliente_nome_lower || "").includes(needle) ||
+            (r.documento_fiscal_numero || "").includes(safe) ||
+            (queryDate && r.data_vencimento === queryDate) ||
+            (faturaNum && Number(r.fatura_numero) === faturaNum)
+          );
+        }
+
+        // 7) Ordena: valor compatível primeiro, depois por data
+        results.sort((a, b) => {
+          const aMatch = Math.abs(Number(a.saldo) - targetValor) < 0.01 ? 0 : 1;
+          const bMatch = Math.abs(Number(b.saldo) - targetValor) < 0.01 ? 0 : 1;
+          if (aMatch !== bMatch) return aMatch - bMatch;
+          return String(b.data_vencimento || "").localeCompare(String(a.data_vencimento || ""));
+        });
+
         if (!cancelled) {
-          setLinkSearchResults(results);
+          setLinkSearchResults(results.slice(0, 100));
           setLinkSearching(false);
         }
         return;
