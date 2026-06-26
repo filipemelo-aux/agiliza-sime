@@ -1034,6 +1034,56 @@ export function BankReconciliation() {
       const totalSel = targetItems.reduce((s, i) => s + Math.abs(i.amount), 0);
       const minDate = targetItems.map((i) => i.date).sort()[0];
 
+      const isReceivable = !!linkSelectedAccount.is_receivable;
+
+      if (isReceivable) {
+        const contaReceberId = linkSelectedAccount.conta_receber_id;
+        const valorTotalConta = Number(linkSelectedAccount.valor_total || 0);
+        const jaRecebido = Number(linkSelectedAccount.valor_pago || 0);
+        const saldo = Math.max(0, valorTotalConta - jaRecebido);
+        const valorPag = Math.min(totalSel, saldo);
+        if (linkSelectedAccount.status !== "pago" && valorPag > 0) {
+          const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
+            conta_receber_id: contaReceberId,
+            valor: valorPag,
+            forma_recebimento: "transferencia",
+            data_recebimento: minDate,
+            observacoes: `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+            created_by: user?.id,
+          });
+          if (rpErr) throw rpErr;
+        }
+        for (const it of targetItems) {
+          const movIdToLink = await findCreatedMovId({
+            amount: Math.abs(it.amount),
+            tipo: it.tipo,
+            referenceDate: it.date,
+          });
+          const updateFilter = it.dbItemId
+            ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
+            : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
+          await updateFilter;
+        }
+        setItems((prev) =>
+          prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+        );
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          linkTargetItemIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        toast.success(
+          linkSelectedAccount.status === "pago"
+            ? `${targetItems.length} lançamento(s) vinculado(s) à conta recebida`
+            : `Recebimento registrado e ${targetItems.length} lançamento(s) conciliado(s)`
+        );
+        setLinkAccountDialogOpen(false);
+        setLinkSelectedAccount(null);
+        setLinkTargetItemIds([]);
+        setTimeout(updateReconciliationCount, 500);
+        return;
+      }
+
       const isInstallment = !!linkSelectedAccount.is_installment;
       const expenseId = isInstallment ? linkSelectedAccount.expense_id : linkSelectedAccount.id;
       const isPaid = linkSelectedAccount.status === "pago";
@@ -1054,7 +1104,6 @@ export function BankReconciliation() {
         } as any);
 
         if (isInstallment) {
-          // Mark this installment as paid, then recompute expense totals/status
           await supabase
             .from("expense_installments")
             .update({ status: "pago" } as any)
@@ -1077,7 +1126,6 @@ export function BankReconciliation() {
             data_pagamento: minDate,
           } as any).eq("id", expenseId);
         } else {
-          // Refresh totals on expense (no installments)
           const { data: expData } = await supabase
             .from("expenses")
             .select("valor_total, valor_pago")
@@ -1095,7 +1143,6 @@ export function BankReconciliation() {
         }
       }
 
-      // Mark all selected OFX items as conciliado, gravando o vínculo com a movimentação criada
       for (const it of targetItems) {
         const movIdToLink = await findCreatedMovId({
           expenseId: expenseId,
