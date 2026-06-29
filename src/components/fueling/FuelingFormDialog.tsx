@@ -224,12 +224,15 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       ({ error } = await supabase.from("fuelings").insert(payload as any));
     }
 
-    setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(fueling ? "Abastecimento atualizado" : "Abastecimento registrado");
     onSaved();
     onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   return (
     <>
