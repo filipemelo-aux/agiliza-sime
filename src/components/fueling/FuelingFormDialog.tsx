@@ -155,10 +155,13 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
   }, [oleoLitros, oleoValorLitro]);
 
   const handleSave = async () => {
+    if (saving) return;
     if (!veiculoId) return toast.error("Selecione um veículo");
     if (!litros || parseFloat(litros) <= 0) return toast.error("Informe a quantidade de litros");
     if (!kmAtual || parseFloat(kmAtual) <= 0) return toast.error("Informe o KM atual do odômetro");
 
+    setSaving(true);
+    try {
     const kmNum = parseFloat(kmAtual);
 
     // Look up last KM registered for this vehicle (excluding current record on edit)
@@ -190,7 +193,7 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
       }
     }
 
-    setSaving(true);
+
     const payload: any = {
       empresa_id: empresaId,
       veiculo_id: veiculoId,
