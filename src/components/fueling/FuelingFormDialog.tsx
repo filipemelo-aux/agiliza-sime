@@ -164,34 +164,59 @@ export function FuelingFormDialog({ open, onOpenChange, empresaId, userId, fueli
     try {
     const kmNum = parseFloat(kmAtual);
 
-    // Look up last KM registered for this vehicle (excluding current record on edit)
-    const { data: lastFuel } = await supabase
+    // Load all fuelings for the vehicle to validate KM sequentially,
+    // allowing retroactive entries as long as km fits between prev/next by date.
+    const { data: allFuel } = await supabase
       .from("fuelings")
-      .select("id, km_atual, data_abastecimento")
+      .select("id, km_atual, data_abastecimento, created_at")
       .eq("veiculo_id", veiculoId)
       .not("km_atual", "is", null)
       .is("deleted_at", null)
-      .order("data_abastecimento", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(5);
-    const previous = (lastFuel || []).find((f: any) => f.id !== fueling?.id);
+      .order("data_abastecimento", { ascending: true })
+      .order("created_at", { ascending: true });
 
-    if (previous && previous.km_atual != null) {
-      const lastKm = Number(previous.km_atual);
-      if (kmNum < lastKm) {
-        return toast.error(`O KM atual não pode ser menor que o último KM registrado (${lastKm.toLocaleString("pt-BR")} km).`);
+    const others = (allFuel || []).filter((f: any) => f.id !== fueling?.id);
+    const newDate = new Date(dataAbastecimento).getTime();
+
+    // Previous entry: latest with date <= newDate
+    const prevEntry = [...others]
+      .filter((f: any) => new Date(f.data_abastecimento).getTime() <= newDate)
+      .pop();
+    // Next entry: earliest with date > newDate (or same date but inserted later logically)
+    const nextEntry = others.find((f: any) => new Date(f.data_abastecimento).getTime() > newDate);
+
+    if (prevEntry && prevEntry.km_atual != null) {
+      const prevKm = Number(prevEntry.km_atual);
+      if (kmNum < prevKm) {
+        return toast.error(
+          `O KM (${kmNum.toLocaleString("pt-BR")}) não pode ser menor que o KM do abastecimento anterior em ${new Date(prevEntry.data_abastecimento).toLocaleDateString("pt-BR")} (${prevKm.toLocaleString("pt-BR")} km).`
+        );
       }
-      // Outlier alert: >5000 km diff within 7 days
+    }
+
+    if (nextEntry && nextEntry.km_atual != null) {
+      const nextKm = Number(nextEntry.km_atual);
+      if (kmNum > nextKm) {
+        return toast.error(
+          `O KM (${kmNum.toLocaleString("pt-BR")}) não pode ser maior que o KM do próximo abastecimento em ${new Date(nextEntry.data_abastecimento).toLocaleDateString("pt-BR")} (${nextKm.toLocaleString("pt-BR")} km).`
+        );
+      }
+    }
+
+    // Outlier alert vs previous
+    if (prevEntry && prevEntry.km_atual != null) {
+      const prevKm = Number(prevEntry.km_atual);
       const daysDiff = Math.abs(
-        (new Date(dataAbastecimento).getTime() - new Date(previous.data_abastecimento).getTime()) / 86400000
+        (newDate - new Date(prevEntry.data_abastecimento).getTime()) / 86400000
       );
-      if (kmNum - lastKm > 5000 && daysDiff <= 7) {
+      if (kmNum - prevKm > 5000 && daysDiff <= 7) {
         const ok = window.confirm(
-          `Atenção: A diferença de KM está muito alta (${(kmNum - lastKm).toLocaleString("pt-BR")} km em ${Math.ceil(daysDiff)} dia(s)). Você tem certeza que o KM é ${kmNum.toLocaleString("pt-BR")}?`
+          `Atenção: A diferença de KM está muito alta (${(kmNum - prevKm).toLocaleString("pt-BR")} km em ${Math.ceil(daysDiff)} dia(s)). Confirma que o KM é ${kmNum.toLocaleString("pt-BR")}?`
         );
         if (!ok) return;
       }
     }
+
 
 
     const payload: any = {
