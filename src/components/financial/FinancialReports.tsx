@@ -543,9 +543,11 @@ export function FinancialReports() {
         });
 
         if (filters.planoContasId !== "todos") {
-          result = result.filter((r) => r.planoId === filters.planoContasId);
+          const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
+          result = result.filter((r) => r.planoId && ids.has(r.planoId));
         } else if (filters.planoContasExcetoId !== "todos") {
-          result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
+          const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
+          result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
         }
       } else if (reportType === "forecasts") {
         let q: any = supabase.from("previsoes_recebimento").select("*, profile:cliente_id(full_name, nome_fantasia)");
