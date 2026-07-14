@@ -574,9 +574,11 @@ export function FinancialReports() {
 
       // Filtro adicional por plano de contas (client-side) para tabelas sem plano_contas_id próprio
       if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
-        result = result.filter((r) => r.planoId === filters.planoContasId);
-      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos") {
-        result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
+        const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
+        result = result.filter((r) => r.planoId && ids.has(r.planoId));
+      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
+        const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
+        result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
       }
       setRows(result);
     } catch (e: any) {
