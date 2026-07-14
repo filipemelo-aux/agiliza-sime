@@ -154,9 +154,32 @@ export function FinancialReports() {
   const [profiles, setProfiles] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("chart_of_accounts").select("id, codigo, nome").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
+    supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
     supabase.from("profiles").select("id, full_name, nome_fantasia, razao_social, category").order("full_name").then(({ data }) => setProfiles(data || []));
   }, []);
+
+  // Resolve a plano_contas_id into itself + all descendants (subtree) so that
+  // selecting a parent account (e.g. "2.1 Despesas Operacionais") also matches
+  // records posted to any leaf child account.
+  const resolvePlanoSubtree = useCallback((rootId: string): string[] => {
+    if (!rootId || rootId === "todos") return [];
+    const childrenByParent = new Map<string, string[]>();
+    chartAccounts.forEach((a: any) => {
+      if (a.conta_pai_id) {
+        if (!childrenByParent.has(a.conta_pai_id)) childrenByParent.set(a.conta_pai_id, []);
+        childrenByParent.get(a.conta_pai_id)!.push(a.id);
+      }
+    });
+    const out: string[] = [];
+    const stack = [rootId];
+    while (stack.length) {
+      const id = stack.pop()!;
+      out.push(id);
+      const kids = childrenByParent.get(id);
+      if (kids) stack.push(...kids);
+    }
+    return out;
+  }, [chartAccounts]);
 
   const handleTabChange = (t: string) => {
     const tt = t as ReportType;
