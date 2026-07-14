@@ -154,9 +154,32 @@ export function FinancialReports() {
   const [profiles, setProfiles] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("chart_of_accounts").select("id, codigo, nome").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
+    supabase.from("chart_of_accounts").select("id, codigo, nome, conta_pai_id").eq("ativo", true).order("codigo").then(({ data }) => setChartAccounts(data || []));
     supabase.from("profiles").select("id, full_name, nome_fantasia, razao_social, category").order("full_name").then(({ data }) => setProfiles(data || []));
   }, []);
+
+  // Resolve a plano_contas_id into itself + all descendants (subtree) so that
+  // selecting a parent account (e.g. "2.1 Despesas Operacionais") also matches
+  // records posted to any leaf child account.
+  const resolvePlanoSubtree = useCallback((rootId: string): string[] => {
+    if (!rootId || rootId === "todos") return [];
+    const childrenByParent = new Map<string, string[]>();
+    chartAccounts.forEach((a: any) => {
+      if (a.conta_pai_id) {
+        if (!childrenByParent.has(a.conta_pai_id)) childrenByParent.set(a.conta_pai_id, []);
+        childrenByParent.get(a.conta_pai_id)!.push(a.id);
+      }
+    });
+    const out: string[] = [];
+    const stack = [rootId];
+    while (stack.length) {
+      const id = stack.pop()!;
+      out.push(id);
+      const kids = childrenByParent.get(id);
+      if (kids) stack.push(...kids);
+    }
+    return out;
+  }, [chartAccounts]);
 
   const handleTabChange = (t: string) => {
     const tt = t as ReportType;
@@ -196,8 +219,16 @@ export function FinancialReports() {
 
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
-        if (filters.planoContasId !== "todos") q = q.eq("plano_contas_id", filters.planoContasId);
-        else if (filters.planoContasExcetoId !== "todos") q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
+        if (filters.planoContasId !== "todos") {
+          const ids = resolvePlanoSubtree(filters.planoContasId);
+          if (ids.length > 1) q = q.in("plano_contas_id", ids);
+          else q = q.eq("plano_contas_id", filters.planoContasId);
+        }
+        else if (filters.planoContasExcetoId !== "todos") {
+          const exIds = resolvePlanoSubtree(filters.planoContasExcetoId);
+          if (exIds.length > 1) q = q.or(`plano_contas_id.is.null,plano_contas_id.not.in.(${exIds.join(",")})`);
+          else q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
+        }
         if (filters.centroCusto !== "todos") q = q.eq("centro_custo", filters.centroCusto);
         if (filters.favorecidoId !== "todos") q = q.eq("favorecido_id", filters.favorecidoId);
         if (filters.origem !== "todos") q = q.eq("origem", filters.origem);
@@ -512,9 +543,11 @@ export function FinancialReports() {
         });
 
         if (filters.planoContasId !== "todos") {
-          result = result.filter((r) => r.planoId === filters.planoContasId);
+          const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
+          result = result.filter((r) => r.planoId && ids.has(r.planoId));
         } else if (filters.planoContasExcetoId !== "todos") {
-          result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
+          const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
+          result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
         }
       } else if (reportType === "forecasts") {
         let q: any = supabase.from("previsoes_recebimento").select("*, profile:cliente_id(full_name, nome_fantasia)");
@@ -541,9 +574,11 @@ export function FinancialReports() {
 
       // Filtro adicional por plano de contas (client-side) para tabelas sem plano_contas_id próprio
       if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
-        result = result.filter((r) => r.planoId === filters.planoContasId);
-      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos") {
-        result = result.filter((r) => r.planoId !== filters.planoContasExcetoId);
+        const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
+        result = result.filter((r) => r.planoId && ids.has(r.planoId));
+      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
+        const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
+        result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
       }
       setRows(result);
     } catch (e: any) {
@@ -551,7 +586,7 @@ export function FinancialReports() {
     } finally {
       setLoading(false);
     }
-  }, [reportType, filters, chartAccounts]);
+  }, [reportType, filters, chartAccounts, resolvePlanoSubtree]);
 
   // Quando o usuário digita uma busca por nome, limpa qualquer favorecido/cliente selecionado
   // e dispara a busca automaticamente (debounce) para garantir abrangência total.
