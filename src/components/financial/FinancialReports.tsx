@@ -761,7 +761,24 @@ export function FinancialReports() {
             : "";
         // Repeat column header below each group title; for ungrouped, show once at top
         const localHeader = filters.groupBy !== "none" ? headerRow : (idx === 0 ? headerRow : "");
-        return groupHeader + localHeader + tableRows;
+        // Subtotal por grupo
+        let groupSubtotal = "";
+        if (filters.groupBy !== "none") {
+          if (isCashflow) {
+            const ent = g.rows.filter(r => r.tipo === "entrada").reduce((s, r) => s + r.valor, 0);
+            const sai = g.rows.filter(r => r.tipo === "saida").reduce((s, r) => s + r.valor, 0);
+            const saldo = ent - sai;
+            groupSubtotal = `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal — Entradas ${formatCurrency(ent)} • Saídas ${formatCurrency(sai)} • Saldo</td><td class="r val" style="color:${saldo >= 0 ? "#2B4C7E" : "#b91c1c"}">${formatCurrency(saldo)}</td></tr>`;
+          } else if (isPayables) {
+            const sTotal = g.rows.reduce((s, r) => s + r.valor, 0);
+            const sPago = g.rows.reduce((s, r) => s + (r.valorPago || 0), 0);
+            groupSubtotal = `<tr class="sub"><td colspan="${colCount - 2}" class="r">Subtotal — ${g.rows.length} registro(s)</td><td class="r val">${formatCurrency(sTotal)}</td><td class="r val" style="color:#059669">${formatCurrency(sPago)}</td></tr>`;
+          } else {
+            const sTotal = g.rows.reduce((s, r) => s + r.valor, 0);
+            groupSubtotal = `<tr class="sub"><td colspan="${labelColspan}" class="r">Subtotal — ${g.rows.length} registro(s)</td><td class="r val">${formatCurrency(sTotal)}</td></tr>`;
+          }
+        }
+        return groupHeader + localHeader + tableRows + groupSubtotal;
       })
       .join("");
 
