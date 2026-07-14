@@ -1011,7 +1011,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     />
                   </div>
                 )}
-                {showPlanoContas && filters.planoContasId === "todos" && (
+                {showPlanoContas && (
                   <div className="space-y-1">
                     <Label className="text-xs">Exceto</Label>
                     <PlanoContasCombobox
