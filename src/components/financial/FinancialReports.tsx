@@ -586,7 +586,7 @@ export function FinancialReports() {
     } finally {
       setLoading(false);
     }
-  }, [reportType, filters, chartAccounts]);
+  }, [reportType, filters, chartAccounts, resolvePlanoSubtree]);
 
   // Quando o usuário digita uma busca por nome, limpa qualquer favorecido/cliente selecionado
   // e dispara a busca automaticamente (debounce) para garantir abrangência total.
