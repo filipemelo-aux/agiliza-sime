@@ -545,7 +545,8 @@ export function FinancialReports() {
         if (filters.planoContasId !== "todos") {
           const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
           result = result.filter((r) => r.planoId && ids.has(r.planoId));
-        } else if (filters.planoContasExcetoId !== "todos") {
+        }
+        if (filters.planoContasExcetoId !== "todos") {
           const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
           result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
         }
