@@ -577,7 +577,8 @@ export function FinancialReports() {
       if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
         const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
         result = result.filter((r) => r.planoId && ids.has(r.planoId));
-      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
+      }
+      if (filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
         const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
         result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
       }
