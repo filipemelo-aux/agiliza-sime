@@ -224,7 +224,7 @@ export function FinancialReports() {
           if (ids.length > 1) q = q.in("plano_contas_id", ids);
           else q = q.eq("plano_contas_id", filters.planoContasId);
         }
-        else if (filters.planoContasExcetoId !== "todos") {
+        if (filters.planoContasExcetoId !== "todos") {
           const exIds = resolvePlanoSubtree(filters.planoContasExcetoId);
           if (exIds.length > 1) q = q.or(`plano_contas_id.is.null,plano_contas_id.not.in.(${exIds.join(",")})`);
           else q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
@@ -545,7 +545,8 @@ export function FinancialReports() {
         if (filters.planoContasId !== "todos") {
           const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
           result = result.filter((r) => r.planoId && ids.has(r.planoId));
-        } else if (filters.planoContasExcetoId !== "todos") {
+        }
+        if (filters.planoContasExcetoId !== "todos") {
           const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
           result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
         }
@@ -576,7 +577,8 @@ export function FinancialReports() {
       if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
         const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
         result = result.filter((r) => r.planoId && ids.has(r.planoId));
-      } else if (filters.planoContasId === "todos" && filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
+      }
+      if (filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
         const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
         result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
       }
@@ -1009,7 +1011,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                     />
                   </div>
                 )}
-                {showPlanoContas && filters.planoContasId === "todos" && (
+                {showPlanoContas && (
                   <div className="space-y-1">
                     <Label className="text-xs">Exceto</Label>
                     <PlanoContasCombobox
