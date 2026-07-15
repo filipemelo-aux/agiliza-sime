@@ -564,6 +564,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           observacoes: item.observacoes?.trim() || null,
           parcela_atual: parcela,
           parcela_total: totalP,
+          parcelas_expandidas: true,
         };
         const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
         if (itemErr) throw itemErr;
