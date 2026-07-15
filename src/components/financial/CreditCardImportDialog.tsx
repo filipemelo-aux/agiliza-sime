@@ -898,7 +898,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         wasEdited={hasRowChanged(idx)}
                         selected={selectedIdxs.has(idx)}
                         onToggleSelected={() => toggleSelected(idx)}
+                        onExpandParcelas={() => expandParcelas(idx)}
+                        expanding={expanding}
                       />
+
                     ))}
                   </TableBody>
                 </Table>
