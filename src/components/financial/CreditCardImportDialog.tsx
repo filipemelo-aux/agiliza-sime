@@ -583,8 +583,34 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         `Parcelas geradas: ${createdCount} fatura(s) criada(s), ${reusedCount} existente(s)` +
         (estornoCount ? `, ${estornoCount} estornada(s)` : "") + "."
       );
+      // Notifica o pai para atualizar a lista de faturas, mas mantém o diálogo aberto
       onSaved();
-      onOpenChange(false);
+      // Recarrega os itens da fatura atual para refletir o estado expandido
+      if (invoiceId) {
+        const { data: rows } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .select("*")
+          .eq("invoice_id", invoiceId)
+          .order("posted_date");
+        const mapped = ((rows as any[]) || []).map((r: any) => ({
+          id: r.id,
+          fitid: r.fitid || "",
+          posted_date: r.posted_date,
+          description: r.description,
+          amount: Number(r.amount),
+          plano_contas_id: r.plano_contas_id,
+          centro_custo: r.centro_custo || "",
+          favorecido_id: r.favorecido_id,
+          favorecido_nome: r.favorecido_nome || r.description || "",
+          veiculo_id: r.veiculo_id || null,
+          observacoes: r.observacoes || "",
+          parcela_atual: r.parcela_atual ?? null,
+          parcela_total: r.parcela_total ?? null,
+          parcelas_expandidas: !!r.parcelas_expandidas,
+        }));
+        setItems(mapped);
+        setOriginalItems(mapped);
+      }
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erro ao gerar parcelas.");
