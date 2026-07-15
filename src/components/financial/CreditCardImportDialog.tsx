@@ -88,6 +88,7 @@ interface ItemRow {
   observacoes: string;
   parcela_atual: number | null;
   parcela_total: number | null;
+  parcelas_expandidas: boolean;
 }
 
 interface VehicleOption { id: string; plate: string; }
@@ -218,6 +219,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: r.observacoes || "",
         parcela_atual: r.parcela_atual ?? null,
         parcela_total: r.parcela_total ?? null,
+        parcelas_expandidas: !!r.parcelas_expandidas,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
@@ -267,6 +269,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: "",
         parcela_atual: null,
         parcela_total: null,
+        parcelas_expandidas: false,
       };
     });
 
@@ -465,6 +468,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             description: newDescCurrent,
             parcela_atual: cur,
             parcela_total: totalP,
+            parcelas_expandidas: true,
           })
           .eq("id", item.id);
         if (updErr) throw updErr;
@@ -485,13 +489,16 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             observacoes: item.observacoes?.trim() || null,
             parcela_atual: cur,
             parcela_total: totalP,
+            parcelas_expandidas: true,
           })
           .select("id")
           .single();
         if (insErr) throw insErr;
         const newId = (insertedCur as any).id;
-        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId } : it));
+        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId, parcelas_expandidas: true } : it));
       }
+      // Marca no estado local que este item já expandiu
+      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, parcelas_expandidas: true } : it));
 
       let createdCount = 0;
       let reusedCount = 0;
@@ -557,6 +564,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           observacoes: item.observacoes?.trim() || null,
           parcela_atual: parcela,
           parcela_total: totalP,
+          parcelas_expandidas: true,
         };
         const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
         if (itemErr) throw itemErr;
@@ -641,6 +649,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           observacoes: it.observacoes.trim() || null,
           parcela_atual: it.parcela_atual,
           parcela_total: it.parcela_total,
+          parcelas_expandidas: it.parcelas_expandidas,
 
 
         }));
@@ -1241,11 +1250,12 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             className="h-7 w-7 shrink-0"
             disabled={
               isClosed || expanding ||
+              item.parcelas_expandidas ||
               !item.parcela_atual || !item.parcela_total ||
               (item.parcela_total ?? 0) < 2
             }
             onClick={onExpandParcelas}
-            title="Gerar parcelas anteriores e posteriores nas faturas correspondentes"
+            title={item.parcelas_expandidas ? "Parcelas já geradas para este lançamento" : "Gerar parcelas anteriores e posteriores nas faturas correspondentes"}
           >
             <Layers className="w-3 h-3" />
           </Button>

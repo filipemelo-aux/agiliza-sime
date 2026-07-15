@@ -144,7 +144,10 @@ export function CreditCardInvoices() {
 
       <CreditCardImportDialog
         open={openDialog}
-        onOpenChange={setOpenDialog}
+        onOpenChange={(o) => {
+          setOpenDialog(o);
+          if (!o) load();
+        }}
         invoiceId={editingId}
         onSaved={load}
       />

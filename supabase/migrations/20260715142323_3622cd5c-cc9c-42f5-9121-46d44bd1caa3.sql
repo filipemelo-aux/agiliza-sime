@@ -1,0 +1,1 @@
+ALTER TABLE public.credit_card_invoice_items ADD COLUMN IF NOT EXISTS parcelas_expandidas boolean NOT NULL DEFAULT false;
