@@ -50,7 +50,7 @@ function buildTree(accounts: Account[]): TreeNode[] {
   });
 
   const sort = (nodes: TreeNode[]) => {
-    nodes.sort((a, b) => a.codigo.localeCompare(b.codigo));
+    nodes.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true, sensitivity: "base" }));
     nodes.forEach((n) => sort(n.children));
   };
   sort(roots);
