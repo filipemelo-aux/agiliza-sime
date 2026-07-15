@@ -263,6 +263,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: desc,
         veiculo_id: null,
         observacoes: "",
+        parcela_atual: null,
+        parcela_total: null,
       };
     });
 
