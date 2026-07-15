@@ -1223,7 +1223,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
                 const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
                 onUpdate(idx, { parcela_atual: v });
               }}
-              disabled={isClosed}
+              disabled={isClosed || item.parcelas_expandidas}
               title="Parcela atual"
               placeholder="00"
             />
