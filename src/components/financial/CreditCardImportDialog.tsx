@@ -75,6 +75,7 @@ const CENTRO_CUSTO_OPTIONS = [
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
 
 interface ItemRow {
+  id?: string; // db id when loaded from existing invoice
   fitid: string;
   posted_date: string;
   description: string;
@@ -85,6 +86,8 @@ interface ItemRow {
   favorecido_nome: string;
   veiculo_id: string | null;
   observacoes: string;
+  parcela_atual: number | null;
+  parcela_total: number | null;
 }
 
 interface VehicleOption { id: string; plate: string; }
