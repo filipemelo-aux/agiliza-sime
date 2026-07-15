@@ -974,7 +974,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           }
         }}
       />
+      {ConfirmDialog}
     </Dialog>
+
   );
 }
 
