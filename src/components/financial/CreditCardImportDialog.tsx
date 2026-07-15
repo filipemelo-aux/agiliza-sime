@@ -1057,15 +1057,28 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                   </SelectContent>
                 </Select>
                 {selectedIdxs.size > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => setSelectedIdxs(new Set())}
-                  >
-                    Limpar seleção
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={isClosed || expanding}
+                      onClick={expandParcelasBatch}
+                      title="Gerar parcelas anteriores e posteriores para todos os lançamentos selecionados"
+                    >
+                      <Layers className="w-3 h-3 mr-1" /> Gerar parcelas em lote
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setSelectedIdxs(new Set())}
+                    >
+                      Limpar seleção
+                    </Button>
+                  </>
                 )}
               </div>
 
