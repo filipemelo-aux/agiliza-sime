@@ -1165,35 +1165,38 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             title={descriptionLocal}
             placeholder="Descrição do gasto"
           />
-          <Input
-            type="number"
-            min={1}
-            max={99}
-            className="h-7 text-[11px] w-11 px-1 text-center"
-            value={item.parcela_atual ?? ""}
-            onChange={(e) => {
-              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
-              onUpdate(idx, { parcela_atual: v });
-            }}
-            disabled={isClosed}
-            title="Parcela atual"
-            placeholder="X"
-          />
-          <span className="text-[10px] text-muted-foreground">/</span>
-          <Input
-            type="number"
-            min={1}
-            max={99}
-            className="h-7 text-[11px] w-11 px-1 text-center"
-            value={item.parcela_total ?? ""}
-            onChange={(e) => {
-              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
-              onUpdate(idx, { parcela_total: v });
-            }}
-            disabled={isClosed}
-            title="Total de parcelas"
-            placeholder="N"
-          />
+          <div className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
+            <span>Parcela</span>
+            <Input
+              type="number"
+              min={1}
+              max={99}
+              className="h-7 text-[11px] w-11 px-1 text-center"
+              value={item.parcela_atual ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+                onUpdate(idx, { parcela_atual: v });
+              }}
+              disabled={isClosed}
+              title="Parcela atual"
+              placeholder="00"
+            />
+            <span>de</span>
+            <Input
+              type="number"
+              min={1}
+              max={99}
+              className="h-7 text-[11px] w-11 px-1 text-center"
+              value={item.parcela_total ?? ""}
+              onChange={(e) => {
+                const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+                onUpdate(idx, { parcela_total: v });
+              }}
+              disabled={isClosed}
+              title="Total de parcelas"
+              placeholder="00"
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
