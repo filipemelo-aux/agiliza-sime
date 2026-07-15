@@ -662,15 +662,29 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
     if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
 
+    const selectedItems = Array.from(selectedIdxs)
+      .sort((a, b) => a - b)
+      .map((i) => ({ idx: i, item: items[i] }))
+      .filter((x) => !!x.item);
+
+    const alreadyExpanded = selectedItems.filter(({ item }) => item.parcelas_expandidas);
+    if (alreadyExpanded.length > 0) {
+      const nomes = alreadyExpanded
+        .map(({ item }) => `"${(item.description || "").slice(0, 40)}"`)
+        .join(", ");
+      toast.error(
+        `Operação bloqueada: ${alreadyExpanded.length} lançamento(s) selecionado(s) já tiveram parcelas geradas (${nomes}). Remova-os da seleção para continuar.`,
+        { duration: 8000 },
+      );
+      return;
+    }
+
     const targets: Array<{ idx: number; item: ItemRow }> = [];
     const skipped: string[] = [];
-    for (const i of Array.from(selectedIdxs).sort((a, b) => a - b)) {
-      const it = items[i];
-      if (!it) continue;
-      if (it.parcelas_expandidas) { skipped.push(`"${(it.description || "").slice(0, 30)}": já expandida`); continue; }
+    for (const { idx, item: it } of selectedItems) {
       const errMsg = validateItemForExpansion(it);
       if (errMsg) { skipped.push(`"${(it.description || "").slice(0, 30)}": ${errMsg}`); continue; }
-      targets.push({ idx: i, item: it });
+      targets.push({ idx, item: it });
     }
 
     if (targets.length === 0) {
