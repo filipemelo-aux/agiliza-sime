@@ -411,6 +411,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error("Informe corretamente a parcela atual e o total (ex: 5 de 10).");
       return;
     }
+    if (!item.plano_contas_id) {
+      toast.error("Selecione o plano de contas deste lançamento antes de gerar as parcelas.");
+      return;
+    }
+    if (!item.centro_custo || !item.centro_custo.trim()) {
+      toast.error("Selecione o centro de custo deste lançamento antes de gerar as parcelas.");
+      return;
+    }
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
     if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
 
@@ -471,6 +479,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           .from("credit_card_invoice_items" as any)
           .update({
             description: newDescCurrent,
+            plano_contas_id: item.plano_contas_id,
+            centro_custo: item.centro_custo || null,
+            favorecido_id: item.favorecido_id,
+            favorecido_nome: item.favorecido_nome?.trim() || null,
+            veiculo_id: item.veiculo_id,
+            observacoes: item.observacoes?.trim() || null,
             parcela_atual: cur,
             parcela_total: totalP,
             parcelas_expandidas: true,
