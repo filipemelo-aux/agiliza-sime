@@ -468,6 +468,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             description: newDescCurrent,
             parcela_atual: cur,
             parcela_total: totalP,
+            parcelas_expandidas: true,
           })
           .eq("id", item.id);
         if (updErr) throw updErr;
