@@ -430,8 +430,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     });
     if (!ok) return;
 
+    const totalSteps = 1 + missing.length + 1; // persistir atual + faturas + recarregar
     setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Preparando..." });
     try {
+      setExpandProgress({ current: 1, total: totalSteps, message: "Salvando parcela atual..." });
       // Primeiro salva a fatura atual (para garantir que o item corrente esteja persistido e com id)
       // Só salvamos se houver invoiceId — caso contrário criamos a fatura de rascunho automaticamente.
       let currentInvoiceId = invoiceId || null;
