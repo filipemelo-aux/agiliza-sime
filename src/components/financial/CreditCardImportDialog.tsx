@@ -88,6 +88,7 @@ interface ItemRow {
   observacoes: string;
   parcela_atual: number | null;
   parcela_total: number | null;
+  parcelas_expandidas: boolean;
 }
 
 interface VehicleOption { id: string; plate: string; }
