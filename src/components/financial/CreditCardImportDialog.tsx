@@ -629,6 +629,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error(err.message || "Erro ao gerar parcelas.");
     } finally {
       setExpanding(false);
+      setExpandProgress({ current: 0, total: 0, message: "" });
     }
   };
 
