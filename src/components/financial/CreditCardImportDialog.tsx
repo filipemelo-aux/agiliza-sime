@@ -765,8 +765,20 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] xl:max-w-[1400px] p-0" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(o) => { if (expanding) return; onOpenChange(o); }}>
+      <DialogContent
+        className="max-w-[95vw] xl:max-w-[1400px] p-0"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => { if (expanding) e.preventDefault(); }}
+      >
+        {expanding && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm rounded-lg">
+            <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <div className="text-sm font-medium">Gerando parcelas, aguarde...</div>
+            <div className="text-xs text-muted-foreground">Não feche esta janela até a conclusão.</div>
+          </div>
+        )}
+
         <DialogHeader className="pb-2">
           <DialogTitle className="text-base">{isEditing ? "Editar Fatura de Cartão" : "Nova Fatura de Cartão"}</DialogTitle>
         </DialogHeader>
