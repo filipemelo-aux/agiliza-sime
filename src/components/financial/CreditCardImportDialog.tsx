@@ -1149,20 +1149,67 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
-        <Input
-          className="h-7 text-[11px] w-full"
-          value={descriptionLocal}
-          onChange={(e) => setDescriptionLocal(e.target.value)}
-          onBlur={() => {
-            if (descriptionLocal !== item.description) {
-              onUpdate(idx, { description: descriptionLocal });
+        <div className="flex items-center gap-1">
+          <Input
+            className="h-7 text-[11px] flex-1 min-w-0"
+            value={descriptionLocal}
+            onChange={(e) => setDescriptionLocal(e.target.value)}
+            onBlur={() => {
+              if (descriptionLocal !== item.description) {
+                onUpdate(idx, { description: descriptionLocal });
+              }
+            }}
+            disabled={isClosed}
+            title={descriptionLocal}
+            placeholder="Descrição do gasto"
+          />
+          <Input
+            type="number"
+            min={1}
+            max={99}
+            className="h-7 text-[11px] w-11 px-1 text-center"
+            value={item.parcela_atual ?? ""}
+            onChange={(e) => {
+              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+              onUpdate(idx, { parcela_atual: v });
+            }}
+            disabled={isClosed}
+            title="Parcela atual"
+            placeholder="X"
+          />
+          <span className="text-[10px] text-muted-foreground">/</span>
+          <Input
+            type="number"
+            min={1}
+            max={99}
+            className="h-7 text-[11px] w-11 px-1 text-center"
+            value={item.parcela_total ?? ""}
+            onChange={(e) => {
+              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+              onUpdate(idx, { parcela_total: v });
+            }}
+            disabled={isClosed}
+            title="Total de parcelas"
+            placeholder="N"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            disabled={
+              isClosed || expanding ||
+              !item.parcela_atual || !item.parcela_total ||
+              (item.parcela_total ?? 0) < 2
             }
-          }}
-          disabled={isClosed}
-          title={descriptionLocal}
-          placeholder="Descrição do gasto"
-        />
+            onClick={onExpandParcelas}
+            title="Gerar parcelas anteriores e posteriores nas faturas correspondentes"
+          >
+            <Layers className="w-3 h-3" />
+          </Button>
+        </div>
       </TableCell>
+
       <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap">
         {formatCurrency(item.amount)}
       </TableCell>
