@@ -411,6 +411,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error("Informe corretamente a parcela atual e o total (ex: 5 de 10).");
       return;
     }
+    if (!item.plano_contas_id) {
+      toast.error("Selecione o plano de contas deste lançamento antes de gerar as parcelas.");
+      return;
+    }
+    if (!item.centro_custo || !item.centro_custo.trim()) {
+      toast.error("Selecione o centro de custo deste lançamento antes de gerar as parcelas.");
+      return;
+    }
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
     if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
 
