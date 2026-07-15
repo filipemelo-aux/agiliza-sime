@@ -130,6 +130,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [searchPersonOpenIdx, setSearchPersonOpenIdx] = useState<number | null>(null);
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
+  const [expanding, setExpanding] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const isEditing = !!invoiceId;
 
