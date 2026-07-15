@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
