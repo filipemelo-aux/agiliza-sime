@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers } from "lucide-react";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
@@ -74,6 +75,7 @@ const CENTRO_CUSTO_OPTIONS = [
 interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
 
 interface ItemRow {
+  id?: string; // db id when loaded from existing invoice
   fitid: string;
   posted_date: string;
   description: string;
@@ -84,6 +86,8 @@ interface ItemRow {
   favorecido_nome: string;
   veiculo_id: string | null;
   observacoes: string;
+  parcela_atual: number | null;
+  parcela_total: number | null;
 }
 
 interface VehicleOption { id: string; plate: string; }
@@ -126,6 +130,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [searchPersonOpenIdx, setSearchPersonOpenIdx] = useState<number | null>(null);
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
+  const [expanding, setExpanding] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const isEditing = !!invoiceId;
 
@@ -199,6 +205,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .eq("invoice_id", invoiceId)
         .order("posted_date");
       const mapped = ((rows as any[]) || []).map((r) => ({
+        id: r.id,
         fitid: r.fitid || "",
         posted_date: r.posted_date,
         description: r.description,
@@ -209,6 +216,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: r.favorecido_nome || r.description || "",
         veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
+        parcela_atual: r.parcela_atual ?? null,
+        parcela_total: r.parcela_total ?? null,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
@@ -256,6 +265,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: desc,
         veiculo_id: null,
         observacoes: "",
+        parcela_atual: null,
+        parcela_total: null,
       };
     });
 
@@ -340,6 +351,204 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setSelectedIdxs(new Set());
   }, []);
 
+  // ============ EXPANSÃO DE PARCELAS ============
+  const shiftYM = (ym: string, offset: number) => {
+    const [y, m] = ym.split("-").map(Number);
+    const total = y * 12 + (m - 1) + offset;
+    const ny = Math.floor(total / 12);
+    const nm = (total % 12) + 1;
+    return `${ny}-${String(nm).padStart(2, "0")}`;
+  };
+  const shiftDate = (iso: string, monthOffset: number) => {
+    if (!iso) return iso;
+    const [y, m, d] = iso.split("-").map(Number);
+    const dt = new Date(y, m - 1 + monthOffset, d);
+    // Clamp day overflow (JS may roll over)
+    if (dt.getDate() !== d) dt.setDate(0);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  };
+
+  const buildDescription = (baseDesc: string, atual: number, total: number) => {
+    // Remove qualquer sufixo XX/YY existente e recoloca o novo
+    const cleaned = baseDesc.replace(/\s*[-–]?\s*\(?\d{1,2}\s*\/\s*\d{1,2}\)?\s*$/, "").trim();
+    return `${cleaned} ${String(atual).padStart(2, "0")}/${String(total).padStart(2, "0")}`;
+  };
+
+  const estornarFaturaSePaga = async (invoice: any): Promise<boolean> => {
+    if (!invoice?.expense_id) return true;
+    const { data: exp } = await supabase
+      .from("expenses")
+      .select("id, status, valor_pago")
+      .eq("id", invoice.expense_id)
+      .maybeSingle();
+    if (!exp) return true;
+    const isPaid = (exp as any).status === "pago" || Number((exp as any).valor_pago || 0) > 0;
+    if (!isPaid && (exp as any).status !== "pago") {
+      // Só reabre invoice se estava fechada
+      if (invoice.status === "fechada") {
+        await supabase.from("credit_card_invoices" as any).update({ status: "aberta" }).eq("id", invoice.id);
+      }
+      return true;
+    }
+    // Estornar pagamentos (triggers cuidam das movimentações bancárias)
+    await supabase.from("expense_payments").delete().eq("expense_id", invoice.expense_id);
+    await supabase.from("expenses").update({ status: "pendente", valor_pago: 0 }).eq("id", invoice.expense_id);
+    await supabase.from("credit_card_invoices" as any).update({ status: "aberta" }).eq("id", invoice.id);
+    return true;
+  };
+
+  const expandParcelas = async (idx: number) => {
+    const item = items[idx];
+    if (!item) return;
+    const cur = Number(item.parcela_atual || 0);
+    const totalP = Number(item.parcela_total || 0);
+    if (!cur || !totalP || totalP < 2 || cur < 1 || cur > totalP) {
+      toast.error("Informe corretamente a parcela atual e o total (ex: 5 de 10).");
+      return;
+    }
+    if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
+    if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
+
+    const missing: Array<{ parcela: number; offset: number }> = [];
+    for (let p = 1; p <= totalP; p++) {
+      if (p === cur) continue;
+      missing.push({ parcela: p, offset: p - cur });
+    }
+
+    const ok = await confirm({
+      title: `Gerar parcelas ${1}/${totalP} a ${totalP}/${totalP}?`,
+      description:
+        `Este lançamento será replicado em ${missing.length} outra(s) fatura(s) do cartão "${cardName}", ajustando apenas o número da parcela e as datas.\n\n` +
+        `• Faturas anteriores: ${cur - 1}\n• Faturas posteriores: ${totalP - cur}\n\n` +
+        `Se alguma fatura destino já estiver fechada e quitada no Contas a Pagar, ela será ESTORNADA automaticamente para receber o lançamento.`,
+      confirmLabel: "Gerar parcelas",
+    });
+    if (!ok) return;
+
+    setExpanding(true);
+    try {
+      // Primeiro salva a fatura atual (para garantir que o item corrente esteja persistido e com id)
+      // Só salvamos se houver invoiceId — caso contrário criamos a fatura de rascunho automaticamente.
+      let currentInvoiceId = invoiceId || null;
+      if (!currentInvoiceId) {
+        const payload: any = {
+          empresa_id: matrizId || null,
+          card_name: cardName.trim(),
+          bank_person_id: bankPersonId,
+          reference_label: formatReferenceLabel(referenceYM) || null,
+          due_date: dueDate,
+          closing_date: closingDate || null,
+          total_amount: total,
+          status: "aberta",
+          ofx_file_name: ofxFileName || null,
+          ofx_bank_name: ofxBank || null,
+          ofx_account_id: ofxAccountId || null,
+          observacoes: observacoes.trim() || null,
+          created_by: user?.id,
+        };
+        const { data: newInv, error } = await supabase
+          .from("credit_card_invoices" as any).insert(payload).select("id").single();
+        if (error) throw error;
+        currentInvoiceId = (newInv as any).id;
+      }
+
+      // Atualiza a descrição do item atual com o sufixo padronizado e persiste
+      const baseDesc = item.description;
+      const newDescCurrent = buildDescription(baseDesc, cur, totalP);
+      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
+
+      let createdCount = 0;
+      let reusedCount = 0;
+      let estornoCount = 0;
+
+      for (const { parcela, offset } of missing) {
+        const targetYM = shiftYM(referenceYM, offset);
+        const targetRefLabel = formatReferenceLabel(targetYM);
+        const targetDue = shiftDate(dueDate, offset);
+        const targetClosing = closingDate ? shiftDate(closingDate, offset) : null;
+        const targetPosted = shiftDate(item.posted_date, offset);
+
+        // Buscar fatura existente com mesmo card_name (e bank_person_id se houver) e mesma referência
+        let query = supabase
+          .from("credit_card_invoices" as any)
+          .select("id, status, expense_id, due_date, closing_date")
+          .eq("card_name", cardName.trim())
+          .eq("reference_label", targetRefLabel)
+          .is("deleted_at", null)
+          .limit(1);
+        if (bankPersonId) query = query.eq("bank_person_id", bankPersonId);
+
+        const { data: found } = await query;
+        let targetInvoice: any = (found as any[])?.[0] || null;
+
+        if (targetInvoice) {
+          const wasPaid = targetInvoice.status === "fechada" && !!targetInvoice.expense_id;
+          await estornarFaturaSePaga(targetInvoice);
+          if (wasPaid) estornoCount++;
+          reusedCount++;
+        } else {
+          const payload: any = {
+            empresa_id: matrizId || null,
+            card_name: cardName.trim(),
+            bank_person_id: bankPersonId,
+            reference_label: targetRefLabel,
+            due_date: targetDue,
+            closing_date: targetClosing,
+            total_amount: 0,
+            status: "aberta",
+            observacoes: observacoes.trim() || null,
+            created_by: user?.id,
+          };
+          const { data: created, error } = await supabase
+            .from("credit_card_invoices" as any).insert(payload).select("id").single();
+          if (error) throw error;
+          targetInvoice = { id: (created as any).id };
+          createdCount++;
+        }
+
+        // Inserir o item na fatura destino
+        const itemPayload: any = {
+          invoice_id: targetInvoice.id,
+          posted_date: targetPosted,
+          description: buildDescription(baseDesc, parcela, totalP),
+          amount: item.amount,
+          fitid: null,
+          plano_contas_id: item.plano_contas_id,
+          centro_custo: item.centro_custo || null,
+          favorecido_id: item.favorecido_id,
+          favorecido_nome: item.favorecido_nome?.trim() || null,
+          veiculo_id: item.veiculo_id,
+          observacoes: item.observacoes?.trim() || null,
+          parcela_atual: parcela,
+          parcela_total: totalP,
+        };
+        const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
+        if (itemErr) throw itemErr;
+
+        // Recalcula total da fatura destino
+        const { data: sumRows } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .select("amount")
+          .eq("invoice_id", targetInvoice.id);
+        const newTotal = ((sumRows as any[]) || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+        await supabase.from("credit_card_invoices" as any)
+          .update({ total_amount: newTotal }).eq("id", targetInvoice.id);
+      }
+
+      toast.success(
+        `Parcelas geradas: ${createdCount} fatura(s) criada(s), ${reusedCount} existente(s)` +
+        (estornoCount ? `, ${estornoCount} estornada(s)` : "") + "."
+      );
+      onSaved();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao gerar parcelas.");
+    } finally {
+      setExpanding(false);
+    }
+  };
+
+
   const persistInvoice = async (closeNow: boolean) => {
     if (!cardName.trim()) { toast.error("Selecione o banco/cartão."); return; }
     if (!dueDate) { toast.error("Informe o vencimento da fatura."); return; }
@@ -393,6 +602,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           favorecido_nome: it.favorecido_nome.trim() || null,
           veiculo_id: it.veiculo_id,
           observacoes: it.observacoes.trim() || null,
+          parcela_atual: it.parcela_atual,
+          parcela_total: it.parcela_total,
+
 
         }));
         const { error: itemsErr } = await supabase.from("credit_card_invoice_items" as any).insert(rows);
@@ -686,7 +898,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         wasEdited={hasRowChanged(idx)}
                         selected={selectedIdxs.has(idx)}
                         onToggleSelected={() => toggleSelected(idx)}
+                        onExpandParcelas={() => expandParcelas(idx)}
+                        expanding={expanding}
                       />
+
                     ))}
                   </TableBody>
                 </Table>
@@ -759,7 +974,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           }
         }}
       />
+      {ConfirmDialog}
     </Dialog>
+
   );
 }
 
@@ -777,12 +994,14 @@ interface InvoiceItemRowProps {
   wasEdited: boolean;
   selected: boolean;
   onToggleSelected: () => void;
+  onExpandParcelas: () => void;
+  expanding: boolean;
 }
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
-  selected, onToggleSelected,
+  selected, onToggleSelected, onExpandParcelas, expanding,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
@@ -932,20 +1151,67 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
-        <Input
-          className="h-7 text-[11px] w-full"
-          value={descriptionLocal}
-          onChange={(e) => setDescriptionLocal(e.target.value)}
-          onBlur={() => {
-            if (descriptionLocal !== item.description) {
-              onUpdate(idx, { description: descriptionLocal });
+        <div className="flex items-center gap-1">
+          <Input
+            className="h-7 text-[11px] flex-1 min-w-0"
+            value={descriptionLocal}
+            onChange={(e) => setDescriptionLocal(e.target.value)}
+            onBlur={() => {
+              if (descriptionLocal !== item.description) {
+                onUpdate(idx, { description: descriptionLocal });
+              }
+            }}
+            disabled={isClosed}
+            title={descriptionLocal}
+            placeholder="Descrição do gasto"
+          />
+          <Input
+            type="number"
+            min={1}
+            max={99}
+            className="h-7 text-[11px] w-11 px-1 text-center"
+            value={item.parcela_atual ?? ""}
+            onChange={(e) => {
+              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+              onUpdate(idx, { parcela_atual: v });
+            }}
+            disabled={isClosed}
+            title="Parcela atual"
+            placeholder="X"
+          />
+          <span className="text-[10px] text-muted-foreground">/</span>
+          <Input
+            type="number"
+            min={1}
+            max={99}
+            className="h-7 text-[11px] w-11 px-1 text-center"
+            value={item.parcela_total ?? ""}
+            onChange={(e) => {
+              const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
+              onUpdate(idx, { parcela_total: v });
+            }}
+            disabled={isClosed}
+            title="Total de parcelas"
+            placeholder="N"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            disabled={
+              isClosed || expanding ||
+              !item.parcela_atual || !item.parcela_total ||
+              (item.parcela_total ?? 0) < 2
             }
-          }}
-          disabled={isClosed}
-          title={descriptionLocal}
-          placeholder="Descrição do gasto"
-        />
+            onClick={onExpandParcelas}
+            title="Gerar parcelas anteriores e posteriores nas faturas correspondentes"
+          >
+            <Layers className="w-3 h-3" />
+          </Button>
+        </div>
       </TableCell>
+
       <TableCell className="text-right text-xs font-medium px-1 py-1.5 align-middle whitespace-nowrap">
         {formatCurrency(item.amount)}
       </TableCell>

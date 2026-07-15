@@ -505,6 +505,8 @@ export type Database = {
           ignored: boolean
           invoice_id: string
           observacoes: string | null
+          parcela_atual: number | null
+          parcela_total: number | null
           plano_contas_id: string | null
           posted_date: string
           updated_at: string
@@ -522,6 +524,8 @@ export type Database = {
           ignored?: boolean
           invoice_id: string
           observacoes?: string | null
+          parcela_atual?: number | null
+          parcela_total?: number | null
           plano_contas_id?: string | null
           posted_date: string
           updated_at?: string
@@ -539,6 +543,8 @@ export type Database = {
           ignored?: boolean
           invoice_id?: string
           observacoes?: string | null
+          parcela_atual?: number | null
+          parcela_total?: number | null
           plano_contas_id?: string | null
           posted_date?: string
           updated_at?: string
