@@ -479,6 +479,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           .from("credit_card_invoice_items" as any)
           .update({
             description: newDescCurrent,
+            plano_contas_id: item.plano_contas_id,
+            centro_custo: item.centro_custo || null,
+            favorecido_id: item.favorecido_id,
+            favorecido_nome: item.favorecido_nome?.trim() || null,
+            veiculo_id: item.veiculo_id,
+            observacoes: item.observacoes?.trim() || null,
             parcela_atual: cur,
             parcela_total: totalP,
             parcelas_expandidas: true,
