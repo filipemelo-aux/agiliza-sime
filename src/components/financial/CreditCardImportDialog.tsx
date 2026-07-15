@@ -1250,11 +1250,12 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             className="h-7 w-7 shrink-0"
             disabled={
               isClosed || expanding ||
+              item.parcelas_expandidas ||
               !item.parcela_atual || !item.parcela_total ||
               (item.parcela_total ?? 0) < 2
             }
             onClick={onExpandParcelas}
-            title="Gerar parcelas anteriores e posteriores nas faturas correspondentes"
+            title={item.parcelas_expandidas ? "Parcelas já geradas para este lançamento" : "Gerar parcelas anteriores e posteriores nas faturas correspondentes"}
           >
             <Layers className="w-3 h-3" />
           </Button>
