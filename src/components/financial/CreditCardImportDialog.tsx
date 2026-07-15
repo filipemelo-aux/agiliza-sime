@@ -269,6 +269,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: "",
         parcela_atual: null,
         parcela_total: null,
+        parcelas_expandidas: false,
       };
     });
 
