@@ -495,8 +495,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           .single();
         if (insErr) throw insErr;
         const newId = (insertedCur as any).id;
-        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId } : it));
+        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId, parcelas_expandidas: true } : it));
       }
+      // Marca no estado local que este item já expandiu
+      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, parcelas_expandidas: true } : it));
 
       let createdCount = 0;
       let reusedCount = 0;
