@@ -203,6 +203,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         .eq("invoice_id", invoiceId)
         .order("posted_date");
       const mapped = ((rows as any[]) || []).map((r) => ({
+        id: r.id,
         fitid: r.fitid || "",
         posted_date: r.posted_date,
         description: r.description,
@@ -213,6 +214,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: r.favorecido_nome || r.description || "",
         veiculo_id: r.veiculo_id || null,
         observacoes: r.observacoes || "",
+        parcela_atual: r.parcela_atual ?? null,
+        parcela_total: r.parcela_total ?? null,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
