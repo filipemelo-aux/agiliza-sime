@@ -509,7 +509,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       let reusedCount = 0;
       let estornoCount = 0;
 
+      let processed = 0;
       for (const { parcela, offset } of missing) {
+        processed++;
+        setExpandProgress({
+          current: 1 + processed,
+          total: totalSteps,
+          message: `Processando parcela ${parcela} de ${totalP}...`,
+        });
         const targetYM = shiftYM(referenceYM, offset);
         const targetRefLabel = formatReferenceLabel(targetYM);
         const targetDue = shiftDate(dueDate, offset);
