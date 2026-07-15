@@ -598,6 +598,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // Notifica o pai para atualizar a lista de faturas, mas mantém o diálogo aberto
       onSaved();
       // Recarrega os itens da fatura atual para refletir o estado expandido
+      setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
       if (invoiceId) {
         const { data: rows } = await supabase
           .from("credit_card_invoice_items" as any)
