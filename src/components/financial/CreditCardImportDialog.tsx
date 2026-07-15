@@ -457,6 +457,42 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const newDescCurrent = buildDescription(baseDesc, cur, totalP);
       setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
 
+      // Persiste a parcela e a descrição do item atual no banco
+      if (item.id) {
+        const { error: updErr } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .update({
+            description: newDescCurrent,
+            parcela_atual: cur,
+            parcela_total: totalP,
+          })
+          .eq("id", item.id);
+        if (updErr) throw updErr;
+      } else {
+        const { data: insertedCur, error: insErr } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .insert({
+            invoice_id: currentInvoiceId,
+            posted_date: item.posted_date,
+            description: newDescCurrent,
+            amount: item.amount,
+            fitid: item.fitid || null,
+            plano_contas_id: item.plano_contas_id,
+            centro_custo: item.centro_custo || null,
+            favorecido_id: item.favorecido_id,
+            favorecido_nome: item.favorecido_nome?.trim() || null,
+            veiculo_id: item.veiculo_id,
+            observacoes: item.observacoes?.trim() || null,
+            parcela_atual: cur,
+            parcela_total: totalP,
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        const newId = (insertedCur as any).id;
+        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId } : it));
+      }
+
       let createdCount = 0;
       let reusedCount = 0;
       let estornoCount = 0;
