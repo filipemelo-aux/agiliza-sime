@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
@@ -132,6 +133,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
+  const [expandProgress, setExpandProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const isEditing = !!invoiceId;
@@ -428,8 +430,11 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     });
     if (!ok) return;
 
+    const totalSteps = 1 + missing.length + 1; // persistir atual + faturas + recarregar
     setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Preparando..." });
     try {
+      setExpandProgress({ current: 1, total: totalSteps, message: "Salvando parcela atual..." });
       // Primeiro salva a fatura atual (para garantir que o item corrente esteja persistido e com id)
       // Só salvamos se houver invoiceId — caso contrário criamos a fatura de rascunho automaticamente.
       let currentInvoiceId = invoiceId || null;
@@ -504,7 +509,14 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       let reusedCount = 0;
       let estornoCount = 0;
 
+      let processed = 0;
       for (const { parcela, offset } of missing) {
+        processed++;
+        setExpandProgress({
+          current: 1 + processed,
+          total: totalSteps,
+          message: `Processando parcela ${parcela} de ${totalP}...`,
+        });
         const targetYM = shiftYM(referenceYM, offset);
         const targetRefLabel = formatReferenceLabel(targetYM);
         const targetDue = shiftDate(dueDate, offset);
@@ -586,6 +598,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // Notifica o pai para atualizar a lista de faturas, mas mantém o diálogo aberto
       onSaved();
       // Recarrega os itens da fatura atual para refletir o estado expandido
+      setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
       if (invoiceId) {
         const { data: rows } = await supabase
           .from("credit_card_invoice_items" as any)
@@ -616,6 +629,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       toast.error(err.message || "Erro ao gerar parcelas.");
     } finally {
       setExpanding(false);
+      setExpandProgress({ current: 0, total: 0, message: "" });
     }
   };
 
@@ -798,9 +812,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         onEscapeKeyDown={(e) => { if (expanding) e.preventDefault(); }}
       >
         {expanding && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm rounded-lg">
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm rounded-lg px-6">
             <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
             <div className="text-sm font-medium">Gerando parcelas, aguarde...</div>
+            <div className="w-full max-w-md space-y-2">
+              <Progress
+                value={expandProgress.total > 0 ? (expandProgress.current / expandProgress.total) * 100 : 0}
+                className="h-2"
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="truncate">{expandProgress.message || "Iniciando..."}</span>
+                <span className="tabular-nums shrink-0 ml-2">
+                  {expandProgress.current}/{expandProgress.total}
+                  {expandProgress.total > 0 && ` (${Math.round((expandProgress.current / expandProgress.total) * 100)}%)`}
+                </span>
+              </div>
+            </div>
             <div className="text-xs text-muted-foreground">Não feche esta janela até a conclusão.</div>
           </div>
         )}
