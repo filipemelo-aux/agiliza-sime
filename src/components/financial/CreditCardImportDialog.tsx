@@ -1214,14 +1214,14 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           <div className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
             <span>Parcela</span>
             <Input
-              type="number"
-              min={1}
-              max={99}
+              type="text"
+              inputMode="numeric"
+              maxLength={3}
               className="h-7 text-[11px] w-11 px-1 text-center"
               value={item.parcela_atual ?? ""}
               onChange={(e) => {
-                const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
-                onUpdate(idx, { parcela_atual: v });
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
+                onUpdate(idx, { parcela_atual: raw === "" ? null : parseInt(raw, 10) });
               }}
               disabled={isClosed || item.parcelas_expandidas}
               title="Parcela atual"
@@ -1229,14 +1229,14 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
             />
             <span>de</span>
             <Input
-              type="number"
-              min={1}
-              max={99}
+              type="text"
+              inputMode="numeric"
+              maxLength={3}
               className="h-7 text-[11px] w-11 px-1 text-center"
               value={item.parcela_total ?? ""}
               onChange={(e) => {
-                const v = e.target.value ? Math.max(1, parseInt(e.target.value, 10)) : null;
-                onUpdate(idx, { parcela_total: v });
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
+                onUpdate(idx, { parcela_total: raw === "" ? null : parseInt(raw, 10) });
               }}
               disabled={isClosed || item.parcelas_expandidas}
               title="Total de parcelas"
