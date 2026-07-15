@@ -402,245 +402,333 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     return true;
   };
 
-  const expandParcelas = async (idx: number) => {
-    const item = items[idx];
-    if (!item) return;
+  // Validates a single item before expansion. Returns error message or null.
+  const validateItemForExpansion = (item: ItemRow): string | null => {
     const cur = Number(item.parcela_atual || 0);
     const totalP = Number(item.parcela_total || 0);
     if (!cur || !totalP || totalP < 2 || cur < 1 || cur > totalP) {
-      toast.error("Informe corretamente a parcela atual e o total (ex: 5 de 10).");
-      return;
+      return "Informe corretamente a parcela atual e o total (ex: 5 de 10).";
     }
-    if (!item.plano_contas_id) {
-      toast.error("Selecione o plano de contas deste lançamento antes de gerar as parcelas.");
-      return;
-    }
-    if (!item.centro_custo || !item.centro_custo.trim()) {
-      toast.error("Selecione o centro de custo deste lançamento antes de gerar as parcelas.");
-      return;
-    }
-    if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
-    if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
+    if (!item.plano_contas_id) return "Selecione o plano de contas antes de gerar as parcelas.";
+    if (!item.centro_custo || !item.centro_custo.trim()) return "Selecione o centro de custo antes de gerar as parcelas.";
+    return null;
+  };
 
+  const ensureCurrentInvoiceId = async (): Promise<string> => {
+    if (invoiceId) return invoiceId;
+    const payload: any = {
+      empresa_id: matrizId || null,
+      card_name: cardName.trim(),
+      bank_person_id: bankPersonId,
+      reference_label: formatReferenceLabel(referenceYM) || null,
+      due_date: dueDate,
+      closing_date: closingDate || null,
+      total_amount: total,
+      status: "aberta",
+      ofx_file_name: ofxFileName || null,
+      ofx_bank_name: ofxBank || null,
+      ofx_account_id: ofxAccountId || null,
+      observacoes: observacoes.trim() || null,
+      created_by: user?.id,
+    };
+    const { data: newInv, error } = await supabase
+      .from("credit_card_invoices" as any).insert(payload).select("id").single();
+    if (error) throw error;
+    return (newInv as any).id;
+  };
+
+  // Runs the expansion of a single item. Reports progress via onStep(delta, message).
+  const runItemExpansion = async (
+    item: ItemRow,
+    idx: number,
+    currentInvoiceId: string,
+    onStep: (delta: number, message: string) => void,
+  ): Promise<{ createdCount: number; reusedCount: number; estornoCount: number }> => {
+    const cur = Number(item.parcela_atual || 0);
+    const totalP = Number(item.parcela_total || 0);
     const missing: Array<{ parcela: number; offset: number }> = [];
     for (let p = 1; p <= totalP; p++) {
       if (p === cur) continue;
       missing.push({ parcela: p, offset: p - cur });
     }
 
-    const ok = await confirm({
-      title: `Gerar parcelas ${1}/${totalP} a ${totalP}/${totalP}?`,
-      description:
-        `Este lançamento será replicado em ${missing.length} outra(s) fatura(s) do cartão "${cardName}", ajustando apenas o número da parcela e as datas.\n\n` +
-        `• Faturas anteriores: ${cur - 1}\n• Faturas posteriores: ${totalP - cur}\n\n` +
-        `Se alguma fatura destino já estiver fechada e quitada no Contas a Pagar, ela será ESTORNADA automaticamente para receber o lançamento.`,
-      confirmLabel: "Gerar parcelas",
-    });
-    if (!ok) return;
+    const baseDesc = item.description;
+    const newDescCurrent = buildDescription(baseDesc, cur, totalP);
+    onStep(1, `Salvando parcela atual (${cur}/${totalP})...`);
+    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
 
-    const totalSteps = 1 + missing.length + 1; // persistir atual + faturas + recarregar
-    setExpanding(true);
-    setExpandProgress({ current: 0, total: totalSteps, message: "Preparando..." });
-    try {
-      setExpandProgress({ current: 1, total: totalSteps, message: "Salvando parcela atual..." });
-      // Primeiro salva a fatura atual (para garantir que o item corrente esteja persistido e com id)
-      // Só salvamos se houver invoiceId — caso contrário criamos a fatura de rascunho automaticamente.
-      let currentInvoiceId = invoiceId || null;
-      if (!currentInvoiceId) {
-        const payload: any = {
-          empresa_id: matrizId || null,
-          card_name: cardName.trim(),
-          bank_person_id: bankPersonId,
-          reference_label: formatReferenceLabel(referenceYM) || null,
-          due_date: dueDate,
-          closing_date: closingDate || null,
-          total_amount: total,
-          status: "aberta",
-          ofx_file_name: ofxFileName || null,
-          ofx_bank_name: ofxBank || null,
-          ofx_account_id: ofxAccountId || null,
-          observacoes: observacoes.trim() || null,
-          created_by: user?.id,
-        };
-        const { data: newInv, error } = await supabase
-          .from("credit_card_invoices" as any).insert(payload).select("id").single();
-        if (error) throw error;
-        currentInvoiceId = (newInv as any).id;
-      }
-
-      // Atualiza a descrição do item atual com o sufixo padronizado e persiste
-      const baseDesc = item.description;
-      const newDescCurrent = buildDescription(baseDesc, cur, totalP);
-      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, description: newDescCurrent } : it));
-
-      // Persiste a parcela e a descrição do item atual no banco
-      if (item.id) {
-        const { error: updErr } = await supabase
-          .from("credit_card_invoice_items" as any)
-          .update({
-            description: newDescCurrent,
-            plano_contas_id: item.plano_contas_id,
-            centro_custo: item.centro_custo || null,
-            favorecido_id: item.favorecido_id,
-            favorecido_nome: item.favorecido_nome?.trim() || null,
-            veiculo_id: item.veiculo_id,
-            observacoes: item.observacoes?.trim() || null,
-            parcela_atual: cur,
-            parcela_total: totalP,
-            parcelas_expandidas: true,
-          })
-          .eq("id", item.id);
-        if (updErr) throw updErr;
-      } else {
-        const { data: insertedCur, error: insErr } = await supabase
-          .from("credit_card_invoice_items" as any)
-          .insert({
-            invoice_id: currentInvoiceId,
-            posted_date: item.posted_date,
-            description: newDescCurrent,
-            amount: item.amount,
-            fitid: item.fitid || null,
-            plano_contas_id: item.plano_contas_id,
-            centro_custo: item.centro_custo || null,
-            favorecido_id: item.favorecido_id,
-            favorecido_nome: item.favorecido_nome?.trim() || null,
-            veiculo_id: item.veiculo_id,
-            observacoes: item.observacoes?.trim() || null,
-            parcela_atual: cur,
-            parcela_total: totalP,
-            parcelas_expandidas: true,
-          })
-          .select("id")
-          .single();
-        if (insErr) throw insErr;
-        const newId = (insertedCur as any).id;
-        setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId, parcelas_expandidas: true } : it));
-      }
-      // Marca no estado local que este item já expandiu
-      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, parcelas_expandidas: true } : it));
-
-      let createdCount = 0;
-      let reusedCount = 0;
-      let estornoCount = 0;
-
-      let processed = 0;
-      for (const { parcela, offset } of missing) {
-        processed++;
-        setExpandProgress({
-          current: 1 + processed,
-          total: totalSteps,
-          message: `Processando parcela ${parcela} de ${totalP}...`,
-        });
-        const targetYM = shiftYM(referenceYM, offset);
-        const targetRefLabel = formatReferenceLabel(targetYM);
-        const targetDue = shiftDate(dueDate, offset);
-        const targetClosing = closingDate ? shiftDate(closingDate, offset) : null;
-        const targetPosted = shiftDate(item.posted_date, offset);
-
-        // Buscar fatura existente com mesmo card_name (e bank_person_id se houver) e mesma referência
-        let query = supabase
-          .from("credit_card_invoices" as any)
-          .select("id, status, expense_id, due_date, closing_date")
-          .eq("card_name", cardName.trim())
-          .eq("reference_label", targetRefLabel)
-          .is("deleted_at", null)
-          .limit(1);
-        if (bankPersonId) query = query.eq("bank_person_id", bankPersonId);
-
-        const { data: found } = await query;
-        let targetInvoice: any = (found as any[])?.[0] || null;
-
-        if (targetInvoice) {
-          const wasPaid = targetInvoice.status === "fechada" && !!targetInvoice.expense_id;
-          await estornarFaturaSePaga(targetInvoice);
-          if (wasPaid) estornoCount++;
-          reusedCount++;
-        } else {
-          const payload: any = {
-            empresa_id: matrizId || null,
-            card_name: cardName.trim(),
-            bank_person_id: bankPersonId,
-            reference_label: targetRefLabel,
-            due_date: targetDue,
-            closing_date: targetClosing,
-            total_amount: 0,
-            status: "aberta",
-            observacoes: observacoes.trim() || null,
-            created_by: user?.id,
-          };
-          const { data: created, error } = await supabase
-            .from("credit_card_invoices" as any).insert(payload).select("id").single();
-          if (error) throw error;
-          targetInvoice = { id: (created as any).id };
-          createdCount++;
-        }
-
-        // Inserir o item na fatura destino
-        const itemPayload: any = {
-          invoice_id: targetInvoice.id,
-          posted_date: targetPosted,
-          description: buildDescription(baseDesc, parcela, totalP),
-          amount: item.amount,
-          fitid: null,
+    if (item.id) {
+      const { error: updErr } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .update({
+          description: newDescCurrent,
           plano_contas_id: item.plano_contas_id,
           centro_custo: item.centro_custo || null,
           favorecido_id: item.favorecido_id,
           favorecido_nome: item.favorecido_nome?.trim() || null,
           veiculo_id: item.veiculo_id,
           observacoes: item.observacoes?.trim() || null,
-          parcela_atual: parcela,
+          parcela_atual: cur,
           parcela_total: totalP,
           parcelas_expandidas: true,
-        };
-        const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
-        if (itemErr) throw itemErr;
+        })
+        .eq("id", item.id);
+      if (updErr) throw updErr;
+    } else {
+      const { data: insertedCur, error: insErr } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .insert({
+          invoice_id: currentInvoiceId,
+          posted_date: item.posted_date,
+          description: newDescCurrent,
+          amount: item.amount,
+          fitid: item.fitid || null,
+          plano_contas_id: item.plano_contas_id,
+          centro_custo: item.centro_custo || null,
+          favorecido_id: item.favorecido_id,
+          favorecido_nome: item.favorecido_nome?.trim() || null,
+          veiculo_id: item.veiculo_id,
+          observacoes: item.observacoes?.trim() || null,
+          parcela_atual: cur,
+          parcela_total: totalP,
+          parcelas_expandidas: true,
+        })
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      const newId = (insertedCur as any).id;
+      setItems((prev) => prev.map((it, i) => i === idx ? { ...it, id: newId, parcelas_expandidas: true } : it));
+    }
+    setItems((prev) => prev.map((it, i) => i === idx ? { ...it, parcelas_expandidas: true } : it));
 
-        // Recalcula total da fatura destino
-        const { data: sumRows } = await supabase
-          .from("credit_card_invoice_items" as any)
-          .select("amount")
-          .eq("invoice_id", targetInvoice.id);
-        const newTotal = ((sumRows as any[]) || []).reduce((s, r) => s + Number(r.amount || 0), 0);
-        await supabase.from("credit_card_invoices" as any)
-          .update({ total_amount: newTotal }).eq("id", targetInvoice.id);
+    let createdCount = 0;
+    let reusedCount = 0;
+    let estornoCount = 0;
+
+    for (const { parcela, offset } of missing) {
+      onStep(1, `"${(baseDesc || "").slice(0, 24)}": parcela ${parcela}/${totalP}...`);
+      const targetYM = shiftYM(referenceYM, offset);
+      const targetRefLabel = formatReferenceLabel(targetYM);
+      const targetDue = shiftDate(dueDate, offset);
+      const targetClosing = closingDate ? shiftDate(closingDate, offset) : null;
+      const targetPosted = shiftDate(item.posted_date, offset);
+
+      let query = supabase
+        .from("credit_card_invoices" as any)
+        .select("id, status, expense_id, due_date, closing_date")
+        .eq("card_name", cardName.trim())
+        .eq("reference_label", targetRefLabel)
+        .is("deleted_at", null)
+        .limit(1);
+      if (bankPersonId) query = query.eq("bank_person_id", bankPersonId);
+
+      const { data: found } = await query;
+      let targetInvoice: any = (found as any[])?.[0] || null;
+
+      if (targetInvoice) {
+        const wasPaid = targetInvoice.status === "fechada" && !!targetInvoice.expense_id;
+        await estornarFaturaSePaga(targetInvoice);
+        if (wasPaid) estornoCount++;
+        reusedCount++;
+      } else {
+        const payload: any = {
+          empresa_id: matrizId || null,
+          card_name: cardName.trim(),
+          bank_person_id: bankPersonId,
+          reference_label: targetRefLabel,
+          due_date: targetDue,
+          closing_date: targetClosing,
+          total_amount: 0,
+          status: "aberta",
+          observacoes: observacoes.trim() || null,
+          created_by: user?.id,
+        };
+        const { data: created, error } = await supabase
+          .from("credit_card_invoices" as any).insert(payload).select("id").single();
+        if (error) throw error;
+        targetInvoice = { id: (created as any).id };
+        createdCount++;
       }
 
+      const itemPayload: any = {
+        invoice_id: targetInvoice.id,
+        posted_date: targetPosted,
+        description: buildDescription(baseDesc, parcela, totalP),
+        amount: item.amount,
+        fitid: null,
+        plano_contas_id: item.plano_contas_id,
+        centro_custo: item.centro_custo || null,
+        favorecido_id: item.favorecido_id,
+        favorecido_nome: item.favorecido_nome?.trim() || null,
+        veiculo_id: item.veiculo_id,
+        observacoes: item.observacoes?.trim() || null,
+        parcela_atual: parcela,
+        parcela_total: totalP,
+        parcelas_expandidas: true,
+      };
+      const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
+      if (itemErr) throw itemErr;
+
+      const { data: sumRows } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("amount")
+        .eq("invoice_id", targetInvoice.id);
+      const newTotal = ((sumRows as any[]) || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+      await supabase.from("credit_card_invoices" as any)
+        .update({ total_amount: newTotal }).eq("id", targetInvoice.id);
+    }
+
+    return { createdCount, reusedCount, estornoCount };
+  };
+
+  const reloadCurrentInvoiceItems = async () => {
+    if (!invoiceId) return;
+    const { data: rows } = await supabase
+      .from("credit_card_invoice_items" as any)
+      .select("*")
+      .eq("invoice_id", invoiceId)
+      .order("posted_date");
+    const mapped = ((rows as any[]) || []).map((r: any) => ({
+      id: r.id,
+      fitid: r.fitid || "",
+      posted_date: r.posted_date,
+      description: r.description,
+      amount: Number(r.amount),
+      plano_contas_id: r.plano_contas_id,
+      centro_custo: r.centro_custo || "",
+      favorecido_id: r.favorecido_id,
+      favorecido_nome: r.favorecido_nome || r.description || "",
+      veiculo_id: r.veiculo_id || null,
+      observacoes: r.observacoes || "",
+      parcela_atual: r.parcela_atual ?? null,
+      parcela_total: r.parcela_total ?? null,
+      parcelas_expandidas: !!r.parcelas_expandidas,
+    }));
+    setItems(mapped);
+    setOriginalItems(mapped);
+  };
+
+  const expandParcelas = async (idx: number) => {
+    const item = items[idx];
+    if (!item) return;
+    const errMsg = validateItemForExpansion(item);
+    if (errMsg) { toast.error(errMsg); return; }
+    if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
+    if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
+
+    const cur = Number(item.parcela_atual || 0);
+    const totalP = Number(item.parcela_total || 0);
+    const missingCount = totalP - 1;
+
+    const ok = await confirm({
+      title: `Gerar parcelas ${1}/${totalP} a ${totalP}/${totalP}?`,
+      description:
+        `Este lançamento será replicado em ${missingCount} outra(s) fatura(s) do cartão "${cardName}", ajustando apenas o número da parcela e as datas.\n\n` +
+        `• Faturas anteriores: ${cur - 1}\n• Faturas posteriores: ${totalP - cur}\n\n` +
+        `Se alguma fatura destino já estiver fechada e quitada no Contas a Pagar, ela será ESTORNADA automaticamente para receber o lançamento.`,
+      confirmLabel: "Gerar parcelas",
+    });
+    if (!ok) return;
+
+    const totalSteps = 1 + missingCount + 1;
+    let currentStep = 0;
+    setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Preparando..." });
+    try {
+      const currentInvoiceId = await ensureCurrentInvoiceId();
+      const onStep = (delta: number, message: string) => {
+        currentStep += delta;
+        setExpandProgress({ current: currentStep, total: totalSteps, message });
+      };
+      const { createdCount, reusedCount, estornoCount } = await runItemExpansion(item, idx, currentInvoiceId, onStep);
       toast.success(
         `Parcelas geradas: ${createdCount} fatura(s) criada(s), ${reusedCount} existente(s)` +
         (estornoCount ? `, ${estornoCount} estornada(s)` : "") + "."
       );
-      // Notifica o pai para atualizar a lista de faturas, mas mantém o diálogo aberto
       onSaved();
-      // Recarrega os itens da fatura atual para refletir o estado expandido
       setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
-      if (invoiceId) {
-        const { data: rows } = await supabase
-          .from("credit_card_invoice_items" as any)
-          .select("*")
-          .eq("invoice_id", invoiceId)
-          .order("posted_date");
-        const mapped = ((rows as any[]) || []).map((r: any) => ({
-          id: r.id,
-          fitid: r.fitid || "",
-          posted_date: r.posted_date,
-          description: r.description,
-          amount: Number(r.amount),
-          plano_contas_id: r.plano_contas_id,
-          centro_custo: r.centro_custo || "",
-          favorecido_id: r.favorecido_id,
-          favorecido_nome: r.favorecido_nome || r.description || "",
-          veiculo_id: r.veiculo_id || null,
-          observacoes: r.observacoes || "",
-          parcela_atual: r.parcela_atual ?? null,
-          parcela_total: r.parcela_total ?? null,
-          parcelas_expandidas: !!r.parcelas_expandidas,
-        }));
-        setItems(mapped);
-        setOriginalItems(mapped);
-      }
+      await reloadCurrentInvoiceItems();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erro ao gerar parcelas.");
+    } finally {
+      setExpanding(false);
+      setExpandProgress({ current: 0, total: 0, message: "" });
+    }
+  };
+
+  const expandParcelasBatch = async () => {
+    if (selectedIdxs.size === 0) return;
+    if (!cardName.trim()) { toast.error("Selecione o banco/cartão antes de expandir."); return; }
+    if (!dueDate) { toast.error("Informe o vencimento antes de expandir."); return; }
+
+    const targets: Array<{ idx: number; item: ItemRow }> = [];
+    const skipped: string[] = [];
+    for (const i of Array.from(selectedIdxs).sort((a, b) => a - b)) {
+      const it = items[i];
+      if (!it) continue;
+      if (it.parcelas_expandidas) { skipped.push(`"${(it.description || "").slice(0, 30)}": já expandida`); continue; }
+      const errMsg = validateItemForExpansion(it);
+      if (errMsg) { skipped.push(`"${(it.description || "").slice(0, 30)}": ${errMsg}`); continue; }
+      targets.push({ idx: i, item: it });
+    }
+
+    if (targets.length === 0) {
+      toast.error("Nenhum lançamento válido para expansão. Verifique parcelas, plano de contas e centro de custo.");
+      return;
+    }
+
+    const totalMissing = targets.reduce((s, t) => s + (Number(t.item.parcela_total || 0) - 1), 0);
+    const ok = await confirm({
+      title: `Gerar parcelas em lote — ${targets.length} lançamento(s)?`,
+      description:
+        `Serão processados ${targets.length} lançamento(s), gerando ${totalMissing} parcela(s) em faturas anteriores/posteriores do cartão "${cardName}".\n\n` +
+        (skipped.length > 0 ? `${skipped.length} lançamento(s) selecionado(s) serão IGNORADOS (já expandidos ou sem dados obrigatórios).\n\n` : "") +
+        `Faturas destino já fechadas e quitadas no Contas a Pagar serão ESTORNADAS automaticamente para receber os lançamentos.`,
+      confirmLabel: "Gerar em lote",
+    });
+    if (!ok) return;
+
+    const totalSteps = targets.reduce((s, t) => s + 1 + (Number(t.item.parcela_total || 0) - 1), 0) + 1;
+    let currentStep = 0;
+    setExpanding(true);
+    setExpandProgress({ current: 0, total: totalSteps, message: "Preparando lote..." });
+
+    let createdSum = 0, reusedSum = 0, estornoSum = 0, doneItems = 0;
+    try {
+      const currentInvoiceId = await ensureCurrentInvoiceId();
+      for (const { idx, item } of targets) {
+        const onStep = (delta: number, message: string) => {
+          currentStep += delta;
+          setExpandProgress({
+            current: currentStep,
+            total: totalSteps,
+            message: `[${doneItems + 1}/${targets.length}] ${message}`,
+          });
+        };
+        try {
+          const { createdCount, reusedCount, estornoCount } = await runItemExpansion(item, idx, currentInvoiceId, onStep);
+          createdSum += createdCount;
+          reusedSum += reusedCount;
+          estornoSum += estornoCount;
+        } catch (e: any) {
+          console.error("Falha ao expandir item", idx, e);
+          toast.error(`Falha em "${(item.description || "").slice(0, 30)}": ${e.message || e}`);
+        }
+        doneItems++;
+      }
+      toast.success(
+        `Lote concluído: ${doneItems}/${targets.length} — ${createdSum} fatura(s) criada(s), ${reusedSum} existente(s)` +
+        (estornoSum ? `, ${estornoSum} estornada(s)` : "") +
+        (skipped.length ? ` • ${skipped.length} ignorado(s).` : ".")
+      );
+      onSaved();
+      setExpandProgress({ current: totalSteps, total: totalSteps, message: "Atualizando fatura..." });
+      await reloadCurrentInvoiceItems();
+      setSelectedIdxs(new Set());
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao gerar parcelas em lote.");
     } finally {
       setExpanding(false);
       setExpandProgress({ current: 0, total: 0, message: "" });
