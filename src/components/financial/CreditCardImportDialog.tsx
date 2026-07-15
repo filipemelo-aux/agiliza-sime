@@ -812,9 +812,22 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         onEscapeKeyDown={(e) => { if (expanding) e.preventDefault(); }}
       >
         {expanding && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm rounded-lg">
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm rounded-lg px-6">
             <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
             <div className="text-sm font-medium">Gerando parcelas, aguarde...</div>
+            <div className="w-full max-w-md space-y-2">
+              <Progress
+                value={expandProgress.total > 0 ? (expandProgress.current / expandProgress.total) * 100 : 0}
+                className="h-2"
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="truncate">{expandProgress.message || "Iniciando..."}</span>
+                <span className="tabular-nums shrink-0 ml-2">
+                  {expandProgress.current}/{expandProgress.total}
+                  {expandProgress.total > 0 && ` (${Math.round((expandProgress.current / expandProgress.total) * 100)}%)`}
+                </span>
+              </div>
+            </div>
             <div className="text-xs text-muted-foreground">Não feche esta janela até a conclusão.</div>
           </div>
         )}
