@@ -540,6 +540,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         (estornoCount ? `, ${estornoCount} estornada(s)` : "") + "."
       );
       onSaved();
+      onOpenChange(false);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erro ao gerar parcelas.");
