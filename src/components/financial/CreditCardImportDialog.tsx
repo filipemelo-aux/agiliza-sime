@@ -402,6 +402,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           favorecido_nome: it.favorecido_nome.trim() || null,
           veiculo_id: it.veiculo_id,
           observacoes: it.observacoes.trim() || null,
+          parcela_atual: it.parcela_atual,
+          parcela_total: it.parcela_total,
+
 
         }));
         const { error: itemsErr } = await supabase.from("credit_card_invoice_items" as any).insert(rows);
