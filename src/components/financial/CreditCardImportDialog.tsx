@@ -489,6 +489,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             observacoes: item.observacoes?.trim() || null,
             parcela_atual: cur,
             parcela_total: totalP,
+            parcelas_expandidas: true,
           })
           .select("id")
           .single();
