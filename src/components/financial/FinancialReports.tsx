@@ -15,8 +15,9 @@ import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { DreGerencial } from "./DreGerencial";
 
-type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
+type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
 
 interface Filters {
@@ -79,7 +80,7 @@ const TIPO_DATA_OPTIONS: Partial<Record<ReportType, { value: string; label: stri
   ],
 };
 
-const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
+const STATUS_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label: string }[]> = {
   payables: [
     { value: "todos", label: "Todos" },
     { value: "pendente", label: "Pendente" },
@@ -104,7 +105,7 @@ const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
   ],
 };
 
-const ORIGEM_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
+const ORIGEM_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label: string }[]> = {
   payables: [
     { value: "todos", label: "Todas" },
     { value: "manual", label: "Manual" },
@@ -654,7 +655,7 @@ export function FinancialReports() {
     return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPago };
   }, [filteredRows, reportType]);
 
-  const REPORT_TITLE: Record<ReportType, string> = {
+  const REPORT_TITLE: Record<Exclude<ReportType, "dre">, string> = {
     payables: "RELATÓRIO DE CONTAS A PAGAR",
     receivables: "RELATÓRIO DE CONTAS A RECEBER",
     cashflow: "RELATÓRIO DE FLUXO DE CAIXA",
@@ -934,13 +935,19 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       </div>
 
       <Tabs value={reportType} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full">
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="forecasts">Previsões</TabsTrigger>
+          <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
         </TabsList>
 
+        {reportType === "dre" ? (
+          <TabsContent value="dre" className="mt-4">
+            <DreGerencial />
+          </TabsContent>
+        ) : (
         <TabsContent value={reportType} className="mt-4">
           <Card>
             <CardContent className="p-3 space-y-3">
@@ -1283,6 +1290,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             </div>
           )}
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
