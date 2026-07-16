@@ -369,7 +369,7 @@ export function DreGerencial() {
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Consolida todas as entradas e saídas efetivas do fluxo de caixa no período, agrupadas pela hierarquia do Plano de Contas. Fonte única: movimentações bancárias (evita duplicidade entre Contas a Pagar e lançamentos diretos).
+            Consolida entradas e saídas efetivas do fluxo de caixa no período, agrupadas pela hierarquia do Plano de Contas. Fontes: movimentações bancárias + itens detalhados de faturas de cartão de crédito já pagas (regime de caixa pela data de pagamento da fatura), evitando duplicidade com o pagamento agregado da fatura no Contas a Pagar.
           </p>
         </CardContent>
       </Card>
