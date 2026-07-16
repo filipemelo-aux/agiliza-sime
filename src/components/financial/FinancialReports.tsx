@@ -80,7 +80,7 @@ const TIPO_DATA_OPTIONS: Partial<Record<ReportType, { value: string; label: stri
   ],
 };
 
-const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
+const STATUS_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label: string }[]> = {
   payables: [
     { value: "todos", label: "Todos" },
     { value: "pendente", label: "Pendente" },
