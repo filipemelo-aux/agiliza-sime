@@ -135,42 +135,29 @@ export function DreGerencial() {
         };
       });
 
-      // 5) Explode paid credit card invoices into individual items (using each
-      //    item's classified plano_contas_id). Regime de caixa = data de pagamento
-      //    da fatura mãe (data_pagamento da expense), respeitando o período filtrado.
-      if (ccExpenseIds.size > 0) {
-        const { data: paidExpenses } = await supabase
-          .from("expenses")
-          .select("id, data_pagamento, status")
-          .in("id", Array.from(ccExpenseIds))
-          .in("status", ["pago", "parcial"]);
-
-        const eligibleInvoiceIds: string[] = [];
-        (paidExpenses || []).forEach((e: any) => {
-          if (!e.data_pagamento) return;
-          const d = (e.data_pagamento as string).slice(0, 10);
-          if (dataInicio && d < dataInicio) return;
-          if (dataFim && d > dataFim) return;
-          const invId = invoiceIdByExpenseId.get(e.id);
-          if (invId) eligibleInvoiceIds.push(invId);
-        });
-
-        if (eligibleInvoiceIds.length > 0) {
-          const { data: items } = await supabase
-            .from("credit_card_invoice_items")
-            .select("amount, plano_contas_id, ignored")
-            .in("invoice_id", eligibleInvoiceIds);
-          (items || []).forEach((it: any) => {
-            if (it.ignored) return;
-            const val = Number(it.amount) || 0;
-            if (val === 0) return;
-            enriched.push({
-              tipo: val < 0 ? "entrada" : "saida",
-              valor: Math.abs(val),
-              planoId: it.plano_contas_id || null,
-            });
+      // 5) Explode credit card invoice items by their ORIGINAL transaction date
+      //    (regime de competência da compra). Only items belonging to invoices
+      //    already closed (com expense vinculada = enviada ao Contas a Pagar)
+      //    entram na DRE, garantindo que são despesas consolidadas.
+      const closedInvoiceIds = (ccInvoices || []).map((r: any) => r.id);
+      if (closedInvoiceIds.length > 0) {
+        let itemsQ: any = supabase
+          .from("credit_card_invoice_items")
+          .select("amount, plano_contas_id, ignored, posted_date")
+          .in("invoice_id", closedInvoiceIds);
+        if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
+        if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
+        const { data: items } = await itemsQ.limit(20000);
+        (items || []).forEach((it: any) => {
+          if (it.ignored) return;
+          const val = Number(it.amount) || 0;
+          if (val === 0) return;
+          enriched.push({
+            tipo: val < 0 ? "entrada" : "saida",
+            valor: Math.abs(val),
+            planoId: it.plano_contas_id || null,
           });
-        }
+        });
       }
 
       setMovs(enriched);
