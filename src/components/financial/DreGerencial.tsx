@@ -60,27 +60,69 @@ export function DreGerencial() {
       if (error) throw error;
       const list = (data || []) as any[];
 
-      // 2) Enrich plano_contas_id for movements linked to expenses
+      // 2) Identify credit card invoice expenses (to explode into detailed items)
+      //    Any expense that is the "mother" of a credit_card_invoice must be excluded
+      //    from bank-movement aggregation and replaced by its individual items.
+      const { data: ccInvoices } = await supabase
+        .from("credit_card_invoices")
+        .select("id, expense_id")
+        .not("expense_id", "is", null);
+      const ccExpenseIds = new Set<string>((ccInvoices || []).map((r: any) => r.expense_id));
+      const invoiceIdByExpenseId = new Map<string, string>();
+      (ccInvoices || []).forEach((r: any) => invoiceIdByExpenseId.set(r.expense_id, r.id));
+
+      // 3) Enrich plano_contas_id for movements linked to expenses
       const payPaymentIds = list.filter((m) => m.origem === "pagamento_despesa" && !m.plano_contas_id).map((m) => m.origem_id);
       const loteIds = list.filter((m) => m.origem === "pagamento_agrupado" && !m.plano_contas_id).map((m) => m.origem_id);
 
       const [paysRes, loteRes] = await Promise.all([
         payPaymentIds.length
-          ? supabase.from("expense_payments").select("id, expenses:expense_id(plano_contas_id)").in("id", payPaymentIds)
+          ? supabase.from("expense_payments").select("id, expense_id, expenses:expense_id(plano_contas_id)").in("id", payPaymentIds)
           : Promise.resolve({ data: [] as any[] } as any),
         loteIds.length
-          ? supabase.from("expense_payments").select("lote_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
+          ? supabase.from("expense_payments").select("lote_id, expense_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
           : Promise.resolve({ data: [] as any[] } as any),
       ]);
 
       const planoByPayment = new Map<string, string | null>();
-      (paysRes.data || []).forEach((p: any) => planoByPayment.set(p.id, p.expenses?.plano_contas_id || null));
+      const expenseByPayment = new Map<string, string | null>();
+      (paysRes.data || []).forEach((p: any) => {
+        planoByPayment.set(p.id, p.expenses?.plano_contas_id || null);
+        expenseByPayment.set(p.id, p.expense_id || null);
+      });
       const planoByLote = new Map<string, string | null>();
+      const expensesByLote = new Map<string, Set<string>>();
       (loteRes.data || []).forEach((p: any) => {
         if (!planoByLote.has(p.lote_id)) planoByLote.set(p.lote_id, p.expenses?.plano_contas_id || null);
+        if (!expensesByLote.has(p.lote_id)) expensesByLote.set(p.lote_id, new Set());
+        if (p.expense_id) expensesByLote.get(p.lote_id)!.add(p.expense_id);
       });
 
-      const enriched = list.map((m) => {
+      // 4) Filter out bank movements that represent the payment of a credit card
+      //    invoice's mother expense (to avoid double counting when we add item detail).
+      const isCcInvoicePayment = (m: any): boolean => {
+        if (m.origem === "contas_pagar" || m.origem === "despesas") {
+          return ccExpenseIds.has(m.origem_id);
+        }
+        if (m.origem === "pagamento_despesa") {
+          const eid = expenseByPayment.get(m.origem_id);
+          return !!eid && ccExpenseIds.has(eid);
+        }
+        if (m.origem === "pagamento_agrupado") {
+          const set = expensesByLote.get(m.origem_id);
+          if (!set) return false;
+          // Only exclude if ALL expenses in the batch are CC-invoice mothers.
+          // Otherwise we'd wrongly drop mixed batches. For mixed batches we can't
+          // safely split, so keep the aggregate and skip CC-item explosion for those.
+          for (const eid of set) if (!ccExpenseIds.has(eid)) return false;
+          return set.size > 0;
+        }
+        return false;
+      };
+
+      const filtered = list.filter((m) => !isCcInvoicePayment(m));
+
+      const enriched = filtered.map((m) => {
         let pid: string | null = m.plano_contas_id || null;
         if (!pid) {
           if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
@@ -93,6 +135,44 @@ export function DreGerencial() {
         };
       });
 
+      // 5) Explode paid credit card invoices into individual items (using each
+      //    item's classified plano_contas_id). Regime de caixa = data de pagamento
+      //    da fatura mãe (data_pagamento da expense), respeitando o período filtrado.
+      if (ccExpenseIds.size > 0) {
+        const { data: paidExpenses } = await supabase
+          .from("expenses")
+          .select("id, data_pagamento, status")
+          .in("id", Array.from(ccExpenseIds))
+          .in("status", ["pago", "parcial"]);
+
+        const eligibleInvoiceIds: string[] = [];
+        (paidExpenses || []).forEach((e: any) => {
+          if (!e.data_pagamento) return;
+          const d = (e.data_pagamento as string).slice(0, 10);
+          if (dataInicio && d < dataInicio) return;
+          if (dataFim && d > dataFim) return;
+          const invId = invoiceIdByExpenseId.get(e.id);
+          if (invId) eligibleInvoiceIds.push(invId);
+        });
+
+        if (eligibleInvoiceIds.length > 0) {
+          const { data: items } = await supabase
+            .from("credit_card_invoice_items")
+            .select("amount, plano_contas_id, ignored")
+            .in("invoice_id", eligibleInvoiceIds);
+          (items || []).forEach((it: any) => {
+            if (it.ignored) return;
+            const val = Number(it.amount) || 0;
+            if (val === 0) return;
+            enriched.push({
+              tipo: val < 0 ? "entrada" : "saida",
+              valor: Math.abs(val),
+              planoId: it.plano_contas_id || null,
+            });
+          });
+        }
+      }
+
       setMovs(enriched);
       setGenerated(true);
     } catch (e: any) {
@@ -101,6 +181,7 @@ export function DreGerencial() {
       setLoading(false);
     }
   }, [dataInicio, dataFim]);
+
 
   // Build hierarchical tree
   const { rootNodes, totalEntradas, totalSaidas } = useMemo(() => {
@@ -288,7 +369,7 @@ export function DreGerencial() {
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Consolida todas as entradas e saídas efetivas do fluxo de caixa no período, agrupadas pela hierarquia do Plano de Contas. Fonte única: movimentações bancárias (evita duplicidade entre Contas a Pagar e lançamentos diretos).
+            Consolida entradas e saídas efetivas do fluxo de caixa no período, agrupadas pela hierarquia do Plano de Contas. Fontes: movimentações bancárias + itens detalhados de faturas de cartão de crédito já pagas (regime de caixa pela data de pagamento da fatura), evitando duplicidade com o pagamento agregado da fatura no Contas a Pagar.
           </p>
         </CardContent>
       </Card>
