@@ -105,7 +105,7 @@ const STATUS_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label:
   ],
 };
 
-const ORIGEM_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
+const ORIGEM_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label: string }[]> = {
   payables: [
     { value: "todos", label: "Todas" },
     { value: "manual", label: "Manual" },
