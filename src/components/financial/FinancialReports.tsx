@@ -15,8 +15,9 @@ import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { DreGerencial } from "./DreGerencial";
 
-type ReportType = "payables" | "receivables" | "cashflow" | "forecasts";
+type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
 
 interface Filters {
