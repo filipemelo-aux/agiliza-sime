@@ -935,13 +935,19 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
       </div>
 
       <Tabs value={reportType} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full">
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="forecasts">Previsões</TabsTrigger>
+          <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
         </TabsList>
 
+        {reportType === "dre" ? (
+          <TabsContent value="dre" className="mt-4">
+            <DreGerencial />
+          </TabsContent>
+        ) : (
         <TabsContent value={reportType} className="mt-4">
           <Card>
             <CardContent className="p-3 space-y-3">
