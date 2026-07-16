@@ -1290,6 +1290,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             </div>
           )}
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
