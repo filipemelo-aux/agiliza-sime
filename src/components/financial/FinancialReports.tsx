@@ -655,7 +655,7 @@ export function FinancialReports() {
     return { total: filteredRows.reduce((s, r) => s + r.valor, 0), count: filteredRows.length, saldoRestante, totalJuros, totalPago };
   }, [filteredRows, reportType]);
 
-  const REPORT_TITLE: Record<ReportType, string> = {
+  const REPORT_TITLE: Record<Exclude<ReportType, "dre">, string> = {
     payables: "RELATÓRIO DE CONTAS A PAGAR",
     receivables: "RELATÓRIO DE CONTAS A RECEBER",
     cashflow: "RELATÓRIO DE FLUXO DE CAIXA",
