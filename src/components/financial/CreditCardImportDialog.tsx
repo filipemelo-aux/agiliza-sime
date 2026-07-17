@@ -1200,23 +1200,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
 
                   <TableBody>
-                    {sortedItems.map((it, idx) => (
+                    {sortedItemRows.map(({ item, originalIdx }) => (
                       <InvoiceItemRow
-                        key={`${it.fitid}-${idx}`}
-                        idx={idx}
-                        item={it}
+                        key={`${item.fitid}-${originalIdx}`}
+                        idx={originalIdx}
+                        item={item}
                         isClosed={isClosed}
                         despesaLeaves={despesaLeaves}
                         vehicles={vehicles}
                         onUpdate={updateItem}
                         onRemove={removeItem}
-                        searchOpen={searchPersonOpenIdx === idx}
-                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
-                        onOpenCreate={() => setCreatePersonOpenIdx(idx)}
-                        wasEdited={hasRowChanged(idx)}
-                        selected={selectedIdxs.has(idx)}
-                        onToggleSelected={() => toggleSelected(idx)}
-                        onExpandParcelas={() => expandParcelas(idx)}
+                        searchOpen={searchPersonOpenIdx === originalIdx}
+                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? originalIdx : null)}
+                        onOpenCreate={() => setCreatePersonOpenIdx(originalIdx)}
+                        wasEdited={hasRowChanged(originalIdx)}
+                        selected={selectedIdxs.has(originalIdx)}
+                        onToggleSelected={() => toggleSelected(originalIdx)}
+                        onExpandParcelas={() => expandParcelas(originalIdx)}
                         expanding={expanding}
                       />
 
