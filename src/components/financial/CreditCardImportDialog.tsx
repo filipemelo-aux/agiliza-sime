@@ -1036,10 +1036,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               {/* Batch toolbar */}
               <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {selectedIdxs.size > 0
-                    ? `${selectedIdxs.size} selecionado(s)`
-                    : "Marque lançamentos para editar em lote"}
+                <span className="text-xs whitespace-nowrap">
+                  {selectedIdxs.size > 0 ? (
+                    <>
+                      <span className="text-muted-foreground">{selectedIdxs.size} selecionado(s) •</span>{" "}
+                      <span className="font-bold text-primary text-sm tabular-nums">{formatCurrency(selectedSum)}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Clique nas linhas para selecionar e editar em lote</span>
+                  )}
                 </span>
                 <div className={cn("flex-1 min-w-[200px]", (isClosed || selectedIdxs.size === 0) && "pointer-events-none opacity-50")}>
                   <PersonSearchInput
