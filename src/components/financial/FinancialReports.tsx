@@ -220,12 +220,16 @@ export function FinancialReports() {
 
         // Fetch expenses without date filter (installments may shift due dates)
         let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
-        if (filters.planoContasId !== "todos") {
+        if (filters.planoContasId === "sem_classificacao") {
+          q = q.is("plano_contas_id", null);
+        } else if (filters.planoContasId !== "todos") {
           const ids = resolvePlanoSubtree(filters.planoContasId);
           if (ids.length > 1) q = q.in("plano_contas_id", ids);
           else q = q.eq("plano_contas_id", filters.planoContasId);
         }
-        if (filters.planoContasExcetoId !== "todos") {
+        if (filters.planoContasExcetoId === "sem_classificacao") {
+          q = q.not("plano_contas_id", "is", null);
+        } else if (filters.planoContasExcetoId !== "todos") {
           const exIds = resolvePlanoSubtree(filters.planoContasExcetoId);
           if (exIds.length > 1) q = q.or(`plano_contas_id.is.null,plano_contas_id.not.in.(${exIds.join(",")})`);
           else q = q.or(`plano_contas_id.is.null,plano_contas_id.neq.${filters.planoContasExcetoId}`);
