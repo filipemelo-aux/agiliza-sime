@@ -681,9 +681,19 @@ export function DreGerencial() {
               </Button>
             </div>
             {generated && (
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 flex-wrap">
                 <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={expandAll}>Expandir</Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={collapseAll}>Recolher</Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 text-xs w-full gap-1"
+                  onClick={runAudit}
+                  disabled={auditLoading}
+                >
+                  {auditLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanSearch className="h-3.5 w-3.5" />}
+                  Auditoria de Divergências (Cartão × DRE)
+                </Button>
               </div>
             )}
           </div>
