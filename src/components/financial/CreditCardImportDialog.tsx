@@ -103,6 +103,29 @@ interface Props {
   invoiceId?: string | null;
 }
 
+function SortHeader<K extends string>({ label, sortKey, sort, toggle }: {
+  label: string;
+  sortKey: K;
+  sort: SortState<K>;
+  toggle: (key: K) => void;
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <button
+      type="button"
+      onClick={() => toggle(sortKey)}
+      className="flex items-center gap-1 w-full text-left font-medium hover:text-primary transition-colors focus-visible:outline-none"
+    >
+      {label}
+      {active ? (
+        sort.direction === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+      ) : (
+        <ArrowUpDown className="w-3 h-3 text-muted-foreground/60" />
+      )}
+    </button>
+  );
+}
+
 export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId }: Props) {
   const { user } = useAuth();
   const { matrizId } = useUnifiedCompany();
