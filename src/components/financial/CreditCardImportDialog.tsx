@@ -1306,7 +1306,20 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   }, []);
 
   return (
-    <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
+    <TableRow
+      className={cn(
+        wasEdited ? "bg-success/10" : "bg-warning/10",
+        selected && "ring-1 ring-primary/40",
+        !isClosed && "cursor-pointer"
+      )}
+      onClick={(e) => {
+        if (isClosed) return;
+        const el = e.target as HTMLElement;
+        // Ignore clicks on interactive controls inside the row
+        if (el.closest('input, textarea, button, a, select, label, [role="combobox"], [role="button"], [role="option"], [data-radix-popper-content-wrapper]')) return;
+        onToggleSelected();
+      }}
+    >
       <TableCell className="px-1 py-1.5 align-middle">
         <Checkbox
           checked={selected}
