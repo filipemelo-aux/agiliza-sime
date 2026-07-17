@@ -17,6 +17,8 @@ interface ChartAccount {
   conta_pai_id: string | null;
 }
 
+type OrigemKind = "cartao" | "contas_pagar" | "direta";
+
 interface TreeNode {
   id: string; // account id or synthetic key
   codigo: string;
@@ -25,17 +27,25 @@ interface TreeNode {
   entradas: number;
   saidas: number;
   children: TreeNode[];
+  isOrigem?: boolean;
 }
 
 const UNCLASSIFIED_IN = "__unclassified_in__";
 const UNCLASSIFIED_OUT = "__unclassified_out__";
+
+const ORIGEM_LABEL: Record<OrigemKind, string> = {
+  cartao: "💳 Cartão de Crédito",
+  contas_pagar: "🧾 Contas a Pagar",
+  direta: "💸 Movimentação Direta",
+};
+const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
 
 export function DreGerencial() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [movs, setMovs] = useState<Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null }>>([]);
+  const [movs, setMovs] = useState<Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }>>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [generated, setGenerated] = useState(false);
 
@@ -185,7 +195,8 @@ export function DreGerencial() {
 
       const filtered = list.filter((m) => !isCcInvoicePayment(m));
 
-      const enriched = filtered.map((m) => {
+      const CONTAS_PAGAR_ORIGENS = new Set(["despesas", "pagamento_despesa", "pagamento_agrupado", "contas_pagar"]);
+      const enriched: Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }> = filtered.map((m) => {
         let pid: string | null = m.plano_contas_id || null;
         if (!pid) {
           if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
@@ -195,10 +206,12 @@ export function DreGerencial() {
           else if (m.origem === "contas_receber") pid = planoByContaReceber.get(m.origem_id) || null;
           else if (m.origem === "recebimento_conta_receber") pid = planoByRecebParcial.get(m.origem_id) || null;
         }
+        const origemKind: OrigemKind = CONTAS_PAGAR_ORIGENS.has(m.origem) ? "contas_pagar" : "direta";
         return {
           tipo: m.tipo as "entrada" | "saida",
           valor: Number(m.valor) || 0,
           planoId: pid,
+          origem: origemKind,
         };
       });
 
@@ -224,6 +237,7 @@ export function DreGerencial() {
             tipo: val < 0 ? "entrada" : "saida",
             valor: Math.abs(val),
             planoId: it.plano_contas_id || null,
+            origem: "cartao",
           });
         });
       }
@@ -289,19 +303,37 @@ export function DreGerencial() {
 
     let tEnt = 0;
     let tSai = 0;
-    // Unclassified buckets
-    let unclassifiedEnt = 0;
-    let unclassifiedSai = 0;
+    // Unclassified buckets (by origem)
+    const unclassifiedEnt: Record<OrigemKind, number> = { cartao: 0, contas_pagar: 0, direta: 0 };
+    const unclassifiedSai: Record<OrigemKind, number> = { cartao: 0, contas_pagar: 0, direta: 0 };
+    // Origem breakdown by leaf account id → tipo → origem → valor
+    const leafOrigemMap = new Map<string, { entradas: Record<OrigemKind, number>; saidas: Record<OrigemKind, number> }>();
+    const ensureLeafBucket = (aid: string) => {
+      let b = leafOrigemMap.get(aid);
+      if (!b) {
+        b = {
+          entradas: { cartao: 0, contas_pagar: 0, direta: 0 },
+          saidas: { cartao: 0, contas_pagar: 0, direta: 0 },
+        };
+        leafOrigemMap.set(aid, b);
+      }
+      return b;
+    };
 
     movs.forEach((m) => {
       if (m.tipo === "entrada") tEnt += m.valor;
       else tSai += m.valor;
 
       if (!m.planoId || !accountsById.has(m.planoId)) {
-        if (m.tipo === "entrada") unclassifiedEnt += m.valor;
-        else unclassifiedSai += m.valor;
+        if (m.tipo === "entrada") unclassifiedEnt[m.origem] += m.valor;
+        else unclassifiedSai[m.origem] += m.valor;
         return;
       }
+      // Accumulate origem on the target account (which is a chart-of-accounts leaf in practice)
+      const bucket = ensureLeafBucket(m.planoId);
+      if (m.tipo === "entrada") bucket.entradas[m.origem] += m.valor;
+      else bucket.saidas[m.origem] += m.valor;
+
       ancestorsOf(m.planoId).forEach((aid) => {
         const n = nodeMap.get(aid);
         if (!n) return;
@@ -310,29 +342,63 @@ export function DreGerencial() {
       });
     });
 
+    // Attach origem synthetic children to accounts that already are leaves in the chart
+    leafOrigemMap.forEach((bucket, aid) => {
+      const n = nodeMap.get(aid);
+      if (!n) return;
+      if (n.children.length > 0) return; // only chart-of-accounts leaves get origem breakdown
+      ORIGEM_ORDER.forEach((ok) => {
+        const ent = bucket.entradas[ok];
+        const sai = bucket.saidas[ok];
+        if (ent === 0 && sai === 0) return;
+        n.children.push({
+          id: `${aid}__origem__${ok}`,
+          codigo: "",
+          nome: ORIGEM_LABEL[ok],
+          level: n.level + 1,
+          entradas: ent,
+          saidas: sai,
+          children: [],
+          isOrigem: true,
+        });
+      });
+    });
+
     const finalRoots: TreeNode[] = [...roots];
-    if (unclassifiedEnt > 0) {
-      finalRoots.push({
-        id: UNCLASSIFIED_IN,
+    const buildUnclassifiedNode = (
+      id: string,
+      nome: string,
+      totals: Record<OrigemKind, number>,
+      tipo: "entrada" | "saida",
+    ): TreeNode | null => {
+      const sum = totals.cartao + totals.contas_pagar + totals.direta;
+      if (sum === 0) return null;
+      const children: TreeNode[] = ORIGEM_ORDER
+        .filter((ok) => totals[ok] > 0)
+        .map((ok) => ({
+          id: `${id}__origem__${ok}`,
+          codigo: "",
+          nome: ORIGEM_LABEL[ok],
+          level: 1,
+          entradas: tipo === "entrada" ? totals[ok] : 0,
+          saidas: tipo === "saida" ? totals[ok] : 0,
+          children: [],
+          isOrigem: true,
+        }));
+      return {
+        id,
         codigo: "—",
-        nome: "Entradas sem plano de contas",
+        nome,
         level: 0,
-        entradas: unclassifiedEnt,
-        saidas: 0,
-        children: [],
-      });
-    }
-    if (unclassifiedSai > 0) {
-      finalRoots.push({
-        id: UNCLASSIFIED_OUT,
-        codigo: "—",
-        nome: "Saídas sem plano de contas",
-        level: 0,
-        entradas: 0,
-        saidas: unclassifiedSai,
-        children: [],
-      });
-    }
+        entradas: tipo === "entrada" ? sum : 0,
+        saidas: tipo === "saida" ? sum : 0,
+        children,
+      };
+    };
+    const uEnt = buildUnclassifiedNode(UNCLASSIFIED_IN, "Entradas sem plano de contas", unclassifiedEnt, "entrada");
+    const uSai = buildUnclassifiedNode(UNCLASSIFIED_OUT, "Saídas sem plano de contas", unclassifiedSai, "saida");
+    if (uEnt) finalRoots.push(uEnt);
+    if (uSai) finalRoots.push(uSai);
 
     // Filter out roots with zero movement (both entradas & saidas)
     const prune = (n: TreeNode): TreeNode | null => {
@@ -363,7 +429,9 @@ export function DreGerencial() {
   const renderRow = (n: TreeNode): JSX.Element[] => {
     const isOpen = expanded[n.id] ?? n.level === 0;
     const hasChildren = n.children.length > 0;
-    const isRevenueBranch = n.codigo.startsWith("3") || n.id === UNCLASSIFIED_IN;
+    const isRevenueBranch = n.isOrigem
+      ? n.entradas > n.saidas
+      : (n.codigo.startsWith("1") || n.codigo.startsWith("3") || n.id === UNCLASSIFIED_IN);
     const valor = isRevenueBranch ? n.entradas : n.saidas;
     const rows: JSX.Element[] = [
       <tr
@@ -371,7 +439,8 @@ export function DreGerencial() {
         className={cn(
           "border-b border-border/60 hover:bg-muted/30",
           n.level === 0 && "bg-muted/40 font-bold",
-          n.level === 1 && "font-semibold",
+          n.level === 1 && !n.isOrigem && "font-semibold",
+          n.isOrigem && "bg-muted/10 italic text-muted-foreground",
         )}
       >
         <td className="px-2 py-1.5" style={{ paddingLeft: `${8 + n.level * 16}px` }}>
@@ -383,8 +452,10 @@ export function DreGerencial() {
             ) : (
               <span className="w-4" />
             )}
-            <span className="text-xs tabular-nums text-muted-foreground w-16 shrink-0">{n.codigo}</span>
-            <span className="text-xs truncate">{n.nome}</span>
+            {!n.isOrigem && (
+              <span className="text-xs tabular-nums text-muted-foreground w-16 shrink-0">{n.codigo}</span>
+            )}
+            <span className={cn("text-xs truncate", n.isOrigem && "ml-16")}>{n.nome}</span>
           </div>
         </td>
         <td className={cn("px-3 py-1.5 text-right tabular-nums text-xs whitespace-nowrap", isRevenueBranch ? "text-green-600" : "text-red-600")}>
