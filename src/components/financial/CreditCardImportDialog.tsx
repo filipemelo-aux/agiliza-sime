@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
