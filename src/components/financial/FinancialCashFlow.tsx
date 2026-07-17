@@ -333,6 +333,38 @@ export function FinancialCashFlow() {
     loadMovimentacoes();
   };
 
+  const planoAccountsMap = useMemo(() => new Map<string, any>(chartAccounts.map((c: any) => [c.id, c])), [chartAccounts]);
+
+  const canEditPlano = (m: MovimentacaoEnriquecida) =>
+    ["contas_pagar", "despesas", "pagamento_despesa", "manual"].includes(m.origem);
+
+  const savePlanoClassificacao = async (m: MovimentacaoEnriquecida, planoId: string) => {
+    try {
+      if (m.origem === "contas_pagar") {
+        const { error } = await supabase.from("accounts_payable").update({ category_id: planoId }).eq("id", m.origem_id);
+        if (error) throw error;
+      } else if (m.origem === "despesas") {
+        const { error } = await supabase.from("expenses").update({ plano_contas_id: planoId }).eq("id", m.origem_id);
+        if (error) throw error;
+      } else if (m.origem === "pagamento_despesa") {
+        const { data: ep } = await supabase.from("expense_payments").select("expense_id").eq("id", m.origem_id).single();
+        if (!ep?.expense_id) throw new Error("Despesa vinculada não localizada");
+        const { error } = await supabase.from("expenses").update({ plano_contas_id: planoId }).eq("id", ep.expense_id);
+        if (error) throw error;
+      } else if (m.origem === "manual") {
+        const { error } = await supabase.from("movimentacoes_bancarias").update({ plano_contas_id: planoId } as any).eq("id", m.id);
+        if (error) throw error;
+      } else {
+        throw new Error("Origem não suporta classificação rápida");
+      }
+      toast.success("Plano de contas atualizado");
+      setEditPlanoMov(null);
+      loadMovimentacoes();
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    }
+  };
+
 
 
   return (
