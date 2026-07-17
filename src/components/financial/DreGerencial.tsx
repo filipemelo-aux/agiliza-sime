@@ -5,12 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, ChevronRight, ChevronDown, Eye } from "lucide-react";
+import { Loader2, Search, ChevronRight, ChevronDown, Eye, Download, ScanSearch } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { exportToCsv } from "@/lib/csvExport";
 
 interface ChartAccount {
   id: string;
@@ -29,6 +30,7 @@ interface MovDetail {
   data: string | null;
   descricao: string;
   parcela: string; // "X/Y" or "—"
+  itemId?: string; // credit_card_invoice_items.id (only for origem === "cartao")
 }
 
 interface TreeNode {
@@ -64,6 +66,18 @@ export function DreGerencial() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [generated, setGenerated] = useState(false);
   const [drill, setDrill] = useState<{ title: string; rows: MovDetail[] } | null>(null);
+
+  interface AuditRow {
+    id: string;
+    posted_date: string | null;
+    description: string;
+    amount: number;
+    parcela: string;
+    invoice_label: string;
+    reason: string;
+  }
+  const [audit, setAudit] = useState<{ missing: AuditRow[]; extra: AuditRow[]; totalCc: number; totalDre: number } | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     supabase
@@ -229,7 +243,7 @@ export function DreGerencial() {
       if (closedInvoiceIds.length > 0) {
         let itemsQ: any = supabase
           .from("credit_card_invoice_items")
-          .select("amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
+          .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
           .in("invoice_id", closedInvoiceIds);
         if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
         if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
@@ -251,6 +265,7 @@ export function DreGerencial() {
             data: it.posted_date || null,
             descricao: it.description || "—",
             parcela: parcelaLabel,
+            itemId: it.id,
           });
         });
       }
@@ -439,6 +454,135 @@ export function DreGerencial() {
     });
   }, [movs, chartAccounts]);
 
+  const exportDrillCsv = useCallback(() => {
+    if (!drill) return;
+    const rows = drill.rows.map((r) => ({
+      data: r.data ? formatDateBR(r.data) : "",
+      descricao: r.descricao,
+      parcela: r.parcela,
+      valor: r.valor.toFixed(2).replace(".", ","),
+    }));
+    const filename = `dre-drill-${drill.title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}-${dataInicio}_${dataFim}.csv`;
+    exportToCsv(filename, rows, [
+      { key: "data", label: "Data" },
+      { key: "descricao", label: "Descrição" },
+      { key: "parcela", label: "Parcela" },
+      { key: "valor", label: "Valor" },
+    ]);
+  }, [drill, dataInicio, dataFim]);
+
+  const runAudit = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      // 1) Buscar TODOS os itens de cartão do período (fonte "módulo Cartão")
+      const { data: invs } = await supabase
+        .from("credit_card_invoices")
+        .select("id, card_name, reference_label, expense_id, deleted_at")
+        .is("deleted_at", null);
+      const invMap = new Map<string, { label: string; closed: boolean }>();
+      (invs || []).forEach((inv: any) => {
+        invMap.set(inv.id, {
+          label: `${inv.card_name || "—"}${inv.reference_label ? " • " + inv.reference_label : ""}`,
+          closed: !!inv.expense_id,
+        });
+      });
+      const invIds = Array.from(invMap.keys());
+      if (invIds.length === 0) {
+        setAudit({ missing: [], extra: [], totalCc: 0, totalDre: 0 });
+        return;
+      }
+      let q: any = supabase
+        .from("credit_card_invoice_items")
+        .select("id, invoice_id, amount, ignored, posted_date, description, parcela_atual, parcela_total")
+        .in("invoice_id", invIds);
+      if (dataInicio) q = q.gte("posted_date", dataInicio);
+      if (dataFim) q = q.lte("posted_date", dataFim);
+      const { data: items, error } = await q.limit(20000);
+      if (error) throw error;
+
+      const dreItemIds = new Set<string>(
+        movs.filter((m) => m.origem === "cartao" && m.itemId).map((m) => m.itemId as string),
+      );
+
+      const ccRows: AuditRow[] = [];
+      const dreExpected = new Set<string>();
+      let totalCc = 0;
+      (items || []).forEach((it: any) => {
+        const val = Math.abs(Number(it.amount) || 0);
+        if (val === 0) return;
+        totalCc += val;
+        const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
+        const atual = Number(it.parcela_atual) || 0;
+        const total = Number(it.parcela_total) || 0;
+        const parcela = total > 0 ? `${atual}/${total}` : "à vista";
+
+        const reasons: string[] = [];
+        if (it.ignored) reasons.push("Item marcado como Ignorado");
+        if (!inv.closed) reasons.push("Fatura ainda em aberto (sem despesa gerada)");
+        if (total > 0 && atual !== 1) reasons.push(`Parcela ${atual}/${total} (só a 1ª parcela entra na competência)`);
+
+        const row: AuditRow = {
+          id: it.id,
+          posted_date: it.posted_date,
+          description: it.description || "—",
+          amount: val,
+          parcela,
+          invoice_label: inv.label,
+          reason: reasons.join(" • ") || "OK — deveria estar na DRE",
+        };
+        ccRows.push(row);
+        if (reasons.length === 0) dreExpected.add(it.id);
+      });
+
+      const missing: AuditRow[] = ccRows.filter((r) => !dreItemIds.has(r.id));
+      // "extra": itens que a DRE contou mas que NÃO aparecem no módulo (período/filtro)
+      const ccIds = new Set(ccRows.map((r) => r.id));
+      const extra: AuditRow[] = [];
+      movs
+        .filter((m) => m.origem === "cartao" && m.itemId && !ccIds.has(m.itemId))
+        .forEach((m) => {
+          extra.push({
+            id: m.itemId as string,
+            posted_date: m.data,
+            description: m.descricao,
+            amount: m.valor,
+            parcela: m.parcela,
+            invoice_label: "—",
+            reason: "Presente na DRE mas fora do período no módulo Cartão",
+          });
+        });
+
+      let totalDre = 0;
+      movs.forEach((m) => { if (m.origem === "cartao") totalDre += m.valor; });
+
+      setAudit({ missing, extra, totalCc, totalDre });
+    } catch (e: any) {
+      toast.error("Erro na auditoria", { description: e.message });
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [dataInicio, dataFim, movs]);
+
+  const exportAuditCsv = useCallback((rows: AuditRow[], suffix: string) => {
+    const mapped = rows.map((r) => ({
+      data: r.posted_date ? formatDateBR(r.posted_date) : "",
+      descricao: r.description,
+      parcela: r.parcela,
+      fatura: r.invoice_label,
+      valor: r.amount.toFixed(2).replace(".", ","),
+      motivo: r.reason,
+    }));
+    exportToCsv(`auditoria-${suffix}-${dataInicio}_${dataFim}.csv`, mapped, [
+      { key: "data", label: "Data" },
+      { key: "descricao", label: "Descrição" },
+      { key: "parcela", label: "Parcela" },
+      { key: "fatura", label: "Fatura" },
+      { key: "valor", label: "Valor" },
+      { key: "motivo", label: "Motivo" },
+    ]);
+  }, [dataInicio, dataFim]);
+
+
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
   const expandAll = () => {
@@ -537,9 +681,19 @@ export function DreGerencial() {
               </Button>
             </div>
             {generated && (
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 flex-wrap">
                 <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={expandAll}>Expandir</Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={collapseAll}>Recolher</Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 text-xs w-full gap-1"
+                  onClick={runAudit}
+                  disabled={auditLoading}
+                >
+                  {auditLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanSearch className="h-3.5 w-3.5" />}
+                  Auditoria de Divergências (Cartão × DRE)
+                </Button>
               </div>
             )}
           </div>
@@ -595,7 +749,12 @@ export function DreGerencial() {
       <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-sm">{drill?.title}</DialogTitle>
+            <DialogTitle className="text-sm flex items-center justify-between gap-2 pr-6">
+              <span>{drill?.title}</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={exportDrillCsv} disabled={!drill?.rows.length}>
+                <Download className="h-3 w-3" /> Exportar CSV
+              </Button>
+            </DialogTitle>
             <DialogDescription className="text-xs">
               {drill?.rows.length ?? 0} lançamento(s) — Total{" "}
               <b>{formatCurrency((drill?.rows || []).reduce((s, r) => s + r.valor, 0))}</b>
@@ -628,6 +787,94 @@ export function DreGerencial() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!audit} onOpenChange={(o) => !o && setAudit(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Auditoria de Divergências — Cartão × DRE</DialogTitle>
+            <DialogDescription className="text-xs">
+              Período {formatDateBR(dataInicio)} até {formatDateBR(dataFim)} • Cartão:{" "}
+              <b>{formatCurrency(audit?.totalCc || 0)}</b> • DRE:{" "}
+              <b>{formatCurrency(audit?.totalDre || 0)}</b> • Diferença:{" "}
+              <b className={cn((audit && (audit.totalCc - audit.totalDre) !== 0) && "text-red-600")}>
+                {formatCurrency((audit?.totalCc || 0) - (audit?.totalDre || 0))}
+              </b>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto space-y-4">
+            <section className="space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-red-700">
+                  ❌ Faltando na DRE ({audit?.missing.length ?? 0}) — Total{" "}
+                  {formatCurrency((audit?.missing || []).reduce((s, r) => s + r.amount, 0))}
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => audit && exportAuditCsv(audit.missing, "faltando-na-dre")}
+                  disabled={!audit?.missing.length}
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </Button>
+              </div>
+              <AuditTable rows={audit?.missing || []} />
+            </section>
+            <section className="space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-amber-700">
+                  ⚠️ Sobrando na DRE ({audit?.extra.length ?? 0}) — Total{" "}
+                  {formatCurrency((audit?.extra || []).reduce((s, r) => s + r.amount, 0))}
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => audit && exportAuditCsv(audit.extra, "sobrando-na-dre")}
+                  disabled={!audit?.extra.length}
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </Button>
+              </div>
+              <AuditTable rows={audit?.extra || []} />
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AuditTable({ rows }: { rows: Array<{
+  id: string; posted_date: string | null; description: string; amount: number; parcela: string; invoice_label: string; reason: string;
+}> }) {
+  if (!rows.length) {
+    return <div className="text-[11px] text-muted-foreground px-2 py-3 border rounded bg-muted/20">Nenhum item.</div>;
+  }
+  return (
+    <div className="border rounded overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40 text-muted-foreground">
+          <tr className="text-left">
+            <th className="px-2 py-1.5 font-medium w-24">Data</th>
+            <th className="px-2 py-1.5 font-medium">Descrição</th>
+            <th className="px-2 py-1.5 font-medium w-20 text-center">Parcela</th>
+            <th className="px-2 py-1.5 font-medium w-24 text-right">Valor</th>
+            <th className="px-2 py-1.5 font-medium">Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-t border-border/60">
+              <td className="px-2 py-1.5 tabular-nums">{r.posted_date ? formatDateBR(r.posted_date) : "—"}</td>
+              <td className="px-2 py-1.5 truncate max-w-[260px]" title={r.description}>{r.description}</td>
+              <td className="px-2 py-1.5 text-center tabular-nums">{r.parcela}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(r.amount)}</td>
+              <td className="px-2 py-1.5 text-[11px] text-muted-foreground" title={r.invoice_label}>{r.reason}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

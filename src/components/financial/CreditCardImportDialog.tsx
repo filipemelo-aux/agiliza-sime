@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csvExport";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -1084,7 +1085,45 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
               </span>
             )}
-            <div className="ml-auto text-[11px] text-muted-foreground">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs ml-auto gap-1"
+              disabled={items.length === 0}
+              onClick={() => {
+                const chartById = new Map(chartAccounts.map((c) => [c.id, c] as const));
+                const rows = items.map((it) => {
+                  const p = it.plano_contas_id ? chartById.get(it.plano_contas_id) : null;
+                  const total = Number(it.parcela_total || 0);
+                  const atual = Number(it.parcela_atual || 0);
+                  return {
+                    data: it.posted_date ? formatDateBR(it.posted_date) : "",
+                    descricao: it.description,
+                    parcela: total > 0 ? `${atual}/${total}` : "",
+                    favorecido: it.favorecido_nome || "",
+                    plano_contas: p ? `${p.codigo} ${p.nome}` : "",
+                    centro_custo: it.centro_custo || "",
+                    valor: Number(it.amount || 0).toFixed(2).replace(".", ","),
+                    observacoes: it.observacoes || "",
+                  };
+                });
+                const label = (cardName || "cartao").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+                exportToCsv(`fatura-${label}-${referenceYM}.csv`, rows, [
+                  { key: "data", label: "Data" },
+                  { key: "descricao", label: "Descrição" },
+                  { key: "parcela", label: "Parcela" },
+                  { key: "favorecido", label: "Favorecido" },
+                  { key: "plano_contas", label: "Plano de Contas" },
+                  { key: "centro_custo", label: "Centro de Custo" },
+                  { key: "valor", label: "Valor" },
+                  { key: "observacoes", label: "Observações" },
+                ]);
+              }}
+            >
+              <Download className="w-3 h-3" /> Exportar CSV
+            </Button>
+            <div className="text-[11px] text-muted-foreground">
               Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
             </div>
           </div>
