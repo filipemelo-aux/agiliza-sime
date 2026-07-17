@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { exportToCsv } from "@/lib/csvExport";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 interface ChartAccount {
   id: string;
@@ -259,11 +260,15 @@ export function DreGerencial() {
             if (val === 0) return;
             const atual = Number(it.parcela_atual) || 0;
             const total = Number(it.parcela_total) || 0;
+            // REGIME DE COMPETÊNCIA PURA: só a 1ª parcela (ou compra à vista) entra,
+            // mas com o VALOR TOTAL da compra (parcela × nº de parcelas).
+            // Ex.: 10x de R$ 1.000 → competência lança R$ 10.000 no mês da compra.
             if (total > 0 && atual !== 1) return;
-            const parcelaLabel = total > 0 ? `${atual}/${total}` : "à vista";
+            const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
+            const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
             enriched.push({
               tipo: val < 0 ? "entrada" : "saida",
-              valor: Math.abs(val),
+              valor: valorCompetencia,
               planoId: it.plano_contas_id || null,
               origem: "cartao",
               data: it.posted_date || null,
@@ -556,9 +561,12 @@ export function DreGerencial() {
         // Parcelas 2/N, 3/N... pertencem à competência do mês da compra original.
         if (total > 0 && atual !== 1) return;
 
-        totalCc += val;
+        // Regime de competência: para parcelamentos, considerar o VALOR TOTAL
+        // da compra (parcela × N) no mês da compra original.
+        const competenciaVal = total > 0 ? val * total : val;
+        totalCc += competenciaVal;
         const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
-        const parcela = total > 0 ? `${atual}/${total}` : "à vista";
+        const parcela = total > 0 ? `1/${total} • total ${total}x` : "à vista";
 
         const reasons: string[] = [];
         if (it.ignored) reasons.push("Item marcado como Ignorado");
@@ -568,7 +576,7 @@ export function DreGerencial() {
           id: it.id,
           posted_date: it.posted_date,
           description: it.description || "—",
-          amount: val,
+          amount: competenciaVal,
           parcela,
           invoice_label: inv.label,
           reason: reasons.join(" • ") || "OK — deveria estar na DRE",
@@ -707,6 +715,10 @@ export function DreGerencial() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-bold text-foreground">DRE Gerencial</h1>
+        <ReportInfoTooltip text="Baseado em Regime de Competência (Data da Compra / Valor Total). Para parcelamentos, o valor total da compra é lançado no mês em que ocorreu — parcelas seguintes não aparecem em meses futuros." />
+      </div>
       <Card>
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
@@ -772,7 +784,7 @@ export function DreGerencial() {
           </div>
           <p className="text-[11px] text-muted-foreground">
             {regime === "competencia" ? (
-              <>Regime de <b>competência</b>: as compras do cartão entram pela <b>data original da compra</b> (posted_date) e apenas a <b>1ª parcela</b> (ou compras à vista) é considerada — parcelas seguintes de compras anteriores são ignoradas mesmo se a fatura for paga no período.</>
+              <>Regime de <b>competência pura</b>: compras do cartão entram pela <b>data original da compra</b> (posted_date). Compras parceladas são lançadas pelo <b>valor total</b> (parcela × N) no mês em que ocorreram — parcelas 2/N, 3/N... não aparecem em meses futuros.</>
             ) : (
               <>Regime de <b>caixa (fatura)</b>: as compras do cartão entram pelo <b>vencimento da fatura</b>, incluindo todas as parcelas — espelha o extrato do cartão. Útil para conciliar com o valor efetivamente debitado da conta.</>
             )}

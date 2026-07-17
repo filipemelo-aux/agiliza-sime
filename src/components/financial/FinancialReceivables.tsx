@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 interface ContaReceber {
   id: string;
@@ -114,7 +115,10 @@ export function FinancialReceivables() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-foreground">Contas a Receber</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-bold text-foreground">Contas a Receber</h1>
+        <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a receber. Ideal para gestão de cobranças e recebimentos pendentes." />
+      </div>
 
       {/* Summary cards - compact */}
       <div className="grid grid-cols-3 gap-2">
