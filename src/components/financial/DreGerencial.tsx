@@ -30,6 +30,7 @@ interface MovDetail {
   data: string | null;
   descricao: string;
   parcela: string; // "X/Y" or "—"
+  itemId?: string; // credit_card_invoice_items.id (only for origem === "cartao")
 }
 
 interface TreeNode {
