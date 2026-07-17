@@ -1301,23 +1301,37 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </Button>
             {!isClosed && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => persistInvoice(false)}
-                  disabled={saving || closing}
-                  className="h-9 text-xs"
-                >
-                  {saving ? "Salvando..." : "Salvar rascunho"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => persistInvoice(true)}
-                  disabled={saving || closing || items.length === 0}
-                  className="h-9 text-xs"
-                >
-                  {closing ? "Fechando..." : "Fechar fatura e enviar ao Contas a Pagar"}
-                </Button>
+                {existingStatus === "fechada" ? (
+                  <Button
+                    size="sm"
+                    onClick={() => persistInvoice(true)}
+                    disabled={saving || closing || items.length === 0}
+                    className="h-9 text-xs"
+                    title="A fatura permanece fechada e o Contas a Pagar é atualizado."
+                  >
+                    {closing ? "Salvando..." : "Salvar alterações (mantém fechada)"}
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => persistInvoice(false)}
+                      disabled={saving || closing}
+                      className="h-9 text-xs"
+                    >
+                      {saving ? "Salvando..." : "Salvar rascunho"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => persistInvoice(true)}
+                      disabled={saving || closing || items.length === 0}
+                      className="h-9 text-xs"
+                    >
+                      {closing ? "Fechando..." : "Fechar fatura e enviar ao Contas a Pagar"}
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
