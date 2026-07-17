@@ -172,6 +172,26 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
           </Select>
         </div>
 
+        {/* Plano de contas filter */}
+        {chartAccounts && (
+          <div className="min-w-[220px]">
+            <Label className="text-xs text-muted-foreground">Plano de Contas</Label>
+            <PlanoContasCombobox
+              value={filters.planoContasId}
+              onChange={(v) => update({ planoContasId: v })}
+              options={chartAccounts}
+              size="sm"
+              includeAll
+              allValue="todos"
+              allLabel="Todos"
+              placeholder="Todos"
+              includeSemClassificacao
+              allowCreate={false}
+            />
+          </div>
+        )}
+
+
         {/* Advanced toggle */}
         <Button
           variant={hasAdvancedFilters ? "secondary" : "ghost"}
