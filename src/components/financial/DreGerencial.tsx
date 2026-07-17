@@ -259,11 +259,15 @@ export function DreGerencial() {
             if (val === 0) return;
             const atual = Number(it.parcela_atual) || 0;
             const total = Number(it.parcela_total) || 0;
+            // REGIME DE COMPETÊNCIA PURA: só a 1ª parcela (ou compra à vista) entra,
+            // mas com o VALOR TOTAL da compra (parcela × nº de parcelas).
+            // Ex.: 10x de R$ 1.000 → competência lança R$ 10.000 no mês da compra.
             if (total > 0 && atual !== 1) return;
-            const parcelaLabel = total > 0 ? `${atual}/${total}` : "à vista";
+            const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
+            const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
             enriched.push({
               tipo: val < 0 ? "entrada" : "saida",
-              valor: Math.abs(val),
+              valor: valorCompetencia,
               planoId: it.plano_contas_id || null,
               origem: "cartao",
               data: it.posted_date || null,
