@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, ChevronRight, ChevronDown } from "lucide-react";
+import { Loader2, Search, ChevronRight, ChevronDown, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -464,17 +464,21 @@ export function DreGerencial() {
     const rows: JSX.Element[] = [
       <tr
         key={n.id}
+        onClick={n.isOrigem ? () => openDrill(n) : undefined}
         className={cn(
           "border-b border-border/60 hover:bg-muted/30",
           n.level === 0 && "bg-muted/40 font-bold",
           n.level === 1 && !n.isOrigem && "font-semibold",
-          n.isOrigem && "bg-muted/10 italic text-muted-foreground",
+          n.isOrigem && "bg-blue-50/60 dark:bg-blue-950/20 cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30",
         )}
       >
         <td className="px-2 py-1.5" style={{ paddingLeft: `${8 + n.level * 16}px` }}>
           <div className="flex items-center gap-1">
             {hasChildren ? (
-              <button onClick={() => toggle(n.id)} className="p-0.5 hover:bg-muted rounded">
+              <button
+                onClick={(e) => { e.stopPropagation(); toggle(n.id); }}
+                className="p-0.5 hover:bg-muted rounded"
+              >
                 {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               </button>
             ) : (
@@ -483,15 +487,22 @@ export function DreGerencial() {
             {!n.isOrigem && (
               <span className="text-xs tabular-nums text-muted-foreground w-16 shrink-0">{n.codigo}</span>
             )}
-            <span className={cn("text-xs truncate", n.isOrigem && "ml-16")}>{n.nome}</span>
+            <span className={cn("text-xs truncate flex items-center gap-1.5", n.isOrigem && "ml-16 font-medium text-blue-700 dark:text-blue-300")}>
+              {n.nome}
+              {n.isOrigem && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] uppercase tracking-wide bg-blue-600 text-white px-1.5 py-0.5 rounded">
+                  <Eye className="h-2.5 w-2.5" /> ver
+                </span>
+              )}
+            </span>
           </div>
         </td>
         <td className={cn("px-3 py-1.5 text-right tabular-nums text-xs whitespace-nowrap", isRevenueBranch ? "text-green-600" : "text-red-600")}>
           {n.isOrigem ? (
             <button
-              onClick={() => openDrill(n)}
-              className="hover:underline focus:underline focus:outline-none"
-              title="Ver lançamentos"
+              onClick={(e) => { e.stopPropagation(); openDrill(n); }}
+              className="underline decoration-dotted underline-offset-2 hover:decoration-solid font-semibold focus:outline-none"
+              title="Ver lançamentos detalhados"
             >
               {formatCurrency(valor)}
             </button>
