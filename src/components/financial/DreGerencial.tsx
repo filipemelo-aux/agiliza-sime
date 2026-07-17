@@ -231,7 +231,7 @@ export function DreGerencial() {
       if (closedInvoiceIds.length > 0) {
         let itemsQ: any = supabase
           .from("credit_card_invoice_items")
-          .select("amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
+          .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
           .in("invoice_id", closedInvoiceIds);
         if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
         if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
@@ -253,6 +253,7 @@ export function DreGerencial() {
             data: it.posted_date || null,
             descricao: it.description || "—",
             parcela: parcelaLabel,
+            itemId: it.id,
           });
         });
       }
