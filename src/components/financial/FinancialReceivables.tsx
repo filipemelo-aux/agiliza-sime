@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 interface ContaReceber {
   id: string;
