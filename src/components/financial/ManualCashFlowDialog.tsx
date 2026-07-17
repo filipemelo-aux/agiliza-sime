@@ -71,6 +71,7 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
     const valorNum = Number(unmaskCurrency(valor));
     if (!valorNum || valorNum <= 0) { toast.error("Informe um valor válido"); return; }
     if (!descricao.trim()) { toast.error("Informe uma descrição"); return; }
+    if (!planoContasId) { toast.error("Selecione o plano de contas — nenhum lançamento pode ser registrado sem classificação"); return; }
 
     setSaving(true);
     const { error } = await supabase.from("movimentacoes_bancarias").insert({
@@ -80,11 +81,11 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
       valor: valorNum,
       data_movimentacao: format(data, "yyyy-MM-dd"),
       descricao: descricao.trim(),
-      plano_contas_id: planoContasId || null,
+      plano_contas_id: planoContasId,
     } as any);
 
     if (error) {
-      toast.error("Erro ao salvar movimentação");
+      toast.error("Erro ao salvar movimentação", { description: error.message });
       console.error(error);
     } else {
       toast.success("Movimentação registrada com sucesso");
