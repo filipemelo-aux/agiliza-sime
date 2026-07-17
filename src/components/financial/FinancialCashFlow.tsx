@@ -583,6 +583,41 @@ export function FinancialCashFlow() {
         chartAccounts={chartAccounts}
       />
       {ConfirmDialog}
+
+      <Dialog open={!!editPlanoMov} onOpenChange={(o) => !o && setEditPlanoMov(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Forçar Classificação</DialogTitle>
+          </DialogHeader>
+          {editPlanoMov && (
+            <div className="space-y-3">
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p><strong>Data:</strong> {formatDateBR(editPlanoMov.data_movimentacao)}</p>
+                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem)}</p>
+                {editPlanoMov.descricao && <p><strong>Descrição:</strong> {editPlanoMov.descricao}</p>}
+                <p><strong>Valor:</strong> {formatCurrency(Number(editPlanoMov.valor))}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium">Plano de Contas</label>
+                <PlanoContasCombobox
+                  value={editPlanoMov.plano_resolved_id || null}
+                  onChange={(v) => savePlanoClassificacao(editPlanoMov, v)}
+                  options={chartAccounts}
+                  size="sm"
+                  placeholder="Selecione a conta..."
+                  defaultTipo={editPlanoMov.tipo === "entrada" ? "receita" : "despesa"}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem)}) e refletirá em todos os relatórios.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditPlanoMov(null)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
