@@ -24,6 +24,7 @@ import { PaymentDischargeDialog, type InstallmentContext } from "./PaymentDischa
 import { BatchPaymentDialog, type BatchItem } from "./BatchPaymentDialog";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 /**
  * Flexible value matching: digits-only comparison + numeric equality.
