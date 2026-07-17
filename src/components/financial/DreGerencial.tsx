@@ -560,9 +560,12 @@ export function DreGerencial() {
         // Parcelas 2/N, 3/N... pertencem à competência do mês da compra original.
         if (total > 0 && atual !== 1) return;
 
-        totalCc += val;
+        // Regime de competência: para parcelamentos, considerar o VALOR TOTAL
+        // da compra (parcela × N) no mês da compra original.
+        const competenciaVal = total > 0 ? val * total : val;
+        totalCc += competenciaVal;
         const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
-        const parcela = total > 0 ? `${atual}/${total}` : "à vista";
+        const parcela = total > 0 ? `1/${total} • total ${total}x` : "à vista";
 
         const reasons: string[] = [];
         if (it.ignored) reasons.push("Item marcado como Ignorado");
@@ -572,7 +575,7 @@ export function DreGerencial() {
           id: it.id,
           posted_date: it.posted_date,
           description: it.description || "—",
-          amount: val,
+          amount: competenciaVal,
           parcela,
           invoice_label: inv.label,
           reason: reasons.join(" • ") || "OK — deveria estar na DRE",
