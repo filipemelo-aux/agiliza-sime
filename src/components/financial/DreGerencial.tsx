@@ -17,6 +17,8 @@ interface ChartAccount {
   conta_pai_id: string | null;
 }
 
+type OrigemKind = "cartao" | "contas_pagar" | "direta";
+
 interface TreeNode {
   id: string; // account id or synthetic key
   codigo: string;
@@ -25,17 +27,25 @@ interface TreeNode {
   entradas: number;
   saidas: number;
   children: TreeNode[];
+  isOrigem?: boolean;
 }
 
 const UNCLASSIFIED_IN = "__unclassified_in__";
 const UNCLASSIFIED_OUT = "__unclassified_out__";
+
+const ORIGEM_LABEL: Record<OrigemKind, string> = {
+  cartao: "💳 Cartão de Crédito",
+  contas_pagar: "🧾 Contas a Pagar",
+  direta: "💸 Movimentação Direta",
+};
+const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
 
 export function DreGerencial() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [movs, setMovs] = useState<Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null }>>([]);
+  const [movs, setMovs] = useState<Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }>>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [generated, setGenerated] = useState(false);
 
