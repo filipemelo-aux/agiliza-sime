@@ -501,12 +501,15 @@ export function FinancialCashFlow() {
                     <TableHead className="text-xs">Origem</TableHead>
                     <TableHead className="text-xs">Cliente / Fornecedor</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs">Plano de Contas</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movimentacoes.map((m) => (
+                  {movimentacoes.map((m) => {
+                    const plano = m.plano_resolved_id ? planoAccountsMap.get(m.plano_resolved_id) : null;
+                    return (
                     <TableRow key={m.id}>
                       <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(m.data_movimentacao)}</TableCell>
                       <TableCell className="py-2">
@@ -517,6 +520,26 @@ export function FinancialCashFlow() {
                       <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
                       <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs max-w-[200px] py-2">
+                        {plano ? (
+                          <button
+                            type="button"
+                            className="text-left hover:underline truncate block w-full"
+                            onClick={() => canEditPlano(m) && setEditPlanoMov(m)}
+                            disabled={!canEditPlano(m)}
+                            title={canEditPlano(m) ? "Clique para reclassificar" : ""}
+                          >
+                            <span className="font-mono text-[10px] mr-1 text-muted-foreground">{plano.codigo}</span>
+                            {plano.nome}
+                          </button>
+                        ) : canEditPlano(m) ? (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-amber-600 hover:text-amber-700" onClick={() => setEditPlanoMov(m)}>
+                            ⚠️ Sem classificação
+                          </Button>
+                        ) : (
+                          <span className="text-amber-600 text-[10px]">⚠️ Sem classificação</span>
+                        )}
+                      </TableCell>
                       <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
@@ -528,7 +551,8 @@ export function FinancialCashFlow() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
