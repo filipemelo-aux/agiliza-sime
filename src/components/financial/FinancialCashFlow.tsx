@@ -37,10 +37,12 @@ interface Movimentacao {
   data_movimentacao: string;
   descricao: string | null;
   created_at: string;
+  plano_contas_id?: string | null;
 }
 
 interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
+  plano_resolved_id: string | null;
 }
 
 export function FinancialCashFlow() {
@@ -50,6 +52,7 @@ export function FinancialCashFlow() {
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
+  const [editPlanoMov, setEditPlanoMov] = useState<MovimentacaoEnriquecida | null>(null);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
@@ -58,6 +61,7 @@ export function FinancialCashFlow() {
     valorMin: "",
     valorMax: "",
     quickPeriod: "mes_atual",
+    planoContasId: "todos",
   });
 
   useEffect(() => {
