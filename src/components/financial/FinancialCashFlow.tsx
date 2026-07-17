@@ -12,6 +12,8 @@ import { formatCurrency } from "@/lib/masks";
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
