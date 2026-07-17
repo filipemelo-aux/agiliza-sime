@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
+import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ChartAccount {
   id: string;
@@ -19,6 +21,16 @@ interface ChartAccount {
 
 type OrigemKind = "cartao" | "contas_pagar" | "direta";
 
+interface MovDetail {
+  tipo: "entrada" | "saida";
+  valor: number;
+  planoId: string | null;
+  origem: OrigemKind;
+  data: string | null;
+  descricao: string;
+  parcela: string; // "X/Y" or "—"
+}
+
 interface TreeNode {
   id: string; // account id or synthetic key
   codigo: string;
@@ -28,10 +40,13 @@ interface TreeNode {
   saidas: number;
   children: TreeNode[];
   isOrigem?: boolean;
+  origemKind?: OrigemKind;
+  leafId?: string | null; // account id (or null for unclassified) — used for drill-down
 }
 
 const UNCLASSIFIED_IN = "__unclassified_in__";
 const UNCLASSIFIED_OUT = "__unclassified_out__";
+const UNCLASSIFIED_KEY = "__unclassified__";
 
 const ORIGEM_LABEL: Record<OrigemKind, string> = {
   cartao: "💳 Cartão de Crédito",
@@ -45,9 +60,10 @@ export function DreGerencial() {
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
-  const [movs, setMovs] = useState<Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }>>([]);
+  const [movs, setMovs] = useState<MovDetail[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [generated, setGenerated] = useState(false);
+  const [drill, setDrill] = useState<{ title: string; rows: MovDetail[] } | null>(null);
 
   useEffect(() => {
     supabase
@@ -63,7 +79,7 @@ export function DreGerencial() {
       // 1) Read all bank movements in period (single source of truth for cash flow)
       let q: any = supabase
         .from("movimentacoes_bancarias")
-        .select("id, tipo, valor, plano_contas_id, origem, origem_id");
+        .select("id, tipo, valor, plano_contas_id, origem, origem_id, data_movimentacao, descricao");
       if (dataInicio) q = q.gte("data_movimentacao", dataInicio);
       if (dataFim) q = q.lte("data_movimentacao", dataFim);
       const { data, error } = await q.limit(20000);
@@ -71,15 +87,11 @@ export function DreGerencial() {
       const list = (data || []) as any[];
 
       // 2) Identify credit card invoice expenses (to explode into detailed items)
-      //    Any expense that is the "mother" of a credit_card_invoice must be excluded
-      //    from bank-movement aggregation and replaced by its individual items.
       const { data: ccInvoices } = await supabase
         .from("credit_card_invoices")
         .select("id, expense_id")
         .not("expense_id", "is", null);
       const ccExpenseIds = new Set<string>((ccInvoices || []).map((r: any) => r.expense_id));
-      const invoiceIdByExpenseId = new Map<string, string>();
-      (ccInvoices || []).forEach((r: any) => invoiceIdByExpenseId.set(r.expense_id, r.id));
 
       // 3) Enrich plano_contas_id for movements linked to expenses
       const payPaymentIds = list.filter((m) => m.origem === "pagamento_despesa" && !m.plano_contas_id).map((m) => m.origem_id);
@@ -103,14 +115,13 @@ export function DreGerencial() {
           ? supabase.from("expenses").select("id, plano_contas_id").in("id", despesasDirIds)
           : Promise.resolve({ data: [] as any[] } as any),
         contasReceberIds.length
-          ? supabase.from("contas_receber").select("id, fatura_id, fatura_previsoes:fatura_id(fatura_previsoes(previsao_id, previsoes_recebimento:previsao_id(origem_tipo)))").in("id", contasReceberIds)
+          ? supabase.from("contas_receber").select("id, fatura_id").in("id", contasReceberIds)
           : Promise.resolve({ data: [] as any[] } as any),
         recebParcialIds.length
           ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds)
           : Promise.resolve({ data: [] as any[] } as any),
       ]);
 
-      // Map revenue account by codigo (best-effort)
       const chartRes = await supabase.from("chart_of_accounts").select("id, codigo").in("codigo", ["1.1.01", "1.1.02"]);
       const revenueByCodigo = new Map<string, string>();
       (chartRes.data || []).forEach((c: any) => revenueByCodigo.set(c.codigo, c.id));
@@ -120,16 +131,12 @@ export function DreGerencial() {
         return null;
       };
 
-      // For contas_receber: resolve origem_tipo via first previsao in fatura
       const planoByContaReceber = new Map<string, string | null>();
-      // The nested embedding above may not always resolve reliably; fall back to explicit query.
-      let crFatMap = new Map<string, string>(); // conta_receber_id -> fatura_id
+      const crFatMap = new Map<string, string>();
       (contasReceberRes.data || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
-      // Also resolve for recebParcial → contas_receber
       const rpCrIds: string[] = Array.from(new Set(((recebParcialRes.data || []) as any[]).map((rp: any) => String(rp.conta_receber_id)).filter(Boolean)));
       if (rpCrIds.length > 0) {
         const { data: extraCr } = await supabase.from("contas_receber").select("id, fatura_id").in("id", rpCrIds);
-
         (extraCr || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
       }
       const allFaturaIds: string[] = Array.from(new Set(Array.from(crFatMap.values())));
@@ -170,9 +177,8 @@ export function DreGerencial() {
         planoByRecebParcial.set(rp.id, planoByContaReceber.get(rp.conta_receber_id) || null);
       });
 
-
       // 4) Filter out bank movements that represent the payment of a credit card
-      //    invoice's mother expense (to avoid double counting when we add item detail).
+      //    invoice's mother expense (avoid double-counting when adding CC item detail).
       const isCcInvoicePayment = (m: any): boolean => {
         if (m.origem === "contas_pagar" || m.origem === "despesas") {
           return ccExpenseIds.has(m.origem_id);
@@ -184,9 +190,6 @@ export function DreGerencial() {
         if (m.origem === "pagamento_agrupado") {
           const set = expensesByLote.get(m.origem_id);
           if (!set) return false;
-          // Only exclude if ALL expenses in the batch are CC-invoice mothers.
-          // Otherwise we'd wrongly drop mixed batches. For mixed batches we can't
-          // safely split, so keep the aggregate and skip CC-item explosion for those.
           for (const eid of set) if (!ccExpenseIds.has(eid)) return false;
           return set.size > 0;
         }
@@ -196,7 +199,7 @@ export function DreGerencial() {
       const filtered = list.filter((m) => !isCcInvoicePayment(m));
 
       const CONTAS_PAGAR_ORIGENS = new Set(["despesas", "pagamento_despesa", "pagamento_agrupado", "contas_pagar"]);
-      const enriched: Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }> = filtered.map((m) => {
+      const enriched: MovDetail[] = filtered.map((m) => {
         let pid: string | null = m.plano_contas_id || null;
         if (!pid) {
           if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
@@ -212,19 +215,21 @@ export function DreGerencial() {
           valor: Number(m.valor) || 0,
           planoId: pid,
           origem: origemKind,
+          data: m.data_movimentacao || null,
+          descricao: m.descricao || "—",
+          parcela: "—",
         };
       });
 
-
-      // 5) Explode credit card invoice items by their ORIGINAL transaction date
-      //    (regime de competência da compra). Only items belonging to invoices
-      //    already closed (com expense vinculada = enviada ao Contas a Pagar)
-      //    entram na DRE, garantindo que são despesas consolidadas.
+      // 5) Explode credit card invoice items pela data ORIGINAL da compra (regime de
+      //    competência). Regra: apenas compras nascidas no período — à vista OU
+      //    a 1ª parcela (parcela_atual = 1). Parcelas seguintes (2/N, 3/N…) NÃO
+      //    entram, mesmo que a fatura seja paga no período.
       const closedInvoiceIds = (ccInvoices || []).map((r: any) => r.id);
       if (closedInvoiceIds.length > 0) {
         let itemsQ: any = supabase
           .from("credit_card_invoice_items")
-          .select("amount, plano_contas_id, ignored, posted_date")
+          .select("amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
           .in("invoice_id", closedInvoiceIds);
         if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
         if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
@@ -233,11 +238,19 @@ export function DreGerencial() {
           if (it.ignored) return;
           const val = Number(it.amount) || 0;
           if (val === 0) return;
+          const atual = Number(it.parcela_atual) || 0;
+          const total = Number(it.parcela_total) || 0;
+          // Regra de competência: só entra se for à vista (total=0) ou 1ª parcela
+          if (total > 0 && atual !== 1) return;
+          const parcelaLabel = total > 0 ? `${atual}/${total}` : "à vista";
           enriched.push({
             tipo: val < 0 ? "entrada" : "saida",
             valor: Math.abs(val),
             planoId: it.plano_contas_id || null,
             origem: "cartao",
+            data: it.posted_date || null,
+            descricao: it.description || "—",
+            parcela: parcelaLabel,
           });
         });
       }
@@ -257,10 +270,6 @@ export function DreGerencial() {
     const accountsById = new Map<string, ChartAccount>();
     chartAccounts.forEach((a) => accountsById.set(a.id, a));
 
-    // Determine level by dot count in codigo (fallback)
-    const levelOf = (codigo: string) => (codigo || "").split(".").length;
-
-    // Build children map
     const childrenByParent = new Map<string | null, ChartAccount[]>();
     chartAccounts.forEach((a) => {
       const key = a.conta_pai_id || null;
@@ -268,7 +277,6 @@ export function DreGerencial() {
       childrenByParent.get(key)!.push(a);
     });
 
-    // Helper: build node recursively
     const nodeMap = new Map<string, TreeNode>();
     const buildNode = (a: ChartAccount, level: number): TreeNode => {
       const node: TreeNode = {
@@ -290,7 +298,6 @@ export function DreGerencial() {
       .sort((x, y) => x.codigo.localeCompare(y.codigo, undefined, { numeric: true, sensitivity: "base" }))
       .map((r) => buildNode(r, 0));
 
-    // Post accumulate by walking ancestors
     const ancestorsOf = (id: string): string[] => {
       const chain: string[] = [];
       let cur = accountsById.get(id);
@@ -303,10 +310,8 @@ export function DreGerencial() {
 
     let tEnt = 0;
     let tSai = 0;
-    // Unclassified buckets (by origem)
     const unclassifiedEnt: Record<OrigemKind, number> = { cartao: 0, contas_pagar: 0, direta: 0 };
     const unclassifiedSai: Record<OrigemKind, number> = { cartao: 0, contas_pagar: 0, direta: 0 };
-    // Origem breakdown by leaf account id → tipo → origem → valor
     const leafOrigemMap = new Map<string, { entradas: Record<OrigemKind, number>; saidas: Record<OrigemKind, number> }>();
     const ensureLeafBucket = (aid: string) => {
       let b = leafOrigemMap.get(aid);
@@ -329,7 +334,6 @@ export function DreGerencial() {
         else unclassifiedSai[m.origem] += m.valor;
         return;
       }
-      // Accumulate origem on the target account (which is a chart-of-accounts leaf in practice)
       const bucket = ensureLeafBucket(m.planoId);
       if (m.tipo === "entrada") bucket.entradas[m.origem] += m.valor;
       else bucket.saidas[m.origem] += m.valor;
@@ -342,11 +346,10 @@ export function DreGerencial() {
       });
     });
 
-    // Attach origem synthetic children to accounts that already are leaves in the chart
     leafOrigemMap.forEach((bucket, aid) => {
       const n = nodeMap.get(aid);
       if (!n) return;
-      if (n.children.length > 0) return; // only chart-of-accounts leaves get origem breakdown
+      if (n.children.length > 0) return;
       ORIGEM_ORDER.forEach((ok) => {
         const ent = bucket.entradas[ok];
         const sai = bucket.saidas[ok];
@@ -360,6 +363,8 @@ export function DreGerencial() {
           saidas: sai,
           children: [],
           isOrigem: true,
+          origemKind: ok,
+          leafId: aid,
         });
       });
     });
@@ -384,6 +389,8 @@ export function DreGerencial() {
           saidas: tipo === "saida" ? totals[ok] : 0,
           children: [],
           isOrigem: true,
+          origemKind: ok,
+          leafId: null,
         }));
       return {
         id,
@@ -400,7 +407,6 @@ export function DreGerencial() {
     if (uEnt) finalRoots.push(uEnt);
     if (uSai) finalRoots.push(uSai);
 
-    // Filter out roots with zero movement (both entradas & saidas)
     const prune = (n: TreeNode): TreeNode | null => {
       const kids = n.children.map(prune).filter(Boolean) as TreeNode[];
       if (n.entradas === 0 && n.saidas === 0 && kids.length === 0) return null;
@@ -410,6 +416,28 @@ export function DreGerencial() {
 
     return { rootNodes: filtered, totalEntradas: tEnt, totalSaidas: tSai };
   }, [chartAccounts, movs]);
+
+  const openDrill = useCallback((n: TreeNode) => {
+    if (!n.isOrigem || !n.origemKind) return;
+    const tipo: "entrada" | "saida" = n.entradas > n.saidas ? "entrada" : "saida";
+    const accountsById = new Map<string, ChartAccount>();
+    chartAccounts.forEach((a) => accountsById.set(a.id, a));
+    const rows = movs.filter((m) => {
+      if (m.tipo !== tipo) return false;
+      if (m.origem !== n.origemKind) return false;
+      if (n.leafId === null || n.leafId === undefined) {
+        // Unclassified bucket
+        return !m.planoId || !accountsById.has(m.planoId);
+      }
+      return m.planoId === n.leafId;
+    });
+    const acct = n.leafId ? accountsById.get(n.leafId) : null;
+    const contaLabel = acct ? `${acct.codigo} ${acct.nome}` : "Sem classificação";
+    setDrill({
+      title: `${contaLabel} — ${ORIGEM_LABEL[n.origemKind]}`,
+      rows: rows.sort((a, b) => (a.data || "").localeCompare(b.data || "")),
+    });
+  }, [movs, chartAccounts]);
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
@@ -459,7 +487,17 @@ export function DreGerencial() {
           </div>
         </td>
         <td className={cn("px-3 py-1.5 text-right tabular-nums text-xs whitespace-nowrap", isRevenueBranch ? "text-green-600" : "text-red-600")}>
-          {formatCurrency(valor)}
+          {n.isOrigem ? (
+            <button
+              onClick={() => openDrill(n)}
+              className="hover:underline focus:underline focus:outline-none"
+              title="Ver lançamentos"
+            >
+              {formatCurrency(valor)}
+            </button>
+          ) : (
+            formatCurrency(valor)
+          )}
         </td>
       </tr>,
     ];
@@ -495,7 +533,7 @@ export function DreGerencial() {
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Consolida entradas e saídas do período agrupadas pela hierarquia do Plano de Contas. Fontes: movimentações bancárias (fluxo de caixa) + itens detalhados de faturas de cartão de crédito já fechadas/enviadas ao Contas a Pagar, posicionados pela data original da compra (regime de competência). O pagamento agregado da fatura no banco é excluído para evitar duplicidade.
+            Regime de competência: as compras do cartão de crédito entram pela <b>data original da compra</b> (posted_date) e apenas a <b>1ª parcela</b> (ou compras à vista) de cada lançamento é considerada — parcelas seguintes de compras anteriores são ignoradas mesmo se a fatura for paga no período. Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.
           </p>
         </CardContent>
       </Card>
@@ -542,6 +580,43 @@ export function DreGerencial() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{drill?.title}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {drill?.rows.length ?? 0} lançamento(s) — Total{" "}
+              <b>{formatCurrency((drill?.rows || []).reduce((s, r) => s + r.valor, 0))}</b>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/40 text-muted-foreground sticky top-0">
+                <tr className="text-left">
+                  <th className="px-2 py-1.5 font-medium w-24">Data</th>
+                  <th className="px-2 py-1.5 font-medium">Descrição</th>
+                  <th className="px-2 py-1.5 font-medium w-20 text-center">Parcela</th>
+                  <th className="px-2 py-1.5 font-medium w-28 text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(drill?.rows || []).map((r, i) => (
+                  <tr key={i} className="border-b border-border/60">
+                    <td className="px-2 py-1.5 tabular-nums">{formatDateBR(r.data)}</td>
+                    <td className="px-2 py-1.5 truncate max-w-[380px]" title={r.descricao}>{r.descricao}</td>
+                    <td className="px-2 py-1.5 text-center tabular-nums">{r.parcela}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(r.valor)}</td>
+                  </tr>
+                ))}
+                {(!drill?.rows || drill.rows.length === 0) && (
+                  <tr><td colSpan={4} className="px-2 py-6 text-center text-muted-foreground">Nenhum lançamento.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
