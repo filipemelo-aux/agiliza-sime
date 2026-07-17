@@ -583,13 +583,19 @@ export function FinancialReports() {
       }
 
       // Filtro adicional por plano de contas (client-side) para tabelas sem plano_contas_id próprio
-      if (filters.planoContasId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
-        const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
-        result = result.filter((r) => r.planoId && ids.has(r.planoId));
-      }
-      if (filters.planoContasExcetoId !== "todos" && reportType !== "payables" && reportType !== "cashflow") {
-        const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
-        result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
+      if (reportType !== "payables" && reportType !== "cashflow") {
+        if (filters.planoContasId === "sem_classificacao") {
+          result = result.filter((r) => !r.planoId);
+        } else if (filters.planoContasId !== "todos") {
+          const ids = new Set(resolvePlanoSubtree(filters.planoContasId));
+          result = result.filter((r) => r.planoId && ids.has(r.planoId));
+        }
+        if (filters.planoContasExcetoId === "sem_classificacao") {
+          result = result.filter((r) => !!r.planoId);
+        } else if (filters.planoContasExcetoId !== "todos") {
+          const exIds = new Set(resolvePlanoSubtree(filters.planoContasExcetoId));
+          result = result.filter((r) => !r.planoId || !exIds.has(r.planoId));
+        }
       }
       setRows(result);
     } catch (e: any) {
