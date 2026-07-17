@@ -98,16 +98,19 @@ export function FinancialCashFlow() {
         .filter(Boolean),
     )];
     const colheitaIds = movs.filter((m) => m.origem === "colheitas").map((m) => m.origem_id);
+    const recebParcialIds = movs.filter((m) => m.origem === "recebimento_conta_receber").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
 
-    const [pagarRes, receberRes, despesaRes, colheitaRes, pagDespesaRes] = await Promise.all([
+    const [pagarRes, receberRes, despesaRes, colheitaRes, pagDespesaRes, recebParcialRes] = await Promise.all([
       pagarIds.length > 0 ? supabase.from("accounts_payable").select("id, creditor_name, creditor_id").in("id", pagarIds) : Promise.resolve({ data: [] }),
       receberIds.length > 0 ? supabase.from("contas_receber").select("id, cliente_id").in("id", receberIds) : Promise.resolve({ data: [] }),
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
       colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id, filter_context").in("id", colheitaIds) : Promise.resolve({ data: [] }),
       pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
+      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
     ]);
+
 
     (pagarRes.data || []).forEach((ap: any) => { if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name); });
     (despesaRes.data || []).forEach((e: any) => { if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome); });
@@ -182,12 +185,30 @@ export function FinancialCashFlow() {
       });
     }
 
-    const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];
-    if (clienteIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", clienteIds);
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.full_name]));
-      (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
+    // Resolve receivable partial payments → contas_receber → cliente
+    const recebParcialCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
+    let extraContasReceber: any[] = [];
+    if (recebParcialCrIds.length > 0) {
+      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id").in("id", recebParcialCrIds);
+      extraContasReceber = extraCr || [];
     }
+    const crClienteMap = new Map<string, string>();
+    [...(receberRes.data || []), ...extraContasReceber].forEach((cr: any) => {
+      if (cr.cliente_id) crClienteMap.set(cr.id, cr.cliente_id);
+    });
+
+    const clienteIds = [...new Set([...crClienteMap.values()])];
+    if (clienteIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, nome_fantasia").in("id", clienteIds);
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.nome_fantasia || p.full_name]));
+      (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
+      (recebParcialRes.data || []).forEach((rp: any) => {
+        const clienteId = crClienteMap.get(rp.conta_receber_id);
+        const nome = clienteId ? profileMap.get(clienteId) : null;
+        if (nome) pessoaMap.set(rp.id, nome);
+      });
+    }
+
 
     setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null })));
     setLoading(false);
@@ -233,6 +254,8 @@ export function FinancialCashFlow() {
   const origemLabel = (o: string) => {
     if (o === "contas_pagar") return "Conta a Pagar";
     if (o === "contas_receber") return "Conta a Receber";
+    if (o === "recebimento_conta_receber") return "Recebimento Parcial";
+
     if (o === "despesas" || o === "pagamento_despesa") return "Despesa";
     if (o === "pagamento_agrupado") return "Pagamento Agrupado";
     if (o === "colheitas") return "Colheita";
