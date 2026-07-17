@@ -1480,27 +1480,28 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
-        <div className="flex items-center gap-1">
-          <Input
-            className="h-7 text-[11px] flex-1 min-w-0"
-            value={descriptionLocal}
-            onChange={(e) => setDescriptionLocal(e.target.value)}
-            onBlur={() => {
-              if (descriptionLocal !== item.description) {
-                onUpdate(idx, { description: descriptionLocal });
-              }
-            }}
-            disabled={isClosed}
-            title={descriptionLocal}
-            placeholder="Descrição do gasto"
-          />
+        <Input
+          className="h-7 text-[11px] w-full min-w-0"
+          value={descriptionLocal}
+          onChange={(e) => setDescriptionLocal(e.target.value)}
+          onBlur={() => {
+            if (descriptionLocal !== item.description) {
+              onUpdate(idx, { description: descriptionLocal });
+            }
+          }}
+          disabled={isClosed}
+          title={descriptionLocal}
+          placeholder="Descrição do gasto"
+        />
+      </TableCell>
+      <TableCell className="px-1 py-1.5 align-middle">
+        <div className="flex items-center gap-1 justify-end">
           <div className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
-            <span>Parcela</span>
             <Input
               type="text"
               inputMode="numeric"
               maxLength={3}
-              className="h-7 text-[11px] w-11 px-1 text-center"
+              className="h-7 text-[11px] w-10 px-1 text-center"
               value={item.parcela_atual ?? ""}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
@@ -1510,12 +1511,12 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               title="Parcela atual"
               placeholder="00"
             />
-            <span>de</span>
+            <span>/</span>
             <Input
               type="text"
               inputMode="numeric"
               maxLength={3}
-              className="h-7 text-[11px] w-11 px-1 text-center"
+              className="h-7 text-[11px] w-10 px-1 text-center"
               value={item.parcela_total ?? ""}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
