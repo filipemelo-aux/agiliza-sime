@@ -53,7 +53,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
   };
 
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
-  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || filters.dataInicio !== null || filters.dataFim !== null;
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || filters.dataInicio !== null || filters.dataFim !== null || filters.planoContasId !== "todos";
 
   const clearAll = () => {
     onChange({
@@ -64,6 +64,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
       valorMin: "",
       valorMax: "",
       quickPeriod: "todos",
+      planoContasId: "todos",
     });
   };
 
