@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSortableTable, type SortState } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers } from "lucide-react";
+import { Upload, Trash2, FileText, Check, ChevronsUpDown, Search, Plus, Users, Layers, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -102,6 +103,29 @@ interface Props {
   invoiceId?: string | null;
 }
 
+function SortHeader<K extends string>({ label, sortKey, sort, toggle }: {
+  label: string;
+  sortKey: K;
+  sort: SortState<K>;
+  toggle: (key: K) => void;
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <button
+      type="button"
+      onClick={() => toggle(sortKey)}
+      className="flex items-center gap-1 w-full text-left font-medium hover:text-primary transition-colors focus-visible:outline-none"
+    >
+      {label}
+      {active ? (
+        sort.direction === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+      ) : (
+        <ArrowUpDown className="w-3 h-3 text-muted-foreground/60" />
+      )}
+    </button>
+  );
+}
+
 export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId }: Props) {
   const { user } = useAuth();
   const { matrizId } = useUnifiedCompany();
@@ -134,6 +158,34 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [expandProgress, setExpandProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
+
+  // Ordenação da tabela de lançamentos (mantém o índice original para seleção/atualização)
+  type SortableColumn = "date" | "favorecido" | "description" | "parcelas" | "amount" | "plano_contas" | "centro_custo" | "veiculo";
+  interface ItemRowRef { item: ItemRow; originalIdx: number; }
+  const itemRows = useMemo<ItemRowRef[]>(() => items.map((item, originalIdx) => ({ item, originalIdx })), [items]);
+  const { sort, toggle, sorted: sortedItemRows } = useSortableTable<ItemRowRef, SortableColumn>(
+    itemRows,
+    { key: "date", direction: "desc" },
+    {
+      date: (row) => row.item.posted_date,
+      favorecido: (row) => row.item.favorecido_nome?.toLowerCase(),
+      description: (row) => row.item.description?.toLowerCase(),
+      parcelas: (row) => (row.item.parcela_total ?? 0) * 1000 + (row.item.parcela_atual ?? 0),
+      amount: (row) => row.item.amount,
+      plano_contas: (row) => {
+        const acc = despesaLeaves.find((a) => a.id === row.item.plano_contas_id);
+        return acc?.nome?.toLowerCase() || "";
+      },
+      centro_custo: (row) => {
+        const opt = CENTRO_CUSTO_OPTIONS.find((c) => c.value === row.item.centro_custo);
+        return opt?.label?.toLowerCase() || "";
+      },
+      veiculo: (row) => {
+        const v = vehicles.find((x) => x.id === row.item.veiculo_id);
+        return v?.plate?.toLowerCase() || "";
+      },
+    }
+  );
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const isEditing = !!invoiceId;
@@ -1118,36 +1170,53 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
-                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">Favorecido</TableHead>
-                      <TableHead className="px-1 text-[11px]">Descrição</TableHead>
-                      <TableHead style={{ width: 88 }} className="px-1 text-right text-[11px]">Valor</TableHead>
-                      <TableHead style={{ width: 200 }} className="px-1 text-[11px]">Plano de Contas *</TableHead>
-                      <TableHead style={{ width: 110 }} className="px-1 text-[11px]">C. Custo</TableHead>
-                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">Veículo</TableHead>
+                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">
+                        <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 160 }} className="px-1 text-[11px]">
+                        <SortHeader label="Favorecido" sortKey="favorecido" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead className="px-1 text-[11px] w-[28%]">
+                        <SortHeader label="Descrição" sortKey="description" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">
+                        <SortHeader label="Parcelas" sortKey="parcelas" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 80 }} className="px-1 text-right text-[11px]">
+                        <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">
+                        <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 104 }} className="px-1 text-[11px]">
+                        <SortHeader label="C. Custo" sortKey="centro_custo" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 88 }} className="px-1 text-[11px]">
+                        <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
+                      </TableHead>
                       <TableHead style={{ width: 32 }} className="px-1"></TableHead>
                     </TableRow>
                   </TableHeader>
 
 
                   <TableBody>
-                    {items.map((it, idx) => (
+                    {sortedItemRows.map(({ item, originalIdx }) => (
                       <InvoiceItemRow
-                        key={`${it.fitid}-${idx}`}
-                        idx={idx}
-                        item={it}
+                        key={`${item.fitid}-${originalIdx}`}
+                        idx={originalIdx}
+                        item={item}
                         isClosed={isClosed}
                         despesaLeaves={despesaLeaves}
                         vehicles={vehicles}
                         onUpdate={updateItem}
                         onRemove={removeItem}
-                        searchOpen={searchPersonOpenIdx === idx}
-                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? idx : null)}
-                        onOpenCreate={() => setCreatePersonOpenIdx(idx)}
-                        wasEdited={hasRowChanged(idx)}
-                        selected={selectedIdxs.has(idx)}
-                        onToggleSelected={() => toggleSelected(idx)}
-                        onExpandParcelas={() => expandParcelas(idx)}
+                        searchOpen={searchPersonOpenIdx === originalIdx}
+                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? originalIdx : null)}
+                        onOpenCreate={() => setCreatePersonOpenIdx(originalIdx)}
+                        wasEdited={hasRowChanged(originalIdx)}
+                        selected={selectedIdxs.has(originalIdx)}
+                        onToggleSelected={() => toggleSelected(originalIdx)}
+                        onExpandParcelas={() => expandParcelas(originalIdx)}
                         expanding={expanding}
                       />
 
@@ -1413,27 +1482,28 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
-        <div className="flex items-center gap-1">
-          <Input
-            className="h-7 text-[11px] flex-1 min-w-0"
-            value={descriptionLocal}
-            onChange={(e) => setDescriptionLocal(e.target.value)}
-            onBlur={() => {
-              if (descriptionLocal !== item.description) {
-                onUpdate(idx, { description: descriptionLocal });
-              }
-            }}
-            disabled={isClosed}
-            title={descriptionLocal}
-            placeholder="Descrição do gasto"
-          />
+        <Input
+          className="h-7 text-[11px] w-full min-w-0"
+          value={descriptionLocal}
+          onChange={(e) => setDescriptionLocal(e.target.value)}
+          onBlur={() => {
+            if (descriptionLocal !== item.description) {
+              onUpdate(idx, { description: descriptionLocal });
+            }
+          }}
+          disabled={isClosed}
+          title={descriptionLocal}
+          placeholder="Descrição do gasto"
+        />
+      </TableCell>
+      <TableCell className="px-1 py-1.5 align-middle">
+        <div className="flex items-center gap-1 justify-end">
           <div className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
-            <span>Parcela</span>
             <Input
               type="text"
               inputMode="numeric"
               maxLength={3}
-              className="h-7 text-[11px] w-11 px-1 text-center"
+              className="h-7 text-[11px] w-10 px-1 text-center"
               value={item.parcela_atual ?? ""}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
@@ -1443,12 +1513,12 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
               title="Parcela atual"
               placeholder="00"
             />
-            <span>de</span>
+            <span>/</span>
             <Input
               type="text"
               inputMode="numeric"
               maxLength={3}
-              className="h-7 text-[11px] w-11 px-1 text-center"
+              className="h-7 text-[11px] w-10 px-1 text-center"
               value={item.parcela_total ?? ""}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "").slice(0, 3);
