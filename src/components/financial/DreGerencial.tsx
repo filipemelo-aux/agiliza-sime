@@ -67,6 +67,18 @@ export function DreGerencial() {
   const [generated, setGenerated] = useState(false);
   const [drill, setDrill] = useState<{ title: string; rows: MovDetail[] } | null>(null);
 
+  interface AuditRow {
+    id: string;
+    posted_date: string | null;
+    description: string;
+    amount: number;
+    parcela: string;
+    invoice_label: string;
+    reason: string;
+  }
+  const [audit, setAudit] = useState<{ missing: AuditRow[]; extra: AuditRow[]; totalCc: number; totalDre: number } | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+
   useEffect(() => {
     supabase
       .from("chart_of_accounts")
