@@ -135,6 +135,32 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   const [batchPickerOpen, setBatchPickerOpen] = useState(false);
   const [expanding, setExpanding] = useState(false);
   const [expandProgress, setExpandProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
+
+  // Ordenação da tabela de lançamentos
+  type SortableColumn = "date" | "favorecido" | "description" | "parcelas" | "amount" | "plano_contas" | "centro_custo" | "veiculo";
+  const { sort, toggle, sorted: sortedItems } = useSortableTable<ItemRow, SortableColumn>(
+    items,
+    { key: "date", direction: "desc" },
+    {
+      date: (row) => row.posted_date,
+      favorecido: (row) => row.favorecido_nome?.toLowerCase(),
+      description: (row) => row.description?.toLowerCase(),
+      parcelas: (row) => (row.parcela_total ?? 0) * 1000 + (row.parcela_atual ?? 0),
+      amount: (row) => row.amount,
+      plano_contas: (row) => {
+        const acc = despesaLeaves.find((a) => a.id === row.plano_contas_id);
+        return acc?.nome?.toLowerCase() || "";
+      },
+      centro_custo: (row) => {
+        const opt = CENTRO_CUSTO_OPTIONS.find((c) => c.value === row.centro_custo);
+        return opt?.label?.toLowerCase() || "";
+      },
+      veiculo: (row) => {
+        const v = vehicles.find((x) => x.id === row.veiculo_id);
+        return v?.plate?.toLowerCase() || "";
+      },
+    }
+  );
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const isEditing = !!invoiceId;
