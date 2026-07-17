@@ -784,7 +784,7 @@ export function DreGerencial() {
           </div>
           <p className="text-[11px] text-muted-foreground">
             {regime === "competencia" ? (
-              <>Regime de <b>competência</b>: as compras do cartão entram pela <b>data original da compra</b> (posted_date) e apenas a <b>1ª parcela</b> (ou compras à vista) é considerada — parcelas seguintes de compras anteriores são ignoradas mesmo se a fatura for paga no período.</>
+              <>Regime de <b>competência pura</b>: compras do cartão entram pela <b>data original da compra</b> (posted_date). Compras parceladas são lançadas pelo <b>valor total</b> (parcela × N) no mês em que ocorreram — parcelas 2/N, 3/N... não aparecem em meses futuros.</>
             ) : (
               <>Regime de <b>caixa (fatura)</b>: as compras do cartão entram pelo <b>vencimento da fatura</b>, incluindo todas as parcelas — espelha o extrato do cartão. Útil para conciliar com o valor efetivamente debitado da conta.</>
             )}
