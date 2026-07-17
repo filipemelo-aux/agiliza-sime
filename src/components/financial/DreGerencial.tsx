@@ -749,7 +749,12 @@ export function DreGerencial() {
       <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-sm">{drill?.title}</DialogTitle>
+            <DialogTitle className="text-sm flex items-center justify-between gap-2 pr-6">
+              <span>{drill?.title}</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={exportDrillCsv} disabled={!drill?.rows.length}>
+                <Download className="h-3 w-3" /> Exportar CSV
+              </Button>
+            </DialogTitle>
             <DialogDescription className="text-xs">
               {drill?.rows.length ?? 0} lançamento(s) — Total{" "}
               <b>{formatCurrency((drill?.rows || []).reduce((s, r) => s + r.valor, 0))}</b>
@@ -782,6 +787,94 @@ export function DreGerencial() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!audit} onOpenChange={(o) => !o && setAudit(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Auditoria de Divergências — Cartão × DRE</DialogTitle>
+            <DialogDescription className="text-xs">
+              Período {formatDateBR(dataInicio)} até {formatDateBR(dataFim)} • Cartão:{" "}
+              <b>{formatCurrency(audit?.totalCc || 0)}</b> • DRE:{" "}
+              <b>{formatCurrency(audit?.totalDre || 0)}</b> • Diferença:{" "}
+              <b className={cn((audit && (audit.totalCc - audit.totalDre) !== 0) && "text-red-600")}>
+                {formatCurrency((audit?.totalCc || 0) - (audit?.totalDre || 0))}
+              </b>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto space-y-4">
+            <section className="space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-red-700">
+                  ❌ Faltando na DRE ({audit?.missing.length ?? 0}) — Total{" "}
+                  {formatCurrency((audit?.missing || []).reduce((s, r) => s + r.amount, 0))}
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => audit && exportAuditCsv(audit.missing, "faltando-na-dre")}
+                  disabled={!audit?.missing.length}
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </Button>
+              </div>
+              <AuditTable rows={audit?.missing || []} />
+            </section>
+            <section className="space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-amber-700">
+                  ⚠️ Sobrando na DRE ({audit?.extra.length ?? 0}) — Total{" "}
+                  {formatCurrency((audit?.extra || []).reduce((s, r) => s + r.amount, 0))}
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => audit && exportAuditCsv(audit.extra, "sobrando-na-dre")}
+                  disabled={!audit?.extra.length}
+                >
+                  <Download className="h-3 w-3" /> CSV
+                </Button>
+              </div>
+              <AuditTable rows={audit?.extra || []} />
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AuditTable({ rows }: { rows: Array<{
+  id: string; posted_date: string | null; description: string; amount: number; parcela: string; invoice_label: string; reason: string;
+}> }) {
+  if (!rows.length) {
+    return <div className="text-[11px] text-muted-foreground px-2 py-3 border rounded bg-muted/20">Nenhum item.</div>;
+  }
+  return (
+    <div className="border rounded overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40 text-muted-foreground">
+          <tr className="text-left">
+            <th className="px-2 py-1.5 font-medium w-24">Data</th>
+            <th className="px-2 py-1.5 font-medium">Descrição</th>
+            <th className="px-2 py-1.5 font-medium w-20 text-center">Parcela</th>
+            <th className="px-2 py-1.5 font-medium w-24 text-right">Valor</th>
+            <th className="px-2 py-1.5 font-medium">Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-t border-border/60">
+              <td className="px-2 py-1.5 tabular-nums">{r.posted_date ? formatDateBR(r.posted_date) : "—"}</td>
+              <td className="px-2 py-1.5 truncate max-w-[260px]" title={r.description}>{r.description}</td>
+              <td className="px-2 py-1.5 text-center tabular-nums">{r.parcela}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(r.amount)}</td>
+              <td className="px-2 py-1.5 text-[11px] text-muted-foreground" title={r.invoice_label}>{r.reason}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
