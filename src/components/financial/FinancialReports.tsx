@@ -1015,6 +1015,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       allValue="todos"
                       allLabel="Todos"
                       placeholder="Todos"
+                      includeSemClassificacao
                     />
                   </div>
                 )}
@@ -1030,6 +1031,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                       allValue="todos"
                       allLabel="Nenhuma exceção"
                       placeholder="Nenhuma exceção"
+                      includeSemClassificacao
                     />
                   </div>
                 )}
