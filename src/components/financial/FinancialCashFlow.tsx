@@ -481,6 +481,20 @@ export function FinancialCashFlow() {
                       {m.pessoa_nome || m.descricao}
                     </p>
                   )}
+                  {(() => {
+                    const plano = m.plano_resolved_id ? planoAccountsMap.get(m.plano_resolved_id) : null;
+                    return plano ? (
+                      <button type="button" className="text-[10px] text-muted-foreground text-left hover:underline" onClick={() => canEditPlano(m) && setEditPlanoMov(m)}>
+                        <span className="font-mono mr-1">{plano.codigo}</span>{plano.nome}
+                      </button>
+                    ) : canEditPlano(m) ? (
+                      <button type="button" className="text-[10px] text-amber-600 text-left hover:underline" onClick={() => setEditPlanoMov(m)}>
+                        ⚠️ Sem classificação — classificar
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-amber-600">⚠️ Sem classificação</span>
+                    );
+                  })()}
                   {m.origem === "manual" && (
                     <div className="flex justify-end">
                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1" onClick={() => handleReverseManual(m)}>
