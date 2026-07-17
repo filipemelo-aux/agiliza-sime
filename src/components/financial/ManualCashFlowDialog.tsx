@@ -159,18 +159,18 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
             </Popover>
           </div>
 
-          {/* Conta Contábil */}
-          {leafAccounts.length > 0 && (
-            <div>
-              <Label className="text-xs text-muted-foreground">Conta Contábil</Label>
-              <PlanoContasCombobox
-                value={planoContasId}
-                onChange={setPlanoContasId}
-                options={leafAccounts}
-                placeholder="Selecione..."
-              />
-            </div>
-          )}
+          {/* Conta Contábil - obrigatório */}
+          <div>
+            <Label className="text-xs text-muted-foreground">
+              Plano de Contas <span className="text-destructive">*</span>
+            </Label>
+            <PlanoContasCombobox
+              value={planoContasId}
+              onChange={setPlanoContasId}
+              options={leafAccounts}
+              placeholder="Selecione (obrigatório)..."
+            />
+          </div>
 
           <div>
             <Label className="text-xs text-muted-foreground">Descrição</Label>
