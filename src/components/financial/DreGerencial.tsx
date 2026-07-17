@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { exportToCsv } from "@/lib/csvExport";
+import { ReportInfoTooltip } from "./ReportInfoTooltip";
 
 interface ChartAccount {
   id: string;
