@@ -1264,6 +1264,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         onToggleSelected={() => toggleSelected(originalIdx)}
                         onExpandParcelas={() => expandParcelas(originalIdx)}
                         expanding={expanding}
+                        referenceYM={referenceYM}
                       />
 
                     ))}
