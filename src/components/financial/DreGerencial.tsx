@@ -116,9 +116,10 @@ export function DreGerencial() {
       let crFatMap = new Map<string, string>(); // conta_receber_id -> fatura_id
       (contasReceberRes.data || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
       // Also resolve for recebParcial → contas_receber
-      const rpCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
+      const rpCrIds: string[] = [...new Set((recebParcialRes.data || []).map((rp: any) => String(rp.conta_receber_id)).filter(Boolean))];
       if (rpCrIds.length > 0) {
         const { data: extraCr } = await supabase.from("contas_receber").select("id, fatura_id").in("id", rpCrIds);
+
         (extraCr || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
       }
       const allFaturaIds = [...new Set([...crFatMap.values()])];
