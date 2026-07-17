@@ -373,7 +373,10 @@ export function FinancialCashFlow() {
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-foreground">Fluxo de Caixa</h1>
+            <ReportInfoTooltip text="Baseado em Regime de Caixa (Data de Pagamento / Valor da Parcela). Mostra o dinheiro real entrando e saindo da conta — cada parcela paga aparece na data em que efetivamente saiu do caixa." />
+          </div>
           <Button size="sm" className="gap-1" onClick={() => setManualDialogOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Nova Movimentação
           </Button>
