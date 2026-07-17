@@ -12,6 +12,8 @@ import { formatCurrency } from "@/lib/masks";
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp, Plus, Undo2 } from "lucide-react";
 import { CashFlowFilters, CashFlowFilterValues } from "./CashFlowFilters";
 import { ManualCashFlowDialog } from "./ManualCashFlowDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { formatDateBR } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -37,10 +39,12 @@ interface Movimentacao {
   data_movimentacao: string;
   descricao: string | null;
   created_at: string;
+  plano_contas_id?: string | null;
 }
 
 interface MovimentacaoEnriquecida extends Movimentacao {
   pessoa_nome: string | null;
+  plano_resolved_id: string | null;
 }
 
 export function FinancialCashFlow() {
@@ -50,6 +54,7 @@ export function FinancialCashFlow() {
   const [loading, setLoading] = useState(true);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<any[]>([]);
+  const [editPlanoMov, setEditPlanoMov] = useState<MovimentacaoEnriquecida | null>(null);
   const [filters, setFilters] = useState<CashFlowFilterValues>({
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date()),
@@ -58,6 +63,7 @@ export function FinancialCashFlow() {
     valorMin: "",
     valorMax: "",
     quickPeriod: "mes_atual",
+    planoContasId: "todos",
   });
 
   useEffect(() => {
@@ -210,9 +216,60 @@ export function FinancialCashFlow() {
     }
 
 
-    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null })));
+    // Plano de contas resolution map (keyed by origem_id or lote_id)
+    const planoMap = new Map<string, string>();
+    (pagarRes.data || []).forEach((ap: any) => { if (ap.category_id) planoMap.set(ap.id, ap.category_id); });
+
+    const despesaExpIdsForPlano = [
+      ...despesaIds,
+      ...((pagDespesaRes.data || []).map((p: any) => p.expense_id).filter(Boolean)),
+    ];
+    if (despesaExpIdsForPlano.length > 0) {
+      const uniqueExpIds = [...new Set(despesaExpIdsForPlano)];
+      const { data: expPlanos } = await supabase.from("expenses").select("id, plano_contas_id").in("id", uniqueExpIds);
+      const expPlanoMap = new Map((expPlanos || []).map((e: any) => [e.id, e.plano_contas_id]));
+      despesaIds.forEach((id) => { const p = expPlanoMap.get(id); if (p) planoMap.set(id, p as string); });
+      (pagDespesaRes.data || []).forEach((pd: any) => {
+        const p = expPlanoMap.get(pd.expense_id);
+        if (p) planoMap.set(pd.id, p as string);
+      });
+    }
+
+    // Refetch accounts_payable with category_id
+    if (pagarIds.length > 0) {
+      const { data: apPlano } = await supabase.from("accounts_payable").select("id, category_id").in("id", pagarIds);
+      (apPlano || []).forEach((ap: any) => { if (ap.category_id) planoMap.set(ap.id, ap.category_id); });
+    }
+
+    let enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({
+      ...m,
+      pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null,
+      plano_resolved_id: m.plano_contas_id || planoMap.get(m.origem_id) || planoMap.get(m.lote_id || "") || null,
+    }));
+
+    if (filters.planoContasId === "sem_classificacao") {
+      enriched = enriched.filter((m) => !m.plano_resolved_id);
+    } else if (filters.planoContasId !== "todos") {
+      // subtree of accounts
+      const buildSubtree = (rootId: string): Set<string> => {
+        const set = new Set<string>([rootId]);
+        const stack = [rootId];
+        while (stack.length) {
+          const cur = stack.pop()!;
+          chartAccounts.filter((c: any) => c.conta_pai_id === cur).forEach((c: any) => {
+            if (!set.has(c.id)) { set.add(c.id); stack.push(c.id); }
+          });
+        }
+        return set;
+      };
+      const ids = buildSubtree(filters.planoContasId);
+      enriched = enriched.filter((m) => m.plano_resolved_id && ids.has(m.plano_resolved_id));
+    }
+
+    setMovimentacoes(enriched);
     setLoading(false);
-  }, [filters]);
+  }, [filters, chartAccounts]);
+
 
   useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);
 
@@ -278,6 +335,38 @@ export function FinancialCashFlow() {
     loadMovimentacoes();
   };
 
+  const planoAccountsMap = useMemo(() => new Map<string, any>(chartAccounts.map((c: any) => [c.id, c])), [chartAccounts]);
+
+  const canEditPlano = (m: MovimentacaoEnriquecida) =>
+    ["contas_pagar", "despesas", "pagamento_despesa", "manual"].includes(m.origem);
+
+  const savePlanoClassificacao = async (m: MovimentacaoEnriquecida, planoId: string) => {
+    try {
+      if (m.origem === "contas_pagar") {
+        const { error } = await supabase.from("accounts_payable").update({ category_id: planoId }).eq("id", m.origem_id);
+        if (error) throw error;
+      } else if (m.origem === "despesas") {
+        const { error } = await supabase.from("expenses").update({ plano_contas_id: planoId }).eq("id", m.origem_id);
+        if (error) throw error;
+      } else if (m.origem === "pagamento_despesa") {
+        const { data: ep } = await supabase.from("expense_payments").select("expense_id").eq("id", m.origem_id).single();
+        if (!ep?.expense_id) throw new Error("Despesa vinculada não localizada");
+        const { error } = await supabase.from("expenses").update({ plano_contas_id: planoId }).eq("id", ep.expense_id);
+        if (error) throw error;
+      } else if (m.origem === "manual") {
+        const { error } = await supabase.from("movimentacoes_bancarias").update({ plano_contas_id: planoId } as any).eq("id", m.id);
+        if (error) throw error;
+      } else {
+        throw new Error("Origem não suporta classificação rápida");
+      }
+      toast.success("Plano de contas atualizado");
+      setEditPlanoMov(null);
+      loadMovimentacoes();
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    }
+  };
+
 
 
   return (
@@ -289,7 +378,7 @@ export function FinancialCashFlow() {
             <Plus className="h-3.5 w-3.5" /> Nova Movimentação
           </Button>
         </div>
-        <CashFlowFilters filters={filters} onChange={setFilters} />
+        <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
       </div>
 
       {/* Summary cards - compact */}
@@ -394,6 +483,20 @@ export function FinancialCashFlow() {
                       {m.pessoa_nome || m.descricao}
                     </p>
                   )}
+                  {(() => {
+                    const plano = m.plano_resolved_id ? planoAccountsMap.get(m.plano_resolved_id) : null;
+                    return plano ? (
+                      <button type="button" className="text-[10px] text-muted-foreground text-left hover:underline" onClick={() => canEditPlano(m) && setEditPlanoMov(m)}>
+                        <span className="font-mono mr-1">{plano.codigo}</span>{plano.nome}
+                      </button>
+                    ) : canEditPlano(m) ? (
+                      <button type="button" className="text-[10px] text-amber-600 text-left hover:underline" onClick={() => setEditPlanoMov(m)}>
+                        ⚠️ Sem classificação — classificar
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-amber-600">⚠️ Sem classificação</span>
+                    );
+                  })()}
                   {m.origem === "manual" && (
                     <div className="flex justify-end">
                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive gap-1" onClick={() => handleReverseManual(m)}>
@@ -414,12 +517,15 @@ export function FinancialCashFlow() {
                     <TableHead className="text-xs">Origem</TableHead>
                     <TableHead className="text-xs">Cliente / Fornecedor</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs">Plano de Contas</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movimentacoes.map((m) => (
+                  {movimentacoes.map((m) => {
+                    const plano = m.plano_resolved_id ? planoAccountsMap.get(m.plano_resolved_id) : null;
+                    return (
                     <TableRow key={m.id}>
                       <TableCell className="text-xs whitespace-nowrap py-2">{formatDateBR(m.data_movimentacao)}</TableCell>
                       <TableCell className="py-2">
@@ -430,6 +536,26 @@ export function FinancialCashFlow() {
                       <TableCell className="text-xs whitespace-nowrap py-2">{origemLabel(m.origem)}</TableCell>
                       <TableCell className="text-xs max-w-[140px] truncate py-2">{m.pessoa_nome || "—"}</TableCell>
                       <TableCell className="text-xs max-w-[180px] truncate py-2">{m.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs max-w-[200px] py-2">
+                        {plano ? (
+                          <button
+                            type="button"
+                            className="text-left hover:underline truncate block w-full"
+                            onClick={() => canEditPlano(m) && setEditPlanoMov(m)}
+                            disabled={!canEditPlano(m)}
+                            title={canEditPlano(m) ? "Clique para reclassificar" : ""}
+                          >
+                            <span className="font-mono text-[10px] mr-1 text-muted-foreground">{plano.codigo}</span>
+                            {plano.nome}
+                          </button>
+                        ) : canEditPlano(m) ? (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-amber-600 hover:text-amber-700" onClick={() => setEditPlanoMov(m)}>
+                            ⚠️ Sem classificação
+                          </Button>
+                        ) : (
+                          <span className="text-amber-600 text-[10px]">⚠️ Sem classificação</span>
+                        )}
+                      </TableCell>
                       <TableCell className={cn("text-right font-mono text-xs font-semibold whitespace-nowrap py-2", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
                         {m.tipo === "saida" ? "- " : ""}{formatCurrency(Number(m.valor))}
                       </TableCell>
@@ -441,7 +567,8 @@ export function FinancialCashFlow() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -456,6 +583,41 @@ export function FinancialCashFlow() {
         chartAccounts={chartAccounts}
       />
       {ConfirmDialog}
+
+      <Dialog open={!!editPlanoMov} onOpenChange={(o) => !o && setEditPlanoMov(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Forçar Classificação</DialogTitle>
+          </DialogHeader>
+          {editPlanoMov && (
+            <div className="space-y-3">
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p><strong>Data:</strong> {formatDateBR(editPlanoMov.data_movimentacao)}</p>
+                <p><strong>Origem:</strong> {origemLabel(editPlanoMov.origem)}</p>
+                {editPlanoMov.descricao && <p><strong>Descrição:</strong> {editPlanoMov.descricao}</p>}
+                <p><strong>Valor:</strong> {formatCurrency(Number(editPlanoMov.valor))}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium">Plano de Contas</label>
+                <PlanoContasCombobox
+                  value={editPlanoMov.plano_resolved_id || null}
+                  onChange={(v) => savePlanoClassificacao(editPlanoMov, v)}
+                  options={chartAccounts}
+                  size="sm"
+                  placeholder="Selecione a conta..."
+                  defaultTipo={editPlanoMov.tipo === "entrada" ? "receita" : "despesa"}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                A alteração é aplicada na origem do lançamento ({origemLabel(editPlanoMov.origem)}) e refletirá em todos os relatórios.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditPlanoMov(null)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

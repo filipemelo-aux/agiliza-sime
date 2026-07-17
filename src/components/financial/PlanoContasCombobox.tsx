@@ -21,6 +21,8 @@ export interface PlanoContaOption {
   tipo_operacional?: string | null;
 }
 
+export const SEM_CLASSIFICACAO_VALUE = "sem_classificacao";
+
 interface PlanoContasComboboxProps {
   value: string | null | undefined;
   onChange: (v: string) => void;
@@ -33,6 +35,9 @@ interface PlanoContasComboboxProps {
   includeAll?: boolean;
   allLabel?: string;
   allValue?: string;
+  /** Inclui opção "⚠️ Sem Classificação / Em Branco" (uso em filtros) */
+  includeSemClassificacao?: boolean;
+  semClassificacaoLabel?: string;
   /** Limita opções exibidas (default: 200) */
   maxResults?: number;
   /** Habilita botão "+" para criar conta diretamente */
@@ -57,6 +62,8 @@ export function PlanoContasCombobox({
   includeAll = false,
   allLabel = "Todas as contas",
   allValue = "all",
+  includeSemClassificacao = false,
+  semClassificacaoLabel = "⚠️ Sem Classificação / Em Branco",
   maxResults = 200,
   allowCreate = true,
   defaultTipo = "despesa",
@@ -106,7 +113,10 @@ export function PlanoContasCombobox({
   }, [sorted, search, maxResults]);
 
   const selected =
-    value && value !== allValue ? merged.find((o) => o.id === value) : null;
+    value && value !== allValue && value !== SEM_CLASSIFICACAO_VALUE
+      ? merged.find((o) => o.id === value)
+      : null;
+  const isSemClassificacao = value === SEM_CLASSIFICACAO_VALUE;
 
   const heightCls = size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
   const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
@@ -128,6 +138,8 @@ export function PlanoContasCombobox({
                 <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
                 {selected.nome}
               </span>
+            ) : isSemClassificacao ? (
+              <span className="truncate text-left text-amber-600">{semClassificacaoLabel}</span>
             ) : includeAll && (value === allValue || !value) ? (
               <span className="flex items-center gap-1 text-left">
                 <FolderTree className="h-3 w-3 text-muted-foreground" />
@@ -180,6 +192,16 @@ export function PlanoContasCombobox({
                       <Check className={cn("mr-2 h-3 w-3", value === allValue || !value ? "opacity-100" : "opacity-0")} />
                       <FolderTree className="h-3 w-3 mr-2 text-muted-foreground" />
                       {allLabel}
+                    </CommandItem>
+                  )}
+                  {includeSemClassificacao && (
+                    <CommandItem
+                      value={SEM_CLASSIFICACAO_VALUE}
+                      onSelect={() => { onChange(SEM_CLASSIFICACAO_VALUE); setOpen(false); setSearch(""); }}
+                      className={cn(itemTextCls, "text-amber-600")}
+                    >
+                      <Check className={cn("mr-2 h-3 w-3", isSemClassificacao ? "opacity-100" : "opacity-0")} />
+                      {semClassificacaoLabel}
                     </CommandItem>
                   )}
                   {filtered.map((o) => (

@@ -9,6 +9,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
+import { PlanoContasCombobox, PlanoContaOption } from "./PlanoContasCombobox";
 
 export type QuickPeriod = "todos" | "mes_atual" | "mes_anterior";
 
@@ -20,11 +21,13 @@ export interface CashFlowFilterValues {
   valorMin: string;
   valorMax: string;
   quickPeriod: QuickPeriod;
+  planoContasId: string;
 }
 
 interface CashFlowFiltersProps {
   filters: CashFlowFilterValues;
   onChange: (filters: CashFlowFilterValues) => void;
+  chartAccounts?: PlanoContaOption[];
 }
 
 function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; dataFim: Date | null } {
@@ -37,7 +40,7 @@ function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; data
   return { dataInicio: null, dataFim: null };
 }
 
-export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
+export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const update = (partial: Partial<CashFlowFilterValues>) => {
@@ -50,7 +53,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
   };
 
   const hasAdvancedFilters = filters.valorMin !== "" || filters.valorMax !== "";
-  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || filters.dataInicio !== null || filters.dataFim !== null;
+  const hasAnyFilter = filters.tipo !== "todos" || filters.origem !== "todos" || hasAdvancedFilters || filters.dataInicio !== null || filters.dataFim !== null || filters.planoContasId !== "todos";
 
   const clearAll = () => {
     onChange({
@@ -61,6 +64,7 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
       valorMin: "",
       valorMax: "",
       quickPeriod: "todos",
+      planoContasId: "todos",
     });
   };
 
@@ -167,6 +171,26 @@ export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Plano de contas filter */}
+        {chartAccounts && (
+          <div className="min-w-[220px]">
+            <Label className="text-xs text-muted-foreground">Plano de Contas</Label>
+            <PlanoContasCombobox
+              value={filters.planoContasId}
+              onChange={(v) => update({ planoContasId: v })}
+              options={chartAccounts}
+              size="sm"
+              includeAll
+              allValue="todos"
+              allLabel="Todos"
+              placeholder="Todos"
+              includeSemClassificacao
+              allowCreate={false}
+            />
+          </div>
+        )}
+
 
         {/* Advanced toggle */}
         <Button
