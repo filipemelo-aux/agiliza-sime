@@ -195,6 +195,7 @@ export function DreGerencial() {
 
       const filtered = list.filter((m) => !isCcInvoicePayment(m));
 
+      const CONTAS_PAGAR_ORIGENS = new Set(["despesas", "pagamento_despesa", "pagamento_agrupado", "contas_pagar"]);
       const enriched = filtered.map((m) => {
         let pid: string | null = m.plano_contas_id || null;
         if (!pid) {
@@ -205,10 +206,12 @@ export function DreGerencial() {
           else if (m.origem === "contas_receber") pid = planoByContaReceber.get(m.origem_id) || null;
           else if (m.origem === "recebimento_conta_receber") pid = planoByRecebParcial.get(m.origem_id) || null;
         }
+        const origemKind: OrigemKind = CONTAS_PAGAR_ORIGENS.has(m.origem) ? "contas_pagar" : "direta";
         return {
           tipo: m.tipo as "entrada" | "saida",
           valor: Number(m.valor) || 0,
           planoId: pid,
+          origem: origemKind,
         };
       });
 
@@ -234,6 +237,7 @@ export function DreGerencial() {
             tipo: val < 0 ? "entrada" : "saida",
             valor: Math.abs(val),
             planoId: it.plano_contas_id || null,
+            origem: "cartao",
           });
         });
       }
