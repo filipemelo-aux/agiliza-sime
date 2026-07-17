@@ -230,6 +230,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [open, invoiceId]);
 
   const total = useMemo(() => items.reduce((s, i) => s + i.amount, 0), [items]);
+  const selectedSum = useMemo(
+    () => items.reduce((s, it, i) => (selectedIdxs.has(i) ? s + Number(it.amount || 0) : s), 0),
+    [items, selectedIdxs]
+  );
   const isClosed = false; // edição liberada — alterações na fatura propagam para o Contas a Pagar
 
   const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1032,10 +1036,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
               {/* Batch toolbar */}
               <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {selectedIdxs.size > 0
-                    ? `${selectedIdxs.size} selecionado(s)`
-                    : "Marque lançamentos para editar em lote"}
+                <span className="text-xs whitespace-nowrap">
+                  {selectedIdxs.size > 0 ? (
+                    <>
+                      <span className="text-muted-foreground">{selectedIdxs.size} selecionado(s) •</span>{" "}
+                      <span className="font-bold text-primary text-sm tabular-nums">{formatCurrency(selectedSum)}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Clique nas linhas para selecionar e editar em lote</span>
+                  )}
                 </span>
                 <div className={cn("flex-1 min-w-[200px]", (isClosed || selectedIdxs.size === 0) && "pointer-events-none opacity-50")}>
                   <PersonSearchInput
@@ -1297,7 +1306,20 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
   }, []);
 
   return (
-    <TableRow className={cn(wasEdited ? "bg-success/10" : "bg-warning/10", selected && "ring-1 ring-primary/40")}>
+    <TableRow
+      className={cn(
+        wasEdited ? "bg-success/10" : "bg-warning/10",
+        selected && "ring-1 ring-primary/40",
+        !isClosed && "cursor-pointer"
+      )}
+      onClick={(e) => {
+        if (isClosed) return;
+        const el = e.target as HTMLElement;
+        // Ignore clicks on interactive controls inside the row
+        if (el.closest('input, textarea, button, a, select, label, [role="combobox"], [role="button"], [role="option"], [data-radix-popper-content-wrapper]')) return;
+        onToggleSelected();
+      }}
+    >
       <TableCell className="px-1 py-1.5 align-middle">
         <Checkbox
           checked={selected}
