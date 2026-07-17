@@ -740,8 +740,43 @@ export function DreGerencial() {
               </div>
             )}
           </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Label className="text-xs text-muted-foreground">Regime:</Label>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setRegime("competencia")}
+                className={cn(
+                  "px-3 h-7 text-[11px] font-medium transition-colors",
+                  regime === "competencia" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"
+                )}
+              >
+                Competência (padrão)
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegime("caixa")}
+                className={cn(
+                  "px-3 h-7 text-[11px] font-medium border-l border-border transition-colors",
+                  regime === "caixa" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"
+                )}
+              >
+                Caixa (Fatura)
+              </button>
+            </div>
+            {generated && (
+              <span className="text-[10px] text-amber-700 dark:text-amber-400">
+                Alterou o regime? Clique em "Gerar DRE" novamente.
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-muted-foreground">
-            Regime de competência: as compras do cartão de crédito entram pela <b>data original da compra</b> (posted_date) e apenas a <b>1ª parcela</b> (ou compras à vista) de cada lançamento é considerada — parcelas seguintes de compras anteriores são ignoradas mesmo se a fatura for paga no período. Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.
+            {regime === "competencia" ? (
+              <>Regime de <b>competência</b>: as compras do cartão entram pela <b>data original da compra</b> (posted_date) e apenas a <b>1ª parcela</b> (ou compras à vista) é considerada — parcelas seguintes de compras anteriores são ignoradas mesmo se a fatura for paga no período.</>
+            ) : (
+              <>Regime de <b>caixa (fatura)</b>: as compras do cartão entram pelo <b>vencimento da fatura</b>, incluindo todas as parcelas — espelha o extrato do cartão. Útil para conciliar com o valor efetivamente debitado da conta.</>
+            )}
+            {" "}Clique no valor de uma linha de <i>Origem</i> para auditar os lançamentos individuais.
           </p>
         </CardContent>
       </Card>
