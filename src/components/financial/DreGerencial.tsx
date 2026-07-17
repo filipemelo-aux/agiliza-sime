@@ -87,7 +87,7 @@ export function DreGerencial() {
           ? supabase.from("expense_payments").select("lote_id, expense_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
           : Promise.resolve({ data: [] as any[] } as any),
         contasPagarIds.length
-          ? supabase.from("accounts_payable").select("id, chart_account_id").in("id", contasPagarIds)
+          ? supabase.from("accounts_payable").select("id, category_id").in("id", contasPagarIds)
           : Promise.resolve({ data: [] as any[] } as any),
         despesasDirIds.length
           ? supabase.from("expenses").select("id, plano_contas_id").in("id", despesasDirIds)
@@ -152,7 +152,7 @@ export function DreGerencial() {
         if (p.expense_id) expensesByLote.get(p.lote_id)!.add(p.expense_id);
       });
       const planoByContaPagar = new Map<string, string | null>();
-      (contasPagarRes.data || []).forEach((r: any) => planoByContaPagar.set(r.id, r.chart_account_id || null));
+      (contasPagarRes.data || []).forEach((r: any) => planoByContaPagar.set(r.id, r.category_id || null));
       const planoByDespesa = new Map<string, string | null>();
       (despesasDirRes.data || []).forEach((r: any) => planoByDespesa.set(r.id, r.plano_contas_id || null));
       const planoByRecebParcial = new Map<string, string | null>();
