@@ -122,7 +122,7 @@ export function DreGerencial() {
 
         (extraCr || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
       }
-      const allFaturaIds = [...new Set([...crFatMap.values()])];
+      const allFaturaIds: string[] = Array.from(new Set(Array.from(crFatMap.values())));
       const faturaOrigemTipo = new Map<string, string>();
       if (allFaturaIds.length > 0) {
         const { data: fp } = await supabase
