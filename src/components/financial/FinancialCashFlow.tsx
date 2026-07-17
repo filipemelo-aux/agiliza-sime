@@ -185,12 +185,30 @@ export function FinancialCashFlow() {
       });
     }
 
-    const clienteIds = [...new Set((receberRes.data || []).map((cr: any) => cr.cliente_id).filter(Boolean))];
-    if (clienteIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", clienteIds);
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.full_name]));
-      (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
+    // Resolve receivable partial payments → contas_receber → cliente
+    const recebParcialCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
+    let extraContasReceber: any[] = [];
+    if (recebParcialCrIds.length > 0) {
+      const { data: extraCr } = await supabase.from("contas_receber").select("id, cliente_id").in("id", recebParcialCrIds);
+      extraContasReceber = extraCr || [];
     }
+    const crClienteMap = new Map<string, string>();
+    [...(receberRes.data || []), ...extraContasReceber].forEach((cr: any) => {
+      if (cr.cliente_id) crClienteMap.set(cr.id, cr.cliente_id);
+    });
+
+    const clienteIds = [...new Set([...crClienteMap.values()])];
+    if (clienteIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, nome_fantasia").in("id", clienteIds);
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p.nome_fantasia || p.full_name]));
+      (receberRes.data || []).forEach((cr: any) => { const nome = profileMap.get(cr.cliente_id); if (nome) pessoaMap.set(cr.id, nome); });
+      (recebParcialRes.data || []).forEach((rp: any) => {
+        const clienteId = crClienteMap.get(rp.conta_receber_id);
+        const nome = clienteId ? profileMap.get(clienteId) : null;
+        if (nome) pessoaMap.set(rp.id, nome);
+      });
+    }
+
 
     setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null })));
     setLoading(false);
