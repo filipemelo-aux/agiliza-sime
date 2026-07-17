@@ -170,7 +170,13 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       date: (row) => row.item.posted_date,
       favorecido: (row) => row.item.favorecido_nome?.toLowerCase(),
       description: (row) => row.item.description?.toLowerCase(),
-      parcelas: (row) => (row.item.parcela_total ?? 0) * 1000 + (row.item.parcela_atual ?? 0),
+      parcelas: (row) => {
+        const total = Number(row.item.parcela_total || 0);
+        const atual = Number(row.item.parcela_atual || 0);
+        // Itens sem parcelas (total = 0) ficam agrupados; ordena primeiro por total, depois por atual.
+        if (total === 0) return 0;
+        return total * 1000 + atual;
+      },
       amount: (row) => row.item.amount,
       plano_contas: (row) => {
         const acc = despesaLeaves.find((a) => a.id === row.item.plano_contas_id);
