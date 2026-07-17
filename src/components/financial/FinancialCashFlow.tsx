@@ -98,16 +98,19 @@ export function FinancialCashFlow() {
         .filter(Boolean),
     )];
     const colheitaIds = movs.filter((m) => m.origem === "colheitas").map((m) => m.origem_id);
+    const recebParcialIds = movs.filter((m) => m.origem === "recebimento_conta_receber").map((m) => m.origem_id);
 
     const pessoaMap = new Map<string, string>();
 
-    const [pagarRes, receberRes, despesaRes, colheitaRes, pagDespesaRes] = await Promise.all([
+    const [pagarRes, receberRes, despesaRes, colheitaRes, pagDespesaRes, recebParcialRes] = await Promise.all([
       pagarIds.length > 0 ? supabase.from("accounts_payable").select("id, creditor_name, creditor_id").in("id", pagarIds) : Promise.resolve({ data: [] }),
       receberIds.length > 0 ? supabase.from("contas_receber").select("id, cliente_id").in("id", receberIds) : Promise.resolve({ data: [] }),
       despesaIds.length > 0 ? supabase.from("expenses").select("id, favorecido_nome").in("id", despesaIds) : Promise.resolve({ data: [] }),
       colheitaIds.length > 0 ? supabase.from("harvest_payments").select("id, harvest_job_id, filter_context").in("id", colheitaIds) : Promise.resolve({ data: [] }),
       pagDespesaIds.length > 0 ? supabase.from("expense_payments").select("id, expense_id").in("id", pagDespesaIds) : Promise.resolve({ data: [] }),
+      recebParcialIds.length > 0 ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds) : Promise.resolve({ data: [] }),
     ]);
+
 
     (pagarRes.data || []).forEach((ap: any) => { if (ap.creditor_name) pessoaMap.set(ap.id, ap.creditor_name); });
     (despesaRes.data || []).forEach((e: any) => { if (e.favorecido_nome) pessoaMap.set(e.id, e.favorecido_nome); });
