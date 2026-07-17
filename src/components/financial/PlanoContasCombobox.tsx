@@ -62,6 +62,8 @@ export function PlanoContasCombobox({
   includeAll = false,
   allLabel = "Todas as contas",
   allValue = "all",
+  includeSemClassificacao = false,
+  semClassificacaoLabel = "⚠️ Sem Classificação / Em Branco",
   maxResults = 200,
   allowCreate = true,
   defaultTipo = "despesa",
