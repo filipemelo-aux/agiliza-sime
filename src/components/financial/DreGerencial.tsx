@@ -429,7 +429,9 @@ export function DreGerencial() {
   const renderRow = (n: TreeNode): JSX.Element[] => {
     const isOpen = expanded[n.id] ?? n.level === 0;
     const hasChildren = n.children.length > 0;
-    const isRevenueBranch = n.codigo.startsWith("3") || n.id === UNCLASSIFIED_IN;
+    const isRevenueBranch = n.isOrigem
+      ? n.entradas > n.saidas
+      : (n.codigo.startsWith("1") || n.codigo.startsWith("3") || n.id === UNCLASSIFIED_IN);
     const valor = isRevenueBranch ? n.entradas : n.saidas;
     const rows: JSX.Element[] = [
       <tr
@@ -437,7 +439,8 @@ export function DreGerencial() {
         className={cn(
           "border-b border-border/60 hover:bg-muted/30",
           n.level === 0 && "bg-muted/40 font-bold",
-          n.level === 1 && "font-semibold",
+          n.level === 1 && !n.isOrigem && "font-semibold",
+          n.isOrigem && "bg-muted/10 italic text-muted-foreground",
         )}
       >
         <td className="px-2 py-1.5" style={{ paddingLeft: `${8 + n.level * 16}px` }}>
@@ -449,8 +452,10 @@ export function DreGerencial() {
             ) : (
               <span className="w-4" />
             )}
-            <span className="text-xs tabular-nums text-muted-foreground w-16 shrink-0">{n.codigo}</span>
-            <span className="text-xs truncate">{n.nome}</span>
+            {!n.isOrigem && (
+              <span className="text-xs tabular-nums text-muted-foreground w-16 shrink-0">{n.codigo}</span>
+            )}
+            <span className={cn("text-xs truncate", n.isOrigem && "ml-16")}>{n.nome}</span>
           </div>
         </td>
         <td className={cn("px-3 py-1.5 text-right tabular-nums text-xs whitespace-nowrap", isRevenueBranch ? "text-green-600" : "text-red-600")}>
