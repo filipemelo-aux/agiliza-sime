@@ -230,6 +230,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   }, [open, invoiceId]);
 
   const total = useMemo(() => items.reduce((s, i) => s + i.amount, 0), [items]);
+  const selectedSum = useMemo(
+    () => items.reduce((s, it, i) => (selectedIdxs.has(i) ? s + Number(it.amount || 0) : s), 0),
+    [items, selectedIdxs]
+  );
   const isClosed = false; // edição liberada — alterações na fatura propagam para o Contas a Pagar
 
   const handleOfxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
