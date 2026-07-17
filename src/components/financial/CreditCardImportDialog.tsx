@@ -173,9 +173,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcelas: (row) => {
         const total = Number(row.item.parcela_total || 0);
         const atual = Number(row.item.parcela_atual || 0);
-        // Itens sem parcelas (total = 0) ficam agrupados; ordena primeiro por total, depois por atual.
+        // Itens sem parcelas (total = 0) ficam agrupados no início/fim.
+        // Ordena primeiro pela parcela atual ("1/2", "1/3" juntos), depois pelo total.
         if (total === 0) return 0;
-        return total * 1000 + atual;
+        return atual * 1000 + total;
       },
       amount: (row) => row.item.amount,
       plano_contas: (row) => {
