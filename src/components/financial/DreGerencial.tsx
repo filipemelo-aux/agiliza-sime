@@ -190,6 +190,10 @@ export function DreGerencial() {
         if (!pid) {
           if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
           else if (m.origem === "pagamento_agrupado") pid = planoByLote.get(m.origem_id) || null;
+          else if (m.origem === "contas_pagar") pid = planoByContaPagar.get(m.origem_id) || null;
+          else if (m.origem === "despesas") pid = planoByDespesa.get(m.origem_id) || null;
+          else if (m.origem === "contas_receber") pid = planoByContaReceber.get(m.origem_id) || null;
+          else if (m.origem === "recebimento_conta_receber") pid = planoByRecebParcial.get(m.origem_id) || null;
         }
         return {
           tipo: m.tipo as "entrada" | "saida",
@@ -197,6 +201,7 @@ export function DreGerencial() {
           planoId: pid,
         };
       });
+
 
       // 5) Explode credit card invoice items by their ORIGINAL transaction date
       //    (regime de competência da compra). Only items belonging to invoices
