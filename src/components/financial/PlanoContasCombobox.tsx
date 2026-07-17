@@ -113,7 +113,10 @@ export function PlanoContasCombobox({
   }, [sorted, search, maxResults]);
 
   const selected =
-    value && value !== allValue ? merged.find((o) => o.id === value) : null;
+    value && value !== allValue && value !== SEM_CLASSIFICACAO_VALUE
+      ? merged.find((o) => o.id === value)
+      : null;
+  const isSemClassificacao = value === SEM_CLASSIFICACAO_VALUE;
 
   const heightCls = size === "sm" ? "h-8 text-xs px-2" : "h-9 text-sm";
   const itemTextCls = size === "sm" ? "text-xs" : "text-sm";
@@ -135,6 +138,8 @@ export function PlanoContasCombobox({
                 <span className="font-mono text-[10px] mr-1 text-muted-foreground">{selected.codigo}</span>
                 {selected.nome}
               </span>
+            ) : isSemClassificacao ? (
+              <span className="truncate text-left text-amber-600">{semClassificacaoLabel}</span>
             ) : includeAll && (value === allValue || !value) ? (
               <span className="flex items-center gap-1 text-left">
                 <FolderTree className="h-3 w-3 text-muted-foreground" />
