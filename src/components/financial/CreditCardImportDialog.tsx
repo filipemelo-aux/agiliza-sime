@@ -827,6 +827,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     try {
       let id = invoiceId || null;
 
+      // Preserve "fechada" when editing an already-closed invoice via "Salvar rascunho".
+      // A closed invoice already has a linked expense in Contas a Pagar; downgrading it
+      // to "aberta" silently would break the audit trail and hide the card from filters.
+      const preservedStatus =
+        !closeNow && existingStatus === "fechada" ? "fechada" : (closeNow ? "fechada" : "aberta");
+
       const payload: any = {
         empresa_id: matrizId || null,
         card_name: cardName.trim(),
@@ -835,7 +841,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         due_date: dueDate,
         closing_date: closingDate || null,
         total_amount: total,
-        status: closeNow ? "fechada" : "aberta",
+        status: preservedStatus,
         ofx_file_name: ofxFileName || null,
         ofx_bank_name: ofxBank || null,
         ofx_account_id: ofxAccountId || null,
@@ -1295,23 +1301,37 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </Button>
             {!isClosed && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => persistInvoice(false)}
-                  disabled={saving || closing}
-                  className="h-9 text-xs"
-                >
-                  {saving ? "Salvando..." : "Salvar rascunho"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => persistInvoice(true)}
-                  disabled={saving || closing || items.length === 0}
-                  className="h-9 text-xs"
-                >
-                  {closing ? "Fechando..." : "Fechar fatura e enviar ao Contas a Pagar"}
-                </Button>
+                {existingStatus === "fechada" ? (
+                  <Button
+                    size="sm"
+                    onClick={() => persistInvoice(true)}
+                    disabled={saving || closing || items.length === 0}
+                    className="h-9 text-xs"
+                    title="A fatura permanece fechada e o Contas a Pagar é atualizado."
+                  >
+                    {closing ? "Salvando..." : "Salvar alterações (mantém fechada)"}
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => persistInvoice(false)}
+                      disabled={saving || closing}
+                      className="h-9 text-xs"
+                    >
+                      {saving ? "Salvando..." : "Salvar rascunho"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => persistInvoice(true)}
+                      disabled={saving || closing || items.length === 0}
+                      className="h-9 text-xs"
+                    >
+                      {closing ? "Fechando..." : "Fechar fatura e enviar ao Contas a Pagar"}
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
