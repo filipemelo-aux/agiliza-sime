@@ -510,16 +510,19 @@ export function DreGerencial() {
       (items || []).forEach((it: any) => {
         const val = Math.abs(Number(it.amount) || 0);
         if (val === 0) return;
-        totalCc += val;
-        const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
         const atual = Number(it.parcela_atual) || 0;
         const total = Number(it.parcela_total) || 0;
+        // REGRA DE COMPETÊNCIA: só à vista (total=0) ou 1ª parcela nascem no mês.
+        // Parcelas 2/N, 3/N... pertencem à competência do mês da compra original.
+        if (total > 0 && atual !== 1) return;
+
+        totalCc += val;
+        const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
         const parcela = total > 0 ? `${atual}/${total}` : "à vista";
 
         const reasons: string[] = [];
         if (it.ignored) reasons.push("Item marcado como Ignorado");
         if (!inv.closed) reasons.push("Fatura ainda em aberto (sem despesa gerada)");
-        if (total > 0 && atual !== 1) reasons.push(`Parcela ${atual}/${total} (só a 1ª parcela entra na competência)`);
 
         const row: AuditRow = {
           id: it.id,
