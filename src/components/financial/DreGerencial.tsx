@@ -74,15 +74,68 @@ export function DreGerencial() {
       // 3) Enrich plano_contas_id for movements linked to expenses
       const payPaymentIds = list.filter((m) => m.origem === "pagamento_despesa" && !m.plano_contas_id).map((m) => m.origem_id);
       const loteIds = list.filter((m) => m.origem === "pagamento_agrupado" && !m.plano_contas_id).map((m) => m.origem_id);
+      const contasPagarIds = list.filter((m) => m.origem === "contas_pagar" && !m.plano_contas_id).map((m) => m.origem_id);
+      const despesasDirIds = list.filter((m) => m.origem === "despesas" && !m.plano_contas_id).map((m) => m.origem_id);
+      const contasReceberIds = list.filter((m) => m.origem === "contas_receber" && !m.plano_contas_id).map((m) => m.origem_id);
+      const recebParcialIds = list.filter((m) => m.origem === "recebimento_conta_receber" && !m.plano_contas_id).map((m) => m.origem_id);
 
-      const [paysRes, loteRes] = await Promise.all([
+      const [paysRes, loteRes, contasPagarRes, despesasDirRes, contasReceberRes, recebParcialRes] = await Promise.all([
         payPaymentIds.length
           ? supabase.from("expense_payments").select("id, expense_id, expenses:expense_id(plano_contas_id)").in("id", payPaymentIds)
           : Promise.resolve({ data: [] as any[] } as any),
         loteIds.length
           ? supabase.from("expense_payments").select("lote_id, expense_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
           : Promise.resolve({ data: [] as any[] } as any),
+        contasPagarIds.length
+          ? supabase.from("accounts_payable").select("id, chart_account_id").in("id", contasPagarIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        despesasDirIds.length
+          ? supabase.from("expenses").select("id, plano_contas_id").in("id", despesasDirIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        contasReceberIds.length
+          ? supabase.from("contas_receber").select("id, fatura_id, fatura_previsoes:fatura_id(fatura_previsoes(previsao_id, previsoes_recebimento:previsao_id(origem_tipo)))").in("id", contasReceberIds)
+          : Promise.resolve({ data: [] as any[] } as any),
+        recebParcialIds.length
+          ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds)
+          : Promise.resolve({ data: [] as any[] } as any),
       ]);
+
+      // Map revenue account by codigo (best-effort)
+      const chartRes = await supabase.from("chart_of_accounts").select("id, codigo").in("codigo", ["1.1.01", "1.1.02"]);
+      const revenueByCodigo = new Map<string, string>();
+      (chartRes.data || []).forEach((c: any) => revenueByCodigo.set(c.codigo, c.id));
+      const revenuePlanoFromOrigemTipo = (t?: string | null): string | null => {
+        if (t === "cte") return revenueByCodigo.get("1.1.01") || null;
+        if (t === "colheita") return revenueByCodigo.get("1.1.02") || null;
+        return null;
+      };
+
+      // For contas_receber: resolve origem_tipo via first previsao in fatura
+      const planoByContaReceber = new Map<string, string | null>();
+      // The nested embedding above may not always resolve reliably; fall back to explicit query.
+      let crFatMap = new Map<string, string>(); // conta_receber_id -> fatura_id
+      (contasReceberRes.data || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
+      // Also resolve for recebParcial → contas_receber
+      const rpCrIds = [...new Set((recebParcialRes.data || []).map((rp: any) => rp.conta_receber_id).filter(Boolean))];
+      if (rpCrIds.length > 0) {
+        const { data: extraCr } = await supabase.from("contas_receber").select("id, fatura_id").in("id", rpCrIds);
+        (extraCr || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
+      }
+      const allFaturaIds = [...new Set([...crFatMap.values()])];
+      const faturaOrigemTipo = new Map<string, string>();
+      if (allFaturaIds.length > 0) {
+        const { data: fp } = await supabase
+          .from("fatura_previsoes")
+          .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+          .in("fatura_id", allFaturaIds);
+        (fp || []).forEach((row: any) => {
+          const t = row.previsoes_recebimento?.origem_tipo;
+          if (t && !faturaOrigemTipo.has(row.fatura_id)) faturaOrigemTipo.set(row.fatura_id, t);
+        });
+      }
+      crFatMap.forEach((fatId, crId) => {
+        planoByContaReceber.set(crId, revenuePlanoFromOrigemTipo(faturaOrigemTipo.get(fatId)));
+      });
 
       const planoByPayment = new Map<string, string | null>();
       const expenseByPayment = new Map<string, string | null>();
@@ -97,6 +150,15 @@ export function DreGerencial() {
         if (!expensesByLote.has(p.lote_id)) expensesByLote.set(p.lote_id, new Set());
         if (p.expense_id) expensesByLote.get(p.lote_id)!.add(p.expense_id);
       });
+      const planoByContaPagar = new Map<string, string | null>();
+      (contasPagarRes.data || []).forEach((r: any) => planoByContaPagar.set(r.id, r.chart_account_id || null));
+      const planoByDespesa = new Map<string, string | null>();
+      (despesasDirRes.data || []).forEach((r: any) => planoByDespesa.set(r.id, r.plano_contas_id || null));
+      const planoByRecebParcial = new Map<string, string | null>();
+      (recebParcialRes.data || []).forEach((rp: any) => {
+        planoByRecebParcial.set(rp.id, planoByContaReceber.get(rp.conta_receber_id) || null);
+      });
+
 
       // 4) Filter out bank movements that represent the payment of a credit card
       //    invoice's mother expense (to avoid double counting when we add item detail).
