@@ -194,6 +194,16 @@ export function PlanoContasCombobox({
                       {allLabel}
                     </CommandItem>
                   )}
+                  {includeSemClassificacao && (
+                    <CommandItem
+                      value={SEM_CLASSIFICACAO_VALUE}
+                      onSelect={() => { onChange(SEM_CLASSIFICACAO_VALUE); setOpen(false); setSearch(""); }}
+                      className={cn(itemTextCls, "text-amber-600")}
+                    >
+                      <Check className={cn("mr-2 h-3 w-3", isSemClassificacao ? "opacity-100" : "opacity-0")} />
+                      {semClassificacaoLabel}
+                    </CommandItem>
+                  )}
                   {filtered.map((o) => (
                     <CommandItem
                       key={o.id}
