@@ -454,6 +454,135 @@ export function DreGerencial() {
     });
   }, [movs, chartAccounts]);
 
+  const exportDrillCsv = useCallback(() => {
+    if (!drill) return;
+    const rows = drill.rows.map((r) => ({
+      data: r.data ? formatDateBR(r.data) : "",
+      descricao: r.descricao,
+      parcela: r.parcela,
+      valor: r.valor.toFixed(2).replace(".", ","),
+    }));
+    const filename = `dre-drill-${drill.title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}-${dataInicio}_${dataFim}.csv`;
+    exportToCsv(filename, rows, [
+      { key: "data", label: "Data" },
+      { key: "descricao", label: "Descrição" },
+      { key: "parcela", label: "Parcela" },
+      { key: "valor", label: "Valor" },
+    ]);
+  }, [drill, dataInicio, dataFim]);
+
+  const runAudit = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      // 1) Buscar TODOS os itens de cartão do período (fonte "módulo Cartão")
+      const { data: invs } = await supabase
+        .from("credit_card_invoices")
+        .select("id, card_name, reference_label, expense_id, deleted_at")
+        .is("deleted_at", null);
+      const invMap = new Map<string, { label: string; closed: boolean }>();
+      (invs || []).forEach((inv: any) => {
+        invMap.set(inv.id, {
+          label: `${inv.card_name || "—"}${inv.reference_label ? " • " + inv.reference_label : ""}`,
+          closed: !!inv.expense_id,
+        });
+      });
+      const invIds = Array.from(invMap.keys());
+      if (invIds.length === 0) {
+        setAudit({ missing: [], extra: [], totalCc: 0, totalDre: 0 });
+        return;
+      }
+      let q: any = supabase
+        .from("credit_card_invoice_items")
+        .select("id, invoice_id, amount, ignored, posted_date, description, parcela_atual, parcela_total")
+        .in("invoice_id", invIds);
+      if (dataInicio) q = q.gte("posted_date", dataInicio);
+      if (dataFim) q = q.lte("posted_date", dataFim);
+      const { data: items, error } = await q.limit(20000);
+      if (error) throw error;
+
+      const dreItemIds = new Set<string>(
+        movs.filter((m) => m.origem === "cartao" && m.itemId).map((m) => m.itemId as string),
+      );
+
+      const ccRows: AuditRow[] = [];
+      const dreExpected = new Set<string>();
+      let totalCc = 0;
+      (items || []).forEach((it: any) => {
+        const val = Math.abs(Number(it.amount) || 0);
+        if (val === 0) return;
+        totalCc += val;
+        const inv = invMap.get(it.invoice_id) || { label: "—", closed: false };
+        const atual = Number(it.parcela_atual) || 0;
+        const total = Number(it.parcela_total) || 0;
+        const parcela = total > 0 ? `${atual}/${total}` : "à vista";
+
+        const reasons: string[] = [];
+        if (it.ignored) reasons.push("Item marcado como Ignorado");
+        if (!inv.closed) reasons.push("Fatura ainda em aberto (sem despesa gerada)");
+        if (total > 0 && atual !== 1) reasons.push(`Parcela ${atual}/${total} (só a 1ª parcela entra na competência)`);
+
+        const row: AuditRow = {
+          id: it.id,
+          posted_date: it.posted_date,
+          description: it.description || "—",
+          amount: val,
+          parcela,
+          invoice_label: inv.label,
+          reason: reasons.join(" • ") || "OK — deveria estar na DRE",
+        };
+        ccRows.push(row);
+        if (reasons.length === 0) dreExpected.add(it.id);
+      });
+
+      const missing: AuditRow[] = ccRows.filter((r) => !dreItemIds.has(r.id));
+      // "extra": itens que a DRE contou mas que NÃO aparecem no módulo (período/filtro)
+      const ccIds = new Set(ccRows.map((r) => r.id));
+      const extra: AuditRow[] = [];
+      movs
+        .filter((m) => m.origem === "cartao" && m.itemId && !ccIds.has(m.itemId))
+        .forEach((m) => {
+          extra.push({
+            id: m.itemId as string,
+            posted_date: m.data,
+            description: m.descricao,
+            amount: m.valor,
+            parcela: m.parcela,
+            invoice_label: "—",
+            reason: "Presente na DRE mas fora do período no módulo Cartão",
+          });
+        });
+
+      let totalDre = 0;
+      movs.forEach((m) => { if (m.origem === "cartao") totalDre += m.valor; });
+
+      setAudit({ missing, extra, totalCc, totalDre });
+    } catch (e: any) {
+      toast.error("Erro na auditoria", { description: e.message });
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [dataInicio, dataFim, movs]);
+
+  const exportAuditCsv = useCallback((rows: AuditRow[], suffix: string) => {
+    const mapped = rows.map((r) => ({
+      data: r.posted_date ? formatDateBR(r.posted_date) : "",
+      descricao: r.description,
+      parcela: r.parcela,
+      fatura: r.invoice_label,
+      valor: r.amount.toFixed(2).replace(".", ","),
+      motivo: r.reason,
+    }));
+    exportToCsv(`auditoria-${suffix}-${dataInicio}_${dataFim}.csv`, mapped, [
+      { key: "data", label: "Data" },
+      { key: "descricao", label: "Descrição" },
+      { key: "parcela", label: "Parcela" },
+      { key: "fatura", label: "Fatura" },
+      { key: "valor", label: "Valor" },
+      { key: "motivo", label: "Motivo" },
+    ]);
+  }, [dataInicio, dataFim]);
+
+
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
   const expandAll = () => {
