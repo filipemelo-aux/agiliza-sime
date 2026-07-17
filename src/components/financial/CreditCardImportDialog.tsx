@@ -1446,7 +1446,42 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
-      <TableCell className="text-xs px-1 py-1.5 align-middle">{formatDateBR(item.posted_date)}</TableCell>
+      <TableCell className="text-xs px-1 py-1.5 align-middle whitespace-nowrap">
+        {(() => {
+          const refFirst = referenceYM ? `${referenceYM}-01` : "";
+          const posted = item.posted_date || "";
+          let daysDiff = 0;
+          if (refFirst && posted) {
+            const rf = new Date(`${refFirst}T12:00:00`).getTime();
+            const pd = new Date(`${posted}T12:00:00`).getTime();
+            daysDiff = Math.round((rf - pd) / 86400000);
+          }
+          const misaligned = daysDiff > 30;
+          return (
+            <div className="flex items-center gap-1">
+              <span>{formatDateBR(item.posted_date)}</span>
+              {misaligned && !isClosed && (
+                <button
+                  type="button"
+                  onClick={() => onUpdate(idx, { posted_date: refFirst })}
+                  title={`Data original ${daysDiff} dias antes da fatura ${referenceYM}. Clique para ajustar para ${formatDateBR(refFirst)} (competência da fatura).`}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                </button>
+              )}
+              {misaligned && isClosed && (
+                <span
+                  title={`Data original ${daysDiff} dias antes da fatura ${referenceYM}.`}
+                  className="inline-flex items-center justify-center h-5 w-5 text-amber-600"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                </span>
+              )}
+            </div>
+          );
+        })()}
+      </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
         <div className="flex items-center gap-1">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
