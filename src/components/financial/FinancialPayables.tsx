@@ -1279,7 +1279,10 @@ export function FinancialPayables() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-foreground">Contas a Pagar</h1>
+          <ReportInfoTooltip text="Visão de obrigações: filtrado e ordenado pela Data de Vencimento. Cada linha representa uma parcela/documento a vencer. Use as abas de status (Em Aberto, Pago, Atrasado) para gestão de boletos e faturas pendentes." />
+        </div>
         <Button size="sm" onClick={handleNew} className="gap-1.5">
           <Plus className="h-4 w-4" /> Nova Despesa
         </Button>
