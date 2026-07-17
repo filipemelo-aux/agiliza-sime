@@ -21,6 +21,8 @@ export interface PlanoContaOption {
   tipo_operacional?: string | null;
 }
 
+export const SEM_CLASSIFICACAO_VALUE = "sem_classificacao";
+
 interface PlanoContasComboboxProps {
   value: string | null | undefined;
   onChange: (v: string) => void;
@@ -33,6 +35,9 @@ interface PlanoContasComboboxProps {
   includeAll?: boolean;
   allLabel?: string;
   allValue?: string;
+  /** Inclui opção "⚠️ Sem Classificação / Em Branco" (uso em filtros) */
+  includeSemClassificacao?: boolean;
+  semClassificacaoLabel?: string;
   /** Limita opções exibidas (default: 200) */
   maxResults?: number;
   /** Habilita botão "+" para criar conta diretamente */
