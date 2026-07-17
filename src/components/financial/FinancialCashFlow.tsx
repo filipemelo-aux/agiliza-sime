@@ -214,9 +214,60 @@ export function FinancialCashFlow() {
     }
 
 
-    setMovimentacoes(movs.map((m) => ({ ...m, pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null })));
+    // Plano de contas resolution map (keyed by origem_id or lote_id)
+    const planoMap = new Map<string, string>();
+    (pagarRes.data || []).forEach((ap: any) => { if (ap.category_id) planoMap.set(ap.id, ap.category_id); });
+
+    const despesaExpIdsForPlano = [
+      ...despesaIds,
+      ...((pagDespesaRes.data || []).map((p: any) => p.expense_id).filter(Boolean)),
+    ];
+    if (despesaExpIdsForPlano.length > 0) {
+      const uniqueExpIds = [...new Set(despesaExpIdsForPlano)];
+      const { data: expPlanos } = await supabase.from("expenses").select("id, plano_contas_id").in("id", uniqueExpIds);
+      const expPlanoMap = new Map((expPlanos || []).map((e: any) => [e.id, e.plano_contas_id]));
+      despesaIds.forEach((id) => { const p = expPlanoMap.get(id); if (p) planoMap.set(id, p as string); });
+      (pagDespesaRes.data || []).forEach((pd: any) => {
+        const p = expPlanoMap.get(pd.expense_id);
+        if (p) planoMap.set(pd.id, p as string);
+      });
+    }
+
+    // Refetch accounts_payable with category_id
+    if (pagarIds.length > 0) {
+      const { data: apPlano } = await supabase.from("accounts_payable").select("id, category_id").in("id", pagarIds);
+      (apPlano || []).forEach((ap: any) => { if (ap.category_id) planoMap.set(ap.id, ap.category_id); });
+    }
+
+    let enriched: MovimentacaoEnriquecida[] = movs.map((m) => ({
+      ...m,
+      pessoa_nome: pessoaMap.get(m.origem_id) || pessoaMap.get(m.lote_id || "") || null,
+      plano_resolved_id: m.plano_contas_id || planoMap.get(m.origem_id) || planoMap.get(m.lote_id || "") || null,
+    }));
+
+    if (filters.planoContasId === "sem_classificacao") {
+      enriched = enriched.filter((m) => !m.plano_resolved_id);
+    } else if (filters.planoContasId !== "todos") {
+      // subtree of accounts
+      const buildSubtree = (rootId: string): Set<string> => {
+        const set = new Set<string>([rootId]);
+        const stack = [rootId];
+        while (stack.length) {
+          const cur = stack.pop()!;
+          chartAccounts.filter((c: any) => c.conta_pai_id === cur).forEach((c: any) => {
+            if (!set.has(c.id)) { set.add(c.id); stack.push(c.id); }
+          });
+        }
+        return set;
+      };
+      const ids = buildSubtree(filters.planoContasId);
+      enriched = enriched.filter((m) => m.plano_resolved_id && ids.has(m.plano_resolved_id));
+    }
+
+    setMovimentacoes(enriched);
     setLoading(false);
-  }, [filters]);
+  }, [filters, chartAccounts]);
+
 
   useEffect(() => { loadMovimentacoes(); }, [loadMovimentacoes]);
 
