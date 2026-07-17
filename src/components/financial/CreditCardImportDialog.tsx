@@ -827,6 +827,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     try {
       let id = invoiceId || null;
 
+      // Preserve "fechada" when editing an already-closed invoice via "Salvar rascunho".
+      // A closed invoice already has a linked expense in Contas a Pagar; downgrading it
+      // to "aberta" silently would break the audit trail and hide the card from filters.
+      const preservedStatus =
+        !closeNow && existingStatus === "fechada" ? "fechada" : (closeNow ? "fechada" : "aberta");
+
       const payload: any = {
         empresa_id: matrizId || null,
         card_name: cardName.trim(),
@@ -835,7 +841,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         due_date: dueDate,
         closing_date: closingDate || null,
         total_amount: total,
-        status: closeNow ? "fechada" : "aberta",
+        status: preservedStatus,
         ofx_file_name: ofxFileName || null,
         ofx_bank_name: ofxBank || null,
         ofx_account_id: ofxAccountId || null,
