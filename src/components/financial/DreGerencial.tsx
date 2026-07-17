@@ -196,7 +196,7 @@ export function DreGerencial() {
       const filtered = list.filter((m) => !isCcInvoicePayment(m));
 
       const CONTAS_PAGAR_ORIGENS = new Set(["despesas", "pagamento_despesa", "pagamento_agrupado", "contas_pagar"]);
-      const enriched = filtered.map((m) => {
+      const enriched: Array<{ tipo: "entrada" | "saida"; valor: number; planoId: string | null; origem: OrigemKind }> = filtered.map((m) => {
         let pid: string | null = m.plano_contas_id || null;
         if (!pid) {
           if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
