@@ -1168,20 +1168,37 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">Data</TableHead>
-                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">Favorecido</TableHead>
-                      <TableHead className="px-1 text-[11px]">Descrição</TableHead>
-                      <TableHead style={{ width: 88 }} className="px-1 text-right text-[11px]">Valor</TableHead>
-                      <TableHead style={{ width: 200 }} className="px-1 text-[11px]">Plano de Contas *</TableHead>
-                      <TableHead style={{ width: 110 }} className="px-1 text-[11px]">C. Custo</TableHead>
-                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">Veículo</TableHead>
+                      <TableHead style={{ width: 72 }} className="px-1 text-[11px]">
+                        <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 160 }} className="px-1 text-[11px]">
+                        <SortHeader label="Favorecido" sortKey="favorecido" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead className="px-1 text-[11px] w-[28%]">
+                        <SortHeader label="Descrição" sortKey="description" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 92 }} className="px-1 text-[11px]">
+                        <SortHeader label="Parcelas" sortKey="parcelas" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 80 }} className="px-1 text-right text-[11px]">
+                        <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 180 }} className="px-1 text-[11px]">
+                        <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 104 }} className="px-1 text-[11px]">
+                        <SortHeader label="C. Custo" sortKey="centro_custo" sort={sort} toggle={toggle} />
+                      </TableHead>
+                      <TableHead style={{ width: 88 }} className="px-1 text-[11px]">
+                        <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
+                      </TableHead>
                       <TableHead style={{ width: 32 }} className="px-1"></TableHead>
                     </TableRow>
                   </TableHeader>
 
 
                   <TableBody>
-                    {items.map((it, idx) => (
+                    {sortedItems.map((it, idx) => (
                       <InvoiceItemRow
                         key={`${it.fitid}-${idx}`}
                         idx={idx}
