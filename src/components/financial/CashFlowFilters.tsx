@@ -40,7 +40,7 @@ function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; data
   return { dataInicio: null, dataFim: null };
 }
 
-export function CashFlowFilters({ filters, onChange }: CashFlowFiltersProps) {
+export function CashFlowFilters({ filters, onChange, chartAccounts }: CashFlowFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const update = (partial: Partial<CashFlowFilterValues>) => {
