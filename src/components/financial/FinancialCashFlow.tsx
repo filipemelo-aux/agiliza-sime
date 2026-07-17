@@ -344,7 +344,7 @@ export function FinancialCashFlow() {
             <Plus className="h-3.5 w-3.5" /> Nova Movimentação
           </Button>
         </div>
-        <CashFlowFilters filters={filters} onChange={setFilters} />
+        <CashFlowFilters filters={filters} onChange={setFilters} chartAccounts={chartAccounts} />
       </div>
 
       {/* Summary cards - compact */}
