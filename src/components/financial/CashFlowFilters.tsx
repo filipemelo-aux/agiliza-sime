@@ -9,6 +9,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Filter, RotateCcw, X } from "lucide-react";
+import { PlanoContasCombobox, PlanoContaOption } from "./PlanoContasCombobox";
 
 export type QuickPeriod = "todos" | "mes_atual" | "mes_anterior";
 
@@ -20,11 +21,13 @@ export interface CashFlowFilterValues {
   valorMin: string;
   valorMax: string;
   quickPeriod: QuickPeriod;
+  planoContasId: string;
 }
 
 interface CashFlowFiltersProps {
   filters: CashFlowFilterValues;
   onChange: (filters: CashFlowFilterValues) => void;
+  chartAccounts?: PlanoContaOption[];
 }
 
 function getDatesForPeriod(period: QuickPeriod): { dataInicio: Date | null; dataFim: Date | null } {
