@@ -143,16 +143,40 @@ function SidebarNav() {
                       <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
                         {item.title}
                       </div>
-                      {item.children.map((child) => (
-                        <SidebarMenuItem key={child.title}>
-                          <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
-                            <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                              <child.icon className="h-3.5 w-3.5" />
-                              <span>{child.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
+                      {item.children.map((child: any) => {
+                        if (child.submenu) {
+                          const anySubActive = child.submenu.some((s: any) => isActive(s.url));
+                          return (
+                            <CollapsibleSubmenu
+                              key={child.title}
+                              title={child.title}
+                              Icon={child.icon}
+                              defaultOpen={anySubActive}
+                            >
+                              {child.submenu.map((sub: any) => (
+                                <SidebarMenuSubItem key={sub.title}>
+                                  <SidebarMenuSubButton asChild isActive={isActive(sub.url)} className="h-6 text-[11px] px-2 gap-2">
+                                    <Link to={sub.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
+                                      <sub.icon className="h-3 w-3" />
+                                      <span>{sub.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </CollapsibleSubmenu>
+                          );
+                        }
+                        return (
+                          <SidebarMenuItem key={child.title}>
+                            <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
+                              <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
+                                <child.icon className="h-3.5 w-3.5" />
+                                <span>{child.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
                     </div>
                   );
                 }
