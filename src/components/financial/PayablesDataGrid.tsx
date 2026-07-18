@@ -243,7 +243,12 @@ export function PayablesDataGrid() {
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
-      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col relative">
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-background/50 backdrop-blur-[1px] flex items-center justify-center pointer-events-auto">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
         <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full text-xs table-fixed">
             <colgroup>
