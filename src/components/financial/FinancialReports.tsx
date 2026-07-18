@@ -954,31 +954,23 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
         </div>
       </div>
 
-      <Tabs value={reportType} onValueChange={handleTabChange}>
-        {!fixedReportType && (
-          <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full h-8 p-0.5">
-            <TabsTrigger value="payables" className="h-7 text-xs">Contas a Pagar</TabsTrigger>
-            <TabsTrigger value="receivables" className="h-7 text-xs">Contas a Receber</TabsTrigger>
-            <TabsTrigger value="cashflow" className="h-7 text-xs">Fluxo de Caixa</TabsTrigger>
-            <TabsTrigger value="forecasts" className="h-7 text-xs">Previsões</TabsTrigger>
-            <TabsTrigger value="dre" className="h-7 text-xs">DRE Gerencial</TabsTrigger>
-          </TabsList>
-        )}
-
+      <div>
         {reportType === "dre" ? (
-          <TabsContent value="dre" className="mt-2">
+          <div className="mt-2">
             <DreGerencial />
-          </TabsContent>
+          </div>
         ) : (reportType as string) === "payables" ? (
-          <TabsContent value="payables" className="mt-2">
+          <div className="mt-2">
             <PayablesDataGrid />
-          </TabsContent>
+          </div>
         ) : reportType === "cashflow" ? (
-          <TabsContent value="cashflow" className="mt-2">
+          <div className="mt-2">
             <CashFlowDailyGrid />
-          </TabsContent>
+          </div>
         ) : (
-        <TabsContent value={reportType} className="mt-2">
+        <div className="mt-2">
+
+
 
           <Card>
             <CardContent className="p-3 space-y-3">
