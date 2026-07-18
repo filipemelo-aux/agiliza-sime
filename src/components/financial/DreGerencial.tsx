@@ -61,7 +61,7 @@ const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
 export function DreGerencial() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
-  const [regime, setRegime] = useState<"competencia" | "caixa">("competencia");
+  
   const [loading, setLoading] = useState(false);
   const [chartAccounts, setChartAccounts] = useState<ChartAccount[]>([]);
   const [movs, setMovs] = useState<MovDetail[]>([]);
