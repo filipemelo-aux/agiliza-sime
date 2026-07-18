@@ -100,7 +100,12 @@ export function CashFlowDailyGrid() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col relative">
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-background/50 backdrop-blur-[1px] flex items-center justify-center pointer-events-auto">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
         <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted text-muted-foreground sticky top-0 z-10 shadow-sm">

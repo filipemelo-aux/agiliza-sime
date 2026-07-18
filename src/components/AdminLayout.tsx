@@ -41,7 +41,17 @@ const menuItems = [
       { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Cartão de Crédito", url: "/admin/financial/credit-card", icon: CreditCard },
-      { title: "Relatórios", url: "/admin/financial/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Relatórios",
+    icon: BarChart3,
+    children: [
+      { title: "Contas a Pagar", url: "/admin/financial/reports/payables", icon: DollarSign },
+      { title: "Contas a Receber", url: "/admin/financial/reports/receivables", icon: Receipt },
+      { title: "Fluxo de Caixa", url: "/admin/financial/reports/cashflow", icon: Wallet },
+      { title: "Previsões", url: "/admin/financial/reports/forecasts", icon: TrendingUp },
+      { title: "DRE Gerencial", url: "/admin/financial/reports/dre", icon: BarChart3 },
     ],
   },
   {
@@ -124,15 +134,15 @@ function SidebarNav() {
               {menuItems.map((item) => {
                 if ('children' in item && item.children) {
                   return (
-                    <div key={item.title} className="pt-4 first:pt-0">
-                      <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
+                    <div key={item.title} className="pt-2 first:pt-0">
+                      <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
                         {item.title}
                       </div>
                       {item.children.map((child) => (
                         <SidebarMenuItem key={child.title}>
-                          <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title}>
+                          <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
                             <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                              <child.icon className="h-4 w-4" />
+                              <child.icon className="h-3.5 w-3.5" />
                               <span>{child.title}</span>
                             </Link>
                           </SidebarMenuButton>
@@ -150,9 +160,10 @@ function SidebarNav() {
                       asChild
                       isActive={isActive(item.url!, (item as any).exact)}
                       tooltip={item.title}
+                      className="h-7 text-xs px-2 gap-2"
                     >
                       <Link to={item.url!} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-3.5 w-3.5" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
