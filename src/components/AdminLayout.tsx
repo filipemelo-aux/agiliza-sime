@@ -107,6 +107,41 @@ const menuItems = [
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
+function CollapsibleSubmenu({
+  title,
+  Icon,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
+  return (
+    <SidebarMenuItem>
+      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={title} className="h-7 text-xs px-2 gap-2 w-full">
+            <Icon className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">{title}</span>
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="mr-0 pr-0">
+            {children}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
+
+
+
 function SidebarNav() {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
