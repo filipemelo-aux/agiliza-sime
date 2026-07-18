@@ -76,17 +76,16 @@ export function CashFlowDailyGrid() {
   );
 
   return (
-    <div className="flex flex-col gap-1.5 h-[calc(100vh-170px)]">
-      <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+    <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
+      <div className="flex flex-wrap items-center gap-1 px-0.5">
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         <span className="text-[10px] text-muted-foreground">até</span>
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
       {rows.length > 0 && (
-        <div className="border border-border rounded-md bg-card h-[140px] p-1 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="border border-border rounded-md bg-card h-[120px] p-1 shrink-0">
             <BarChart data={chartData} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
