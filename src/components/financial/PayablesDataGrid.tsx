@@ -169,7 +169,7 @@ export function PayablesDataGrid() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [dataInicio, dataFim]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
