@@ -1,5 +1,5 @@
 import { AdminLayout } from "@/components/AdminLayout";
-import { FinancialPayables } from "@/components/financial/FinancialPayables";
+import { FinancialPayablesTree } from "@/components/financial/FinancialPayablesTree";
 import { FinancialReceipts } from "@/components/financial/FinancialReceipts";
 
 
@@ -16,7 +16,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        {section === "payables" && <FinancialPayables />}
+        {section === "payables" && <FinancialPayablesTree />}
         {section === "invoicing" && <FinancialInvoicing />}
         {section === "forecasts" && <RevenueForecasts />}
         
