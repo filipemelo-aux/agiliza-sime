@@ -937,42 +937,43 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   }, [reportType]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-bold text-foreground">Relatórios Financeiros</h1>
+        <h1 className="text-base font-bold text-foreground">Relatórios Financeiros</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7">
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
           </Button>
-          <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1">
+          <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1 h-7">
             <Printer className="h-3.5 w-3.5" /> Imprimir
           </Button>
         </div>
       </div>
 
       <Tabs value={reportType} onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full">
-          <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
-          <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
-          <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
-          <TabsTrigger value="forecasts">Previsões</TabsTrigger>
-          <TabsTrigger value="dre">DRE Gerencial</TabsTrigger>
+        <TabsList className="grid grid-cols-3 md:grid-cols-5 w-full h-8 p-0.5">
+          <TabsTrigger value="payables" className="h-7 text-xs">Contas a Pagar</TabsTrigger>
+          <TabsTrigger value="receivables" className="h-7 text-xs">Contas a Receber</TabsTrigger>
+          <TabsTrigger value="cashflow" className="h-7 text-xs">Fluxo de Caixa</TabsTrigger>
+          <TabsTrigger value="forecasts" className="h-7 text-xs">Previsões</TabsTrigger>
+          <TabsTrigger value="dre" className="h-7 text-xs">DRE Gerencial</TabsTrigger>
         </TabsList>
 
         {reportType === "dre" ? (
-          <TabsContent value="dre" className="mt-4">
+          <TabsContent value="dre" className="mt-2">
             <DreGerencial />
           </TabsContent>
         ) : (reportType as string) === "payables" ? (
-          <TabsContent value="payables" className="mt-4">
+          <TabsContent value="payables" className="mt-2">
             <PayablesDataGrid />
           </TabsContent>
         ) : reportType === "cashflow" ? (
-          <TabsContent value="cashflow" className="mt-4">
+          <TabsContent value="cashflow" className="mt-2">
             <CashFlowDailyGrid />
           </TabsContent>
         ) : (
-        <TabsContent value={reportType} className="mt-4">
+        <TabsContent value={reportType} className="mt-2">
+
           <Card>
             <CardContent className="p-3 space-y-3">
               {TIPO_DATA_OPTIONS[reportType] && (
