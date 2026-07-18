@@ -107,38 +107,38 @@ export function CashFlowDailyGrid() {
           </div>
         )}
         <div className="flex-1 min-h-0 overflow-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-[11px]">
             <thead className="bg-muted text-muted-foreground sticky top-0 z-10 shadow-sm">
               <tr className="text-left">
-                <th className="px-1.5 py-1 font-medium w-[100px]">Data</th>
-                <th className="px-1.5 py-1 font-medium text-right">Entradas</th>
-                <th className="px-1.5 py-1 font-medium text-right">Saídas</th>
-                <th className="px-1.5 py-1 font-medium text-right">Saldo do Dia</th>
-                <th className="px-1.5 py-1 font-medium text-right">Saldo Acumulado</th>
+                <th className="px-1 py-0.5 font-medium w-[90px]">Data</th>
+                <th className="px-1 py-0.5 font-medium text-right">Entradas</th>
+                <th className="px-1 py-0.5 font-medium text-right">Saídas</th>
+                <th className="px-1 py-0.5 font-medium text-right">Saldo do Dia</th>
+                <th className="px-1 py-0.5 font-medium text-right">Saldo Acumulado</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.data} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-1.5 py-0.5 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                  <td className="px-1.5 py-0.5 text-right tabular-nums text-emerald-600">{r.entradas > 0 ? formatCurrency(r.entradas) : "—"}</td>
-                  <td className="px-1.5 py-0.5 text-right tabular-nums text-red-600">{r.saidas > 0 ? formatCurrency(r.saidas) : "—"}</td>
-                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", r.saldoDia < 0 ? "text-red-600" : r.saldoDia > 0 ? "text-emerald-600" : "text-muted-foreground")}>
+                  <td className="px-1 py-0 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
+                  <td className="px-1 py-0 text-right tabular-nums text-emerald-600">{r.entradas > 0 ? formatCurrency(r.entradas) : "—"}</td>
+                  <td className="px-1 py-0 text-right tabular-nums text-red-600">{r.saidas > 0 ? formatCurrency(r.saidas) : "—"}</td>
+                  <td className={cn("px-1 py-0 text-right tabular-nums font-medium", r.saldoDia < 0 ? "text-red-600" : r.saldoDia > 0 ? "text-emerald-600" : "text-muted-foreground")}>
                     {formatCurrency(r.saldoDia)}
                   </td>
-                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-semibold", r.saldoAcumulado < 0 ? "text-red-600" : "text-primary")}>
+                  <td className={cn("px-1 py-0 text-right tabular-nums font-semibold", r.saldoAcumulado < 0 ? "text-red-600" : "text-primary")}>
                     {formatCurrency(r.saldoAcumulado)}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="sticky bottom-0 z-10 bg-muted/95 backdrop-blur border-t border-border">
-              <tr className="text-xs font-bold">
-                <td className="px-1.5 py-1.5">Total do Período</td>
-                <td className="px-1.5 py-1.5 text-right tabular-nums text-emerald-600">{formatCurrency(totals.entradas)}</td>
-                <td className="px-1.5 py-1.5 text-right tabular-nums text-red-600">{formatCurrency(totals.saidas)}</td>
-                <td className={cn("px-1.5 py-1.5 text-right tabular-nums", totals.saldo < 0 ? "text-red-600" : "text-primary")}>{formatCurrency(totals.saldo)}</td>
-                <td className="px-1.5 py-1.5 text-right tabular-nums text-primary">{formatCurrency(totals.saldo)}</td>
+              <tr className="text-[11px] font-bold">
+                <td className="px-1 py-0.5">Total do Período</td>
+                <td className="px-1 py-0.5 text-right tabular-nums text-emerald-600">{formatCurrency(totals.entradas)}</td>
+                <td className="px-1 py-0.5 text-right tabular-nums text-red-600">{formatCurrency(totals.saidas)}</td>
+                <td className={cn("px-1 py-0.5 text-right tabular-nums", totals.saldo < 0 ? "text-red-600" : "text-primary")}>{formatCurrency(totals.saldo)}</td>
+                <td className="px-1 py-0.5 text-right tabular-nums text-primary">{formatCurrency(totals.saldo)}</td>
               </tr>
             </tfoot>
           </table>
