@@ -228,28 +228,28 @@ export function PayablesDataGrid() {
   );
 
   return (
-    <div className="flex flex-col gap-1.5 h-[calc(100vh-170px)]">
-      <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+    <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
+      <div className="flex flex-wrap items-center gap-1 px-0.5">
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         <span className="text-[10px] text-muted-foreground">até</span>
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         <div className="flex gap-0.5 ml-1">
           {statusButtons.map((b) => (
             <Button
               key={b.v}
               size="sm"
               variant={status === b.v ? "default" : "outline"}
-              className="h-7 text-xs px-2"
+              className="h-7 text-[11px] px-2 py-0"
               onClick={() => setStatus(b.v)}
             >
               {b.label}
             </Button>
           ))}
         </div>
-        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[100px]" />
-        <div className="relative flex-1 min-w-[180px]">
+        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
