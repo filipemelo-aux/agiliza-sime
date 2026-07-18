@@ -104,6 +104,11 @@ const App = () => (
             <Route path="/admin/financial/bank-accounts" element={<Navigate to="/admin/financial/cashflow" replace />} />
             <Route path="/admin/financial/transactions" element={<Navigate to="/admin/financial/cashflow" replace />} />
             <Route path="/admin/financial/reports" element={<AdminFinancial section="reports" />} />
+            <Route path="/admin/financial/reports/payables" element={<AdminFinancial section="reports-payables" />} />
+            <Route path="/admin/financial/reports/receivables" element={<AdminFinancial section="reports-receivables" />} />
+            <Route path="/admin/financial/reports/cashflow" element={<AdminFinancial section="reports-cashflow" />} />
+            <Route path="/admin/financial/reports/forecasts" element={<AdminFinancial section="reports-forecasts" />} />
+            <Route path="/admin/financial/reports/dre" element={<AdminFinancial section="reports-dre" />} />
             <Route path="/freights" element={<Index />} />
             <Route path="/my-applications" element={<MyApplications />} />
             {/* Redirects for removed pages */}
