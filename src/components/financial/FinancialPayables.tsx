@@ -1684,6 +1684,11 @@ export function FinancialPayables() {
                         <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                           {STATUS_MAP[item.status]?.label || item.status}
                         </Badge>
+                        {isPartialOverdue && (
+                          <Badge variant="destructive" className="text-[10px] shrink-0" title="Título parcialmente pago que passou do vencimento">
+                            Vencido
+                          </Badge>
+                        )}
                         {isDueToday && (
                           <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
                             <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
