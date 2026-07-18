@@ -943,7 +943,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-base font-bold text-foreground">Relatórios Financeiros</h1>
+        <h1 className="text-base font-bold text-foreground">{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7">
             <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
