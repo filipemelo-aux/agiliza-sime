@@ -286,7 +286,8 @@ export function DreGerencial() {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim, regime]);
+  }, [dataInicio, dataFim]);
+
 
 
   // Build hierarchical tree
