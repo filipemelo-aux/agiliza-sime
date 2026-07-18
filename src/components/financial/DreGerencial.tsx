@@ -244,76 +244,40 @@ export function DreGerencial() {
       //   - Caixa (Fatura): pelo vencimento da fatura (due_date). Tudo o que
       //     está na fatura entra no mês em que ela vence — inclusive parcelas
       //     de compras anteriores. Espelha o que efetivamente sai da conta.
-      if (regime === "competencia") {
-        const closedInvoiceIds = (ccInvoices || []).map((r: any) => r.id);
-        if (closedInvoiceIds.length > 0) {
-          let itemsQ: any = supabase
-            .from("credit_card_invoice_items")
-            .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
-            .in("invoice_id", closedInvoiceIds);
-          if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
-          if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
-          const { data: items } = await itemsQ.limit(20000);
-          (items || []).forEach((it: any) => {
-            if (it.ignored) return;
-            const val = Number(it.amount) || 0;
-            if (val === 0) return;
-            const atual = Number(it.parcela_atual) || 0;
-            const total = Number(it.parcela_total) || 0;
-            // REGIME DE COMPETÊNCIA PURA: só a 1ª parcela (ou compra à vista) entra,
-            // mas com o VALOR TOTAL da compra (parcela × nº de parcelas).
-            // Ex.: 10x de R$ 1.000 → competência lança R$ 10.000 no mês da compra.
-            if (total > 0 && atual !== 1) return;
-            const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
-            const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
-            enriched.push({
-              tipo: val < 0 ? "entrada" : "saida",
-              valor: valorCompetencia,
-              planoId: it.plano_contas_id || null,
-              origem: "cartao",
-              data: it.posted_date || null,
-              descricao: it.description || "—",
-              parcela: parcelaLabel,
-              itemId: it.id,
-            });
+      const closedInvoiceIds = (ccInvoices || []).map((r: any) => r.id);
+      if (closedInvoiceIds.length > 0) {
+        let itemsQ: any = supabase
+          .from("credit_card_invoice_items")
+          .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
+          .in("invoice_id", closedInvoiceIds);
+        if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
+        if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
+        const { data: items } = await itemsQ.limit(20000);
+        (items || []).forEach((it: any) => {
+          if (it.ignored) return;
+          const val = Number(it.amount) || 0;
+          if (val === 0) return;
+          const atual = Number(it.parcela_atual) || 0;
+          const total = Number(it.parcela_total) || 0;
+          // REGIME DE COMPETÊNCIA PURA: só a 1ª parcela (ou compra à vista) entra,
+          // mas com o VALOR TOTAL da compra (parcela × nº de parcelas).
+          // Ex.: 10x de R$ 1.000 → competência lança R$ 10.000 no mês da compra.
+          if (total > 0 && atual !== 1) return;
+          const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
+          const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
+          enriched.push({
+            tipo: val < 0 ? "entrada" : "saida",
+            valor: valorCompetencia,
+            planoId: it.plano_contas_id || null,
+            origem: "cartao",
+            data: it.posted_date || null,
+            descricao: it.description || "—",
+            parcela: parcelaLabel,
+            itemId: it.id,
           });
-        }
-      } else {
-        const { data: invsCaixa } = await supabase
-          .from("credit_card_invoices")
-          .select("id, due_date")
-          .is("deleted_at", null)
-          .gte("due_date", dataInicio)
-          .lte("due_date", dataFim);
-        const caixaInvoiceIds = (invsCaixa || []).map((i: any) => i.id);
-        const dueByInv = new Map<string, string>();
-        (invsCaixa || []).forEach((i: any) => dueByInv.set(i.id, i.due_date));
-        if (caixaInvoiceIds.length > 0) {
-          const { data: items } = await supabase
-            .from("credit_card_invoice_items")
-            .select("id, invoice_id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
-            .in("invoice_id", caixaInvoiceIds)
-            .limit(20000);
-          (items || []).forEach((it: any) => {
-            if (it.ignored) return;
-            const val = Number(it.amount) || 0;
-            if (val === 0) return;
-            const atual = Number(it.parcela_atual) || 0;
-            const total = Number(it.parcela_total) || 0;
-            const parcelaLabel = total > 0 ? `${atual}/${total}` : "à vista";
-            enriched.push({
-              tipo: val < 0 ? "entrada" : "saida",
-              valor: Math.abs(val),
-              planoId: it.plano_contas_id || null,
-              origem: "cartao",
-              data: dueByInv.get(it.invoice_id) || it.posted_date || null,
-              descricao: it.description || "—",
-              parcela: parcelaLabel,
-              itemId: it.id,
-            });
-          });
-        }
+        });
       }
+
 
       setMovs(enriched);
       setGenerated(true);
