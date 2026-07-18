@@ -266,7 +266,9 @@ export function FinancialPayables() {
       const dueDate = e.data_vencimento;
       if (!dueDate || e.status === "pago") return e;
 
-      if (dueDate < today && (e.status === "pendente" || e.status === "parcial")) {
+      // Só converte 'pendente' → 'atrasado'. Títulos 'parcial' mantêm o status
+      // e exibem badge extra "Vencido" quando vencidos (preserva a informação de quitação parcial).
+      if (dueDate < today && e.status === "pendente") {
         overdueIds.push(e.id);
         return { ...e, status: "atrasado" };
       }
