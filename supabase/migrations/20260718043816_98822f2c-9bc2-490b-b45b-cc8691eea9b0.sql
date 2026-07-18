@@ -1,0 +1,2 @@
+UPDATE public.expenses SET status = 'parcial' WHERE status = 'atrasado' AND COALESCE(valor_pago,0) > 0 AND COALESCE(valor_pago,0) < COALESCE(valor_total,0);
+UPDATE public.expense_installments SET status = 'parcial' WHERE status = 'atrasado' AND EXISTS (SELECT 1 FROM public.expense_payments p WHERE p.installment_id = expense_installments.id);

@@ -27,6 +27,7 @@ interface Row {
   veiculo: string;
   valor: number;
   valorPago: number;
+  vencido: boolean;
 }
 
 const statusDot: Record<Row["status"], string> = {
@@ -109,15 +110,19 @@ export function PayablesDataGrid() {
           installs.forEach((inst: any) => {
             const dv = inst.data_vencimento;
             if (!inRange(dv)) return;
-            const overdue = dv && dv < today && inst.status !== "pago";
-            const s: Row["status"] = overdue ? "atrasado" : (inst.status as Row["status"]);
             const pago = pagoByInst[inst.id] || 0;
-            // Regra operacional: exibe obrigação restante (valor da parcela - já pago).
-            // Se totalmente quitada, mantém como "pago" com valor original.
-            const restante = s === "pago" ? Number(inst.valor) : Math.max(Number(inst.valor) - pago, 0);
+            const isPago = inst.status === "pago";
+            // Mantém 'parcial' quando há pagamento; só marca 'atrasado' quando ainda pendente sem quitação
+            let s: Row["status"];
+            if (isPago) s = "pago";
+            else if (pago > 0) s = "parcial";
+            else if (dv && dv < today) s = "atrasado";
+            else s = (inst.status as Row["status"]) || "pendente";
+            const restante = isPago ? Number(inst.valor) : Math.max(Number(inst.valor) - pago, 0);
             out.push({
               id: `${e.id}-${inst.id}`,
               status: s,
+              vencido: !isPago && !!dv && dv < today,
               dataVencimento: dv,
               fornecedor,
               descricao,
@@ -131,13 +136,18 @@ export function PayablesDataGrid() {
         } else {
           const dv = e.data_vencimento || e.data_emissao;
           if (!inRange(dv)) return;
-          const overdue = dv && dv < today && e.status !== "pago";
-          const s: Row["status"] = overdue ? "atrasado" : (e.status as Row["status"]);
           const pago = Number(e.valor_pago || 0);
-          const restante = s === "pago" ? Number(e.valor_total) : Math.max(Number(e.valor_total) - pago, 0);
+          const isPago = e.status === "pago";
+          let s: Row["status"];
+          if (isPago) s = "pago";
+          else if (pago > 0) s = "parcial";
+          else if (dv && dv < today) s = "atrasado";
+          else s = (e.status as Row["status"]) || "pendente";
+          const restante = isPago ? Number(e.valor_total) : Math.max(Number(e.valor_total) - pago, 0);
           out.push({
             id: e.id,
             status: s,
+            vencido: !isPago && !!dv && dv < today,
             dataVencimento: dv,
             fornecedor,
             descricao,
@@ -165,7 +175,8 @@ export function PayablesDataGrid() {
     const term = search.trim().toLowerCase();
     const vterm = veiculoQ.trim().toLowerCase();
     return rows.filter((r) => {
-      if (status === "atrasado" && r.status !== "atrasado") return false;
+      // 'atrasado' inclui: status='atrasado' OU parcial vencido
+      if (status === "atrasado" && !(r.status === "atrasado" || (r.status === "parcial" && r.vencido))) return false;
       if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
@@ -194,7 +205,7 @@ export function PayablesDataGrid() {
 
   const totais = useMemo(() => {
     const total = filtered.reduce((s, r) => s + r.valor, 0);
-    const atrasado = filtered.filter((r) => r.status === "atrasado").reduce((s, r) => s + r.valor, 0);
+    const atrasado = filtered.filter((r) => r.status === "atrasado" || (r.status === "parcial" && r.vencido)).reduce((s, r) => s + r.valor, 0);
     const aberto = filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
     const pago = filtered.filter((r) => r.status === "pago").reduce((s, r) => s + r.valorPago, 0);
     return { total, atrasado, aberto, pago };
@@ -280,17 +291,28 @@ export function PayablesDataGrid() {
               {sorted.map((r) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                   <td className="px-1 py-0.5 text-center">
-                    <span title={statusLabel[r.status]} className={cn("inline-block h-2 w-2 rounded-full", statusDot[r.status])} />
+                    <span
+                      title={r.status === "parcial" && r.vencido ? "Parcial • Vencido" : statusLabel[r.status]}
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        r.status === "parcial" && r.vencido ? "bg-red-500 ring-2 ring-amber-300" : statusDot[r.status],
+                      )}
+                    />
                   </td>
-                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", r.status === "atrasado" && "text-red-600 font-semibold")}>
+                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
                   <td className="px-1.5 py-0.5 truncate" title={r.fornecedor}>{r.fornecedor}</td>
-                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>{r.descricao}</td>
+                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>
+                    {r.descricao}
+                    {r.status === "parcial" && r.vencido && (
+                      <span className="ml-1.5 inline-block text-[9px] px-1 py-0 rounded bg-red-100 text-red-700 border border-red-200 align-middle">Vencido</span>
+                    )}
+                  </td>
                   <td className="px-1 py-0.5 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
                   <td className="px-1.5 py-0.5 truncate text-muted-foreground" title={r.categoria}>{r.categoria}</td>
                   <td className="px-1.5 py-0.5 whitespace-nowrap font-mono truncate" title={r.veiculo}>{r.veiculo}</td>
-                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", r.status === "atrasado" && "text-red-600")}>
+                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600")}>
                     {formatCurrency(r.valor)}
                   </td>
                 </tr>

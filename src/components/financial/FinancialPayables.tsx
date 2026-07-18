@@ -266,7 +266,9 @@ export function FinancialPayables() {
       const dueDate = e.data_vencimento;
       if (!dueDate || e.status === "pago") return e;
 
-      if (dueDate < today && (e.status === "pendente" || e.status === "parcial")) {
+      // Só converte 'pendente' → 'atrasado'. Títulos 'parcial' mantêm o status
+      // e exibem badge extra "Vencido" quando vencidos (preserva a informação de quitação parcial).
+      if (dueDate < today && e.status === "pendente") {
         overdueIds.push(e.id);
         return { ...e, status: "atrasado" };
       }
@@ -1640,10 +1642,12 @@ export function FinancialPayables() {
 
               const isHarvest = item.id.startsWith("harvest-");
               const isFreightContract = typeof item.descricao === "string" && /contrato de frete/i.test(item.descricao);
-              const isOverdue = item.status === "atrasado";
-              const isPago = item.status === "pago";
-              const isSelected = selectedIds.has(item.id);
               const todayStr2 = format(new Date(), "yyyy-MM-dd");
+              const dueRef = item.data_vencimento || item.data_emissao || "";
+              const isPago = item.status === "pago";
+              const isOverdue = !isPago && dueRef ? dueRef < todayStr2 : false;
+              const isPartialOverdue = isOverdue && item.status === "parcial";
+              const isSelected = selectedIds.has(item.id);
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
@@ -1680,6 +1684,11 @@ export function FinancialPayables() {
                         <Badge variant={STATUS_MAP[item.status]?.variant || "outline"} className="text-[10px] shrink-0">
                           {STATUS_MAP[item.status]?.label || item.status}
                         </Badge>
+                        {isPartialOverdue && (
+                          <Badge variant="destructive" className="text-[10px] shrink-0" title="Título parcialmente pago que passou do vencimento">
+                            Vencido
+                          </Badge>
+                        )}
                         {isDueToday && (
                           <Badge className="text-[10px] bg-amber-500 text-white border-amber-500 animate-pulse hover:bg-amber-500 pointer-events-none shrink-0">
                             <Clock className="h-2.5 w-2.5 mr-0.5" /> Vence Hoje
