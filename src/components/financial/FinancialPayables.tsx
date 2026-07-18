@@ -1642,10 +1642,12 @@ export function FinancialPayables() {
 
               const isHarvest = item.id.startsWith("harvest-");
               const isFreightContract = typeof item.descricao === "string" && /contrato de frete/i.test(item.descricao);
-              const isOverdue = item.status === "atrasado";
-              const isPago = item.status === "pago";
-              const isSelected = selectedIds.has(item.id);
               const todayStr2 = format(new Date(), "yyyy-MM-dd");
+              const dueRef = item.data_vencimento || item.data_emissao || "";
+              const isPago = item.status === "pago";
+              const isOverdue = !isPago && dueRef ? dueRef < todayStr2 : false;
+              const isPartialOverdue = isOverdue && item.status === "parcial";
+              const isSelected = selectedIds.has(item.id);
               const isDueToday = item.data_vencimento === todayStr2 && !isPago;
 
               return [{
