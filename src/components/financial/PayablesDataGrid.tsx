@@ -205,7 +205,7 @@ export function PayablesDataGrid() {
 
   const totais = useMemo(() => {
     const total = filtered.reduce((s, r) => s + r.valor, 0);
-    const atrasado = filtered.filter((r) => r.status === "atrasado").reduce((s, r) => s + r.valor, 0);
+    const atrasado = filtered.filter((r) => r.status === "atrasado" || (r.status === "parcial" && r.vencido)).reduce((s, r) => s + r.valor, 0);
     const aberto = filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
     const pago = filtered.filter((r) => r.status === "pago").reduce((s, r) => s + r.valorPago, 0);
     return { total, atrasado, aberto, pago };
