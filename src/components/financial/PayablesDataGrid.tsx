@@ -211,67 +211,55 @@ export function PayablesDataGrid() {
   );
 
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-sm font-bold">Contas a Pagar / Pagas</h2>
-            <ReportInfoTooltip text="Visão de obrigações. Data de vencimento como base; valor por parcela. Use o toggle de status para alternar entre atrasado, em aberto e pago." />
-          </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">De</Label>
-              <Input type="date" className="h-8 text-xs w-[140px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Até</Label>
-              <Input type="date" className="h-8 text-xs w-[140px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Status</Label>
-              <div className="flex gap-1">
-                {statusButtons.map((b) => (
-                  <Button
-                    key={b.v}
-                    size="sm"
-                    variant={status === b.v ? "default" : "outline"}
-                    className="h-8 text-xs px-2.5"
-                    onClick={() => setStatus(b.v)}
-                  >
-                    {b.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Veículo</Label>
-              <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-8 text-xs w-[110px]" />
-            </div>
-            <div className="space-y-1 flex-1 min-w-[200px]">
-              <Label className="text-[10px] text-muted-foreground">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-8 text-xs pl-7" />
-              </div>
-            </div>
-            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-1.5 h-[calc(100vh-170px)]">
+      <div className="flex flex-wrap items-center gap-1.5 px-1">
+        <Input type="date" className="h-7 text-xs w-[125px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+        <span className="text-[10px] text-muted-foreground">até</span>
+        <Input type="date" className="h-7 text-xs w-[125px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        <div className="flex gap-0.5 ml-1">
+          {statusButtons.map((b) => (
+            <Button
+              key={b.v}
+              size="sm"
+              variant={status === b.v ? "default" : "outline"}
+              className="h-7 text-xs px-2"
+              onClick={() => setStatus(b.v)}
+            >
+              {b.label}
+            </Button>
+          ))}
+        </div>
+        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[100px]" />
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7" />
+        </div>
+        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+      </div>
 
-      <div className="border border-border rounded-md bg-card overflow-hidden">
-        <div className="max-h-[65vh] overflow-auto">
-          <table className="w-full text-xs">
+      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 overflow-auto">
+          <table className="w-full text-xs table-fixed">
+            <colgroup>
+              <col className="w-[28px]" />
+              <col className="w-[86px]" />
+              <col className="w-[18%]" />
+              <col />
+              <col className="w-[60px]" />
+              <col className="w-[18%]" />
+              <col className="w-[80px]" />
+              <col className="w-[100px]" />
+            </colgroup>
             <thead className="bg-muted text-muted-foreground sticky top-0 z-10 shadow-sm">
               <tr className="text-left">
-                <Th k="status" label="●" className="w-[36px] text-center" />
-                <Th k="dataVencimento" label="Vencimento" className="w-[100px]" />
-                <Th k="fornecedor" label="Fornecedor" />
-                <Th k="descricao" label="Descrição" />
-                <Th k="parcela" label="Parcela" className="w-[70px] text-center" />
-                <Th k="categoria" label="Categoria" className="w-[200px]" />
-                <Th k="veiculo" label="Veículo" className="w-[90px]" />
-                <Th k="valor" label="Valor" className="w-[110px] text-right" />
+                <Th k="status" label="●" className="text-center px-1 py-1" />
+                <Th k="dataVencimento" label="Vencimento" className="px-1.5 py-1" />
+                <Th k="fornecedor" label="Fornecedor" className="px-1.5 py-1" />
+                <Th k="descricao" label="Descrição" className="px-1.5 py-1" />
+                <Th k="parcela" label="Parc." className="text-center px-1 py-1" />
+                <Th k="categoria" label="Categoria" className="px-1.5 py-1" />
+                <Th k="veiculo" label="Veículo" className="px-1.5 py-1" />
+                <Th k="valor" label="Valor" className="text-right px-1.5 py-1" />
               </tr>
             </thead>
             <tbody>
@@ -280,40 +268,36 @@ export function PayablesDataGrid() {
               )}
               {sorted.map((r) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-2 py-1 text-center">
-                    <span title={statusLabel[r.status]} className={cn("inline-block h-2.5 w-2.5 rounded-full", statusDot[r.status])} />
+                  <td className="px-1 py-0.5 text-center">
+                    <span title={statusLabel[r.status]} className={cn("inline-block h-2 w-2 rounded-full", statusDot[r.status])} />
                   </td>
-                  <td className={cn("px-2 py-1 whitespace-nowrap tabular-nums", r.status === "atrasado" && "text-red-600 font-semibold")}>
+                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", r.status === "atrasado" && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-2 py-1 truncate max-w-[180px]" title={r.fornecedor}>{r.fornecedor}</td>
-                  <td className="px-2 py-1 truncate max-w-[260px]" title={r.descricao}>{r.descricao}</td>
-                  <td className="px-2 py-1 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
-                  <td className="px-2 py-1 truncate max-w-[200px] text-muted-foreground" title={r.categoria}>{r.categoria}</td>
-                  <td className="px-2 py-1 whitespace-nowrap font-mono">{r.veiculo}</td>
-                  <td className={cn("px-2 py-1 text-right tabular-nums font-medium", r.status === "atrasado" && "text-red-600")}>
+                  <td className="px-1.5 py-0.5 truncate" title={r.fornecedor}>{r.fornecedor}</td>
+                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>{r.descricao}</td>
+                  <td className="px-1 py-0.5 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
+                  <td className="px-1.5 py-0.5 truncate text-muted-foreground" title={r.categoria}>{r.categoria}</td>
+                  <td className="px-1.5 py-0.5 whitespace-nowrap font-mono truncate" title={r.veiculo}>{r.veiculo}</td>
+                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", r.status === "atrasado" && "text-red-600")}>
                     {formatCurrency(r.valor)}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="sticky bottom-0 z-10 bg-muted/95 backdrop-blur border-t border-border">
-              <tr className="text-xs">
-                <td colSpan={4} className="px-3 py-2 font-semibold">
-                  {filtered.length} registro(s)
-                </td>
-                <td colSpan={2} className="px-2 py-2 text-right text-muted-foreground">
-                  <span className="mr-3">Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
-                  <span className="mr-3">Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>
-                  <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
-                </td>
-                <td className="px-2 py-2 text-right text-muted-foreground">Total</td>
-                <td className="px-2 py-2 text-right tabular-nums font-bold text-primary">{formatCurrency(totais.total)}</td>
-              </tr>
-            </tfoot>
           </table>
+        </div>
+        <div className="border-t border-border bg-muted/95 backdrop-blur px-2 py-1 text-[11px] flex items-center justify-between gap-3 flex-wrap">
+          <span className="font-semibold">{filtered.length} registro(s)</span>
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span>Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
+            <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>
+            <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
+            <span>Total: <span className="font-bold text-primary tabular-nums">{formatCurrency(totais.total)}</span></span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
