@@ -941,34 +941,34 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
   }, [reportType]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-base font-bold text-foreground">{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
+        <h1 className="text-lg font-bold text-foreground leading-tight">{fixedReportType ? (REPORT_TITLE[fixedReportType] ?? "Relatório") : "Relatórios Financeiros"}</h1>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="gap-1 h-7 px-2 text-xs">
+            <FileSpreadsheet className="h-3 w-3" /> CSV
           </Button>
-          <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1 h-7">
-            <Printer className="h-3.5 w-3.5" /> Imprimir
+          <Button size="sm" onClick={handlePrint} disabled={!rows.length} className="gap-1 h-7 px-2 text-xs">
+            <Printer className="h-3 w-3" /> Imprimir
           </Button>
         </div>
       </div>
 
       <div>
         {reportType === "dre" ? (
-          <div className="mt-2">
+          <div className="mt-1">
             <DreGerencial />
           </div>
         ) : (reportType as string) === "payables" ? (
-          <div className="mt-2">
+          <div className="mt-1">
             <PayablesDataGrid />
           </div>
         ) : reportType === "cashflow" ? (
-          <div className="mt-2">
+          <div className="mt-1">
             <CashFlowDailyGrid />
           </div>
         ) : (
-        <div className="mt-2">
+        <div className="mt-1">
 
 
 

@@ -219,7 +219,7 @@ export function PayablesDataGrid() {
   ];
 
   const Th = ({ k, label, className }: { k: Parameters<typeof toggle>[0]; label: string; className?: string }) => (
-    <th className={cn("px-2 py-1.5 font-medium select-none cursor-pointer whitespace-nowrap", className)} onClick={() => toggle(k)}>
+    <th className={cn("px-1 py-0.5 font-medium select-none cursor-pointer whitespace-nowrap", className)} onClick={() => toggle(k)}>
       <span className="inline-flex items-center gap-1">
         {label}
         <ArrowUpDown className={cn("h-3 w-3", sort.key === k ? "text-primary" : "text-muted-foreground/40")} />
@@ -228,28 +228,28 @@ export function PayablesDataGrid() {
   );
 
   return (
-    <div className="flex flex-col gap-1.5 h-[calc(100vh-170px)]">
-      <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+    <div className="flex flex-col gap-1 h-[calc(100vh-132px)]">
+      <div className="flex flex-wrap items-center gap-1 px-0.5">
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         <span className="text-[10px] text-muted-foreground">até</span>
-        <Input type="date" className="h-7 text-xs w-[125px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        <Input type="date" className="h-7 text-xs w-[120px] px-1.5" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         <div className="flex gap-0.5 ml-1">
           {statusButtons.map((b) => (
             <Button
               key={b.v}
               size="sm"
               variant={status === b.v ? "default" : "outline"}
-              className="h-7 text-xs px-2"
+              className="h-7 text-[11px] px-2 py-0"
               onClick={() => setStatus(b.v)}
             >
               {b.label}
             </Button>
           ))}
         </div>
-        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[100px]" />
-        <div className="relative flex-1 min-w-[180px]">
+        <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
@@ -261,36 +261,36 @@ export function PayablesDataGrid() {
           </div>
         )}
         <div className="flex-1 min-h-0 overflow-auto">
-          <table className="w-full text-xs table-fixed">
+          <table className="w-full text-[11px] table-fixed">
             <colgroup>
-              <col className="w-[28px]" />
-              <col className="w-[86px]" />
+              <col className="w-[26px]" />
+              <col className="w-[80px]" />
               <col className="w-[18%]" />
               <col />
-              <col className="w-[60px]" />
+              <col className="w-[56px]" />
               <col className="w-[18%]" />
-              <col className="w-[80px]" />
-              <col className="w-[100px]" />
+              <col className="w-[76px]" />
+              <col className="w-[96px]" />
             </colgroup>
             <thead className="bg-muted text-muted-foreground sticky top-0 z-10 shadow-sm">
               <tr className="text-left">
-                <Th k="status" label="●" className="text-center px-1 py-1" />
-                <Th k="dataVencimento" label="Vencimento" className="px-1.5 py-1" />
-                <Th k="fornecedor" label="Fornecedor" className="px-1.5 py-1" />
-                <Th k="descricao" label="Descrição" className="px-1.5 py-1" />
-                <Th k="parcela" label="Parc." className="text-center px-1 py-1" />
-                <Th k="categoria" label="Categoria" className="px-1.5 py-1" />
-                <Th k="veiculo" label="Veículo" className="px-1.5 py-1" />
-                <Th k="valor" label="Valor" className="text-right px-1.5 py-1" />
+                <Th k="status" label="●" className="text-center px-1 py-0.5" />
+                <Th k="dataVencimento" label="Vencimento" className="px-1 py-0.5" />
+                <Th k="fornecedor" label="Fornecedor" className="px-1 py-0.5" />
+                <Th k="descricao" label="Descrição" className="px-1 py-0.5" />
+                <Th k="parcela" label="Parc." className="text-center px-1 py-0.5" />
+                <Th k="categoria" label="Categoria" className="px-1 py-0.5" />
+                <Th k="veiculo" label="Veículo" className="px-1 py-0.5" />
+                <Th k="valor" label="Valor" className="text-right px-1 py-0.5" />
               </tr>
             </thead>
             <tbody>
               {sorted.length === 0 && !loading && (
-                <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-muted-foreground">Nenhum registro no período.</td></tr>
+                <tr><td colSpan={8} className="px-3 py-6 text-center text-[11px] text-muted-foreground">Nenhum registro no período.</td></tr>
               )}
               {sorted.map((r) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-1 py-0.5 text-center">
+                  <td className="px-1 py-0 text-center">
                     <span
                       title={r.status === "parcial" && r.vencido ? "Parcial • Vencido" : statusLabel[r.status]}
                       className={cn(
@@ -299,20 +299,20 @@ export function PayablesDataGrid() {
                       )}
                     />
                   </td>
-                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
+                  <td className={cn("px-1 py-0 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-1.5 py-0.5 truncate" title={r.fornecedor}>{r.fornecedor}</td>
-                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>
+                  <td className="px-1 py-0 truncate" title={r.fornecedor}>{r.fornecedor}</td>
+                  <td className="px-1 py-0 truncate" title={r.descricao}>
                     {r.descricao}
                     {r.status === "parcial" && r.vencido && (
-                      <span className="ml-1.5 inline-block text-[9px] px-1 py-0 rounded bg-red-100 text-red-700 border border-red-200 align-middle">Vencido</span>
+                      <span className="ml-1 inline-block text-[9px] px-1 py-0 rounded bg-red-100 text-red-700 border border-red-200 align-middle">Vencido</span>
                     )}
                   </td>
-                  <td className="px-1 py-0.5 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
-                  <td className="px-1.5 py-0.5 truncate text-muted-foreground" title={r.categoria}>{r.categoria}</td>
-                  <td className="px-1.5 py-0.5 whitespace-nowrap font-mono truncate" title={r.veiculo}>{r.veiculo}</td>
-                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600")}>
+                  <td className="px-1 py-0 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
+                  <td className="px-1 py-0 truncate text-muted-foreground" title={r.categoria}>{r.categoria}</td>
+                  <td className="px-1 py-0 whitespace-nowrap font-mono truncate" title={r.veiculo}>{r.veiculo}</td>
+                  <td className={cn("px-1 py-0 text-right tabular-nums font-medium", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600")}>
                     {formatCurrency(r.valor)}
                   </td>
                 </tr>
@@ -320,9 +320,9 @@ export function PayablesDataGrid() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-border bg-muted/95 backdrop-blur px-2 py-1 text-[11px] flex items-center justify-between gap-3 flex-wrap">
+        <div className="border-t border-border bg-muted/95 backdrop-blur px-2 py-0.5 text-[11px] flex items-center justify-between gap-3 flex-wrap">
           <span className="font-semibold">{filtered.length} registro(s)</span>
-          <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <span>Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
             <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>
             <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
