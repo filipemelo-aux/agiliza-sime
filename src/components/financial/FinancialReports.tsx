@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { DreGerencial } from "./DreGerencial";
+import { FinancialPayablesTree } from "./FinancialPayablesTree";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
