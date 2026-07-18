@@ -965,7 +965,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           </TabsContent>
         ) : (reportType as string) === "payables" ? (
           <TabsContent value="payables" className="mt-4">
-            <FinancialPayablesTree />
+            <PayablesDataGrid />
+          </TabsContent>
+        ) : reportType === "cashflow" ? (
+          <TabsContent value="cashflow" className="mt-4">
+            <CashFlowDailyGrid />
           </TabsContent>
         ) : (
         <TabsContent value={reportType} className="mt-4">
