@@ -169,7 +169,7 @@ export function PayablesDataGrid() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [dataInicio, dataFim]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -251,6 +251,10 @@ export function PayablesDataGrid() {
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
+        <Button size="sm" className="h-7 text-[11px] px-2 py-0" onClick={load} disabled={loading}>
+          {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+          Gerar Relatório
+        </Button>
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
