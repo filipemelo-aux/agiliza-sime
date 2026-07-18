@@ -16,7 +16,7 @@ export default function AdminFinancial({ section = "payables" }: { section?: str
   return (
     <AdminLayout>
       <div className="p-4 md:p-6 space-y-4">
-        {section === "payables" && <FinancialPayablesTree />}
+        {section === "payables" && <FinancialPayables />}
         {section === "invoicing" && <FinancialInvoicing />}
         {section === "forecasts" && <RevenueForecasts />}
         
