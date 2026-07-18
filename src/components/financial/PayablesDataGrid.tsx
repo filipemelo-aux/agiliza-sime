@@ -291,17 +291,28 @@ export function PayablesDataGrid() {
               {sorted.map((r) => (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                   <td className="px-1 py-0.5 text-center">
-                    <span title={statusLabel[r.status]} className={cn("inline-block h-2 w-2 rounded-full", statusDot[r.status])} />
+                    <span
+                      title={r.status === "parcial" && r.vencido ? "Parcial • Vencido" : statusLabel[r.status]}
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        r.status === "parcial" && r.vencido ? "bg-red-500 ring-2 ring-amber-300" : statusDot[r.status],
+                      )}
+                    />
                   </td>
-                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", r.status === "atrasado" && "text-red-600 font-semibold")}>
+                  <td className={cn("px-1.5 py-0.5 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
                   <td className="px-1.5 py-0.5 truncate" title={r.fornecedor}>{r.fornecedor}</td>
-                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>{r.descricao}</td>
+                  <td className="px-1.5 py-0.5 truncate" title={r.descricao}>
+                    {r.descricao}
+                    {r.status === "parcial" && r.vencido && (
+                      <span className="ml-1.5 inline-block text-[9px] px-1 py-0 rounded bg-red-100 text-red-700 border border-red-200 align-middle">Vencido</span>
+                    )}
+                  </td>
                   <td className="px-1 py-0.5 text-center whitespace-nowrap tabular-nums">{r.parcela}</td>
                   <td className="px-1.5 py-0.5 truncate text-muted-foreground" title={r.categoria}>{r.categoria}</td>
                   <td className="px-1.5 py-0.5 whitespace-nowrap font-mono truncate" title={r.veiculo}>{r.veiculo}</td>
-                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", r.status === "atrasado" && "text-red-600")}>
+                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600")}>
                     {formatCurrency(r.valor)}
                   </td>
                 </tr>
