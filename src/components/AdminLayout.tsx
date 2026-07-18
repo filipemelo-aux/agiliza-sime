@@ -41,7 +41,17 @@ const menuItems = [
       { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Cartão de Crédito", url: "/admin/financial/credit-card", icon: CreditCard },
-      { title: "Relatórios", url: "/admin/financial/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Relatórios",
+    icon: BarChart3,
+    children: [
+      { title: "Contas a Pagar", url: "/admin/financial/reports/payables", icon: DollarSign },
+      { title: "Contas a Receber", url: "/admin/financial/reports/receivables", icon: Receipt },
+      { title: "Fluxo de Caixa", url: "/admin/financial/reports/cashflow", icon: Wallet },
+      { title: "Previsões", url: "/admin/financial/reports/forecasts", icon: TrendingUp },
+      { title: "DRE Gerencial", url: "/admin/financial/reports/dre", icon: BarChart3 },
     ],
   },
   {
