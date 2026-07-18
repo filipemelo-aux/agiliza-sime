@@ -1,6 +1,6 @@
 import "@fontsource/exo/800-italic.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature } from "lucide-react";
+import { LayoutDashboard, FileText, Users, LogOut, Menu, Settings, Sprout, FileCheck, Car, Package, ClipboardList, DollarSign, Fuel, Wrench, FolderTree, HandCoins, TrendingUp, Wallet, Receipt, BarChart3, CheckCircle2, FileSpreadsheet, UserCog, ListChecks, Percent, Settings2, Landmark, CreditCard, FileSignature, ChevronRight } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,10 +15,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState, useEffect } from "react";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, exact: true },
@@ -41,17 +46,17 @@ const menuItems = [
       { title: "Conciliação", url: "/admin/financial/reconciliation", icon: FileSpreadsheet },
       { title: "Fluxo de Caixa", url: "/admin/financial/cashflow", icon: Wallet },
       { title: "Cartão de Crédito", url: "/admin/financial/credit-card", icon: CreditCard },
-    ],
-  },
-  {
-    title: "Relatórios",
-    icon: BarChart3,
-    children: [
-      { title: "Contas a Pagar", url: "/admin/financial/reports/payables", icon: DollarSign },
-      { title: "Contas a Receber", url: "/admin/financial/reports/receivables", icon: Receipt },
-      { title: "Fluxo de Caixa", url: "/admin/financial/reports/cashflow", icon: Wallet },
-      { title: "Previsões", url: "/admin/financial/reports/forecasts", icon: TrendingUp },
-      { title: "DRE Gerencial", url: "/admin/financial/reports/dre", icon: BarChart3 },
+      {
+        title: "Relatórios",
+        icon: BarChart3,
+        submenu: [
+          { title: "Contas a Pagar", url: "/admin/financial/reports/payables", icon: DollarSign },
+          { title: "Contas a Receber", url: "/admin/financial/reports/receivables", icon: Receipt },
+          { title: "Fluxo de Caixa", url: "/admin/financial/reports/cashflow", icon: Wallet },
+          { title: "Previsões", url: "/admin/financial/reports/forecasts", icon: TrendingUp },
+          { title: "DRE Gerencial", url: "/admin/financial/reports/dre", icon: BarChart3 },
+        ],
+      },
     ],
   },
   {
@@ -102,6 +107,41 @@ const menuItems = [
   { title: "Configurações", url: "/admin/settings", icon: Settings },
 ];
 
+function CollapsibleSubmenu({
+  title,
+  Icon,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
+  return (
+    <SidebarMenuItem>
+      <Collapsible open={open} onOpenChange={setOpen} className="w-full">
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={title} className="h-7 text-xs px-2 gap-2 w-full">
+            <Icon className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">{title}</span>
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="mr-0 pr-0">
+            {children}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
+
+
+
 function SidebarNav() {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
@@ -138,16 +178,40 @@ function SidebarNav() {
                       <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
                         {item.title}
                       </div>
-                      {item.children.map((child) => (
-                        <SidebarMenuItem key={child.title}>
-                          <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
-                            <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                              <child.icon className="h-3.5 w-3.5" />
-                              <span>{child.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
+                      {item.children.map((child: any) => {
+                        if (child.submenu) {
+                          const anySubActive = child.submenu.some((s: any) => isActive(s.url));
+                          return (
+                            <CollapsibleSubmenu
+                              key={child.title}
+                              title={child.title}
+                              Icon={child.icon}
+                              defaultOpen={anySubActive}
+                            >
+                              {child.submenu.map((sub: any) => (
+                                <SidebarMenuSubItem key={sub.title}>
+                                  <SidebarMenuSubButton asChild isActive={isActive(sub.url)} className="h-6 text-[11px] px-2 gap-2">
+                                    <Link to={sub.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
+                                      <sub.icon className="h-3 w-3" />
+                                      <span>{sub.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </CollapsibleSubmenu>
+                          );
+                        }
+                        return (
+                          <SidebarMenuItem key={child.title}>
+                            <SidebarMenuButton asChild isActive={isActive(child.url)} tooltip={child.title} className="h-7 text-xs px-2 gap-2">
+                              <Link to={child.url} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
+                                <child.icon className="h-3.5 w-3.5" />
+                                <span>{child.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
                     </div>
                   );
                 }
