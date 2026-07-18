@@ -76,67 +76,52 @@ export function CashFlowDailyGrid() {
   );
 
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-sm font-bold">Fluxo de Caixa (Liquidez)</h2>
-            <ReportInfoTooltip text="Regime de Caixa Puro. Agrega movimentações bancárias pela data de pagamento, exibindo entradas, saídas, saldo do dia e saldo acumulado do período." />
-          </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">De</Label>
-              <Input type="date" className="h-8 text-xs w-[140px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Até</Label>
-              <Input type="date" className="h-8 text-xs w-[140px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-            </div>
-            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-1.5 h-[calc(100vh-170px)]">
+      <div className="flex flex-wrap items-center gap-1.5 px-1">
+        <Input type="date" className="h-7 text-xs w-[125px]" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+        <span className="text-[10px] text-muted-foreground">até</span>
+        <Input type="date" className="h-7 text-xs w-[125px]" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+      </div>
 
       {rows.length > 0 && (
-        <Card>
-          <CardContent className="p-2 h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} width={70} tickFormatter={(v) => formatCurrency(v)} />
-                <RTooltip formatter={(v: any) => formatCurrency(Number(v))} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Entradas" fill="hsl(142 71% 45%)" />
-                <Bar dataKey="Saidas" fill="hsl(0 84% 60%)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <div className="border border-border rounded-md bg-card h-[140px] p-1 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={70} tickFormatter={(v) => formatCurrency(v)} />
+              <RTooltip formatter={(v: any) => formatCurrency(Number(v))} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="Entradas" fill="hsl(142 71% 45%)" />
+              <Bar dataKey="Saidas" fill="hsl(0 84% 60%)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
-      <div className="border border-border rounded-md bg-card overflow-hidden">
-        <div className="max-h-[55vh] overflow-auto">
+      <div className="flex-1 min-h-0 border border-border rounded-md bg-card overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted text-muted-foreground sticky top-0 z-10 shadow-sm">
               <tr className="text-left">
-                <th className="px-2 py-1.5 font-medium w-[110px]">Data</th>
-                <th className="px-2 py-1.5 font-medium text-right">Entradas</th>
-                <th className="px-2 py-1.5 font-medium text-right">Saídas</th>
-                <th className="px-2 py-1.5 font-medium text-right">Saldo do Dia</th>
-                <th className="px-2 py-1.5 font-medium text-right">Saldo Acumulado</th>
+                <th className="px-1.5 py-1 font-medium w-[100px]">Data</th>
+                <th className="px-1.5 py-1 font-medium text-right">Entradas</th>
+                <th className="px-1.5 py-1 font-medium text-right">Saídas</th>
+                <th className="px-1.5 py-1 font-medium text-right">Saldo do Dia</th>
+                <th className="px-1.5 py-1 font-medium text-right">Saldo Acumulado</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.data} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-2 py-1 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
-                  <td className="px-2 py-1 text-right tabular-nums text-emerald-600">{r.entradas > 0 ? formatCurrency(r.entradas) : "—"}</td>
-                  <td className="px-2 py-1 text-right tabular-nums text-red-600">{r.saidas > 0 ? formatCurrency(r.saidas) : "—"}</td>
-                  <td className={cn("px-2 py-1 text-right tabular-nums font-medium", r.saldoDia < 0 ? "text-red-600" : r.saldoDia > 0 ? "text-emerald-600" : "text-muted-foreground")}>
+                  <td className="px-1.5 py-0.5 whitespace-nowrap tabular-nums">{formatDateBR(r.data)}</td>
+                  <td className="px-1.5 py-0.5 text-right tabular-nums text-emerald-600">{r.entradas > 0 ? formatCurrency(r.entradas) : "—"}</td>
+                  <td className="px-1.5 py-0.5 text-right tabular-nums text-red-600">{r.saidas > 0 ? formatCurrency(r.saidas) : "—"}</td>
+                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-medium", r.saldoDia < 0 ? "text-red-600" : r.saldoDia > 0 ? "text-emerald-600" : "text-muted-foreground")}>
                     {formatCurrency(r.saldoDia)}
                   </td>
-                  <td className={cn("px-2 py-1 text-right tabular-nums font-semibold", r.saldoAcumulado < 0 ? "text-red-600" : "text-primary")}>
+                  <td className={cn("px-1.5 py-0.5 text-right tabular-nums font-semibold", r.saldoAcumulado < 0 ? "text-red-600" : "text-primary")}>
                     {formatCurrency(r.saldoAcumulado)}
                   </td>
                 </tr>
@@ -144,11 +129,11 @@ export function CashFlowDailyGrid() {
             </tbody>
             <tfoot className="sticky bottom-0 z-10 bg-muted/95 backdrop-blur border-t border-border">
               <tr className="text-xs font-bold">
-                <td className="px-2 py-2">Total do Período</td>
-                <td className="px-2 py-2 text-right tabular-nums text-emerald-600">{formatCurrency(totals.entradas)}</td>
-                <td className="px-2 py-2 text-right tabular-nums text-red-600">{formatCurrency(totals.saidas)}</td>
-                <td className={cn("px-2 py-2 text-right tabular-nums", totals.saldo < 0 ? "text-red-600" : "text-primary")}>{formatCurrency(totals.saldo)}</td>
-                <td className="px-2 py-2 text-right tabular-nums text-primary">{formatCurrency(totals.saldo)}</td>
+                <td className="px-1.5 py-1.5">Total do Período</td>
+                <td className="px-1.5 py-1.5 text-right tabular-nums text-emerald-600">{formatCurrency(totals.entradas)}</td>
+                <td className="px-1.5 py-1.5 text-right tabular-nums text-red-600">{formatCurrency(totals.saidas)}</td>
+                <td className={cn("px-1.5 py-1.5 text-right tabular-nums", totals.saldo < 0 ? "text-red-600" : "text-primary")}>{formatCurrency(totals.saldo)}</td>
+                <td className="px-1.5 py-1.5 text-right tabular-nums text-primary">{formatCurrency(totals.saldo)}</td>
               </tr>
             </tfoot>
           </table>
@@ -157,3 +142,4 @@ export function CashFlowDailyGrid() {
     </div>
   );
 }
+
