@@ -160,9 +160,10 @@ function SidebarNav() {
                       asChild
                       isActive={isActive(item.url!, (item as any).exact)}
                       tooltip={item.title}
+                      className="h-7 text-xs px-2 gap-2"
                     >
                       <Link to={item.url!} state={{ fromNav: true }} onClick={() => setOpenMobile(false)}>
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-3.5 w-3.5" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
