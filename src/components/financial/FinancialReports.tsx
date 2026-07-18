@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { DreGerencial } from "./DreGerencial";
+import { FinancialPayablesTree } from "./FinancialPayablesTree";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -146,7 +147,7 @@ export function FinancialReports() {
 
   // Lock status to "pago" when payables report uses "data de pagamento"
   useEffect(() => {
-    if (reportType === "payables" && filters.tipoData === "pagamento" && filters.status !== "pago") {
+    if ((reportType as string) === "payables" && filters.tipoData === "pagamento" && filters.status !== "pago") {
       setFilters((f) => ({ ...f, status: "pago" }));
     }
   }, [reportType, filters.tipoData, filters.status]);
@@ -196,7 +197,7 @@ export function FinancialReports() {
     setLoading(true);
     try {
       let result: Row[] = [];
-      if (reportType === "payables") {
+      if ((reportType as string) === "payables") {
         const tipoData = filters.tipoData || "vencimento";
 
         // When filtering by payment date, first resolve the set of expense_ids
@@ -714,7 +715,7 @@ export function FinancialReports() {
     const favorLabel = isReceivable ? "Cliente" : "Favorecido";
     // Columns: Data | [Favorecido/Cliente] | Descrição | Plano | Status | Valor
     // Cashflow: Data | Descrição | Origem | Status | Valor
-    const isPayables = reportType === "payables";
+    const isPayables = (reportType as string) === "payables";
     // Payables ganha 3 colunas extras: Vencimento, Parcela e Pago
     const colCount = (showFavor ? 6 : 5) + (isPayables ? 3 : 0);
     const labelColspan = colCount - 1; // colspan before the value column for subtotal/total label
@@ -918,10 +919,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
     URL.revokeObjectURL(url);
   };
 
-  const showFavorecido = reportType === "payables";
+  const showFavorecido = (reportType as string) === "payables";
   const showCliente = reportType === "receivables" || reportType === "forecasts";
   const showPlanoContas = true;
-  const showCentroCusto = reportType === "payables";
+  const showCentroCusto = (reportType as string) === "payables";
   const showOrigem = true;
 
   const groupOptions: { value: GroupBy; label: string }[] = useMemo(() => {
@@ -961,6 +962,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           <TabsContent value="dre" className="mt-4">
             <DreGerencial />
           </TabsContent>
+        ) : (reportType as string) === "payables" ? (
+          <TabsContent value="payables" className="mt-4">
+            <FinancialPayablesTree />
+          </TabsContent>
         ) : (
         <TabsContent value={reportType} className="mt-4">
           <Card>
@@ -995,7 +1000,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Status</Label>
-                  {reportType === "payables" && filters.tipoData === "pagamento" ? (
+                  {(reportType as string) === "payables" && filters.tipoData === "pagamento" ? (
                     <Input value="Pago" disabled className="h-8 text-xs bg-muted" />
                   ) : (
                     <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
@@ -1207,7 +1212,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             {r.dataVencimento && (
                               <div className="text-[10px] text-muted-foreground">Vencimento: <span className="font-medium text-foreground">{formatDateBR(r.dataVencimento)}</span></div>
                             )}
-                            {reportType === "payables" && (r.valorPago || 0) > 0 && (
+                            {(reportType as string) === "payables" && (r.valorPago || 0) > 0 && (
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className="text-muted-foreground">Pago:</span>
                                 <span className="text-green-600 font-semibold tabular-nums">{formatCurrency(r.valorPago || 0)}</span>
@@ -1227,7 +1232,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                         <tr className="text-left">
                           <th className="px-3 py-2 font-medium whitespace-nowrap w-[100px]">Data</th>
                           <th className="px-3 py-2 font-medium">Pessoa / Descrição</th>
-                          {reportType === "payables" && (
+                          {(reportType as string) === "payables" && (
                             <>
                               <th className="px-2 py-2 font-medium whitespace-nowrap w-[100px]">Vencimento</th>
                               <th className="px-2 py-2 font-medium text-center whitespace-nowrap w-[70px]">Parcela</th>
@@ -1235,7 +1240,7 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           )}
                           <th className="px-2 py-2 font-medium text-center w-[100px]">Status</th>
                           <th className="px-2 py-2 font-medium text-right w-[130px]">Valor</th>
-                          {reportType === "payables" && (
+                          {(reportType as string) === "payables" && (
                             <th className="px-2 py-2 font-medium text-right w-[130px]">Pago</th>
                           )}
                         </tr>
@@ -1245,14 +1250,14 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                           <Fragment key={g.key}>
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/40 border-t border-border">
-                                <td colSpan={reportType === "payables" ? 7 : 4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
+                                <td colSpan={(reportType as string) === "payables" ? 7 : 4} className="px-3 py-1.5 text-xs font-bold text-primary uppercase">
                                   {g.key} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
                                 </td>
                               </tr>
                             )}
                             {g.rows.map((r) => {
                               const pagoFinal = r.valorPago || 0;
-                              const isPayables = reportType === "payables";
+                              const isPayables = (reportType as string) === "payables";
                               return (
                               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                                 <td className="px-3 py-2 whitespace-nowrap tabular-nums align-top">{formatDateBR(r.data)}</td>
@@ -1285,11 +1290,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
                             })}
                             {filters.groupBy !== "none" && (
                               <tr className="bg-muted/20 border-t border-border">
-                                <td colSpan={reportType === "payables" ? 5 : 3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
+                                <td colSpan={(reportType as string) === "payables" ? 5 : 3} className="px-3 py-1.5 text-right text-xs font-semibold">Subtotal</td>
                                 <td className="px-2 py-1.5 text-right text-xs font-bold text-primary tabular-nums">
                                   {formatCurrency(g.rows.reduce((s, r) => s + (r.tipo === "saida" ? -r.valor : r.valor), 0))}
                                 </td>
-                                {reportType === "payables" && (
+                                {(reportType as string) === "payables" && (
                                   <td className="px-2 py-1.5 text-right text-xs font-bold text-green-600 tabular-nums">
                                     {formatCurrency(g.rows.reduce((s, r) => s + (r.valorPago || 0), 0))}
                                   </td>
