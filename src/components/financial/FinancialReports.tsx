@@ -16,7 +16,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
 import { DreGerencial } from "./DreGerencial";
-import { FinancialPayablesTree } from "./FinancialPayablesTree";
+import { PayablesDataGrid } from "./PayablesDataGrid";
+import { CashFlowDailyGrid } from "./CashFlowDailyGrid";
 
 type ReportType = "payables" | "receivables" | "cashflow" | "forecasts" | "dre";
 type GroupBy = "none" | "plano" | "centro" | "favorecido" | "cliente" | "origem" | "status";
@@ -964,7 +965,11 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           </TabsContent>
         ) : (reportType as string) === "payables" ? (
           <TabsContent value="payables" className="mt-4">
-            <FinancialPayablesTree />
+            <PayablesDataGrid />
+          </TabsContent>
+        ) : reportType === "cashflow" ? (
+          <TabsContent value="cashflow" className="mt-4">
+            <CashFlowDailyGrid />
           </TabsContent>
         ) : (
         <TabsContent value={reportType} className="mt-4">
@@ -1167,15 +1172,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs text-muted-foreground">{filteredRows.length} de {rows.length} registro(s)</div>
-                {reportType === "cashflow" ? (
-                  <div className="flex gap-3 text-xs">
-                    <span className="text-green-600 font-semibold">Entradas: {formatCurrency((totals as any).entradas)}</span>
-                    <span className="text-red-600 font-semibold">Saídas: {formatCurrency((totals as any).saidas)}</span>
-                    <span className={`font-bold ${totals.total >= 0 ? "text-primary" : "text-red-600"}`}>Saldo: {formatCurrency(totals.total)}</span>
-                  </div>
-                ) : (
-                  <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
-                )}
+                <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
+
               </div>
 
               {isMobile ? (
