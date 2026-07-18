@@ -111,6 +111,10 @@ export function PayablesDataGrid() {
             if (!inRange(dv)) return;
             const overdue = dv && dv < today && inst.status !== "pago";
             const s: Row["status"] = overdue ? "atrasado" : (inst.status as Row["status"]);
+            const pago = pagoByInst[inst.id] || 0;
+            // Regra operacional: exibe obrigação restante (valor da parcela - já pago).
+            // Se totalmente quitada, mantém como "pago" com valor original.
+            const restante = s === "pago" ? Number(inst.valor) : Math.max(Number(inst.valor) - pago, 0);
             out.push({
               id: `${e.id}-${inst.id}`,
               status: s,
@@ -120,8 +124,8 @@ export function PayablesDataGrid() {
               parcela: `${inst.numero_parcela}/${installs.length}`,
               categoria,
               veiculo,
-              valor: Number(inst.valor),
-              valorPago: pagoByInst[inst.id] || 0,
+              valor: restante,
+              valorPago: pago,
             });
           });
         } else {
@@ -129,6 +133,8 @@ export function PayablesDataGrid() {
           if (!inRange(dv)) return;
           const overdue = dv && dv < today && e.status !== "pago";
           const s: Row["status"] = overdue ? "atrasado" : (e.status as Row["status"]);
+          const pago = Number(e.valor_pago || 0);
+          const restante = s === "pago" ? Number(e.valor_total) : Math.max(Number(e.valor_total) - pago, 0);
           out.push({
             id: e.id,
             status: s,
@@ -138,8 +144,8 @@ export function PayablesDataGrid() {
             parcela: "—",
             categoria,
             veiculo,
-            valor: Number(e.valor_total),
-            valorPago: pagoByExp[e.id] || 0,
+            valor: restante,
+            valorPago: pago,
           });
         }
       });
