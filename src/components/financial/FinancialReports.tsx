@@ -137,13 +137,17 @@ const ORIGEM_OPTIONS: Record<Exclude<ReportType, "dre">, { value: string; label:
   ],
 };
 
-export function FinancialReports() {
+export function FinancialReports({ fixedReportType }: { fixedReportType?: ReportType } = {}) {
   const isMobile = useIsMobile();
-  const [reportType, setReportType] = useState<ReportType>("payables");
+  const [reportType, setReportType] = useState<ReportType>(fixedReportType ?? "payables");
+  useEffect(() => {
+    if (fixedReportType && fixedReportType !== reportType) setReportType(fixedReportType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixedReportType]);
   const [favorecidoSearch, setFavorecidoSearch] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
   const [nameSearch, setNameSearch] = useState("");
-  const [filters, setFilters] = useState<Filters>(initialFilters("payables"));
+  const [filters, setFilters] = useState<Filters>(initialFilters(fixedReportType ?? "payables"));
   const [rows, setRows] = useState<Row[]>([]);
 
   // Lock status to "pago" when payables report uses "data de pagamento"
