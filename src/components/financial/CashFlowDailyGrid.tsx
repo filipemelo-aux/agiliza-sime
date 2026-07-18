@@ -86,6 +86,7 @@ export function CashFlowDailyGrid() {
 
       {rows.length > 0 && (
         <div className="border border-border rounded-md bg-card h-[120px] p-1 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
