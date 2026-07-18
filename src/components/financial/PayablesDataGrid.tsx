@@ -27,6 +27,7 @@ interface Row {
   veiculo: string;
   valor: number;
   valorPago: number;
+  vencido: boolean;
 }
 
 const statusDot: Record<Row["status"], string> = {
