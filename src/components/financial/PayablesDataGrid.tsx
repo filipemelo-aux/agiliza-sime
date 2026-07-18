@@ -175,7 +175,8 @@ export function PayablesDataGrid() {
     const term = search.trim().toLowerCase();
     const vterm = veiculoQ.trim().toLowerCase();
     return rows.filter((r) => {
-      if (status === "atrasado" && r.status !== "atrasado") return false;
+      // 'atrasado' inclui: status='atrasado' OU parcial vencido
+      if (status === "atrasado" && !(r.status === "atrasado" || (r.status === "parcial" && r.vencido))) return false;
       if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
