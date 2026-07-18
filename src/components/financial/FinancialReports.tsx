@@ -1172,15 +1172,8 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs text-muted-foreground">{filteredRows.length} de {rows.length} registro(s)</div>
-                {reportType === "cashflow" ? (
-                  <div className="flex gap-3 text-xs">
-                    <span className="text-green-600 font-semibold">Entradas: {formatCurrency((totals as any).entradas)}</span>
-                    <span className="text-red-600 font-semibold">Saídas: {formatCurrency((totals as any).saidas)}</span>
-                    <span className={`font-bold ${totals.total >= 0 ? "text-primary" : "text-red-600"}`}>Saldo: {formatCurrency(totals.total)}</span>
-                  </div>
-                ) : (
-                  <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
-                )}
+                <div className="text-sm font-bold text-primary">Total: {formatCurrency(totals.total)}</div>
+
               </div>
 
               {isMobile ? (
