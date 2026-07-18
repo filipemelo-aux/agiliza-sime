@@ -962,6 +962,10 @@ tr.tot td.val{color:#2B4C7E;font-size:10px}
           <TabsContent value="dre" className="mt-4">
             <DreGerencial />
           </TabsContent>
+        ) : reportType === "payables" ? (
+          <TabsContent value="payables" className="mt-4">
+            <FinancialPayablesTree />
+          </TabsContent>
         ) : (
         <TabsContent value={reportType} className="mt-4">
           <Card>
