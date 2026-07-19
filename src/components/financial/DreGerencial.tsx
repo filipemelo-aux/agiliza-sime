@@ -93,176 +93,36 @@ export function DreGerencial() {
   const gerar = useCallback(async () => {
     setLoading(true);
     try {
-      // 1) Read all bank movements in period (single source of truth for cash flow)
-      let q: any = supabase
-        .from("movimentacoes_bancarias")
-        .select("id, tipo, valor, plano_contas_id, origem, origem_id, data_movimentacao, descricao");
-      if (dataInicio) q = q.gte("data_movimentacao", dataInicio);
-      if (dataFim) q = q.lte("data_movimentacao", dataFim);
-      const { data, error } = await q.limit(20000);
-      if (error) throw error;
-      const list = (data || []) as any[];
+      const enriched: MovDetail[] = [];
 
-      // 2) Identify credit card invoice expenses (to explode into detailed items)
+      // ============================================================
+      // 1) CARTÃO DE CRÉDITO — competência pela data ORIGINAL da compra
+      //    (posted_date). Parcelamentos: só a 1ª parcela entra, com o
+      //    VALOR TOTAL (parcela × N) no mês da compra.
+      // ============================================================
       const { data: ccInvoices } = await supabase
         .from("credit_card_invoices")
         .select("id, expense_id")
-        .not("expense_id", "is", null);
-      const ccExpenseIds = new Set<string>((ccInvoices || []).map((r: any) => r.expense_id));
+        .is("deleted_at", null);
+      const ccExpenseIds = new Set<string>(
+        (ccInvoices || []).filter((r: any) => r.expense_id).map((r: any) => r.expense_id),
+      );
+      const invoiceIds = (ccInvoices || []).map((r: any) => r.id);
 
-      // 3) Enrich plano_contas_id for movements linked to expenses
-      const payPaymentIds = list.filter((m) => m.origem === "pagamento_despesa" && !m.plano_contas_id).map((m) => m.origem_id);
-      const loteIds = list.filter((m) => m.origem === "pagamento_agrupado" && !m.plano_contas_id).map((m) => m.origem_id);
-      const contasPagarIds = list.filter((m) => m.origem === "contas_pagar" && !m.plano_contas_id).map((m) => m.origem_id);
-      const despesasDirIds = list.filter((m) => m.origem === "despesas" && !m.plano_contas_id).map((m) => m.origem_id);
-      const contasReceberIds = list.filter((m) => m.origem === "contas_receber" && !m.plano_contas_id).map((m) => m.origem_id);
-      const recebParcialIds = list.filter((m) => m.origem === "recebimento_conta_receber" && !m.plano_contas_id).map((m) => m.origem_id);
-
-      const [paysRes, loteRes, contasPagarRes, despesasDirRes, contasReceberRes, recebParcialRes] = await Promise.all([
-        payPaymentIds.length
-          ? supabase.from("expense_payments").select("id, expense_id, expenses:expense_id(plano_contas_id)").in("id", payPaymentIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        loteIds.length
-          ? supabase.from("expense_payments").select("lote_id, expense_id, expenses:expense_id(plano_contas_id)").in("lote_id", loteIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        contasPagarIds.length
-          ? supabase.from("accounts_payable").select("id, category_id").in("id", contasPagarIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        despesasDirIds.length
-          ? supabase.from("expenses").select("id, plano_contas_id").in("id", despesasDirIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        contasReceberIds.length
-          ? supabase.from("contas_receber").select("id, fatura_id").in("id", contasReceberIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-        recebParcialIds.length
-          ? supabase.from("receivable_payments").select("id, conta_receber_id").in("id", recebParcialIds)
-          : Promise.resolve({ data: [] as any[] } as any),
-      ]);
-
-      const chartRes = await supabase.from("chart_of_accounts").select("id, codigo").in("codigo", ["1.1.01", "1.1.02"]);
-      const revenueByCodigo = new Map<string, string>();
-      (chartRes.data || []).forEach((c: any) => revenueByCodigo.set(c.codigo, c.id));
-      const revenuePlanoFromOrigemTipo = (t?: string | null): string | null => {
-        if (t === "cte") return revenueByCodigo.get("1.1.01") || null;
-        if (t === "colheita") return revenueByCodigo.get("1.1.02") || null;
-        return null;
-      };
-
-      const planoByContaReceber = new Map<string, string | null>();
-      const crFatMap = new Map<string, string>();
-      (contasReceberRes.data || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
-      const rpCrIds: string[] = Array.from(new Set(((recebParcialRes.data || []) as any[]).map((rp: any) => String(rp.conta_receber_id)).filter(Boolean)));
-      if (rpCrIds.length > 0) {
-        const { data: extraCr } = await supabase.from("contas_receber").select("id, fatura_id").in("id", rpCrIds);
-        (extraCr || []).forEach((cr: any) => { if (cr.fatura_id) crFatMap.set(cr.id, cr.fatura_id); });
-      }
-      const allFaturaIds: string[] = Array.from(new Set(Array.from(crFatMap.values())));
-      const faturaOrigemTipo = new Map<string, string>();
-      if (allFaturaIds.length > 0) {
-        const { data: fp } = await supabase
-          .from("fatura_previsoes")
-          .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
-          .in("fatura_id", allFaturaIds);
-        (fp || []).forEach((row: any) => {
-          const t = row.previsoes_recebimento?.origem_tipo;
-          if (t && !faturaOrigemTipo.has(row.fatura_id)) faturaOrigemTipo.set(row.fatura_id, t);
-        });
-      }
-      crFatMap.forEach((fatId, crId) => {
-        planoByContaReceber.set(crId, revenuePlanoFromOrigemTipo(faturaOrigemTipo.get(fatId)));
-      });
-
-      const planoByPayment = new Map<string, string | null>();
-      const expenseByPayment = new Map<string, string | null>();
-      (paysRes.data || []).forEach((p: any) => {
-        planoByPayment.set(p.id, p.expenses?.plano_contas_id || null);
-        expenseByPayment.set(p.id, p.expense_id || null);
-      });
-      const planoByLote = new Map<string, string | null>();
-      const expensesByLote = new Map<string, Set<string>>();
-      (loteRes.data || []).forEach((p: any) => {
-        if (!planoByLote.has(p.lote_id)) planoByLote.set(p.lote_id, p.expenses?.plano_contas_id || null);
-        if (!expensesByLote.has(p.lote_id)) expensesByLote.set(p.lote_id, new Set());
-        if (p.expense_id) expensesByLote.get(p.lote_id)!.add(p.expense_id);
-      });
-      const planoByContaPagar = new Map<string, string | null>();
-      (contasPagarRes.data || []).forEach((r: any) => planoByContaPagar.set(r.id, r.category_id || null));
-      const planoByDespesa = new Map<string, string | null>();
-      (despesasDirRes.data || []).forEach((r: any) => planoByDespesa.set(r.id, r.plano_contas_id || null));
-      const planoByRecebParcial = new Map<string, string | null>();
-      (recebParcialRes.data || []).forEach((rp: any) => {
-        planoByRecebParcial.set(rp.id, planoByContaReceber.get(rp.conta_receber_id) || null);
-      });
-
-      // 4) Filter out bank movements that represent the payment of a credit card
-      //    invoice's mother expense (avoid double-counting when adding CC item detail).
-      const isCcInvoicePayment = (m: any): boolean => {
-        if (m.origem === "contas_pagar" || m.origem === "despesas") {
-          return ccExpenseIds.has(m.origem_id);
-        }
-        if (m.origem === "pagamento_despesa") {
-          const eid = expenseByPayment.get(m.origem_id);
-          return !!eid && ccExpenseIds.has(eid);
-        }
-        if (m.origem === "pagamento_agrupado") {
-          const set = expensesByLote.get(m.origem_id);
-          if (!set) return false;
-          for (const eid of set) if (!ccExpenseIds.has(eid)) return false;
-          return set.size > 0;
-        }
-        return false;
-      };
-
-      const filtered = list.filter((m) => !isCcInvoicePayment(m));
-
-      const CONTAS_PAGAR_ORIGENS = new Set(["despesas", "pagamento_despesa", "pagamento_agrupado", "contas_pagar"]);
-      const enriched: MovDetail[] = filtered.map((m) => {
-        let pid: string | null = m.plano_contas_id || null;
-        if (!pid) {
-          if (m.origem === "pagamento_despesa") pid = planoByPayment.get(m.origem_id) || null;
-          else if (m.origem === "pagamento_agrupado") pid = planoByLote.get(m.origem_id) || null;
-          else if (m.origem === "contas_pagar") pid = planoByContaPagar.get(m.origem_id) || null;
-          else if (m.origem === "despesas") pid = planoByDespesa.get(m.origem_id) || null;
-          else if (m.origem === "contas_receber") pid = planoByContaReceber.get(m.origem_id) || null;
-          else if (m.origem === "recebimento_conta_receber") pid = planoByRecebParcial.get(m.origem_id) || null;
-        }
-        const origemKind: OrigemKind = CONTAS_PAGAR_ORIGENS.has(m.origem) ? "contas_pagar" : "direta";
-        return {
-          tipo: m.tipo as "entrada" | "saida",
-          valor: Number(m.valor) || 0,
-          planoId: pid,
-          origem: origemKind,
-          data: m.data_movimentacao || null,
-          descricao: m.descricao || "—",
-          parcela: "—",
-        };
-      });
-
-      // 5) Explode credit card invoice items.
-      //   - Competência: pela data ORIGINAL da compra (posted_date). Apenas
-      //     compras à vista OU a 1ª parcela nascem no período. Parcelas 2/N...
-      //     ficam na competência do mês em que a compra aconteceu.
-      //   - Caixa (Fatura): pelo vencimento da fatura (due_date). Tudo o que
-      //     está na fatura entra no mês em que ela vence — inclusive parcelas
-      //     de compras anteriores. Espelha o que efetivamente sai da conta.
-      const closedInvoiceIds = (ccInvoices || []).map((r: any) => r.id);
-      if (closedInvoiceIds.length > 0) {
+      if (invoiceIds.length > 0) {
         let itemsQ: any = supabase
           .from("credit_card_invoice_items")
           .select("id, amount, plano_contas_id, ignored, posted_date, description, parcela_atual, parcela_total")
-          .in("invoice_id", closedInvoiceIds);
+          .in("invoice_id", invoiceIds)
+          .eq("ignored", false);
         if (dataInicio) itemsQ = itemsQ.gte("posted_date", dataInicio);
         if (dataFim) itemsQ = itemsQ.lte("posted_date", dataFim);
         const { data: items } = await itemsQ.limit(20000);
         (items || []).forEach((it: any) => {
-          if (it.ignored) return;
           const val = Number(it.amount) || 0;
           if (val === 0) return;
           const atual = Number(it.parcela_atual) || 0;
           const total = Number(it.parcela_total) || 0;
-          // REGIME DE COMPETÊNCIA PURA: só a 1ª parcela (ou compra à vista) entra,
-          // mas com o VALOR TOTAL da compra (parcela × nº de parcelas).
-          // Ex.: 10x de R$ 1.000 → competência lança R$ 10.000 no mês da compra.
           if (total > 0 && atual !== 1) return;
           const parcelaLabel = total > 0 ? `1/${total} • valor total ${total}x` : "à vista";
           const valorCompetencia = total > 0 ? Math.abs(val) * total : Math.abs(val);
@@ -279,6 +139,69 @@ export function DreGerencial() {
         });
       }
 
+      // ============================================================
+      // 2) DESPESAS — competência pela data_competencia da despesa
+      //    (fato gerador). Exclui despesas "mãe" de fatura de cartão
+      //    para não dobrar (o cartão já foi explodido acima).
+      // ============================================================
+      let expQ: any = supabase
+        .from("expenses")
+        .select("id, descricao, plano_contas_id, valor_total, data_competencia, data_emissao, favorecido_nome")
+        .is("deleted_at", null);
+      if (dataInicio) expQ = expQ.gte("data_competencia", dataInicio);
+      if (dataFim) expQ = expQ.lte("data_competencia", dataFim);
+      const { data: expData, error: expErr } = await expQ.limit(20000);
+      if (expErr) throw expErr;
+      (expData || []).forEach((e: any) => {
+        if (ccExpenseIds.has(e.id)) return; // fatura de cartão — já contabilizada
+        const v = Number(e.valor_total) || 0;
+        if (v === 0) return;
+        enriched.push({
+          tipo: "saida",
+          valor: Math.abs(v),
+          planoId: e.plano_contas_id || null,
+          origem: "contas_pagar",
+          data: e.data_competencia || e.data_emissao || null,
+          descricao: (e.favorecido_nome ? `${e.favorecido_nome} — ` : "") + (e.descricao || "—"),
+          parcela: "—",
+        });
+      });
+
+      // ============================================================
+      // 3) RECEITAS — competência pela data de emissão / previsão
+      //    (previsoes_recebimento.data_prevista). Fato gerador da
+      //    receita = emissão do CT-e / prestação do serviço.
+      // ============================================================
+      const chartRes = await supabase
+        .from("chart_of_accounts")
+        .select("id, codigo")
+        .in("codigo", ["1.1.01", "1.1.02"]);
+      const revenueByCodigo = new Map<string, string>();
+      (chartRes.data || []).forEach((c: any) => revenueByCodigo.set(c.codigo, c.id));
+      const planoCte = revenueByCodigo.get("1.1.01") || null;
+      const planoColheita = revenueByCodigo.get("1.1.02") || null;
+
+      let prevQ: any = supabase
+        .from("previsoes_recebimento")
+        .select("id, origem_tipo, valor, data_prevista");
+      if (dataInicio) prevQ = prevQ.gte("data_prevista", dataInicio);
+      if (dataFim) prevQ = prevQ.lte("data_prevista", dataFim);
+      const { data: prevData, error: prevErr } = await prevQ.limit(20000);
+      if (prevErr) throw prevErr;
+      (prevData || []).forEach((p: any) => {
+        const v = Number(p.valor) || 0;
+        if (v === 0) return;
+        const pid = p.origem_tipo === "colheita" ? planoColheita : planoCte;
+        enriched.push({
+          tipo: "entrada",
+          valor: Math.abs(v),
+          planoId: pid,
+          origem: "direta",
+          data: p.data_prevista || null,
+          descricao: p.origem_tipo === "colheita" ? "Colheita — previsão" : "CT-e — previsão de receita",
+          parcela: "—",
+        });
+      });
 
       setMovs(enriched);
       setGenerated(true);
@@ -288,6 +211,7 @@ export function DreGerencial() {
       setLoading(false);
     }
   }, [dataInicio, dataFim]);
+
 
 
 
