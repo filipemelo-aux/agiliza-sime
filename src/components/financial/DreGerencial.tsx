@@ -52,11 +52,12 @@ const UNCLASSIFIED_OUT = "__unclassified_out__";
 const UNCLASSIFIED_KEY = "__unclassified__";
 
 const ORIGEM_LABEL: Record<OrigemKind, string> = {
-  cartao: "💳 Cartão de Crédito",
-  contas_pagar: "🧾 Contas a Pagar",
-  direta: "💸 Movimentação Direta",
+  cartao: "💳 Cartão de Crédito (compra)",
+  contas_pagar: "🧾 Despesas (competência)",
+  direta: "📄 Receitas (emissão)",
 };
 const ORIGEM_ORDER: OrigemKind[] = ["cartao", "contas_pagar", "direta"];
+
 
 export function DreGerencial() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
