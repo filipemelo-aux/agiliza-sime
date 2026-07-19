@@ -607,8 +607,9 @@ export function DreGerencial() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-bold text-foreground">DRE Gerencial</h1>
-        <ReportInfoTooltip text="Baseado em Regime de Competência (Data da Compra / Valor Total). Para parcelamentos, o valor total da compra é lançado no mês em que ocorreu — parcelas seguintes não aparecem em meses futuros." />
+        <ReportInfoTooltip text="Regime de COMPETÊNCIA PURA: receitas pela data de emissão do CT-e/serviço; despesas pela data de competência (fato gerador); cartão de crédito pela data original da compra com o valor total da compra parcelada lançado de uma vez." />
       </div>
+
       <Card>
         <CardContent className="p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
