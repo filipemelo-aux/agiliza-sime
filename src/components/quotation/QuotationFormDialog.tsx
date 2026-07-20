@@ -63,8 +63,11 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   const [cargaId, setCargaId] = useState<string | null>(null);
   const [produto, setProduto] = useState("");
   const [pesoKg, setPesoKg] = useState("");
-  const [valorFrete, setValorFrete] = useState("");
-  const [tipoValorFrete, setTipoValorFrete] = useState("");
+  const [valoresVeiculos, setValoresVeiculos] = useState<ValorVeiculo[]>([]);
+  const [novoVeiculoTipo, setNovoVeiculoTipo] = useState("");
+  const [novoVeiculoValor, setNovoVeiculoValor] = useState("");
+  const [novoVeiculoTipoValor, setNovoVeiculoTipoValor] = useState<"total" | "por_tonelada">("total");
+
   const [condicoesPagamento, setCondicoesPagamento] = useState("");
   const [formaPagamentoFrete, setFormaPagamentoFrete] = useState("");
   const [prazoPagamento, setPrazoPagamento] = useState("");
