@@ -228,107 +228,198 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-base">
             {isEditing
               ? `Editar Cotação #${editData.numero}`
               : type === "frete" ? "Nova Cotação de Frete" : "Nova Cotação de Colheita"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Empresa contratada - unified */}
-          <div>
-            <Label>Empresa Contratada (Emitente)</Label>
-            <Input value="Sime Transporte Ltda" disabled className="bg-muted/30" />
-          </div>
-
-          {/* Cliente */}
-          <div>
-            <Label>Cliente (Destinatário da Cotação)</Label>
-            <PersonSearchInput
-              categories={["cliente", "fornecedor", "proprietario"]}
-              placeholder="Buscar cliente cadastrado..."
-              selectedName={clientName}
-              onSelect={(p) => { setClientId(p.id); setClientName(p.full_name); }}
-              onClear={() => { setClientId(null); setClientName(""); }}
-              endAction={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  title="Cadastrar novo cliente"
-                  onClick={() => setShowCreateClient(true)}
-                >
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              }
-            />
+        <div className="space-y-3">
+          {/* Linha 1: Emitente + Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Empresa Contratada (Emitente)</Label>
+              <Input value="Sime Transporte Ltda" disabled className="bg-muted/30 h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Cliente (Destinatário)</Label>
+              <PersonSearchInput
+                categories={["cliente", "fornecedor", "proprietario"]}
+                placeholder="Buscar cliente cadastrado..."
+                selectedName={clientName}
+                onSelect={(p) => { setClientId(p.id); setClientName(p.full_name); }}
+                onClear={() => { setClientId(null); setClientName(""); }}
+                endAction={
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="Cadastrar novo cliente" onClick={() => setShowCreateClient(true)}>
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                }
+              />
+            </div>
           </div>
 
           {type === "frete" ? (
             <>
-              {/* Origem */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Cidade Origem</Label>
-                  <Input value={origemCidade} onChange={(e) => setOrigemCidade(maskName(e.target.value))} placeholder="Ex: Uberlândia" />
+              {/* Linha 2: Rota Origem + Destino (Cidade/UF combinados) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Origem (Cidade / UF)</Label>
+                  <div className="flex gap-2">
+                    <Input className="h-9 flex-1" value={origemCidade} onChange={(e) => setOrigemCidade(maskName(e.target.value))} placeholder="Ex: Uberlândia" />
+                    <Input className="h-9 w-16 uppercase" value={origemUf} onChange={(e) => setOrigemUf(maskUf(e.target.value))} placeholder="MG" maxLength={2} />
+                  </div>
                 </div>
-                <div>
-                  <Label>UF Origem</Label>
-                  <Input value={origemUf} onChange={(e) => setOrigemUf(maskUf(e.target.value))} placeholder="MG" maxLength={2} />
-                </div>
-              </div>
-
-              {/* Destino */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Cidade Destino</Label>
-                  <Input value={destinoCidade} onChange={(e) => setDestinoCidade(maskName(e.target.value))} placeholder="Ex: Santos" />
-                </div>
-                <div>
-                  <Label>UF Destino</Label>
-                  <Input value={destinoUf} onChange={(e) => setDestinoUf(maskUf(e.target.value))} placeholder="SP" maxLength={2} />
+                <div className="space-y-1">
+                  <Label className="text-xs">Destino (Cidade / UF)</Label>
+                  <div className="flex gap-2">
+                    <Input className="h-9 flex-1" value={destinoCidade} onChange={(e) => setDestinoCidade(maskName(e.target.value))} placeholder="Ex: Santos" />
+                    <Input className="h-9 w-16 uppercase" value={destinoUf} onChange={(e) => setDestinoUf(maskUf(e.target.value))} placeholder="SP" maxLength={2} />
+                  </div>
                 </div>
               </div>
 
-              {/* Carga */}
-              <div>
-                <Label>Tipo de Mercadoria</Label>
-                <CargaSearchInput
-                  placeholder="Buscar mercadoria cadastrada..."
-                  selectedName={produto}
-                  onSelect={(c) => {
-                    setCargaId(c.id);
-                    setProduto(c.produto_predominante);
-                    if (c.peso_bruto) setPesoKg(String(c.peso_bruto));
-                  }}
-                  onClear={() => { setCargaId(null); setProduto(""); }}
-                />
+              {/* Linha 3: Mercadoria + Peso */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-2 space-y-1">
+                  <Label className="text-xs">Tipo de Mercadoria</Label>
+                  <CargaSearchInput
+                    placeholder="Buscar mercadoria cadastrada..."
+                    selectedName={produto}
+                    onSelect={(c) => {
+                      setCargaId(c.id);
+                      setProduto(c.produto_predominante);
+                      if (c.peso_bruto) setPesoKg(String(c.peso_bruto));
+                    }}
+                    onClear={() => { setCargaId(null); setProduto(""); }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Peso Total (kg)</Label>
+                  <Input type="number" className="h-9" value={pesoKg} onChange={(e) => setPesoKg(e.target.value)} placeholder="0" />
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Peso Total (kg)</Label>
-                  <Input type="number" value={pesoKg} onChange={(e) => setPesoKg(e.target.value)} placeholder="0" />
+              {/* Valores por Tipo de Veículo */}
+              <div className="border border-border rounded-md p-3 space-y-2 bg-muted/20">
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Valores por Tipo de Veículo</h3>
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-[11px]">Tipo de Veículo</Label>
+                    <Select value={novoVeiculoTipo} onValueChange={setNovoVeiculoTipo}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_TYPES.filter(v => !valoresVeiculos.some(x => x.vehicle_type === v.value)).map(v => (
+                          <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-[11px]">Valor (R$)</Label>
+                    <Input className="h-9" value={novoVeiculoValor ? maskCurrency(String(Math.round(parseFloat(novoVeiculoValor) * 100))) : ""} onChange={(e) => setNovoVeiculoValor(unmaskCurrency(e.target.value))} placeholder="0,00" />
+                  </div>
+                  <div className="col-span-3 space-y-1">
+                    <Label className="text-[11px]">Tipo</Label>
+                    <Select value={novoVeiculoTipoValor} onValueChange={(v) => setNovoVeiculoTipoValor(v as any)}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="total">Frete Total</SelectItem>
+                        <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="h-9 w-full"
+                      onClick={() => {
+                        if (!novoVeiculoTipo || !novoVeiculoValor) {
+                          toast({ title: "Selecione o tipo e informe o valor", variant: "destructive" });
+                          return;
+                        }
+                        setValoresVeiculos([...valoresVeiculos, { vehicle_type: novoVeiculoTipo, valor: parseFloat(novoVeiculoValor), tipo_valor: novoVeiculoTipoValor }]);
+                        setNovoVeiculoTipo("");
+                        setNovoVeiculoValor("");
+                        setNovoVeiculoTipoValor("total");
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <Label>Valor do Frete (R$)</Label>
-                  <Input value={valorFrete ? maskCurrency(String(Math.round(parseFloat(valorFrete) * 100))) : ""} onChange={(e) => setValorFrete(unmaskCurrency(e.target.value))} placeholder="0,00" />
-                </div>
-                <div>
-                  <Label>Tipo do Valor</Label>
-                  <Select value={tipoValorFrete} onValueChange={setTipoValorFrete}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                {valoresVeiculos.length > 0 && (
+                  <div className="border border-border rounded-md overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left px-2 py-1 font-medium">Veículo</th>
+                          <th className="text-right px-2 py-1 font-medium">Valor</th>
+                          <th className="text-left px-2 py-1 font-medium">Tipo</th>
+                          <th className="w-8" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {valoresVeiculos.map((v, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="px-2 py-1">{VEHICLE_LABEL(v.vehicle_type)}</td>
+                            <td className="px-2 py-1 text-right font-mono">{v.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                            <td className="px-2 py-1">{v.tipo_valor === "por_tonelada" ? "Por Tonelada" : "Frete Total"}</td>
+                            <td className="px-1">
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setValoresVeiculos(valoresVeiculos.filter((_, idx) => idx !== i))}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {valoresVeiculos.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground italic">Adicione ao menos um tipo de veículo com seu respectivo valor.</p>
+                )}
+              </div>
+
+              {/* Condições de Pagamento — tudo em uma linha */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Forma</Label>
+                  <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="total">Frete Total</SelectItem>
-                      <SelectItem value="por_tonelada">Por Tonelada</SelectItem>
+                      <SelectItem value="pix">PIX</SelectItem>
+                      <SelectItem value="ted">TED</SelectItem>
+                      <SelectItem value="boleto">Boleto</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="deposito">Depósito</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Prazo (dias)</Label>
+                  <Input className="h-9" value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value.replace(/\D/g, ""))} placeholder="Ex: 30" inputMode="numeric" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">A partir de</Label>
+                  <Select value={prazoPagamentoReferencia} onValueChange={setPrazoPagamentoReferencia}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="emissao_cte">Emissão do CT-e</SelectItem>
+                      <SelectItem value="entrega">Entrega da carga</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Adiantamento (%)</Label>
+                  <Input type="number" className="h-9" min={0} max={100} value={adiantamentoPercentual} onChange={(e) => setAdiantamentoPercentual(e.target.value)} placeholder="0" />
+                </div>
               </div>
+
 
               <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
               <div className="grid grid-cols-4 gap-4">
