@@ -421,41 +421,6 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
               </div>
 
 
-              <h3 className="text-sm font-semibold text-muted-foreground pt-2">Condições de Pagamento</h3>
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <Label>Forma de Pagamento</Label>
-                  <Select value={formaPagamentoFrete} onValueChange={setFormaPagamentoFrete}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="ted">TED</SelectItem>
-                      <SelectItem value="boleto">Boleto</SelectItem>
-                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                      <SelectItem value="deposito">Depósito</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Prazo de Pagamento (dias)</Label>
-                  <Input value={prazoPagamento} onChange={(e) => setPrazoPagamento(e.target.value.replace(/\D/g, ""))} placeholder="Ex: 30" inputMode="numeric" />
-                </div>
-                <div>
-                  <Label>A partir de</Label>
-                  <Select value={prazoPagamentoReferencia} onValueChange={setPrazoPagamentoReferencia}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="emissao_cte">Emissão do CT-e</SelectItem>
-                      <SelectItem value="entrega">Entrega da carga</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Adiantamento (%)</Label>
-                  <Input type="number" min={0} max={100} value={adiantamentoPercentual} onChange={(e) => setAdiantamentoPercentual(e.target.value)} placeholder="0" />
-                </div>
-              </div>
               <div>
                 <Label>Observações do Pagamento</Label>
                 <Input
