@@ -3368,6 +3368,7 @@ export type Database = {
           valor_alimentacao_dia: number | null
           valor_frete: number | null
           valor_mensal_por_caminhao: number | null
+          valores_veiculos: Json
         }
         Insert: {
           adiantamento_percentual?: number | null
@@ -3402,6 +3403,7 @@ export type Database = {
           valor_alimentacao_dia?: number | null
           valor_frete?: number | null
           valor_mensal_por_caminhao?: number | null
+          valores_veiculos?: Json
         }
         Update: {
           adiantamento_percentual?: number | null
@@ -3436,6 +3438,7 @@ export type Database = {
           valor_alimentacao_dia?: number | null
           valor_frete?: number | null
           valor_mensal_por_caminhao?: number | null
+          valores_veiculos?: Json
         }
         Relationships: [
           {
