@@ -1,0 +1,1 @@
+ALTER TABLE public.quotations ADD COLUMN IF NOT EXISTS valores_veiculos jsonb NOT NULL DEFAULT '[]'::jsonb;
