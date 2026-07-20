@@ -5,13 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, UserPlus } from "lucide-react";
+import { Loader2, Sparkles, UserPlus, Plus, Trash2 } from "lucide-react";
 import { maskName, maskSentence, maskCurrency, unmaskCurrency, maskUf } from "@/lib/masks";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { CargaSearchInput } from "@/components/freight/CargaSearchInput";
+
+const VEHICLE_TYPES: { value: string; label: string }[] = [
+  { value: "toco", label: "Toco" },
+  { value: "truck", label: "Truck" },
+  { value: "bitruck", label: "Bitruck" },
+  { value: "carreta", label: "Carreta" },
+  { value: "carreta_ls", label: "Carreta LS" },
+  { value: "bitrem", label: "Bitrem" },
+  { value: "rodotrem", label: "Rodotrem" },
+  { value: "treminhao", label: "Treminhão" },
+  { value: "cacamba", label: "Caçamba" },
+  { value: "graneleiro", label: "Graneleiro" },
+];
+const VEHICLE_LABEL = (v: string) => VEHICLE_TYPES.find(x => x.value === v)?.label || v;
+
+interface ValorVeiculo {
+  vehicle_type: string;
+  valor: number;
+  tipo_valor: "total" | "por_tonelada";
+}
+
 
 interface Props {
   type: "frete" | "colheita";
