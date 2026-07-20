@@ -126,8 +126,17 @@ export function QuotationFormDialog({ type, open, onOpenChange, establishments, 
         setCargaId(editData.carga_id || null);
         setProduto(editData.produto || "");
         setPesoKg(editData.peso_kg != null ? String(editData.peso_kg) : "");
-        setValorFrete(editData.valor_frete != null ? String(editData.valor_frete) : "");
-        setTipoValorFrete(editData.tipo_valor_frete || "total");
+        {
+          const arr = Array.isArray(editData.valores_veiculos) ? editData.valores_veiculos : [];
+          if (arr.length > 0) {
+            setValoresVeiculos(arr);
+          } else if (editData.valor_frete != null) {
+            setValoresVeiculos([{ vehicle_type: "truck", valor: Number(editData.valor_frete), tipo_valor: (editData.tipo_valor_frete || "total") as any }]);
+          } else {
+            setValoresVeiculos([]);
+          }
+        }
+
         setCondicoesPagamento(editData.condicoes_pagamento || "");
         setFormaPagamentoFrete(editData.forma_pagamento_frete || "");
         setPrazoPagamento(editData.prazo_pagamento || "");
