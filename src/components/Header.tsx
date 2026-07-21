@@ -156,6 +156,7 @@ export function Header() {
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {user ? (
             <>
+              <FontSizeControl />
               <NotificationBell userId={user.id} />
               <UserAvatar userId={user.id} showName size="sm" />
               <Button
