@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
+import { FontSizeControl } from "@/components/FontSizeControl";
 
 export function Header() {
   const location = useLocation();
