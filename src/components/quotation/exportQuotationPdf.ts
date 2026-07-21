@@ -77,7 +77,9 @@ ${isFrete ? `
   <tr><td style="font-weight:600">Destino</td><td>${q.destino_cidade || ""}/${q.destino_uf || ""}</td></tr>
   <tr><td style="font-weight:600">Produto</td><td>${q.produto || "—"}</td></tr>
   <tr><td style="font-weight:600">Peso (kg)</td><td>${q.peso_kg ? Number(q.peso_kg).toLocaleString("pt-BR") : "—"}</td></tr>
-  <tr class="highlight"><td style="font-weight:600">Valor do Frete</td><td>${formatCurrency(q.valor_frete)}${q.tipo_valor_frete === "por_tonelada" ? " por tonelada" : " (frete total)"}</td></tr>
+  ${Array.isArray(q.valores_veiculos) && q.valores_veiculos.length > 0
+    ? `<tr class="highlight"><td style="font-weight:600;vertical-align:top">Valores por Tipo de Veículo</td><td><table style="width:100%;margin:0"><thead><tr><th style="background:#e8eef5;color:#2B4C7E;padding:4px 8px;text-align:left;font-size:10px">Veículo</th><th style="background:#e8eef5;color:#2B4C7E;padding:4px 8px;text-align:right;font-size:10px">Valor</th><th style="background:#e8eef5;color:#2B4C7E;padding:4px 8px;text-align:left;font-size:10px">Tipo</th></tr></thead><tbody>${q.valores_veiculos.map((v: any) => `<tr><td style="padding:4px 8px;text-transform:capitalize">${String(v.vehicle_type).replace("_"," ")}</td><td style="padding:4px 8px;text-align:right;font-weight:600">${formatCurrency(v.valor)}</td><td style="padding:4px 8px">${v.tipo_valor === "por_tonelada" ? "Por tonelada" : "Frete total"}</td></tr>`).join("")}</tbody></table></td></tr>`
+    : `<tr class="highlight"><td style="font-weight:600">Valor do Frete</td><td>${formatCurrency(q.valor_frete)}${q.tipo_valor_frete === "por_tonelada" ? " por tonelada" : " (frete total)"}</td></tr>`}
 </table>
 
 <h2>Condições de Pagamento</h2>

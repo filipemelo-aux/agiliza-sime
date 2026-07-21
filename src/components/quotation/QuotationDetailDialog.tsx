@@ -55,7 +55,21 @@ export function QuotationDetailDialog({ quotation: q, open, onOpenChange, establ
             <Row label="Destino" value={`${q.destino_cidade}/${q.destino_uf}`} />
             <Row label="Produto" value={q.produto} />
             <Row label="Peso (kg)" value={q.peso_kg?.toLocaleString("pt-BR")} />
-            <Row label="Valor do Frete" value={formatCurrency(q.valor_frete)} />
+            {Array.isArray(q.valores_veiculos) && q.valores_veiculos.length > 0 ? (
+              <div className="pt-2">
+                <div className="text-sm font-semibold mb-1">Valores por Tipo de Veículo</div>
+                <div className="space-y-1">
+                  {q.valores_veiculos.map((v: any, i: number) => (
+                    <div key={i} className="flex justify-between text-sm border-b border-border py-1">
+                      <span className="capitalize">{String(v.vehicle_type).replace("_", " ")}</span>
+                      <span className="font-medium">{formatCurrency(v.valor)} {v.tipo_valor === "por_tonelada" ? "/ ton" : "(total)"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Row label="Valor do Frete" value={formatCurrency(q.valor_frete)} />
+            )}
           </div>
         ) : (
           <div className="space-y-1.5">
