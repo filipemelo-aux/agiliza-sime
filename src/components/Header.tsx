@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
+import { FontSizeControl } from "@/components/FontSizeControl";
 
 export function Header() {
   const location = useLocation();
@@ -155,6 +156,7 @@ export function Header() {
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {user ? (
             <>
+              <FontSizeControl />
               <NotificationBell userId={user.id} />
               <UserAvatar userId={user.id} showName size="sm" />
               <Button
