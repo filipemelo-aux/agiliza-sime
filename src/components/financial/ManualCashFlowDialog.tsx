@@ -74,12 +74,30 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
     if (!planoContasId) { toast.error("Selecione o plano de contas — nenhum lançamento pode ser registrado sem classificação"); return; }
 
     setSaving(true);
+    const dataISO = format(data, "yyyy-MM-dd");
+
+    // Duplicate check: same date + value + tipo already exists in cash flow
+    const { data: dup } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id, descricao")
+      .eq("data_movimentacao", dataISO)
+      .eq("valor", valorNum)
+      .eq("tipo", tipo)
+      .limit(1);
+    if (dup && dup.length > 0) {
+      toast.error("Lançamento duplicado", {
+        description: `Já existe uma movimentação com mesma data e valor: "${(dup[0] as any).descricao}". Nenhum novo lançamento foi criado.`,
+      });
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("movimentacoes_bancarias").insert({
       tipo,
       origem: "manual",
       origem_id: crypto.randomUUID(),
       valor: valorNum,
-      data_movimentacao: format(data, "yyyy-MM-dd"),
+      data_movimentacao: dataISO,
       descricao: descricao.trim(),
       plano_contas_id: planoContasId,
     } as any);
