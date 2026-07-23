@@ -339,16 +339,50 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       };
     });
 
-    // Dedup apenas dentro da fatura atual (evita duplicar ao reimportar o mesmo OFX na mesma fatura)
-    const existing = new Set(items.map((p) => p.fitid).filter(Boolean));
-    const filtered = newRows.filter((r) => !r.fitid || !existing.has(r.fitid));
+    // Dedup 1: dentro da fatura atual (fitid ou data+valor)
+    const existingFitids = new Set(items.map((p) => p.fitid).filter(Boolean));
+    const existingKey = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
+    let filtered = newRows.filter((r) => {
+      if (r.fitid && existingFitids.has(r.fitid)) return false;
+      if (existingKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
+      return true;
+    });
+
+    // Dedup 2: contra outras faturas do mesmo cartão/banco no banco de dados (data + valor)
+    let skippedInDb = 0;
+    if (filtered.length > 0 && cardName.trim()) {
+      let invQ = supabase
+        .from("credit_card_invoices" as any)
+        .select("id")
+        .eq("card_name", cardName.trim())
+        .is("deleted_at", null);
+      if (bankPersonId) invQ = invQ.eq("bank_person_id", bankPersonId);
+      const { data: invs } = await invQ;
+      const invIds = ((invs as any[]) || []).map((i) => i.id).filter((x) => x !== invoiceId);
+      if (invIds.length > 0) {
+        const { data: dbItems } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .select("posted_date, amount")
+          .in("invoice_id", invIds);
+        const dbKey = new Set(
+          ((dbItems as any[]) || []).map((r) => `${r.posted_date}|${Number(r.amount).toFixed(2)}`)
+        );
+        const before = filtered.length;
+        filtered = filtered.filter((r) => !dbKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`));
+        skippedInDb = before - filtered.length;
+      }
+    }
+
     const merged = [...items, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
     setItems(merged);
     setOriginalItems(merged);
 
-    const skippedInDialog = newRows.length - filtered.length;
+    const skippedInDialog = newRows.length - filtered.length - skippedInDb;
     if (skippedInDialog > 0) {
       toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura e foram ignorados.`);
+    }
+    if (skippedInDb > 0) {
+      toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão (mesma data e valor) — ignorados.`);
     }
     toast.success(`${filtered.length} lançamento(s) importado(s).`);
     if (fileRef.current) fileRef.current.value = "";
