@@ -199,7 +199,14 @@ export function PayablesDataGrid() {
       if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
-      if (term && !(r.fornecedor.toLowerCase().includes(term) || r.descricao.toLowerCase().includes(term))) return false;
+      if (term) {
+        const t = term;
+        const matchFornecedor = r.fornecedor.toLowerCase().includes(t);
+        const matchRazao = r.razaoSocial.toLowerCase().includes(t);
+        const matchFantasia = r.nomeFantasia.toLowerCase().includes(t);
+        const matchDescricao = r.descricao.toLowerCase().includes(t);
+        if (!(matchFornecedor || matchRazao || matchFantasia || matchDescricao)) return false;
+      }
       if (excludedCategorias.has(r.categoria)) return false;
       return true;
     });
