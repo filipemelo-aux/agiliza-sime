@@ -900,6 +900,8 @@ export function FinancialPayables() {
       const matchSearch = !search ||
         i.descricao.toLowerCase().includes(q) ||
         (i.favorecido_nome || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().includes(q) ||
         (i.veiculo_placa || "").toLowerCase().includes(q) ||
         (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
         (i.chave_nfe || "").toLowerCase().includes(q) ||
