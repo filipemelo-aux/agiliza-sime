@@ -255,6 +255,9 @@ export function PayablesDataGrid() {
           {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           Gerar Relatório
         </Button>
+        <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" onClick={handlePrint} disabled={loading || sorted.length === 0}>
+          <Printer className="h-3 w-3" /> Imprimir
+        </Button>
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
