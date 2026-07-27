@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
