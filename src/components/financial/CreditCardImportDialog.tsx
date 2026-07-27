@@ -683,6 +683,19 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         createdCount++;
       }
 
+      // Verifica se já existe lançamento equivalente na fatura destino
+      // (mesmo valor + descrição base normalizada). Evita duplicação quando
+      // as parcelas já foram lançadas manualmente em faturas anteriores.
+      const { data: existingRows } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("id, description, amount, parcela_atual, parcela_total")
+        .eq("invoice_id", targetInvoice.id);
+      const baseNorm = normalizeDesc(baseDesc);
+      const amtStr = Number(item.amount).toFixed(2);
+      const existingMatch = ((existingRows as any[]) || []).find(
+        (r) => normalizeDesc(r.description || "") === baseNorm && Number(r.amount).toFixed(2) === amtStr,
+      );
+
       const itemPayload: any = {
         invoice_id: targetInvoice.id,
         posted_date: targetPosted,
@@ -699,8 +712,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_total: totalP,
         parcelas_expandidas: true,
       };
-      const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
-      if (itemErr) throw itemErr;
+
+      if (existingMatch) {
+        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original.
+        const { error: updExErr } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .update({
+            description: buildDescription(existingMatch.description || baseDesc, parcela, totalP),
+            parcela_atual: parcela,
+            parcela_total: totalP,
+            parcelas_expandidas: true,
+          })
+          .eq("id", existingMatch.id);
+        if (updExErr) throw updExErr;
+      } else {
+        const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
+        if (itemErr) throw itemErr;
+      }
 
       const { data: sumRows } = await supabase
         .from("credit_card_invoice_items" as any)
