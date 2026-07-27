@@ -485,7 +485,7 @@ tfoot{display:table-row-group}
           <span className="font-semibold">{filtered.length} registro(s)</span>
           <div className="flex items-center gap-2 text-muted-foreground">
             <span>Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
-            <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>
+            {!hideAberto && <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>}
             <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
             <span>Total: <span className="font-bold text-primary tabular-nums">{formatCurrency(totais.total)}</span></span>
           </div>
