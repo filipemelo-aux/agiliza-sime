@@ -794,42 +794,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // as parcelas já foram lançadas manualmente em faturas anteriores.
       const { data: existingRows } = await supabase
         .from("credit_card_invoice_items" as any)
-        .select("id, description, amount, parcela_atual, parcela_total")
+        .select("id, posted_date, description, amount, fitid, parcela_atual, parcela_total, parcelas_expandidas")
         .eq("invoice_id", targetInvoice.id);
-      const baseNorm = normalizeDesc(baseDesc);
-      const amtStr = Number(item.amount).toFixed(2);
-      const existingMatch = ((existingRows as any[]) || []).find(
-        (r) => normalizeDesc(r.description || "") === baseNorm && Number(r.amount).toFixed(2) === amtStr,
-      );
 
-      const itemPayload: any = {
-        invoice_id: targetInvoice.id,
+      const targetItem: ItemRow = {
+        fitid: "",
         posted_date: targetPosted,
         description: buildDescription(baseDesc, parcela, totalP),
         amount: item.amount,
-        fitid: null,
         plano_contas_id: item.plano_contas_id,
-        centro_custo: item.centro_custo || null,
+        centro_custo: item.centro_custo || "",
         favorecido_id: item.favorecido_id,
-        favorecido_nome: item.favorecido_nome?.trim() || null,
+        favorecido_nome: item.favorecido_nome?.trim() || "",
         veiculo_id: item.veiculo_id,
-        observacoes: item.observacoes?.trim() || null,
+        observacoes: item.observacoes?.trim() || "",
         parcela_atual: parcela,
         parcela_total: totalP,
         parcelas_expandidas: true,
       };
 
+      const existingItems: ItemRow[] = ((existingRows as any[]) || []).map((r) => ({
+        id: r.id,
+        fitid: r.fitid || "",
+        posted_date: r.posted_date,
+        description: r.description || "",
+        amount: Number(r.amount || 0),
+        plano_contas_id: null,
+        centro_custo: "",
+        favorecido_id: null,
+        favorecido_nome: "",
+        veiculo_id: null,
+        observacoes: "",
+        parcela_atual: r.parcela_atual ?? null,
+        parcela_total: r.parcela_total ?? null,
+        parcelas_expandidas: !!r.parcelas_expandidas,
+      }));
+      const existingMatch = findDuplicateItem(targetItem, existingItems);
+
+      const itemPayload: any = {
+        invoice_id: targetInvoice.id,
+        posted_date: targetItem.posted_date,
+        description: targetItem.description,
+        amount: targetItem.amount,
+        fitid: null,
+        plano_contas_id: targetItem.plano_contas_id,
+        centro_custo: targetItem.centro_custo || null,
+        favorecido_id: targetItem.favorecido_id,
+        favorecido_nome: targetItem.favorecido_nome || null,
+        veiculo_id: targetItem.veiculo_id,
+        observacoes: targetItem.observacoes || null,
+        parcela_atual: targetItem.parcela_atual,
+        parcela_total: targetItem.parcela_total,
+        parcelas_expandidas: targetItem.parcelas_expandidas,
+      };
+
       if (existingMatch) {
-        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original.
+        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original
+        // e seu valor original (inclusive se houver diferença de centavos).
         const { error: updExErr } = await supabase
           .from("credit_card_invoice_items" as any)
           .update({
-            description: buildDescription(existingMatch.description || baseDesc, parcela, totalP),
+            description: buildDescription(existingMatch.existing.description || baseDesc, parcela, totalP),
             parcela_atual: parcela,
             parcela_total: totalP,
             parcelas_expandidas: true,
           })
-          .eq("id", existingMatch.id);
+          .eq("id", existingMatch.existing.id);
         if (updExErr) throw updExErr;
       } else {
         const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
