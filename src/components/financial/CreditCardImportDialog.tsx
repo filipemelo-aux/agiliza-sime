@@ -559,6 +559,32 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
   }, [chartAccounts]);
 
+  const addManualItem = useCallback(() => {
+    const [y, m] = referenceYM.split("-").map(Number);
+    const today = new Date();
+    const defaultDate =
+      y && m && (today.getFullYear() !== y || today.getMonth() + 1 !== m)
+        ? `${y}-${String(m).padStart(2, "0")}-${String(Math.min(today.getDate(), 28)).padStart(2, "0")}`
+        : getLocalDateISO();
+    const newRow: ItemRow = {
+      fitid: `manual-${crypto.randomUUID()}`,
+      posted_date: defaultDate,
+      description: "",
+      amount: 0,
+      plano_contas_id: null,
+      centro_custo: "",
+      favorecido_id: null,
+      favorecido_nome: "",
+      veiculo_id: null,
+      observacoes: "",
+      parcela_atual: null,
+      parcela_total: null,
+      parcelas_expandidas: false,
+    };
+    setItems((prev) => [newRow, ...prev]);
+    toast.success("Lançamento manual adicionado — preencha os dados na primeira linha.");
+  }, [referenceYM]);
+
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
       const next = new Set(prev);
