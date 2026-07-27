@@ -233,12 +233,49 @@ export function PayablesDataGrid() {
     { v: "pago", label: "Pago" },
   ];
 
+  const handleExportXlsx = async () => {
+    if (!sorted.length) {
+      toast.warning("Nenhum registro para exportar");
+      return;
+    }
+    const XLSX = await import("xlsx");
+    const periodo = `${formatDateBR(dataInicio)} a ${formatDateBR(dataFim)}`;
+    const statusLbl = statusButtons.find((b) => b.v === status)?.label || "Todos";
+    const data = sorted.map((r) => ({
+      Status: `${statusLabel[r.status]}${r.status === "parcial" && r.vencido ? " • Vencido" : ""}`,
+      Vencimento: formatDateBR(r.dataVencimento),
+      Fornecedor: r.fornecedor,
+      Descrição: r.descricao,
+      Parcela: r.parcela,
+      Categoria: r.categoria,
+      Veículo: r.veiculo,
+      Valor: Number(r.valor) || 0,
+    }));
+    const totalsRow: any = { Status: "TOTAL", Vencimento: "", Fornecedor: "", Descrição: "", Parcela: "", Categoria: "", Veículo: "", Valor: Number(totais.total) || 0 };
+    const ws = XLSX.utils.json_to_sheet([]);
+    XLSX.utils.sheet_add_aoa(ws, [
+      ["Relatório de Contas a Pagar"],
+      [`Período: ${periodo}`],
+      [`Status: ${statusLbl}${veiculoQ ? ` • Placa: ${veiculoQ}` : ""}${search ? ` • Busca: ${search}` : ""}`],
+      [`Atrasado: ${formatCurrency(totais.atrasado)}${hideAberto ? "" : ` • Em aberto: ${formatCurrency(totais.aberto)}`} • Pago: ${formatCurrency(totais.pago)}`],
+      [],
+    ]);
+    XLSX.utils.sheet_add_json(ws, data, { origin: "A6" });
+    XLSX.utils.sheet_add_json(ws, [totalsRow], { origin: -1, skipHeader: true });
+    ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 40 }, { wch: 8 }, { wch: 28 }, { wch: 12 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contas a Pagar");
+    XLSX.writeFile(wb, `contas-a-pagar_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`);
+  };
+
   const handlePrint = () => {
     if (!sorted.length) {
       toast.warning("Nenhum registro para imprimir");
       return;
     }
+    (window as any).__exportPayablesXlsx = handleExportXlsx;
     const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
     const periodo = `${formatDateBR(dataInicio)} a ${formatDateBR(dataFim)}`;
     const statusLbl = statusButtons.find((b) => b.v === status)?.label || "Todos";
     const rowsHtml = sorted.map((r) => `
