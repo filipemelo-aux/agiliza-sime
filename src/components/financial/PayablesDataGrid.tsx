@@ -273,7 +273,6 @@ export function PayablesDataGrid() {
       toast.warning("Nenhum registro para imprimir");
       return;
     }
-    (window as any).__exportPayablesXlsx = handleExportXlsx;
     const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
     const periodo = `${formatDateBR(dataInicio)} a ${formatDateBR(dataFim)}`;
@@ -290,41 +289,68 @@ export function PayablesDataGrid() {
         <td class="r ${(r.status === "atrasado" || (r.status === "parcial" && r.vencido)) ? "neg" : ""}">${esc(formatCurrency(r.valor))}</td>
       </tr>`).join("");
 
+    // Payload para exportação Excel dentro do próprio popup (independente do opener)
+    const xlsxPayload = {
+      fileName: `contas-a-pagar_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`,
+      header: [
+        ["Relatório de Contas a Pagar"],
+        [`Período: ${periodo}`],
+        [`Status: ${statusLbl}${veiculoQ ? ` • Placa: ${veiculoQ}` : ""}${search ? ` • Busca: ${search}` : ""}`],
+        [`Atrasado: ${formatCurrency(totais.atrasado)}${hideAberto ? "" : ` • Em aberto: ${formatCurrency(totais.aberto)}`} • Pago: ${formatCurrency(totais.pago)}`],
+        [],
+      ],
+      rows: sorted.map((r) => ({
+        Status: `${statusLabel[r.status]}${r.status === "parcial" && r.vencido ? " • Vencido" : ""}`,
+        Vencimento: formatDateBR(r.dataVencimento),
+        Fornecedor: r.fornecedor,
+        Descricao: r.descricao,
+        Parcela: r.parcela,
+        Categoria: r.categoria,
+        Veiculo: r.veiculo,
+        Valor: Number(r.valor) || 0,
+      })),
+      total: Number(totais.total) || 0,
+      cols: [14, 12, 28, 40, 8, 28, 12, 14],
+    };
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Contas a Pagar</title>
 <style>
 *{box-sizing:border-box}
-@page { margin: 8mm 6mm; size: A4 landscape; orientation: landscape; }
+@page { margin: 6mm 5mm; size: A4 landscape; }
 html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
 .toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
-.wrap{padding:4px 6px;background:#fff}
-.head{display:flex;align-items:center;gap:10px;padding:4px 2px 6px;border-bottom:1.5px solid #2B4C7E;margin-bottom:6px}
-.head img{height:32px}
+.wrap{padding:4px;background:#fff;width:100%;max-width:100%}
+.head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
+.head img{height:28px}
 .head h1{margin:0;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
-.head .per{font-size:9px;color:#666;text-align:right;margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:9px;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
-thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.2px;padding:4px 5px;border:1px solid #d0d7de;text-align:left}
-tbody td{padding:3px 5px;border:1px solid #e5e7eb;font-size:9px;line-height:1.25;word-wrap:break-word;overflow-wrap:break-word}
+.head .per{font-size:8.5px;color:#666;text-align:right;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
+thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word}
+tbody td{padding:2px 4px;border:1px solid #e5e7eb;font-size:8.5px;line-height:1.2;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
 tbody tr:nth-child(even) td{background:#fafbfc}
-.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
 .c{text-align:center}
-.nowrap{white-space:nowrap}
+.nowrap{white-space:nowrap;overflow-wrap:normal}
 .neg{color:#b91c1c;font-weight:700}
 tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
 tr{page-break-inside:avoid}
 thead{display:table-header-group}
 tfoot{display:table-row-group}
-.foot{margin-top:6px;display:flex;justify-content:space-between;font-size:8px;color:#6b7280}
-.filters{font-size:8.5px;color:#555;margin-bottom:4px}
-.totals-labels{padding:6px 10px}
-.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:20px;flex-wrap:wrap}
-.total-item{font-size:9px;color:#4b5563}
-.total-item b{font-size:10px;color:#1f2937;font-weight:800}
-.grand-total{font-size:11px;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:6px 8px}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7.5px;color:#6b7280}
+.filters{font-size:8px;color:#555;margin-bottom:3px}
+.totals-labels{padding:5px 8px}
+.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:16px;flex-wrap:wrap}
+.total-item{font-size:8.5px;color:#4b5563}
+.total-item b{font-size:9.5px;color:#1f2937;font-weight:800}
+.grand-total{font-size:10.5px;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:5px 6px;text-align:right;white-space:nowrap}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
-<div class="toolbar no-print"><button onclick="try{window.opener&&window.opener.__exportPayablesXlsx&&window.opener.__exportPayablesXlsx()}catch(e){alert('Falha ao exportar: '+e)}" style="background:#1f7a4d">Exportar Excel</button><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+<div class="toolbar no-print">
+  <button id="btn-xlsx" style="background:#1f7a4d">Exportar Excel</button>
+  <button onclick="window.print()">Imprimir / Salvar PDF</button>
+</div>
 <div class="wrap">
   <div class="head">
     <img src="${window.location.origin}/logo.png" alt="" onerror="this.style.display='none'" />
@@ -335,14 +361,14 @@ tfoot{display:table-row-group}
   </div>
   <table>
     <colgroup>
-      <col style="width:8%" />
+      <col style="width:9%" />
       <col style="width:7%" />
       <col style="width:18%" />
-      <col style="width:24%" />
+      <col style="width:26%" />
       <col style="width:5%" />
-      <col style="width:16%" />
-      <col style="width:7%" />
-      <col style="width:9%" />
+      <col style="width:17%" />
+      <col style="width:8%" />
+      <col style="width:10%" />
     </colgroup>
     <thead><tr>
       <th>Status</th><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th>
@@ -359,27 +385,57 @@ tfoot{display:table-row-group}
             <span class="total-item total"><b>TOTAL</b></span>
           </div>
         </td>
-        <td class="r grand-total">${esc(formatCurrency(totais.total))}</td>
+        <td class="grand-total">${esc(formatCurrency(totais.total))}</td>
       </tr>
     </tfoot>
   </table>
   <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
 </div>
+<script id="xlsx-payload" type="application/json">${JSON.stringify(xlsxPayload).replace(/</g, "\\u003c")}</script>
 <script>
-  window.addEventListener('load', function () {
-    requestAnimationFrame(function () {
+  (function(){
+    var btn = document.getElementById('btn-xlsx');
+    function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){rej(new Error('fail '+src));}; document.head.appendChild(s); }); }
+    async function ensureXLSX(){
+      if (window.XLSX) return window.XLSX;
+      try { await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); }
+      catch(e){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
+      return window.XLSX;
+    }
+    btn.addEventListener('click', async function(){
+      try {
+        btn.disabled = true; btn.textContent = 'Gerando...';
+        var payload = JSON.parse(document.getElementById('xlsx-payload').textContent);
+        var XLSX = await ensureXLSX();
+        if (!XLSX) throw new Error('Biblioteca XLSX indisponível');
+        var ws = XLSX.utils.aoa_to_sheet(payload.header);
+        XLSX.utils.sheet_add_json(ws, payload.rows, { origin: 'A6' });
+        var totalRow = { Status: 'TOTAL', Vencimento: '', Fornecedor: '', Descricao: '', Parcela: '', Categoria: '', Veiculo: '', Valor: payload.total };
+        XLSX.utils.sheet_add_json(ws, [totalRow], { origin: -1, skipHeader: true });
+        ws['!cols'] = payload.cols.map(function(w){ return { wch: w }; });
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Contas a Pagar');
+        XLSX.writeFile(wb, payload.fileName);
+        btn.textContent = 'Exportar Excel'; btn.disabled = false;
+      } catch(e){
+        alert('Falha ao exportar Excel: ' + (e && e.message ? e.message : e));
+        btn.textContent = 'Exportar Excel'; btn.disabled = false;
+      }
+    });
+    window.addEventListener('load', function () {
       requestAnimationFrame(function () {
-        setTimeout(function () { window.focus(); window.print(); }, 250);
+        requestAnimationFrame(function () {
+          setTimeout(function () { window.focus(); window.print(); }, 400);
+        });
       });
     });
-  });
+  })();
 </script>
 </body></html>`;
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    // Abre em proporção A4 paisagem (~1123x794 @ 96dpi) para o browser respeitar a orientação landscape
-    const w = window.open(url, "_blank", "width=1123,height=794,menubar=no,toolbar=no,location=no,status=no");
+    const w = window.open(url, "_blank", "width=1200,height=820,menubar=no,toolbar=no,location=no,status=no");
     if (!w) {
       URL.revokeObjectURL(url);
       toast.error("Libere pop-ups para gerar a impressão");
