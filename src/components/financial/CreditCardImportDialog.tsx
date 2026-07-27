@@ -75,7 +75,13 @@ const CENTRO_CUSTO_OPTIONS = [
   { value: "operacional", label: "Operacional" },
 ];
 
-interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; centro_custo_default?: string | null; }
+
+const stripParcelaSuffix = (desc: string) =>
+  (desc || "").replace(/\s*[-–]?\s*\(?\d{1,2}\s*\/\s*\d{1,2}\)?\s*$/, "").trim();
+
+const normalizeDesc = (desc: string) =>
+  stripParcelaSuffix(desc).toLowerCase().replace(/\s+/g, " ").trim();
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
