@@ -1499,6 +1499,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableHead style={{ width: 80 }} className="px-1 text-right text-[11px]">
                         <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
                       </TableHead>
+                      <TableHead className="px-1 text-[11px] w-[22%]">
+                        Conferência
+                      </TableHead>
                       <TableHead style={{ width: 180 }} className="px-1 text-[11px]">
                         <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
                       </TableHead>
@@ -1509,6 +1512,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         <SortHeader label="Veículo" sortKey="veiculo" sort={sort} toggle={toggle} />
                       </TableHead>
                       <TableHead style={{ width: 32 }} className="px-1"></TableHead>
+
                     </TableRow>
                   </TableHeader>
 
