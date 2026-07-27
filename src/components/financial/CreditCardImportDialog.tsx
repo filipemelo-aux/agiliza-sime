@@ -209,7 +209,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     supabase
       .from("chart_of_accounts")
-      .select("id, codigo, nome, tipo, conta_pai_id")
+      .select("id, codigo, nome, tipo, conta_pai_id, centro_custo_default")
       .eq("ativo", true)
       .eq("tipo", "despesa")
       .order("codigo")
