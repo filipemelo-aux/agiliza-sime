@@ -24,6 +24,8 @@ interface Row {
   status: "atrasado" | "pendente" | "parcial" | "pago";
   dataVencimento: string;
   fornecedor: string;
+  razaoSocial: string;
+  nomeFantasia: string;
   descricao: string;
   parcela: string;
   categoria: string;
@@ -67,6 +69,11 @@ export function PayablesDataGrid() {
       const { data: expenses, error } = await q.limit(10000);
       if (error) throw error;
       const expIds = (expenses || []).map((e: any) => e.id);
+      const profileIds = [...new Set((expenses || []).map((e: any) => e.favorecido_id as string).filter(Boolean))] as string[];
+      const profilesRes = profileIds.length
+        ? await supabase.from("profiles").select("id, full_name, razao_social, nome_fantasia").in("id", profileIds)
+        : { data: [] as any[] };
+      const profileById = new Map((profilesRes.data || []).map((p: any) => [p.id, p]));
 
       const [instRes, payRes, contractRes] = await Promise.all([
         expIds.length
@@ -107,7 +114,11 @@ export function PayablesDataGrid() {
         const categoria = e.plano_contas_id ? (chartMap.get(e.plano_contas_id) as string) || "—" : "—";
         const veiculo = e.veiculo_placa || "—";
         const descricao = contractDescByExp[e.id] || e.descricao || "—";
-        const fornecedor = e.favorecido_nome || "—";
+        const profile = e.favorecido_id ? profileById.get(e.favorecido_id) : null;
+        const razaoSocial = profile?.razao_social || e.favorecido_nome || "—";
+        const nomeFantasia = profile?.nome_fantasia || "";
+        // Preferência: nome fantasia > razão social > favorecido_nome
+        const fornecedor = nomeFantasia || razaoSocial;
         const installs = installmentsByExp[e.id] || [];
 
         if (installs.length > 0) {
@@ -129,6 +140,8 @@ export function PayablesDataGrid() {
               vencido: !isPago && !!dv && dv < today,
               dataVencimento: dv,
               fornecedor,
+              razaoSocial,
+              nomeFantasia,
               descricao,
               parcela: `${inst.numero_parcela}/${installs.length}`,
               categoria,
@@ -154,6 +167,8 @@ export function PayablesDataGrid() {
             vencido: !isPago && !!dv && dv < today,
             dataVencimento: dv,
             fornecedor,
+            razaoSocial,
+            nomeFantasia,
             descricao,
             parcela: "—",
             categoria,
@@ -184,7 +199,14 @@ export function PayablesDataGrid() {
       if (status === "aberto" && !(r.status === "pendente" || r.status === "parcial")) return false;
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
-      if (term && !(r.fornecedor.toLowerCase().includes(term) || r.descricao.toLowerCase().includes(term))) return false;
+      if (term) {
+        const t = term;
+        const matchFornecedor = r.fornecedor.toLowerCase().includes(t);
+        const matchRazao = r.razaoSocial.toLowerCase().includes(t);
+        const matchFantasia = r.nomeFantasia.toLowerCase().includes(t);
+        const matchDescricao = r.descricao.toLowerCase().includes(t);
+        if (!(matchFornecedor || matchRazao || matchFantasia || matchDescricao)) return false;
+      }
       if (excludedCategorias.has(r.categoria)) return false;
       return true;
     });
@@ -281,7 +303,7 @@ export function PayablesDataGrid() {
       <tr>
         <td>${esc(statusLabel[r.status])}${r.status === "parcial" && r.vencido ? " • Vencido" : ""}</td>
         <td class="nowrap">${esc(formatDateBR(r.dataVencimento))}</td>
-        <td>${esc(r.fornecedor)}</td>
+        <td title="${esc(r.fornecedor)}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${esc(r.razaoSocial)}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${esc(r.nomeFantasia)}` : ""}">${esc(r.fornecedor)}</td>
         <td>${esc(r.descricao)}</td>
         <td class="c">${esc(r.parcela)}</td>
         <td>${esc(r.categoria)}</td>
@@ -459,7 +481,7 @@ tfoot{display:table-row-group}
         <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Razão social, nome fantasia ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
         <Popover>
           <PopoverTrigger asChild>
@@ -560,7 +582,7 @@ tfoot{display:table-row-group}
                   <td className={cn("px-1 py-0 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-1 py-0 truncate" title={r.fornecedor}>{r.fornecedor}</td>
+                  <td className="px-1 py-0 truncate" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{r.fornecedor}</td>
                   <td className="px-1 py-0 truncate" title={r.descricao}>
                     {r.descricao}
                     {r.status === "parcial" && r.vencido && (
