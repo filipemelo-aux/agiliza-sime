@@ -944,7 +944,7 @@ export function FinancialPayables() {
       }
       return dateA.localeCompare(dateB);
     });
-  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
+  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
