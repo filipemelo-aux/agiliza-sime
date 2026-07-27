@@ -380,6 +380,20 @@ export function FinancialPayables() {
       setProfilesMap(pMap);
     }
 
+    // Fetch razão social / nome fantasia dos favorecidos (para busca)
+    const favIds = [...new Set(allItems.map(e => e.favorecido_id).filter(Boolean))] as string[];
+    if (favIds.length > 0) {
+      const { data: favProfiles } = await supabase
+        .from("profiles")
+        .select("id, razao_social, nome_fantasia")
+        .in("id", favIds);
+      const fMap: Record<string, { razao: string; fantasia: string }> = {};
+      (favProfiles || []).forEach((p: any) => {
+        fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
+      });
+      setFavorecidoMap(fMap);
+    }
+
     setLoading(false);
   };
 
