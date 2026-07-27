@@ -83,6 +83,74 @@ const stripParcelaSuffix = (desc: string) =>
 const normalizeDesc = (desc: string) =>
   stripParcelaSuffix(desc).toLowerCase().replace(/\s+/g, " ").trim();
 
+const DUPLICATE_AMOUNT_TOLERANCE = 1;
+
+const normalizeInstallmentText = (desc: string) =>
+  (desc || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\bparc(?:ela)?\.?\s*\d{1,2}\s*(?:\/|de)\s*\d{1,2}\b/g, " ")
+    .replace(/\(?\b\d{1,2}\s*\/\s*\d{1,2}\b\)?/g, " ")
+    .replace(/\([^)]*\d{3,}[^)]*\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getItemParcelaInfo = (item: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">) => ({
+  atual: Number(item.parcela_atual || parseParcelaFromDescription(item.description || "")?.atual || 0),
+  total: Number(item.parcela_total || parseParcelaFromDescription(item.description || "")?.total || 0),
+});
+
+const cents = (value: number) => Math.round(Number(value || 0) * 100);
+
+const amountDiff = (a: number, b: number) => Math.abs(Number(a || 0) - Number(b || 0));
+
+const amountsEqual = (a: number, b: number) => cents(a) === cents(b);
+
+const amountsClose = (a: number, b: number) => amountDiff(a, b) <= DUPLICATE_AMOUNT_TOLERANCE;
+
+const isSameInstallment = (a: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">, b: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">) => {
+  const ai = getItemParcelaInfo(a);
+  const bi = getItemParcelaInfo(b);
+  return ai.atual > 0 && ai.total > 0 && ai.atual === bi.atual && ai.total === bi.total;
+};
+
+const findDuplicateItem = (candidate: ItemRow, pool: ItemRow[]) => {
+  const candidateNorm = normalizeInstallmentText(candidate.description);
+  const scored = pool
+    .map((existing, index) => {
+      const existingNorm = normalizeInstallmentText(existing.description);
+      const sameFitid = !!candidate.fitid && !!existing.fitid && candidate.fitid === existing.fitid;
+      const sameDate = candidate.posted_date === existing.posted_date;
+      const sameNorm = !!candidateNorm && candidateNorm === existingNorm;
+      const sameInstallment = isSameInstallment(candidate, existing);
+      const exactAmount = amountsEqual(candidate.amount, existing.amount);
+      const closeAmount = amountsClose(candidate.amount, existing.amount);
+
+      if (sameFitid) return { existing, index, reason: "fitid" as const, diff: 0, score: 0 };
+      if (sameDate && exactAmount) return { existing, index, reason: "data_valor" as const, diff: 0, score: 1 };
+      if (sameNorm && exactAmount) return { existing, index, reason: "descricao_valor" as const, diff: 0, score: sameInstallment ? 2 : 3 };
+      if (sameNorm && closeAmount && (sameInstallment || sameDate)) {
+        return { existing, index, reason: "descricao_valor_aproximado" as const, diff: amountDiff(candidate.amount, existing.amount), score: sameInstallment ? 4 : 5 };
+      }
+      return null;
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x)
+    .sort((a, b) => a.score - b.score || a.diff - b.diff);
+
+  return scored[0] || null;
+};
+
+const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> => {
+  const info = getItemParcelaInfo(source);
+  if (!info.atual || !info.total) return {};
+  const patch: Partial<ItemRow> = {};
+  if (!target.parcela_atual || target.parcela_atual !== info.atual) patch.parcela_atual = info.atual;
+  if (!target.parcela_total || target.parcela_total !== info.total) patch.parcela_total = info.total;
+  return patch;
+};
+
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
   fitid: string;
