@@ -1922,6 +1922,47 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         {formatCurrency(item.amount)}
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle">
+        {item.possible_duplicate ? (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-1.5">
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-600 shrink-0" />
+              <div className="min-w-0 space-y-1">
+                <div className="text-[10px] text-amber-800 dark:text-amber-200 leading-tight">
+                  {item.duplicate_note}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px] border-amber-300 hover:bg-amber-100 text-amber-900"
+                    disabled={isClosed}
+                    onClick={() => onRemove(idx)}
+                    title="Remover este lançamento importado (já existe outro igual)"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Excluir
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px] border-amber-300 hover:bg-amber-100 text-amber-900"
+                    disabled={isClosed}
+                    onClick={() => onUpdate(idx, { possible_duplicate: false, duplicate_note: undefined })}
+                    title="Manter este lançamento (não é duplicidade)"
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Manter
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="px-1 py-1.5 align-middle">
+
         <PlanoContasCombobox
           value={item.plano_contas_id}
           onChange={(v) => onUpdate(idx, { plano_contas_id: v })}
