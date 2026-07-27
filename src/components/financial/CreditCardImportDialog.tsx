@@ -625,6 +625,116 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setSelectedIdxs(new Set());
   }, []);
 
+  const removeSelected = useCallback(async () => {
+    if (selectedIdxs.size === 0) return;
+    const ok = await confirm({
+      title: "Remover selecionados?",
+      description: `${selectedIdxs.size} lançamento(s) serão removidos da fatura. Você poderá salvar depois para efetivar.`,
+      confirmLabel: "Remover",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
+    setOriginalItems((prev) => prev.filter((_, i) => !selectedIdxs.has(i)));
+    setSelectedIdxs(new Set());
+    toast.success("Lançamentos removidos.");
+  }, [selectedIdxs, confirm]);
+
+  // Reconciliação com valor real da fatura: encontra um subconjunto cuja soma
+  // equivale à diferença entre o total atual e o valor informado, e o seleciona
+  // para que o usuário revise e decida excluir.
+  const [reconcileTarget, setReconcileTarget] = useState<string>("");
+  const suggestRemovalsForTarget = useCallback(() => {
+    const target = Number(String(reconcileTarget).replace(/\./g, "").replace(",", "."));
+    if (!Number.isFinite(target) || target <= 0) {
+      toast.error("Informe o valor real da fatura (ex.: 33971,38).");
+      return;
+    }
+    const currentTotal = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const diffCents = Math.round((currentTotal - target) * 100);
+    if (diffCents === 0) {
+      toast.success("Total já bate com o valor informado. Nada a remover.");
+      return;
+    }
+    if (diffCents < 0) {
+      toast.error(`Total atual (${formatCurrency(currentTotal)}) é MENOR que o valor informado. Faltam lançamentos, não sobram.`);
+      return;
+    }
+    // Subset-sum sobre valores em centavos (ignora créditos/valores <=0)
+    const candidates = items
+      .map((it, i) => ({ idx: i, cents: Math.round(Number(it.amount || 0) * 100) }))
+      .filter((c) => c.cents > 0 && c.cents <= diffCents);
+    if (candidates.length === 0) {
+      toast.error("Nenhum lançamento compatível com a diferença.");
+      return;
+    }
+    // Tolerância de 1 centavo (arredondamento)
+    const TOL = 1;
+    // DP com backtracking (limitado por diffCents)
+    const N = candidates.length;
+    const cap = diffCents;
+    // Para performance, se cap grande, cai em busca gulosa.
+    let solution: number[] | null = null;
+    if (cap * N <= 4_000_000) {
+      const dp: Uint8Array[] = [new Uint8Array(cap + 1)];
+      dp[0][0] = 1;
+      for (let i = 0; i < N; i++) {
+        const prev = dp[i];
+        const next = new Uint8Array(cap + 1);
+        const c = candidates[i].cents;
+        for (let s = 0; s <= cap; s++) {
+          if (prev[s]) {
+            next[s] = 1;
+            if (s + c <= cap) next[s + c] = 1;
+          }
+        }
+        dp.push(next);
+      }
+      // Encontra soma alvo mais próxima
+      let best = -1;
+      for (let s = cap; s >= Math.max(0, cap - TOL); s--) if (dp[N][s]) { best = s; break; }
+      if (best < 0) for (let s = cap; s >= 0; s--) if (dp[N][s]) { best = s; break; }
+      if (best >= 0) {
+        solution = [];
+        let s = best;
+        for (let i = N; i >= 1; i--) {
+          if (!dp[i - 1][s] && dp[i][s]) {
+            solution.push(candidates[i - 1].idx);
+            s -= candidates[i - 1].cents;
+          }
+        }
+      }
+    }
+    if (!solution) {
+      // Guloso: ordena decrescente e vai somando enquanto não estoura
+      const sorted = [...candidates].sort((a, b) => b.cents - a.cents);
+      let remaining = cap;
+      const picked: number[] = [];
+      for (const c of sorted) {
+        if (c.cents <= remaining + TOL) {
+          picked.push(c.idx);
+          remaining -= c.cents;
+          if (remaining <= TOL) break;
+        }
+      }
+      solution = picked;
+    }
+    if (!solution || solution.length === 0) {
+      toast.error("Não foi possível encontrar uma combinação de lançamentos para a diferença.");
+      return;
+    }
+    const pickedSum = solution.reduce((s, i) => s + Number(items[i].amount || 0), 0);
+    setSelectedIdxs(new Set(solution));
+    const diffLeft = Math.abs(currentTotal - pickedSum - target);
+    toast.success(
+      `${solution.length} lançamento(s) selecionados (${formatCurrency(pickedSum)}). ` +
+      (diffLeft <= 0.01
+        ? "Bate exatamente com a diferença. Revise e clique em Excluir selecionados."
+        : `Restariam ${formatCurrency(diffLeft)} de diferença. Revise e ajuste manualmente se necessário.`),
+      { duration: 6000 }
+    );
+  }, [reconcileTarget, items]);
+
   // ============ EXPANSÃO DE PARCELAS ============
   const shiftYM = (ym: string, offset: number) => {
     const [y, m] = ym.split("-").map(Number);
@@ -1391,8 +1501,40 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             >
               <Download className="w-3 h-3" /> Exportar CSV
             </Button>
-            <div className="text-[11px] text-muted-foreground">
-              Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 border rounded-md px-2 py-1 bg-muted/40">
+                <span className="text-[10px] uppercase text-muted-foreground">Valor real da fatura</span>
+                <Input
+                  value={reconcileTarget}
+                  onChange={(e) => setReconcileTarget(e.target.value)}
+                  placeholder="33.971,38"
+                  className="h-7 w-28 text-xs px-2"
+                  inputMode="decimal"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] px-2"
+                  onClick={suggestRemovalsForTarget}
+                  title="Seleciona lançamentos cuja soma equivale à diferença entre o total atual e o valor informado"
+                >
+                  <Search className="w-3 h-3 mr-1" /> Sugerir remoções
+                </Button>
+                {reconcileTarget && (() => {
+                  const t = Number(String(reconcileTarget).replace(/\./g, "").replace(",", "."));
+                  if (!Number.isFinite(t) || t <= 0) return null;
+                  const diff = total - t;
+                  return (
+                    <span className={cn("text-[10px] tabular-nums", Math.abs(diff) < 0.01 ? "text-success" : "text-warning")}>
+                      Δ {formatCurrency(diff)}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
+              </div>
             </div>
           </div>
 
@@ -1457,6 +1599,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       title="Gerar parcelas anteriores e posteriores para todos os lançamentos selecionados"
                     >
                       <Layers className="w-3 h-3 mr-1" /> Gerar parcelas em lote
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-destructive hover:text-destructive border-destructive/40"
+                      disabled={isClosed}
+                      onClick={removeSelected}
+                      title="Excluir todos os lançamentos selecionados"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Excluir selecionados
                     </Button>
                     <Button
                       type="button"
