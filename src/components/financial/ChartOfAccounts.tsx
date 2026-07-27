@@ -147,6 +147,7 @@ export function ChartOfAccounts() {
   const [contaPaiId, setContaPaiId] = useState<string | null>(null);
   const [ativo, setAtivo] = useState(true);
   const [tipoOperacional, setTipoOperacional] = useState("");
+  const [centroCustoDefault, setCentroCustoDefault] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
 
