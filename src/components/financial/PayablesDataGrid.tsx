@@ -185,9 +185,14 @@ export function PayablesDataGrid() {
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
       if (term && !(r.fornecedor.toLowerCase().includes(term) || r.descricao.toLowerCase().includes(term))) return false;
+      if (excludedCategorias.has(r.categoria)) return false;
       return true;
     });
-  }, [rows, status, veiculoQ, search]);
+  }, [rows, status, veiculoQ, search, excludedCategorias]);
+
+  const categoriasDisponiveis = useMemo(() => {
+    return Array.from(new Set(rows.map((r) => r.categoria))).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
 
   const { sort, toggle, sorted } = useSortableTable<Row, "status" | "dataVencimento" | "fornecedor" | "descricao" | "parcela" | "categoria" | "veiculo" | "valor">(
     filtered,
