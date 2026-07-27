@@ -481,7 +481,7 @@ tfoot{display:table-row-group}
         <Input value={veiculoQ} onChange={(e) => setVeiculoQ(e.target.value)} placeholder="Placa" className="h-7 text-xs w-[90px] px-1.5" />
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Razão social, nome fantasia ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
         <Popover>
           <PopoverTrigger asChild>
@@ -582,7 +582,7 @@ tfoot{display:table-row-group}
                   <td className={cn("px-1 py-0 whitespace-nowrap tabular-nums", (r.status === "atrasado" || (r.status === "parcial" && r.vencido)) && "text-red-600 font-semibold")}>
                     {formatDateBR(r.dataVencimento)}
                   </td>
-                  <td className="px-1 py-0 truncate" title={r.fornecedor}>{r.fornecedor}</td>
+                  <td className="px-1 py-0 truncate" title={`${r.fornecedor}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${r.razaoSocial}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${r.nomeFantasia}` : ""}`}>{r.fornecedor}</td>
                   <td className="px-1 py-0 truncate" title={r.descricao}>
                     {r.descricao}
                     {r.status === "parcial" && r.vencido && (
