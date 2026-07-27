@@ -416,22 +416,37 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
     const parcelasDetected = newRows.filter((r) => r.parcela_total).length;
 
-    // Dedup 1: dentro da fatura atual — fitid, data+valor, OU descrição base + valor
-    const existingFitids = new Set(items.map((p) => p.fitid).filter(Boolean));
-    const existingDateAmount = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
-    const existingDescAmount = new Set(items.map((p) => `${normalizeDesc(p.description)}|${Number(p.amount).toFixed(2)}`));
-    let skippedDescMatch = 0;
-    let filtered = newRows.filter((r) => {
-      if (r.fitid && existingFitids.has(r.fitid)) return false;
-      if (existingDateAmount.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
-      if (existingDescAmount.has(`${normalizeDesc(r.description)}|${Number(r.amount).toFixed(2)}`)) {
-        skippedDescMatch++;
-        return false;
-      }
-      return true;
-    });
+    // Dedup 1: dentro da fatura atual — mantém lançamentos já trabalhados e só completa parcela quando necessário.
+    const nextExisting = [...items];
+    const filtered: ItemRow[] = [];
+    let skippedFitid = 0;
+    let skippedDateAmount = 0;
+    let skippedDescAmount = 0;
+    let skippedApproxAmount = 0;
+    let parcelaMetadataUpdated = 0;
 
-    // Dedup 2: contra outras faturas do mesmo cartão/banco no banco de dados (data + valor)
+    for (const row of newRows) {
+      const duplicate = findDuplicateItem(row, nextExisting);
+      if (!duplicate) {
+        nextExisting.push(row);
+        filtered.push(row);
+        continue;
+      }
+
+      if (duplicate.reason === "fitid") skippedFitid++;
+      else if (duplicate.reason === "data_valor") skippedDateAmount++;
+      else if (duplicate.reason === "descricao_valor") skippedDescAmount++;
+      else skippedApproxAmount++;
+
+      const patch = buildParcelaPatch(row, duplicate.existing);
+      if (Object.keys(patch).length > 0) {
+        nextExisting[duplicate.index] = { ...duplicate.existing, ...patch };
+        parcelaMetadataUpdated++;
+      }
+    }
+
+    // Dedup 2: contra outras faturas do mesmo cartão/banco no banco de dados.
+    // Continua evitando duplicidade por data+valor e também reconhece parcelas com centavos divergentes.
     let skippedInDb = 0;
     if (filtered.length > 0 && cardName.trim()) {
       let invQ = supabase
@@ -445,30 +460,49 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (invIds.length > 0) {
         const { data: dbItems } = await supabase
           .from("credit_card_invoice_items" as any)
-          .select("posted_date, amount")
+          .select("posted_date, amount, description, fitid, parcela_atual, parcela_total, parcelas_expandidas")
           .in("invoice_id", invIds);
-        const dbKey = new Set(
-          ((dbItems as any[]) || []).map((r) => `${r.posted_date}|${Number(r.amount).toFixed(2)}`)
-        );
+        const dbRows: ItemRow[] = ((dbItems as any[]) || []).map((r) => ({
+          fitid: r.fitid || "",
+          posted_date: r.posted_date,
+          description: r.description || "",
+          amount: Number(r.amount || 0),
+          plano_contas_id: null,
+          centro_custo: "",
+          favorecido_id: null,
+          favorecido_nome: "",
+          veiculo_id: null,
+          observacoes: "",
+          parcela_atual: r.parcela_atual ?? null,
+          parcela_total: r.parcela_total ?? null,
+          parcelas_expandidas: !!r.parcelas_expandidas,
+        }));
         const before = filtered.length;
-        filtered = filtered.filter((r) => !dbKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`));
+        const onlyNotInDb = filtered.filter((r) => !findDuplicateItem(r, dbRows));
+        filtered.splice(0, filtered.length, ...onlyNotInDb);
         skippedInDb = before - filtered.length;
       }
     }
 
-    const merged = [...items, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
+    const merged = nextExisting.sort((a, b) => a.posted_date.localeCompare(b.posted_date));
     setItems(merged);
     setOriginalItems(merged);
 
-    const skippedInDialog = newRows.length - filtered.length - skippedInDb - skippedDescMatch;
+    const skippedInDialog = skippedFitid + skippedDateAmount;
     if (skippedInDialog > 0) {
-      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram ignorados.`);
+      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram mantidos.`);
     }
-    if (skippedDescMatch > 0) {
-      toast.warning(`${skippedDescMatch} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
+    if (skippedDescAmount > 0) {
+      toast.warning(`${skippedDescAmount} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
+    }
+    if (skippedApproxAmount > 0) {
+      toast.warning(`${skippedApproxAmount} lançamento(s) já existem nesta fatura com mesma parcela/descrição e valor próximo (até ${formatCurrency(DUPLICATE_AMOUNT_TOLERANCE)}) — mantidos os originais para evitar duplicidade.`, { duration: 9000 });
+    }
+    if (parcelaMetadataUpdated > 0) {
+      toast.info(`${parcelaMetadataUpdated} lançamento(s) existente(s) tiveram a numeração de parcelas conferida/preenchida.`);
     }
     if (skippedInDb > 0) {
-      toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão (mesma data e valor) — ignorados.`);
+      toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão — ignorados.`);
     }
     if (parcelasDetected > 0) {
       toast.success(`${filtered.length} lançamento(s) importado(s) — ${parcelasDetected} com parcelas detectadas automaticamente.`);
