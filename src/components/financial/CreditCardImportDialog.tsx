@@ -1602,6 +1602,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     </Button>
                     <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-destructive hover:text-destructive border-destructive/40"
+                      disabled={isClosed}
+                      onClick={removeSelected}
+                      title="Excluir todos os lançamentos selecionados"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Excluir selecionados
+                    </Button>
+                    <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       className="h-8 text-xs"
