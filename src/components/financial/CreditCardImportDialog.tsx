@@ -328,6 +328,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
     const newRows: ItemRow[] = debits.map((t) => {
       const desc = t.description || "Lançamento";
+      const parcelaInfo = parseParcelaFromDescription(desc);
       return {
         fitid: t.fitid,
         posted_date: t.date,
@@ -339,18 +340,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: desc,
         veiculo_id: null,
         observacoes: "",
-        parcela_atual: null,
-        parcela_total: null,
+        parcela_atual: parcelaInfo?.atual ?? null,
+        parcela_total: parcelaInfo?.total ?? null,
         parcelas_expandidas: false,
       };
     });
 
-    // Dedup 1: dentro da fatura atual (fitid ou data+valor)
+    const parcelasDetected = newRows.filter((r) => r.parcela_total).length;
+
+    // Dedup 1: dentro da fatura atual — fitid, data+valor, OU descrição base + valor
     const existingFitids = new Set(items.map((p) => p.fitid).filter(Boolean));
-    const existingKey = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
+    const existingDateAmount = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
+    const existingDescAmount = new Set(items.map((p) => `${normalizeDesc(p.description)}|${Number(p.amount).toFixed(2)}`));
+    let skippedDescMatch = 0;
     let filtered = newRows.filter((r) => {
       if (r.fitid && existingFitids.has(r.fitid)) return false;
-      if (existingKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
+      if (existingDateAmount.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
+      if (existingDescAmount.has(`${normalizeDesc(r.description)}|${Number(r.amount).toFixed(2)}`)) {
+        skippedDescMatch++;
+        return false;
+      }
       return true;
     });
 
@@ -383,14 +392,21 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems(merged);
     setOriginalItems(merged);
 
-    const skippedInDialog = newRows.length - filtered.length - skippedInDb;
+    const skippedInDialog = newRows.length - filtered.length - skippedInDb - skippedDescMatch;
     if (skippedInDialog > 0) {
-      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura e foram ignorados.`);
+      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram ignorados.`);
+    }
+    if (skippedDescMatch > 0) {
+      toast.warning(`${skippedDescMatch} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
     }
     if (skippedInDb > 0) {
       toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão (mesma data e valor) — ignorados.`);
     }
-    toast.success(`${filtered.length} lançamento(s) importado(s).`);
+    if (parcelasDetected > 0) {
+      toast.success(`${filtered.length} lançamento(s) importado(s) — ${parcelasDetected} com parcelas detectadas automaticamente.`);
+    } else {
+      toast.success(`${filtered.length} lançamento(s) importado(s).`);
+    }
     if (fileRef.current) fileRef.current.value = "";
   };
 
