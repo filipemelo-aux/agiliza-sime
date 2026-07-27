@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, Printer } from "lucide-react";
+import { Loader2, Search, Printer, Filter, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 type StatusFilter = "todos" | "atrasado" | "aberto" | "pago";
 
