@@ -833,11 +833,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       const nomes = alreadyExpanded
         .map(({ item }) => `"${(item.description || "").slice(0, 40)}"`)
         .join(", ");
-      toast.error(
-        `Operação bloqueada: ${alreadyExpanded.length} lançamento(s) selecionado(s) já tiveram parcelas geradas (${nomes}). Remova-os da seleção para continuar.`,
+      toast.warning(
+        `${alreadyExpanded.length} lançamento(s) selecionado(s) já tiveram parcelas geradas (${nomes}). A operação prosseguirá: parcelas ainda existentes serão mantidas (sem duplicar) e apenas faturas faltantes (ex.: excluídas) serão recriadas.`,
         { duration: 8000 },
       );
-      return;
     }
 
     const targets: Array<{ idx: number; item: ItemRow }> = [];
