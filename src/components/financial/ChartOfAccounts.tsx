@@ -339,6 +339,22 @@ export function ChartOfAccounts() {
                     </p>
                   </div>
                 )}
+                {tipo === "despesa" && (
+                  <div>
+                    <Label>Centro de Custo Padrão</Label>
+                    <Select value={centroCustoDefault || "none"} onValueChange={v => setCentroCustoDefault(v === "none" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      <SelectContent>
+                        {CENTRO_CUSTO_DEFAULT_OPTIONS.map(o => (
+                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Quando definido, o sistema preenche automaticamente o centro de custo nos lançamentos (ex: fatura de cartão).
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Switch checked={ativo} onCheckedChange={setAtivo} />
                   <Label>Conta ativa</Label>
