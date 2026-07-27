@@ -191,6 +191,7 @@ export function FinancialPayables() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
+  const [favorecidoMap, setFavorecidoMap] = useState<Record<string, { razao: string; fantasia: string }>>({});
 
   // Persist filters to sessionStorage
   useEffect(() => {
@@ -377,6 +378,20 @@ export function FinancialPayables() {
       const pMap: Record<string, string> = {};
       (profiles || []).forEach((p: any) => { pMap[p.user_id] = p.full_name; });
       setProfilesMap(pMap);
+    }
+
+    // Fetch razão social / nome fantasia dos favorecidos (para busca)
+    const favIds = [...new Set(allItems.map(e => e.favorecido_id).filter(Boolean))] as string[];
+    if (favIds.length > 0) {
+      const { data: favProfiles } = await supabase
+        .from("profiles")
+        .select("id, razao_social, nome_fantasia")
+        .in("id", favIds);
+      const fMap: Record<string, { razao: string; fantasia: string }> = {};
+      (favProfiles || []).forEach((p: any) => {
+        fMap[p.id] = { razao: p.razao_social || "", fantasia: p.nome_fantasia || "" };
+      });
+      setFavorecidoMap(fMap);
     }
 
     setLoading(false);
@@ -811,6 +826,8 @@ export function FinancialPayables() {
       const matchSearch = !search ||
         i.descricao.toLowerCase().includes(q) ||
         (i.favorecido_nome || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().includes(q) ||
         (i.veiculo_placa || "").toLowerCase().includes(q) ||
         (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
         (i.chave_nfe || "").toLowerCase().includes(q) ||
@@ -862,7 +879,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -883,6 +900,8 @@ export function FinancialPayables() {
       const matchSearch = !search ||
         i.descricao.toLowerCase().includes(q) ||
         (i.favorecido_nome || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.razao || "").toLowerCase().includes(q) ||
+        (i.favorecido_id && favorecidoMap[i.favorecido_id]?.fantasia || "").toLowerCase().includes(q) ||
         (i.veiculo_placa || "").toLowerCase().includes(q) ||
         (i.documento_fiscal_numero || "").toLowerCase().includes(q) ||
         (i.chave_nfe || "").toLowerCase().includes(q) ||
@@ -925,7 +944,7 @@ export function FinancialPayables() {
       }
       return dateA.localeCompare(dateB);
     });
-  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef]);
+  }, [items, installmentsMap, search, quickFilter, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, matchesQuickFilter, getExpenseDateRef, favorecidoMap]);
 
   // Build a flat list of selectable card IDs (installment or expense)
   const selectableCardIds = useMemo(() => {
