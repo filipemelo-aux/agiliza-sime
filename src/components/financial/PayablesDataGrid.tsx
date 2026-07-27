@@ -55,6 +55,7 @@ export function PayablesDataGrid() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [excludedCategorias, setExcludedCategorias] = useState<Set<string>>(new Set());
 
   const load = async () => {
     setLoading(true);
