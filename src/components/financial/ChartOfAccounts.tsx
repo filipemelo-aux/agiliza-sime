@@ -207,6 +207,7 @@ export function ChartOfAccounts() {
     setContaPaiId(null);
     setAtivo(true);
     setTipoOperacional("");
+    setCentroCustoDefault("");
     if (establishments.length === 1) setEmpresaId(establishments[0].id);
     else if (filterEmpresa !== "all") setEmpresaId(filterEmpresa);
     else setEmpresaId("");
@@ -220,6 +221,7 @@ export function ChartOfAccounts() {
     setContaPaiId(acc.conta_pai_id);
     setAtivo(acc.ativo);
     setTipoOperacional(acc.tipo_operacional || "");
+    setCentroCustoDefault(acc.centro_custo_default || "");
     setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
   };
