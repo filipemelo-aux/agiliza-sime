@@ -303,7 +303,7 @@ export function PayablesDataGrid() {
       <tr>
         <td>${esc(statusLabel[r.status])}${r.status === "parcial" && r.vencido ? " • Vencido" : ""}</td>
         <td class="nowrap">${esc(formatDateBR(r.dataVencimento))}</td>
-        <td>${esc(r.fornecedor)}</td>
+        <td title="${esc(r.fornecedor)}${r.razaoSocial && r.razaoSocial !== r.fornecedor ? ` • Razão: ${esc(r.razaoSocial)}` : ""}${r.nomeFantasia && r.nomeFantasia !== r.fornecedor ? ` • Fantasia: ${esc(r.nomeFantasia)}` : ""}">${esc(r.fornecedor)}</td>
         <td>${esc(r.descricao)}</td>
         <td class="c">${esc(r.parcela)}</td>
         <td>${esc(r.categoria)}</td>
