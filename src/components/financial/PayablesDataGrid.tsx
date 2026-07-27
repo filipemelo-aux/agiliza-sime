@@ -65,11 +65,11 @@ export function PayablesDataGrid() {
       const { data: chart } = await supabase.from("chart_of_accounts").select("id, codigo, nome");
       const chartMap = new Map((chart || []).map((c: any) => [c.id, `${c.codigo} ${c.nome}`]));
 
-      let q: any = supabase.from("expenses").select("*, profiles:favorecido_id(id, full_name, razao_social, nome_fantasia)").is("deleted_at", null);
+      let q: any = supabase.from("expenses").select("*").is("deleted_at", null);
       const { data: expenses, error } = await q.limit(10000);
       if (error) throw error;
       const expIds = (expenses || []).map((e: any) => e.id);
-      const profileIds = [...new Set((expenses || []).map((e: any) => e.favorecido_id).filter(Boolean))];
+      const profileIds = [...new Set((expenses || []).map((e: any) => e.favorecido_id as string).filter(Boolean))] as string[];
       const profilesRes = profileIds.length
         ? await supabase.from("profiles").select("id, full_name, razao_social, nome_fantasia").in("id", profileIds)
         : { data: [] as any[] };
