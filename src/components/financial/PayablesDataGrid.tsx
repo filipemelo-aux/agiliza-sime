@@ -212,13 +212,19 @@ export function PayablesDataGrid() {
     },
   );
 
+  const hideAberto = useMemo(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return dataFim < today;
+  }, [dataFim]);
+
   const totais = useMemo(() => {
     const total = filtered.reduce((s, r) => s + r.valor, 0);
     const atrasado = filtered.filter((r) => r.status === "atrasado" || (r.status === "parcial" && r.vencido)).reduce((s, r) => s + r.valor, 0);
-    const aberto = filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
+    const aberto = hideAberto ? 0 : filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
     const pago = filtered.filter((r) => r.status === "pago").reduce((s, r) => s + r.valorPago, 0);
     return { total, atrasado, aberto, pago };
-  }, [filtered]);
+  }, [filtered, hideAberto]);
+
 
   const statusButtons: { v: StatusFilter; label: string }[] = [
     { v: "todos", label: "Todos" },
