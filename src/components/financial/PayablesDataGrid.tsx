@@ -255,13 +255,12 @@ export function PayablesDataGrid() {
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Contas a Pagar</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box}
 @page { margin: 8mm 6mm; size: A4 landscape; }
-html,body{margin:0;padding:0;background:#fff;font-family:'Exo',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
 .toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
-.wrap{padding:4px 6px}
+.wrap{padding:4px 6px;background:#fff}
 .head{display:flex;align-items:center;gap:10px;padding:4px 2px 6px;border-bottom:1.5px solid #2B4C7E;margin-bottom:6px}
 .head img{height:32px}
 .head h1{margin:0;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
@@ -288,7 +287,7 @@ tfoot{display:table-row-group}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
-<div class="toolbar no-print"><button onclick="window.print()">🖨️ Imprimir</button></div>
+<div class="toolbar no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
 <div class="wrap">
   <div class="head">
     <img src="${window.location.origin}/logo.png" alt="" onerror="this.style.display='none'" />
@@ -329,17 +328,26 @@ tfoot{display:table-row-group}
   </table>
   <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
 </div>
+<script>
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(function () { window.focus(); window.print(); }, 250);
+      });
+    });
+  });
+</script>
 </body></html>`;
 
-    const w = window.open("", "_blank");
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
     if (!w) {
+      URL.revokeObjectURL(url);
       toast.error("Libere pop-ups para gerar a impressão");
       return;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
   };
 
 
