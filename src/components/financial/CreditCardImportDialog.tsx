@@ -1501,8 +1501,40 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             >
               <Download className="w-3 h-3" /> Exportar CSV
             </Button>
-            <div className="text-[11px] text-muted-foreground">
-              Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 border rounded-md px-2 py-1 bg-muted/40">
+                <span className="text-[10px] uppercase text-muted-foreground">Valor real da fatura</span>
+                <Input
+                  value={reconcileTarget}
+                  onChange={(e) => setReconcileTarget(e.target.value)}
+                  placeholder="33.971,38"
+                  className="h-7 w-28 text-xs px-2"
+                  inputMode="decimal"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] px-2"
+                  onClick={suggestRemovalsForTarget}
+                  title="Seleciona lançamentos cuja soma equivale à diferença entre o total atual e o valor informado"
+                >
+                  <Search className="w-3 h-3 mr-1" /> Sugerir remoções
+                </Button>
+                {reconcileTarget && (() => {
+                  const t = Number(String(reconcileTarget).replace(/\./g, "").replace(",", "."));
+                  if (!Number.isFinite(t) || t <= 0) return null;
+                  const diff = total - t;
+                  return (
+                    <span className={cn("text-[10px] tabular-nums", Math.abs(diff) < 0.01 ? "text-success" : "text-warning")}>
+                      Δ {formatCurrency(diff)}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
+              </div>
             </div>
           </div>
 
