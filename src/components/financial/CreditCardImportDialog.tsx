@@ -417,7 +417,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     const parcelasDetected = newRows.filter((r) => r.parcela_total).length;
 
     // Dedup 1: dentro da fatura atual — mantém lançamentos já trabalhados e só completa parcela quando necessário.
-    const nextExisting = [...items];
+    const patchedExisting = [...items];
+    const dedupePool = [...patchedExisting];
     const filtered: ItemRow[] = [];
     let skippedFitid = 0;
     let skippedDateAmount = 0;
@@ -426,9 +427,9 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     let parcelaMetadataUpdated = 0;
 
     for (const row of newRows) {
-      const duplicate = findDuplicateItem(row, nextExisting);
+      const duplicate = findDuplicateItem(row, dedupePool);
       if (!duplicate) {
-        nextExisting.push(row);
+        dedupePool.push(row);
         filtered.push(row);
         continue;
       }
@@ -440,7 +441,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
       const patch = buildParcelaPatch(row, duplicate.existing);
       if (Object.keys(patch).length > 0) {
-        nextExisting[duplicate.index] = { ...duplicate.existing, ...patch };
+        dedupePool[duplicate.index] = { ...duplicate.existing, ...patch };
+        if (duplicate.index < patchedExisting.length) {
+          patchedExisting[duplicate.index] = { ...patchedExisting[duplicate.index], ...patch };
+        }
         parcelaMetadataUpdated++;
       }
     }
@@ -484,7 +488,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       }
     }
 
-    const merged = nextExisting.sort((a, b) => a.posted_date.localeCompare(b.posted_date));
+    const merged = [...patchedExisting, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
     setItems(merged);
     setOriginalItems(merged);
 
