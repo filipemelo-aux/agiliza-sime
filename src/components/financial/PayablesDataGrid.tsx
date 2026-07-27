@@ -256,7 +256,7 @@ export function PayablesDataGrid() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Contas a Pagar</title>
 <style>
 *{box-sizing:border-box}
-@page { margin: 8mm 6mm; size: A4 landscape; }
+@page { margin: 8mm 6mm; size: A4 landscape; orientation: landscape; }
 html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
 .toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
