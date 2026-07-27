@@ -191,6 +191,7 @@ export function FinancialPayables() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
+  const [favorecidoMap, setFavorecidoMap] = useState<Record<string, { razao: string; fantasia: string }>>({});
 
   // Persist filters to sessionStorage
   useEffect(() => {
