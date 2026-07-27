@@ -18,7 +18,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
+import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
