@@ -114,7 +114,11 @@ export function PayablesDataGrid() {
         const categoria = e.plano_contas_id ? (chartMap.get(e.plano_contas_id) as string) || "—" : "—";
         const veiculo = e.veiculo_placa || "—";
         const descricao = contractDescByExp[e.id] || e.descricao || "—";
-        const fornecedor = e.favorecido_nome || "—";
+        const profile = e.favorecido_id ? profileById.get(e.favorecido_id) : null;
+        const razaoSocial = profile?.razao_social || e.favorecido_nome || "—";
+        const nomeFantasia = profile?.nome_fantasia || "";
+        // Preferência: nome fantasia > razão social > favorecido_nome
+        const fornecedor = nomeFantasia || razaoSocial;
         const installs = installmentsByExp[e.id] || [];
 
         if (installs.length > 0) {
@@ -136,6 +140,8 @@ export function PayablesDataGrid() {
               vencido: !isPago && !!dv && dv < today,
               dataVencimento: dv,
               fornecedor,
+              razaoSocial,
+              nomeFantasia,
               descricao,
               parcela: `${inst.numero_parcela}/${installs.length}`,
               categoria,
@@ -161,6 +167,8 @@ export function PayablesDataGrid() {
             vencido: !isPago && !!dv && dv < today,
             dataVencimento: dv,
             fornecedor,
+            razaoSocial,
+            nomeFantasia,
             descricao,
             parcela: "—",
             categoria,
