@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, Printer } from "lucide-react";
+import { Loader2, Search, Printer, Filter, X } from "lucide-react";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import { ReportInfoTooltip } from "./ReportInfoTooltip";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 type StatusFilter = "todos" | "atrasado" | "aberto" | "pago";
 
@@ -52,6 +55,7 @@ export function PayablesDataGrid() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [excludedCategorias, setExcludedCategorias] = useState<Set<string>>(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -181,9 +185,14 @@ export function PayablesDataGrid() {
       if (status === "pago" && r.status !== "pago") return false;
       if (vterm && !r.veiculo.toLowerCase().includes(vterm)) return false;
       if (term && !(r.fornecedor.toLowerCase().includes(term) || r.descricao.toLowerCase().includes(term))) return false;
+      if (excludedCategorias.has(r.categoria)) return false;
       return true;
     });
-  }, [rows, status, veiculoQ, search]);
+  }, [rows, status, veiculoQ, search, excludedCategorias]);
+
+  const categoriasDisponiveis = useMemo(() => {
+    return Array.from(new Set(rows.map((r) => r.categoria))).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
 
   const { sort, toggle, sorted } = useSortableTable<Row, "status" | "dataVencimento" | "fornecedor" | "descricao" | "parcela" | "categoria" | "veiculo" | "valor">(
     filtered,
@@ -334,6 +343,47 @@ tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" disabled={loading || categoriasDisponiveis.length === 0}>
+              <Filter className="h-3 w-3" /> Excluir planos
+              {excludedCategorias.size > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">{excludedCategorias.size}</Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold">Ocultar planos de contas</span>
+              {excludedCategorias.size > 0 && (
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1.5 gap-1" onClick={() => setExcludedCategorias(new Set())}>
+                  <X className="h-3 w-3" /> Limpar
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-2">Marcados serão excluídos do relatório.</p>
+            <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+              {categoriasDisponiveis.map((c) => {
+                const checked = excludedCategorias.has(c);
+                return (
+                  <label key={c} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded p-1">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => {
+                        setExcludedCategorias((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(c); else next.delete(c);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="leading-tight break-words">{c}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Button size="sm" className="h-7 text-[11px] px-2 py-0" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           Gerar Relatório
