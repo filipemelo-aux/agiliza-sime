@@ -879,7 +879,7 @@ export function FinancialPayables() {
     });
 
     return { all, hoje, semana, atrasadas, pagas, aVencer };
-  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef]);
+  }, [items, installmentsMap, search, filterPlanoContas, filterNivel, filterVeiculo, filterCentroCusto, chartIdMap, matchesPeriod, getExpenseDateRef, favorecidoMap]);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
