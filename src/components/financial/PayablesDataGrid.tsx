@@ -343,6 +343,47 @@ tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Fornecedor ou descrição..." className="h-7 text-xs pl-7 px-1.5" />
         </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2 py-0 gap-1" disabled={loading || categoriasDisponiveis.length === 0}>
+              <Filter className="h-3 w-3" /> Excluir planos
+              {excludedCategorias.size > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">{excludedCategorias.size}</Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold">Ocultar planos de contas</span>
+              {excludedCategorias.size > 0 && (
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-1.5 gap-1" onClick={() => setExcludedCategorias(new Set())}>
+                  <X className="h-3 w-3" /> Limpar
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-2">Marcados serão excluídos do relatório.</p>
+            <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
+              {categoriasDisponiveis.map((c) => {
+                const checked = excludedCategorias.has(c);
+                return (
+                  <label key={c} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded p-1">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) => {
+                        setExcludedCategorias((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(c); else next.delete(c);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="leading-tight break-words">{c}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Button size="sm" className="h-7 text-[11px] px-2 py-0" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           Gerar Relatório
