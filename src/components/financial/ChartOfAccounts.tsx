@@ -247,6 +247,7 @@ export function ChartOfAccounts() {
       ativo,
       empresa_id: empresaId,
       tipo_operacional: (tipoOperacional && tipoOperacional !== "none") ? tipoOperacional : null,
+      centro_custo_default: centroCustoDefault || null,
     };
 
     if (editingId) {
