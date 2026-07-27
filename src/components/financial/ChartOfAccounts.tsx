@@ -17,6 +17,21 @@ const TIPO_OPERACIONAL_OPTIONS = [
   { value: "combustivel", label: "⛽ Combustível" },
 ];
 
+const CENTRO_CUSTO_DEFAULT_OPTIONS = [
+  { value: "", label: "Nenhum (usuário escolhe)" },
+  { value: "frota_propria", label: "Frota Própria" },
+  { value: "frota_terceiros", label: "Frota Terceiros" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "operacional", label: "Operacional" },
+];
+
+const CENTRO_CUSTO_LABELS: Record<string, string> = {
+  frota_propria: "Frota Própria",
+  frota_terceiros: "Frota Terceiros",
+  administrativo: "Administrativo",
+  operacional: "Operacional",
+};
+
 interface Account {
   id: string;
   codigo: string;
