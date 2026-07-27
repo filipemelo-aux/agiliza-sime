@@ -83,6 +83,74 @@ const stripParcelaSuffix = (desc: string) =>
 const normalizeDesc = (desc: string) =>
   stripParcelaSuffix(desc).toLowerCase().replace(/\s+/g, " ").trim();
 
+const DUPLICATE_AMOUNT_TOLERANCE = 1;
+
+const normalizeInstallmentText = (desc: string) =>
+  (desc || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\bparc(?:ela)?\.?\s*\d{1,2}\s*(?:\/|de)\s*\d{1,2}\b/g, " ")
+    .replace(/\(?\b\d{1,2}\s*\/\s*\d{1,2}\b\)?/g, " ")
+    .replace(/\([^)]*\d{3,}[^)]*\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getItemParcelaInfo = (item: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">) => ({
+  atual: Number(item.parcela_atual || parseParcelaFromDescription(item.description || "")?.atual || 0),
+  total: Number(item.parcela_total || parseParcelaFromDescription(item.description || "")?.total || 0),
+});
+
+const cents = (value: number) => Math.round(Number(value || 0) * 100);
+
+const amountDiff = (a: number, b: number) => Math.abs(Number(a || 0) - Number(b || 0));
+
+const amountsEqual = (a: number, b: number) => cents(a) === cents(b);
+
+const amountsClose = (a: number, b: number) => amountDiff(a, b) <= DUPLICATE_AMOUNT_TOLERANCE;
+
+const isSameInstallment = (a: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">, b: Pick<ItemRow, "description" | "parcela_atual" | "parcela_total">) => {
+  const ai = getItemParcelaInfo(a);
+  const bi = getItemParcelaInfo(b);
+  return ai.atual > 0 && ai.total > 0 && ai.atual === bi.atual && ai.total === bi.total;
+};
+
+const findDuplicateItem = (candidate: ItemRow, pool: ItemRow[]) => {
+  const candidateNorm = normalizeInstallmentText(candidate.description);
+  const scored = pool
+    .map((existing, index) => {
+      const existingNorm = normalizeInstallmentText(existing.description);
+      const sameFitid = !!candidate.fitid && !!existing.fitid && candidate.fitid === existing.fitid;
+      const sameDate = candidate.posted_date === existing.posted_date;
+      const sameNorm = !!candidateNorm && candidateNorm === existingNorm;
+      const sameInstallment = isSameInstallment(candidate, existing);
+      const exactAmount = amountsEqual(candidate.amount, existing.amount);
+      const closeAmount = amountsClose(candidate.amount, existing.amount);
+
+      if (sameFitid) return { existing, index, reason: "fitid" as const, diff: 0, score: 0 };
+      if (sameDate && exactAmount) return { existing, index, reason: "data_valor" as const, diff: 0, score: 1 };
+      if (sameNorm && exactAmount) return { existing, index, reason: "descricao_valor" as const, diff: 0, score: sameInstallment ? 2 : 3 };
+      if (sameNorm && closeAmount && (sameInstallment || sameDate)) {
+        return { existing, index, reason: "descricao_valor_aproximado" as const, diff: amountDiff(candidate.amount, existing.amount), score: sameInstallment ? 4 : 5 };
+      }
+      return null;
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x)
+    .sort((a, b) => a.score - b.score || a.diff - b.diff);
+
+  return scored[0] || null;
+};
+
+const buildParcelaPatch = (source: ItemRow, target: ItemRow): Partial<ItemRow> => {
+  const info = getItemParcelaInfo(source);
+  if (!info.atual || !info.total) return {};
+  const patch: Partial<ItemRow> = {};
+  if (!target.parcela_atual || target.parcela_atual !== info.atual) patch.parcela_atual = info.atual;
+  if (!target.parcela_total || target.parcela_total !== info.total) patch.parcela_total = info.total;
+  return patch;
+};
+
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
   fitid: string;
@@ -348,22 +416,41 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
     const parcelasDetected = newRows.filter((r) => r.parcela_total).length;
 
-    // Dedup 1: dentro da fatura atual — fitid, data+valor, OU descrição base + valor
-    const existingFitids = new Set(items.map((p) => p.fitid).filter(Boolean));
-    const existingDateAmount = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
-    const existingDescAmount = new Set(items.map((p) => `${normalizeDesc(p.description)}|${Number(p.amount).toFixed(2)}`));
-    let skippedDescMatch = 0;
-    let filtered = newRows.filter((r) => {
-      if (r.fitid && existingFitids.has(r.fitid)) return false;
-      if (existingDateAmount.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
-      if (existingDescAmount.has(`${normalizeDesc(r.description)}|${Number(r.amount).toFixed(2)}`)) {
-        skippedDescMatch++;
-        return false;
-      }
-      return true;
-    });
+    // Dedup 1: dentro da fatura atual — mantém lançamentos já trabalhados e só completa parcela quando necessário.
+    const patchedExisting = [...items];
+    const dedupePool = [...patchedExisting];
+    const filtered: ItemRow[] = [];
+    let skippedFitid = 0;
+    let skippedDateAmount = 0;
+    let skippedDescAmount = 0;
+    let skippedApproxAmount = 0;
+    let parcelaMetadataUpdated = 0;
 
-    // Dedup 2: contra outras faturas do mesmo cartão/banco no banco de dados (data + valor)
+    for (const row of newRows) {
+      const duplicate = findDuplicateItem(row, dedupePool);
+      if (!duplicate) {
+        dedupePool.push(row);
+        filtered.push(row);
+        continue;
+      }
+
+      if (duplicate.reason === "fitid") skippedFitid++;
+      else if (duplicate.reason === "data_valor") skippedDateAmount++;
+      else if (duplicate.reason === "descricao_valor") skippedDescAmount++;
+      else skippedApproxAmount++;
+
+      const patch = buildParcelaPatch(row, duplicate.existing);
+      if (Object.keys(patch).length > 0) {
+        dedupePool[duplicate.index] = { ...duplicate.existing, ...patch };
+        if (duplicate.index < patchedExisting.length) {
+          patchedExisting[duplicate.index] = { ...patchedExisting[duplicate.index], ...patch };
+        }
+        parcelaMetadataUpdated++;
+      }
+    }
+
+    // Dedup 2: contra outras faturas do mesmo cartão/banco no banco de dados.
+    // Continua evitando duplicidade por data+valor e também reconhece parcelas com centavos divergentes.
     let skippedInDb = 0;
     if (filtered.length > 0 && cardName.trim()) {
       let invQ = supabase
@@ -377,30 +464,49 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       if (invIds.length > 0) {
         const { data: dbItems } = await supabase
           .from("credit_card_invoice_items" as any)
-          .select("posted_date, amount")
+          .select("posted_date, amount, description, fitid, parcela_atual, parcela_total, parcelas_expandidas")
           .in("invoice_id", invIds);
-        const dbKey = new Set(
-          ((dbItems as any[]) || []).map((r) => `${r.posted_date}|${Number(r.amount).toFixed(2)}`)
-        );
+        const dbRows: ItemRow[] = ((dbItems as any[]) || []).map((r) => ({
+          fitid: r.fitid || "",
+          posted_date: r.posted_date,
+          description: r.description || "",
+          amount: Number(r.amount || 0),
+          plano_contas_id: null,
+          centro_custo: "",
+          favorecido_id: null,
+          favorecido_nome: "",
+          veiculo_id: null,
+          observacoes: "",
+          parcela_atual: r.parcela_atual ?? null,
+          parcela_total: r.parcela_total ?? null,
+          parcelas_expandidas: !!r.parcelas_expandidas,
+        }));
         const before = filtered.length;
-        filtered = filtered.filter((r) => !dbKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`));
+        const onlyNotInDb = filtered.filter((r) => !findDuplicateItem(r, dbRows));
+        filtered.splice(0, filtered.length, ...onlyNotInDb);
         skippedInDb = before - filtered.length;
       }
     }
 
-    const merged = [...items, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
+    const merged = [...patchedExisting, ...filtered].sort((a, b) => a.posted_date.localeCompare(b.posted_date));
     setItems(merged);
     setOriginalItems(merged);
 
-    const skippedInDialog = newRows.length - filtered.length - skippedInDb - skippedDescMatch;
+    const skippedInDialog = skippedFitid + skippedDateAmount;
     if (skippedInDialog > 0) {
-      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram ignorados.`);
+      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram mantidos.`);
     }
-    if (skippedDescMatch > 0) {
-      toast.warning(`${skippedDescMatch} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
+    if (skippedDescAmount > 0) {
+      toast.warning(`${skippedDescAmount} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
+    }
+    if (skippedApproxAmount > 0) {
+      toast.warning(`${skippedApproxAmount} lançamento(s) já existem nesta fatura com mesma parcela/descrição e valor próximo (até ${formatCurrency(DUPLICATE_AMOUNT_TOLERANCE)}) — mantidos os originais para evitar duplicidade.`, { duration: 9000 });
+    }
+    if (parcelaMetadataUpdated > 0) {
+      toast.info(`${parcelaMetadataUpdated} lançamento(s) existente(s) tiveram a numeração de parcelas conferida/preenchida.`);
     }
     if (skippedInDb > 0) {
-      toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão (mesma data e valor) — ignorados.`);
+      toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão — ignorados.`);
     }
     if (parcelasDetected > 0) {
       toast.success(`${filtered.length} lançamento(s) importado(s) — ${parcelasDetected} com parcelas detectadas automaticamente.`);
@@ -688,42 +794,72 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       // as parcelas já foram lançadas manualmente em faturas anteriores.
       const { data: existingRows } = await supabase
         .from("credit_card_invoice_items" as any)
-        .select("id, description, amount, parcela_atual, parcela_total")
+        .select("id, posted_date, description, amount, fitid, parcela_atual, parcela_total, parcelas_expandidas")
         .eq("invoice_id", targetInvoice.id);
-      const baseNorm = normalizeDesc(baseDesc);
-      const amtStr = Number(item.amount).toFixed(2);
-      const existingMatch = ((existingRows as any[]) || []).find(
-        (r) => normalizeDesc(r.description || "") === baseNorm && Number(r.amount).toFixed(2) === amtStr,
-      );
 
-      const itemPayload: any = {
-        invoice_id: targetInvoice.id,
+      const targetItem: ItemRow = {
+        fitid: "",
         posted_date: targetPosted,
         description: buildDescription(baseDesc, parcela, totalP),
         amount: item.amount,
-        fitid: null,
         plano_contas_id: item.plano_contas_id,
-        centro_custo: item.centro_custo || null,
+        centro_custo: item.centro_custo || "",
         favorecido_id: item.favorecido_id,
-        favorecido_nome: item.favorecido_nome?.trim() || null,
+        favorecido_nome: item.favorecido_nome?.trim() || "",
         veiculo_id: item.veiculo_id,
-        observacoes: item.observacoes?.trim() || null,
+        observacoes: item.observacoes?.trim() || "",
         parcela_atual: parcela,
         parcela_total: totalP,
         parcelas_expandidas: true,
       };
 
+      const existingItems: ItemRow[] = ((existingRows as any[]) || []).map((r) => ({
+        id: r.id,
+        fitid: r.fitid || "",
+        posted_date: r.posted_date,
+        description: r.description || "",
+        amount: Number(r.amount || 0),
+        plano_contas_id: null,
+        centro_custo: "",
+        favorecido_id: null,
+        favorecido_nome: "",
+        veiculo_id: null,
+        observacoes: "",
+        parcela_atual: r.parcela_atual ?? null,
+        parcela_total: r.parcela_total ?? null,
+        parcelas_expandidas: !!r.parcelas_expandidas,
+      }));
+      const existingMatch = findDuplicateItem(targetItem, existingItems);
+
+      const itemPayload: any = {
+        invoice_id: targetInvoice.id,
+        posted_date: targetItem.posted_date,
+        description: targetItem.description,
+        amount: targetItem.amount,
+        fitid: null,
+        plano_contas_id: targetItem.plano_contas_id,
+        centro_custo: targetItem.centro_custo || null,
+        favorecido_id: targetItem.favorecido_id,
+        favorecido_nome: targetItem.favorecido_nome || null,
+        veiculo_id: targetItem.veiculo_id,
+        observacoes: targetItem.observacoes || null,
+        parcela_atual: targetItem.parcela_atual,
+        parcela_total: targetItem.parcela_total,
+        parcelas_expandidas: targetItem.parcelas_expandidas,
+      };
+
       if (existingMatch) {
-        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original.
+        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original
+        // e seu valor original (inclusive se houver diferença de centavos).
         const { error: updExErr } = await supabase
           .from("credit_card_invoice_items" as any)
           .update({
-            description: buildDescription(existingMatch.description || baseDesc, parcela, totalP),
+            description: buildDescription(existingMatch.existing.description || baseDesc, parcela, totalP),
             parcela_atual: parcela,
             parcela_total: totalP,
             parcelas_expandidas: true,
           })
-          .eq("id", existingMatch.id);
+          .eq("id", existingMatch.existing.id);
         if (updExErr) throw updExErr;
       } else {
         const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
