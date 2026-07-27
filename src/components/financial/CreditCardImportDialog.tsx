@@ -166,6 +166,8 @@ interface ItemRow {
   parcela_atual: number | null;
   parcela_total: number | null;
   parcelas_expandidas: boolean;
+  possible_duplicate?: boolean;
+  duplicate_note?: string;
 }
 
 interface VehicleOption { id: string; plate: string; }
