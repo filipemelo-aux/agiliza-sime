@@ -250,18 +250,38 @@ export function ChartOfAccounts() {
       centro_custo_default: centroCustoDefault || null,
     };
 
+    let savedId = editingId;
     if (editingId) {
       const { error } = await supabase.from("chart_of_accounts").update(payload).eq("id", editingId);
       if (error) return toast.error(error.message);
       toast.success("Conta atualizada");
     } else {
-      const { error } = await supabase.from("chart_of_accounts").insert(payload);
+      const { data: inserted, error } = await supabase.from("chart_of_accounts").insert(payload).select("id").single();
       if (error) {
         if (error.message.includes("unique")) return toast.error("Código já existe para esta empresa");
         return toast.error(error.message);
       }
+      savedId = inserted?.id || null;
       toast.success("Conta criada");
     }
+
+    // Cascade centro_custo_default to all descendants
+    if (savedId && payload.centro_custo_default) {
+      const collectDescendants = (parentId: string): string[] => {
+        const direct = accounts.filter(a => a.conta_pai_id === parentId);
+        return direct.flatMap(c => [c.id, ...collectDescendants(c.id)]);
+      };
+      const descendantIds = collectDescendants(savedId);
+      if (descendantIds.length > 0) {
+        const { error: cascadeErr } = await supabase
+          .from("chart_of_accounts")
+          .update({ centro_custo_default: payload.centro_custo_default })
+          .in("id", descendantIds);
+        if (cascadeErr) toast.error("Erro ao propagar centro de custo: " + cascadeErr.message);
+        else toast.success(`Centro de custo propagado para ${descendantIds.length} conta(s) filha(s)`);
+      }
+    }
+
     setDialogOpen(false);
     resetForm();
     fetchData();
