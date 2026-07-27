@@ -1860,6 +1860,83 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         }}
       />
       {ConfirmDialog}
+
+      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Novo Lançamento Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Data</Label>
+                <Input
+                  type="date"
+                  className="h-9"
+                  value={manualForm.posted_date}
+                  onChange={(e) => setManualForm((f) => ({ ...f, posted_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Valor (R$) <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="0,00"
+                  className="h-9"
+                  value={manualForm.amount}
+                  onChange={(e) => setManualForm((f) => ({ ...f, amount: maskCurrency(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Descrição <span className="text-destructive">*</span></Label>
+              <Input
+                className="h-9"
+                placeholder="Ex: Compra loja XYZ"
+                value={manualForm.description}
+                onChange={(e) => setManualForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Parcela atual</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-9"
+                  placeholder="Ex: 1"
+                  value={manualForm.parcela_atual}
+                  onChange={(e) => setManualForm((f) => ({ ...f, parcela_atual: e.target.value.replace(/\D/g, "") }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Total de parcelas</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-9"
+                  placeholder="Ex: 10"
+                  value={manualForm.parcela_total}
+                  onChange={(e) => setManualForm((f) => ({ ...f, parcela_total: e.target.value.replace(/\D/g, "") }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Plano de contas</Label>
+              <PlanoContasCombobox
+                value={manualForm.plano_contas_id}
+                onChange={(v) => setManualForm((f) => ({ ...f, plano_contas_id: v }))}
+                options={despesaLeaves}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={confirmManualItem}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </Dialog>
 
   );
