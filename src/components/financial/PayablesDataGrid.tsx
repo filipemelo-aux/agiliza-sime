@@ -268,7 +268,7 @@ export function PayablesDataGrid() {
     XLSX.writeFile(wb, `contas-a-pagar_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!sorted.length) {
       toast.warning("Nenhum registro para imprimir");
       return;
@@ -289,17 +289,20 @@ export function PayablesDataGrid() {
         <td class="r ${(r.status === "atrasado" || (r.status === "parcial" && r.vencido)) ? "neg" : ""}">${esc(formatCurrency(r.valor))}</td>
       </tr>`).join("");
 
-    // Payload para exportação Excel dentro do próprio popup (independente do opener)
-    const xlsxPayload = {
-      fileName: `contas-a-pagar_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`,
-      header: [
+    // Gera o XLSX AGORA no contexto do app (com xlsx bundlado) e embute como data URL no popup.
+    // Isso elimina a dependência de CDN e o problema de cross-window ao clicar em "Exportar Excel".
+    let xlsxDataUrl = "";
+    const fileName = `contas-a-pagar_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`;
+    try {
+      const XLSX = await import("xlsx");
+      const ws = XLSX.utils.aoa_to_sheet([
         ["Relatório de Contas a Pagar"],
         [`Período: ${periodo}`],
         [`Status: ${statusLbl}${veiculoQ ? ` • Placa: ${veiculoQ}` : ""}${search ? ` • Busca: ${search}` : ""}`],
         [`Atrasado: ${formatCurrency(totais.atrasado)}${hideAberto ? "" : ` • Em aberto: ${formatCurrency(totais.aberto)}`} • Pago: ${formatCurrency(totais.pago)}`],
         [],
-      ],
-      rows: sorted.map((r) => ({
+      ]);
+      const data = sorted.map((r) => ({
         Status: `${statusLabel[r.status]}${r.status === "parcial" && r.vencido ? " • Vencido" : ""}`,
         Vencimento: formatDateBR(r.dataVencimento),
         Fornecedor: r.fornecedor,
@@ -308,47 +311,58 @@ export function PayablesDataGrid() {
         Categoria: r.categoria,
         Veiculo: r.veiculo,
         Valor: Number(r.valor) || 0,
-      })),
-      total: Number(totais.total) || 0,
-      cols: [14, 12, 28, 40, 8, 28, 12, 14],
-    };
+      }));
+      XLSX.utils.sheet_add_json(ws, data, { origin: "A6" });
+      XLSX.utils.sheet_add_json(ws, [{ Status: "TOTAL", Vencimento: "", Fornecedor: "", Descricao: "", Parcela: "", Categoria: "", Veiculo: "", Valor: Number(totais.total) || 0 }], { origin: -1, skipHeader: true });
+      ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 40 }, { wch: 8 }, { wch: 28 }, { wch: 12 }, { wch: 14 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Contas a Pagar");
+      const b64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
+      xlsxDataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${b64}`;
+    } catch (e) {
+      console.error("Falha ao gerar XLSX", e);
+    }
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório de Contas a Pagar</title>
 <style>
 *{box-sizing:border-box}
-@page { margin: 6mm 5mm; size: A4 landscape; }
+@page { margin: 10mm 8mm; size: A4 portrait; }
 html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
-.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
+.toolbar a,.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.toolbar a.excel{background:#1f7a4d}
+.toolbar a.disabled{background:#9ca3af;cursor:not-allowed;pointer-events:none}
 .wrap{padding:4px;background:#fff;width:100%;max-width:100%}
 .head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
-.head img{height:28px}
-.head h1{margin:0;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
-.head .per{font-size:8.5px;color:#666;text-align:right;margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:8.5px;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
-thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:7.5px;letter-spacing:.2px;padding:3px 4px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word}
-tbody td{padding:2px 4px;border:1px solid #e5e7eb;font-size:8.5px;line-height:1.2;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+.head img{height:26px}
+.head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:8px;color:#666;text-align:right;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:7pt;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
+thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:6.5pt;letter-spacing:.2px;padding:3px 3px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word;overflow-wrap:anywhere}
+tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7pt;line-height:1.15;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
 tbody tr:nth-child(even) td{background:#fafbfc}
 .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
 .c{text-align:center}
-.nowrap{white-space:nowrap;overflow-wrap:normal}
+.nowrap{white-space:nowrap;overflow-wrap:normal;font-size:6.5pt}
 .neg{color:#b91c1c;font-weight:700}
 tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
 tr{page-break-inside:avoid}
 thead{display:table-header-group}
 tfoot{display:table-row-group}
-.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7.5px;color:#6b7280}
-.filters{font-size:8px;color:#555;margin-bottom:3px}
-.totals-labels{padding:5px 8px}
-.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:16px;flex-wrap:wrap}
-.total-item{font-size:8.5px;color:#4b5563}
-.total-item b{font-size:9.5px;color:#1f2937;font-weight:800}
-.grand-total{font-size:10.5px;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:5px 6px;text-align:right;white-space:nowrap}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7pt;color:#6b7280}
+.filters{font-size:7.5pt;color:#555;margin-bottom:3px}
+.totals-labels{padding:4px 6px}
+.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
+.total-item{font-size:7.5pt;color:#4b5563}
+.total-item b{font-size:8pt;color:#1f2937;font-weight:800}
+.grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
 <div class="toolbar no-print">
-  <button id="btn-xlsx" style="background:#1f7a4d">Exportar Excel</button>
+  ${xlsxDataUrl
+    ? `<a class="excel" href="${xlsxDataUrl}" download="${fileName}">Exportar Excel</a>`
+    : `<a class="excel disabled">Excel indisponível</a>`}
   <button onclick="window.print()">Imprimir / Salvar PDF</button>
 </div>
 <div class="wrap">
@@ -362,16 +376,16 @@ tfoot{display:table-row-group}
   <table>
     <colgroup>
       <col style="width:9%" />
-      <col style="width:7%" />
-      <col style="width:18%" />
-      <col style="width:26%" />
-      <col style="width:5%" />
-      <col style="width:17%" />
       <col style="width:8%" />
-      <col style="width:10%" />
+      <col style="width:16%" />
+      <col style="width:24%" />
+      <col style="width:6%" />
+      <col style="width:16%" />
+      <col style="width:9%" />
+      <col style="width:12%" />
     </colgroup>
     <thead><tr>
-      <th>Status</th><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th>
+      <th>Status</th><th>Venc.</th><th>Fornecedor</th><th>Descrição</th>
       <th class="c">Parc.</th><th>Categoria</th><th>Veículo</th><th class="r">Valor</th>
     </tr></thead>
     <tbody>${rowsHtml}</tbody>
@@ -382,7 +396,7 @@ tfoot{display:table-row-group}
             <span class="total-item">Atrasado: <b>${esc(formatCurrency(totais.atrasado))}</b></span>
             ${hideAberto ? "" : `<span class="total-item">Em aberto: <b>${esc(formatCurrency(totais.aberto))}</b></span>`}
             <span class="total-item">Pago: <b>${esc(formatCurrency(totais.pago))}</b></span>
-            <span class="total-item total"><b>TOTAL</b></span>
+            <span class="total-item"><b>TOTAL</b></span>
           </div>
         </td>
         <td class="grand-total">${esc(formatCurrency(totais.total))}</td>
@@ -391,57 +405,26 @@ tfoot{display:table-row-group}
   </table>
   <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
 </div>
-<script id="xlsx-payload" type="application/json">${JSON.stringify(xlsxPayload).replace(/</g, "\\u003c")}</script>
 <script>
-  (function(){
-    var btn = document.getElementById('btn-xlsx');
-    function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){rej(new Error('fail '+src));}; document.head.appendChild(s); }); }
-    async function ensureXLSX(){
-      if (window.XLSX) return window.XLSX;
-      try { await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); }
-      catch(e){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
-      return window.XLSX;
-    }
-    btn.addEventListener('click', async function(){
-      try {
-        btn.disabled = true; btn.textContent = 'Gerando...';
-        var payload = JSON.parse(document.getElementById('xlsx-payload').textContent);
-        var XLSX = await ensureXLSX();
-        if (!XLSX) throw new Error('Biblioteca XLSX indisponível');
-        var ws = XLSX.utils.aoa_to_sheet(payload.header);
-        XLSX.utils.sheet_add_json(ws, payload.rows, { origin: 'A6' });
-        var totalRow = { Status: 'TOTAL', Vencimento: '', Fornecedor: '', Descricao: '', Parcela: '', Categoria: '', Veiculo: '', Valor: payload.total };
-        XLSX.utils.sheet_add_json(ws, [totalRow], { origin: -1, skipHeader: true });
-        ws['!cols'] = payload.cols.map(function(w){ return { wch: w }; });
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Contas a Pagar');
-        XLSX.writeFile(wb, payload.fileName);
-        btn.textContent = 'Exportar Excel'; btn.disabled = false;
-      } catch(e){
-        alert('Falha ao exportar Excel: ' + (e && e.message ? e.message : e));
-        btn.textContent = 'Exportar Excel'; btn.disabled = false;
-      }
-    });
-    window.addEventListener('load', function () {
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          setTimeout(function () { window.focus(); window.print(); }, 400);
-        });
+        setTimeout(function () { window.focus(); window.print(); }, 400);
       });
     });
-  })();
+  });
 </script>
 </body></html>`;
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank", "width=1200,height=820,menubar=no,toolbar=no,location=no,status=no");
+    const w = window.open(url, "_blank", "width=900,height=1000,menubar=no,toolbar=no,location=no,status=no");
     if (!w) {
       URL.revokeObjectURL(url);
       toast.error("Libere pop-ups para gerar a impressão");
       return;
     }
-    setTimeout(() => URL.revokeObjectURL(url), 120000);
+    setTimeout(() => URL.revokeObjectURL(url), 180000);
   };
 
 
