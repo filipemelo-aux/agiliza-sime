@@ -1128,167 +1128,115 @@ export function FinancialPayables() {
       }
     });
     rows.sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+    const today = format(new Date(), "yyyy-MM-dd");
+    const isOverdue = (r: typeof rows[0]) => r.status !== "pago" && r.vencimento < today;
     const total = rows.reduce((s, r) => s + r.valor, 0);
-    const totalPendente = rows.filter(r => r.status !== "pago").reduce((s, r) => s + r.valor, 0);
+    const totalAtrasado = rows.filter(r => r.status === "atrasado" || isOverdue(r)).reduce((s, r) => s + r.valor, 0);
+    const totalAberto = rows.filter(r => r.status !== "pago" && !(r.status === "atrasado" || isOverdue(r))).reduce((s, r) => s + r.valor, 0);
     const totalPago = rows.filter(r => r.status === "pago").reduce((s, r) => s + r.valor, 0);
-    const fmtDate = (d: string) => { return formatDateBR(d); };
-    const statusLabel = (s: string) => STATUS_MAP[s]?.label || s;
-    const statusBadge = (s: string) => {
-      const colors: Record<string, { bg: string; fg: string }> = {
-        pago: { bg: "#d4edda", fg: "#155724" },
-        atrasado: { bg: "#f8d7da", fg: "#721c24" },
-        pendente: { bg: "#fff3cd", fg: "#856404" },
-        parcial: { bg: "#cce5ff", fg: "#004085" },
-      };
-      const c = colors[s] || colors.pendente;
-      return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c.bg};color:${c.fg}">${statusLabel(s)}</span>`;
-    };
-
-    // Fetch establishment info: header = matriz completa, footer = todos CNPJs separados por |
-    let estName = ""; let estCnpjFooter = ""; let matrizInfo: any = null;
-    try {
-      const { data } = await supabase
-        .from("fiscal_establishments")
-        .select("razao_social,cnpj,type,inscricao_estadual,endereco_logradouro,endereco_numero,endereco_bairro,endereco_municipio,endereco_uf,endereco_cep")
-        .eq("active", true).order("type");
-      if (data && data.length > 0) {
-        matrizInfo = data.find((e: any) => e.type === "matriz") || data[0];
-        estName = matrizInfo?.razao_social || "";
-        const fmtC = (c: string) => c ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12)}` : "";
-        estCnpjFooter = data.map((e: any) => fmtC(e.cnpj)).filter(Boolean).join(" | ");
-      }
-    } catch {}
-    const matrizCnpjFmt = matrizInfo?.cnpj ? `${matrizInfo.cnpj.slice(0,2)}.${matrizInfo.cnpj.slice(2,5)}.${matrizInfo.cnpj.slice(5,8)}/${matrizInfo.cnpj.slice(8,12)}-${matrizInfo.cnpj.slice(12)}` : "";
-    const matrizAddr = [matrizInfo?.endereco_logradouro, matrizInfo?.endereco_numero, matrizInfo?.endereco_bairro].filter(Boolean).join(", ");
-    const matrizCity = [matrizInfo?.endereco_municipio, matrizInfo?.endereco_uf].filter(Boolean).join("/");
-    const matrizCep = matrizInfo?.endereco_cep ? `CEP ${matrizInfo.endereco_cep}` : "";
-    const matrizAddrLine = [matrizAddr, matrizCity, matrizCep].filter(Boolean).join(" — ");
-    const matrizDocLine = [matrizCnpjFmt ? `CNPJ: ${matrizCnpjFmt}` : "", matrizInfo?.inscricao_estadual ? `IE: ${matrizInfo.inscricao_estadual}` : ""].filter(Boolean).join("  •  ");
-
-    const FONT = "'Exo','Segoe UI','Trebuchet MS',Arial,sans-serif";
-    const logoUrl = "https://agiliza-sime.lovable.app/favicon.png";
-    const periodoLabel = filterPeriodoInicio || filterPeriodoFim
-      ? `${filterPeriodoInicio ? fmtDate(filterPeriodoInicio) : "início"} a ${filterPeriodoFim ? fmtDate(filterPeriodoFim) : "atual"}`
+    const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+    const periodo = filterPeriodoInicio || filterPeriodoFim
+      ? `${filterPeriodoInicio ? formatDateBR(filterPeriodoInicio) : "início"} a ${filterPeriodoFim ? formatDateBR(filterPeriodoFim) : "atual"}`
       : "Todos os períodos";
 
-    const infoBox = (label: string, value: string, color = "#2B4C7E") =>
-      `<td width="30%" style="background:#f0f4f8;border:1px solid #e8ecf0;border-radius:10px;padding:12px 14px;vertical-align:top">
-        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 4px;font-weight:600">${label}</div>
-        <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${color};margin:0">${value}</div>
-      </td>`;
-
-    const tableRow = (r: typeof rows[0], i: number) =>
-      `<tr style="border-bottom:1px solid #f0f2f5">
-        <td style="padding:10px 12px;font-size:12px;color:#888;width:28px;text-align:center">${i + 1}</td>
-        <td style="padding:10px 8px">
-          <div style="font-family:${FONT};font-size:12px;font-weight:600;color:#333">${r.favorecido}</div>
-          <div style="font-size:10px;color:#888;margin-top:2px">${r.descricao}</div>
-          ${r.planoContas ? `<div style="font-size:9px;color:#aaa;margin-top:1px;font-family:monospace">${r.planoContas}</div>` : ""}
-        </td>
-        <td style="padding:10px 8px;text-align:center;font-size:11px;color:#555;white-space:nowrap">${fmtDate(r.vencimento)}</td>
-        <td style="padding:10px 8px;text-align:center">${statusBadge(r.status)}</td>
-        <td style="padding:10px 12px;text-align:right;font-family:${FONT};font-size:13px;font-weight:700;color:#2B4C7E;white-space:nowrap">${formatCurrency(r.valor)}</td>
+    const rowsHtml = rows.map((r) => {
+      const overdue = r.status === "atrasado" || isOverdue(r);
+      const statusTxt = overdue && r.status !== "pago" ? (r.status === "parcial" ? "Parcial • Vencido" : "Atrasado") : (STATUS_MAP[r.status]?.label || r.status);
+      return `<tr>
+        <td>${esc(statusTxt)}</td>
+        <td class="nowrap">${esc(formatDateBR(r.vencimento))}</td>
+        <td>${esc(r.favorecido)}</td>
+        <td>${esc(r.descricao)}</td>
+        <td>${esc(r.planoContas)}</td>
+        <td class="r ${overdue ? "neg" : ""}">${esc(formatCurrency(r.valor))}</td>
       </tr>`;
+    }).join("");
 
-    const mesesAbrev = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-    const fmtShort = (d: string) => { const dt = new Date(d + "T12:00:00"); return `${dt.getDate()}-${mesesAbrev[dt.getMonth()]}`; };
-    const periodoFile = filterPeriodoInicio || filterPeriodoFim
-      ? `${filterPeriodoInicio ? fmtShort(filterPeriodoInicio) : "inicio"}_a_${filterPeriodoFim ? fmtShort(filterPeriodoFim) : fmtShort(format(new Date(), "yyyy-MM-dd"))}`
-      : fmtShort(format(new Date(), "yyyy-MM-dd"));
-    const docTitle = `Relatorio-contas-a-pagar-${periodoFile}`;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${docTitle}</title>
-<style type="text/css">
-@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;700;800&display=swap');
-@media print {
-  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-  @page { margin: 8mm 6mm; size: A4; }
-}
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relação de Contas a Pagar</title>
+<style>
+*{box-sizing:border-box}
+@page { margin: 10mm 8mm; size: A4 portrait; }
+html,body{margin:0;padding:0;background:#fff;font-family:Arial,'Segoe UI',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;z-index:10}
+.toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
+.wrap{padding:4px;background:#fff;width:100%;max-width:100%}
+.head{display:flex;align-items:center;gap:10px;padding:2px 2px 4px;border-bottom:1.5px solid #2B4C7E;margin-bottom:4px}
+.head h1{margin:0;font-size:11px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
+.head .per{font-size:8px;color:#666;text-align:right;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:7pt;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
+thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:6.5pt;letter-spacing:.2px;padding:3px;border:1px solid #d0d7de;text-align:left;word-wrap:break-word;overflow-wrap:anywhere}
+tbody td{padding:2px 3px;border:1px solid #e5e7eb;font-size:7pt;line-height:1.15;word-wrap:break-word;overflow-wrap:anywhere;vertical-align:top}
+tbody tr:nth-child(even) td{background:#fafbfc}
+.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow-wrap:normal}
+.nowrap{white-space:nowrap;overflow-wrap:normal;font-size:6.5pt}
+.neg{color:#b91c1c;font-weight:700}
+tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
+tr{page-break-inside:avoid}
+thead{display:table-header-group}
+tfoot{display:table-row-group}
+.foot{margin-top:4px;display:flex;justify-content:space-between;font-size:7pt;color:#6b7280}
+.totals-labels{padding:4px 6px}
+.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
+.total-item{font-size:7.5pt;color:#4b5563}
+.total-item b{font-size:8pt;color:#1f2937;font-weight:800}
+.grand-total{font-size:9pt;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:4px 5px;text-align:right;white-space:nowrap}
+@media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
-<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:${FONT};-webkit-text-size-adjust:100%">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8">
-<tr><td align="center" style="padding:10px 8px">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:700px;font-family:${FONT}">
-
-<!-- HEADER -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:16px 20px;border-left:4px solid #2B4C7E">
-  <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-    <td style="width:48px;vertical-align:middle;padding-right:16px">
-      <img src="${logoUrl}" alt="SIME" width="42" height="42" style="display:block;height:42px;width:42px;border-radius:6px" />
-    </td>
-    <td style="vertical-align:middle">
-      <div style="font-family:${FONT};font-weight:800;font-size:18px;color:#2B4C7E;line-height:1.2;letter-spacing:0.3px">SIME <span style="color:#F5C518">TRANSPORTES</span></div>
-      <div style="font-size:11px;color:#444;line-height:1.4;margin-top:2px;font-weight:600">${estName}</div>
-      ${matrizAddrLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizAddrLine}</div>` : ""}
-      ${matrizDocLine ? `<div style="font-size:10.5px;color:#666;line-height:1.4">${matrizDocLine}</div>` : ""}
-    </td>
-  </tr></table>
-</td></tr>
-
-<tr><td style="height:6px;font-size:0">&nbsp;</td></tr>
-<tr><td style="border-bottom:3px solid #2B4C7E;font-size:0;height:1px">&nbsp;</td></tr>
-<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
-
-<!-- TITLE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-family:${FONT};font-size:17px;font-weight:700;color:#2B4C7E">RELAÇÃO DE CONTAS A PAGAR</div>
-  <div style="font-size:11px;color:#888;margin-top:4px">Período: ${periodoLabel}</div>
-</td></tr>
-
-<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
-
-<!-- SUMMARY BOXES -->
-<tr><td>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    ${infoBox("Registros", String(rows.length))}
-    <td width="5%" style="font-size:0">&nbsp;</td>
-    ${infoBox("A Pagar", formatCurrency(totalPendente), "#856404")}
-    <td width="5%" style="font-size:0">&nbsp;</td>
-    ${infoBox("Total Geral", formatCurrency(total), "#2B4C7E")}
-  </tr></table>
-</td></tr>
-
-<tr><td style="height:8px;font-size:0">&nbsp;</td></tr>
-
-<!-- TABLE -->
-<tr><td style="background:#ffffff;border-radius:10px;padding:4px 0;overflow:hidden">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr style="background:#f5f7fa">
-      <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center;width:28px">#</td>
-      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px">Favorecido / Descrição</td>
-      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Vencimento</td>
-      <td style="padding:8px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Status</td>
-      <td style="padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;text-align:right">Valor</td>
-    </tr>
-    ${rows.map((r, i) => tableRow(r, i)).join("")}
-    <tr style="background:#f0f4f8">
-      <td colspan="4" style="padding:12px;font-family:${FONT};font-size:12px;font-weight:700;color:#2B4C7E;text-align:right;text-transform:uppercase;letter-spacing:0.3px">Total</td>
-      <td style="padding:12px;font-family:${FONT};font-size:15px;font-weight:800;color:#2B4C7E;text-align:right;white-space:nowrap">${formatCurrency(total)}</td>
-    </tr>
+<body>
+<div class="toolbar no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+<div class="wrap">
+  <div class="head">
+    <div style="flex:1"><h1>Relação de Contas a Pagar</h1><div class="per">Período: ${esc(periodo)} • ${rows.length} registro(s)</div></div>
+  </div>
+  <table>
+    <colgroup>
+      <col style="width:11%" />
+      <col style="width:9%" />
+      <col style="width:22%" />
+      <col style="width:28%" />
+      <col style="width:18%" />
+      <col style="width:12%" />
+    </colgroup>
+    <thead><tr>
+      <th>Status</th><th>Venc.</th><th>Favorecido</th><th>Descrição</th><th>Plano de Contas</th><th class="r">Valor</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5" class="totals-labels">
+          <div class="totals-row">
+            <span class="total-item">Atrasado: <b>${esc(formatCurrency(totalAtrasado))}</b></span>
+            <span class="total-item">Em aberto: <b>${esc(formatCurrency(totalAberto))}</b></span>
+            <span class="total-item">Pago: <b>${esc(formatCurrency(totalPago))}</b></span>
+            <span class="total-item"><b>TOTAL</b></span>
+          </div>
+        </td>
+        <td class="grand-total">${esc(formatCurrency(total))}</td>
+      </tr>
+    </tfoot>
   </table>
-</td></tr>
-
-<tr><td style="height:10px;font-size:0">&nbsp;</td></tr>
-
-<!-- FOOTER -->
-<tr><td style="background:#2B4C7E;border-radius:10px;padding:10px 20px;text-align:center">
-  <div style="font-size:10px;color:rgba(255,255,255,0.9);margin:2px 0;font-weight:600">SIME TRANSPORTES${estName ? ` — ${estName}` : ""}</div>
-  ${estCnpjFooter ? `<div style="font-size:10px;color:rgba(255,255,255,0.85);margin:2px 0">CNPJ: ${estCnpjFooter}</div>` : ""}
-  <div style="font-size:10px;color:rgba(255,255,255,0.75);margin:2px 0">Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div>
-</td></tr>
-
-</table>
-</td></tr></table>
+  <div class="foot"><div>SIME TRANSPORTES</div><div>Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</div></div>
+</div>
+<script>
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(function () { window.focus(); window.print(); }, 400);
+      });
+    });
+  });
+</script>
 </body></html>`;
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) {
-      win.onload = () => { win.focus(); win.print(); };
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    const w = window.open(url, "_blank", "width=900,height=1000,menubar=no,toolbar=no,location=no,status=no");
+    if (!w) {
+      URL.revokeObjectURL(url);
+      toast.error("Libere pop-ups para gerar a impressão");
+      return;
     }
+    setTimeout(() => URL.revokeObjectURL(url), 180000);
   };
 
   const quickFilterButtons: { key: QuickFilter | "all"; label: string; icon: React.ReactNode; count: number }[] = [
