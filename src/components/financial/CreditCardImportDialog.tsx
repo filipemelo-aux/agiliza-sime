@@ -395,8 +395,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
   };
 
   const updateItem = useCallback((idx: number, patch: Partial<ItemRow>) => {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  }, []);
+    setItems((prev) => prev.map((it, i) => {
+      if (i !== idx) return it;
+      const next = { ...it, ...patch };
+      // Auto-fill centro de custo padrão do plano de contas (só se estiver vazio)
+      if (patch.plano_contas_id && patch.plano_contas_id !== it.plano_contas_id && !next.centro_custo) {
+        const acc = chartAccounts.find((a) => a.id === patch.plano_contas_id);
+        if (acc?.centro_custo_default) next.centro_custo = acc.centro_custo_default;
+      }
+      return next;
+    }));
+  }, [chartAccounts]);
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
