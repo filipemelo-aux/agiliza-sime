@@ -212,13 +212,19 @@ export function PayablesDataGrid() {
     },
   );
 
+  const hideAberto = useMemo(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return dataFim < today;
+  }, [dataFim]);
+
   const totais = useMemo(() => {
     const total = filtered.reduce((s, r) => s + r.valor, 0);
     const atrasado = filtered.filter((r) => r.status === "atrasado" || (r.status === "parcial" && r.vencido)).reduce((s, r) => s + r.valor, 0);
-    const aberto = filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
+    const aberto = hideAberto ? 0 : filtered.filter((r) => r.status === "pendente" || r.status === "parcial").reduce((s, r) => s + r.valor, 0);
     const pago = filtered.filter((r) => r.status === "pago").reduce((s, r) => s + r.valorPago, 0);
     return { total, atrasado, aberto, pago };
-  }, [filtered]);
+  }, [filtered, hideAberto]);
+
 
   const statusButtons: { v: StatusFilter; label: string }[] = [
     { v: "todos", label: "Todos" },
@@ -304,7 +310,7 @@ tfoot{display:table-row-group}
     <tbody>${rowsHtml}</tbody>
     <tfoot>
       <tr>
-        <td colspan="7" class="r">Atrasado: ${esc(formatCurrency(totais.atrasado))} • Em aberto: ${esc(formatCurrency(totais.aberto))} • Pago: ${esc(formatCurrency(totais.pago))} • TOTAL</td>
+        <td colspan="7" class="r">Atrasado: ${esc(formatCurrency(totais.atrasado))}${hideAberto ? "" : ` • Em aberto: ${esc(formatCurrency(totais.aberto))}`} • Pago: ${esc(formatCurrency(totais.pago))} • TOTAL</td>
         <td class="r">${esc(formatCurrency(totais.total))}</td>
       </tr>
     </tfoot>
@@ -479,7 +485,7 @@ tfoot{display:table-row-group}
           <span className="font-semibold">{filtered.length} registro(s)</span>
           <div className="flex items-center gap-2 text-muted-foreground">
             <span>Atrasado: <span className="font-bold text-red-600">{formatCurrency(totais.atrasado)}</span></span>
-            <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>
+            {!hideAberto && <span>Aberto: <span className="font-bold text-amber-600">{formatCurrency(totais.aberto)}</span></span>}
             <span>Pago: <span className="font-bold text-emerald-600">{formatCurrency(totais.pago)}</span></span>
             <span>Total: <span className="font-bold text-primary tabular-nums">{formatCurrency(totais.total)}</span></span>
           </div>
