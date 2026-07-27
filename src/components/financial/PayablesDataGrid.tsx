@@ -341,7 +341,8 @@ tfoot{display:table-row-group}
 
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
+    // Abre em proporção A4 paisagem (~1123x794 @ 96dpi) para o browser respeitar a orientação landscape
+    const w = window.open(url, "_blank", "width=1123,height=794,menubar=no,toolbar=no,location=no,status=no");
     if (!w) {
       URL.revokeObjectURL(url);
       toast.error("Libere pop-ups para gerar a impressão");
