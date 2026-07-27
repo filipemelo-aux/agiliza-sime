@@ -112,6 +112,11 @@ function AccountRow({
             {node.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
           </Badge>
         )}
+        {node.centro_custo_default && (
+          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+            CC: {CENTRO_CUSTO_LABELS[node.centro_custo_default] || node.centro_custo_default}
+          </Badge>
+        )}
         {!node.ativo && (
           <Badge variant="outline" className="text-[10px] text-muted-foreground">Inativo</Badge>
         )}
