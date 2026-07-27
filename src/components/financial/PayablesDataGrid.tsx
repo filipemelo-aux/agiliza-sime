@@ -274,12 +274,17 @@ tbody tr:nth-child(even) td{background:#fafbfc}
 .c{text-align:center}
 .nowrap{white-space:nowrap}
 .neg{color:#b91c1c;font-weight:700}
-tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding:5px;border-top:1.5px solid #2B4C7E}
+tfoot td{background:#eef2f6;border-top:1.5px solid #2B4C7E}
 tr{page-break-inside:avoid}
 thead{display:table-header-group}
 tfoot{display:table-row-group}
 .foot{margin-top:6px;display:flex;justify-content:space-between;font-size:8px;color:#6b7280}
 .filters{font-size:8.5px;color:#555;margin-bottom:4px}
+.totals-labels{padding:6px 10px}
+.totals-row{display:flex;justify-content:flex-end;align-items:center;gap:20px;flex-wrap:wrap}
+.total-item{font-size:9px;color:#4b5563}
+.total-item b{font-size:10px;color:#1f2937;font-weight:800}
+.grand-total{font-size:11px;font-weight:800;color:#2B4C7E;background:#e5ebf2;padding:6px 8px}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
@@ -310,8 +315,15 @@ tfoot{display:table-row-group}
     <tbody>${rowsHtml}</tbody>
     <tfoot>
       <tr>
-        <td colspan="7" class="r">Atrasado: ${esc(formatCurrency(totais.atrasado))}${hideAberto ? "" : ` • Em aberto: ${esc(formatCurrency(totais.aberto))}`} • Pago: ${esc(formatCurrency(totais.pago))} • TOTAL</td>
-        <td class="r">${esc(formatCurrency(totais.total))}</td>
+        <td colspan="7" class="totals-labels">
+          <div class="totals-row">
+            <span class="total-item">Atrasado: <b>${esc(formatCurrency(totais.atrasado))}</b></span>
+            ${hideAberto ? "" : `<span class="total-item">Em aberto: <b>${esc(formatCurrency(totais.aberto))}</b></span>`}
+            <span class="total-item">Pago: <b>${esc(formatCurrency(totais.pago))}</b></span>
+            <span class="total-item total"><b>TOTAL</b></span>
+          </div>
+        </td>
+        <td class="r grand-total">${esc(formatCurrency(totais.total))}</td>
       </tr>
     </tfoot>
   </table>
