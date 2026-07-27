@@ -18,7 +18,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { parseOfx, type OfxTransaction } from "@/lib/ofxParser";
+import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
@@ -75,7 +75,13 @@ const CENTRO_CUSTO_OPTIONS = [
   { value: "operacional", label: "Operacional" },
 ];
 
-interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; }
+interface ChartAccount { id: string; codigo: string; nome: string; tipo: string; conta_pai_id: string | null; centro_custo_default?: string | null; }
+
+const stripParcelaSuffix = (desc: string) =>
+  (desc || "").replace(/\s*[-–]?\s*\(?\d{1,2}\s*\/\s*\d{1,2}\)?\s*$/, "").trim();
+
+const normalizeDesc = (desc: string) =>
+  stripParcelaSuffix(desc).toLowerCase().replace(/\s+/g, " ").trim();
 
 interface ItemRow {
   id?: string; // db id when loaded from existing invoice
@@ -203,7 +209,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     if (!open) return;
     supabase
       .from("chart_of_accounts")
-      .select("id, codigo, nome, tipo, conta_pai_id")
+      .select("id, codigo, nome, tipo, conta_pai_id, centro_custo_default")
       .eq("ativo", true)
       .eq("tipo", "despesa")
       .order("codigo")
@@ -322,6 +328,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
     const newRows: ItemRow[] = debits.map((t) => {
       const desc = t.description || "Lançamento";
+      const parcelaInfo = parseParcelaFromDescription(desc);
       return {
         fitid: t.fitid,
         posted_date: t.date,
@@ -333,18 +340,26 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         favorecido_nome: desc,
         veiculo_id: null,
         observacoes: "",
-        parcela_atual: null,
-        parcela_total: null,
+        parcela_atual: parcelaInfo?.atual ?? null,
+        parcela_total: parcelaInfo?.total ?? null,
         parcelas_expandidas: false,
       };
     });
 
-    // Dedup 1: dentro da fatura atual (fitid ou data+valor)
+    const parcelasDetected = newRows.filter((r) => r.parcela_total).length;
+
+    // Dedup 1: dentro da fatura atual — fitid, data+valor, OU descrição base + valor
     const existingFitids = new Set(items.map((p) => p.fitid).filter(Boolean));
-    const existingKey = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
+    const existingDateAmount = new Set(items.map((p) => `${p.posted_date}|${Number(p.amount).toFixed(2)}`));
+    const existingDescAmount = new Set(items.map((p) => `${normalizeDesc(p.description)}|${Number(p.amount).toFixed(2)}`));
+    let skippedDescMatch = 0;
     let filtered = newRows.filter((r) => {
       if (r.fitid && existingFitids.has(r.fitid)) return false;
-      if (existingKey.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
+      if (existingDateAmount.has(`${r.posted_date}|${Number(r.amount).toFixed(2)}`)) return false;
+      if (existingDescAmount.has(`${normalizeDesc(r.description)}|${Number(r.amount).toFixed(2)}`)) {
+        skippedDescMatch++;
+        return false;
+      }
       return true;
     });
 
@@ -377,20 +392,36 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     setItems(merged);
     setOriginalItems(merged);
 
-    const skippedInDialog = newRows.length - filtered.length - skippedInDb;
+    const skippedInDialog = newRows.length - filtered.length - skippedInDb - skippedDescMatch;
     if (skippedInDialog > 0) {
-      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura e foram ignorados.`);
+      toast.info(`${skippedInDialog} lançamento(s) já estavam nesta fatura (fitid/data+valor) e foram ignorados.`);
+    }
+    if (skippedDescMatch > 0) {
+      toast.warning(`${skippedDescMatch} lançamento(s) já existem nesta fatura com mesma descrição e valor — mantidos os originais.`);
     }
     if (skippedInDb > 0) {
       toast.warning(`${skippedInDb} lançamento(s) já existem em outras faturas deste cartão (mesma data e valor) — ignorados.`);
     }
-    toast.success(`${filtered.length} lançamento(s) importado(s).`);
+    if (parcelasDetected > 0) {
+      toast.success(`${filtered.length} lançamento(s) importado(s) — ${parcelasDetected} com parcelas detectadas automaticamente.`);
+    } else {
+      toast.success(`${filtered.length} lançamento(s) importado(s).`);
+    }
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const updateItem = useCallback((idx: number, patch: Partial<ItemRow>) => {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  }, []);
+    setItems((prev) => prev.map((it, i) => {
+      if (i !== idx) return it;
+      const next = { ...it, ...patch };
+      // Auto-fill centro de custo padrão do plano de contas (só se estiver vazio)
+      if (patch.plano_contas_id && patch.plano_contas_id !== it.plano_contas_id && !next.centro_custo) {
+        const acc = chartAccounts.find((a) => a.id === patch.plano_contas_id);
+        if (acc?.centro_custo_default) next.centro_custo = acc.centro_custo_default;
+      }
+      return next;
+    }));
+  }, [chartAccounts]);
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
@@ -417,11 +448,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const applyPlanoContasToSelected = useCallback((planoContasId: string) => {
     if (selectedIdxs.size === 0 || !planoContasId) return;
+    const acc = chartAccounts.find((a) => a.id === planoContasId);
+    const ccDefault = acc?.centro_custo_default || "";
     setItems((prev) => prev.map((it, i) => (
-      selectedIdxs.has(i) ? { ...it, plano_contas_id: planoContasId } : it
+      selectedIdxs.has(i)
+        ? { ...it, plano_contas_id: planoContasId, centro_custo: it.centro_custo || ccDefault }
+        : it
     )));
     toast.success(`Plano de contas aplicado em ${selectedIdxs.size} lançamento(s).`);
-  }, [selectedIdxs]);
+  }, [selectedIdxs, chartAccounts]);
 
   const applyCentroCustoToSelected = useCallback((centroCusto: string) => {
     if (selectedIdxs.size === 0 || !centroCusto) return;
@@ -648,6 +683,19 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         createdCount++;
       }
 
+      // Verifica se já existe lançamento equivalente na fatura destino
+      // (mesmo valor + descrição base normalizada). Evita duplicação quando
+      // as parcelas já foram lançadas manualmente em faturas anteriores.
+      const { data: existingRows } = await supabase
+        .from("credit_card_invoice_items" as any)
+        .select("id, description, amount, parcela_atual, parcela_total")
+        .eq("invoice_id", targetInvoice.id);
+      const baseNorm = normalizeDesc(baseDesc);
+      const amtStr = Number(item.amount).toFixed(2);
+      const existingMatch = ((existingRows as any[]) || []).find(
+        (r) => normalizeDesc(r.description || "") === baseNorm && Number(r.amount).toFixed(2) === amtStr,
+      );
+
       const itemPayload: any = {
         invoice_id: targetInvoice.id,
         posted_date: targetPosted,
@@ -664,8 +712,23 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_total: totalP,
         parcelas_expandidas: true,
       };
-      const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
-      if (itemErr) throw itemErr;
+
+      if (existingMatch) {
+        // Já existe: apenas corrige numeração/marcação de parcela, mantém o lançamento original.
+        const { error: updExErr } = await supabase
+          .from("credit_card_invoice_items" as any)
+          .update({
+            description: buildDescription(existingMatch.description || baseDesc, parcela, totalP),
+            parcela_atual: parcela,
+            parcela_total: totalP,
+            parcelas_expandidas: true,
+          })
+          .eq("id", existingMatch.id);
+        if (updExErr) throw updExErr;
+      } else {
+        const { error: itemErr } = await supabase.from("credit_card_invoice_items" as any).insert(itemPayload);
+        if (itemErr) throw itemErr;
+      }
 
       const { data: sumRows } = await supabase
         .from("credit_card_invoice_items" as any)

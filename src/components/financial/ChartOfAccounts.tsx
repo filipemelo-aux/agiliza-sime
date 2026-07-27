@@ -17,6 +17,21 @@ const TIPO_OPERACIONAL_OPTIONS = [
   { value: "combustivel", label: "⛽ Combustível" },
 ];
 
+const CENTRO_CUSTO_DEFAULT_OPTIONS = [
+  { value: "", label: "Nenhum (usuário escolhe)" },
+  { value: "frota_propria", label: "Frota Própria" },
+  { value: "frota_terceiros", label: "Frota Terceiros" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "operacional", label: "Operacional" },
+];
+
+const CENTRO_CUSTO_LABELS: Record<string, string> = {
+  frota_propria: "Frota Própria",
+  frota_terceiros: "Frota Terceiros",
+  administrativo: "Administrativo",
+  operacional: "Operacional",
+};
+
 interface Account {
   id: string;
   codigo: string;
@@ -27,6 +42,7 @@ interface Account {
   ativo: boolean;
   empresa_id: string;
   tipo_operacional: string | null;
+  centro_custo_default: string | null;
 }
 
 interface TreeNode extends Account {
@@ -96,6 +112,11 @@ function AccountRow({
             {node.tipo_operacional === "manutencao" ? "🔧 Manutenção" : "⛽ Combustível"}
           </Badge>
         )}
+        {node.centro_custo_default && (
+          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+            CC: {CENTRO_CUSTO_LABELS[node.centro_custo_default] || node.centro_custo_default}
+          </Badge>
+        )}
         {!node.ativo && (
           <Badge variant="outline" className="text-[10px] text-muted-foreground">Inativo</Badge>
         )}
@@ -126,6 +147,7 @@ export function ChartOfAccounts() {
   const [contaPaiId, setContaPaiId] = useState<string | null>(null);
   const [ativo, setAtivo] = useState(true);
   const [tipoOperacional, setTipoOperacional] = useState("");
+  const [centroCustoDefault, setCentroCustoDefault] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
 
@@ -185,6 +207,7 @@ export function ChartOfAccounts() {
     setContaPaiId(null);
     setAtivo(true);
     setTipoOperacional("");
+    setCentroCustoDefault("");
     if (establishments.length === 1) setEmpresaId(establishments[0].id);
     else if (filterEmpresa !== "all") setEmpresaId(filterEmpresa);
     else setEmpresaId("");
@@ -198,6 +221,7 @@ export function ChartOfAccounts() {
     setContaPaiId(acc.conta_pai_id);
     setAtivo(acc.ativo);
     setTipoOperacional(acc.tipo_operacional || "");
+    setCentroCustoDefault(acc.centro_custo_default || "");
     setEmpresaId(acc.empresa_id);
     setDialogOpen(true);
   };
@@ -223,6 +247,7 @@ export function ChartOfAccounts() {
       ativo,
       empresa_id: empresaId,
       tipo_operacional: (tipoOperacional && tipoOperacional !== "none") ? tipoOperacional : null,
+      centro_custo_default: centroCustoDefault || null,
     };
 
     if (editingId) {
@@ -311,6 +336,22 @@ export function ChartOfAccounts() {
                     </Select>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Define se essa conta ativa campos especiais (ex: dados de manutenção ou combustível).
+                    </p>
+                  </div>
+                )}
+                {tipo === "despesa" && (
+                  <div>
+                    <Label>Centro de Custo Padrão</Label>
+                    <Select value={centroCustoDefault || "none"} onValueChange={v => setCentroCustoDefault(v === "none" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      <SelectContent>
+                        {CENTRO_CUSTO_DEFAULT_OPTIONS.map(o => (
+                          <SelectItem key={o.value || "none"} value={o.value || "none"}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Quando definido, o sistema preenche automaticamente o centro de custo nos lançamentos (ex: fatura de cartão).
                     </p>
                   </div>
                 )}

@@ -266,6 +266,7 @@ export type Database = {
       chart_of_accounts: {
         Row: {
           ativo: boolean
+          centro_custo_default: string | null
           codigo: string
           conta_pai_id: string | null
           created_at: string
@@ -279,6 +280,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          centro_custo_default?: string | null
           codigo: string
           conta_pai_id?: string | null
           created_at?: string
@@ -292,6 +294,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          centro_custo_default?: string | null
           codigo?: string
           conta_pai_id?: string | null
           created_at?: string
