@@ -42,6 +42,7 @@ interface Account {
   ativo: boolean;
   empresa_id: string;
   tipo_operacional: string | null;
+  centro_custo_default: string | null;
 }
 
 interface TreeNode extends Account {
