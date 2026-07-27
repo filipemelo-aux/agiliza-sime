@@ -432,11 +432,15 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
 
   const applyPlanoContasToSelected = useCallback((planoContasId: string) => {
     if (selectedIdxs.size === 0 || !planoContasId) return;
+    const acc = chartAccounts.find((a) => a.id === planoContasId);
+    const ccDefault = acc?.centro_custo_default || "";
     setItems((prev) => prev.map((it, i) => (
-      selectedIdxs.has(i) ? { ...it, plano_contas_id: planoContasId } : it
+      selectedIdxs.has(i)
+        ? { ...it, plano_contas_id: planoContasId, centro_custo: it.centro_custo || ccDefault }
+        : it
     )));
     toast.success(`Plano de contas aplicado em ${selectedIdxs.size} lançamento(s).`);
-  }, [selectedIdxs]);
+  }, [selectedIdxs, chartAccounts]);
 
   const applyCentroCustoToSelected = useCallback((centroCusto: string) => {
     if (selectedIdxs.size === 0 || !centroCusto) return;
