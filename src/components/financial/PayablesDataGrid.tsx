@@ -24,6 +24,8 @@ interface Row {
   status: "atrasado" | "pendente" | "parcial" | "pago";
   dataVencimento: string;
   fornecedor: string;
+  razaoSocial: string;
+  nomeFantasia: string;
   descricao: string;
   parcela: string;
   categoria: string;
