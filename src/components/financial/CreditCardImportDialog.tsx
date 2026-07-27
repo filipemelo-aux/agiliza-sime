@@ -3,7 +3,7 @@ import { useSortableTable, type SortState } from "@/hooks/useSortableTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { parseOfx, parseParcelaFromDescription, type OfxTransaction } from "@/lib/ofxParser";
-import { formatCurrency } from "@/lib/masks";
+import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { getLocalDateISO, formatDateBR } from "@/lib/date";
 import { PersonSearchInput } from "@/components/freight/PersonSearchInput";
 import { PersonCreateDialog } from "@/components/PersonEditDialog";
@@ -559,31 +559,75 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
   }, [chartAccounts]);
 
-  const addManualItem = useCallback(() => {
+  // Modal de novo lançamento manual
+  interface ManualForm {
+    posted_date: string;
+    description: string;
+    amount: string; // masked currency string
+    parcela_atual: string;
+    parcela_total: string;
+    plano_contas_id: string | null;
+  }
+  const emptyManualForm = (): ManualForm => {
     const [y, m] = referenceYM.split("-").map(Number);
     const today = new Date();
     const defaultDate =
       y && m && (today.getFullYear() !== y || today.getMonth() + 1 !== m)
         ? `${y}-${String(m).padStart(2, "0")}-${String(Math.min(today.getDate(), 28)).padStart(2, "0")}`
         : getLocalDateISO();
-    const newRow: ItemRow = {
-      fitid: `manual-${crypto.randomUUID()}`,
+    return {
       posted_date: defaultDate,
       description: "",
-      amount: 0,
+      amount: "",
+      parcela_atual: "",
+      parcela_total: "",
       plano_contas_id: null,
+    };
+  };
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+
+  const addManualItem = useCallback(() => {
+    setManualForm(emptyManualForm());
+    setManualDialogOpen(true);
+  }, [referenceYM]);
+
+  const confirmManualItem = useCallback(() => {
+    const desc = manualForm.description.trim();
+    if (!desc) { toast.error("Informe a descrição do lançamento."); return; }
+    const amountNum = Number(unmaskCurrency(manualForm.amount));
+    if (!amountNum || amountNum <= 0) { toast.error("Informe um valor válido."); return; }
+    if (!manualForm.posted_date) { toast.error("Informe a data do lançamento."); return; }
+    const parcelaAtual = manualForm.parcela_atual ? Number(manualForm.parcela_atual) : null;
+    const parcelaTotal = manualForm.parcela_total ? Number(manualForm.parcela_total) : null;
+    if ((parcelaAtual && !parcelaTotal) || (!parcelaAtual && parcelaTotal)) {
+      toast.error("Preencha parcela atual e total juntos (ou deixe ambos em branco).");
+      return;
+    }
+    if (parcelaAtual && parcelaTotal && parcelaAtual > parcelaTotal) {
+      toast.error("Parcela atual não pode ser maior que o total.");
+      return;
+    }
+    const newRow: ItemRow = {
+      fitid: `manual-${crypto.randomUUID()}`,
+      posted_date: manualForm.posted_date,
+      description: desc,
+      amount: amountNum,
+      plano_contas_id: manualForm.plano_contas_id,
       centro_custo: "",
       favorecido_id: null,
       favorecido_nome: "",
       veiculo_id: null,
       observacoes: "",
-      parcela_atual: null,
-      parcela_total: null,
+      parcela_atual: parcelaAtual,
+      parcela_total: parcelaTotal,
       parcelas_expandidas: false,
     };
     setItems((prev) => [newRow, ...prev]);
-    toast.success("Lançamento manual adicionado — preencha os dados na primeira linha.");
-  }, [referenceYM]);
+    setManualDialogOpen(false);
+    toast.success("Lançamento adicionado à fatura.");
+  }, [manualForm]);
+
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
@@ -1816,6 +1860,83 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         }}
       />
       {ConfirmDialog}
+
+      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Novo Lançamento Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Data</Label>
+                <Input
+                  type="date"
+                  className="h-9"
+                  value={manualForm.posted_date}
+                  onChange={(e) => setManualForm((f) => ({ ...f, posted_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Valor (R$) <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="0,00"
+                  className="h-9"
+                  value={manualForm.amount}
+                  onChange={(e) => setManualForm((f) => ({ ...f, amount: maskCurrency(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Descrição <span className="text-destructive">*</span></Label>
+              <Input
+                className="h-9"
+                placeholder="Ex: Compra loja XYZ"
+                value={manualForm.description}
+                onChange={(e) => setManualForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Parcela atual</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-9"
+                  placeholder="Ex: 1"
+                  value={manualForm.parcela_atual}
+                  onChange={(e) => setManualForm((f) => ({ ...f, parcela_atual: e.target.value.replace(/\D/g, "") }))}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Total de parcelas</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-9"
+                  placeholder="Ex: 10"
+                  value={manualForm.parcela_total}
+                  onChange={(e) => setManualForm((f) => ({ ...f, parcela_total: e.target.value.replace(/\D/g, "") }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Plano de contas</Label>
+              <PlanoContasCombobox
+                value={manualForm.plano_contas_id}
+                onChange={(v) => setManualForm((f) => ({ ...f, plano_contas_id: v }))}
+                options={despesaLeaves}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Opcional — pode ser classificado depois na grade.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={confirmManualItem}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </Dialog>
 
   );
