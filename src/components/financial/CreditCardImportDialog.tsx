@@ -559,31 +559,75 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     }));
   }, [chartAccounts]);
 
-  const addManualItem = useCallback(() => {
+  // Modal de novo lançamento manual
+  interface ManualForm {
+    posted_date: string;
+    description: string;
+    amount: string; // masked currency string
+    parcela_atual: string;
+    parcela_total: string;
+    plano_contas_id: string | null;
+  }
+  const emptyManualForm = (): ManualForm => {
     const [y, m] = referenceYM.split("-").map(Number);
     const today = new Date();
     const defaultDate =
       y && m && (today.getFullYear() !== y || today.getMonth() + 1 !== m)
         ? `${y}-${String(m).padStart(2, "0")}-${String(Math.min(today.getDate(), 28)).padStart(2, "0")}`
         : getLocalDateISO();
-    const newRow: ItemRow = {
-      fitid: `manual-${crypto.randomUUID()}`,
+    return {
       posted_date: defaultDate,
       description: "",
-      amount: 0,
+      amount: "",
+      parcela_atual: "",
+      parcela_total: "",
       plano_contas_id: null,
+    };
+  };
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualForm>(emptyManualForm);
+
+  const addManualItem = useCallback(() => {
+    setManualForm(emptyManualForm());
+    setManualDialogOpen(true);
+  }, [referenceYM]);
+
+  const confirmManualItem = useCallback(() => {
+    const desc = manualForm.description.trim();
+    if (!desc) { toast.error("Informe a descrição do lançamento."); return; }
+    const amountNum = Number(unmaskCurrency(manualForm.amount));
+    if (!amountNum || amountNum <= 0) { toast.error("Informe um valor válido."); return; }
+    if (!manualForm.posted_date) { toast.error("Informe a data do lançamento."); return; }
+    const parcelaAtual = manualForm.parcela_atual ? Number(manualForm.parcela_atual) : null;
+    const parcelaTotal = manualForm.parcela_total ? Number(manualForm.parcela_total) : null;
+    if ((parcelaAtual && !parcelaTotal) || (!parcelaAtual && parcelaTotal)) {
+      toast.error("Preencha parcela atual e total juntos (ou deixe ambos em branco).");
+      return;
+    }
+    if (parcelaAtual && parcelaTotal && parcelaAtual > parcelaTotal) {
+      toast.error("Parcela atual não pode ser maior que o total.");
+      return;
+    }
+    const newRow: ItemRow = {
+      fitid: `manual-${crypto.randomUUID()}`,
+      posted_date: manualForm.posted_date,
+      description: desc,
+      amount: amountNum,
+      plano_contas_id: manualForm.plano_contas_id,
       centro_custo: "",
       favorecido_id: null,
       favorecido_nome: "",
       veiculo_id: null,
       observacoes: "",
-      parcela_atual: null,
-      parcela_total: null,
+      parcela_atual: parcelaAtual,
+      parcela_total: parcelaTotal,
       parcelas_expandidas: false,
     };
     setItems((prev) => [newRow, ...prev]);
-    toast.success("Lançamento manual adicionado — preencha os dados na primeira linha.");
-  }, [referenceYM]);
+    setManualDialogOpen(false);
+    toast.success("Lançamento adicionado à fatura.");
+  }, [manualForm]);
+
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
