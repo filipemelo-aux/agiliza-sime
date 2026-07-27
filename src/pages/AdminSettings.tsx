@@ -367,13 +367,39 @@ export default function AdminSettings() {
     }
   };
 
-  const handleForceUpdate = () => {
-    if ("caches" in window) {
-      caches.keys().then((names) => {
-        names.forEach((name) => caches.delete(name));
-      });
+  const handleForceUpdate = async () => {
+    toast({ title: "Atualizando sistema...", description: "Buscando a última versão publicada." });
+    try {
+      // 1. Fetch latest version.json bypassing cache
+      try {
+        const res = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.version) localStorage.setItem("app_version", data.version);
+        }
+      } catch { /* ignore network failure, still force reload */ }
+
+      // 2. Unregister service workers (if any) to avoid stale HTML
+      if ("serviceWorker" in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        } catch { /* noop */ }
+      }
+
+      // 3. Clear all Cache Storage entries
+      if ("caches" in window) {
+        try {
+          const names = await caches.keys();
+          await Promise.all(names.map((n) => caches.delete(n)));
+        } catch { /* noop */ }
+      }
+    } finally {
+      // 4. Hard reload with cache-buster to force fresh index.html + assets
+      const url = new URL(window.location.href);
+      url.searchParams.set("_v", Date.now().toString());
+      window.location.replace(url.toString());
     }
-    applyUpdate();
   };
 
   const handleSaveSignature = async (dataUrl: string) => {
