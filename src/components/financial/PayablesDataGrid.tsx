@@ -251,26 +251,30 @@ export function PayablesDataGrid() {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box}
-@media print { @page { margin: 6mm 5mm; size: A4 landscape; } html,body{margin:0!important;padding:0!important;background:#fff!important} .no-print{display:none!important} tr{page-break-inside:avoid} thead{display:table-header-group} }
-html,body{margin:0;padding:0;background:#f4f6f8;font-family:'Exo',system-ui,sans-serif;color:#1f2937}
-.toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
+@page { margin: 8mm 6mm; size: A4 landscape; }
+html,body{margin:0;padding:0;background:#fff;font-family:'Exo',system-ui,sans-serif;color:#1f2937;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;gap:8px;justify-content:flex-end}
 .toolbar button{font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid #d1d5db;background:#2B4C7E;color:#fff;cursor:pointer}
-.wrap{max-width:1180px;margin:6px auto;padding:0 8px}
+.wrap{padding:4px 6px}
 .head{display:flex;align-items:center;gap:10px;padding:4px 2px 6px;border-bottom:1.5px solid #2B4C7E;margin-bottom:6px}
 .head img{height:32px}
 .head h1{margin:0;font-size:12px;font-weight:700;color:#2B4C7E;text-transform:uppercase;letter-spacing:.3px;flex:1;text-align:right}
 .head .per{font-size:9px;color:#666;text-align:right;margin-top:2px}
-table{width:100%;border-collapse:collapse;font-size:9px;background:#fff;border:1px solid #d0d7de}
+table{width:100%;border-collapse:collapse;font-size:9px;background:#fff;border:1px solid #d0d7de;table-layout:fixed}
 thead th{background:#eef2f6;color:#374151;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.2px;padding:4px 5px;border:1px solid #d0d7de;text-align:left}
-tbody td{padding:3px 5px;border:1px solid #e5e7eb;font-size:9px;line-height:1.25}
+tbody td{padding:3px 5px;border:1px solid #e5e7eb;font-size:9px;line-height:1.25;word-wrap:break-word;overflow-wrap:break-word}
 tbody tr:nth-child(even) td{background:#fafbfc}
 .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .c{text-align:center}
 .nowrap{white-space:nowrap}
 .neg{color:#b91c1c;font-weight:700}
 tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding:5px;border-top:1.5px solid #2B4C7E}
+tr{page-break-inside:avoid}
+thead{display:table-header-group}
+tfoot{display:table-row-group}
 .foot{margin-top:6px;display:flex;justify-content:space-between;font-size:8px;color:#6b7280}
 .filters{font-size:8.5px;color:#555;margin-bottom:4px}
+@media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
 <div class="toolbar no-print"><button onclick="window.print()">🖨️ Imprimir</button></div>
@@ -283,6 +287,16 @@ tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding
     Status: <b>${esc(statusLbl)}</b>${veiculoQ ? ` • Placa: <b>${esc(veiculoQ)}</b>` : ""}${search ? ` • Busca: <b>${esc(search)}</b>` : ""}
   </div>
   <table>
+    <colgroup>
+      <col style="width:8%" />
+      <col style="width:7%" />
+      <col style="width:18%" />
+      <col style="width:24%" />
+      <col style="width:5%" />
+      <col style="width:16%" />
+      <col style="width:7%" />
+      <col style="width:9%" />
+    </colgroup>
     <thead><tr>
       <th>Status</th><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th>
       <th class="c">Parc.</th><th>Categoria</th><th>Veículo</th><th class="r">Valor</th>
@@ -309,6 +323,7 @@ tfoot td{background:#eef2f6;font-weight:800;font-size:10px;color:#2B4C7E;padding
     w.document.close();
     w.focus();
   };
+
 
   const Th = ({ k, label, className }: { k: Parameters<typeof toggle>[0]; label: string; className?: string }) => (
     <th className={cn("px-1 py-0.5 font-medium select-none cursor-pointer whitespace-nowrap", className)} onClick={() => toggle(k)}>
