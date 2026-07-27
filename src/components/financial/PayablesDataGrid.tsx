@@ -310,7 +310,7 @@ tfoot{display:table-row-group}
     <tbody>${rowsHtml}</tbody>
     <tfoot>
       <tr>
-        <td colspan="7" class="r">Atrasado: ${esc(formatCurrency(totais.atrasado))} • Em aberto: ${esc(formatCurrency(totais.aberto))} • Pago: ${esc(formatCurrency(totais.pago))} • TOTAL</td>
+        <td colspan="7" class="r">Atrasado: ${esc(formatCurrency(totais.atrasado))}${hideAberto ? "" : ` • Em aberto: ${esc(formatCurrency(totais.aberto))}`} • Pago: ${esc(formatCurrency(totais.pago))} • TOTAL</td>
         <td class="r">${esc(formatCurrency(totais.total))}</td>
       </tr>
     </tfoot>
