@@ -324,7 +324,7 @@ tfoot{display:table-row-group}
 @media print { .no-print{display:none!important} .toolbar{display:none!important} }
 </style></head>
 <body>
-<div class="toolbar no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+<div class="toolbar no-print"><button onclick="try{window.opener&&window.opener.__exportPayablesXlsx&&window.opener.__exportPayablesXlsx()}catch(e){alert('Falha ao exportar: '+e)}" style="background:#1f7a4d">Exportar Excel</button><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
 <div class="wrap">
   <div class="head">
     <img src="${window.location.origin}/logo.png" alt="" onerror="this.style.display='none'" />
