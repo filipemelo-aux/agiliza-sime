@@ -1287,6 +1287,43 @@ ${hasRecebimentos ? `
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
+      {selectedFaturaIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-2 rounded-md border border-border bg-muted/40">
+          <span className="text-xs font-medium">
+            {selectedFaturaIds.size} fatura(s) selecionada(s)
+            {bulkDeletable.length !== selectedFaturas.length && (
+              <span className="text-muted-foreground"> · {bulkDeletable.length} excluível(is) · {bulkReversible.length} estornável(is)</span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedFaturaIds(new Set())} disabled={bulkBusy}>
+              Limpar seleção
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-orange-600 hover:text-orange-600"
+              onClick={handleBulkReverse}
+              disabled={bulkBusy || bulkReversible.length === 0}
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+              Estornar em lote
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleBulkDelete}
+              disabled={bulkBusy || bulkDeletable.length === 0}
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Excluir em lote
+            </Button>
+          </div>
+        </div>
+      )}
+
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : faturas.length === 0 ? (
