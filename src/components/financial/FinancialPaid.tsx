@@ -455,10 +455,22 @@ export function FinancialPaid() {
     setDetailExpense(null);
     setDetailPayments([]);
     setDetailChart(null);
+    setDetailInstallment(item.installment || null);
+
+    // When the clicked row is a specific installment, filter payments to that installment only.
+    // Otherwise show all payments of the expense.
+    let payQuery = supabase
+      .from("expense_payments" as any)
+      .select("id, valor, forma_pagamento, data_pagamento, observacoes, installment_id")
+      .eq("expense_id", item.expense_id)
+      .order("data_pagamento");
+    if (item.installment?.id) {
+      payQuery = payQuery.eq("installment_id", item.installment.id);
+    }
 
     const [expRes, payRes] = await Promise.all([
       supabase.from("expenses").select("*").eq("id", item.expense_id).maybeSingle(),
-      supabase.from("expense_payments" as any).select("id, valor, forma_pagamento, data_pagamento, observacoes").eq("expense_id", item.expense_id).order("data_pagamento"),
+      payQuery,
     ]);
 
     if (expRes.error) console.error("[FinancialPaid] erro ao buscar despesa", item.expense_id, expRes.error);
@@ -488,6 +500,7 @@ export function FinancialPaid() {
     }
     setDetailExpense(exp);
     setDetailPayments((payRes.data || []) as unknown as PaymentRecord[]);
+
     setDetailLoading(false);
   };
 
