@@ -614,7 +614,21 @@ export function BankReconciliation() {
   // Localiza a movimentação bancária criada para uma despesa/conta a pagar
   // (após quitação, o trigger gera movimento via origem='pagamento_despesa' ou 'contas_pagar').
   // Retorna a melhor candidata por proximidade de data.
+  const fetchMovDetails = useCallback(async (ids: string[]) => {
+    const map = new Map<string, { descricao: string | null; data_movimentacao: string; valor: number; origem: string }>();
+    if (ids.length === 0) return map;
+    const { data } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id, descricao, data_movimentacao, valor, origem")
+      .in("id", ids);
+    (data || []).forEach((m: any) => map.set(m.id, {
+      descricao: m.descricao, data_movimentacao: m.data_movimentacao, valor: Number(m.valor), origem: m.origem,
+    }));
+    return map;
+  }, []);
+
   const findCreatedMovId = useCallback(async (params: {
+
     expenseId?: string;
     accountsPayableId?: string;
     amount: number;
