@@ -1093,20 +1093,37 @@ export function BankReconciliation() {
           });
           if (rpErr) throw rpErr;
         }
+        const linkedMap = new Map<string, string | null>();
         for (const it of targetItems) {
           const movIdToLink = await findCreatedMovId({
             amount: Math.abs(it.amount),
             tipo: it.tipo,
             referenceDate: it.date,
           });
+          linkedMap.set(it.id, movIdToLink);
           const updateFilter = it.dbItemId
             ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
             : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
           await updateFilter;
         }
+        const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
         setItems((prev) =>
-          prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+          prev.map((i) => {
+            if (!linkTargetItemIds.includes(i.id)) return i;
+            const mid = linkedMap.get(i.id) || null;
+            const d = mid ? movDetails.get(mid) : null;
+            return {
+              ...i,
+              status: "conciliado" as const,
+              matchedMovId: mid,
+              matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
+              matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
+              matchedMovValor: d?.valor ?? i.matchedMovValor,
+              matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
+            };
+          })
         );
+
         setSelectedIds((prev) => {
           const next = new Set(prev);
           linkTargetItemIds.forEach((id) => next.delete(id));
