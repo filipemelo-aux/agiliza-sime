@@ -31,6 +31,30 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ── Auth: exige service_role (cron/worker interno) OU JWT com papel admin/moderator ──
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const isServiceRoleCall = bearer.length > 0 && bearer === serviceRoleKey;
+
+  if (!isServiceRoleCall) {
+    if (!bearer) {
+      return json({ error: "Não autorizado" }, 401);
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return json({ error: "Não autorizado" }, 401);
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: roles } = await adminClient
+      .from("user_roles").select("role").eq("user_id", userData.user.id);
+    const allowed = (roles || []).some((r: any) => r.role === "admin" || r.role === "moderator");
+    if (!allowed) return json({ error: "Permissão insuficiente" }, 403);
+  }
+
   // Unique instance ID per invocation — enables lock tracking
   const instanceId = `worker-${crypto.randomUUID().slice(0, 8)}-${Date.now()}`;
 
