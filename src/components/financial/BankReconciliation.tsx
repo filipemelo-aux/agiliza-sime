@@ -1641,46 +1641,20 @@ export function BankReconciliation() {
     setConfirmMatch(null);
   }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId]);
 
+  // Estrito: conciliação via match do FLUXO DE CAIXA (movimento existente).
+  // Não faz fallback para payable/receivable — esses têm handlers próprios
+  // (openConfirmPayable) para que os botões fiquem independentes quando o mesmo
+  // lançamento OFX possui múltiplos matches (fluxo + contas a pagar/receber).
   const openConfirm = useCallback((item: OfxItem) => {
-    if (item.matchedMovId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedMovId,
-        descricao: item.matchedMovDesc,
-        data_movimentacao: item.matchedMovDate || item.date,
-        valor: Math.abs(item.amount),
-        origem: item.matchedMovOrigem || "",
-      });
-    } else if (item.matchedPayableId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedPayableId,
-        descricao: item.matchedPayableDesc,
-        data_movimentacao: item.matchedPayableDue || item.date,
-        valor: item.matchedPayableValor || Math.abs(item.amount),
-        origem: "contas_pagar_pendente",
-        isPayable: true,
-        payableDueDate: item.matchedPayableDue || undefined,
-        expenseId: item.matchedPayableExpenseId || undefined,
-        isInstallment: item.matchedPayableIsInstallment,
-        installmentId: item.matchedPayableInstallmentId || undefined,
-        fornecedor: item.matchedPayableFornecedor || null,
-      });
-    } else if (item.matchedReceivableId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedReceivableId,
-        descricao: item.matchedReceivableDesc,
-        data_movimentacao: item.matchedReceivableDue || item.date,
-        valor: item.matchedReceivableValor || Math.abs(item.amount),
-        origem: "contas_receber_pendente",
-        isReceivable: true,
-        contaReceberId: item.matchedReceivableContaId || undefined,
-        receivableDueDate: item.matchedReceivableDue || undefined,
-        cliente: item.matchedReceivableCliente || null,
-        faturaNumero: item.matchedReceivableFaturaNumero || null,
-      });
-    }
+    if (!item.matchedMovId) return;
+    setConfirmItem(item);
+    setConfirmMatch({
+      id: item.matchedMovId,
+      descricao: item.matchedMovDesc,
+      data_movimentacao: item.matchedMovDate || item.date,
+      valor: Math.abs(item.amount),
+      origem: item.matchedMovOrigem || "",
+    });
   }, []);
 
   const openConfirmPayable = useCallback((item: OfxItem) => {
