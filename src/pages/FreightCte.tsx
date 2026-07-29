@@ -95,6 +95,8 @@ export default function FreightCte() {
   const { user } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchCtes();
