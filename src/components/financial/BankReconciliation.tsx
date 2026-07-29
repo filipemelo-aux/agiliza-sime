@@ -737,12 +737,16 @@ export function BankReconciliation() {
       toast.success(`${selectedIds.size} transação(ões) conciliada(s)`);
       setSelectedIds(new Set());
       setTimeout(updateReconciliationCount, 500);
+      // Re-resume para garantir que os itens efetivados não reapareçam
+      // como pendentes (re-hidrata status/matches direto do banco).
+      const rec = history.find((h) => h.id === reconciliationId);
+      if (rec) await resumeReconciliation(rec);
     } catch (err: any) {
       toast.error("Erro na conciliação em lote: " + (err.message || ""));
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user, history, resumeReconciliation]);
 
   // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
   const handleUndoReconcile = useCallback(async (item: OfxItem) => {
@@ -1225,13 +1229,16 @@ export function BankReconciliation() {
     return { total, conciliados, pendentes };
   }, [items]);
 
-  // Visão inversa: movimentações do fluxo de caixa (no período do OFX) que NÃO aparecem no extrato
+  // Visão inversa: SOMENTE movimentações efetivadas diretamente no Fluxo de Caixa
+  // (origem = 'manual') que não aparecem no extrato OFX. Movimentos derivados de
+  // Contas a Pagar/Receber (pagamento_despesa, contas_pagar, contas_receber,
+  // recebimento_conta_receber, pagamento_agrupado, despesas, etc.) são excluídos —
+  // eles não representam problema para o usuário nesta verificação inversa.
   const missingFromOfx = useMemo(() => {
     if (!ofxRange || movsInPeriod.length === 0) return [] as typeof movsInPeriod;
-    // Um mov é considerado "presente" no OFX se existe alguma linha do OFX com mesmo tipo,
-    // valor absoluto igual (tolerância 0,01) e data dentro de ±5 dias.
     const linkedIds = new Set(items.map((i) => i.matchedMovId).filter(Boolean) as string[]);
     return movsInPeriod.filter((m) => {
+      if (m.origem !== "manual") return false;
       if (linkedIds.has(m.id)) return false;
       const absVal = Math.abs(m.valor);
       const hit = items.some((i) =>
@@ -1631,53 +1638,30 @@ export function BankReconciliation() {
             : "Transação conciliada com sucesso"
       );
       setTimeout(updateReconciliationCount, 500);
+      // Re-resume garante que o item efetivado não reapareça em pendentes
+      const rec = history.find((h) => h.id === reconciliationId);
+      if (rec) await resumeReconciliation(rec);
     } catch (err: any) {
       toast.error("Erro ao conciliar: " + (err.message || ""));
     }
     setConfirmItem(null);
     setConfirmMatch(null);
-  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId]);
+  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId, history, resumeReconciliation]);
 
+  // Estrito: conciliação via match do FLUXO DE CAIXA (movimento existente).
+  // Não faz fallback para payable/receivable — esses têm handlers próprios
+  // (openConfirmPayable) para que os botões fiquem independentes quando o mesmo
+  // lançamento OFX possui múltiplos matches (fluxo + contas a pagar/receber).
   const openConfirm = useCallback((item: OfxItem) => {
-    if (item.matchedMovId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedMovId,
-        descricao: item.matchedMovDesc,
-        data_movimentacao: item.matchedMovDate || item.date,
-        valor: Math.abs(item.amount),
-        origem: item.matchedMovOrigem || "",
-      });
-    } else if (item.matchedPayableId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedPayableId,
-        descricao: item.matchedPayableDesc,
-        data_movimentacao: item.matchedPayableDue || item.date,
-        valor: item.matchedPayableValor || Math.abs(item.amount),
-        origem: "contas_pagar_pendente",
-        isPayable: true,
-        payableDueDate: item.matchedPayableDue || undefined,
-        expenseId: item.matchedPayableExpenseId || undefined,
-        isInstallment: item.matchedPayableIsInstallment,
-        installmentId: item.matchedPayableInstallmentId || undefined,
-        fornecedor: item.matchedPayableFornecedor || null,
-      });
-    } else if (item.matchedReceivableId) {
-      setConfirmItem(item);
-      setConfirmMatch({
-        id: item.matchedReceivableId,
-        descricao: item.matchedReceivableDesc,
-        data_movimentacao: item.matchedReceivableDue || item.date,
-        valor: item.matchedReceivableValor || Math.abs(item.amount),
-        origem: "contas_receber_pendente",
-        isReceivable: true,
-        contaReceberId: item.matchedReceivableContaId || undefined,
-        receivableDueDate: item.matchedReceivableDue || undefined,
-        cliente: item.matchedReceivableCliente || null,
-        faturaNumero: item.matchedReceivableFaturaNumero || null,
-      });
-    }
+    if (!item.matchedMovId) return;
+    setConfirmItem(item);
+    setConfirmMatch({
+      id: item.matchedMovId,
+      descricao: item.matchedMovDesc,
+      data_movimentacao: item.matchedMovDate || item.date,
+      valor: Math.abs(item.amount),
+      origem: item.matchedMovOrigem || "",
+    });
   }, []);
 
   const openConfirmPayable = useCallback((item: OfxItem) => {
