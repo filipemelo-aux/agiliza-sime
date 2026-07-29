@@ -338,6 +338,93 @@ export default function FreightCte() {
     }
   };
 
+  // ─── Seleção em lote ──────────────────────────────────────
+  const isBulkDeletable = (c: Cte) =>
+    c.tipo_talao === "servico" || c.status !== "autorizado";
+
+  const selectableIds = sorted.filter(isBulkDeletable).map((c) => c.id);
+  const allSelected =
+    selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds));
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds).filter((id) =>
+      sorted.some((c) => c.id === id && isBulkDeletable(c)),
+    );
+    if (!ids.length) return;
+
+    // Bloqueia CT-es já vinculados a faturas
+    const { data: prevs } = await supabase
+      .from("previsoes_recebimento")
+      .select("origem_id, fatura_previsoes(fatura_id)")
+      .eq("origem_tipo", "cte")
+      .in("origem_id", ids);
+    const blocked = new Set(
+      (prevs || [])
+        .filter((p: any) => (p.fatura_previsoes?.length ?? 0) > 0)
+        .map((p: any) => p.origem_id as string),
+    );
+    const deletable = ids.filter((id) => !blocked.has(id));
+
+    if (!deletable.length) {
+      toast({
+        title: "Exclusão bloqueada",
+        description: "Todos os CT-es selecionados estão vinculados a faturas. Desvincule-os antes de excluir.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ok = await confirm({
+      title: "Excluir CT-es selecionados",
+      description:
+        `Confirma excluir ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
+        (blocked.size ? `\n\n⚠️ ${blocked.size} CT-e(s) serão ignorados por estarem vinculados a faturas.` : "") +
+        "\n\nEsta ação é irreversível.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkDeleting(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const id of deletable) {
+        try {
+          await removeLinkedFreightContract(id);
+          const { error } = await supabase.from("ctes").delete().eq("id", id);
+          if (error) throw error;
+          okCount++;
+        } catch (err: any) {
+          errors.push(`${id.slice(0, 8)}: ${err.message}`);
+        }
+      }
+      toast({
+        title: errors.length ? "Concluído com erros" : "CT-es excluídos",
+        description: `${okCount} CT-e(s) excluído(s).${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
+        variant: errors.length ? "destructive" : "default",
+      });
+      setSelectedIds(new Set());
+      fetchCtes();
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
