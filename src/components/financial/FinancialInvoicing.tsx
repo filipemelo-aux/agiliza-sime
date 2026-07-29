@@ -1421,8 +1421,16 @@ ${hasRecebimentos ? `
                 {faturasSorted.map((f) => {
                   const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                   return (
-                    <tr key={f.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(f)}>
+                    <tr key={f.id} className={cn("border-t border-border hover:bg-muted/30 cursor-pointer", selectedFaturaIds.has(f.id) && "bg-primary/5")} onClick={() => openDetail(f)}>
+                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedFaturaIds.has(f.id)}
+                          onCheckedChange={() => toggleFaturaSelect(f.id)}
+                          aria-label="Selecionar fatura"
+                        />
+                      </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
+
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
                       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
