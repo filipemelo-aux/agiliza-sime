@@ -134,6 +134,11 @@ export function BankReconciliation() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado">("todos");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
+  // Movimentações do fluxo no período do OFX (para detectar lançamentos que NÃO existem no extrato)
+  const [movsInPeriod, setMovsInPeriod] = useState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>([]);
+  const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
+  const [showMissing, setShowMissing] = useState(false);
+  const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
 
   // Load chart of accounts
   useEffect(() => {
