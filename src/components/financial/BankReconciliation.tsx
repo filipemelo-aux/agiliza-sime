@@ -1225,6 +1225,24 @@ export function BankReconciliation() {
     return { total, conciliados, pendentes };
   }, [items]);
 
+  // Visão inversa: movimentações do fluxo de caixa (no período do OFX) que NÃO aparecem no extrato
+  const missingFromOfx = useMemo(() => {
+    if (!ofxRange || movsInPeriod.length === 0) return [] as typeof movsInPeriod;
+    // Um mov é considerado "presente" no OFX se existe alguma linha do OFX com mesmo tipo,
+    // valor absoluto igual (tolerância 0,01) e data dentro de ±5 dias.
+    const linkedIds = new Set(items.map((i) => i.matchedMovId).filter(Boolean) as string[]);
+    return movsInPeriod.filter((m) => {
+      if (linkedIds.has(m.id)) return false;
+      const absVal = Math.abs(m.valor);
+      const hit = items.some((i) =>
+        i.tipo === m.tipo &&
+        Math.abs(Math.abs(i.amount) - absVal) < 0.01 &&
+        daysDiff(i.date, m.data_movimentacao) <= 5
+      );
+      return !hit;
+    });
+  }, [items, movsInPeriod, ofxRange]);
+
   const filteredItems = useMemo(() => {
     let list = items;
     if (statusFilter !== "todos") {
