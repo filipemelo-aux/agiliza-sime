@@ -1497,6 +1497,18 @@ export function BankReconciliation() {
         });
       }
 
+      // Guarda período do OFX e movimentações do fluxo nesse período (para visão inversa)
+      const ofxMin = dates[0];
+      const ofxMax = dates[dates.length - 1];
+      const movsInside = (existingMovs || [])
+        .filter((m: any) => m.data_movimentacao >= ofxMin && m.data_movimentacao <= ofxMax)
+        .map((m: any) => ({
+          id: m.id, valor: Number(m.valor), data_movimentacao: m.data_movimentacao,
+          tipo: m.tipo as "entrada" | "saida", descricao: m.descricao, origem: m.origem, favorecido: null,
+        }));
+      setOfxRange({ min: ofxMin, max: ofxMax });
+      setMovsInPeriod(movsInside);
+
       setReconciliationId(rec.id);
       setItems(ofxItems);
       setFileName(file.name);
