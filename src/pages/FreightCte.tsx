@@ -583,10 +583,19 @@ export default function FreightCte() {
                     return (
                       <tr
                         key={cte.id}
-                        className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                        className={`border-t border-border hover:bg-muted/30 cursor-pointer ${selectedIds.has(cte.id) ? "bg-primary/5" : ""}`}
                         onClick={() => setDetailCte(cte)}
                       >
+                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(cte.id)}
+                            disabled={!isBulkDeletable(cte)}
+                            onCheckedChange={() => toggleSelect(cte.id)}
+                            aria-label="Selecionar CT-e"
+                          />
+                        </td>
                         <td className="px-3 py-2 font-medium tabular-nums">{numeroDisplay}</td>
+
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {isServico ? "Serviço" : "Produção"}
                         </td>
