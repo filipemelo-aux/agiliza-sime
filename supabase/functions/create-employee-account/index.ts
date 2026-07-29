@@ -76,9 +76,12 @@ serve(async (req) => {
       throw new Error("Senha deve ter pelo menos 6 caracteres");
     }
 
-    let assignRole = role || "moderator";
+    let assignRole = role || "user";
     const validRoles = ["user", "moderator", "operador"];
-    if (!validRoles.includes(assignRole)) assignRole = "moderator";
+    if (!validRoles.includes(assignRole)) assignRole = "user";
+    if (isModerator && !isAdmin && assignRole === "moderator") {
+      throw new Error("Apenas administradores podem criar moderadores");
+    }
 
     const existingAuthUser = await findAuthUserByEmail(adminClient, normalizedEmail);
 
