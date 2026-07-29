@@ -2466,17 +2466,21 @@ export function BankReconciliation() {
 function translateOrigem(origem: string | null): string {
   const map: Record<string, string> = {
     pagamento_despesa: "Pagamento de Despesa",
+    pagamento_agrupado: "Pagamento Agrupado",
     despesas: "Despesa",
     contas_pagar: "Contas a Pagar",
     contas_pagar_pendente: "Conta a Pagar (pendente)",
     contas_receber: "Contas a Receber",
+    recebimento_conta_receber: "Recebimento",
     manual: "Lançamento Manual",
     colheita: "Colheita",
+    colheitas: "Colheita",
     abastecimento: "Abastecimento",
     faturamento: "Faturamento",
   };
   return map[origem || ""] || origem || "Outro";
 }
+
 
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
