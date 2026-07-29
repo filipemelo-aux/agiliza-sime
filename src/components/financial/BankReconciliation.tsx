@@ -1638,12 +1638,15 @@ export function BankReconciliation() {
             : "Transação conciliada com sucesso"
       );
       setTimeout(updateReconciliationCount, 500);
+      // Re-resume garante que o item efetivado não reapareça em pendentes
+      const rec = history.find((h) => h.id === reconciliationId);
+      if (rec) await resumeReconciliation(rec);
     } catch (err: any) {
       toast.error("Erro ao conciliar: " + (err.message || ""));
     }
     setConfirmItem(null);
     setConfirmMatch(null);
-  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId]);
+  }, [confirmItem, confirmMatch, reconciliationId, updateReconciliationCount, user, findCreatedMovId, history, resumeReconciliation]);
 
   // Estrito: conciliação via match do FLUXO DE CAIXA (movimento existente).
   // Não faz fallback para payable/receivable — esses têm handlers próprios
