@@ -203,6 +203,44 @@ export function DreGerencial() {
         });
       });
 
+      // ============================================================
+      // 4) RECEITAS NÃO-OPERACIONAIS / ADMINISTRATIVAS (1.2.x, 1.3.x)
+      //    Vêm de movimentações bancárias manuais (não passam por
+      //    previsoes_recebimento). Usamos data_movimentacao como
+      //    proxy de competência.
+      // ============================================================
+      const { data: revAccts } = await supabase
+        .from("chart_of_accounts")
+        .select("id, codigo")
+        .eq("tipo", "receita");
+      const nonOpRevenueIds = (revAccts || [])
+        .filter((c: any) => !String(c.codigo).startsWith("1.1"))
+        .map((c: any) => c.id);
+      if (nonOpRevenueIds.length > 0) {
+        let movQ: any = supabase
+          .from("movimentacoes_bancarias")
+          .select("id, valor, data_movimentacao, descricao, plano_contas_id, origem")
+          .eq("tipo", "entrada")
+          .in("plano_contas_id", nonOpRevenueIds);
+        if (dataInicio) movQ = movQ.gte("data_movimentacao", dataInicio);
+        if (dataFim) movQ = movQ.lte("data_movimentacao", dataFim);
+        const { data: movData, error: movErr } = await movQ.limit(20000);
+        if (movErr) throw movErr;
+        (movData || []).forEach((m: any) => {
+          const v = Number(m.valor) || 0;
+          if (v === 0) return;
+          enriched.push({
+            tipo: "entrada",
+            valor: Math.abs(v),
+            planoId: m.plano_contas_id || null,
+            origem: "direta",
+            data: m.data_movimentacao || null,
+            descricao: m.descricao || "Receita administrativa",
+            parcela: "—",
+          });
+        });
+      }
+
       setMovs(enriched);
       setGenerated(true);
     } catch (e: any) {
