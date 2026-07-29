@@ -134,6 +134,11 @@ export function BankReconciliation() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | "pendente" | "conciliado">("todos");
   const [tipoFilter, setTipoFilter] = useState<"todos" | "debito" | "credito">("todos");
+  // Movimentações do fluxo no período do OFX (para detectar lançamentos que NÃO existem no extrato)
+  const [movsInPeriod, setMovsInPeriod] = useState<Array<{ id: string; valor: number; data_movimentacao: string; tipo: "entrada" | "saida"; descricao: string | null; origem: string; favorecido?: string | null }>>([]);
+  const [ofxRange, setOfxRange] = useState<{ min: string; max: string } | null>(null);
+  const [showMissing, setShowMissing] = useState(false);
+  const [deletingMovId, setDeletingMovId] = useState<string | null>(null);
 
   // Load chart of accounts
   useEffect(() => {
@@ -512,6 +517,19 @@ export function BankReconciliation() {
           matchedReceivableFaturaNumero,
         };
       });
+
+      // Guarda período do OFX e movimentações do fluxo nesse período (para visão inversa)
+      const ofxMin = dates[0];
+      const ofxMax = dates[dates.length - 1];
+      const movsInside = (existingMovs || [])
+        .filter((m: any) => m.data_movimentacao >= ofxMin && m.data_movimentacao <= ofxMax)
+        .map((m: any) => ({
+          id: m.id, valor: Number(m.valor), data_movimentacao: m.data_movimentacao,
+          tipo: m.tipo, descricao: m.descricao, origem: m.origem,
+          favorecido: movFavorecidoMap.get(m.id) || null,
+        }));
+      setOfxRange({ min: ofxMin, max: ofxMax });
+      setMovsInPeriod(movsInside);
 
       setReconciliationId(rec.id);
       setItems(ofxItems);
@@ -1207,6 +1225,24 @@ export function BankReconciliation() {
     return { total, conciliados, pendentes };
   }, [items]);
 
+  // Visão inversa: movimentações do fluxo de caixa (no período do OFX) que NÃO aparecem no extrato
+  const missingFromOfx = useMemo(() => {
+    if (!ofxRange || movsInPeriod.length === 0) return [] as typeof movsInPeriod;
+    // Um mov é considerado "presente" no OFX se existe alguma linha do OFX com mesmo tipo,
+    // valor absoluto igual (tolerância 0,01) e data dentro de ±5 dias.
+    const linkedIds = new Set(items.map((i) => i.matchedMovId).filter(Boolean) as string[]);
+    return movsInPeriod.filter((m) => {
+      if (linkedIds.has(m.id)) return false;
+      const absVal = Math.abs(m.valor);
+      const hit = items.some((i) =>
+        i.tipo === m.tipo &&
+        Math.abs(Math.abs(i.amount) - absVal) < 0.01 &&
+        daysDiff(i.date, m.data_movimentacao) <= 5
+      );
+      return !hit;
+    });
+  }, [items, movsInPeriod, ofxRange]);
+
   const filteredItems = useMemo(() => {
     let list = items;
     if (statusFilter !== "todos") {
@@ -1478,6 +1514,18 @@ export function BankReconciliation() {
           if (insertedItems[i]) item.dbItemId = insertedItems[i].id;
         });
       }
+
+      // Guarda período do OFX e movimentações do fluxo nesse período (para visão inversa)
+      const ofxMin = dates[0];
+      const ofxMax = dates[dates.length - 1];
+      const movsInside = (existingMovs || [])
+        .filter((m: any) => m.data_movimentacao >= ofxMin && m.data_movimentacao <= ofxMax)
+        .map((m: any) => ({
+          id: m.id, valor: Number(m.valor), data_movimentacao: m.data_movimentacao,
+          tipo: m.tipo as "entrada" | "saida", descricao: m.descricao, origem: m.origem, favorecido: null,
+        }));
+      setOfxRange({ min: ofxMin, max: ofxMax });
+      setMovsInPeriod(movsInside);
 
       setReconciliationId(rec.id);
       setItems(ofxItems);
@@ -1872,11 +1920,116 @@ export function BankReconciliation() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <SummaryCard icon={FileSpreadsheet} label="Total" value={totals.total} />
         <SummaryCard icon={CheckCircle2} label="Conciliados" value={totals.conciliados} valueColor="green" />
         <SummaryCard icon={AlertCircle} label="Pendentes" value={totals.pendentes} valueColor={totals.pendentes > 0 ? "red" : "green"} />
+        <button
+          type="button"
+          onClick={() => setShowMissing((v) => !v)}
+          className="text-left"
+          title="Movimentações do fluxo de caixa que não aparecem neste extrato OFX"
+        >
+          <SummaryCard
+            icon={AlertCircle}
+            label="Só no sistema"
+            value={missingFromOfx.length}
+            valueColor={missingFromOfx.length > 0 ? "red" : "green"}
+          />
+        </button>
       </div>
+
+      {/* Missing from OFX panel (visão inversa) */}
+      {showMissing && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Lançamentos no sistema sem correspondência no OFX
+                {ofxRange && (
+                  <span className="ml-2 text-[10px] normal-case font-normal">
+                    ({formatDateBR(ofxRange.min)} → {formatDateBR(ofxRange.max)})
+                  </span>
+                )}
+              </p>
+              <Badge variant="outline" className="text-[10px]">{missingFromOfx.length}</Badge>
+            </div>
+            {missingFromOfx.length === 0 ? (
+              <p className="text-xs text-muted-foreground px-4 pb-3">
+                Nenhuma divergência: todo lançamento do fluxo no período do OFX tem correspondência no extrato.
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {missingFromOfx
+                  .slice()
+                  .sort((a, b) => a.data_movimentacao.localeCompare(b.data_movimentacao))
+                  .map((m) => (
+                    <div key={m.id} className="px-4 py-2 flex items-center gap-3 flex-wrap">
+                      <span className="text-[11px] text-muted-foreground w-20 shrink-0">
+                        {formatDateBR(m.data_movimentacao)}
+                      </span>
+                      <Badge
+                        variant={m.tipo === "entrada" ? "default" : "destructive"}
+                        className={cn("text-[10px] shrink-0", m.tipo === "entrada" && "bg-green-600 hover:bg-green-700")}
+                      >
+                        {m.tipo === "entrada" ? "Crédito" : "Débito"}
+                      </Badge>
+                      <span className={cn("text-xs font-mono font-bold w-28 shrink-0", m.tipo === "entrada" ? "text-green-600" : "text-red-600")}>
+                        {formatCurrency(Math.abs(m.valor))}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-foreground truncate">
+                          {m.descricao || "(sem descrição)"}
+                          {m.favorecido && <span className="text-muted-foreground"> · {m.favorecido}</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Origem: {translateOrigem(m.origem)}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-[10px] text-destructive gap-1"
+                        onClick={() => setDeletingMovId(m.id)}
+                        disabled={m.origem !== "manual"}
+                        title={m.origem === "manual" ? "Excluir lançamento manual" : "Só é possível excluir lançamentos manuais — os demais devem ser estornados na origem (Contas a Pagar / Receber)"}
+                      >
+                        <Trash2 className="h-3 w-3" /> Excluir
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <AlertDialog open={!!deletingMovId} onOpenChange={(o) => { if (!o) setDeletingMovId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lançamento do fluxo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A movimentação bancária será removida permanentemente do fluxo de caixa. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deletingMovId) return;
+                const { error } = await supabase.from("movimentacoes_bancarias").delete().eq("id", deletingMovId);
+                if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+                setMovsInPeriod((prev) => prev.filter((x) => x.id !== deletingMovId));
+                setDeletingMovId(null);
+                toast.success("Lançamento removido do fluxo");
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Batch action bar */}
       {(selectableItems.length > 0 || items.some((i) => i.status === "pendente")) && (
