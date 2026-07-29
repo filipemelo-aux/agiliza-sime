@@ -737,12 +737,16 @@ export function BankReconciliation() {
       toast.success(`${selectedIds.size} transação(ões) conciliada(s)`);
       setSelectedIds(new Set());
       setTimeout(updateReconciliationCount, 500);
+      // Re-resume para garantir que os itens efetivados não reapareçam
+      // como pendentes (re-hidrata status/matches direto do banco).
+      const rec = history.find((h) => h.id === reconciliationId);
+      if (rec) await resumeReconciliation(rec);
     } catch (err: any) {
       toast.error("Erro na conciliação em lote: " + (err.message || ""));
     } finally {
       setLoading(false);
     }
-  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user]);
+  }, [selectedIds, items, reconciliationId, updateReconciliationCount, findCreatedMovId, user, history, resumeReconciliation]);
 
   // ── Desfazer conciliação (volta item para pendente e re-tenta match) ──
   const handleUndoReconcile = useCallback(async (item: OfxItem) => {
