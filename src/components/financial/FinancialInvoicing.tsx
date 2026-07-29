@@ -1397,7 +1397,17 @@ ${hasRecebimentos ? `
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
+                  <th className="px-2 py-2 w-[36px]">
+                    <Checkbox
+                      checked={faturasSorted.length > 0 && faturasSorted.every((f) => selectedFaturaIds.has(f.id))}
+                      onCheckedChange={(v) =>
+                        setSelectedFaturaIds(v ? new Set(faturasSorted.map((f) => f.id)) : new Set())
+                      }
+                      aria-label="Selecionar todas"
+                    />
+                  </th>
                   <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+
                   <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
                   <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
