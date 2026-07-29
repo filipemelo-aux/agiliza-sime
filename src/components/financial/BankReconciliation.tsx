@@ -1225,13 +1225,16 @@ export function BankReconciliation() {
     return { total, conciliados, pendentes };
   }, [items]);
 
-  // Visão inversa: movimentações do fluxo de caixa (no período do OFX) que NÃO aparecem no extrato
+  // Visão inversa: SOMENTE movimentações efetivadas diretamente no Fluxo de Caixa
+  // (origem = 'manual') que não aparecem no extrato OFX. Movimentos derivados de
+  // Contas a Pagar/Receber (pagamento_despesa, contas_pagar, contas_receber,
+  // recebimento_conta_receber, pagamento_agrupado, despesas, etc.) são excluídos —
+  // eles não representam problema para o usuário nesta verificação inversa.
   const missingFromOfx = useMemo(() => {
     if (!ofxRange || movsInPeriod.length === 0) return [] as typeof movsInPeriod;
-    // Um mov é considerado "presente" no OFX se existe alguma linha do OFX com mesmo tipo,
-    // valor absoluto igual (tolerância 0,01) e data dentro de ±5 dias.
     const linkedIds = new Set(items.map((i) => i.matchedMovId).filter(Boolean) as string[]);
     return movsInPeriod.filter((m) => {
+      if (m.origem !== "manual") return false;
       if (linkedIds.has(m.id)) return false;
       const absVal = Math.abs(m.valor);
       const hit = items.some((i) =>
