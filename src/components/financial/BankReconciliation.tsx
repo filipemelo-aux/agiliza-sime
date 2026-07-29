@@ -614,7 +614,21 @@ export function BankReconciliation() {
   // Localiza a movimentação bancária criada para uma despesa/conta a pagar
   // (após quitação, o trigger gera movimento via origem='pagamento_despesa' ou 'contas_pagar').
   // Retorna a melhor candidata por proximidade de data.
+  const fetchMovDetails = useCallback(async (ids: string[]) => {
+    const map = new Map<string, { descricao: string | null; data_movimentacao: string; valor: number; origem: string }>();
+    if (ids.length === 0) return map;
+    const { data } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id, descricao, data_movimentacao, valor, origem")
+      .in("id", ids);
+    (data || []).forEach((m: any) => map.set(m.id, {
+      descricao: m.descricao, data_movimentacao: m.data_movimentacao, valor: Number(m.valor), origem: m.origem,
+    }));
+    return map;
+  }, []);
+
   const findCreatedMovId = useCallback(async (params: {
+
     expenseId?: string;
     accountsPayableId?: string;
     amount: number;
@@ -1093,20 +1107,37 @@ export function BankReconciliation() {
           });
           if (rpErr) throw rpErr;
         }
+        const linkedMap = new Map<string, string | null>();
         for (const it of targetItems) {
           const movIdToLink = await findCreatedMovId({
             amount: Math.abs(it.amount),
             tipo: it.tipo,
             referenceDate: it.date,
           });
+          linkedMap.set(it.id, movIdToLink);
           const updateFilter = it.dbItemId
             ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
             : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
           await updateFilter;
         }
+        const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
         setItems((prev) =>
-          prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+          prev.map((i) => {
+            if (!linkTargetItemIds.includes(i.id)) return i;
+            const mid = linkedMap.get(i.id) || null;
+            const d = mid ? movDetails.get(mid) : null;
+            return {
+              ...i,
+              status: "conciliado" as const,
+              matchedMovId: mid,
+              matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
+              matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
+              matchedMovValor: d?.valor ?? i.matchedMovValor,
+              matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
+            };
+          })
         );
+
         setSelectedIds((prev) => {
           const next = new Set(prev);
           linkTargetItemIds.forEach((id) => next.delete(id));
@@ -1183,6 +1214,7 @@ export function BankReconciliation() {
         }
       }
 
+      const linkedMap = new Map<string, string | null>();
       for (const it of targetItems) {
         const movIdToLink = await findCreatedMovId({
           expenseId: expenseId,
@@ -1190,15 +1222,31 @@ export function BankReconciliation() {
           tipo: it.tipo,
           referenceDate: it.date,
         });
+        linkedMap.set(it.id, movIdToLink);
         const updateFilter = it.dbItemId
           ? supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("id", it.dbItemId)
           : supabase.from("bank_reconciliation_items").update({ status: "conciliado", matched_movimentacao_id: movIdToLink }).eq("reconciliation_id", reconciliationId).eq("fitid", it.fitid || "").eq("status", "pendente");
         await updateFilter;
       }
 
+      const movDetails = await fetchMovDetails(Array.from(linkedMap.values()).filter(Boolean) as string[]);
       setItems((prev) =>
-        prev.map((i) => linkTargetItemIds.includes(i.id) ? { ...i, status: "conciliado" as const } : i)
+        prev.map((i) => {
+          if (!linkTargetItemIds.includes(i.id)) return i;
+          const mid = linkedMap.get(i.id) || null;
+          const d = mid ? movDetails.get(mid) : null;
+          return {
+            ...i,
+            status: "conciliado" as const,
+            matchedMovId: mid,
+            matchedMovDesc: d?.descricao ?? i.matchedMovDesc,
+            matchedMovDate: d?.data_movimentacao ?? i.matchedMovDate,
+            matchedMovValor: d?.valor ?? i.matchedMovValor,
+            matchedMovOrigem: d?.origem ?? i.matchedMovOrigem,
+          };
+        })
       );
+
       setSelectedIds((prev) => {
         const next = new Set(prev);
         linkTargetItemIds.forEach((id) => next.delete(id));
@@ -2466,17 +2514,21 @@ export function BankReconciliation() {
 function translateOrigem(origem: string | null): string {
   const map: Record<string, string> = {
     pagamento_despesa: "Pagamento de Despesa",
+    pagamento_agrupado: "Pagamento Agrupado",
     despesas: "Despesa",
     contas_pagar: "Contas a Pagar",
     contas_pagar_pendente: "Conta a Pagar (pendente)",
     contas_receber: "Contas a Receber",
+    recebimento_conta_receber: "Recebimento",
     manual: "Lançamento Manual",
     colheita: "Colheita",
+    colheitas: "Colheita",
     abastecimento: "Abastecimento",
     faturamento: "Faturamento",
   };
   return map[origem || ""] || origem || "Outro";
 }
+
 
 function MatchBox({ desc, date, valor, origem, variant = "amber", label = "Correspondência encontrada", precision, fornecedor }: {
   desc: string | null; date: string | null; valor: number | null; origem: string;
