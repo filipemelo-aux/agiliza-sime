@@ -1339,11 +1339,19 @@ ${hasRecebimentos ? `
           {faturas.map((f) => {
             const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
             return (
-              <Card key={f.id} onClick={() => openDetail(f)} className="cursor-pointer">
+              <Card key={f.id} onClick={() => openDetail(f)} className={cn("cursor-pointer", selectedFaturaIds.has(f.id) && "border-primary bg-primary/5")}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+                        <Checkbox
+                          checked={selectedFaturaIds.has(f.id)}
+                          onCheckedChange={() => toggleFaturaSelect(f.id)}
+                          aria-label="Selecionar fatura"
+                        />
+                      </span>
                       <span className="text-xs font-mono text-muted-foreground shrink-0">#{String(f.numero).padStart(4, '0')}</span>
+
                       <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
                     </div>
                     <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px] shrink-0">
