@@ -52,7 +52,7 @@
     "html2canvas": "1.4.1",
     "html2pdf.js": "0.10.2",
     "input-otp": "^1.4.2",
-    "jspdf": "2.5.2",
+    "jspdf": "3.0.3",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "pdfjs-dist": "^5.5.207",
