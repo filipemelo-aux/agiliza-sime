@@ -259,6 +259,42 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ── Auth: exige JWT válido com papel admin/moderator/operador, ou service_role (chamada interna do worker) ──
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const isServiceRoleCall = bearer.length > 0 && bearer === serviceRoleKey;
+
+  if (!isServiceRoleCall) {
+    if (!bearer) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: roles } = await adminClient
+      .from("user_roles").select("role").eq("user_id", userData.user.id);
+    const allowed = (roles || []).some((r: any) =>
+      r.role === "admin" || r.role === "moderator" || r.role === "operador"
+    );
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "Permissão insuficiente" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const security = await securityMiddleware(req, "sefaz-proxy", {
     validateSchema: VALIDATION_SCHEMAS.sefaz_proxy,
     maxBodySize: 600_000,

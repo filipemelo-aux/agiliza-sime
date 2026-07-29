@@ -56,7 +56,7 @@ serve(async (req) => {
     
     // Only admin can create moderators
     if (isModerator && !isAdmin && assignRole === "moderator") {
-      // Moderators can create operador and user, but not other moderators
+      throw new Error("Apenas administradores podem criar moderadores");
     }
 
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
