@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2 } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
 import { formatCurrency, maskCNPJ } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1145,6 +1145,119 @@ ${hasRecebimentos ? `
     }
   };
 
+  // ─── Seleção em lote ──────────────────────────────────────
+  const [selectedFaturaIds, setSelectedFaturaIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const toggleFaturaSelect = (id: string) => {
+    setSelectedFaturaIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const selectedFaturas = faturas.filter((f) => selectedFaturaIds.has(f.id));
+  const bulkDeletable = selectedFaturas.filter((f) => f.status !== "paga");
+  const bulkReversible = selectedFaturas.filter((f) => isPaid(f));
+
+  const handleBulkDelete = async () => {
+    if (!bulkDeletable.length) {
+      toast.error("Nenhuma fatura selecionada pode ser excluída (faturas pagas devem ser estornadas antes).");
+      return;
+    }
+    const skipped = selectedFaturas.length - bulkDeletable.length;
+    const ok = await confirm({
+      title: "Excluir faturas selecionadas",
+      description:
+        `Deseja excluir ${bulkDeletable.length} fatura(s)? As previsões vinculadas voltarão para pendente e os títulos a receber serão removidos.` +
+        (skipped ? `\n\n⚠️ ${skipped} fatura(s) paga(s) serão ignoradas.` : "") +
+        "\n\nEsta ação é irreversível.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkBusy(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const f of bulkDeletable) {
+        try {
+          await supabase.from("contas_receber").delete().eq("fatura_id", f.id);
+          await supabase.from("fatura_previsoes").delete().eq("fatura_id", f.id);
+          const { error } = await supabase.from("faturas_recebimento").delete().eq("id", f.id);
+          if (error) throw error;
+          okCount++;
+        } catch (err: any) {
+          errors.push(`#${String(f.numero).padStart(4, "0")}: ${err.message}`);
+        }
+      }
+      if (errors.length) toast.error(`${okCount} excluída(s). Erros: ${errors.slice(0, 3).join(" | ")}`);
+      else toast.success(`${okCount} fatura(s) excluída(s) com sucesso!`);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkReverse = async () => {
+    if (!bulkReversible.length) {
+      toast.error("Nenhuma fatura paga selecionada para estorno.");
+      return;
+    }
+    const skipped = selectedFaturas.length - bulkReversible.length;
+    const ok = await confirm({
+      title: "Estornar recebimentos",
+      description:
+        `Deseja estornar o recebimento de ${bulkReversible.length} fatura(s)? Os títulos voltarão para "aberto" e as movimentações bancárias serão removidas.` +
+        (skipped ? `\n\n⚠️ ${skipped} fatura(s) não paga(s) serão ignoradas.` : ""),
+      confirmLabel: "Estornar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkBusy(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const f of bulkReversible) {
+        try {
+          const { data: contas, error: errFetch } = await supabase
+            .from("contas_receber")
+            .select("id")
+            .eq("fatura_id", f.id)
+            .eq("status", "recebido");
+          if (errFetch) throw errFetch;
+          for (const c of contas || []) {
+            const { error } = await supabase
+              .from("contas_receber")
+              .update({
+                status: "aberto" as any,
+                data_recebimento: null,
+                valor_recebido: null,
+                forma_recebimento: null,
+              })
+              .eq("id", (c as any).id);
+            if (error) throw error;
+          }
+          okCount++;
+        } catch (err: any) {
+          errors.push(`#${String(f.numero).padStart(4, "0")}: ${err.message}`);
+        }
+      }
+      if (errors.length) toast.error(`${okCount} estornada(s). Erros: ${errors.slice(0, 3).join(" | ")}`);
+      else toast.success(`${okCount} recebimento(s) estornado(s) com sucesso!`);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+
+
   const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao" | "cliente_nome" | "valor_total" | "num_parcelas" | "status" | "origem">(
     faturas,
     { key: "numero", direction: "desc" },
@@ -1174,6 +1287,43 @@ ${hasRecebimentos ? `
         <SummaryCard icon={DollarSign} label="Valor Faturado" value={formatCurrency(totalFaturado)} valueColor="green" />
       </div>
 
+      {selectedFaturaIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-2 rounded-md border border-border bg-muted/40">
+          <span className="text-xs font-medium">
+            {selectedFaturaIds.size} fatura(s) selecionada(s)
+            {bulkDeletable.length !== selectedFaturas.length && (
+              <span className="text-muted-foreground"> · {bulkDeletable.length} excluível(is) · {bulkReversible.length} estornável(is)</span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedFaturaIds(new Set())} disabled={bulkBusy}>
+              Limpar seleção
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-orange-600 hover:text-orange-600"
+              onClick={handleBulkReverse}
+              disabled={bulkBusy || bulkReversible.length === 0}
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+              Estornar em lote
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleBulkDelete}
+              disabled={bulkBusy || bulkDeletable.length === 0}
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Excluir em lote
+            </Button>
+          </div>
+        </div>
+      )}
+
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
       ) : faturas.length === 0 ? (
@@ -1189,11 +1339,19 @@ ${hasRecebimentos ? `
           {faturas.map((f) => {
             const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
             return (
-              <Card key={f.id} onClick={() => openDetail(f)} className="cursor-pointer">
+              <Card key={f.id} onClick={() => openDetail(f)} className={cn("cursor-pointer", selectedFaturaIds.has(f.id) && "border-primary bg-primary/5")}>
                 <CardContent className="p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+                        <Checkbox
+                          checked={selectedFaturaIds.has(f.id)}
+                          onCheckedChange={() => toggleFaturaSelect(f.id)}
+                          aria-label="Selecionar fatura"
+                        />
+                      </span>
                       <span className="text-xs font-mono text-muted-foreground shrink-0">#{String(f.numero).padStart(4, '0')}</span>
+
                       <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
                     </div>
                     <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px] shrink-0">
@@ -1247,7 +1405,17 @@ ${hasRecebimentos ? `
             <table className="w-full text-xs">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr className="text-left">
+                  <th className="px-2 py-2 w-[36px]">
+                    <Checkbox
+                      checked={faturasSorted.length > 0 && faturasSorted.every((f) => selectedFaturaIds.has(f.id))}
+                      onCheckedChange={(v) =>
+                        setSelectedFaturaIds(v ? new Set(faturasSorted.map((f) => f.id)) : new Set())
+                      }
+                      aria-label="Selecionar todas"
+                    />
+                  </th>
                   <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
+
                   <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
                   <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
@@ -1261,8 +1429,16 @@ ${hasRecebimentos ? `
                 {faturasSorted.map((f) => {
                   const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                   return (
-                    <tr key={f.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(f)}>
+                    <tr key={f.id} className={cn("border-t border-border hover:bg-muted/30 cursor-pointer", selectedFaturaIds.has(f.id) && "bg-primary/5")} onClick={() => openDetail(f)}>
+                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedFaturaIds.has(f.id)}
+                          onCheckedChange={() => toggleFaturaSelect(f.id)}
+                          aria-label="Selecionar fatura"
+                        />
+                      </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
+
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
                       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
