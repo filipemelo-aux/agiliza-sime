@@ -858,7 +858,11 @@ export function FinancialPaid() {
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-md overflow-x-hidden max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes do Pagamento</DialogTitle>
+            <DialogTitle>
+              {detailInstallment
+                ? `Detalhes da Parcela ${detailInstallment.numero_parcela}/${detailInstallment.total_parcelas}`
+                : "Detalhes do Pagamento"}
+            </DialogTitle>
           </DialogHeader>
           {detailLoading ? (
             <div className="flex justify-center py-8">
@@ -866,6 +870,23 @@ export function FinancialPaid() {
             </div>
           ) : detailExpense ? (
             <div className="space-y-4 text-sm">
+              {detailInstallment && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                    Parcela {detailInstallment.numero_parcela} de {detailInstallment.total_parcelas}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Valor da parcela</span>
+                      <p className="font-mono font-bold text-primary">{formatCurrency(Number(detailInstallment.valor))}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Vencimento</span>
+                      <p className="text-foreground">{detailInstallment.data_vencimento ? formatDateBR(detailInstallment.data_vencimento) : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-xs text-muted-foreground">Favorecido</span>
@@ -876,12 +897,22 @@ export function FinancialPaid() {
                   <p className="text-foreground">{formatDateBR(detailExpense.data_emissao)}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground">Valor Total</span>
+                  <span className="text-xs text-muted-foreground">
+                    {detailInstallment ? "Total da Despesa" : "Valor Total"}
+                  </span>
                   <p className="font-mono font-bold text-foreground">{formatCurrency(Number(detailExpense.valor_total))}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground">Valor Pago</span>
-                  <p className="font-mono font-bold text-success">{formatCurrency(Number(detailExpense.valor_pago))}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {detailInstallment ? "Pago (esta parcela)" : "Valor Pago"}
+                  </span>
+                  <p className="font-mono font-bold text-success">
+                    {formatCurrency(
+                      detailInstallment
+                        ? detailPayments.reduce((s, p) => s + Number(p.valor || 0), 0)
+                        : Number(detailExpense.valor_pago)
+                    )}
+                  </p>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Status</span>
@@ -913,7 +944,7 @@ export function FinancialPaid() {
                     <p className="text-foreground">{detailExpense.veiculo_placa}</p>
                   </div>
                 )}
-                {detailExpense.data_vencimento && (
+                {!detailInstallment && detailExpense.data_vencimento && (
                   <div>
                     <span className="text-xs text-muted-foreground">Vencimento</span>
                     <p className="text-foreground">{formatDateBR(detailExpense.data_vencimento)}</p>
@@ -931,8 +962,11 @@ export function FinancialPaid() {
               {detailPayments.length > 0 && (
                 <div className="border-t border-border pt-3">
                   <p className="text-xs font-medium text-muted-foreground mb-2">
-                    Histórico de Pagamentos ({detailPayments.length})
+                    {detailInstallment
+                      ? `Pagamentos desta parcela (${detailPayments.length})`
+                      : `Histórico de Pagamentos (${detailPayments.length})`}
                   </p>
+
                   <div className="space-y-1.5">
                     {detailPayments.map((pay) => (
                       <div key={pay.id} className="flex items-center gap-2 text-xs p-1.5 rounded bg-success/10">
