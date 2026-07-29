@@ -1145,6 +1145,119 @@ ${hasRecebimentos ? `
     }
   };
 
+  // ─── Seleção em lote ──────────────────────────────────────
+  const [selectedFaturaIds, setSelectedFaturaIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const toggleFaturaSelect = (id: string) => {
+    setSelectedFaturaIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const selectedFaturas = faturas.filter((f) => selectedFaturaIds.has(f.id));
+  const bulkDeletable = selectedFaturas.filter((f) => f.status !== "paga");
+  const bulkReversible = selectedFaturas.filter((f) => isPaid(f));
+
+  const handleBulkDelete = async () => {
+    if (!bulkDeletable.length) {
+      toast.error("Nenhuma fatura selecionada pode ser excluída (faturas pagas devem ser estornadas antes).");
+      return;
+    }
+    const skipped = selectedFaturas.length - bulkDeletable.length;
+    const ok = await confirm({
+      title: "Excluir faturas selecionadas",
+      description:
+        `Deseja excluir ${bulkDeletable.length} fatura(s)? As previsões vinculadas voltarão para pendente e os títulos a receber serão removidos.` +
+        (skipped ? `\n\n⚠️ ${skipped} fatura(s) paga(s) serão ignoradas.` : "") +
+        "\n\nEsta ação é irreversível.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkBusy(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const f of bulkDeletable) {
+        try {
+          await supabase.from("contas_receber").delete().eq("fatura_id", f.id);
+          await supabase.from("fatura_previsoes").delete().eq("fatura_id", f.id);
+          const { error } = await supabase.from("faturas_recebimento").delete().eq("id", f.id);
+          if (error) throw error;
+          okCount++;
+        } catch (err: any) {
+          errors.push(`#${String(f.numero).padStart(4, "0")}: ${err.message}`);
+        }
+      }
+      if (errors.length) toast.error(`${okCount} excluída(s). Erros: ${errors.slice(0, 3).join(" | ")}`);
+      else toast.success(`${okCount} fatura(s) excluída(s) com sucesso!`);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkReverse = async () => {
+    if (!bulkReversible.length) {
+      toast.error("Nenhuma fatura paga selecionada para estorno.");
+      return;
+    }
+    const skipped = selectedFaturas.length - bulkReversible.length;
+    const ok = await confirm({
+      title: "Estornar recebimentos",
+      description:
+        `Deseja estornar o recebimento de ${bulkReversible.length} fatura(s)? Os títulos voltarão para "aberto" e as movimentações bancárias serão removidas.` +
+        (skipped ? `\n\n⚠️ ${skipped} fatura(s) não paga(s) serão ignoradas.` : ""),
+      confirmLabel: "Estornar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkBusy(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const f of bulkReversible) {
+        try {
+          const { data: contas, error: errFetch } = await supabase
+            .from("contas_receber")
+            .select("id")
+            .eq("fatura_id", f.id)
+            .eq("status", "recebido");
+          if (errFetch) throw errFetch;
+          for (const c of contas || []) {
+            const { error } = await supabase
+              .from("contas_receber")
+              .update({
+                status: "aberto" as any,
+                data_recebimento: null,
+                valor_recebido: null,
+                forma_recebimento: null,
+              })
+              .eq("id", (c as any).id);
+            if (error) throw error;
+          }
+          okCount++;
+        } catch (err: any) {
+          errors.push(`#${String(f.numero).padStart(4, "0")}: ${err.message}`);
+        }
+      }
+      if (errors.length) toast.error(`${okCount} estornada(s). Erros: ${errors.slice(0, 3).join(" | ")}`);
+      else toast.success(`${okCount} recebimento(s) estornado(s) com sucesso!`);
+      setSelectedFaturaIds(new Set());
+      fetchFaturas();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+
+
   const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao" | "cliente_nome" | "valor_total" | "num_parcelas" | "status" | "origem">(
     faturas,
     { key: "numero", direction: "desc" },
