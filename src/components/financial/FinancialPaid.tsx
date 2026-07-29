@@ -297,8 +297,19 @@ export function FinancialPaid() {
         created_by_name: creatorsMap[p.created_by] || null,
         created_at: p.created_at || null,
         documento_fiscal_numero: p.expenses?.documento_fiscal_numero || null,
+        payment_id: p.id,
+        installment: resolvedInstallment
+          ? {
+              id: resolvedInstallment.id,
+              numero_parcela: Number(resolvedInstallment.numero_parcela),
+              total_parcelas: Number(resolvedInstallment.total_parcelas),
+              valor: Number(resolvedInstallment.valor ?? p.valor ?? 0),
+              data_vencimento: toDateOnly(resolvedInstallment.data_vencimento),
+            }
+          : null,
       };
     });
+
 
     const groupItems: PaidItem[] = Array.from(groupedMap.entries()).map(([loteId, payments]) => {
       const total = payments.reduce((s, p) => s + Number(p.valor || 0), 0);
