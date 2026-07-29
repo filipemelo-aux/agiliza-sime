@@ -143,6 +143,8 @@ export function FinancialPaid() {
   const [detailExpense, setDetailExpense] = useState<ExpenseDetail | null>(null);
   const [detailPayments, setDetailPayments] = useState<PaymentRecord[]>([]);
   const [detailChart, setDetailChart] = useState<ChartAccount | null>(null);
+  const [detailInstallment, setDetailInstallment] = useState<InstallmentInfo | null>(null);
+
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
