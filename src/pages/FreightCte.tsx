@@ -554,6 +554,14 @@ export default function FreightCte() {
               <table className="w-full text-xs min-w-[760px]">
               <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
+                    <th className="px-2 py-2 w-[36px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
+
                     
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>N.º</SortableTh>
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "talao"} direction={sort.direction} onSort={() => toggle("talao")}>Talão</SortableTh>
