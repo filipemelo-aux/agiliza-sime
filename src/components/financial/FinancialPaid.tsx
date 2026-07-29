@@ -435,6 +435,7 @@ export function FinancialPaid() {
       setDetailExpense(null);
       setDetailPayments([]);
       setDetailChart(null);
+      setDetailInstallment(null);
 
       const { data: payments } = await supabase
         .from("expense_payments" as any)
