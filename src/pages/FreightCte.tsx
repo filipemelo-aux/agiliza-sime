@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -94,6 +95,8 @@ export default function FreightCte() {
   const { user } = useAuth();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchCtes();
@@ -335,6 +338,93 @@ export default function FreightCte() {
     }
   };
 
+  // ─── Seleção em lote ──────────────────────────────────────
+  const isBulkDeletable = (c: Cte) =>
+    c.tipo_talao === "servico" || c.status !== "autorizado";
+
+  const selectableIds = sorted.filter(isBulkDeletable).map((c) => c.id);
+  const allSelected =
+    selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds));
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds).filter((id) =>
+      sorted.some((c) => c.id === id && isBulkDeletable(c)),
+    );
+    if (!ids.length) return;
+
+    // Bloqueia CT-es já vinculados a faturas
+    const { data: prevs } = await supabase
+      .from("previsoes_recebimento")
+      .select("origem_id, fatura_previsoes(fatura_id)")
+      .eq("origem_tipo", "cte")
+      .in("origem_id", ids);
+    const blocked = new Set(
+      (prevs || [])
+        .filter((p: any) => (p.fatura_previsoes?.length ?? 0) > 0)
+        .map((p: any) => p.origem_id as string),
+    );
+    const deletable = ids.filter((id) => !blocked.has(id));
+
+    if (!deletable.length) {
+      toast({
+        title: "Exclusão bloqueada",
+        description: "Todos os CT-es selecionados estão vinculados a faturas. Desvincule-os antes de excluir.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ok = await confirm({
+      title: "Excluir CT-es selecionados",
+      description:
+        `Confirma excluir ${deletable.length} CT-e(s) e seus contratos de frete vinculados (e contas a pagar pendentes)?` +
+        (blocked.size ? `\n\n⚠️ ${blocked.size} CT-e(s) serão ignorados por estarem vinculados a faturas.` : "") +
+        "\n\nEsta ação é irreversível.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    setBulkDeleting(true);
+    let okCount = 0;
+    const errors: string[] = [];
+    try {
+      for (const id of deletable) {
+        try {
+          await removeLinkedFreightContract(id);
+          const { error } = await supabase.from("ctes").delete().eq("id", id);
+          if (error) throw error;
+          okCount++;
+        } catch (err: any) {
+          errors.push(`${id.slice(0, 8)}: ${err.message}`);
+        }
+      }
+      toast({
+        title: errors.length ? "Concluído com erros" : "CT-es excluídos",
+        description: `${okCount} CT-e(s) excluído(s).${errors.length ? "\n" + errors.slice(0, 3).join("\n") : ""}`,
+        variant: errors.length ? "destructive" : "default",
+      });
+      setSelectedIds(new Set());
+      fetchCtes();
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -423,6 +513,29 @@ export default function FreightCte() {
         </div>
 
 
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3 px-3 py-2 rounded-md border border-border bg-muted/40">
+            <span className="text-xs font-medium">
+              {selectedIds.size} CT-e(s) selecionado(s)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())} disabled={bulkDeleting}>
+                Limpar seleção
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Excluir selecionados
+              </Button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -441,6 +554,14 @@ export default function FreightCte() {
               <table className="w-full text-xs min-w-[760px]">
               <thead className="bg-muted/40 text-muted-foreground">
                   <tr className="text-left">
+                    <th className="px-2 py-2 w-[36px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
+
                     
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>N.º</SortableTh>
                     <SortableTh className="px-3 py-2 font-medium" active={sort.key === "talao"} direction={sort.direction} onSort={() => toggle("talao")}>Talão</SortableTh>
@@ -462,10 +583,19 @@ export default function FreightCte() {
                     return (
                       <tr
                         key={cte.id}
-                        className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                        className={`border-t border-border hover:bg-muted/30 cursor-pointer ${selectedIds.has(cte.id) ? "bg-primary/5" : ""}`}
                         onClick={() => setDetailCte(cte)}
                       >
+                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(cte.id)}
+                            disabled={!isBulkDeletable(cte)}
+                            onCheckedChange={() => toggleSelect(cte.id)}
+                            aria-label="Selecionar CT-e"
+                          />
+                        </td>
                         <td className="px-3 py-2 font-medium tabular-nums">{numeroDisplay}</td>
+
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {isServico ? "Serviço" : "Produção"}
                         </td>
