@@ -15,6 +15,14 @@ import { formatDateBR } from "@/lib/date";
 import { toast } from "sonner";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 
+interface InstallmentInfo {
+  id: string;
+  numero_parcela: number;
+  total_parcelas: number;
+  valor: number;
+  data_vencimento: string | null;
+}
+
 interface PaidItem {
   id: string;
   description: string;
@@ -31,6 +39,8 @@ interface PaidItem {
   lote_id?: string | null;
   group_count?: number;
   group_payment_ids?: string[];
+  installment?: InstallmentInfo | null;
+  payment_id?: string | null;
 }
 
 interface ExpenseDetail {
