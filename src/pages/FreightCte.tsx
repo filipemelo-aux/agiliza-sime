@@ -513,6 +513,29 @@ export default function FreightCte() {
         </div>
 
 
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3 px-3 py-2 rounded-md border border-border bg-muted/40">
+            <span className="text-xs font-medium">
+              {selectedIds.size} CT-e(s) selecionado(s)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())} disabled={bulkDeleting}>
+                Limpar seleção
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Excluir selecionados
+              </Button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
