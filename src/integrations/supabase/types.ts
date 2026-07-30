@@ -1589,6 +1589,7 @@ export type Database = {
           num_parcelas: number
           numero: number
           observacoes: string | null
+          parcelas_custom: Json | null
           status: Database["public"]["Enums"]["fatura_status"]
           valor_acrescimo: number
           valor_desconto: number
@@ -1603,6 +1604,7 @@ export type Database = {
           num_parcelas?: number
           numero?: number
           observacoes?: string | null
+          parcelas_custom?: Json | null
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_acrescimo?: number
           valor_desconto?: number
@@ -1617,6 +1619,7 @@ export type Database = {
           num_parcelas?: number
           numero?: number
           observacoes?: string | null
+          parcelas_custom?: Json | null
           status?: Database["public"]["Enums"]["fatura_status"]
           valor_acrescimo?: number
           valor_desconto?: number
