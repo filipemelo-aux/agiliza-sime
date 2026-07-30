@@ -765,25 +765,13 @@ export function FinancialInvoicing() {
     const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
     if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
 
-    const desconto = Number(unmaskCurrency(receiveDescontoStr) || 0);
-    const acrescimo = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
-    const valorPago = receiveParcial
-      ? Number(baixaValor)
-      : +(saldoTitulo - desconto + acrescimo).toFixed(2);
-
-    if (!valorPago || valorPago <= 0) return toast.error("Informe o valor recebido");
-
-    // Valor efetivamente abatido no título (desconto quita, acréscimo é juros/multa)
-    const abatido = +Math.min(saldoTitulo, +(valorPago + desconto - acrescimo).toFixed(2)).toFixed(2);
-    if (abatido <= 0) return toast.error("Valor inválido para baixa desta parcela");
+    const valorPago = saldoTitulo;
+    const abatido = saldoTitulo;
 
     setReceiveSaving(true);
     try {
-      const detalhes = [
-        receiveParcial ? "Pagamento parcial" : "Quitação da parcela",
-        desconto > 0 ? `desconto ${formatCurrency(desconto)}` : "",
-        acrescimo > 0 ? `acréscimo ${formatCurrency(acrescimo)}` : "",
-      ].filter(Boolean).join(" — ");
+      const detalhes = "Quitação da parcela";
+
 
       const { error } = await supabase.from("receivable_payments" as any).insert({
         conta_receber_id: conta.id,
