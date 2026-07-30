@@ -2350,7 +2350,9 @@ export function BankReconciliation() {
                         onNewExpense={() => handleNewExpense(item)}
                         onNewMovement={() => handleNewMovement(item)}
                         onLinkAccount={() => openLinkAccountDialog([item.id])}
+                        onDelete={() => handleDeleteItems([item.id])}
                       />
+
                     </div>
                   </div>
                   <p className="text-xs text-foreground">{item.description}</p>
