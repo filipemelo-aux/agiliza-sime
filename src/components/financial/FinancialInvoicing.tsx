@@ -2174,9 +2174,13 @@ ${hasRecebimentos ? `
                       setIntervaloDias(0);
                       if (!editingFaturaId) setDataVencimentoUnico(getLocalDateISO());
                     } else {
-                      setNumParcelas(Math.max(2, numParcelas));
-                      setIntervaloDias(intervaloDias || 30);
+                      const n = Math.max(2, numParcelas);
+                      setNumParcelas(n);
+                      setIntervaloDias(0);
+                      setParcelasCustomOn(true);
+                      if (parcelasCustom.length !== n) setParcelasCustom(buildDefaultSchedule(n));
                     }
+
                   }}
                   className="flex gap-4 flex-wrap"
                 >
