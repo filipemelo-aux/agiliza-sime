@@ -279,9 +279,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           const b = valid[j];
           const bKg = pesoKgOf(b);
           if (aKg !== bKg || aKg === 0) continue;
-          // Duplicidade só quando peso + placa + data são idênticos
+          // Duplicidade só quando peso + placa + data + valor são idênticos
           if (!a.data || !b.data || a.data !== b.data) continue;
           if (!a.placa || !b.placa || a.placa !== b.placa) continue;
+          if (Math.abs((a.valorFrete || 0) - (b.valorFrete || 0)) > 0.01) continue;
           const reason = "peso_data_placa" as const;
           const idxA = currentRows.indexOf(a) + 1;
           const idxB = currentRows.indexOf(b) + 1;
@@ -302,7 +303,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             Promise.resolve(
               supabase
                 .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
                 .in("data_carregamento", dates)
                 .limit(2000)
             )
@@ -313,7 +314,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             Promise.resolve(
               supabase
                 .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
                 .in("placa_veiculo", plates)
                 .limit(2000)
             )
@@ -336,7 +337,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
             const sameData = !!eData && eData === r.data;
             const samePlaca = !!ePlaca && !!r.placa && ePlaca === r.placa;
-            if (sameData && samePlaca) hits.push({ ...e, reason: "peso_data_placa" });
+            const sameValor = Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) <= 0.01;
+            if (sameData && samePlaca && sameValor) hits.push({ ...e, reason: "peso_data_placa" });
           }
           if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
         }
@@ -1062,12 +1064,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                                 {r._error && <div>{r._error}</div>}
                                 {internal && (
                                   <div>
-                                    Dup. interna (peso+placa+data) c/ linha {Array.from(new Set(internal.with)).join(", ")}
+                                    Dup. interna (peso+placa+data+valor) c/ linha {Array.from(new Set(internal.with)).join(", ")}
                                   </div>
                                 )}
                                 {dbHits && dbHits.length > 0 && (
                                   <div>
-                                    Já existe (peso+placa+data)
+                                    Já existe (peso+placa+data+valor)
                                     {dbHits[0].numero || dbHits[0].numero_interno ? ` Nº ${dbHits[0].numero ?? dbHits[0].numero_interno}` : ""}
                                   </div>
                                 )}

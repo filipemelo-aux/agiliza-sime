@@ -7,6 +7,7 @@ export interface DuplicateMatch {
   data_emissao: string | null;
   placa_veiculo: string | null;
   peso_bruto: number | null;
+  valor_frete: number | null;
   remetente_nome: string | null;
   destinatario_nome: string | null;
   tipo_talao: string | null;
@@ -15,15 +16,17 @@ export interface DuplicateMatch {
 
 /**
  * Procura CT-es com indícios de duplicidade:
- *  - mesmo peso E mesma data E mesma placa (todos idênticos)
+ *  - mesmo peso E mesma data E mesma placa E mesmo valor (todos idênticos)
+ *  - CT-es com peso 0 são ignorados
  */
 export async function findCteDuplicates(params: {
   pesoBruto: number;
   dataEmissao: string; // YYYY-MM-DD
   placaVeiculo?: string | null;
+  valorFrete?: number | null;
   excludeId?: string | null;
 }): Promise<DuplicateMatch[]> {
-  const { pesoBruto, dataEmissao, placaVeiculo, excludeId } = params;
+  const { pesoBruto, dataEmissao, placaVeiculo, valorFrete, excludeId } = params;
   if (!pesoBruto || pesoBruto <= 0 || !dataEmissao) return [];
 
   const placa = (placaVeiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -33,7 +36,7 @@ export async function findCteDuplicates(params: {
   // Busca todos os CT-es com mesmo peso, depois filtra em memória
   let query = supabase
     .from("ctes")
-    .select("id, numero, numero_interno, data_emissao, placa_veiculo, peso_bruto, remetente_nome, destinatario_nome, tipo_talao")
+    .select("id, numero, numero_interno, data_emissao, placa_veiculo, peso_bruto, valor_frete, remetente_nome, destinatario_nome, tipo_talao")
     .eq("peso_bruto", pesoBruto)
     .limit(50);
   if (excludeId) query = query.neq("id", excludeId);
@@ -46,7 +49,8 @@ export async function findCteDuplicates(params: {
     const sameData = rowDataIso >= dayStart && rowDataIso <= dayEnd;
     const rowPlaca = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const samePlaca = !!placa && !!rowPlaca && placa === rowPlaca;
-    if (sameData && samePlaca) {
+    const sameValor = Math.abs(Number(row.valor_frete || 0) - Number(valorFrete || 0)) <= 0.01;
+    if (sameData && samePlaca && sameValor) {
       matches.push({ ...row, match_reason: "peso_data_placa" });
     }
   }
@@ -59,7 +63,7 @@ export function buildDuplicateConfirmMessage(matches: DuplicateMatch[]): string 
     const data = m.data_emissao ? String(m.data_emissao).slice(0, 10).split("-").reverse().join("/") : "—";
     const placa = m.placa_veiculo || "—";
     const peso = m.peso_bruto ? `${Number(m.peso_bruto).toLocaleString("pt-BR")} kg` : "—";
-    const motivo = "mesmo peso, data e placa";
+    const motivo = "mesmo peso, data, placa e valor";
     return `• Nº ${num} — ${data} — Placa ${placa} — ${peso} (${motivo})`;
   });
   const extra = matches.length > 5 ? `\n…e mais ${matches.length - 5} registro(s).` : "";

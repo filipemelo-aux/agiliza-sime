@@ -531,13 +531,14 @@ export function CteFormDialog({ open, onOpenChange, cte, onSaved }: Props) {
       }
     }
 
-    // Verificação de duplicidade: mesmo peso+data OU mesmo peso+placa
+    // Verificação de duplicidade: peso + placa + data + valor idênticos
     try {
       const { findCteDuplicates, buildDuplicateConfirmMessage } = await import("@/lib/cteDuplicateCheck");
       const dups = await findCteDuplicates({
         pesoBruto: Number(form.peso_bruto) || 0,
         dataEmissao: form.data_emissao,
         placaVeiculo: unmaskPlate(form.placa_veiculo) || form.placa_veiculo,
+        valorFrete: Number(form.valor_frete) || 0,
         excludeId: cte?.id ?? null,
       });
       if (dups.length > 0) {
