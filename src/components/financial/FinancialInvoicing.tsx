@@ -2595,15 +2595,6 @@ ${hasRecebimentos ? `
         </DialogContent>
       </Dialog>
 
-      {partialReceive && (
-        <ReceivablePaymentDialog
-          open={!!partialReceive}
-          onOpenChange={(o) => !o && setPartialReceive(null)}
-          contaReceberId={partialReceive.id}
-          valorTotal={partialReceive.valor}
-          onSaved={reloadReceiveContas}
-        />
-      )}
 
       {ConfirmDialog}
     </div>
