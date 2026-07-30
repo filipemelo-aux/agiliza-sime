@@ -1148,18 +1148,24 @@ export function BankReconciliation() {
         const valorTotalConta = Number(linkSelectedAccount.valor_total || 0);
         const jaRecebido = Number(linkSelectedAccount.valor_pago || 0);
         const saldo = Math.max(0, valorTotalConta - jaRecebido);
-        const valorPag = Math.min(totalSel, saldo);
+        // Sempre registra o valor real do extrato (não o valor do título),
+        // para que fatura, recebimento e fluxo de caixa fiquem idênticos.
+        const valorPag = +totalSel.toFixed(2);
+        const dif = +(valorPag - saldo).toFixed(2);
         if (linkSelectedAccount.status !== "pago" && valorPag > 0) {
           const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
             conta_receber_id: contaReceberId,
             valor: valorPag,
             forma_recebimento: "transferencia",
             data_recebimento: minDate,
-            observacoes: `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)`,
+            observacoes:
+              `Recebimento via conciliação bancária (${targetItems.length} lançamento(s) OFX)` +
+              (dif !== 0 ? ` — ${dif > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(dif))} em relação ao título` : ""),
             created_by: user?.id,
           });
           if (rpErr) throw rpErr;
         }
+
         const linkedMap = new Map<string, string | null>();
         for (const it of targetItems) {
           const movIdToLink = await findCreatedMovId({
@@ -1691,16 +1697,21 @@ export function BankReconciliation() {
           } as any).eq("id", confirmMatch.expenseId);
         }
       } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
-        // Registrar recebimento na conta a receber
+        // Registrar recebimento na conta a receber com o valor REAL do extrato
+        const valorExtrato = +Math.abs(confirmItem.amount).toFixed(2);
+        const difR = +(valorExtrato - Number(confirmMatch.valor || 0)).toFixed(2);
         const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
           conta_receber_id: confirmMatch.contaReceberId,
-          valor: confirmMatch.valor,
+          valor: valorExtrato,
           forma_recebimento: "transferencia",
           data_recebimento: confirmItem.date,
-          observacoes: "Recebimento via conciliação bancária (OFX)",
+          observacoes:
+            "Recebimento via conciliação bancária (OFX)" +
+            (difR !== 0 ? ` — ${difR > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(difR))} em relação ao título` : ""),
           created_by: user?.id,
         });
         if (rpErr) throw rpErr;
+
       }
 
       // Resolver vínculo: buscar a movimentação criada pelo trigger
