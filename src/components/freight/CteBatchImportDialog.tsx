@@ -73,11 +73,11 @@ interface DbDupInfo {
   data_carregamento: string | null;
   placa_veiculo: string | null;
   peso_bruto: number | null;
-  reason: "peso_data" | "peso_placa";
+  reason: "peso_data_placa";
 }
 
 interface ValidationState {
-  internalDups: Record<string, { reason: "peso_data" | "peso_placa"; with: number[] }>;
+  internalDups: Record<string, { reason: "peso_data_placa"; with: number[] }>;
   dbDups: Record<string, DbDupInfo[]>;
   missingPlates: string[];
   missingActors: { key: string; nome: string; doc: string }[]; // unique
