@@ -2121,7 +2121,12 @@ ${hasRecebimentos ? `
                   Use o botão "Receber" em cada título para registrar pagamentos totais ou parciais.
                 </p>
               </div>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>Cancelar</Button>
+              </div>
             </div>
+
           )}
         </DialogContent>
       </Dialog>
