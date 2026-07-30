@@ -2147,6 +2147,16 @@ export function BankReconciliation() {
                   Conciliar {selectedIds.size} em lote
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10"
+                onClick={() => handleDeleteItems(Array.from(selectedIds))}
+                disabled={loading}
+              >
+                <Trash2 className="h-3 w-3" /> Excluir {selectedIds.size}
+              </Button>
+
             </div>
           )}
         </div>
