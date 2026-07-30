@@ -377,24 +377,36 @@ export function FinancialInvoicing() {
   };
 
   // --- Edit Fatura ---
-  const openEditInvoice = async (fatura: Fatura) => {
+  const openEditInvoice = async (fatura: Fatura, mode: "edit" | "receive" = "edit") => {
     // Only faturada can be edited (not paid)
-    if (fatura.status === "paga") {
+    if (mode === "edit" && fatura.status === "paga") {
       toast.error("Faturas pagas não podem ser editadas");
       return;
     }
 
+    // Emissão real (origem das previsões / criação) vs data gravada na fatura
+    const emissaoReal = (fatura as any).data_emissao_real || fatura.data_emissao;
+    const vencimentoRef = (fatura as any).data_vencimento_ref || fatura.data_emissao;
+
+    let condicao: "avista" | "unico" | "parcelado";
+    if (Number(fatura.num_parcelas) > 1) condicao = "parcelado";
+    else if (vencimentoRef && emissaoReal && vencimentoRef > emissaoReal) condicao = "unico";
+    else condicao = "avista";
+
+    setReceiveMode(mode === "receive");
     setEditingFaturaId(fatura.id);
+    setReceiveFatura(fatura);
     setSelectedClientId(fatura.cliente_id);
-    setCondicaoPagamento(fatura.num_parcelas === 1 ? "avista" : "parcelado");
+    setCondicaoPagamento(condicao);
     setNumParcelas(fatura.num_parcelas);
     setIntervaloDias(fatura.intervalo_dias || 30);
-    setDataEmissaoEdit(fatura.data_emissao);
-    setDataVencimentoUnico(fatura.data_emissao);
+    setDataEmissaoEdit(emissaoReal);
+    setDataVencimentoUnico(vencimentoRef);
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
     setStep("preview");
+
 
     // Load linked previsões (faturado) + any pending for this client
     const { data: links } = await supabase
