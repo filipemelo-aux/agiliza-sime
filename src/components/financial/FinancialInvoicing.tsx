@@ -368,6 +368,9 @@ export function FinancialInvoicing() {
     setAcrescimoStr("");
     setDescontoStr("");
     setObservacoesFatura("");
+    setParcelasCustomOn(false);
+    setParcelasCustom([]);
+
     setNewDialogOpen(true);
 
     const { data } = await supabase
