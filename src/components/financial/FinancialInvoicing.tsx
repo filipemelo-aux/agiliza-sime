@@ -173,6 +173,10 @@ export function FinancialInvoicing() {
   const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
+  const [receiveContaId, setReceiveContaId] = useState<string>("");
+  const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
+  const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
+  const [receiveParcial, setReceiveParcial] = useState(false);
   const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
