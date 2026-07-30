@@ -1306,7 +1306,7 @@ ${hasRecebimentos ? `
 
 
 
-  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "origem_sort">(
+  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "status">(
     faturas,
     { key: "numero", direction: "desc" },
     {
@@ -1316,7 +1316,7 @@ ${hasRecebimentos ? `
       cliente_nome: (r) => r.cliente_nome || "",
       valor_total: (r) => Number(r.valor_total),
       condicao_label: (r) => (r as any).condicao_label || "",
-      origem_sort: (r) => r.origem_sort || "zzz",
+      status: (r) => (r.has_partial ? "parcial" : r.status),
     },
   );
 
@@ -1489,9 +1489,6 @@ ${hasRecebimentos ? `
                       </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
                         #{String(f.numero).padStart(4, '0')}
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="ml-1 text-[9px] px-1 py-0 align-middle">
-                          {f.has_partial ? "Parcial" : st.label}
-                        </Badge>
                       </td>
 
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</td>
@@ -1513,7 +1510,11 @@ ${hasRecebimentos ? `
                       <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">
                         {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
-                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
 
                       <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-0.5">
