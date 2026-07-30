@@ -1697,16 +1697,21 @@ export function BankReconciliation() {
           } as any).eq("id", confirmMatch.expenseId);
         }
       } else if (confirmMatch.isReceivable && confirmMatch.contaReceberId) {
-        // Registrar recebimento na conta a receber
+        // Registrar recebimento na conta a receber com o valor REAL do extrato
+        const valorExtrato = +Math.abs(confirmItem.amount).toFixed(2);
+        const difR = +(valorExtrato - Number(confirmMatch.valor || 0)).toFixed(2);
         const { error: rpErr } = await supabase.from("receivable_payments" as any).insert({
           conta_receber_id: confirmMatch.contaReceberId,
-          valor: confirmMatch.valor,
+          valor: valorExtrato,
           forma_recebimento: "transferencia",
           data_recebimento: confirmItem.date,
-          observacoes: "Recebimento via conciliação bancária (OFX)",
+          observacoes:
+            "Recebimento via conciliação bancária (OFX)" +
+            (difR !== 0 ? ` — ${difR > 0 ? "acréscimo" : "desconto"} de ${formatCurrency(Math.abs(difR))} em relação ao título` : ""),
           created_by: user?.id,
         });
         if (rpErr) throw rpErr;
+
       }
 
       // Resolver vínculo: buscar a movimentação criada pelo trigger
