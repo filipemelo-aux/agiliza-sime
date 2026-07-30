@@ -42,6 +42,7 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
   const [descricao, setDescricao] = useState(initialValues?.descricao || "");
   const [planoContasId, setPlanoContasId] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const reset = () => {
     setTipo("entrada");
@@ -78,20 +79,24 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
     setSaving(true);
     const dataISO = format(data, "yyyy-MM-dd");
 
-    // Duplicate check: same date + value + tipo already exists in cash flow
+    // Duplicidade: não bloqueia — extratos legitimamente têm lançamentos iguais.
     const { data: dup } = await supabase
       .from("movimentacoes_bancarias")
       .select("id, descricao")
       .eq("data_movimentacao", dataISO)
       .eq("valor", valorNum)
       .eq("tipo", tipo)
-      .limit(1);
+      .limit(5);
     if (dup && dup.length > 0) {
-      toast.error("Lançamento duplicado", {
-        description: `Já existe uma movimentação com mesma data e valor: "${(dup[0] as any).descricao}". Nenhum novo lançamento foi criado.`,
-      });
       setSaving(false);
-      return;
+      const ok = await confirm({
+        title: "Lançamento semelhante encontrado",
+        description: `Já existe ${dup.length > 1 ? `${dup.length} movimentações` : "1 movimentação"} com a mesma data (${format(data, "dd/MM/yyyy")}) e valor (${formatCurrency(valorNum)}):\n\n${dup.map((d: any) => `• ${d.descricao || "Sem descrição"}`).join("\n")}\n\nIsso é comum em extratos. Deseja incluir mesmo assim?`,
+        confirmLabel: "Incluir mesmo assim",
+        cancelLabel: "Cancelar",
+      });
+      if (!ok) return;
+      setSaving(true);
     }
 
     const { error } = await supabase.from("movimentacoes_bancarias").insert({
