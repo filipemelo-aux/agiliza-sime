@@ -178,7 +178,7 @@ export function FinancialInvoicing() {
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
-  const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
+  
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
 
