@@ -2286,7 +2286,11 @@ ${hasRecebimentos ? `
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 text-destructive"
-                                  onClick={() => setParcelasCustom(prev => prev.filter((_, idx) => idx !== i))}
+                                  onClick={() => setParcelasCustom(prev => {
+                                    const next = prev.filter((_, idx) => idx !== i);
+                                    setNumParcelas(Math.max(2, next.length));
+                                    return next;
+                                  })}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -2300,10 +2304,9 @@ ${hasRecebimentos ? `
                               size="sm"
                               className="h-6 text-[10px] px-2"
                               onClick={() => setParcelasCustom(prev => {
-                                const last = prev[prev.length - 1];
-                                const d = new Date(`${last?.data_vencimento || dataEmissaoEdit}T12:00:00`);
-                                d.setDate(d.getDate() + intervaloDias);
-                                return [...prev, { valor: "", data_vencimento: d.toISOString().slice(0, 10) }];
+                                const next = [...prev, { valor: "", data_vencimento: "" }];
+                                setNumParcelas(next.length);
+                                return next;
                               })}
                             >
                               + Adicionar parcela
@@ -2314,8 +2317,8 @@ ${hasRecebimentos ? `
                             </span>
                           </div>
                         </div>
-                      )}
                     </div>
+
                   </div>
                 )}
 
