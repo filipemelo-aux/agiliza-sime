@@ -612,13 +612,24 @@ export function FinancialInvoicing() {
     const fatura = receiveFatura;
     if (!fatura) return;
 
-    const { data } = await supabase
-      .from("contas_receber")
-      .select("*")
-      .eq("fatura_id", fatura.id)
-      .order("data_vencimento", { ascending: true });
+    // Os títulos são recriados por trigger após salvar a fatura — aguarda até aparecerem
+    let contas: ContaReceber[] = [];
+    for (let i = 0; i < 6; i++) {
+      const { data } = await supabase
+        .from("contas_receber")
+        .select("*")
+        .eq("fatura_id", fatura.id)
+        .order("data_vencimento", { ascending: true });
+      contas = (data as ContaReceber[]) || [];
+      if (contas.length > 0) break;
+      await new Promise((r) => setTimeout(r, 400));
+    }
 
-    const contas = (data as ContaReceber[]) || [];
+    if (contas.length === 0) {
+      toast.error("Não foi possível carregar os títulos desta fatura. Tente novamente.");
+      return;
+    }
+
     setReceiveContas(contas);
     setNewDialogOpen(false);
     const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
@@ -626,6 +637,7 @@ export function FinancialInvoicing() {
     setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
+
 
   // Salva as alterações feitas na janela e já segue para o registro do pagamento
   const handleSaveAndReceive = async () => {
@@ -2126,7 +2138,10 @@ ${hasRecebimentos ? `
                     </div>
                     <div>
                       <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <Select
+                        value={INTERVALO_PRESETS.some((p) => p.value === String(intervaloDias)) ? String(intervaloDias) : "custom"}
+                        onValueChange={(v) => { if (v !== "custom") setIntervaloDias(Number(v)); else setIntervaloDias(intervaloDias || 1); }}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -2134,9 +2149,22 @@ ${hasRecebimentos ? `
                           {INTERVALO_PRESETS.map((p) => (
                             <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                           ))}
+                          <SelectItem value="custom">Personalizado (dias)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={intervaloDias}
+                          onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value) || 1))}
+                          className="h-8"
+                        />
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">dias</span>
+                      </div>
                     </div>
+
                   </div>
                 )}
 
