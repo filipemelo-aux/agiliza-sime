@@ -204,16 +204,44 @@ export function FinancialInvoicing() {
     if (ids.length) {
       const { data: contas } = await supabase
         .from("contas_receber")
-        .select("fatura_id, valor_recebido")
+        .select("fatura_id, valor_recebido, data_vencimento")
         .in("fatura_id", ids);
       const sums: Record<string, number> = {};
+      const vencMin: Record<string, string> = {};
+      const vencMax: Record<string, string> = {};
       (contas || []).forEach((c: any) => {
         sums[c.fatura_id] = (sums[c.fatura_id] || 0) + Number(c.valor_recebido || 0);
+        if (c.data_vencimento) {
+          if (!vencMin[c.fatura_id] || c.data_vencimento < vencMin[c.fatura_id]) vencMin[c.fatura_id] = c.data_vencimento;
+          if (!vencMax[c.fatura_id] || c.data_vencimento > vencMax[c.fatura_id]) vencMax[c.fatura_id] = c.data_vencimento;
+        }
       });
       faturasList.forEach((f: any) => {
         f.valor_recebido_total = sums[f.id] || 0;
         f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
+        // Data de emissão real = data de criação do registro
+        f.data_emissao_real = String(f.created_at).slice(0, 10);
+        // Vencimento: primeira parcela (fallback para o campo legado data_emissao)
+        f.data_vencimento_ref = vencMin[f.id] || f.data_emissao;
+        f.data_vencimento_max = vencMax[f.id] || f.data_vencimento_ref;
+        // Condição: à vista só quando parcela única e vence no mesmo dia da emissão
+        if (Number(f.num_parcelas) > 1) {
+          f.condicao_label = `${f.num_parcelas}x (${f.intervalo_dias}d)`;
+        } else if (f.data_vencimento_ref && f.data_vencimento_ref > f.data_emissao_real) {
+          const dias = Math.max(
+            0,
+            Math.round(
+              (new Date(`${f.data_vencimento_ref}T12:00:00`).getTime() -
+                new Date(`${f.data_emissao_real}T12:00:00`).getTime()) /
+                86400000
+            )
+          );
+          f.condicao_label = `A prazo (${dias}d)`;
+        } else {
+          f.condicao_label = "À vista";
+        }
       });
+
 
 
       // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
