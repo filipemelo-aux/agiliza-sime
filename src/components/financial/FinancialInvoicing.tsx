@@ -1467,11 +1467,21 @@ ${hasRecebimentos ? `
                           aria-label="Selecionar fatura"
                         />
                       </td>
-                      <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
+                        #{String(f.numero).padStart(4, '0')}
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="ml-1 text-[9px] px-1 py-0 align-middle">
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
 
-                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
-                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                        {formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}
+                        {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
+                          <span className="text-[10px] text-muted-foreground"> …{formatDateBR((f as any).data_vencimento_max)}</span>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">
                         {formatCurrency(Number(f.valor_total))}
                         {f.has_partial && (
@@ -1480,14 +1490,11 @@ ${hasRecebimentos ? `
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-center text-muted-foreground">
-                        {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
+                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">
+                        {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
-                      <td className="px-2 py-2 text-center">
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
-                          {f.has_partial ? "Parcial" : st.label}
-                        </Badge>
-                      </td>
+                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+
                       <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-0.5">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
