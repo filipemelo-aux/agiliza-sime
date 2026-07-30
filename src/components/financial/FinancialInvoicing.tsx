@@ -171,6 +171,8 @@ export function FinancialInvoicing() {
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
   const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
+  const [baixaValor, setBaixaValor] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchFaturas();
