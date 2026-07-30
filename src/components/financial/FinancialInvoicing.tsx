@@ -387,7 +387,12 @@ export function FinancialInvoicing() {
     setSelectedClientId(fatura.cliente_id);
     setCondicaoPagamento(fatura.num_parcelas === 1 ? "avista" : "parcelado");
     setNumParcelas(fatura.num_parcelas);
-    setIntervaloDias(fatura.intervalo_dias);
+    setIntervaloDias(fatura.intervalo_dias || 30);
+    setDataEmissaoEdit(fatura.data_emissao);
+    setDataVencimentoUnico(fatura.data_emissao);
+    setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
+    setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
+    setObservacoesFatura(fatura.observacoes || "");
     setStep("preview");
 
     // Load linked previsões (faturado) + any pending for this client
