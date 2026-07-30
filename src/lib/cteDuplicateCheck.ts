@@ -10,13 +10,12 @@ export interface DuplicateMatch {
   remetente_nome: string | null;
   destinatario_nome: string | null;
   tipo_talao: string | null;
-  match_reason: "peso_data" | "peso_placa";
+  match_reason: "peso_data_placa";
 }
 
 /**
  * Procura CT-es com indícios de duplicidade:
- *  - mesmo peso E mesma data (qualquer placa), OU
- *  - mesmo peso E mesma placa (qualquer data)
+ *  - mesmo peso E mesma data E mesma placa (todos idênticos)
  */
 export async function findCteDuplicates(params: {
   pesoBruto: number;
