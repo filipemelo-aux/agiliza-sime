@@ -724,62 +724,73 @@ export function FinancialInvoicing() {
       .order("data_vencimento", { ascending: true });
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
-    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    const alvo = contas.find((c) => c.id === receiveContaId);
+    const proximo = contas.find((c) => Number(c.valor) - Number(c.valor_recebido || 0) > 0.005);
+    const escolhido = alvo && Number(alvo.valor) - Number(alvo.valor_recebido || 0) > 0.005 ? alvo : proximo;
+    setReceiveContaId(escolhido ? escolhido.id : "");
+    const saldo = escolhido
+      ? Number(escolhido.valor) - Number(escolhido.valor_recebido || 0)
+      : 0;
+    setBaixaValor(String(+saldo.toFixed(2)));
+    setReceiveParcial(false);
+    setReceiveDescontoStr("");
+    setReceiveAcrescimoStr("");
     fetchFaturas();
   };
 
-  // Baixa parcial no valor total da fatura: abate nos títulos do mais antigo ao mais novo
+  // Baixa de uma parcela específica (total ou parcial), com desconto/acréscimo
   const handleBaixaParcialFatura = async () => {
     if (!receiveFatura) return;
-    const valorNum = Number(baixaValor);
-    if (!valorNum || valorNum <= 0) return toast.error("Informe o valor recebido");
+    if (!receiveContaId) return toast.error("Selecione a parcela que está sendo quitada");
     if (!receiveDate) return toast.error("Informe a data do recebimento");
     if (!user?.id) return toast.error("Sessão inválida");
 
-    const abertos = receiveContas
-      .filter(c => Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)) > 0.005)
-      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
+    const conta = receiveContas.find((c) => c.id === receiveContaId);
+    if (!conta) return toast.error("Parcela não encontrada");
 
-    if (abertos.length === 0) return toast.error("Não há títulos em aberto nesta fatura");
+    const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
+    if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
 
-    const saldoFatura = abertos.reduce((s, c) => s + (Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    if (valorNum > saldoFatura + 0.005) {
-      return toast.error(`Valor maior que o saldo em aberto (${formatCurrency(saldoFatura)})`);
-    }
+    const desconto = Number(unmaskCurrency(receiveDescontoStr) || 0);
+    const acrescimo = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
+    const valorPago = receiveParcial
+      ? Number(baixaValor)
+      : +(saldoTitulo - desconto + acrescimo).toFixed(2);
+
+    if (!valorPago || valorPago <= 0) return toast.error("Informe o valor recebido");
+
+    // Valor efetivamente abatido no título (desconto quita, acréscimo é juros/multa)
+    const abatido = +Math.min(saldoTitulo, +(valorPago + desconto - acrescimo).toFixed(2)).toFixed(2);
+    if (abatido <= 0) return toast.error("Valor inválido para baixa desta parcela");
 
     setReceiveSaving(true);
     try {
-      let restante = +valorNum.toFixed(2);
-      const rows: any[] = [];
-      for (const c of abertos) {
-        if (restante <= 0.005) break;
-        const saldoTitulo = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
-        const aplicar = +Math.min(saldoTitulo, restante).toFixed(2);
-        rows.push({
-          conta_receber_id: c.id,
-          valor: aplicar,
-          forma_recebimento: receiveForma,
-          data_recebimento: receiveDate,
-          observacoes: "Baixa parcial da fatura",
-          created_by: user.id,
-        });
-        restante = +(restante - aplicar).toFixed(2);
-      }
+      const detalhes = [
+        receiveParcial ? "Pagamento parcial" : "Quitação da parcela",
+        desconto > 0 ? `desconto ${formatCurrency(desconto)}` : "",
+        acrescimo > 0 ? `acréscimo ${formatCurrency(acrescimo)}` : "",
+      ].filter(Boolean).join(" — ");
 
-      const { error } = await supabase.from("receivable_payments" as any).insert(rows);
+      const { error } = await supabase.from("receivable_payments" as any).insert({
+        conta_receber_id: conta.id,
+        valor: abatido,
+        forma_recebimento: receiveForma,
+        data_recebimento: receiveDate,
+        observacoes: detalhes,
+        created_by: user.id,
+      });
       if (error) throw error;
 
-      const quitouTudo = valorNum + 0.005 >= saldoFatura;
-      toast.success(quitouTudo ? "Fatura quitada!" : `Baixa parcial de ${formatCurrency(valorNum)} registrada`);
+      const quitouTitulo = abatido + 0.005 >= saldoTitulo;
+      toast.success(quitouTitulo ? "Parcela quitada!" : `Pagamento parcial de ${formatCurrency(valorPago)} registrado`);
       await reloadReceiveContas();
-      if (quitouTudo) setReceiveDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
     } finally {
       setReceiveSaving(false);
     }
   };
+
 
 
   const handleReceiveAll = async () => {
