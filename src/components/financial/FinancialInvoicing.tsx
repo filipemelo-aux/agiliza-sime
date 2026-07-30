@@ -2212,10 +2212,70 @@ ${hasRecebimentos ? `
           </DialogHeader>
           {receiveFatura && (
             <div className="space-y-3">
-              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
-                <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
-                <p>Valor da fatura: <strong className="text-foreground">{formatCurrency(Number(receiveFatura.valor_total))}</strong></p>
-              </div>
+              {(() => {
+                const totalFatura = Number(receiveFatura.valor_total);
+                const recebido = receiveContas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
+                const saldo = Math.max(0, +(receiveContas.reduce((s, c) => s + Number(c.valor), 0) - recebido).toFixed(2));
+                return (
+                  <>
+                    <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
+                      <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div><span className="block">Valor da fatura</span><strong className="text-foreground font-mono">{formatCurrency(totalFatura)}</strong></div>
+                        <div><span className="block">Recebido</span><strong className="text-green-600 font-mono">{formatCurrency(recebido)}</strong></div>
+                        <div><span className="block">Saldo</span><strong className={`font-mono ${saldo > 0 ? "text-amber-600" : "text-green-600"}`}>{formatCurrency(saldo)}</strong></div>
+                      </div>
+                    </div>
+
+                    {saldo > 0.005 && (
+                      <div className="border rounded-md p-3 space-y-2">
+                        <p className="text-xs font-semibold">Registrar recebimento (parcial ou total)</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Valor recebido (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
+                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
+                            />
+                            <div className="flex gap-1 mt-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldo))}>Saldo total</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldo / 2).toFixed(2)))}>50%</Button>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Data</Label>
+                            <Input type="date" className="h-9 text-xs" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Forma</Label>
+                            <Select value={receiveForma} onValueChange={setReceiveForma}>
+                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
+                                  <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          O valor é abatido nos títulos do vencimento mais antigo para o mais novo. O saldo restante permanece em aberto.
+                        </p>
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white h-9"
+                          disabled={receiveSaving}
+                          onClick={handleBaixaParcialFatura}
+                        >
+                          <HandCoins className="h-4 w-4 mr-1" />
+                          {receiveSaving ? "Registrando..." : "Registrar recebimento"}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
 
               <div>
                 <p className="text-xs font-semibold mb-1.5">Títulos ({receiveContas.length})</p>
