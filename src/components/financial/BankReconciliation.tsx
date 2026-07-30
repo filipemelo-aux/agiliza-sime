@@ -2279,7 +2279,9 @@ export function BankReconciliation() {
                     onNewExpense={() => handleNewExpense(item)}
                     onNewMovement={() => handleNewMovement(item)}
                     onLinkAccount={() => openLinkAccountDialog([item.id])}
+                    onDelete={() => handleDeleteItems([item.id])}
                   />
+
                   {item.status === "conciliado" && item.matchedMovId && (
                     <MatchBox
                       desc={item.matchedMovDesc}
