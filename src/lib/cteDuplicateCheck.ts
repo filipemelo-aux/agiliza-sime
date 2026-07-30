@@ -46,11 +46,9 @@ export async function findCteDuplicates(params: {
     const rowDataIso = row.data_emissao ? String(row.data_emissao) : "";
     const sameData = rowDataIso >= dayStart && rowDataIso <= dayEnd;
     const rowPlaca = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const samePlaca = placa && rowPlaca && placa === rowPlaca;
-    if (sameData) {
-      matches.push({ ...row, match_reason: "peso_data" });
-    } else if (samePlaca) {
-      matches.push({ ...row, match_reason: "peso_placa" });
+    const samePlaca = !!placa && !!rowPlaca && placa === rowPlaca;
+    if (sameData && samePlaca) {
+      matches.push({ ...row, match_reason: "peso_data_placa" });
     }
   }
   return matches;
