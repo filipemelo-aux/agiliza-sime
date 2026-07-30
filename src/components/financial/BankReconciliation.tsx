@@ -789,6 +789,59 @@ export function BankReconciliation() {
     }
   }, [reconciliationId, history, resumeReconciliation, updateReconciliationCount]);
 
+  // ── Excluir lançamento(s) do extrato da conciliação ──
+  // Útil para linhas duplicadas do banco (ex.: depósito de cheque lançado no depósito e na compensação)
+  const handleDeleteItems = useCallback(async (ids: string[]) => {
+    if (!reconciliationId || ids.length === 0) return;
+    const targets = items.filter((i) => ids.includes(i.id));
+    if (targets.length === 0) return;
+    const conciliados = targets.filter((i) => i.status === "conciliado").length;
+    const msg = targets.length === 1
+      ? `Excluir este lançamento do extrato da conciliação?\n\n${targets[0].description}\n\nO lançamento sai desta conciliação (nenhuma movimentação financeira é apagada).`
+      : `Excluir ${targets.length} lançamentos do extrato desta conciliação?\n\nNenhuma movimentação financeira será apagada.`;
+    if (!window.confirm(conciliados > 0 ? `${msg}\n\nAtenção: ${conciliados} já está(ão) conciliado(s); o vínculo será removido.` : msg)) return;
+
+    setLoading(true);
+    try {
+      const withDbId = targets.filter((i) => i.dbItemId).map((i) => i.dbItemId as string);
+      if (withDbId.length > 0) {
+        const { error } = await supabase.from("bank_reconciliation_items").delete().in("id", withDbId);
+        if (error) throw error;
+      }
+      for (const item of targets.filter((i) => !i.dbItemId)) {
+        await supabase
+          .from("bank_reconciliation_items")
+          .delete()
+          .eq("reconciliation_id", reconciliationId)
+          .eq("fitid", item.fitid || "");
+      }
+
+      const remaining = items.filter((i) => !ids.includes(i.id));
+      setItems(remaining);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+
+      await supabase
+        .from("bank_reconciliations")
+        .update({
+          total_items: remaining.length,
+          reconciled_items: remaining.filter((i) => i.status === "conciliado").length,
+        })
+        .eq("id", reconciliationId);
+
+      toast.success(targets.length === 1 ? "Lançamento excluído da conciliação." : `${targets.length} lançamentos excluídos.`);
+    } catch (err: any) {
+      toast.error("Erro ao excluir: " + (err.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  }, [reconciliationId, items]);
+
+
+
   // ── Manual link to account (paid or pending) ──
   const openLinkAccountDialog = useCallback((itemIds: string[]) => {
     if (itemIds.length === 0) {
