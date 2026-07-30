@@ -348,6 +348,8 @@ export function FinancialInvoicing() {
   // --- Nova Fatura ---
   const openNewInvoice = async () => {
     setEditingFaturaId(null);
+    setReceiveMode(false);
+
     setStep("client");
     setSelectedClientId("");
     setClientPrevisoes([]);
