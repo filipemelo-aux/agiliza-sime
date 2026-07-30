@@ -2055,6 +2055,7 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Recebimento da Fatura</DialogTitle>
+
           </DialogHeader>
           {receiveFatura && (
             <div className="space-y-3">
