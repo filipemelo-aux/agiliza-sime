@@ -217,6 +217,7 @@ export function ManualCashFlowDialog({ open, onOpenChange, onSaved, initialValue
           </Button>
         </DialogFooter>
       </DialogContent>
+      {ConfirmDialog}
     </Dialog>
   );
 }
