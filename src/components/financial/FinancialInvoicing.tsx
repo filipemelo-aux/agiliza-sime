@@ -2026,17 +2026,16 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {receiveMode
-                ? "Receber Fatura"
-                : editingFaturaId
-                  ? "Editar Fatura"
-                  : step === "client"
-                    ? "Nova Fatura — Selecionar Cliente"
-                    : "Nova Fatura — Condições"}
+              {editingFaturaId
+                ? "Editar Fatura"
+                : step === "client"
+                  ? "Nova Fatura — Selecionar Cliente"
+                  : "Nova Fatura — Condições"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {receiveMode ? "Edite as condições e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+              {editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
             </DialogDescription>
+
 
           </DialogHeader>
 
