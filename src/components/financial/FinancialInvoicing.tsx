@@ -1873,6 +1873,7 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={acrescimoStr}
+                      disabled={receiveMode}
                       onChange={(e) => setAcrescimoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1882,6 +1883,7 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={descontoStr}
+                      disabled={receiveMode}
                       onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1892,8 +1894,10 @@ ${hasRecebimentos ? `
                     rows={2}
                     placeholder="Ex.: desconto comercial, acréscimo por reentrega..."
                     value={observacoesFatura}
+                    disabled={receiveMode}
                     onChange={(e) => setObservacoesFatura(e.target.value)}
                   />
+
                 </div>
               </div>
 
