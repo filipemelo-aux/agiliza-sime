@@ -2676,6 +2676,18 @@ function ItemActions({
       <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={onNewMovement}>
         <ArrowDownCircle className="h-3 w-3" /> Movimentação
       </Button>
+      {onDelete && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-[10px] gap-1 text-destructive hover:bg-destructive/10"
+          onClick={onDelete}
+          title="Excluir este lançamento do extrato da conciliação"
+        >
+          <Trash2 className="h-3 w-3" /> Excluir
+        </Button>
+      )}
     </div>
+
   );
 }
