@@ -2460,64 +2460,17 @@ ${hasRecebimentos ? `
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                          <Switch
-                            id="pgto-parcial"
-                            checked={receiveParcial}
-                            onCheckedChange={(v) => {
-                              setReceiveParcial(v);
-                              if (!v) setBaixaValor(String(saldoTitulo));
-                            }}
-                          />
-                          <Label htmlFor="pgto-parcial" className="text-xs">Pagamento parcial desta parcela</Label>
+                        <div>
+                          <Label className="text-xs">Forma de pagamento</Label>
+                          <Select value={receiveForma} onValueChange={setReceiveForma}>
+                            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
+                                <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <div>
-                            <Label className="text-xs">Desconto (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={receiveDescontoStr}
-                              onChange={e => setReceiveDescontoStr(maskCurrency(e.target.value))}
-                              placeholder="0,00"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Acréscimo (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={receiveAcrescimoStr}
-                              onChange={e => setReceiveAcrescimoStr(maskCurrency(e.target.value))}
-                              placeholder="0,00"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Forma</Label>
-                            <Select value={receiveForma} onValueChange={setReceiveForma}>
-                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
-                                  <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {receiveParcial && (
-                          <div>
-                            <Label className="text-xs">Valor recebido (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
-                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
-                            />
-                            <div className="flex gap-1 mt-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldoTitulo))}>Saldo da parcela</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldoTitulo / 2).toFixed(2)))}>50%</Button>
-                            </div>
-                          </div>
-                        )}
 
                         <div className="flex justify-between text-[11px] text-muted-foreground border-t pt-2">
                           <span>Saldo da parcela: <strong className="font-mono text-foreground">{formatCurrency(saldoTitulo)}</strong></span>
