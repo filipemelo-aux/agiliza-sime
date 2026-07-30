@@ -153,6 +153,10 @@ export function FinancialInvoicing() {
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>(getLocalDateISO());
+  const [dataEmissaoEdit, setDataEmissaoEdit] = useState<string>(getLocalDateISO());
+  const [acrescimoStr, setAcrescimoStr] = useState("");
+  const [descontoStr, setDescontoStr] = useState("");
+  const [observacoesFatura, setObservacoesFatura] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Receive dialog
