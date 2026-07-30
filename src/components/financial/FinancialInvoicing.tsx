@@ -469,14 +469,30 @@ export function FinancialInvoicing() {
     .filter((p) => selectedPrevIds.has(p.id))
     .reduce((s, p) => s + Number(p.valor), 0);
 
+  const acrescimoValor = Number(unmaskCurrency(acrescimoStr) || 0);
+  const descontoValor = Number(unmaskCurrency(descontoStr) || 0);
+  const totalLiquido = Math.max(selectedPrevTotal + acrescimoValor - descontoValor, 0);
+
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
-  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : undefined;
+  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
   const handleCreateOrUpdateInvoice = async () => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    if (descontoValor > selectedPrevTotal + acrescimoValor) return toast.error("Desconto maior que o valor da fatura");
     setSaving(true);
+
+    const payloadComum = {
+      valor_total: totalLiquido,
+      num_parcelas: effectiveParcelas,
+      intervalo_dias: effectiveIntervalo,
+      valor_acrescimo: acrescimoValor,
+      valor_desconto: descontoValor,
+      observacoes: observacoesFatura.trim() || null,
+      ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
+      status: "faturada" as any,
+    };
 
     try {
       if (editingFaturaId) {
@@ -488,13 +504,7 @@ export function FinancialInvoicing() {
         // 3. Update fatura
         const { error: updErr } = await supabase
           .from("faturas_recebimento")
-          .update({
-            valor_total: selectedPrevTotal,
-            num_parcelas: effectiveParcelas,
-            intervalo_dias: effectiveIntervalo,
-            ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
-            status: "faturada" as any,
-          })
+          .update(payloadComum)
           .eq("id", editingFaturaId);
         if (updErr) throw updErr;
 
@@ -513,11 +523,7 @@ export function FinancialInvoicing() {
           .from("faturas_recebimento")
           .insert({
             cliente_id: selectedClientId,
-            valor_total: selectedPrevTotal,
-            num_parcelas: effectiveParcelas,
-            intervalo_dias: effectiveIntervalo,
-            ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
-            status: "faturada" as any,
+            ...payloadComum,
           })
           .select()
           .single();
