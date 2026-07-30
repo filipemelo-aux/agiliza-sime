@@ -530,24 +530,24 @@ export function FinancialInvoicing() {
   const totalLiquido = Math.max(selectedPrevTotal + acrescimoValor - descontoValor, 0);
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
-  const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
+  const effectiveIntervalo = condicaoPagamento === "parcelado" ? 0 : 0;
   const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
-  // Cronograma padrão (divisão igual) usado como base para o modo personalizado
-  const buildDefaultSchedule = () => {
-    const base = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
-    return Array.from({ length: numParcelas }).map((_, i) => {
-      const d = new Date(`${dataEmissaoEdit}T12:00:00`);
-      d.setDate(d.getDate() + (i + 1) * intervaloDias);
-      const valor = i === numParcelas - 1 ? +(totalLiquido - base * (numParcelas - 1)).toFixed(2) : base;
+  // Cronograma base: valores divididos igualmente, datas em branco (definição manual)
+  const buildDefaultSchedule = (qtd = numParcelas) => {
+    const n = Math.max(1, qtd);
+    const base = Math.trunc((totalLiquido / n) * 100) / 100;
+    return Array.from({ length: n }).map((_, i) => {
+      const valor = i === n - 1 ? +(totalLiquido - base * (n - 1)).toFixed(2) : base;
       return {
         valor: maskCurrency(String(Math.round(valor * 100))),
-        data_vencimento: d.toISOString().slice(0, 10),
+        data_vencimento: "",
       };
     });
   };
 
-  const parcelasCustomAtivo = condicaoPagamento === "parcelado" && parcelasCustomOn;
+  const parcelasCustomAtivo = condicaoPagamento === "parcelado";
+
   const somaParcelasCustom = parcelasCustom.reduce((s, p) => s + Number(unmaskCurrency(p.valor) || 0), 0);
   const diferencaParcelas = +(totalLiquido - somaParcelasCustom).toFixed(2);
 
