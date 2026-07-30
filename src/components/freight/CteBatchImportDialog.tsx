@@ -337,7 +337,8 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
             const sameData = !!eData && eData === r.data;
             const samePlaca = !!ePlaca && !!r.placa && ePlaca === r.placa;
-            if (sameData && samePlaca) hits.push({ ...e, reason: "peso_data_placa" });
+            const sameValor = Math.abs(Number(e.valor_frete || 0) - Number(r.valorFrete || 0)) <= 0.01;
+            if (sameData && samePlaca && sameValor) hits.push({ ...e, reason: "peso_data_placa" });
           }
           if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
         }
