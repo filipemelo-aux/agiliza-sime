@@ -145,6 +145,8 @@ export function FinancialInvoicing() {
   // New/Edit invoice dialog
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [editingFaturaId, setEditingFaturaId] = useState<string | null>(null);
+  const [receiveMode, setReceiveMode] = useState(false);
+
   const [step, setStep] = useState<"client" | "preview">("client");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -346,6 +348,8 @@ export function FinancialInvoicing() {
   // --- Nova Fatura ---
   const openNewInvoice = async () => {
     setEditingFaturaId(null);
+    setReceiveMode(false);
+
     setStep("client");
     setSelectedClientId("");
     setClientPrevisoes([]);
@@ -377,24 +381,36 @@ export function FinancialInvoicing() {
   };
 
   // --- Edit Fatura ---
-  const openEditInvoice = async (fatura: Fatura) => {
+  const openEditInvoice = async (fatura: Fatura, mode: "edit" | "receive" = "edit") => {
     // Only faturada can be edited (not paid)
-    if (fatura.status === "paga") {
+    if (mode === "edit" && fatura.status === "paga") {
       toast.error("Faturas pagas não podem ser editadas");
       return;
     }
 
+    // Emissão real (origem das previsões / criação) vs data gravada na fatura
+    const emissaoReal = (fatura as any).data_emissao_real || fatura.data_emissao;
+    const vencimentoRef = (fatura as any).data_vencimento_ref || fatura.data_emissao;
+
+    let condicao: "avista" | "unico" | "parcelado";
+    if (Number(fatura.num_parcelas) > 1) condicao = "parcelado";
+    else if (vencimentoRef && emissaoReal && vencimentoRef > emissaoReal) condicao = "unico";
+    else condicao = "avista";
+
+    setReceiveMode(mode === "receive");
     setEditingFaturaId(fatura.id);
+    setReceiveFatura(fatura);
     setSelectedClientId(fatura.cliente_id);
-    setCondicaoPagamento(fatura.num_parcelas === 1 ? "avista" : "parcelado");
+    setCondicaoPagamento(condicao);
     setNumParcelas(fatura.num_parcelas);
     setIntervaloDias(fatura.intervalo_dias || 30);
-    setDataEmissaoEdit(fatura.data_emissao);
-    setDataVencimentoUnico(fatura.data_emissao);
+    setDataEmissaoEdit(emissaoReal);
+    setDataVencimentoUnico(vencimentoRef);
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
     setStep("preview");
+
 
     // Load linked previsões (faturado) + any pending for this client
     const { data: links } = await supabase
@@ -582,8 +598,14 @@ export function FinancialInvoicing() {
   };
 
   // --- Receber ---
+  // Abre a mesma tela da edição, em modo recebimento (botão "Pagar" no lugar de salvar)
   const openReceive = async (fatura: Fatura) => {
-    setReceiveFatura(fatura);
+    await openEditInvoice(fatura, "receive");
+  };
+
+  const proceedToReceive = async () => {
+    const fatura = receiveFatura;
+    if (!fatura) return;
 
     const { data } = await supabase
       .from("contas_receber")
@@ -593,6 +615,7 @@ export function FinancialInvoicing() {
 
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
+    setNewDialogOpen(false);
 
     // Se houver apenas um título, abre direto o modal de recebimento (mesmo do Contas a Receber)
     const abertos = contas.filter(c => c.status !== "recebido");
@@ -603,6 +626,7 @@ export function FinancialInvoicing() {
     }
     setReceiveDialogOpen(true);
   };
+
 
   const reloadReceiveContas = async () => {
     if (!receiveFatura) return;
@@ -1756,15 +1780,18 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingFaturaId
-                ? "Editar Fatura"
-                : step === "client"
-                  ? "Nova Fatura — Selecionar Cliente"
-                  : "Nova Fatura — Condições"}
+              {receiveMode
+                ? "Receber Fatura"
+                : editingFaturaId
+                  ? "Editar Fatura"
+                  : step === "client"
+                    ? "Nova Fatura — Selecionar Cliente"
+                    : "Nova Fatura — Condições"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+              {receiveMode ? "Confira a fatura e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
             </DialogDescription>
+
           </DialogHeader>
 
           {step === "client" && !editingFaturaId && (
@@ -1846,6 +1873,7 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={acrescimoStr}
+                      disabled={receiveMode}
                       onChange={(e) => setAcrescimoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1855,6 +1883,7 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={descontoStr}
+                      disabled={receiveMode}
                       onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1865,8 +1894,10 @@ ${hasRecebimentos ? `
                     rows={2}
                     placeholder="Ex.: desconto comercial, acréscimo por reentrega..."
                     value={observacoesFatura}
+                    disabled={receiveMode}
                     onChange={(e) => setObservacoesFatura(e.target.value)}
                   />
+
                 </div>
               </div>
 
@@ -1876,6 +1907,7 @@ ${hasRecebimentos ? `
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
                 <RadioGroup
                   value={condicaoPagamento}
+                  disabled={receiveMode}
                   onValueChange={(v) => {
                     const val = v as "avista" | "unico" | "parcelado";
                     setCondicaoPagamento(val);
@@ -1885,10 +1917,10 @@ ${hasRecebimentos ? `
                     } else if (val === "unico") {
                       setNumParcelas(1);
                       setIntervaloDias(0);
-                      setDataVencimentoUnico(getLocalDateISO());
+                      if (!editingFaturaId) setDataVencimentoUnico(getLocalDateISO());
                     } else {
-                      setNumParcelas(2);
-                      setIntervaloDias(30);
+                      setNumParcelas(Math.max(2, numParcelas));
+                      setIntervaloDias(intervaloDias || 30);
                     }
                   }}
                   className="flex gap-4 flex-wrap"
@@ -1914,7 +1946,7 @@ ${hasRecebimentos ? `
                       type="date"
                       value={dataEmissaoEdit}
                       onChange={(e) => setDataEmissaoEdit(e.target.value)}
-                      disabled={condicaoPagamento === "unico"}
+                      disabled={receiveMode || condicaoPagamento === "unico"}
                     />
                   </div>
                   {condicaoPagamento === "unico" && (
@@ -1924,6 +1956,7 @@ ${hasRecebimentos ? `
                         type="date"
                         value={dataVencimentoUnico}
                         onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                        disabled={receiveMode}
                       />
                     </div>
                   )}
@@ -1938,12 +1971,13 @@ ${hasRecebimentos ? `
                         min={2}
                         max={48}
                         value={numParcelas}
+                        disabled={receiveMode}
                         onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))} disabled={receiveMode}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -1956,6 +1990,7 @@ ${hasRecebimentos ? `
                     </div>
                   </div>
                 )}
+
               </div>
 
               {/* Summary preview */}
@@ -2002,10 +2037,18 @@ ${hasRecebimentos ? `
                 {!editingFaturaId && (
                   <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
                 )}
-                <Button onClick={handleCreateOrUpdateInvoice} className={cn("flex-1", editingFaturaId && "w-full")} disabled={saving || selectedPrevIds.size === 0}>
-                  {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
-                </Button>
+                <Button variant="outline" onClick={() => setNewDialogOpen(false)} className="flex-1">Cancelar</Button>
+                {receiveMode ? (
+                  <Button onClick={proceedToReceive} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                    <HandCoins className="h-4 w-4 mr-1" /> Pagar
+                  </Button>
+                ) : (
+                  <Button onClick={handleCreateOrUpdateInvoice} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
+                    {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
+                  </Button>
+                )}
               </div>
+
             </div>
           )}
         </DialogContent>
@@ -2016,6 +2059,7 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Recebimento da Fatura</DialogTitle>
+
           </DialogHeader>
           {receiveFatura && (
             <div className="space-y-3">
@@ -2081,7 +2125,12 @@ ${hasRecebimentos ? `
                   Use o botão "Receber" em cada título para registrar pagamentos totais ou parciais.
                 </p>
               </div>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>Cancelar</Button>
+              </div>
             </div>
+
           )}
         </DialogContent>
       </Dialog>
