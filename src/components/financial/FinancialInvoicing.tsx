@@ -659,13 +659,16 @@ export function FinancialInvoicing() {
   };
 
   // --- Receber ---
-  // Abre a mesma tela da edição, em modo recebimento (botão "Pagar" no lugar de salvar)
+  // Abre direto a tela de pagamento (não abre a tela de edição da fatura)
   const openReceive = async (fatura: Fatura) => {
-    await openEditInvoice(fatura, "receive");
+    setReceiveFatura(fatura);
+    setEditingFaturaId(null);
+    setReceiveMode(false);
+    await proceedToReceive(fatura);
   };
 
-  const proceedToReceive = async () => {
-    const fatura = receiveFatura;
+  const proceedToReceive = async (target?: Fatura) => {
+    const fatura = target || receiveFatura;
     if (!fatura) return;
 
     // Os títulos são recriados por trigger após salvar a fatura — aguarda até aparecerem
@@ -688,11 +691,20 @@ export function FinancialInvoicing() {
 
     setReceiveContas(contas);
     setNewDialogOpen(false);
-    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    const abertos = contas.filter((c) => Number(c.valor) - Number(c.valor_recebido || 0) > 0.005);
+    const primeiroAberto = abertos[0];
+    setReceiveContaId(primeiroAberto ? primeiroAberto.id : "");
+    setReceiveParcial(false);
+    setReceiveDescontoStr("");
+    setReceiveAcrescimoStr("");
+    const saldoAlvo = primeiroAberto
+      ? Number(primeiroAberto.valor) - Number(primeiroAberto.valor_recebido || 0)
+      : contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    setBaixaValor(String(+saldoAlvo.toFixed(2)));
     setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
+
 
 
   // Salva as alterações feitas na janela e já segue para o registro do pagamento
