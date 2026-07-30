@@ -1368,6 +1368,10 @@ ${hasRecebimentos ? `
     },
   );
 
+  const [expandedMobileId, setExpandedMobileId] = useState<string | null>(null);
+
+
+
 
   return (
     <div className="space-y-4">
