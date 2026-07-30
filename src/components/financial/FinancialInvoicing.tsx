@@ -752,7 +752,7 @@ export function FinancialInvoicing() {
     fetchFaturas();
   };
 
-  // Baixa de uma parcela específica (total ou parcial), com desconto/acréscimo
+  // Baixa integral da parcela selecionada (valores definidos na fatura)
   const handleBaixaParcialFatura = async () => {
     if (!receiveFatura) return;
     if (!receiveContaId) return toast.error("Selecione a parcela que está sendo quitada");
