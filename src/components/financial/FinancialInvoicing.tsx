@@ -418,6 +418,18 @@ export function FinancialInvoicing() {
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
+    const custom = (fatura as any).parcelas_custom;
+    if (Array.isArray(custom) && custom.length > 0) {
+      setParcelasCustomOn(true);
+      setParcelasCustom(custom.map((p: any) => ({
+        valor: maskCurrency(String(Math.round(Number(p.valor || 0) * 100))),
+        data_vencimento: p.data_vencimento || emissaoReal,
+      })));
+    } else {
+      setParcelasCustomOn(false);
+      setParcelasCustom([]);
+    }
+
     setStep("preview");
 
 
