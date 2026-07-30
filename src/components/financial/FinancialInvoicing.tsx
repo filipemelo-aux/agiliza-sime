@@ -1903,6 +1903,7 @@ ${hasRecebimentos ? `
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
                 <RadioGroup
                   value={condicaoPagamento}
+                  disabled={receiveMode}
                   onValueChange={(v) => {
                     const val = v as "avista" | "unico" | "parcelado";
                     setCondicaoPagamento(val);
@@ -1912,10 +1913,10 @@ ${hasRecebimentos ? `
                     } else if (val === "unico") {
                       setNumParcelas(1);
                       setIntervaloDias(0);
-                      setDataVencimentoUnico(getLocalDateISO());
+                      if (!editingFaturaId) setDataVencimentoUnico(getLocalDateISO());
                     } else {
-                      setNumParcelas(2);
-                      setIntervaloDias(30);
+                      setNumParcelas(Math.max(2, numParcelas));
+                      setIntervaloDias(intervaloDias || 30);
                     }
                   }}
                   className="flex gap-4 flex-wrap"
@@ -1941,7 +1942,7 @@ ${hasRecebimentos ? `
                       type="date"
                       value={dataEmissaoEdit}
                       onChange={(e) => setDataEmissaoEdit(e.target.value)}
-                      disabled={condicaoPagamento === "unico"}
+                      disabled={receiveMode || condicaoPagamento === "unico"}
                     />
                   </div>
                   {condicaoPagamento === "unico" && (
@@ -1951,6 +1952,7 @@ ${hasRecebimentos ? `
                         type="date"
                         value={dataVencimentoUnico}
                         onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                        disabled={receiveMode}
                       />
                     </div>
                   )}
@@ -1965,12 +1967,13 @@ ${hasRecebimentos ? `
                         min={2}
                         max={48}
                         value={numParcelas}
+                        disabled={receiveMode}
                         onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))} disabled={receiveMode}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -1983,6 +1986,7 @@ ${hasRecebimentos ? `
                     </div>
                   </div>
                 )}
+
               </div>
 
               {/* Summary preview */}
