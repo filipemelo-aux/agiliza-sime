@@ -1822,8 +1822,43 @@ ${hasRecebimentos ? `
 
               <div className="text-sm text-muted-foreground">
                 Selecionadas: <strong className="text-foreground">{selectedPrevIds.size}</strong> |
-                Total: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
+                Subtotal: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
               </div>
+
+              {/* Acréscimos / Descontos */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acréscimos / Descontos</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Acréscimo (R$)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={acrescimoStr}
+                      onChange={(e) => setAcrescimoStr(maskCurrency(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Desconto (R$)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={descontoStr}
+                      onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Observações</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder="Ex.: desconto comercial, acréscimo por reentrega..."
+                    value={observacoesFatura}
+                    onChange={(e) => setObservacoesFatura(e.target.value)}
+                  />
+                </div>
+              </div>
+
 
               {/* Payment condition */}
               <div className="space-y-3">
