@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -173,6 +174,10 @@ export function FinancialInvoicing() {
   const [receiveDate, setReceiveDate] = useState<string>(getLocalDateISO());
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
+  const [receiveContaId, setReceiveContaId] = useState<string>("");
+  const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
+  const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
+  const [receiveParcial, setReceiveParcial] = useState(false);
   const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
@@ -655,13 +660,16 @@ export function FinancialInvoicing() {
   };
 
   // --- Receber ---
-  // Abre a mesma tela da edição, em modo recebimento (botão "Pagar" no lugar de salvar)
+  // Abre direto a tela de pagamento (não abre a tela de edição da fatura)
   const openReceive = async (fatura: Fatura) => {
-    await openEditInvoice(fatura, "receive");
+    setReceiveFatura(fatura);
+    setEditingFaturaId(null);
+    setReceiveMode(false);
+    await proceedToReceive(fatura);
   };
 
-  const proceedToReceive = async () => {
-    const fatura = receiveFatura;
+  const proceedToReceive = async (target?: Fatura) => {
+    const fatura = target || receiveFatura;
     if (!fatura) return;
 
     // Os títulos são recriados por trigger após salvar a fatura — aguarda até aparecerem
@@ -684,11 +692,20 @@ export function FinancialInvoicing() {
 
     setReceiveContas(contas);
     setNewDialogOpen(false);
-    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    const abertos = contas.filter((c) => Number(c.valor) - Number(c.valor_recebido || 0) > 0.005);
+    const primeiroAberto = abertos[0];
+    setReceiveContaId(primeiroAberto ? primeiroAberto.id : "");
+    setReceiveParcial(false);
+    setReceiveDescontoStr("");
+    setReceiveAcrescimoStr("");
+    const saldoAlvo = primeiroAberto
+      ? Number(primeiroAberto.valor) - Number(primeiroAberto.valor_recebido || 0)
+      : contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    setBaixaValor(String(+saldoAlvo.toFixed(2)));
     setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
+
 
 
   // Salva as alterações feitas na janela e já segue para o registro do pagamento
@@ -708,62 +725,73 @@ export function FinancialInvoicing() {
       .order("data_vencimento", { ascending: true });
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
-    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    const alvo = contas.find((c) => c.id === receiveContaId);
+    const proximo = contas.find((c) => Number(c.valor) - Number(c.valor_recebido || 0) > 0.005);
+    const escolhido = alvo && Number(alvo.valor) - Number(alvo.valor_recebido || 0) > 0.005 ? alvo : proximo;
+    setReceiveContaId(escolhido ? escolhido.id : "");
+    const saldo = escolhido
+      ? Number(escolhido.valor) - Number(escolhido.valor_recebido || 0)
+      : 0;
+    setBaixaValor(String(+saldo.toFixed(2)));
+    setReceiveParcial(false);
+    setReceiveDescontoStr("");
+    setReceiveAcrescimoStr("");
     fetchFaturas();
   };
 
-  // Baixa parcial no valor total da fatura: abate nos títulos do mais antigo ao mais novo
+  // Baixa de uma parcela específica (total ou parcial), com desconto/acréscimo
   const handleBaixaParcialFatura = async () => {
     if (!receiveFatura) return;
-    const valorNum = Number(baixaValor);
-    if (!valorNum || valorNum <= 0) return toast.error("Informe o valor recebido");
+    if (!receiveContaId) return toast.error("Selecione a parcela que está sendo quitada");
     if (!receiveDate) return toast.error("Informe a data do recebimento");
     if (!user?.id) return toast.error("Sessão inválida");
 
-    const abertos = receiveContas
-      .filter(c => Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)) > 0.005)
-      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
+    const conta = receiveContas.find((c) => c.id === receiveContaId);
+    if (!conta) return toast.error("Parcela não encontrada");
 
-    if (abertos.length === 0) return toast.error("Não há títulos em aberto nesta fatura");
+    const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
+    if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
 
-    const saldoFatura = abertos.reduce((s, c) => s + (Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-    if (valorNum > saldoFatura + 0.005) {
-      return toast.error(`Valor maior que o saldo em aberto (${formatCurrency(saldoFatura)})`);
-    }
+    const desconto = Number(unmaskCurrency(receiveDescontoStr) || 0);
+    const acrescimo = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
+    const valorPago = receiveParcial
+      ? Number(baixaValor)
+      : +(saldoTitulo - desconto + acrescimo).toFixed(2);
+
+    if (!valorPago || valorPago <= 0) return toast.error("Informe o valor recebido");
+
+    // Valor efetivamente abatido no título (desconto quita, acréscimo é juros/multa)
+    const abatido = +Math.min(saldoTitulo, +(valorPago + desconto - acrescimo).toFixed(2)).toFixed(2);
+    if (abatido <= 0) return toast.error("Valor inválido para baixa desta parcela");
 
     setReceiveSaving(true);
     try {
-      let restante = +valorNum.toFixed(2);
-      const rows: any[] = [];
-      for (const c of abertos) {
-        if (restante <= 0.005) break;
-        const saldoTitulo = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
-        const aplicar = +Math.min(saldoTitulo, restante).toFixed(2);
-        rows.push({
-          conta_receber_id: c.id,
-          valor: aplicar,
-          forma_recebimento: receiveForma,
-          data_recebimento: receiveDate,
-          observacoes: "Baixa parcial da fatura",
-          created_by: user.id,
-        });
-        restante = +(restante - aplicar).toFixed(2);
-      }
+      const detalhes = [
+        receiveParcial ? "Pagamento parcial" : "Quitação da parcela",
+        desconto > 0 ? `desconto ${formatCurrency(desconto)}` : "",
+        acrescimo > 0 ? `acréscimo ${formatCurrency(acrescimo)}` : "",
+      ].filter(Boolean).join(" — ");
 
-      const { error } = await supabase.from("receivable_payments" as any).insert(rows);
+      const { error } = await supabase.from("receivable_payments" as any).insert({
+        conta_receber_id: conta.id,
+        valor: abatido,
+        forma_recebimento: receiveForma,
+        data_recebimento: receiveDate,
+        observacoes: detalhes,
+        created_by: user.id,
+      });
       if (error) throw error;
 
-      const quitouTudo = valorNum + 0.005 >= saldoFatura;
-      toast.success(quitouTudo ? "Fatura quitada!" : `Baixa parcial de ${formatCurrency(valorNum)} registrada`);
+      const quitouTitulo = abatido + 0.005 >= saldoTitulo;
+      toast.success(quitouTitulo ? "Parcela quitada!" : `Pagamento parcial de ${formatCurrency(valorPago)} registrado`);
       await reloadReceiveContas();
-      if (quitouTudo) setReceiveDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
     } finally {
       setReceiveSaving(false);
     }
   };
+
 
 
   const handleReceiveAll = async () => {
@@ -1999,17 +2027,16 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {receiveMode
-                ? "Receber Fatura"
-                : editingFaturaId
-                  ? "Editar Fatura"
-                  : step === "client"
-                    ? "Nova Fatura — Selecionar Cliente"
-                    : "Nova Fatura — Condições"}
+              {editingFaturaId
+                ? "Editar Fatura"
+                : step === "client"
+                  ? "Nova Fatura — Selecionar Cliente"
+                  : "Nova Fatura — Condições"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {receiveMode ? "Edite as condições e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+              {editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
             </DialogDescription>
+
 
           </DialogHeader>
 
@@ -2357,15 +2384,10 @@ ${hasRecebimentos ? `
                   <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
                 )}
                 <Button variant="outline" onClick={() => setNewDialogOpen(false)} className="flex-1">Cancelar</Button>
-                {receiveMode ? (
-                  <Button onClick={handleSaveAndReceive} className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={saving || selectedPrevIds.size === 0}>
-                    <HandCoins className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar e Pagar"}
-                  </Button>
-                ) : (
-                  <Button onClick={() => handleCreateOrUpdateInvoice()} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
-                    {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
-                  </Button>
-                )}
+                <Button onClick={() => handleCreateOrUpdateInvoice()} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
+                  {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
+                </Button>
+
               </div>
 
             </div>
@@ -2397,25 +2419,79 @@ ${hasRecebimentos ? `
                       </div>
                     </div>
 
-                    {saldo > 0.005 && (
+                    {saldo > 0.005 && (() => {
+                      const contaSel = receiveContas.find(c => c.id === receiveContaId);
+                      const saldoTitulo = contaSel ? +(Number(contaSel.valor) - Number(contaSel.valor_recebido || 0)).toFixed(2) : 0;
+                      const desc = Number(unmaskCurrency(receiveDescontoStr) || 0);
+                      const acr = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
+                      const aPagar = receiveParcial
+                        ? Number(baixaValor || 0)
+                        : +(saldoTitulo - desc + acr).toFixed(2);
+                      return (
                       <div className="border rounded-md p-3 space-y-2">
-                        <p className="text-xs font-semibold">Registrar recebimento (parcial ou total)</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <p className="text-xs font-semibold">Lançar pagamento</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-xs">Valor recebido (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
-                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
-                            />
-                            <div className="flex gap-1 mt-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldo))}>Saldo total</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldo / 2).toFixed(2)))}>50%</Button>
-                            </div>
+                            <Label className="text-xs">Parcela que está sendo quitada</Label>
+                            <Select
+                              value={receiveContaId}
+                              onValueChange={(v) => {
+                                setReceiveContaId(v);
+                                const c = receiveContas.find(x => x.id === v);
+                                const s = c ? +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2) : 0;
+                                setBaixaValor(String(s));
+                              }}
+                            >
+                              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione a parcela" /></SelectTrigger>
+                              <SelectContent>
+                                {receiveContas.map((c, i) => {
+                                  const s = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
+                                  return (
+                                    <SelectItem key={c.id} value={c.id} disabled={s <= 0.005}>
+                                      {`Parcela ${i + 1}/${receiveContas.length} — venc. ${formatDateBR(c.data_vencimento)} — ${s > 0.005 ? `saldo ${formatCurrency(s)}` : "quitada"}`}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
                             <Label className="text-xs">Data</Label>
                             <Input type="date" className="h-9 text-xs" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <Switch
+                            id="pgto-parcial"
+                            checked={receiveParcial}
+                            onCheckedChange={(v) => {
+                              setReceiveParcial(v);
+                              if (!v) setBaixaValor(String(saldoTitulo));
+                            }}
+                          />
+                          <Label htmlFor="pgto-parcial" className="text-xs">Pagamento parcial desta parcela</Label>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Desconto (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={receiveDescontoStr}
+                              onChange={e => setReceiveDescontoStr(maskCurrency(e.target.value))}
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Acréscimo (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={receiveAcrescimoStr}
+                              onChange={e => setReceiveAcrescimoStr(maskCurrency(e.target.value))}
+                              placeholder="0,00"
+                            />
                           </div>
                           <div>
                             <Label className="text-xs">Forma</Label>
@@ -2429,19 +2505,39 @@ ${hasRecebimentos ? `
                             </Select>
                           </div>
                         </div>
-                        <p className="text-[11px] text-muted-foreground italic">
-                          O valor é abatido nos títulos do vencimento mais antigo para o mais novo. O saldo restante permanece em aberto.
-                        </p>
+
+                        {receiveParcial && (
+                          <div>
+                            <Label className="text-xs">Valor recebido (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
+                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
+                            />
+                            <div className="flex gap-1 mt-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldoTitulo))}>Saldo da parcela</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldoTitulo / 2).toFixed(2)))}>50%</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-[11px] text-muted-foreground border-t pt-2">
+                          <span>Saldo da parcela: <strong className="font-mono text-foreground">{formatCurrency(saldoTitulo)}</strong></span>
+                          <span>Total a receber: <strong className="font-mono text-foreground">{formatCurrency(Math.max(0, aPagar))}</strong></span>
+                        </div>
+
                         <Button
                           className="w-full bg-green-600 hover:bg-green-700 text-white h-9"
-                          disabled={receiveSaving}
+                          disabled={receiveSaving || !receiveContaId}
                           onClick={handleBaixaParcialFatura}
                         >
                           <HandCoins className="h-4 w-4 mr-1" />
-                          {receiveSaving ? "Registrando..." : "Registrar recebimento"}
+                          {receiveSaving ? "Registrando..." : "Registrar pagamento"}
                         </Button>
                       </div>
-                    )}
+                      );
+                    })()}
+
                   </>
                 );
               })()}
