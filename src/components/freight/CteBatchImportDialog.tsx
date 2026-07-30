@@ -303,7 +303,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             Promise.resolve(
               supabase
                 .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
                 .in("data_carregamento", dates)
                 .limit(2000)
             )
@@ -314,7 +314,7 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             Promise.resolve(
               supabase
                 .from("ctes")
-                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, tipo_talao")
+                .select("id, numero, numero_interno, data_carregamento, placa_veiculo, peso_bruto, valor_frete, tipo_talao")
                 .in("placa_veiculo", plates)
                 .limit(2000)
             )
