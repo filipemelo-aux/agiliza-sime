@@ -596,8 +596,14 @@ export function FinancialInvoicing() {
   };
 
   // --- Receber ---
+  // Abre a mesma tela da edição, em modo recebimento (botão "Pagar" no lugar de salvar)
   const openReceive = async (fatura: Fatura) => {
-    setReceiveFatura(fatura);
+    await openEditInvoice(fatura, "receive");
+  };
+
+  const proceedToReceive = async () => {
+    const fatura = receiveFatura;
+    if (!fatura) return;
 
     const { data } = await supabase
       .from("contas_receber")
@@ -607,6 +613,7 @@ export function FinancialInvoicing() {
 
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
+    setNewDialogOpen(false);
 
     // Se houver apenas um título, abre direto o modal de recebimento (mesmo do Contas a Receber)
     const abertos = contas.filter(c => c.status !== "recebido");
@@ -617,6 +624,7 @@ export function FinancialInvoicing() {
     }
     setReceiveDialogOpen(true);
   };
+
 
   const reloadReceiveContas = async () => {
     if (!receiveFatura) return;
