@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FileText, CheckCircle2, Clock, Eye, DollarSign, Plus, HandCoins, Pencil, Trash2, Printer, Undo2, Loader2 } from "lucide-react";
 import { getLocalDateISO } from "@/lib/date";
-import { formatCurrency, maskCNPJ } from "@/lib/masks";
+import { formatCurrency, maskCNPJ, maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
@@ -36,6 +37,9 @@ interface Fatura {
   status: string;
   data_emissao: string;
   created_at: string;
+  valor_acrescimo?: number;
+  valor_desconto?: number;
+  observacoes?: string | null;
   cliente_nome?: string;
   valor_recebido_total?: number;
   has_partial?: boolean;
@@ -150,6 +154,10 @@ export function FinancialInvoicing() {
   const [numParcelas, setNumParcelas] = useState(1);
   const [intervaloDias, setIntervaloDias] = useState(30);
   const [dataVencimentoUnico, setDataVencimentoUnico] = useState<string>(getLocalDateISO());
+  const [dataEmissaoEdit, setDataEmissaoEdit] = useState<string>(getLocalDateISO());
+  const [acrescimoStr, setAcrescimoStr] = useState("");
+  const [descontoStr, setDescontoStr] = useState("");
+  const [observacoesFatura, setObservacoesFatura] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Receive dialog
@@ -345,6 +353,11 @@ export function FinancialInvoicing() {
     setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
+    setDataEmissaoEdit(getLocalDateISO());
+    setDataVencimentoUnico(getLocalDateISO());
+    setAcrescimoStr("");
+    setDescontoStr("");
+    setObservacoesFatura("");
     setNewDialogOpen(true);
 
     const { data } = await supabase
@@ -375,7 +388,12 @@ export function FinancialInvoicing() {
     setSelectedClientId(fatura.cliente_id);
     setCondicaoPagamento(fatura.num_parcelas === 1 ? "avista" : "parcelado");
     setNumParcelas(fatura.num_parcelas);
-    setIntervaloDias(fatura.intervalo_dias);
+    setIntervaloDias(fatura.intervalo_dias || 30);
+    setDataEmissaoEdit(fatura.data_emissao);
+    setDataVencimentoUnico(fatura.data_emissao);
+    setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
+    setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
+    setObservacoesFatura(fatura.observacoes || "");
     setStep("preview");
 
     // Load linked previsões (faturado) + any pending for this client
@@ -452,14 +470,30 @@ export function FinancialInvoicing() {
     .filter((p) => selectedPrevIds.has(p.id))
     .reduce((s, p) => s + Number(p.valor), 0);
 
+  const acrescimoValor = Number(unmaskCurrency(acrescimoStr) || 0);
+  const descontoValor = Number(unmaskCurrency(descontoStr) || 0);
+  const totalLiquido = Math.max(selectedPrevTotal + acrescimoValor - descontoValor, 0);
+
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
-  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : undefined;
+  const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
   const handleCreateOrUpdateInvoice = async () => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
+    if (descontoValor > selectedPrevTotal + acrescimoValor) return toast.error("Desconto maior que o valor da fatura");
     setSaving(true);
+
+    const payloadComum = {
+      valor_total: totalLiquido,
+      num_parcelas: effectiveParcelas,
+      intervalo_dias: effectiveIntervalo,
+      valor_acrescimo: acrescimoValor,
+      valor_desconto: descontoValor,
+      observacoes: observacoesFatura.trim() || null,
+      ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
+      status: "faturada" as any,
+    };
 
     try {
       if (editingFaturaId) {
@@ -471,13 +505,7 @@ export function FinancialInvoicing() {
         // 3. Update fatura
         const { error: updErr } = await supabase
           .from("faturas_recebimento")
-          .update({
-            valor_total: selectedPrevTotal,
-            num_parcelas: effectiveParcelas,
-            intervalo_dias: effectiveIntervalo,
-            ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
-            status: "faturada" as any,
-          })
+          .update(payloadComum)
           .eq("id", editingFaturaId);
         if (updErr) throw updErr;
 
@@ -496,11 +524,7 @@ export function FinancialInvoicing() {
           .from("faturas_recebimento")
           .insert({
             cliente_id: selectedClientId,
-            valor_total: selectedPrevTotal,
-            num_parcelas: effectiveParcelas,
-            intervalo_dias: effectiveIntervalo,
-            ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
-            status: "faturada" as any,
+            ...payloadComum,
           })
           .select()
           .single();
@@ -1568,7 +1592,17 @@ ${hasRecebimentos ? `
                 <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
                 <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
                 <div><span className="text-muted-foreground">Condição:</span> <strong>{selectedFatura.num_parcelas === 1 ? "À vista" : `${selectedFatura.num_parcelas}x (a cada ${selectedFatura.intervalo_dias} dias)`}</strong></div>
+                {Number(selectedFatura.valor_acrescimo || 0) > 0 && (
+                  <div><span className="text-muted-foreground">Acréscimo:</span> <strong>{formatCurrency(Number(selectedFatura.valor_acrescimo))}</strong></div>
+                )}
+                {Number(selectedFatura.valor_desconto || 0) > 0 && (
+                  <div><span className="text-muted-foreground">Desconto:</span> <strong>{formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
+                )}
+                {selectedFatura.observacoes && (
+                  <div className="col-span-2"><span className="text-muted-foreground">Observações:</span> <strong>{selectedFatura.observacoes}</strong></div>
+                )}
               </div>
+
 
               <div>
                 <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({detailPrevisoes.length})</p>
@@ -1719,7 +1753,7 @@ ${hasRecebimentos ? `
 
       {/* New/Edit Invoice Dialog */}
       <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingFaturaId
@@ -1799,8 +1833,43 @@ ${hasRecebimentos ? `
 
               <div className="text-sm text-muted-foreground">
                 Selecionadas: <strong className="text-foreground">{selectedPrevIds.size}</strong> |
-                Total: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
+                Subtotal: <strong className="text-foreground">{formatCurrency(selectedPrevTotal)}</strong>
               </div>
+
+              {/* Acréscimos / Descontos */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acréscimos / Descontos</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Acréscimo (R$)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={acrescimoStr}
+                      onChange={(e) => setAcrescimoStr(maskCurrency(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Desconto (R$)</Label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={descontoStr}
+                      onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Observações</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder="Ex.: desconto comercial, acréscimo por reentrega..."
+                    value={observacoesFatura}
+                    onChange={(e) => setObservacoesFatura(e.target.value)}
+                  />
+                </div>
+              </div>
+
 
               {/* Payment condition */}
               <div className="space-y-3">
@@ -1838,16 +1907,27 @@ ${hasRecebimentos ? `
                   </div>
                 </RadioGroup>
 
-                {condicaoPagamento === "unico" && (
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Data de Vencimento</Label>
+                    <Label className="text-xs">Data de Emissão</Label>
                     <Input
                       type="date"
-                      value={dataVencimentoUnico}
-                      onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                      value={dataEmissaoEdit}
+                      onChange={(e) => setDataEmissaoEdit(e.target.value)}
+                      disabled={condicaoPagamento === "unico"}
                     />
                   </div>
-                )}
+                  {condicaoPagamento === "unico" && (
+                    <div>
+                      <Label className="text-xs">Data de Vencimento</Label>
+                      <Input
+                        type="date"
+                        value={dataVencimentoUnico}
+                        onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {condicaoPagamento === "parcelado" && (
                   <div className="grid grid-cols-2 gap-3">
@@ -1880,17 +1960,43 @@ ${hasRecebimentos ? `
 
               {/* Summary preview */}
               <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
-                {condicaoPagamento === "avista" ? (
-                  <p className="font-medium">À vista — vencimento na data de emissão</p>
-                ) : condicaoPagamento === "unico" ? (
-                  <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
-                ) : (
-                  <>
-                    <p className="font-medium">{numParcelas}x de {formatCurrency(selectedPrevTotal / numParcelas)}</p>
-                    <p className="text-muted-foreground">Intervalo de {intervaloDias} dias entre parcelas</p>
-                  </>
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-mono">{formatCurrency(selectedPrevTotal)}</span></div>
+                {acrescimoValor > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Acréscimo</span><span className="font-mono">+ {formatCurrency(acrescimoValor)}</span></div>
                 )}
+                {descontoValor > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="font-mono">- {formatCurrency(descontoValor)}</span></div>
+                )}
+                <div className="flex justify-between border-t pt-1 font-semibold"><span>Total da fatura</span><span className="font-mono">{formatCurrency(totalLiquido)}</span></div>
+
+                <div className="border-t pt-1.5 mt-1 space-y-0.5">
+                  {condicaoPagamento === "avista" ? (
+                    <p className="font-medium">À vista — vencimento em {formatDateBR(dataEmissaoEdit)}</p>
+                  ) : condicaoPagamento === "unico" ? (
+                    <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
+                  ) : (
+                    <>
+                      <p className="font-medium">{numParcelas}x de {formatCurrency(totalLiquido / numParcelas)} · prazo de {intervaloDias} dias</p>
+                      <div className="max-h-24 overflow-y-auto space-y-0.5 pt-1">
+                        {Array.from({ length: numParcelas }).map((_, i) => {
+                          const base = new Date(`${dataEmissaoEdit}T12:00:00`);
+                          base.setDate(base.getDate() + (i + 1) * intervaloDias);
+                          const parcela = i === numParcelas - 1
+                            ? totalLiquido - Math.trunc((totalLiquido / numParcelas) * 100) / 100 * (numParcelas - 1)
+                            : Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+                          return (
+                            <div key={i} className="flex justify-between text-muted-foreground">
+                              <span>Parcela {i + 1}/{numParcelas} — {base.toLocaleDateString("pt-BR")}</span>
+                              <span className="font-mono">{formatCurrency(parcela)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
+
 
               <div className="flex gap-2">
                 {!editingFaturaId && (
