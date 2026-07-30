@@ -352,6 +352,11 @@ export function FinancialInvoicing() {
     setCondicaoPagamento("avista");
     setNumParcelas(1);
     setIntervaloDias(30);
+    setDataEmissaoEdit(getLocalDateISO());
+    setDataVencimentoUnico(getLocalDateISO());
+    setAcrescimoStr("");
+    setDescontoStr("");
+    setObservacoesFatura("");
     setNewDialogOpen(true);
 
     const { data } = await supabase
