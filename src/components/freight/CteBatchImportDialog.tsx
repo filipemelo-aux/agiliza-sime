@@ -279,10 +279,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           const b = valid[j];
           const bKg = pesoKgOf(b);
           if (aKg !== bKg || aKg === 0) continue;
-          let reason: "peso_data" | "peso_placa" | null = null;
-          if (a.data && b.data && a.data === b.data) reason = "peso_data";
-          else if (a.placa && b.placa && a.placa === b.placa) reason = "peso_placa";
-          if (!reason) continue;
+          // Duplicidade só quando peso + placa + data são idênticos
+          if (!a.data || !b.data || a.data !== b.data) continue;
+          if (!a.placa || !b.placa || a.placa !== b.placa) continue;
+          const reason = "peso_data_placa" as const;
           const idxA = currentRows.indexOf(a) + 1;
           const idxB = currentRows.indexOf(b) + 1;
           internalDups[a._key] = { reason, with: [...(internalDups[a._key]?.with || []), idxB] };
