@@ -1511,7 +1511,7 @@ ${hasRecebimentos ? `
                         {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
                           {f.has_partial ? "Parcial" : st.label}
                         </Badge>
                       </td>
