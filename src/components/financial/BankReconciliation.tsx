@@ -2299,16 +2299,27 @@ export function BankReconciliation() {
                       <span className="text-green-600 text-[11px]">
                         ✓ Conciliado{!item.matchedMovId && " (sem vínculo)"}
                       </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleUndoReconcile(item)}
-                      >
-                        Desfazer conciliação
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleUndoReconcile(item)}
+                        >
+                          Desfazer conciliação
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px] gap-1 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteItems([item.id])}
+                        >
+                          <Trash2 className="h-3 w-3" /> Excluir
+                        </Button>
+                      </div>
                     </div>
                   )}
+
                 </div>
               ))}
             </div>
