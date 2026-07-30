@@ -515,22 +515,56 @@ export function FinancialInvoicing() {
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
   const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
+  // Cronograma padrão (divisão igual) usado como base para o modo personalizado
+  const buildDefaultSchedule = () => {
+    const base = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+    return Array.from({ length: numParcelas }).map((_, i) => {
+      const d = new Date(`${dataEmissaoEdit}T12:00:00`);
+      d.setDate(d.getDate() + (i + 1) * intervaloDias);
+      const valor = i === numParcelas - 1 ? +(totalLiquido - base * (numParcelas - 1)).toFixed(2) : base;
+      return {
+        valor: maskCurrency(String(Math.round(valor * 100))),
+        data_vencimento: d.toISOString().slice(0, 10),
+      };
+    });
+  };
+
+  const parcelasCustomAtivo = condicaoPagamento === "parcelado" && parcelasCustomOn;
+  const somaParcelasCustom = parcelasCustom.reduce((s, p) => s + Number(unmaskCurrency(p.valor) || 0), 0);
+  const diferencaParcelas = +(totalLiquido - somaParcelasCustom).toFixed(2);
+
+  const updateParcelaCustom = (idx: number, patch: Partial<{ valor: string; data_vencimento: string }>) => {
+    setParcelasCustom((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
   const handleCreateOrUpdateInvoice = async (opts?: { keepOpen?: boolean }): Promise<boolean> => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) { toast.error("Selecione ao menos uma previsão"); return false; }
     if (descontoValor > selectedPrevTotal + acrescimoValor) { toast.error("Desconto maior que o valor da fatura"); return false; }
+    if (parcelasCustomAtivo) {
+      if (parcelasCustom.length === 0) { toast.error("Defina as parcelas personalizadas"); return false; }
+      if (parcelasCustom.some((p) => !p.data_vencimento)) { toast.error("Informe o vencimento de todas as parcelas"); return false; }
+      if (Math.abs(diferencaParcelas) > 0.01) {
+        toast.error(`A soma das parcelas difere do total em ${formatCurrency(Math.abs(diferencaParcelas))}`);
+        return false;
+      }
+    }
     setSaving(true);
 
     const payloadComum = {
       valor_total: totalLiquido,
-      num_parcelas: effectiveParcelas,
+      num_parcelas: parcelasCustomAtivo ? parcelasCustom.length : effectiveParcelas,
       intervalo_dias: effectiveIntervalo,
       valor_acrescimo: acrescimoValor,
       valor_desconto: descontoValor,
       observacoes: observacoesFatura.trim() || null,
+      parcelas_custom: parcelasCustomAtivo
+        ? parcelasCustom.map((p) => ({ valor: Number(unmaskCurrency(p.valor) || 0), data_vencimento: p.data_vencimento }))
+        : null,
       ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
       status: "faturada" as any,
-    };
+    } as any;
+
 
     try {
       if (editingFaturaId) {
