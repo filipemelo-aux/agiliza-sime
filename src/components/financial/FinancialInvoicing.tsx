@@ -2126,7 +2126,10 @@ ${hasRecebimentos ? `
                     </div>
                     <div>
                       <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
+                      <Select
+                        value={INTERVALO_PRESETS.some((p) => p.value === String(intervaloDias)) ? String(intervaloDias) : "custom"}
+                        onValueChange={(v) => { if (v !== "custom") setIntervaloDias(Number(v)); else setIntervaloDias(intervaloDias || 1); }}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -2134,9 +2137,22 @@ ${hasRecebimentos ? `
                           {INTERVALO_PRESETS.map((p) => (
                             <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                           ))}
+                          <SelectItem value="custom">Personalizado (dias)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={intervaloDias}
+                          onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value) || 1))}
+                          className="h-8"
+                        />
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">dias</span>
+                      </div>
                     </div>
+
                   </div>
                 )}
 
