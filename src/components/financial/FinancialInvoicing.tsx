@@ -612,13 +612,24 @@ export function FinancialInvoicing() {
     const fatura = receiveFatura;
     if (!fatura) return;
 
-    const { data } = await supabase
-      .from("contas_receber")
-      .select("*")
-      .eq("fatura_id", fatura.id)
-      .order("data_vencimento", { ascending: true });
+    // Os títulos são recriados por trigger após salvar a fatura — aguarda até aparecerem
+    let contas: ContaReceber[] = [];
+    for (let i = 0; i < 6; i++) {
+      const { data } = await supabase
+        .from("contas_receber")
+        .select("*")
+        .eq("fatura_id", fatura.id)
+        .order("data_vencimento", { ascending: true });
+      contas = (data as ContaReceber[]) || [];
+      if (contas.length > 0) break;
+      await new Promise((r) => setTimeout(r, 400));
+    }
 
-    const contas = (data as ContaReceber[]) || [];
+    if (contas.length === 0) {
+      toast.error("Não foi possível carregar os títulos desta fatura. Tente novamente.");
+      return;
+    }
+
     setReceiveContas(contas);
     setNewDialogOpen(false);
     const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
@@ -626,6 +637,7 @@ export function FinancialInvoicing() {
     setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
+
 
   // Salva as alterações feitas na janela e já segue para o registro do pagamento
   const handleSaveAndReceive = async () => {
