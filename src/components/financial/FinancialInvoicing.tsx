@@ -1502,9 +1502,8 @@ ${hasRecebimentos ? `
                 const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
                 const expanded = expandedMobileId === f.id;
                 return (
-                  <>
+                  <Fragment key={f.id}>
                     <tr
-                      key={f.id}
                       className={cn(
                         "border-t border-border align-top",
                         selectedFaturaIds.has(f.id) && "bg-primary/5",
@@ -1544,7 +1543,7 @@ ${hasRecebimentos ? `
                       </td>
                     </tr>
                     {expanded && (
-                      <tr key={`${f.id}-actions`} className="bg-muted/20 border-t border-border/50">
+                      <tr className="bg-muted/20 border-t border-border/50">
                         <td colSpan={4} className="px-1 py-1.5">
                           {f.has_partial && (
                             <p className="text-[10px] text-amber-600 mb-1">
@@ -1582,7 +1581,7 @@ ${hasRecebimentos ? `
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
