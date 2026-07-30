@@ -2247,21 +2247,25 @@ ${hasRecebimentos ? `
                     </div>
 
                     <div className="col-span-2 border-t pt-2">
-                      {true && (
-
                         <div className="mt-2 space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-muted-foreground">Edite cada parcela abaixo</span>
+                            <span className="text-[11px] text-muted-foreground">Valor e vencimento de cada parcela</span>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               className="h-6 text-[10px] px-2"
-                              onClick={() => setParcelasCustom(buildDefaultSchedule())}
+                              onClick={() => setParcelasCustom((prev) =>
+                                buildDefaultSchedule(prev.length || numParcelas).map((p, i) => ({
+                                  ...p,
+                                  data_vencimento: prev[i]?.data_vencimento || "",
+                                }))
+                              )}
                             >
-                              Recalcular igualmente
+                              Dividir igualmente
                             </Button>
                           </div>
+
                           <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
                             {parcelasCustom.map((p, i) => (
                               <div key={i} className="flex items-center gap-2">
