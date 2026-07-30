@@ -35,6 +35,7 @@ interface DupGroup {
   data: string;
   placa: string;
   peso: number;
+  valor: number;
   items: CteRow[];
 }
 
@@ -74,10 +75,11 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
         const dataKey = String(row.data_emissao).slice(0, 10);
         const placa = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         const peso = Number(row.peso_bruto || 0);
-        if (!dataKey || !placa || !peso) continue;
-        const key = `${dataKey}|${placa}|${peso}`;
+        const valor = Number(row.valor_frete || 0);
+        if (!dataKey || !placa || !peso || peso <= 0) continue;
+        const key = `${dataKey}|${placa}|${peso}|${valor.toFixed(2)}`;
         if (!map.has(key)) {
-          map.set(key, { key, data: dataKey, placa, peso, items: [] });
+          map.set(key, { key, data: dataKey, placa, peso, valor, items: [] });
         }
         map.get(key)!.items.push(row);
       }
@@ -165,7 +167,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
               Verificação de Inconsistências
             </DialogTitle>
             <DialogDescription>
-              Procura CT-es com mesma <strong>data de emissão + placa + peso</strong>.
+              Procura CT-es com mesma <strong>data de emissão + placa + peso + valor</strong>. CT-es com peso zero são ignorados.
             </DialogDescription>
           </DialogHeader>
 
@@ -191,7 +193,7 @@ export function CteInconsistencyDialog({ open, onOpenChange, onDeleted }: Props)
                 <div key={g.key} className="border border-border rounded-md p-2 bg-muted/20">
                   <div className="text-xs font-medium mb-2 flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="text-[10px]">
-                      {formatDateBR(g.data)} · {g.placa} · {Number(g.peso).toLocaleString("pt-BR")} kg
+                      {formatDateBR(g.data)} · {g.placa} · {Number(g.peso).toLocaleString("pt-BR")} kg · {Number(g.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </Badge>
                     <span className="text-muted-foreground">({g.items.length} registros)</span>
                   </div>
