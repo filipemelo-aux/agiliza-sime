@@ -430,10 +430,23 @@ export function FinancialInvoicing() {
         valor: maskCurrency(String(Math.round(Number(p.valor || 0) * 100))),
         data_vencimento: p.data_vencimento || emissaoReal,
       })));
+    } else if (condicao === "parcelado") {
+      // Fatura antiga sem parcelas manuais: reconstrói o cronograma para edição manual
+      const n = Math.max(2, Number(fatura.num_parcelas) || 2);
+      const total = Number(fatura.valor_total || 0);
+      const unit = Math.trunc((total / n) * 100) / 100;
+      setParcelasCustomOn(true);
+      setParcelasCustom(Array.from({ length: n }).map((_, i) => {
+        const d = new Date(`${emissaoReal}T12:00:00`);
+        d.setDate(d.getDate() + (i + 1) * (Number(fatura.intervalo_dias) || 30));
+        const v = i === n - 1 ? +(total - unit * (n - 1)).toFixed(2) : unit;
+        return { valor: maskCurrency(String(Math.round(v * 100))), data_vencimento: d.toISOString().slice(0, 10) };
+      }));
     } else {
       setParcelasCustomOn(false);
       setParcelasCustom([]);
     }
+
 
     setStep("preview");
 
@@ -517,24 +530,24 @@ export function FinancialInvoicing() {
   const totalLiquido = Math.max(selectedPrevTotal + acrescimoValor - descontoValor, 0);
 
   const effectiveParcelas = condicaoPagamento === "parcelado" ? numParcelas : 1;
-  const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
+  const effectiveIntervalo = condicaoPagamento === "parcelado" ? 0 : 0;
   const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
-  // Cronograma padrão (divisão igual) usado como base para o modo personalizado
-  const buildDefaultSchedule = () => {
-    const base = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
-    return Array.from({ length: numParcelas }).map((_, i) => {
-      const d = new Date(`${dataEmissaoEdit}T12:00:00`);
-      d.setDate(d.getDate() + (i + 1) * intervaloDias);
-      const valor = i === numParcelas - 1 ? +(totalLiquido - base * (numParcelas - 1)).toFixed(2) : base;
+  // Cronograma base: valores divididos igualmente, datas em branco (definição manual)
+  const buildDefaultSchedule = (qtd = numParcelas) => {
+    const n = Math.max(1, qtd);
+    const base = Math.trunc((totalLiquido / n) * 100) / 100;
+    return Array.from({ length: n }).map((_, i) => {
+      const valor = i === n - 1 ? +(totalLiquido - base * (n - 1)).toFixed(2) : base;
       return {
         valor: maskCurrency(String(Math.round(valor * 100))),
-        data_vencimento: d.toISOString().slice(0, 10),
+        data_vencimento: "",
       };
     });
   };
 
-  const parcelasCustomAtivo = condicaoPagamento === "parcelado" && parcelasCustomOn;
+  const parcelasCustomAtivo = condicaoPagamento === "parcelado";
+
   const somaParcelasCustom = parcelasCustom.reduce((s, p) => s + Number(unmaskCurrency(p.valor) || 0), 0);
   const diferencaParcelas = +(totalLiquido - somaParcelasCustom).toFixed(2);
 
@@ -2161,9 +2174,13 @@ ${hasRecebimentos ? `
                       setIntervaloDias(0);
                       if (!editingFaturaId) setDataVencimentoUnico(getLocalDateISO());
                     } else {
-                      setNumParcelas(Math.max(2, numParcelas));
-                      setIntervaloDias(intervaloDias || 30);
+                      const n = Math.max(2, numParcelas);
+                      setNumParcelas(n);
+                      setIntervaloDias(0);
+                      setParcelasCustomOn(true);
+                      if (parcelasCustom.length !== n) setParcelasCustom(buildDefaultSchedule(n));
                     }
+
                   }}
                   className="flex gap-4 flex-wrap"
                 >
@@ -2212,65 +2229,43 @@ ${hasRecebimentos ? `
                         min={2}
                         max={48}
                         value={numParcelas}
-                          onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                        onChange={(e) => {
+                          const n = Math.max(2, Number(e.target.value) || 2);
+                          setNumParcelas(n);
+                          setParcelasCustom((prev) => {
+                            if (prev.length === n) return prev;
+                            const base = buildDefaultSchedule(n);
+                            return base.map((p, i) => ({ ...p, data_vencimento: prev[i]?.data_vencimento || "" }));
+                          });
+                        }}
                       />
                     </div>
-                    <div>
-                      <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select
-                        value={INTERVALO_PRESETS.some((p) => p.value === String(intervaloDias)) ? String(intervaloDias) : "custom"}
-                        onValueChange={(v) => { if (v !== "custom") setIntervaloDias(Number(v)); else setIntervaloDias(intervaloDias || 1); }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INTERVALO_PRESETS.map((p) => (
-                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                          ))}
-                          <SelectItem value="custom">Personalizado (dias)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={365}
-                          value={intervaloDias}
-                          onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value) || 1))}
-                          className="h-8"
-                        />
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">dias</span>
-                      </div>
+                    <div className="flex items-end">
+                      <p className="text-[11px] text-muted-foreground">
+                        Valores divididos igualmente (editáveis). Informe manualmente o vencimento de cada parcela.
+                      </p>
                     </div>
 
                     <div className="col-span-2 border-t pt-2">
-                      <label className="flex items-center gap-2 text-xs cursor-pointer">
-                        <Checkbox
-                          checked={parcelasCustomOn}
-                          onCheckedChange={(v) => {
-                            const on = !!v;
-                            setParcelasCustomOn(on);
-                            if (on) setParcelasCustom(buildDefaultSchedule());
-                          }}
-                        />
-                        <span>Valores/vencimentos diferentes por parcela</span>
-                      </label>
-
-                      {parcelasCustomOn && (
                         <div className="mt-2 space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-muted-foreground">Edite cada parcela abaixo</span>
+                            <span className="text-[11px] text-muted-foreground">Valor e vencimento de cada parcela</span>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               className="h-6 text-[10px] px-2"
-                              onClick={() => setParcelasCustom(buildDefaultSchedule())}
+                              onClick={() => setParcelasCustom((prev) =>
+                                buildDefaultSchedule(prev.length || numParcelas).map((p, i) => ({
+                                  ...p,
+                                  data_vencimento: prev[i]?.data_vencimento || "",
+                                }))
+                              )}
                             >
-                              Recalcular igualmente
+                              Dividir igualmente
                             </Button>
                           </div>
+
                           <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
                             {parcelasCustom.map((p, i) => (
                               <div key={i} className="flex items-center gap-2">
@@ -2291,7 +2286,11 @@ ${hasRecebimentos ? `
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 text-destructive"
-                                  onClick={() => setParcelasCustom(prev => prev.filter((_, idx) => idx !== i))}
+                                  onClick={() => setParcelasCustom(prev => {
+                                    const next = prev.filter((_, idx) => idx !== i);
+                                    setNumParcelas(Math.max(2, next.length));
+                                    return next;
+                                  })}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -2305,10 +2304,9 @@ ${hasRecebimentos ? `
                               size="sm"
                               className="h-6 text-[10px] px-2"
                               onClick={() => setParcelasCustom(prev => {
-                                const last = prev[prev.length - 1];
-                                const d = new Date(`${last?.data_vencimento || dataEmissaoEdit}T12:00:00`);
-                                d.setDate(d.getDate() + intervaloDias);
-                                return [...prev, { valor: "", data_vencimento: d.toISOString().slice(0, 10) }];
+                                const next = [...prev, { valor: "", data_vencimento: "" }];
+                                setNumParcelas(next.length);
+                                return next;
                               })}
                             >
                               + Adicionar parcela
@@ -2319,8 +2317,8 @@ ${hasRecebimentos ? `
                             </span>
                           </div>
                         </div>
-                      )}
                     </div>
+
                   </div>
                 )}
 
