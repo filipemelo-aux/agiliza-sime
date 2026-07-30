@@ -2384,15 +2384,10 @@ ${hasRecebimentos ? `
                   <Button variant="outline" onClick={() => setStep("client")} className="flex-1">Voltar</Button>
                 )}
                 <Button variant="outline" onClick={() => setNewDialogOpen(false)} className="flex-1">Cancelar</Button>
-                {receiveMode ? (
-                  <Button onClick={handleSaveAndReceive} className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={saving || selectedPrevIds.size === 0}>
-                    <HandCoins className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar e Pagar"}
-                  </Button>
-                ) : (
-                  <Button onClick={() => handleCreateOrUpdateInvoice()} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
-                    {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
-                  </Button>
-                )}
+                <Button onClick={() => handleCreateOrUpdateInvoice()} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
+                  {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
+                </Button>
+
               </div>
 
             </div>
