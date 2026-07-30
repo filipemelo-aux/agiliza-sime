@@ -430,10 +430,23 @@ export function FinancialInvoicing() {
         valor: maskCurrency(String(Math.round(Number(p.valor || 0) * 100))),
         data_vencimento: p.data_vencimento || emissaoReal,
       })));
+    } else if (condicao === "parcelado") {
+      // Fatura antiga sem parcelas manuais: reconstrói o cronograma para edição manual
+      const n = Math.max(2, Number(fatura.num_parcelas) || 2);
+      const total = Number(fatura.valor_total || 0);
+      const unit = Math.trunc((total / n) * 100) / 100;
+      setParcelasCustomOn(true);
+      setParcelasCustom(Array.from({ length: n }).map((_, i) => {
+        const d = new Date(`${emissaoReal}T12:00:00`);
+        d.setDate(d.getDate() + (i + 1) * (Number(fatura.intervalo_dias) || 30));
+        const v = i === n - 1 ? +(total - unit * (n - 1)).toFixed(2) : unit;
+        return { valor: maskCurrency(String(Math.round(v * 100))), data_vencimento: d.toISOString().slice(0, 10) };
+      }));
     } else {
       setParcelasCustomOn(false);
       setParcelasCustom([]);
     }
+
 
     setStep("preview");
 
