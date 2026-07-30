@@ -1743,7 +1743,7 @@ ${hasRecebimentos ? `
 
       {/* New/Edit Invoice Dialog */}
       <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingFaturaId
