@@ -204,16 +204,44 @@ export function FinancialInvoicing() {
     if (ids.length) {
       const { data: contas } = await supabase
         .from("contas_receber")
-        .select("fatura_id, valor_recebido")
+        .select("fatura_id, valor_recebido, data_vencimento")
         .in("fatura_id", ids);
       const sums: Record<string, number> = {};
+      const vencMin: Record<string, string> = {};
+      const vencMax: Record<string, string> = {};
       (contas || []).forEach((c: any) => {
         sums[c.fatura_id] = (sums[c.fatura_id] || 0) + Number(c.valor_recebido || 0);
+        if (c.data_vencimento) {
+          if (!vencMin[c.fatura_id] || c.data_vencimento < vencMin[c.fatura_id]) vencMin[c.fatura_id] = c.data_vencimento;
+          if (!vencMax[c.fatura_id] || c.data_vencimento > vencMax[c.fatura_id]) vencMax[c.fatura_id] = c.data_vencimento;
+        }
       });
       faturasList.forEach((f: any) => {
         f.valor_recebido_total = sums[f.id] || 0;
         f.has_partial = f.status !== "paga" && f.valor_recebido_total > 0;
+        // Data de emissão real = data de criação do registro
+        f.data_emissao_real = String(f.created_at).slice(0, 10);
+        // Vencimento: primeira parcela (fallback para o campo legado data_emissao)
+        f.data_vencimento_ref = vencMin[f.id] || f.data_emissao;
+        f.data_vencimento_max = vencMax[f.id] || f.data_vencimento_ref;
+        // Condição: à vista só quando parcela única e vence no mesmo dia da emissão
+        if (Number(f.num_parcelas) > 1) {
+          f.condicao_label = `${f.num_parcelas}x (${f.intervalo_dias}d)`;
+        } else if (f.data_vencimento_ref && f.data_vencimento_ref > f.data_emissao_real) {
+          const dias = Math.max(
+            0,
+            Math.round(
+              (new Date(`${f.data_vencimento_ref}T12:00:00`).getTime() -
+                new Date(`${f.data_emissao_real}T12:00:00`).getTime()) /
+                86400000
+            )
+          );
+          f.condicao_label = `A prazo (${dias}d)`;
+        } else {
+          f.condicao_label = "À vista";
+        }
       });
+
 
 
       // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
@@ -1258,19 +1286,20 @@ ${hasRecebimentos ? `
 
 
 
-  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao" | "cliente_nome" | "valor_total" | "num_parcelas" | "status" | "origem">(
+  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "origem_sort">(
     faturas,
     { key: "numero", direction: "desc" },
     {
       numero: (r) => r.numero,
-      data_emissao: (r) => r.data_emissao,
+      data_emissao_real: (r) => (r as any).data_emissao_real || r.data_emissao,
+      data_vencimento_ref: (r) => (r as any).data_vencimento_ref || r.data_emissao,
       cliente_nome: (r) => r.cliente_nome || "",
       valor_total: (r) => Number(r.valor_total),
-      num_parcelas: (r) => r.num_parcelas,
-      status: (r) => (r.has_partial ? "parcial" : r.status),
-      origem: (r) => r.origem_sort || "zzz",
+      condicao_label: (r) => (r as any).condicao_label || "",
+      origem_sort: (r) => r.origem_sort || "zzz",
     },
   );
+
 
   return (
     <div className="space-y-4">
@@ -1416,12 +1445,13 @@ ${hasRecebimentos ? `
                   </th>
                   <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
 
-                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao_real"} direction={sort.direction} onSort={() => toggle("data_emissao_real")}>Emissão</SortableTh>
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
-                  <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[110px]" active={sort.key === "data_vencimento_ref"} direction={sort.direction} onSort={() => toggle("data_vencimento_ref")}>Vencimento</SortableTh>
                   <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "num_parcelas"} direction={sort.direction} onSort={() => toggle("num_parcelas")}>Condição</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "condicao_label"} direction={sort.direction} onSort={() => toggle("condicao_label")}>Condição</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[100px]" active={sort.key === "origem_sort"} direction={sort.direction} onSort={() => toggle("origem_sort")}>Origem</SortableTh>
+
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
               </thead>
@@ -1437,11 +1467,21 @@ ${hasRecebimentos ? `
                           aria-label="Selecionar fatura"
                         />
                       </td>
-                      <td className="px-3 py-2 font-mono text-muted-foreground">#{String(f.numero).padStart(4, '0')}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
+                        #{String(f.numero).padStart(4, '0')}
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="ml-1 text-[9px] px-1 py-0 align-middle">
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
 
-                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR(f.data_emissao)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</td>
                       <td className="px-3 py-2 font-medium truncate max-w-[420px]">{f.cliente_nome}</td>
-                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                        {formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}
+                        {f.num_parcelas > 1 && (f as any).data_vencimento_max !== (f as any).data_vencimento_ref && (
+                          <span className="text-[10px] text-muted-foreground"> …{formatDateBR((f as any).data_vencimento_max)}</span>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-right tabular-nums font-medium">
                         {formatCurrency(Number(f.valor_total))}
                         {f.has_partial && (
@@ -1450,14 +1490,11 @@ ${hasRecebimentos ? `
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-center text-muted-foreground">
-                        {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`}
+                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">
+                        {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
-                      <td className="px-2 py-2 text-center">
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
-                          {f.has_partial ? "Parcial" : st.label}
-                        </Badge>
-                      </td>
+                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+
                       <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-0.5">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
