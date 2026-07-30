@@ -1436,70 +1436,159 @@ ${hasRecebimentos ? `
           </CardContent>
         </Card>
       ) : isMobile ? (
-        <div className="grid grid-cols-1 gap-2">
-          {faturas.map((f) => {
-            const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
-            return (
-              <Card key={f.id} onClick={() => openDetail(f)} className={cn("cursor-pointer", selectedFaturaIds.has(f.id) && "border-primary bg-primary/5")}>
-                <CardContent className="p-3 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+        <div className="border border-border rounded-md overflow-hidden bg-card">
+          <table className="w-full table-fixed text-[11px]">
+            <colgroup>
+              <col className="w-[28px]" />
+              <col />
+              <col className="w-[86px]" />
+              <col className="w-[24px]" />
+            </colgroup>
+            <thead className="bg-muted/40 text-muted-foreground">
+              <tr className="text-left">
+                <th className="px-1 py-1.5">
+                  <Checkbox
+                    className="h-3.5 w-3.5"
+                    checked={faturasSorted.length > 0 && faturasSorted.every((f) => selectedFaturaIds.has(f.id))}
+                    onCheckedChange={(v) =>
+                      setSelectedFaturaIds(v ? new Set(faturasSorted.map((f) => f.id)) : new Set())
+                    }
+                    aria-label="Selecionar todas"
+                  />
+                </th>
+                <SortableTh
+                  className="px-1 py-1.5 font-medium"
+                  active={sort.key === "cliente_nome"}
+                  direction={sort.direction}
+                  onSort={() => toggle("cliente_nome")}
+                >
+                  Cliente
+                </SortableTh>
+                <SortableTh
+                  align="right"
+                  className="px-1 py-1.5 font-medium text-right"
+                  active={sort.key === "valor_total"}
+                  direction={sort.direction}
+                  onSort={() => toggle("valor_total")}
+                >
+                  Valor
+                </SortableTh>
+                <th className="px-0.5 py-1.5" />
+              </tr>
+              <tr className="text-left border-t border-border/60">
+                <th />
+                <SortableTh
+                  className="px-1 pb-1.5 font-normal text-[10px]"
+                  active={sort.key === "numero"}
+                  direction={sort.direction}
+                  onSort={() => toggle("numero")}
+                >
+                  Nº
+                </SortableTh>
+                <SortableTh
+                  align="right"
+                  className="px-1 pb-1.5 font-normal text-[10px] text-right"
+                  active={sort.key === "data_vencimento_ref"}
+                  direction={sort.direction}
+                  onSort={() => toggle("data_vencimento_ref")}
+                >
+                  Vencimento
+                </SortableTh>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {faturasSorted.map((f) => {
+                const st = STATUS_MAP[f.status] || STATUS_MAP.rascunho;
+                const expanded = expandedMobileId === f.id;
+                return (
+                  <>
+                    <tr
+                      key={f.id}
+                      className={cn(
+                        "border-t border-border align-top",
+                        selectedFaturaIds.has(f.id) && "bg-primary/5",
+                      )}
+                      onClick={() => setExpandedMobileId(expanded ? null : f.id)}
+                    >
+                      <td className="px-1 py-1.5" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
+                          className="h-3.5 w-3.5"
                           checked={selectedFaturaIds.has(f.id)}
                           onCheckedChange={() => toggleFaturaSelect(f.id)}
                           aria-label="Selecionar fatura"
                         />
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground shrink-0">#{String(f.numero).padStart(4, '0')}</span>
-
-                      <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
-                    </div>
-                    <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px] shrink-0", !f.has_partial && st.className)}>
-                      {f.has_partial ? "Parcial" : st.label}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-xs gap-2">
-                    <span className="text-muted-foreground truncate">
-                      {formatDateBR(f.data_emissao)} · {f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x`}
-                    </span>
-                    <span className="font-mono font-bold text-foreground shrink-0">{formatCurrency(Number(f.valor_total))}</span>
-                  </div>
-                  {f.has_partial && (
-                    <p className="text-[11px] text-amber-600">
-                      Recebido: {formatCurrency(f.valor_recebido_total || 0)} • Saldo: {formatCurrency(Number(f.valor_total) - (f.valor_recebido_total || 0))}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-end gap-0.5 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePrintFatura(f)} title="Imprimir">
-                      <Printer className="h-3.5 w-3.5" />
-                    </Button>
-                    {f.status !== "paga" && (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInvoice(f)} title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteFatura(f)} title="Excluir">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
+                      </td>
+                      <td className="px-1 py-1.5 min-w-0">
+                        <div className="font-medium text-foreground truncate">{f.cliente_nome}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          #{String(f.numero).padStart(4, "0")} · {formatDateBR((f as any).data_emissao_real || f.data_emissao)}
+                          {" · "}
+                          {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x`)}
+                        </div>
+                      </td>
+                      <td className="px-1 py-1.5 text-right">
+                        <div className="font-mono font-semibold tabular-nums">{formatCurrency(Number(f.valor_total))}</div>
+                        <div className="text-[10px] text-muted-foreground tabular-nums">
+                          {formatDateBR((f as any).data_vencimento_ref || f.data_emissao)}
+                        </div>
+                        <Badge
+                          variant={f.has_partial ? "secondary" : st.variant}
+                          className={cn("mt-0.5 text-[9px] px-1 py-0", !f.has_partial && st.className)}
+                        >
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
+                      <td className="px-0.5 py-1.5 text-muted-foreground">
+                        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr key={`${f.id}-actions`} className="bg-muted/20 border-t border-border/50">
+                        <td colSpan={4} className="px-1 py-1.5">
+                          {f.has_partial && (
+                            <p className="text-[10px] text-amber-600 mb-1">
+                              Recebido: {formatCurrency(f.valor_recebido_total || 0)} • Saldo: {formatCurrency(Number(f.valor_total) - (f.valor_recebido_total || 0))}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-end gap-0.5 flex-wrap">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(f)} title="Detalhes">
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePrintFatura(f)} title="Imprimir">
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                            {f.status !== "paga" && (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditInvoice(f)} title="Editar">
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteFatura(f)} title="Excluir">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            {hasPendingContas(f) && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openReceive(f)} title="Receber">
+                                <HandCoins className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {isPaid(f) && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-600" onClick={() => handleReverseFatura(f)} title="Estornar">
+                                <Undo2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                    {hasPendingContas(f) && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-600" onClick={() => openReceive(f)} title="Receber">
-                        <HandCoins className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    {isPaid(f) && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600 hover:text-orange-600" onClick={() => handleReverseFatura(f)} title="Estornar">
-                        <Undo2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+
       ) : (
         <div className="border border-border rounded-md overflow-hidden bg-card">
           <div className="overflow-x-auto">
