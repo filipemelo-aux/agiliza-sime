@@ -1062,12 +1062,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                                 {r._error && <div>{r._error}</div>}
                                 {internal && (
                                   <div>
-                                    Dup. interna ({internal.reason === "peso_data" ? "peso+data" : "peso+placa"}) c/ linha {Array.from(new Set(internal.with)).join(", ")}
+                                    Dup. interna (peso+placa+data) c/ linha {Array.from(new Set(internal.with)).join(", ")}
                                   </div>
                                 )}
                                 {dbHits && dbHits.length > 0 && (
                                   <div>
-                                    Já existe ({dbHits[0].reason === "peso_data" ? "peso+data" : "peso+placa"})
+                                    Já existe (peso+placa+data)
                                     {dbHits[0].numero || dbHits[0].numero_interno ? ` Nº ${dbHits[0].numero ?? dbHits[0].numero_interno}` : ""}
                                   </div>
                                 )}
