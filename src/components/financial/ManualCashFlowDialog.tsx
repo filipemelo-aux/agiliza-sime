@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { maskCurrency, unmaskCurrency } from "@/lib/masks";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { formatCurrency } from "@/lib/masks";
 
 interface ChartAccount {
   id: string;
