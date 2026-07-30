@@ -2418,25 +2418,79 @@ ${hasRecebimentos ? `
                       </div>
                     </div>
 
-                    {saldo > 0.005 && (
+                    {saldo > 0.005 && (() => {
+                      const contaSel = receiveContas.find(c => c.id === receiveContaId);
+                      const saldoTitulo = contaSel ? +(Number(contaSel.valor) - Number(contaSel.valor_recebido || 0)).toFixed(2) : 0;
+                      const desc = Number(unmaskCurrency(receiveDescontoStr) || 0);
+                      const acr = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
+                      const aPagar = receiveParcial
+                        ? Number(baixaValor || 0)
+                        : +(saldoTitulo - desc + acr).toFixed(2);
+                      return (
                       <div className="border rounded-md p-3 space-y-2">
-                        <p className="text-xs font-semibold">Registrar recebimento (parcial ou total)</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <p className="text-xs font-semibold">Lançar pagamento</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-xs">Valor recebido (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
-                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
-                            />
-                            <div className="flex gap-1 mt-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldo))}>Saldo total</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldo / 2).toFixed(2)))}>50%</Button>
-                            </div>
+                            <Label className="text-xs">Parcela que está sendo quitada</Label>
+                            <Select
+                              value={receiveContaId}
+                              onValueChange={(v) => {
+                                setReceiveContaId(v);
+                                const c = receiveContas.find(x => x.id === v);
+                                const s = c ? +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2) : 0;
+                                setBaixaValor(String(s));
+                              }}
+                            >
+                              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione a parcela" /></SelectTrigger>
+                              <SelectContent>
+                                {receiveContas.map((c, i) => {
+                                  const s = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
+                                  return (
+                                    <SelectItem key={c.id} value={c.id} disabled={s <= 0.005}>
+                                      {`Parcela ${i + 1}/${receiveContas.length} — venc. ${formatDateBR(c.data_vencimento)} — ${s > 0.005 ? `saldo ${formatCurrency(s)}` : "quitada"}`}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
                             <Label className="text-xs">Data</Label>
                             <Input type="date" className="h-9 text-xs" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <Switch
+                            id="pgto-parcial"
+                            checked={receiveParcial}
+                            onCheckedChange={(v) => {
+                              setReceiveParcial(v);
+                              if (!v) setBaixaValor(String(saldoTitulo));
+                            }}
+                          />
+                          <Label htmlFor="pgto-parcial" className="text-xs">Pagamento parcial desta parcela</Label>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Desconto (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={receiveDescontoStr}
+                              onChange={e => setReceiveDescontoStr(maskCurrency(e.target.value))}
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Acréscimo (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={receiveAcrescimoStr}
+                              onChange={e => setReceiveAcrescimoStr(maskCurrency(e.target.value))}
+                              placeholder="0,00"
+                            />
                           </div>
                           <div>
                             <Label className="text-xs">Forma</Label>
@@ -2450,19 +2504,39 @@ ${hasRecebimentos ? `
                             </Select>
                           </div>
                         </div>
-                        <p className="text-[11px] text-muted-foreground italic">
-                          O valor é abatido nos títulos do vencimento mais antigo para o mais novo. O saldo restante permanece em aberto.
-                        </p>
+
+                        {receiveParcial && (
+                          <div>
+                            <Label className="text-xs">Valor recebido (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
+                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
+                            />
+                            <div className="flex gap-1 mt-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldoTitulo))}>Saldo da parcela</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldoTitulo / 2).toFixed(2)))}>50%</Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-[11px] text-muted-foreground border-t pt-2">
+                          <span>Saldo da parcela: <strong className="font-mono text-foreground">{formatCurrency(saldoTitulo)}</strong></span>
+                          <span>Total a receber: <strong className="font-mono text-foreground">{formatCurrency(Math.max(0, aPagar))}</strong></span>
+                        </div>
+
                         <Button
                           className="w-full bg-green-600 hover:bg-green-700 text-white h-9"
-                          disabled={receiveSaving}
+                          disabled={receiveSaving || !receiveContaId}
                           onClick={handleBaixaParcialFatura}
                         >
                           <HandCoins className="h-4 w-4 mr-1" />
-                          {receiveSaving ? "Registrando..." : "Registrar recebimento"}
+                          {receiveSaving ? "Registrando..." : "Registrar pagamento"}
                         </Button>
                       </div>
-                    )}
+                      );
+                    })()}
+
                   </>
                 );
               })()}
