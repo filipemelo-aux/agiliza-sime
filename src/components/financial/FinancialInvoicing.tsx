@@ -1780,15 +1780,18 @@ ${hasRecebimentos ? `
         <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingFaturaId
-                ? "Editar Fatura"
-                : step === "client"
-                  ? "Nova Fatura — Selecionar Cliente"
-                  : "Nova Fatura — Condições"}
+              {receiveMode
+                ? "Receber Fatura"
+                : editingFaturaId
+                  ? "Editar Fatura"
+                  : step === "client"
+                    ? "Nova Fatura — Selecionar Cliente"
+                    : "Nova Fatura — Condições"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+              {receiveMode ? "Confira a fatura e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
             </DialogDescription>
+
           </DialogHeader>
 
           {step === "client" && !editingFaturaId && (
