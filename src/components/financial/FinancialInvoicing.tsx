@@ -1444,12 +1444,13 @@ ${hasRecebimentos ? `
                   </th>
                   <SortableTh className="px-3 py-2 font-medium w-[80px]" active={sort.key === "numero"} direction={sort.direction} onSort={() => toggle("numero")}>Nº</SortableTh>
 
-                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao"} direction={sort.direction} onSort={() => toggle("data_emissao")}>Emissão</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap" active={sort.key === "data_emissao_real"} direction={sort.direction} onSort={() => toggle("data_emissao_real")}>Emissão</SortableTh>
                   <SortableTh className="px-3 py-2 font-medium" active={sort.key === "cliente_nome"} direction={sort.direction} onSort={() => toggle("cliente_nome")}>Cliente</SortableTh>
-                  <SortableTh className="px-2 py-2 font-medium w-[110px]" active={sort.key === "origem"} direction={sort.direction} onSort={() => toggle("origem")}>Origem</SortableTh>
+                  <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[110px]" active={sort.key === "data_vencimento_ref"} direction={sort.direction} onSort={() => toggle("data_vencimento_ref")}>Vencimento</SortableTh>
                   <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "num_parcelas"} direction={sort.direction} onSort={() => toggle("num_parcelas")}>Condição</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "condicao_label"} direction={sort.direction} onSort={() => toggle("condicao_label")}>Condição</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[100px]" active={sort.key === "origem_sort"} direction={sort.direction} onSort={() => toggle("origem_sort")}>Origem</SortableTh>
+
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
               </thead>
