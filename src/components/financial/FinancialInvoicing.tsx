@@ -1403,7 +1403,7 @@ ${hasRecebimentos ? `
 
                       <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
                     </div>
-                    <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px] shrink-0">
+                    <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px] shrink-0", !f.has_partial && st.className)}>
                       {f.has_partial ? "Parcial" : st.label}
                     </Badge>
                   </div>
