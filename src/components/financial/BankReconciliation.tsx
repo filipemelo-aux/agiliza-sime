@@ -2633,6 +2633,7 @@ function ItemActions({
   onNewExpense,
   onNewMovement,
   onLinkAccount,
+  onDelete,
 }: {
   item: OfxItem;
   onConfirmMatch: () => void;
@@ -2640,8 +2641,10 @@ function ItemActions({
   onNewExpense: () => void;
   onNewMovement: () => void;
   onLinkAccount?: () => void;
+  onDelete?: () => void;
 }) {
   if (item.status !== "pendente") return null;
+
 
   return (
     <div className="flex items-center gap-1 justify-end flex-wrap">
