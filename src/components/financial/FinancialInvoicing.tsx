@@ -1592,7 +1592,17 @@ ${hasRecebimentos ? `
                 <div><span className="text-muted-foreground">Emissão:</span> <strong>{formatDateBR(selectedFatura.data_emissao)}</strong></div>
                 <div><span className="text-muted-foreground">Valor Total:</span> <strong>{formatCurrency(Number(selectedFatura.valor_total))}</strong></div>
                 <div><span className="text-muted-foreground">Condição:</span> <strong>{selectedFatura.num_parcelas === 1 ? "À vista" : `${selectedFatura.num_parcelas}x (a cada ${selectedFatura.intervalo_dias} dias)`}</strong></div>
+                {Number(selectedFatura.valor_acrescimo || 0) > 0 && (
+                  <div><span className="text-muted-foreground">Acréscimo:</span> <strong>{formatCurrency(Number(selectedFatura.valor_acrescimo))}</strong></div>
+                )}
+                {Number(selectedFatura.valor_desconto || 0) > 0 && (
+                  <div><span className="text-muted-foreground">Desconto:</span> <strong>{formatCurrency(Number(selectedFatura.valor_desconto))}</strong></div>
+                )}
+                {selectedFatura.observacoes && (
+                  <div className="col-span-2"><span className="text-muted-foreground">Observações:</span> <strong>{selectedFatura.observacoes}</strong></div>
+                )}
               </div>
+
 
               <div>
                 <p className="text-sm font-semibold mb-2">Previsões Vinculadas ({detailPrevisoes.length})</p>
