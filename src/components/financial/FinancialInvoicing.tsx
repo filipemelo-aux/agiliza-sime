@@ -96,10 +96,10 @@ interface Cliente {
   full_name: string;
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   rascunho: { label: "Rascunho", variant: "outline" },
   faturada: { label: "Faturada", variant: "default" },
-  paga: { label: "Paga", variant: "secondary" },
+  paga: { label: "Paga", variant: "secondary", className: "bg-success/10 text-success border-success/20" },
 };
 
 const FORMA_RECEBIMENTO_OPTIONS = [
