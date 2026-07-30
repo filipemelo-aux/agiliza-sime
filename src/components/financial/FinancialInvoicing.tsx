@@ -36,6 +36,9 @@ interface Fatura {
   status: string;
   data_emissao: string;
   created_at: string;
+  valor_acrescimo?: number;
+  valor_desconto?: number;
+  observacoes?: string | null;
   cliente_nome?: string;
   valor_recebido_total?: number;
   has_partial?: boolean;
