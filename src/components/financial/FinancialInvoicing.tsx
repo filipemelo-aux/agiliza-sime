@@ -494,10 +494,10 @@ export function FinancialInvoicing() {
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
   const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
-  const handleCreateOrUpdateInvoice = async () => {
+  const handleCreateOrUpdateInvoice = async (opts?: { keepOpen?: boolean }): Promise<boolean> => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
-    if (selectedItems.length === 0) return toast.error("Selecione ao menos uma previsão");
-    if (descontoValor > selectedPrevTotal + acrescimoValor) return toast.error("Desconto maior que o valor da fatura");
+    if (selectedItems.length === 0) { toast.error("Selecione ao menos uma previsão"); return false; }
+    if (descontoValor > selectedPrevTotal + acrescimoValor) { toast.error("Desconto maior que o valor da fatura"); return false; }
     setSaving(true);
 
     const payloadComum = {
@@ -558,10 +558,12 @@ export function FinancialInvoicing() {
         toast.success(`Fatura criada com ${effectiveParcelas} parcela(s)!`);
       }
 
-      setNewDialogOpen(false);
+      if (!opts?.keepOpen) setNewDialogOpen(false);
       fetchFaturas();
+      return true;
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar fatura");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -625,6 +627,13 @@ export function FinancialInvoicing() {
       return;
     }
     setReceiveDialogOpen(true);
+  };
+
+  // Salva as alterações feitas na janela e já segue para o registro do pagamento
+  const handleSaveAndReceive = async () => {
+    const ok = await handleCreateOrUpdateInvoice({ keepOpen: true });
+    if (!ok) return;
+    await proceedToReceive();
   };
 
 
@@ -1881,7 +1890,7 @@ ${hasRecebimentos ? `
                     : "Nova Fatura — Condições"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {receiveMode ? "Confira a fatura e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
+              {receiveMode ? "Edite as condições e registre o recebimento" : editingFaturaId ? "Edite as condições da fatura" : "Crie uma nova fatura"}
             </DialogDescription>
 
           </DialogHeader>
@@ -1965,7 +1974,6 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={acrescimoStr}
-                      disabled={receiveMode}
                       onChange={(e) => setAcrescimoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1975,7 +1983,6 @@ ${hasRecebimentos ? `
                       inputMode="numeric"
                       placeholder="0,00"
                       value={descontoStr}
-                      disabled={receiveMode}
                       onChange={(e) => setDescontoStr(maskCurrency(e.target.value))}
                     />
                   </div>
@@ -1986,7 +1993,6 @@ ${hasRecebimentos ? `
                     rows={2}
                     placeholder="Ex.: desconto comercial, acréscimo por reentrega..."
                     value={observacoesFatura}
-                    disabled={receiveMode}
                     onChange={(e) => setObservacoesFatura(e.target.value)}
                   />
 
@@ -1999,7 +2005,6 @@ ${hasRecebimentos ? `
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condição de Pagamento</Label>
                 <RadioGroup
                   value={condicaoPagamento}
-                  disabled={receiveMode}
                   onValueChange={(v) => {
                     const val = v as "avista" | "unico" | "parcelado";
                     setCondicaoPagamento(val);
@@ -2038,7 +2043,7 @@ ${hasRecebimentos ? `
                       type="date"
                       value={dataEmissaoEdit}
                       onChange={(e) => setDataEmissaoEdit(e.target.value)}
-                      disabled={receiveMode || condicaoPagamento === "unico"}
+                      disabled={condicaoPagamento === "unico"}
                     />
                   </div>
                   {condicaoPagamento === "unico" && (
@@ -2048,8 +2053,7 @@ ${hasRecebimentos ? `
                         type="date"
                         value={dataVencimentoUnico}
                         onChange={(e) => setDataVencimentoUnico(e.target.value)}
-                        disabled={receiveMode}
-                      />
+                        />
                     </div>
                   )}
                 </div>
@@ -2063,13 +2067,12 @@ ${hasRecebimentos ? `
                         min={2}
                         max={48}
                         value={numParcelas}
-                        disabled={receiveMode}
-                        onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                          onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))} disabled={receiveMode}>
+                      <Select value={String(intervaloDias)} onValueChange={(v) => setIntervaloDias(Number(v))}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -2131,11 +2134,11 @@ ${hasRecebimentos ? `
                 )}
                 <Button variant="outline" onClick={() => setNewDialogOpen(false)} className="flex-1">Cancelar</Button>
                 {receiveMode ? (
-                  <Button onClick={proceedToReceive} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                    <HandCoins className="h-4 w-4 mr-1" /> Pagar
+                  <Button onClick={handleSaveAndReceive} className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={saving || selectedPrevIds.size === 0}>
+                    <HandCoins className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar e Pagar"}
                   </Button>
                 ) : (
-                  <Button onClick={handleCreateOrUpdateInvoice} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
+                  <Button onClick={() => handleCreateOrUpdateInvoice()} className="flex-1" disabled={saving || selectedPrevIds.size === 0}>
                     {saving ? "Salvando..." : editingFaturaId ? "Salvar Alterações" : "Confirmar Fatura"}
                   </Button>
                 )}
