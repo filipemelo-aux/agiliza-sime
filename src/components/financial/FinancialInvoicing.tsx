@@ -2420,11 +2420,7 @@ ${hasRecebimentos ? `
                     {saldo > 0.005 && (() => {
                       const contaSel = receiveContas.find(c => c.id === receiveContaId);
                       const saldoTitulo = contaSel ? +(Number(contaSel.valor) - Number(contaSel.valor_recebido || 0)).toFixed(2) : 0;
-                      const desc = Number(unmaskCurrency(receiveDescontoStr) || 0);
-                      const acr = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
-                      const aPagar = receiveParcial
-                        ? Number(baixaValor || 0)
-                        : +(saldoTitulo - desc + acr).toFixed(2);
+                      const aPagar = saldoTitulo;
                       return (
                       <div className="border rounded-md p-3 space-y-2">
                         <p className="text-xs font-semibold">Lançar pagamento</p>
