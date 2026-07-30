@@ -2217,8 +2217,86 @@ ${hasRecebimentos ? `
                       </div>
                     </div>
 
+                    <div className="col-span-2 border-t pt-2">
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox
+                          checked={parcelasCustomOn}
+                          onCheckedChange={(v) => {
+                            const on = !!v;
+                            setParcelasCustomOn(on);
+                            if (on) setParcelasCustom(buildDefaultSchedule());
+                          }}
+                        />
+                        <span>Valores/vencimentos diferentes por parcela</span>
+                      </label>
+
+                      {parcelasCustomOn && (
+                        <div className="mt-2 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-muted-foreground">Edite cada parcela abaixo</span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => setParcelasCustom(buildDefaultSchedule())}
+                            >
+                              Recalcular igualmente
+                            </Button>
+                          </div>
+                          <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                            {parcelasCustom.map((p, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <span className="text-[11px] w-12 text-muted-foreground">{i + 1}/{parcelasCustom.length}</span>
+                                <Input
+                                  className="h-8 text-xs flex-1"
+                                  value={p.valor}
+                                  onChange={(e) => updateParcelaCustom(i, { valor: maskCurrency(e.target.value) })}
+                                />
+                                <Input
+                                  type="date"
+                                  className="h-8 text-xs w-[140px]"
+                                  value={p.data_vencimento}
+                                  onChange={(e) => updateParcelaCustom(i, { data_vencimento: e.target.value })}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => setParcelasCustom(prev => prev.filter((_, idx) => idx !== i))}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => setParcelasCustom(prev => {
+                                const last = prev[prev.length - 1];
+                                const d = new Date(`${last?.data_vencimento || dataEmissaoEdit}T12:00:00`);
+                                d.setDate(d.getDate() + intervaloDias);
+                                return [...prev, { valor: "", data_vencimento: d.toISOString().slice(0, 10) }];
+                              })}
+                            >
+                              + Adicionar parcela
+                            </Button>
+                            <span className={Math.abs(diferencaParcelas) > 0.01 ? "text-destructive font-semibold" : "text-green-600 font-semibold"}>
+                              Soma: {formatCurrency(somaParcelasCustom)}
+                              {Math.abs(diferencaParcelas) > 0.01 && ` · diferença ${formatCurrency(diferencaParcelas)}`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+
 
               </div>
 
