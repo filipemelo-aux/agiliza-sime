@@ -244,20 +244,39 @@ export function FinancialInvoicing() {
 
 
 
-      // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
+      // Origem + data de emissão real (via fatura_previsoes -> previsoes_recebimento)
       const { data: links } = await supabase
         .from("fatura_previsoes")
-        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo, data_prevista)")
         .in("fatura_id", ids);
       const origemMap: Record<string, Set<string>> = {};
+      const emissaoMap: Record<string, string> = {};
       (links || []).forEach((l: any) => {
-        const tipo = l.previsoes_recebimento?.origem_tipo;
+        const p = l.previsoes_recebimento;
+        if (!p) return;
+        if (p.data_prevista && (!emissaoMap[l.fatura_id] || p.data_prevista < emissaoMap[l.fatura_id])) {
+          emissaoMap[l.fatura_id] = p.data_prevista;
+        }
+        const tipo = p.origem_tipo;
         if (!tipo) return;
         if (!origemMap[l.fatura_id]) origemMap[l.fatura_id] = new Set();
         origemMap[l.fatura_id].add(tipo);
       });
       const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
       faturasList.forEach((f: any) => {
+        // Emissão real = data do documento de origem (CT-e/colheita), fallback data_emissao da fatura
+        if (emissaoMap[f.id]) {
+          f.data_emissao_real = emissaoMap[f.id];
+          if (f.data_vencimento_ref && f.data_vencimento_ref > f.data_emissao_real && Number(f.num_parcelas) === 1) {
+            const dias = Math.round(
+              (new Date(`${f.data_vencimento_ref}T12:00:00`).getTime() -
+                new Date(`${f.data_emissao_real}T12:00:00`).getTime()) / 86400000
+            );
+            f.condicao_label = `A prazo (${dias}d)`;
+          } else if (Number(f.num_parcelas) === 1) {
+            f.condicao_label = "À vista";
+          }
+        }
         const set = origemMap[f.id];
         if (!set || set.size === 0) { f.origem_label = "—"; f.origem_sort = "zzz"; return; }
         if (set.size > 1) { f.origem_label = "Misto"; f.origem_sort = "misto"; return; }
@@ -265,6 +284,7 @@ export function FinancialInvoicing() {
         f.origem_label = tipoLabel(t);
         f.origem_sort = t;
       });
+
     }
 
     setFaturas(faturasList);
@@ -1286,7 +1306,7 @@ ${hasRecebimentos ? `
 
 
 
-  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "origem_sort">(
+  const { sort, toggle, sorted: faturasSorted } = useSortableTable<Fatura, "numero" | "data_emissao_real" | "data_vencimento_ref" | "cliente_nome" | "valor_total" | "condicao_label" | "status">(
     faturas,
     { key: "numero", direction: "desc" },
     {
@@ -1296,7 +1316,7 @@ ${hasRecebimentos ? `
       cliente_nome: (r) => r.cliente_nome || "",
       valor_total: (r) => Number(r.valor_total),
       condicao_label: (r) => (r as any).condicao_label || "",
-      origem_sort: (r) => r.origem_sort || "zzz",
+      status: (r) => (r.has_partial ? "parcial" : r.status),
     },
   );
 
@@ -1450,7 +1470,7 @@ ${hasRecebimentos ? `
                   <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[110px]" active={sort.key === "data_vencimento_ref"} direction={sort.direction} onSort={() => toggle("data_vencimento_ref")}>Vencimento</SortableTh>
                   <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
                   <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "condicao_label"} direction={sort.direction} onSort={() => toggle("condicao_label")}>Condição</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[100px]" active={sort.key === "origem_sort"} direction={sort.direction} onSort={() => toggle("origem_sort")}>Origem</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
 
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
@@ -1469,9 +1489,6 @@ ${hasRecebimentos ? `
                       </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
                         #{String(f.numero).padStart(4, '0')}
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="ml-1 text-[9px] px-1 py-0 align-middle">
-                          {f.has_partial ? "Parcial" : st.label}
-                        </Badge>
                       </td>
 
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatDateBR((f as any).data_emissao_real || f.data_emissao)}</td>
@@ -1493,7 +1510,11 @@ ${hasRecebimentos ? `
                       <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">
                         {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
-                      <td className="px-2 py-2 text-center text-muted-foreground whitespace-nowrap">{f.origem_label || "—"}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                          {f.has_partial ? "Parcial" : st.label}
+                        </Badge>
+                      </td>
 
                       <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-0.5">
