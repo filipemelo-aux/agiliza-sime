@@ -765,26 +765,19 @@ export function FinancialInvoicing() {
     const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
     if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
 
-    const valorPago = saldoTitulo;
-    const abatido = saldoTitulo;
-
     setReceiveSaving(true);
     try {
-      const detalhes = "Quitação da parcela";
-
-
       const { error } = await supabase.from("receivable_payments" as any).insert({
         conta_receber_id: conta.id,
-        valor: abatido,
+        valor: saldoTitulo,
         forma_recebimento: receiveForma,
         data_recebimento: receiveDate,
-        observacoes: detalhes,
+        observacoes: "Quitação da parcela",
         created_by: user.id,
       });
       if (error) throw error;
 
-      const quitouTitulo = abatido + 0.005 >= saldoTitulo;
-      toast.success(quitouTitulo ? "Parcela quitada!" : `Pagamento parcial de ${formatCurrency(valorPago)} registrado`);
+      toast.success("Parcela quitada!");
       await reloadReceiveContas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
