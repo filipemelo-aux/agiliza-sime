@@ -2318,22 +2318,34 @@ ${hasRecebimentos ? `
                     <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
                   ) : (
                     <>
-                      <p className="font-medium">{numParcelas}x de {formatCurrency(totalLiquido / numParcelas)} · prazo de {intervaloDias} dias</p>
+                      <p className="font-medium">
+                        {parcelasCustomAtivo
+                          ? `${parcelasCustom.length}x com valores personalizados`
+                          : `${numParcelas}x de ${formatCurrency(totalLiquido / numParcelas)} · prazo de ${intervaloDias} dias`}
+                      </p>
                       <div className="max-h-24 overflow-y-auto space-y-0.5 pt-1">
-                        {Array.from({ length: numParcelas }).map((_, i) => {
-                          const base = new Date(`${dataEmissaoEdit}T12:00:00`);
-                          base.setDate(base.getDate() + (i + 1) * intervaloDias);
-                          const parcela = i === numParcelas - 1
-                            ? totalLiquido - Math.trunc((totalLiquido / numParcelas) * 100) / 100 * (numParcelas - 1)
-                            : Math.trunc((totalLiquido / numParcelas) * 100) / 100;
-                          return (
-                            <div key={i} className="flex justify-between text-muted-foreground">
-                              <span>Parcela {i + 1}/{numParcelas} — {base.toLocaleDateString("pt-BR")}</span>
-                              <span className="font-mono">{formatCurrency(parcela)}</span>
-                            </div>
-                          );
-                        })}
+                        {(parcelasCustomAtivo
+                          ? parcelasCustom.map((p, i) => ({
+                              label: `Parcela ${i + 1}/${parcelasCustom.length} — ${p.data_vencimento ? formatDateBR(p.data_vencimento) : "—"}`,
+                              valor: Number(unmaskCurrency(p.valor) || 0),
+                            }))
+                          : Array.from({ length: numParcelas }).map((_, i) => {
+                              const base = new Date(`${dataEmissaoEdit}T12:00:00`);
+                              base.setDate(base.getDate() + (i + 1) * intervaloDias);
+                              const unit = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+                              return {
+                                label: `Parcela ${i + 1}/${numParcelas} — ${base.toLocaleDateString("pt-BR")}`,
+                                valor: i === numParcelas - 1 ? totalLiquido - unit * (numParcelas - 1) : unit,
+                              };
+                            })
+                        ).map((row, i) => (
+                          <div key={i} className="flex justify-between text-muted-foreground">
+                            <span>{row.label}</span>
+                            <span className="font-mono">{formatCurrency(row.valor)}</span>
+                          </div>
+                        ))}
                       </div>
+
                     </>
                   )}
                 </div>
