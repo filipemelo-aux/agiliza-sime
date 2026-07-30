@@ -145,6 +145,8 @@ export function FinancialInvoicing() {
   // New/Edit invoice dialog
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [editingFaturaId, setEditingFaturaId] = useState<string | null>(null);
+  const [receiveMode, setReceiveMode] = useState(false);
+
   const [step, setStep] = useState<"client" | "preview">("client");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedClientId, setSelectedClientId] = useState("");
