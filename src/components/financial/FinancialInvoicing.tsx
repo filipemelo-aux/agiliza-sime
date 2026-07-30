@@ -244,20 +244,39 @@ export function FinancialInvoicing() {
 
 
 
-      // Origem (via fatura_previsoes -> previsoes_recebimento.origem_tipo)
+      // Origem + data de emissão real (via fatura_previsoes -> previsoes_recebimento)
       const { data: links } = await supabase
         .from("fatura_previsoes")
-        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo)")
+        .select("fatura_id, previsoes_recebimento:previsao_id(origem_tipo, data_prevista)")
         .in("fatura_id", ids);
       const origemMap: Record<string, Set<string>> = {};
+      const emissaoMap: Record<string, string> = {};
       (links || []).forEach((l: any) => {
-        const tipo = l.previsoes_recebimento?.origem_tipo;
+        const p = l.previsoes_recebimento;
+        if (!p) return;
+        if (p.data_prevista && (!emissaoMap[l.fatura_id] || p.data_prevista < emissaoMap[l.fatura_id])) {
+          emissaoMap[l.fatura_id] = p.data_prevista;
+        }
+        const tipo = p.origem_tipo;
         if (!tipo) return;
         if (!origemMap[l.fatura_id]) origemMap[l.fatura_id] = new Set();
         origemMap[l.fatura_id].add(tipo);
       });
       const tipoLabel = (t: string) => t === "cte" ? "CT-e" : t === "colheita" ? "Colheita" : t === "manual" ? "Manual" : t.toUpperCase();
       faturasList.forEach((f: any) => {
+        // Emissão real = data do documento de origem (CT-e/colheita), fallback data_emissao da fatura
+        if (emissaoMap[f.id]) {
+          f.data_emissao_real = emissaoMap[f.id];
+          if (f.data_vencimento_ref && f.data_vencimento_ref > f.data_emissao_real && Number(f.num_parcelas) === 1) {
+            const dias = Math.round(
+              (new Date(`${f.data_vencimento_ref}T12:00:00`).getTime() -
+                new Date(`${f.data_emissao_real}T12:00:00`).getTime()) / 86400000
+            );
+            f.condicao_label = `A prazo (${dias}d)`;
+          } else if (Number(f.num_parcelas) === 1) {
+            f.condicao_label = "À vista";
+          }
+        }
         const set = origemMap[f.id];
         if (!set || set.size === 0) { f.origem_label = "—"; f.origem_sort = "zzz"; return; }
         if (set.size > 1) { f.origem_label = "Misto"; f.origem_sort = "misto"; return; }
@@ -265,6 +284,7 @@ export function FinancialInvoicing() {
         f.origem_label = tipoLabel(t);
         f.origem_sort = t;
       });
+
     }
 
     setFaturas(faturasList);
