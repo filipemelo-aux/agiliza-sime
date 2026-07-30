@@ -73,11 +73,11 @@ interface DbDupInfo {
   data_carregamento: string | null;
   placa_veiculo: string | null;
   peso_bruto: number | null;
-  reason: "peso_data" | "peso_placa";
+  reason: "peso_data_placa";
 }
 
 interface ValidationState {
-  internalDups: Record<string, { reason: "peso_data" | "peso_placa"; with: number[] }>;
+  internalDups: Record<string, { reason: "peso_data_placa"; with: number[] }>;
   dbDups: Record<string, DbDupInfo[]>;
   missingPlates: string[];
   missingActors: { key: string; nome: string; doc: string }[]; // unique
@@ -279,10 +279,10 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
           const b = valid[j];
           const bKg = pesoKgOf(b);
           if (aKg !== bKg || aKg === 0) continue;
-          let reason: "peso_data" | "peso_placa" | null = null;
-          if (a.data && b.data && a.data === b.data) reason = "peso_data";
-          else if (a.placa && b.placa && a.placa === b.placa) reason = "peso_placa";
-          if (!reason) continue;
+          // Duplicidade só quando peso + placa + data são idênticos
+          if (!a.data || !b.data || a.data !== b.data) continue;
+          if (!a.placa || !b.placa || a.placa !== b.placa) continue;
+          const reason = "peso_data_placa" as const;
           const idxA = currentRows.indexOf(a) + 1;
           const idxB = currentRows.indexOf(b) + 1;
           internalDups[a._key] = { reason, with: [...(internalDups[a._key]?.with || []), idxB] };
@@ -334,10 +334,9 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             if (Math.abs(ePeso - kg) > 0.5) continue;
             const eData = e.data_carregamento ? String(e.data_carregamento).slice(0, 10) : "";
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-            const sameData = eData && eData === r.data;
-            const samePlaca = ePlaca && r.placa && ePlaca === r.placa;
-            if (sameData) hits.push({ ...e, reason: "peso_data" });
-            else if (samePlaca) hits.push({ ...e, reason: "peso_placa" });
+            const sameData = !!eData && eData === r.data;
+            const samePlaca = !!ePlaca && !!r.placa && ePlaca === r.placa;
+            if (sameData && samePlaca) hits.push({ ...e, reason: "peso_data_placa" });
           }
           if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
         }
@@ -1063,12 +1062,12 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
                                 {r._error && <div>{r._error}</div>}
                                 {internal && (
                                   <div>
-                                    Dup. interna ({internal.reason === "peso_data" ? "peso+data" : "peso+placa"}) c/ linha {Array.from(new Set(internal.with)).join(", ")}
+                                    Dup. interna (peso+placa+data) c/ linha {Array.from(new Set(internal.with)).join(", ")}
                                   </div>
                                 )}
                                 {dbHits && dbHits.length > 0 && (
                                   <div>
-                                    Já existe ({dbHits[0].reason === "peso_data" ? "peso+data" : "peso+placa"})
+                                    Já existe (peso+placa+data)
                                     {dbHits[0].numero || dbHits[0].numero_interno ? ` Nº ${dbHits[0].numero ?? dbHits[0].numero_interno}` : ""}
                                   </div>
                                 )}

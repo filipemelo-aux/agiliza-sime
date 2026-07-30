@@ -10,13 +10,12 @@ export interface DuplicateMatch {
   remetente_nome: string | null;
   destinatario_nome: string | null;
   tipo_talao: string | null;
-  match_reason: "peso_data" | "peso_placa";
+  match_reason: "peso_data_placa";
 }
 
 /**
  * Procura CT-es com indícios de duplicidade:
- *  - mesmo peso E mesma data (qualquer placa), OU
- *  - mesmo peso E mesma placa (qualquer data)
+ *  - mesmo peso E mesma data E mesma placa (todos idênticos)
  */
 export async function findCteDuplicates(params: {
   pesoBruto: number;
@@ -46,11 +45,9 @@ export async function findCteDuplicates(params: {
     const rowDataIso = row.data_emissao ? String(row.data_emissao) : "";
     const sameData = rowDataIso >= dayStart && rowDataIso <= dayEnd;
     const rowPlaca = String(row.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const samePlaca = placa && rowPlaca && placa === rowPlaca;
-    if (sameData) {
-      matches.push({ ...row, match_reason: "peso_data" });
-    } else if (samePlaca) {
-      matches.push({ ...row, match_reason: "peso_placa" });
+    const samePlaca = !!placa && !!rowPlaca && placa === rowPlaca;
+    if (sameData && samePlaca) {
+      matches.push({ ...row, match_reason: "peso_data_placa" });
     }
   }
   return matches;
@@ -62,7 +59,7 @@ export function buildDuplicateConfirmMessage(matches: DuplicateMatch[]): string 
     const data = m.data_emissao ? String(m.data_emissao).slice(0, 10).split("-").reverse().join("/") : "—";
     const placa = m.placa_veiculo || "—";
     const peso = m.peso_bruto ? `${Number(m.peso_bruto).toLocaleString("pt-BR")} kg` : "—";
-    const motivo = m.match_reason === "peso_data" ? "mesmo peso e data" : "mesmo peso e placa";
+    const motivo = "mesmo peso, data e placa";
     return `• Nº ${num} — ${data} — Placa ${placa} — ${peso} (${motivo})`;
   });
   const extra = matches.length > 5 ? `\n…e mais ${matches.length - 5} registro(s).` : "";
