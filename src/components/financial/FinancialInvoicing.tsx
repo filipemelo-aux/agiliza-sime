@@ -25,6 +25,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 interface Fatura {
@@ -170,6 +171,8 @@ export function FinancialInvoicing() {
   const [receiveForma, setReceiveForma] = useState("pix");
   const [receiveSaving, setReceiveSaving] = useState(false);
   const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
+  const [baixaValor, setBaixaValor] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchFaturas();
@@ -618,14 +621,9 @@ export function FinancialInvoicing() {
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
     setNewDialogOpen(false);
-
-    // Se houver apenas um título, abre direto o modal de recebimento (mesmo do Contas a Receber)
-    const abertos = contas.filter(c => c.status !== "recebido");
-    if (contas.length === 1 || abertos.length === 1) {
-      const alvo = abertos[0] || contas[0];
-      setPartialReceive({ id: alvo.id, valor: Number(alvo.valor) });
-      return;
-    }
+    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
 
@@ -644,9 +642,65 @@ export function FinancialInvoicing() {
       .select("*")
       .eq("fatura_id", receiveFatura.id)
       .order("data_vencimento", { ascending: true });
-    setReceiveContas((data as ContaReceber[]) || []);
+    const contas = (data as ContaReceber[]) || [];
+    setReceiveContas(contas);
+    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    setBaixaValor(String(+saldoFatura.toFixed(2)));
     fetchFaturas();
   };
+
+  // Baixa parcial no valor total da fatura: abate nos títulos do mais antigo ao mais novo
+  const handleBaixaParcialFatura = async () => {
+    if (!receiveFatura) return;
+    const valorNum = Number(baixaValor);
+    if (!valorNum || valorNum <= 0) return toast.error("Informe o valor recebido");
+    if (!receiveDate) return toast.error("Informe a data do recebimento");
+    if (!user?.id) return toast.error("Sessão inválida");
+
+    const abertos = receiveContas
+      .filter(c => Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)) > 0.005)
+      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento));
+
+    if (abertos.length === 0) return toast.error("Não há títulos em aberto nesta fatura");
+
+    const saldoFatura = abertos.reduce((s, c) => s + (Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    if (valorNum > saldoFatura + 0.005) {
+      return toast.error(`Valor maior que o saldo em aberto (${formatCurrency(saldoFatura)})`);
+    }
+
+    setReceiveSaving(true);
+    try {
+      let restante = +valorNum.toFixed(2);
+      const rows: any[] = [];
+      for (const c of abertos) {
+        if (restante <= 0.005) break;
+        const saldoTitulo = +(Number(c.valor) - Number(c.valor_recebido || 0)).toFixed(2);
+        const aplicar = +Math.min(saldoTitulo, restante).toFixed(2);
+        rows.push({
+          conta_receber_id: c.id,
+          valor: aplicar,
+          forma_recebimento: receiveForma,
+          data_recebimento: receiveDate,
+          observacoes: "Baixa parcial da fatura",
+          created_by: user.id,
+        });
+        restante = +(restante - aplicar).toFixed(2);
+      }
+
+      const { error } = await supabase.from("receivable_payments" as any).insert(rows);
+      if (error) throw error;
+
+      const quitouTudo = valorNum + 0.005 >= saldoFatura;
+      toast.success(quitouTudo ? "Fatura quitada!" : `Baixa parcial de ${formatCurrency(valorNum)} registrada`);
+      await reloadReceiveContas();
+      if (quitouTudo) setReceiveDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar recebimento");
+    } finally {
+      setReceiveSaving(false);
+    }
+  };
+
 
   const handleReceiveAll = async () => {
     if (!receiveFatura || receiveContas.length === 0) return;
@@ -2158,10 +2212,70 @@ ${hasRecebimentos ? `
           </DialogHeader>
           {receiveFatura && (
             <div className="space-y-3">
-              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
-                <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
-                <p>Valor da fatura: <strong className="text-foreground">{formatCurrency(Number(receiveFatura.valor_total))}</strong></p>
-              </div>
+              {(() => {
+                const totalFatura = Number(receiveFatura.valor_total);
+                const recebido = receiveContas.reduce((s, c) => s + Number(c.valor_recebido || 0), 0);
+                const saldo = Math.max(0, +(receiveContas.reduce((s, c) => s + Number(c.valor), 0) - recebido).toFixed(2));
+                return (
+                  <>
+                    <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 border">
+                      <p>Cliente: <strong className="text-foreground">{receiveFatura.cliente_nome}</strong></p>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div><span className="block">Valor da fatura</span><strong className="text-foreground font-mono">{formatCurrency(totalFatura)}</strong></div>
+                        <div><span className="block">Recebido</span><strong className="text-green-600 font-mono">{formatCurrency(recebido)}</strong></div>
+                        <div><span className="block">Saldo</span><strong className={`font-mono ${saldo > 0 ? "text-amber-600" : "text-green-600"}`}>{formatCurrency(saldo)}</strong></div>
+                      </div>
+                    </div>
+
+                    {saldo > 0.005 && (
+                      <div className="border rounded-md p-3 space-y-2">
+                        <p className="text-xs font-semibold">Registrar recebimento (parcial ou total)</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Valor recebido (R$)</Label>
+                            <Input
+                              className="h-9 text-xs"
+                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
+                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
+                            />
+                            <div className="flex gap-1 mt-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldo))}>Saldo total</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldo / 2).toFixed(2)))}>50%</Button>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Data</Label>
+                            <Input type="date" className="h-9 text-xs" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Forma</Label>
+                            <Select value={receiveForma} onValueChange={setReceiveForma}>
+                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
+                                  <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          O valor é abatido nos títulos do vencimento mais antigo para o mais novo. O saldo restante permanece em aberto.
+                        </p>
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white h-9"
+                          disabled={receiveSaving}
+                          onClick={handleBaixaParcialFatura}
+                        >
+                          <HandCoins className="h-4 w-4 mr-1" />
+                          {receiveSaving ? "Registrando..." : "Registrar recebimento"}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
 
               <div>
                 <p className="text-xs font-semibold mb-1.5">Títulos ({receiveContas.length})</p>
