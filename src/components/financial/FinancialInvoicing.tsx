@@ -2229,52 +2229,26 @@ ${hasRecebimentos ? `
                         min={2}
                         max={48}
                         value={numParcelas}
-                          onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value)))}
+                        onChange={(e) => {
+                          const n = Math.max(2, Number(e.target.value) || 2);
+                          setNumParcelas(n);
+                          setParcelasCustom((prev) => {
+                            if (prev.length === n) return prev;
+                            const base = buildDefaultSchedule(n);
+                            return base.map((p, i) => ({ ...p, data_vencimento: prev[i]?.data_vencimento || "" }));
+                          });
+                        }}
                       />
                     </div>
-                    <div>
-                      <Label className="text-xs">Intervalo entre parcelas</Label>
-                      <Select
-                        value={INTERVALO_PRESETS.some((p) => p.value === String(intervaloDias)) ? String(intervaloDias) : "custom"}
-                        onValueChange={(v) => { if (v !== "custom") setIntervaloDias(Number(v)); else setIntervaloDias(intervaloDias || 1); }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INTERVALO_PRESETS.map((p) => (
-                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                          ))}
-                          <SelectItem value="custom">Personalizado (dias)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={365}
-                          value={intervaloDias}
-                          onChange={(e) => setIntervaloDias(Math.max(1, Number(e.target.value) || 1))}
-                          className="h-8"
-                        />
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">dias</span>
-                      </div>
+                    <div className="flex items-end">
+                      <p className="text-[11px] text-muted-foreground">
+                        Valores divididos igualmente (editáveis). Informe manualmente o vencimento de cada parcela.
+                      </p>
                     </div>
 
                     <div className="col-span-2 border-t pt-2">
-                      <label className="flex items-center gap-2 text-xs cursor-pointer">
-                        <Checkbox
-                          checked={parcelasCustomOn}
-                          onCheckedChange={(v) => {
-                            const on = !!v;
-                            setParcelasCustomOn(on);
-                            if (on) setParcelasCustom(buildDefaultSchedule());
-                          }}
-                        />
-                        <span>Valores/vencimentos diferentes por parcela</span>
-                      </label>
+                      {true && (
 
-                      {parcelasCustomOn && (
                         <div className="mt-2 space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] text-muted-foreground">Edite cada parcela abaixo</span>
