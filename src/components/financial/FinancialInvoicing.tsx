@@ -161,6 +161,9 @@ export function FinancialInvoicing() {
   const [acrescimoStr, setAcrescimoStr] = useState("");
   const [descontoStr, setDescontoStr] = useState("");
   const [observacoesFatura, setObservacoesFatura] = useState("");
+  const [parcelasCustomOn, setParcelasCustomOn] = useState(false);
+  const [parcelasCustom, setParcelasCustom] = useState<{ valor: string; data_vencimento: string }[]>([]);
+
   const [saving, setSaving] = useState(false);
 
   // Receive dialog
@@ -365,6 +368,9 @@ export function FinancialInvoicing() {
     setAcrescimoStr("");
     setDescontoStr("");
     setObservacoesFatura("");
+    setParcelasCustomOn(false);
+    setParcelasCustom([]);
+
     setNewDialogOpen(true);
 
     const { data } = await supabase
@@ -412,6 +418,18 @@ export function FinancialInvoicing() {
     setAcrescimoStr(Number(fatura.valor_acrescimo || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_acrescimo) * 100))) : "");
     setDescontoStr(Number(fatura.valor_desconto || 0) > 0 ? maskCurrency(String(Math.round(Number(fatura.valor_desconto) * 100))) : "");
     setObservacoesFatura(fatura.observacoes || "");
+    const custom = (fatura as any).parcelas_custom;
+    if (Array.isArray(custom) && custom.length > 0) {
+      setParcelasCustomOn(true);
+      setParcelasCustom(custom.map((p: any) => ({
+        valor: maskCurrency(String(Math.round(Number(p.valor || 0) * 100))),
+        data_vencimento: p.data_vencimento || emissaoReal,
+      })));
+    } else {
+      setParcelasCustomOn(false);
+      setParcelasCustom([]);
+    }
+
     setStep("preview");
 
 
@@ -497,22 +515,56 @@ export function FinancialInvoicing() {
   const effectiveIntervalo = condicaoPagamento === "parcelado" ? intervaloDias : 0;
   const effectiveDataEmissao = condicaoPagamento === "unico" ? dataVencimentoUnico : dataEmissaoEdit;
 
+  // Cronograma padrão (divisão igual) usado como base para o modo personalizado
+  const buildDefaultSchedule = () => {
+    const base = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+    return Array.from({ length: numParcelas }).map((_, i) => {
+      const d = new Date(`${dataEmissaoEdit}T12:00:00`);
+      d.setDate(d.getDate() + (i + 1) * intervaloDias);
+      const valor = i === numParcelas - 1 ? +(totalLiquido - base * (numParcelas - 1)).toFixed(2) : base;
+      return {
+        valor: maskCurrency(String(Math.round(valor * 100))),
+        data_vencimento: d.toISOString().slice(0, 10),
+      };
+    });
+  };
+
+  const parcelasCustomAtivo = condicaoPagamento === "parcelado" && parcelasCustomOn;
+  const somaParcelasCustom = parcelasCustom.reduce((s, p) => s + Number(unmaskCurrency(p.valor) || 0), 0);
+  const diferencaParcelas = +(totalLiquido - somaParcelasCustom).toFixed(2);
+
+  const updateParcelaCustom = (idx: number, patch: Partial<{ valor: string; data_vencimento: string }>) => {
+    setParcelasCustom((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+
   const handleCreateOrUpdateInvoice = async (opts?: { keepOpen?: boolean }): Promise<boolean> => {
     const selectedItems = clientPrevisoes.filter((p) => selectedPrevIds.has(p.id));
     if (selectedItems.length === 0) { toast.error("Selecione ao menos uma previsão"); return false; }
     if (descontoValor > selectedPrevTotal + acrescimoValor) { toast.error("Desconto maior que o valor da fatura"); return false; }
+    if (parcelasCustomAtivo) {
+      if (parcelasCustom.length === 0) { toast.error("Defina as parcelas personalizadas"); return false; }
+      if (parcelasCustom.some((p) => !p.data_vencimento)) { toast.error("Informe o vencimento de todas as parcelas"); return false; }
+      if (Math.abs(diferencaParcelas) > 0.01) {
+        toast.error(`A soma das parcelas difere do total em ${formatCurrency(Math.abs(diferencaParcelas))}`);
+        return false;
+      }
+    }
     setSaving(true);
 
     const payloadComum = {
       valor_total: totalLiquido,
-      num_parcelas: effectiveParcelas,
+      num_parcelas: parcelasCustomAtivo ? parcelasCustom.length : effectiveParcelas,
       intervalo_dias: effectiveIntervalo,
       valor_acrescimo: acrescimoValor,
       valor_desconto: descontoValor,
       observacoes: observacoesFatura.trim() || null,
+      parcelas_custom: parcelasCustomAtivo
+        ? parcelasCustom.map((p) => ({ valor: Number(unmaskCurrency(p.valor) || 0), data_vencimento: p.data_vencimento }))
+        : null,
       ...(effectiveDataEmissao ? { data_emissao: effectiveDataEmissao } : {}),
       status: "faturada" as any,
-    };
+    } as any;
+
 
     try {
       if (editingFaturaId) {
@@ -2165,8 +2217,86 @@ ${hasRecebimentos ? `
                       </div>
                     </div>
 
+                    <div className="col-span-2 border-t pt-2">
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <Checkbox
+                          checked={parcelasCustomOn}
+                          onCheckedChange={(v) => {
+                            const on = !!v;
+                            setParcelasCustomOn(on);
+                            if (on) setParcelasCustom(buildDefaultSchedule());
+                          }}
+                        />
+                        <span>Valores/vencimentos diferentes por parcela</span>
+                      </label>
+
+                      {parcelasCustomOn && (
+                        <div className="mt-2 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-muted-foreground">Edite cada parcela abaixo</span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => setParcelasCustom(buildDefaultSchedule())}
+                            >
+                              Recalcular igualmente
+                            </Button>
+                          </div>
+                          <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                            {parcelasCustom.map((p, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <span className="text-[11px] w-12 text-muted-foreground">{i + 1}/{parcelasCustom.length}</span>
+                                <Input
+                                  className="h-8 text-xs flex-1"
+                                  value={p.valor}
+                                  onChange={(e) => updateParcelaCustom(i, { valor: maskCurrency(e.target.value) })}
+                                />
+                                <Input
+                                  type="date"
+                                  className="h-8 text-xs w-[140px]"
+                                  value={p.data_vencimento}
+                                  onChange={(e) => updateParcelaCustom(i, { data_vencimento: e.target.value })}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => setParcelasCustom(prev => prev.filter((_, idx) => idx !== i))}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => setParcelasCustom(prev => {
+                                const last = prev[prev.length - 1];
+                                const d = new Date(`${last?.data_vencimento || dataEmissaoEdit}T12:00:00`);
+                                d.setDate(d.getDate() + intervaloDias);
+                                return [...prev, { valor: "", data_vencimento: d.toISOString().slice(0, 10) }];
+                              })}
+                            >
+                              + Adicionar parcela
+                            </Button>
+                            <span className={Math.abs(diferencaParcelas) > 0.01 ? "text-destructive font-semibold" : "text-green-600 font-semibold"}>
+                              Soma: {formatCurrency(somaParcelasCustom)}
+                              {Math.abs(diferencaParcelas) > 0.01 && ` · diferença ${formatCurrency(diferencaParcelas)}`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+
 
               </div>
 
@@ -2188,22 +2318,34 @@ ${hasRecebimentos ? `
                     <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
                   ) : (
                     <>
-                      <p className="font-medium">{numParcelas}x de {formatCurrency(totalLiquido / numParcelas)} · prazo de {intervaloDias} dias</p>
+                      <p className="font-medium">
+                        {parcelasCustomAtivo
+                          ? `${parcelasCustom.length}x com valores personalizados`
+                          : `${numParcelas}x de ${formatCurrency(totalLiquido / numParcelas)} · prazo de ${intervaloDias} dias`}
+                      </p>
                       <div className="max-h-24 overflow-y-auto space-y-0.5 pt-1">
-                        {Array.from({ length: numParcelas }).map((_, i) => {
-                          const base = new Date(`${dataEmissaoEdit}T12:00:00`);
-                          base.setDate(base.getDate() + (i + 1) * intervaloDias);
-                          const parcela = i === numParcelas - 1
-                            ? totalLiquido - Math.trunc((totalLiquido / numParcelas) * 100) / 100 * (numParcelas - 1)
-                            : Math.trunc((totalLiquido / numParcelas) * 100) / 100;
-                          return (
-                            <div key={i} className="flex justify-between text-muted-foreground">
-                              <span>Parcela {i + 1}/{numParcelas} — {base.toLocaleDateString("pt-BR")}</span>
-                              <span className="font-mono">{formatCurrency(parcela)}</span>
-                            </div>
-                          );
-                        })}
+                        {(parcelasCustomAtivo
+                          ? parcelasCustom.map((p, i) => ({
+                              label: `Parcela ${i + 1}/${parcelasCustom.length} — ${p.data_vencimento ? formatDateBR(p.data_vencimento) : "—"}`,
+                              valor: Number(unmaskCurrency(p.valor) || 0),
+                            }))
+                          : Array.from({ length: numParcelas }).map((_, i) => {
+                              const base = new Date(`${dataEmissaoEdit}T12:00:00`);
+                              base.setDate(base.getDate() + (i + 1) * intervaloDias);
+                              const unit = Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+                              return {
+                                label: `Parcela ${i + 1}/${numParcelas} — ${base.toLocaleDateString("pt-BR")}`,
+                                valor: i === numParcelas - 1 ? totalLiquido - unit * (numParcelas - 1) : unit,
+                              };
+                            })
+                        ).map((row, i) => (
+                          <div key={i} className="flex justify-between text-muted-foreground">
+                            <span>{row.label}</span>
+                            <span className="font-mono">{formatCurrency(row.valor)}</span>
+                          </div>
+                        ))}
                       </div>
+
                     </>
                   )}
                 </div>
