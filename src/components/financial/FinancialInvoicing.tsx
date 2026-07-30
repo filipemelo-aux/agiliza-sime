@@ -23,7 +23,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDateBR } from "@/lib/date";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
+
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import { useAuth } from "@/contexts/AuthContext";
@@ -178,7 +178,7 @@ export function FinancialInvoicing() {
   const [receiveDescontoStr, setReceiveDescontoStr] = useState("");
   const [receiveAcrescimoStr, setReceiveAcrescimoStr] = useState("");
   const [receiveParcial, setReceiveParcial] = useState(false);
-  const [partialReceive, setPartialReceive] = useState<{ id: string; valor: number } | null>(null);
+  
   const [baixaValor, setBaixaValor] = useState("");
   const { user } = useAuth();
 
@@ -2553,7 +2553,6 @@ ${hasRecebimentos ? `
                         <TableHead className="text-xs h-8 text-right">Valor</TableHead>
                         <TableHead className="text-xs h-8 text-right">Recebido</TableHead>
                         <TableHead className="text-xs h-8 text-center">Status</TableHead>
-                        <TableHead className="text-xs h-8 text-right">Ação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2579,26 +2578,12 @@ ${hasRecebimentos ? `
                             <TableCell className="text-xs py-1.5 text-center">
                               <Badge variant={variant} className="text-[10px]">{label}</Badge>
                             </TableCell>
-                            <TableCell className="text-xs py-1.5 text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1"
-                                onClick={() => setPartialReceive({ id: c.id, valor: Number(c.valor) })}
-                              >
-                                <HandCoins className="h-3 w-3" />
-                                {c.status === "recebido" ? "Ver" : "Receber"}
-                              </Button>
-                            </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1.5 italic">
-                  Use o botão "Receber" em cada título para registrar pagamentos totais ou parciais.
-                </p>
               </div>
 
               <div className="flex justify-end">
@@ -2610,15 +2595,6 @@ ${hasRecebimentos ? `
         </DialogContent>
       </Dialog>
 
-      {partialReceive && (
-        <ReceivablePaymentDialog
-          open={!!partialReceive}
-          onOpenChange={(o) => !o && setPartialReceive(null)}
-          contaReceberId={partialReceive.id}
-          valorTotal={partialReceive.valor}
-          onSaved={reloadReceiveContas}
-        />
-      )}
 
       {ConfirmDialog}
     </div>
