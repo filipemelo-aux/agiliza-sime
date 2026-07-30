@@ -25,6 +25,7 @@ import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { ReceivablePaymentDialog } from "./ReceivablePaymentDialog";
 import { SortableTh } from "@/components/ui/sortable-th";
 import { useSortableTable } from "@/hooks/useSortableTable";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 interface Fatura {
