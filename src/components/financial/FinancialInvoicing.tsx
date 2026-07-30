@@ -1897,16 +1897,27 @@ ${hasRecebimentos ? `
                   </div>
                 </RadioGroup>
 
-                {condicaoPagamento === "unico" && (
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Data de Vencimento</Label>
+                    <Label className="text-xs">Data de Emissão</Label>
                     <Input
                       type="date"
-                      value={dataVencimentoUnico}
-                      onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                      value={dataEmissaoEdit}
+                      onChange={(e) => setDataEmissaoEdit(e.target.value)}
+                      disabled={condicaoPagamento === "unico"}
                     />
                   </div>
-                )}
+                  {condicaoPagamento === "unico" && (
+                    <div>
+                      <Label className="text-xs">Data de Vencimento</Label>
+                      <Input
+                        type="date"
+                        value={dataVencimentoUnico}
+                        onChange={(e) => setDataVencimentoUnico(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {condicaoPagamento === "parcelado" && (
                   <div className="grid grid-cols-2 gap-3">
@@ -1939,17 +1950,43 @@ ${hasRecebimentos ? `
 
               {/* Summary preview */}
               <div className="text-xs border rounded p-3 bg-muted/30 space-y-1">
-                {condicaoPagamento === "avista" ? (
-                  <p className="font-medium">À vista — vencimento na data de emissão</p>
-                ) : condicaoPagamento === "unico" ? (
-                  <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
-                ) : (
-                  <>
-                    <p className="font-medium">{numParcelas}x de {formatCurrency(selectedPrevTotal / numParcelas)}</p>
-                    <p className="text-muted-foreground">Intervalo de {intervaloDias} dias entre parcelas</p>
-                  </>
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-mono">{formatCurrency(selectedPrevTotal)}</span></div>
+                {acrescimoValor > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Acréscimo</span><span className="font-mono">+ {formatCurrency(acrescimoValor)}</span></div>
                 )}
+                {descontoValor > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="font-mono">- {formatCurrency(descontoValor)}</span></div>
+                )}
+                <div className="flex justify-between border-t pt-1 font-semibold"><span>Total da fatura</span><span className="font-mono">{formatCurrency(totalLiquido)}</span></div>
+
+                <div className="border-t pt-1.5 mt-1 space-y-0.5">
+                  {condicaoPagamento === "avista" ? (
+                    <p className="font-medium">À vista — vencimento em {formatDateBR(dataEmissaoEdit)}</p>
+                  ) : condicaoPagamento === "unico" ? (
+                    <p className="font-medium">Pagamento único — vencimento em {formatDateBR(dataVencimentoUnico)}</p>
+                  ) : (
+                    <>
+                      <p className="font-medium">{numParcelas}x de {formatCurrency(totalLiquido / numParcelas)} · prazo de {intervaloDias} dias</p>
+                      <div className="max-h-24 overflow-y-auto space-y-0.5 pt-1">
+                        {Array.from({ length: numParcelas }).map((_, i) => {
+                          const base = new Date(`${dataEmissaoEdit}T12:00:00`);
+                          base.setDate(base.getDate() + (i + 1) * intervaloDias);
+                          const parcela = i === numParcelas - 1
+                            ? totalLiquido - Math.trunc((totalLiquido / numParcelas) * 100) / 100 * (numParcelas - 1)
+                            : Math.trunc((totalLiquido / numParcelas) * 100) / 100;
+                          return (
+                            <div key={i} className="flex justify-between text-muted-foreground">
+                              <span>Parcela {i + 1}/{numParcelas} — {base.toLocaleDateString("pt-BR")}</span>
+                              <span className="font-mono">{formatCurrency(parcela)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
+
 
               <div className="flex gap-2">
                 {!editingFaturaId && (
