@@ -1470,7 +1470,7 @@ ${hasRecebimentos ? `
                   <SortableTh className="px-3 py-2 font-medium whitespace-nowrap w-[110px]" active={sort.key === "data_vencimento_ref"} direction={sort.direction} onSort={() => toggle("data_vencimento_ref")}>Vencimento</SortableTh>
                   <SortableTh align="right" className="px-2 py-2 font-medium text-right w-[140px]" active={sort.key === "valor_total"} direction={sort.direction} onSort={() => toggle("valor_total")}>Valor</SortableTh>
                   <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[110px]" active={sort.key === "condicao_label"} direction={sort.direction} onSort={() => toggle("condicao_label")}>Condição</SortableTh>
-                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[100px]" active={sort.key === "origem_sort"} direction={sort.direction} onSort={() => toggle("origem_sort")}>Origem</SortableTh>
+                  <SortableTh align="center" className="px-2 py-2 font-medium text-center w-[90px]" active={sort.key === "status"} direction={sort.direction} onSort={() => toggle("status")}>Status</SortableTh>
 
                   <th className="px-2 py-2 font-medium text-right w-[200px]"></th>
                 </tr>
