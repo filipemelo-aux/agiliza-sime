@@ -96,10 +96,10 @@ interface Cliente {
   full_name: string;
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   rascunho: { label: "Rascunho", variant: "outline" },
   faturada: { label: "Faturada", variant: "default" },
-  paga: { label: "Paga", variant: "secondary" },
+  paga: { label: "Paga", variant: "secondary", className: "bg-success/10 text-success border-success/20" },
 };
 
 const FORMA_RECEBIMENTO_OPTIONS = [
@@ -1403,7 +1403,7 @@ ${hasRecebimentos ? `
 
                       <p className="text-sm font-semibold text-foreground truncate">{f.cliente_nome}</p>
                     </div>
-                    <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px] shrink-0">
+                    <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px] shrink-0", !f.has_partial && st.className)}>
                       {f.has_partial ? "Parcial" : st.label}
                     </Badge>
                   </div>
@@ -1511,7 +1511,7 @@ ${hasRecebimentos ? `
                         {(f as any).condicao_label || (f.num_parcelas === 1 ? "À vista" : `${f.num_parcelas}x (${f.intervalo_dias}d)`)}
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <Badge variant={f.has_partial ? "secondary" : st.variant} className="text-[10px]">
+                        <Badge variant={f.has_partial ? "secondary" : st.variant} className={cn("text-[10px]", !f.has_partial && st.className)}>
                           {f.has_partial ? "Parcial" : st.label}
                         </Badge>
                       </td>
