@@ -334,10 +334,9 @@ export function CteBatchImportDialog({ open, onOpenChange, onImported }: Props) 
             if (Math.abs(ePeso - kg) > 0.5) continue;
             const eData = e.data_carregamento ? String(e.data_carregamento).slice(0, 10) : "";
             const ePlaca = String(e.placa_veiculo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-            const sameData = eData && eData === r.data;
-            const samePlaca = ePlaca && r.placa && ePlaca === r.placa;
-            if (sameData) hits.push({ ...e, reason: "peso_data" });
-            else if (samePlaca) hits.push({ ...e, reason: "peso_placa" });
+            const sameData = !!eData && eData === r.data;
+            const samePlaca = !!ePlaca && !!r.placa && ePlaca === r.placa;
+            if (sameData && samePlaca) hits.push({ ...e, reason: "peso_data_placa" });
           }
           if (hits.length > 0) dbDups[r._key] = hits.slice(0, 5);
         }
