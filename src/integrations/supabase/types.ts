@@ -1588,7 +1588,10 @@ export type Database = {
           intervalo_dias: number
           num_parcelas: number
           numero: number
+          observacoes: string | null
           status: Database["public"]["Enums"]["fatura_status"]
+          valor_acrescimo: number
+          valor_desconto: number
           valor_total: number
         }
         Insert: {
@@ -1599,7 +1602,10 @@ export type Database = {
           intervalo_dias?: number
           num_parcelas?: number
           numero?: number
+          observacoes?: string | null
           status?: Database["public"]["Enums"]["fatura_status"]
+          valor_acrescimo?: number
+          valor_desconto?: number
           valor_total?: number
         }
         Update: {
@@ -1610,7 +1616,10 @@ export type Database = {
           intervalo_dias?: number
           num_parcelas?: number
           numero?: number
+          observacoes?: string | null
           status?: Database["public"]["Enums"]["fatura_status"]
+          valor_acrescimo?: number
+          valor_desconto?: number
           valor_total?: number
         }
         Relationships: [
