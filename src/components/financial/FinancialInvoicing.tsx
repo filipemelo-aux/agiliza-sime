@@ -621,14 +621,9 @@ export function FinancialInvoicing() {
     const contas = (data as ContaReceber[]) || [];
     setReceiveContas(contas);
     setNewDialogOpen(false);
-
-    // Se houver apenas um título, abre direto o modal de recebimento (mesmo do Contas a Receber)
-    const abertos = contas.filter(c => c.status !== "recebido");
-    if (contas.length === 1 || abertos.length === 1) {
-      const alvo = abertos[0] || contas[0];
-      setPartialReceive({ id: alvo.id, valor: Number(alvo.valor) });
-      return;
-    }
+    const saldoFatura = contas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+    setBaixaValor(String(+saldoFatura.toFixed(2)));
+    setReceiveDate(getLocalDateISO());
     setReceiveDialogOpen(true);
   };
 
