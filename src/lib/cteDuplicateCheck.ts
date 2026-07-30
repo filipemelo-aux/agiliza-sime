@@ -59,7 +59,7 @@ export function buildDuplicateConfirmMessage(matches: DuplicateMatch[]): string 
     const data = m.data_emissao ? String(m.data_emissao).slice(0, 10).split("-").reverse().join("/") : "—";
     const placa = m.placa_veiculo || "—";
     const peso = m.peso_bruto ? `${Number(m.peso_bruto).toLocaleString("pt-BR")} kg` : "—";
-    const motivo = m.match_reason === "peso_data" ? "mesmo peso e data" : "mesmo peso e placa";
+    const motivo = "mesmo peso, data e placa";
     return `• Nº ${num} — ${data} — Placa ${placa} — ${peso} (${motivo})`;
   });
   const extra = matches.length > 5 ? `\n…e mais ${matches.length - 5} registro(s).` : "";
