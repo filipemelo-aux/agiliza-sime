@@ -2585,7 +2585,7 @@ ${hasRecebimentos ? `
               </div>
 
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>Cancelar</Button>
+                <Button variant="outline" onClick={() => setReceiveDialogOpen(false)}>Fechar</Button>
               </div>
             </div>
 
