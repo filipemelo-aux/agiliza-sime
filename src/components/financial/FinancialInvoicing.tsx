@@ -752,7 +752,7 @@ export function FinancialInvoicing() {
     fetchFaturas();
   };
 
-  // Baixa de uma parcela específica (total ou parcial), com desconto/acréscimo
+  // Baixa integral da parcela selecionada (valores definidos na fatura)
   const handleBaixaParcialFatura = async () => {
     if (!receiveFatura) return;
     if (!receiveContaId) return toast.error("Selecione a parcela que está sendo quitada");
@@ -765,38 +765,19 @@ export function FinancialInvoicing() {
     const saldoTitulo = +(Number(conta.valor) - Number(conta.valor_recebido || 0)).toFixed(2);
     if (saldoTitulo <= 0.005) return toast.error("Esta parcela já está quitada");
 
-    const desconto = Number(unmaskCurrency(receiveDescontoStr) || 0);
-    const acrescimo = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
-    const valorPago = receiveParcial
-      ? Number(baixaValor)
-      : +(saldoTitulo - desconto + acrescimo).toFixed(2);
-
-    if (!valorPago || valorPago <= 0) return toast.error("Informe o valor recebido");
-
-    // Valor efetivamente abatido no título (desconto quita, acréscimo é juros/multa)
-    const abatido = +Math.min(saldoTitulo, +(valorPago + desconto - acrescimo).toFixed(2)).toFixed(2);
-    if (abatido <= 0) return toast.error("Valor inválido para baixa desta parcela");
-
     setReceiveSaving(true);
     try {
-      const detalhes = [
-        receiveParcial ? "Pagamento parcial" : "Quitação da parcela",
-        desconto > 0 ? `desconto ${formatCurrency(desconto)}` : "",
-        acrescimo > 0 ? `acréscimo ${formatCurrency(acrescimo)}` : "",
-      ].filter(Boolean).join(" — ");
-
       const { error } = await supabase.from("receivable_payments" as any).insert({
         conta_receber_id: conta.id,
-        valor: abatido,
+        valor: saldoTitulo,
         forma_recebimento: receiveForma,
         data_recebimento: receiveDate,
-        observacoes: detalhes,
+        observacoes: "Quitação da parcela",
         created_by: user.id,
       });
       if (error) throw error;
 
-      const quitouTitulo = abatido + 0.005 >= saldoTitulo;
-      toast.success(quitouTitulo ? "Parcela quitada!" : `Pagamento parcial de ${formatCurrency(valorPago)} registrado`);
+      toast.success("Parcela quitada!");
       await reloadReceiveContas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar recebimento");
@@ -2420,11 +2401,7 @@ ${hasRecebimentos ? `
                     {saldo > 0.005 && (() => {
                       const contaSel = receiveContas.find(c => c.id === receiveContaId);
                       const saldoTitulo = contaSel ? +(Number(contaSel.valor) - Number(contaSel.valor_recebido || 0)).toFixed(2) : 0;
-                      const desc = Number(unmaskCurrency(receiveDescontoStr) || 0);
-                      const acr = Number(unmaskCurrency(receiveAcrescimoStr) || 0);
-                      const aPagar = receiveParcial
-                        ? Number(baixaValor || 0)
-                        : +(saldoTitulo - desc + acr).toFixed(2);
+                      const aPagar = saldoTitulo;
                       return (
                       <div className="border rounded-md p-3 space-y-2">
                         <p className="text-xs font-semibold">Lançar pagamento</p>
@@ -2460,64 +2437,17 @@ ${hasRecebimentos ? `
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                          <Switch
-                            id="pgto-parcial"
-                            checked={receiveParcial}
-                            onCheckedChange={(v) => {
-                              setReceiveParcial(v);
-                              if (!v) setBaixaValor(String(saldoTitulo));
-                            }}
-                          />
-                          <Label htmlFor="pgto-parcial" className="text-xs">Pagamento parcial desta parcela</Label>
+                        <div>
+                          <Label className="text-xs">Forma de pagamento</Label>
+                          <Select value={receiveForma} onValueChange={setReceiveForma}>
+                            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
+                                <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <div>
-                            <Label className="text-xs">Desconto (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={receiveDescontoStr}
-                              onChange={e => setReceiveDescontoStr(maskCurrency(e.target.value))}
-                              placeholder="0,00"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Acréscimo (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={receiveAcrescimoStr}
-                              onChange={e => setReceiveAcrescimoStr(maskCurrency(e.target.value))}
-                              placeholder="0,00"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Forma</Label>
-                            <Select value={receiveForma} onValueChange={setReceiveForma}>
-                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {["pix", "boleto", "transferencia", "ted", "dinheiro", "cheque", "cartao_credito", "cartao_debito"].map(v => (
-                                  <SelectItem key={v} value={v}>{v === "pix" ? "PIX" : v === "ted" ? "TED" : v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {receiveParcial && (
-                          <div>
-                            <Label className="text-xs">Valor recebido (R$)</Label>
-                            <Input
-                              className="h-9 text-xs"
-                              value={baixaValor ? maskCurrency(String(Math.round(parseFloat(baixaValor) * 100))) : ""}
-                              onChange={e => setBaixaValor(unmaskCurrency(e.target.value))}
-                            />
-                            <div className="flex gap-1 mt-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(saldoTitulo))}>Saldo da parcela</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setBaixaValor(String(+(saldoTitulo / 2).toFixed(2)))}>50%</Button>
-                            </div>
-                          </div>
-                        )}
 
                         <div className="flex justify-between text-[11px] text-muted-foreground border-t pt-2">
                           <span>Saldo da parcela: <strong className="font-mono text-foreground">{formatCurrency(saldoTitulo)}</strong></span>
