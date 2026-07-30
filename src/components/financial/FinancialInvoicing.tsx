@@ -161,6 +161,9 @@ export function FinancialInvoicing() {
   const [acrescimoStr, setAcrescimoStr] = useState("");
   const [descontoStr, setDescontoStr] = useState("");
   const [observacoesFatura, setObservacoesFatura] = useState("");
+  const [parcelasCustomOn, setParcelasCustomOn] = useState(false);
+  const [parcelasCustom, setParcelasCustom] = useState<{ valor: string; data_vencimento: string }[]>([]);
+
   const [saving, setSaving] = useState(false);
 
   // Receive dialog
