@@ -48,31 +48,34 @@ function resolveRequesterName(user: any) {
     .replace(/\b\p{L}/gu, (c) => c.toUpperCase()) || "Usuário";
 }
 
+/** Company-like categories must NEVER be used as the requester (person) name. */
+const NON_PERSON_CATEGORIES = ["fornecedor", "cliente", "banco"];
+
 async function resolveRequesterNameFromProfile(user: any) {
   if (!user?.id) return "";
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, category, email, updated_at")
+    .select("full_name, category, person_type, email, updated_at")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
     .limit(10);
 
   if (error || !data?.length) return "";
 
-  const byCategory = data.find((p) => p.category === "motorista" && p.full_name?.trim());
-  if (byCategory) return byCategory.full_name.trim();
-
-  const byEmail = data.find(
+  // Only individual/person records may represent the logged-in requester
+  const people = data.filter(
     (p) =>
       p.full_name?.trim() &&
-      p.email &&
-      user?.email &&
-      String(p.email).toLowerCase() === String(user.email).toLowerCase()
+      p.person_type !== "juridica" &&
+      !NON_PERSON_CATEGORIES.includes(String(p.category))
   );
-  if (byEmail) return byEmail.full_name.trim();
+  if (!people.length) return "";
 
-  return data.find((p) => p.full_name?.trim())?.full_name?.trim() || "";
+  const byCategory = people.find((p) => p.category === "colaborador" || p.category === "motorista");
+  if (byCategory) return byCategory.full_name.trim();
+
+  return people[0].full_name.trim();
 }
 
 export function FuelOrderFormDialog({ open, onOpenChange, matrizId, user, onCreated }: Props) {
