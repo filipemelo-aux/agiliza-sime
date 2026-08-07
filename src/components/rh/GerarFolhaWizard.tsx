@@ -641,6 +641,33 @@ function SelecaoStep({
   );
 }
 
+/** Define se o adiantamento é descontado integralmente ou parcelado. */
+function ParcelamentoControl({ n, onChange, parcelas }: { n: number; onChange: (v: number) => void; parcelas: number[] }) {
+  const parcelado = n > 1;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Button type="button" size="sm" variant={parcelado ? "outline" : "default"}
+        className="h-7 px-2 text-[10px]" onClick={() => onChange(1)}>
+        Integral nesta folha
+      </Button>
+      <Button type="button" size="sm" variant={parcelado ? "default" : "outline"}
+        className="h-7 px-2 text-[10px]" onClick={() => onChange(n > 1 ? n : 2)}>
+        Parcelar
+      </Button>
+      {parcelado && (
+        <>
+          <Input type="number" min={2} max={36} value={n}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="h-7 w-16 text-[11px]" />
+          <span className="text-[10px] text-muted-foreground">
+            x de {formatBRL(parcelas[1] ?? parcelas[0])} · 1ª parcela {formatBRL(parcelas[0])} nesta folha, demais nas próximas folhas
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Bucket({ title, tom, items, selected, onToggle, emptyText, hint }: any) {
   const total = items.filter((i: any) => selected.has(i.id)).reduce((s: number, i: any) => s + i.value, 0);
   const allSelected = items.length > 0 && items.every((i: any) => selected.has(i.id));
