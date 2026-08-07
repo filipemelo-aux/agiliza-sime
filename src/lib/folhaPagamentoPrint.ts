@@ -360,3 +360,62 @@ ${itens
   }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
+
+/** Gera somente os recibos dos colaboradores selecionados, sem o resumo geral. */
+export function imprimirRecibosPagamento(folha: HoleriteFolha, itens: HoleriteItem[]) {
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8" />
+<title>Recibos ${esc(formatCompetencia(folha.mes_referencia))}</title>
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 9.5px; margin: 0; }
+  .pagina { page-break-after: always; }
+  .pagina:last-child { page-break-after: auto; }
+  .folha { margin-bottom: 6mm; }
+  table { width: 100%; border-collapse: collapse; }
+  .cab { border: 1px solid #000; }
+  .cab td { padding: 6px 8px; vertical-align: top; }
+  .cab .tit { text-align: right; border-left: 1px solid #000; width: 46%; }
+  .empresa { font-size: 12px; font-weight: bold; text-transform: uppercase; }
+  .t1 { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+  .sub { font-size: 8.5px; color: #222; margin-top: 1px; }
+  .via { font-size: 8px; margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+  .ident { border: 1px solid #000; border-top: 0; }
+  .ident td { padding: 4px 8px; border-right: 1px solid #999; border-bottom: 1px solid #999; font-size: 9.5px; font-weight: bold; vertical-align: top; }
+  .ident tr:last-child td { border-bottom: 0; }
+  .ident td:last-child { border-right: 0; }
+  .ident span { display: block; font-size: 7.5px; text-transform: uppercase; letter-spacing: .3px; color: #555; font-weight: normal; }
+  .lanc { border: 1px solid #000; border-top: 0; }
+  .lanc th { background: #eee; border-bottom: 1px solid #000; padding: 4px 8px; font-size: 8.5px; text-transform: uppercase; text-align: left; }
+  .lanc td { padding: 3px 8px; border-bottom: 1px solid #ddd; }
+  .totais { border: 1px solid #000; border-top: 0; }
+  .totais td { padding: 3px 8px; }
+  .totais .msg { font-size: 8.5px; color: #333; }
+  .totais .lab { text-align: right; text-transform: uppercase; font-size: 9px; width: 26%; border-left: 1px solid #999; }
+  .totais .val { text-align: right; width: 18%; font-weight: bold; }
+  .totais .liq td { border-top: 1px solid #000; background: #f0f0f0; }
+  .totais .liq .lab, .totais .liq .val { font-size: 11px; }
+  .bases { border: 1px solid #000; border-top: 0; }
+  .bases th { background: #eee; font-size: 7.5px; text-transform: uppercase; padding: 3px 6px; text-align: right; border-right: 1px solid #999; }
+  .bases td { padding: 4px 6px; text-align: right; border-right: 1px solid #999; font-weight: bold; }
+  .bases th:last-child, .bases td:last-child { border-right: 0; }
+  .assinaturas { margin-top: 10mm; }
+  .assinaturas td { width: 50%; text-align: center; font-size: 8.5px; color: #333; padding: 0 12mm; }
+  .linha { border-top: 1px solid #000; margin-bottom: 3px; }
+  .r { text-align: right; } .c { text-align: center; } .b { font-weight: bold; }
+  .w8{width:8%} .w9{width:9%} .w12{width:12%} .w13{width:13%} .w16{width:16%} .w18{width:18%}
+  .vazia td { height: 14px; }
+</style></head><body>
+${itens.map((i) => `<div class="pagina">${reciboHtml(folha, i, "1ª via — Empregador")}${reciboHtml(folha, i, "2ª via — Empregado")}</div>`).join("")}
+<script>window.onload = function(){ window.focus(); window.print(); };</script>
+</body></html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank");
+  if (!w) {
+    URL.revokeObjectURL(url);
+    throw new Error("Bloqueio de pop-up impediu a abertura dos recibos.");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}

@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Loader2, FileCheck2, Trash2, Eye, RefreshCw, Download } from "lucide-react";
+import { Loader2, FileCheck2, Trash2, Eye, RefreshCw, Download, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -22,11 +22,13 @@ import {
   buscarFolhaComItens,
   confirmarFolha,
   excluirFolhaEmAberto,
+  reabrirFolhaConfirmada,
   type FolhaPagamento,
   type FolhaItem,
 } from "@/services/rh";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { imprimirFolhaPagamento } from "@/lib/folhaPagamentoPrint";
+import { imprimirFolhaPagamento, imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const formatBRL = (n: number) =>
@@ -59,6 +61,8 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const [viewing, setViewing] = useState<FolhaPagamento | null>(null);
   const [viewItems, setViewItems] = useState<FolhaItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [itensPorFolha, setItensPorFolha] = useState<Record<string, FolhaItem[]>>({});
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = async () => {
@@ -74,6 +78,11 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           (f.data_inicio || "").startsWith(month)
       );
       setFolhas(data);
+      const itensCarregados = await Promise.all(
+        data.map(async (f) => ({ folhaId: f.id, itens: (await buscarFolhaComItens(f.id)).itens }))
+      );
+      setItensPorFolha(Object.fromEntries(itensCarregados.map((r) => [r.folhaId, r.itens])));
+      setSelecionados(new Set());
 
       // Situação de pagamento das folhas confirmadas, via despesas geradas
       const confirmadas = data.filter((f) => f.status === "confirmada").map((f) => f.id);
@@ -235,6 +244,74 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
+  const handleReopen = async (f: FolhaPagamento) => {
+    const ok = await confirm({
+      title: "Reabrir folha?",
+      description: "A folha voltará para Em aberto e poderá ser excluída e gerada novamente. A operação será bloqueada se existir pagamento efetivo.",
+      confirmLabel: "Reabrir",
+    });
+    if (!ok) return;
+    setActing(f.id);
+    try {
+      await reabrirFolhaConfirmada(f.id);
+      toast.success("Folha reaberta. Agora ela pode ser excluída e gerada novamente.");
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const itensVisiveis = useMemo(
+    () => visiveis.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
+    [visiveis, itensPorFolha]
+  );
+
+  const toggleItem = (id: string) => setSelecionados((atual) => {
+    const proximo = new Set(atual);
+    proximo.has(id) ? proximo.delete(id) : proximo.add(id);
+    return proximo;
+  });
+
+  const handleSelectedReceipts = async () => {
+    const escolhidos = itensVisiveis.filter(({ item }) => selecionados.has(item.id));
+    if (escolhidos.length === 0) return;
+    setActing("recibos");
+    try {
+      const profileIds = Array.from(new Set(escolhidos.map(({ item }) => item.colaborador_id).filter(Boolean)));
+      const { data } = await supabase.from("profiles")
+        .select("id, cnpj, cargo, departamento, data_admissao, tipo_colaborador_rh")
+        .in("id", profileIds);
+      const perfis = new Map((data || []).map((p: any) => [p.id, p]));
+      const primeiraFolha = escolhidos[0].folha;
+      const recibos: HoleriteItem[] = escolhidos.map(({ item }) => {
+        const p: any = perfis.get(item.colaborador_id) || {};
+        return {
+          colaborador_nome: item.colaborador_nome,
+          salario_base: Number(item.salario_base), comissoes: Number(item.comissoes),
+          adiantamentos: Number(item.adiantamentos), descontos: Number(item.descontos), liquido: Number(item.liquido),
+          codigo: String(item.colaborador_id || "").slice(0, 8).toUpperCase(), cpf: p.cnpj || null,
+          funcao: p.cargo || null, departamento: p.departamento || null, admissao: p.data_admissao || null, regime: "clt",
+        };
+      });
+      imprimirRecibosPagamento({
+        mes_referencia: primeiraFolha.mes_referencia, data_inicio: primeiraFolha.data_inicio,
+        data_fim: primeiraFolha.data_fim, data_vencimento: primeiraFolha.data_vencimento,
+        total_base: recibos.reduce((s, i) => s + i.salario_base, 0),
+        total_comissoes: recibos.reduce((s, i) => s + i.comissoes, 0),
+        total_adiantamentos: recibos.reduce((s, i) => s + i.adiantamentos, 0),
+        total_descontos: recibos.reduce((s, i) => s + i.descontos, 0),
+        total_liquido: recibos.reduce((s, i) => s + i.liquido, 0),
+      }, recibos);
+    } catch (e: any) {
+      toast.error("Falha ao gerar recibos: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card><CardContent className="p-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -269,6 +346,24 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           ))}
         </div>
 
+        {itensVisiveis.length > 0 && (
+          <div className="flex items-center justify-between gap-3 border-y py-2">
+            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+              <Checkbox
+                checked={selecionados.size === itensVisiveis.length}
+                onCheckedChange={() => setSelecionados(
+                  selecionados.size === itensVisiveis.length ? new Set() : new Set(itensVisiveis.map(({ item }) => item.id))
+                )}
+              />
+              Selecionar todas ({itensVisiveis.length})
+            </label>
+            <Button size="sm" className="h-8 gap-1.5" disabled={selecionados.size === 0 || acting === "recibos"} onClick={handleSelectedReceipts}>
+              {acting === "recibos" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              Gerar recibos ({selecionados.size})
+            </Button>
+          </div>
+        )}
+
         {visiveis.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center space-y-2">
@@ -288,6 +383,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
             {/* Cabeçalho */}
             <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
+                <Checkbox
+                  checked={(itensPorFolha[f.id] || []).length > 0 && (itensPorFolha[f.id] || []).every((i) => selecionados.has(i.id))}
+                  onCheckedChange={() => {
+                    const ids = (itensPorFolha[f.id] || []).map((i) => i.id);
+                    setSelecionados((atual) => {
+                      const proximo = new Set(atual);
+                      ids.every((id) => proximo.has(id)) ? ids.forEach((id) => proximo.delete(id)) : ids.forEach((id) => proximo.add(id));
+                      return proximo;
+                    });
+                  }}
+                />
                 <p className="text-sm font-semibold">Folha {f.mes_referencia}</p>
                 <Badge variant="outline" className={cn("text-[10px]", ui.cls)}>{ui.label}</Badge>
                 <span className="text-[11px] text-muted-foreground">
@@ -331,6 +437,11 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                     </Button>
                   </>
                 )}
+                {f.status === "confirmada" && sit === "confirmada" && (
+                  <Button variant="outline" size="sm" className="h-8 gap-1" disabled={acting === f.id} onClick={() => handleReopen(f)}>
+                    <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -361,6 +472,15 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                 principal={formatBRL(Number(f.total_liquido))}
               />
             </CardContent>
+            <div className="border-t divide-y">
+              {(itensPorFolha[f.id] || []).map((item) => (
+                <label key={item.id} className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-muted/30">
+                  <Checkbox checked={selecionados.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
+                  <span className="min-w-0 flex-1 text-sm font-medium truncate">{item.colaborador_nome}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{formatBRL(Number(item.liquido))}</span>
+                </label>
+              ))}
+            </div>
           </Card>
         );})}
       </div>
