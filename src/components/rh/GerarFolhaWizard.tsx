@@ -310,6 +310,7 @@ export function GerarFolhaWizard({
                 selComissoes={selComissoes} setSelComissoes={setSelComissoes}
                 selDescontos={selDescontos} setSelDescontos={setSelDescontos}
                 colabName={colabName}
+                selColabs={selColabs}
                 toggle={toggleSet}
               />
             )
@@ -540,8 +541,16 @@ function PresetCard({ active, onClick, title, subtitle }: any) {
 function SelecaoStep({
   periodo, adiantamentos, comissoes, descontos,
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
-  selDescontos, setSelDescontos, colabName, toggle,
+  selDescontos, setSelDescontos, colabName, toggle, selColabs,
 }: any) {
+  // Somente itens dos colaboradores selecionados na etapa anterior
+  const inColab = (id?: string | null) =>
+    !selColabs || selColabs.size === 0 ? true : !!id && selColabs.has(id);
+
+  const comissoesFiltradas = comissoes.filter((c: Comissao) => inColab(c.colaborador_id));
+  const adiantamentosFiltrados = adiantamentos.filter((e: Expense) => inColab(e.favorecido_id));
+  const descontosFiltrados = descontos.filter((d: DescontoFolha) => inColab(d.colaborador_id));
+
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-muted-foreground">
@@ -549,9 +558,10 @@ function SelecaoStep({
         O salário base vem do cadastro do colaborador. Marque adiantamentos, comissões e descontos.
       </p>
 
+
       <Bucket title="Comissões do período" tom="positive"
         hint="Comissões pendentes com data_referencia dentro do período"
-        items={comissoes.map((c: Comissao) => ({
+        items={comissoesFiltradas.map((c: Comissao) => ({
           id: c.id, name: colabName(c.colaborador_id),
           desc: `${c.tipo} · ${c.origem}`, info: formatDate(c.data_referencia),
           value: Number(c.valor_calculado || 0),
@@ -562,7 +572,7 @@ function SelecaoStep({
 
       <Bucket title="Adiantamentos do período" tom="negative"
         hint="Despesas de adiantamento (Contas a Pagar) com competência no período"
-        items={adiantamentos.map((e: Expense) => ({
+        items={adiantamentosFiltrados.map((e: Expense) => ({
           id: e.id, name: e.favorecido_nome || colabName(e.favorecido_id),
           desc: e.descricao, info: `Comp. ${formatDate(e.data_competencia || e.data_emissao)}`,
           value: Number(e.valor_pago || e.valor_total || 0),
@@ -573,7 +583,7 @@ function SelecaoStep({
 
       <Bucket title="Descontos do período" tom="negative"
         hint="Descontos pendentes lançados no RH"
-        items={descontos.map((d: DescontoFolha) => ({
+        items={descontosFiltrados.map((d: DescontoFolha) => ({
           id: d.id, name: colabName(d.colaborador_id),
           desc: d.tipo, info: formatDate(d.data_referencia),
           value: Number(d.valor || 0),
@@ -581,6 +591,7 @@ function SelecaoStep({
         selected={selDescontos} onToggle={(id: string) => toggle(selDescontos, setSelDescontos, id)}
         emptyText="Sem descontos pendentes neste período."
       />
+
     </div>
   );
 }
