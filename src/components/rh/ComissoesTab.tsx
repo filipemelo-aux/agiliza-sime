@@ -450,6 +450,11 @@ export function ComissoesTab({ colaboradores }: ComissoesTabProps) {
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-mono text-[10px] text-muted-foreground">
                               CT-e {c.numero ?? "—"}/{c.serie}
+                              {c.tipo_talao === "servico" && (
+                                <span className="ml-1 font-sans not-italic text-[9px] rounded bg-muted px-1 py-0.5">
+                                  Serviço
+                                </span>
+                              )}
                             </p>
                             {isDone && (
                               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-1 shrink-0">

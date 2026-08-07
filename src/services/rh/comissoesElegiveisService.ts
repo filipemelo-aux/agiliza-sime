@@ -13,6 +13,7 @@ export type CteElegivel = {
   id: string;
   numero: number | null;
   serie: number;
+  tipo_talao?: string;
   data_emissao: string | null;
   valor_frete: number;
   motorista_id: string;
@@ -23,13 +24,13 @@ export type CteElegivel = {
 };
 
 export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<CteElegivel[]> {
-  // 1. Carrega CT-es autorizados com motorista
+  // 1. Carrega CT-es autorizados (talão produção) + CT-es do talão de serviço
   let q = supabase
     .from("ctes")
     .select(
-      "id, numero, serie, data_emissao, valor_frete, motorista_id, destinatario_nome, remetente_nome"
+      "id, numero, numero_interno, serie, tipo_talao, data_emissao, valor_frete, motorista_id, destinatario_nome, remetente_nome"
     )
-    .eq("status", "autorizado")
+    .or("status.eq.autorizado,tipo_talao.eq.servico")
     .not("motorista_id", "is", null)
     .order("data_emissao", { ascending: false });
 
@@ -62,10 +63,11 @@ export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<
 
   return ctes
     .filter((c) => colabMap.has(c.motorista_id as string))
-    .map((c) => ({
+    .map((c: any) => ({
       id: c.id,
-      numero: c.numero,
+      numero: c.tipo_talao === "servico" ? c.numero_interno ?? c.numero : c.numero,
       serie: c.serie,
+      tipo_talao: c.tipo_talao ?? "producao",
       data_emissao: c.data_emissao,
       valor_frete: Number(c.valor_frete) || 0,
       motorista_id: c.motorista_id as string,
