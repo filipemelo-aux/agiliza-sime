@@ -362,7 +362,17 @@ function PeriodoStep({
       ? buildPeriodoQuinzenal(m, tipo)
       : buildPeriodoMensal(m);
 
-  const setTipo = (tipo: TipoPeriodo) => onChange(buildFor(tipo, mesRef));
+  // Competência padrão da folha mensal: mês ANTERIOR à data atual
+  // (ex.: em agosto, a folha mensal refere-se a julho, paga no 5º dia útil de agosto).
+  const mesAnteriorAtual = (() => {
+    const hoje = new Date();
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  const setTipo = (tipo: TipoPeriodo) =>
+    onChange(buildFor(tipo, tipo === "mensal" ? mesAnteriorAtual : mesRef));
+
   const setMes = (idx: number, year = refYear) =>
     onChange(buildFor(periodo.tipo, `${year}-${String(idx + 1).padStart(2, "0")}`));
 
@@ -471,7 +481,7 @@ function PeriodoStep({
         <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
           <span>
-            Folha mensal é exclusiva para colaboradores não motoristas.
+            Folha mensal é exclusiva para colaboradores não motoristas. Competência sugerida: mês anterior à data atual.
             {excluidosMensal > 0 && ` ${excluidosMensal} motorista(s) ficam de fora — use as quinzenas para eles.`}
           </span>
         </div>
