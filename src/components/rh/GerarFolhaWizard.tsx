@@ -227,11 +227,9 @@ export function GerarFolhaWizard({
           adiantamento_expense_ids: r.adiantamentoExpenseIds,
         })),
       });
-      const c = await confirmarFolha({
-        folhaId: folha.id,
-        user_id: userId,
-        folhaAccountId,
-      });
+      // A folha nasce EM ABERTO. A confirmação (que gera Contas a Pagar)
+      // é feita na lista de "Folhas em aberto".
+
 
       // Adiantamentos parcelados → gera os descontos das folhas seguintes
       const mesRef = periodoToMesReferencia(periodo);
