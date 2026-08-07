@@ -149,7 +149,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
         tipo,
         valor: n,
         descricao: descricao || null,
-        data_referencia: new Date(y, m - 1, 1).toISOString().slice(0, 10),
+        data_referencia: `${y}-${String(m).padStart(2, "0")}-01`,
       });
       toast.success("Desconto adicionado");
       setValor("");
@@ -234,7 +234,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
     const selecionadas = (auto || []).filter((l) => l.incluir);
     if (selecionadas.length === 0) return toast.error("Nenhum colaborador selecionado");
     const [y, m] = month.split("-").map(Number);
-    const dataRef = new Date(y, m - 1, 1).toISOString().slice(0, 10);
+    const dataRef = `${y}-${String(m).padStart(2, "0")}-01`;
 
     const rows: {
       colaborador_id: string;
@@ -538,7 +538,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
                   </p>
                   <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
                     <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {new Date(d.data_referencia).toLocaleDateString("pt-BR")}
+                      {new Date(`${String(d.data_referencia).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold tabular-nums text-rose-600 text-sm">
