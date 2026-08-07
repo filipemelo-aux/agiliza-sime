@@ -62,10 +62,11 @@ export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<
 
   return ctes
     .filter((c) => colabMap.has(c.motorista_id as string))
-    .map((c) => ({
+    .map((c: any) => ({
       id: c.id,
-      numero: c.numero,
+      numero: c.tipo_talao === "servico" ? c.numero_interno ?? c.numero : c.numero,
       serie: c.serie,
+      tipo_talao: c.tipo_talao ?? "producao",
       data_emissao: c.data_emissao,
       valor_frete: Number(c.valor_frete) || 0,
       motorista_id: c.motorista_id as string,
