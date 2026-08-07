@@ -478,12 +478,13 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <Select value={tipo} onValueChange={(v) => setTipo(v as DescontoFolhaTipo)}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {TIPOS.map((t) => (
+                {TIPOS_MANUAIS.map((t) => (
                   <SelectItem key={t.v} value={t.v}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="md:col-span-2 space-y-1">
             <Label className="text-xs">Valor (R$)</Label>
             <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className="h-9" placeholder="0,00" />
