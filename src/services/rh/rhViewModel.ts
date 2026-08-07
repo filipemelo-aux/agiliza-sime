@@ -230,7 +230,9 @@ export function computePayrollRowsFromPeriodo(input: {
 
   return colaboradores
     .filter((c) => c.ativo)
+    .filter((c) => isColaboradorElegivelNoPeriodo(c, periodo.tipo))
     .filter((c) => !selectedColaboradorIds || selectedColaboradorIds.has(c.id))
+
     .map((c) => {
       const baseCadastro = Number(c.salario || 0);
       const salario_base = Math.round(baseCadastro * fator * 100) / 100;
