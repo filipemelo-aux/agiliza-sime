@@ -39,6 +39,8 @@ import {
   fetchDescontosPendentesNoPeriodo,
   isColaboradorElegivelNoPeriodo,
   isPeriodoQuinzenal,
+  splitParcelas,
+  createParcelasFuturasAdiantamento,
 
   type ColaboradorRH,
   type Comissao,
