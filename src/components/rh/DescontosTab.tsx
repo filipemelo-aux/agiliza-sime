@@ -461,7 +461,14 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
           </p>
         </div>
 
+        <p className="text-[11px] text-muted-foreground">
+          <b>Adiantamentos e vales não são lançados aqui.</b> Como representam saída real de caixa,
+          devem ser registrados no <b>Contas a Pagar</b> com o plano de contas de adiantamento — o
+          wizard da folha já os identifica e abate do líquido, com opção de parcelar o desconto.
+        </p>
+
         <div className="rounded-md border border-border p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-end bg-muted/20">
+
           <div className="md:col-span-4 space-y-1">
             <Label className="text-xs">Colaborador</Label>
             <Select value={colabId} onValueChange={setColabId}>
