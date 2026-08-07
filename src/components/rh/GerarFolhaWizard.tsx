@@ -422,7 +422,7 @@ function PeriodoStep({
   const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full overflow-hidden gap-4">
       {!folhaAccountConfigured && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
