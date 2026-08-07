@@ -142,6 +142,7 @@ export function GerarFolhaWizard({
       setSelAdiant(new Set(adv.map((e: Expense) => e.id)));
       setSelComissoes(new Set(com.map((c: Comissao) => c.id)));
       setSelDescontos(new Set(desc.map((d: DescontoFolha) => d.id)));
+      setParcelasAdiant(Object.fromEntries(adv.map((e: Expense) => [e.id, 1])));
       return true;
     } catch (e: any) {
       toast.error("Erro ao carregar dados: " + (e?.message || e));
@@ -162,9 +163,10 @@ export function GerarFolhaWizard({
         selectedAdiantamentoIds: selAdiant,
         selectedComissaoIds: selComissoes,
         selectedDescontoIds: selDescontos,
+        adiantamentoParcelas: parcelasAdiant,
         selectedColaboradorIds: selColabs,
       }),
-    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, selColabs]
+    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, selColabs]
   );
 
   const totals = rows.reduce(
