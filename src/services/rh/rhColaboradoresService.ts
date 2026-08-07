@@ -21,6 +21,8 @@ export type ColaboradorRH = {
   salario: number | null;
   /** Categoria original do cadastro (motorista, colaborador, etc.) — apenas informativo. */
   tipo: "colaborador" | "motorista" | "outro";
+  /** Regime de contratação — apenas CLT sofre INSS/IRRF em folha. */
+  regime?: "clt" | "pj" | "freelancer";
   ativo: boolean;
 };
 
