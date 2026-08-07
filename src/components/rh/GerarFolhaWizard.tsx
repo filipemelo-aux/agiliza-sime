@@ -518,7 +518,7 @@ function PeriodoStep({
       )}
 
 
-      <div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="flex items-center justify-between mb-1.5 gap-2">
           <Label className="text-xs text-muted-foreground">Colaboradores ({selColabs.size}/{ativos.length})</Label>
           <button type="button" className="text-[11px] text-primary hover:underline"
@@ -535,30 +535,32 @@ function PeriodoStep({
           placeholder="Buscar colaborador..."
           className="h-8 text-xs mb-1.5"
         />
-        <Card className="h-[320px] sm:h-[400px] overflow-y-auto overscroll-contain">
-          <CardContent className="p-2 space-y-0.5">
-            {ativosFiltrados.length === 0 && (
-              <p className="text-xs text-muted-foreground px-2 py-4 text-center">
-                Nenhum colaborador encontrado para este período.
-              </p>
-            )}
-            {ativosFiltrados.map((c: ColaboradorRH) => (
-              <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
-                <Checkbox
-                  checked={selColabs.has(c.id)}
-                  onCheckedChange={() => {
-                    const next = new Set(selColabs);
-                    if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
-                    setSelColabs(next);
-                  }}
-                />
-                <span className="text-sm flex-1 truncate">{c.full_name}</span>
-                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
-                  {formatBRL(Number(c.salario || 0))}/mês
-                </span>
-              </label>
-            ))}
-          </CardContent>
+        <Card className="flex-1 flex flex-col overflow-hidden">
+          <ScrollArea className="flex-1">
+            <CardContent className="p-2 space-y-0.5">
+              {ativosFiltrados.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-4 text-center">
+                  Nenhum colaborador encontrado para este período.
+                </p>
+              )}
+              {ativosFiltrados.map((c: ColaboradorRH) => (
+                <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
+                  <Checkbox
+                    checked={selColabs.has(c.id)}
+                    onCheckedChange={() => {
+                      const next = new Set(selColabs);
+                      if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                      setSelColabs(next);
+                    }}
+                  />
+                  <span className="text-sm flex-1 truncate">{c.full_name}</span>
+                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+                    {formatBRL(Number(c.salario || 0))}/mês
+                  </span>
+                </label>
+              ))}
+            </CardContent>
+          </ScrollArea>
         </Card>
       </div>
     </div>
