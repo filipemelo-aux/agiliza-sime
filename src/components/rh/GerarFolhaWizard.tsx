@@ -94,18 +94,25 @@ export function GerarFolhaWizard({
   const [loadingData, setLoadingData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const elegiveis = useMemo(
+    () => colaboradores.filter((c) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)),
+    [colaboradores, periodo.tipo]
+  );
+
   useEffect(() => {
     if (!open) return;
     setStep(0);
     setPeriodo(buildPeriodoQuinzenal(month, "primeira_quinzena"));
-    // por padrão, todos os colaboradores ativos selecionados
-    setSelColabs(new Set(colaboradores.filter((c) => c.ativo).map((c) => c.id)));
-  }, [open, month, colaboradores]);
+  }, [open, month]);
 
-  const colabIds = useMemo(
-    () => colaboradores.filter((c) => c.ativo).map((c) => c.id),
-    [colaboradores]
-  );
+  // Seleção sempre limitada aos colaboradores elegíveis ao período atual
+  useEffect(() => {
+    if (!open) return;
+    setSelColabs(new Set(elegiveis.map((c) => c.id)));
+  }, [open, elegiveis]);
+
+  const colabIds = useMemo(() => elegiveis.map((c) => c.id), [elegiveis]);
+
 
   const loadPeriodData = async () => {
     if (!folhaAccountId) {
