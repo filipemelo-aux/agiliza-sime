@@ -337,6 +337,7 @@ export function GerarFolhaWizard({
                 selDescontos={selDescontos} setSelDescontos={setSelDescontos}
                 colabName={colabName}
                 selColabs={selColabs}
+                parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
                 toggle={toggleSet}
               />
             )
