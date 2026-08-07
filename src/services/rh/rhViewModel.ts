@@ -188,14 +188,16 @@ export function isPeriodoQuinzenal(tipo: TipoPeriodo): boolean {
 /**
  * Colaborador elegível ao período:
  * - Folha quinzenal → somente motoristas.
- * - Folha mensal/personalizada → todos.
+ * - Folha mensal → somente NÃO motoristas.
+ * - Personalizada → todos.
  */
 export function isColaboradorElegivelNoPeriodo(
   c: ColaboradorRH,
   tipo: TipoPeriodo
 ): boolean {
-  if (!isPeriodoQuinzenal(tipo)) return true;
-  return c.tipo === "motorista";
+  if (isPeriodoQuinzenal(tipo)) return c.tipo === "motorista";
+  if (tipo === "mensal") return c.tipo !== "motorista";
+  return true;
 }
 
 /**
