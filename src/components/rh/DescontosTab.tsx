@@ -136,6 +136,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
   const handleAdd = async () => {
     if (!colabId) return toast.error("Selecione um colaborador");
+    if (tipo === "adiantamento" || tipo === "vale")
+      return toast.error("Adiantamentos e vales devem ser lançados no Contas a Pagar");
+
     const n = parseFloat(valor.replace(",", "."));
     if (isNaN(n) || n <= 0) return toast.error("Valor inválido");
     setSaving(true);
