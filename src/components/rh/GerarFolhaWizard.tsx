@@ -676,14 +676,17 @@ function Bucket({ title, tom, items, selected, onToggle, emptyText, hint }: any)
               <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Selecionar tudo</span>
             </div>
             {items.map((i: any) => (
-              <label key={i.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30 cursor-pointer">
-                <Checkbox checked={selected.has(i.id)} onCheckedChange={() => onToggle(i.id)} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{i.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{i.desc} · {i.info}</p>
-                </div>
-                <span className={cn("text-xs font-semibold tabular-nums shrink-0", toneTotal)}>{formatBRL(i.value)}</span>
-              </label>
+              <div key={i.id} className="px-3 py-2 hover:bg-muted/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={selected.has(i.id)} onCheckedChange={() => onToggle(i.id)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{i.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{i.desc} · {i.info}</p>
+                  </div>
+                  <span className={cn("text-xs font-semibold tabular-nums shrink-0", toneTotal)}>{formatBRL(i.value)}</span>
+                </label>
+                {i.extra && selected.has(i.id) && <div className="pl-6 pt-1.5">{i.extra}</div>}
+              </div>
             ))}
           </div>
         )}
