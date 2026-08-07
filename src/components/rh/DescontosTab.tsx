@@ -37,6 +37,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+/** Rótulos de todos os tipos (inclui os legados, usados apenas para exibição). */
 const TIPOS: { v: DescontoFolhaTipo; label: string }[] = [
   { v: "inss", label: "INSS" },
   { v: "irrf", label: "IRRF" },
@@ -46,6 +47,18 @@ const TIPOS: { v: DescontoFolhaTipo; label: string }[] = [
   { v: "adiantamento", label: "Adiantamento" },
   { v: "outros", label: "Outros" },
 ];
+
+/**
+ * Tipos permitidos no lançamento manual.
+ * Adiantamento e Vale ficam de fora de propósito: eles representam saída real
+ * de caixa e devem nascer no Contas a Pagar (plano de contas de adiantamento).
+ * O wizard da folha já lê essas despesas, e as parcelas futuras de um
+ * adiantamento parcelado são criadas automaticamente pelo próprio wizard.
+ */
+const TIPOS_MANUAIS: { v: DescontoFolhaTipo; label: string }[] = TIPOS.filter(
+  (t) => t.v !== "adiantamento" && t.v !== "vale"
+);
+
 
 type LinhaAuto = DescontoLegalCalculado & {
   incluir: boolean;
@@ -123,6 +136,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
   const handleAdd = async () => {
     if (!colabId) return toast.error("Selecione um colaborador");
+    if (tipo === "adiantamento" || tipo === "vale")
+      return toast.error("Adiantamentos e vales devem ser lançados no Contas a Pagar");
+
     const n = parseFloat(valor.replace(",", "."));
     if (isNaN(n) || n <= 0) return toast.error("Valor inválido");
     setSaving(true);
@@ -448,7 +464,14 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
           </p>
         </div>
 
+        <p className="text-[11px] text-muted-foreground">
+          <b>Adiantamentos e vales não são lançados aqui.</b> Como representam saída real de caixa,
+          devem ser registrados no <b>Contas a Pagar</b> com o plano de contas de adiantamento — o
+          wizard da folha já os identifica e abate do líquido, com opção de parcelar o desconto.
+        </p>
+
         <div className="rounded-md border border-border p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-end bg-muted/20">
+
           <div className="md:col-span-4 space-y-1">
             <Label className="text-xs">Colaborador</Label>
             <Select value={colabId} onValueChange={setColabId}>
@@ -465,12 +488,13 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <Select value={tipo} onValueChange={(v) => setTipo(v as DescontoFolhaTipo)}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {TIPOS.map((t) => (
+                {TIPOS_MANUAIS.map((t) => (
                   <SelectItem key={t.v} value={t.v}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="md:col-span-2 space-y-1">
             <Label className="text-xs">Valor (R$)</Label>
             <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className="h-9" placeholder="0,00" />
