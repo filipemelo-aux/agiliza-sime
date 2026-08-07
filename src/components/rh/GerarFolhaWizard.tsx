@@ -405,8 +405,19 @@ function PeriodoStep({
         </div>
       </div>
 
+      {quinzenal && (
+        <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
+          <span>
+            Folha quinzenal é exclusiva para motoristas.
+            {excluidosQuinzena > 0 && ` ${excluidosQuinzena} colaborador(es) não motorista(s) ficam de fora — use período mensal/personalizado para eles.`}
+          </span>
+        </div>
+      )}
+
       <div>
         <div className="flex items-center justify-between mb-1.5">
+
           <Label className="text-xs text-muted-foreground">Colaboradores ({selColabs.size}/{ativos.length})</Label>
           <button type="button" className="text-[11px] text-primary hover:underline"
             onClick={() => {
