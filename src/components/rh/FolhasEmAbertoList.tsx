@@ -46,8 +46,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const load = async () => {
     setLoading(true);
     try {
-      const data = await listarFolhas({ status: "em_aberto", mes: month });
+      // A folha pode ter competência (mes_referencia) diferente do mês de
+      // pagamento (ex.: competência 07/2026 paga em 08/2026). Mostramos ambas.
+      const all = await listarFolhas({ status: "em_aberto" });
+      const data = all.filter(
+        (f) =>
+          f.mes_referencia === month ||
+          (f.data_vencimento || "").startsWith(month) ||
+          (f.data_inicio || "").startsWith(month)
+      );
       setFolhas(data);
+
     } catch (e: any) {
       toast.error("Erro ao carregar folhas: " + e.message);
     } finally {

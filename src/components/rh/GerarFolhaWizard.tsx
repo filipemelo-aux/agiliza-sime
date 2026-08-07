@@ -227,11 +227,9 @@ export function GerarFolhaWizard({
           adiantamento_expense_ids: r.adiantamentoExpenseIds,
         })),
       });
-      const c = await confirmarFolha({
-        folhaId: folha.id,
-        user_id: userId,
-        folhaAccountId,
-      });
+      // A folha nasce EM ABERTO. A confirmação (que gera Contas a Pagar)
+      // é feita na lista de "Folhas em aberto".
+
 
       // Adiantamentos parcelados → gera os descontos das folhas seguintes
       const mesRef = periodoToMesReferencia(periodo);
@@ -251,14 +249,11 @@ export function GerarFolhaWizard({
         parcelasCriadas += n - 1;
       }
 
-      if (c.fail === 0) {
-        toast.success(
-          `Folha confirmada — ${rows.length} colaborador(es), ${c.despesasCriadas} despesa(s) gerada(s) em Contas a Pagar.` +
-            (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "")
-        );
-      } else {
-        toast.warning(`${c.ok} ok, ${c.fail} falha(s): ${c.errors[0] || ""}`);
-      }
+      toast.success(
+        `Folha gerada em aberto — ${rows.length} colaborador(es). Confirme na lista de folhas em aberto para gerar o Contas a Pagar.` +
+          (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "")
+      );
+
       onGenerated();
       onClose();
     } catch (e: any) {
