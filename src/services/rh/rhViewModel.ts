@@ -150,6 +150,24 @@ export type PayrollRow = {
   liquido: number;
 };
 
+/** Períodos quinzenais (aplicáveis somente a motoristas). */
+export function isPeriodoQuinzenal(tipo: TipoPeriodo): boolean {
+  return tipo === "primeira_quinzena" || tipo === "segunda_quinzena";
+}
+
+/**
+ * Colaborador elegível ao período:
+ * - Folha quinzenal → somente motoristas.
+ * - Folha mensal/personalizada → todos.
+ */
+export function isColaboradorElegivelNoPeriodo(
+  c: ColaboradorRH,
+  tipo: TipoPeriodo
+): boolean {
+  if (!isPeriodoQuinzenal(tipo)) return true;
+  return c.tipo === "motorista";
+}
+
 /**
  * Retorna a fração do salário base aplicada ao período.
  * - Quinzenal (primeira/segunda): 50%
@@ -157,9 +175,10 @@ export type PayrollRow = {
  * - Personalizado: 100% (usuário define o que faz sentido)
  */
 function fatorSalarioPorPeriodo(tipo: TipoPeriodo): number {
-  if (tipo === "primeira_quinzena" || tipo === "segunda_quinzena") return 0.5;
+  if (isPeriodoQuinzenal(tipo)) return 0.5;
   return 1;
 }
+
 
 export function computePayrollRowsFromPeriodo(input: {
   colaboradores: ColaboradorRH[];
