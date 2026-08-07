@@ -302,6 +302,45 @@ export async function excluirFolhaEmAberto(folhaId: string): Promise<void> {
   await (supabase.from("folhas_pagamento" as any) as any).delete().eq("id", folhaId);
 }
 
+/** Exclui somente o recibo/snapshot de um colaborador de uma folha em aberto. */
+export async function excluirItemFolhaEmAberto(folhaId: string, itemId: string): Promise<void> {
+  const { folha, itens } = await buscarFolhaComItens(folhaId);
+  if (folha.status !== "em_aberto") throw new Error("Reabra a folha antes de excluir um colaborador.");
+  const item = itens.find((i) => i.id === itemId);
+  if (!item) throw new Error("Colaborador não encontrado nesta folha.");
+
+  if ((item.comissao_ids || []).length > 0) await marcarComoPendentes(item.comissao_ids);
+  if ((item.desconto_ids || []).length > 0) await desvincularDescontosDaFolha(item.desconto_ids);
+
+  const { error } = await (supabase.from("folhas_pagamento_itens" as any) as any)
+    .delete().eq("id", itemId).eq("folha_id", folhaId);
+  if (error) throw error;
+
+  const restantes = itens.filter((i) => i.id !== itemId);
+  if (restantes.length === 0) {
+    const { error: folhaError } = await (supabase.from("folhas_pagamento" as any) as any)
+      .delete().eq("id", folhaId);
+    if (folhaError) throw folhaError;
+    return;
+  }
+
+  const totais = restantes.reduce((acc, i) => ({
+    base: acc.base + Number(i.salario_base || 0),
+    adiantamentos: acc.adiantamentos + Number(i.adiantamentos || 0),
+    descontos: acc.descontos + Number(i.descontos || 0),
+    comissoes: acc.comissoes + Number(i.comissoes || 0),
+    liquido: acc.liquido + Number(i.liquido || 0),
+  }), { base: 0, adiantamentos: 0, descontos: 0, comissoes: 0, liquido: 0 });
+  const { error: totalError } = await (supabase.from("folhas_pagamento" as any) as any).update({
+    total_base: totais.base,
+    total_adiantamentos: totais.adiantamentos,
+    total_descontos: totais.descontos,
+    total_comissoes: totais.comissoes,
+    total_liquido: totais.liquido,
+  }).eq("id", folhaId);
+  if (totalError) throw totalError;
+}
+
 /**
  * Reabre uma folha CONFIRMADA cuja despesa gerada ainda NÃO foi paga.
  *   • Verifica se nenhuma despesa do snapshot tem valor_pago > 0

@@ -22,6 +22,7 @@ import {
   buscarFolhaComItens,
   confirmarFolha,
   excluirFolhaEmAberto,
+  excluirItemFolhaEmAberto,
   reabrirFolhaConfirmada,
   type FolhaPagamento,
   type FolhaItem,
@@ -264,6 +265,26 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
+  const handleDeleteItem = async (folha: FolhaPagamento, item: FolhaItem) => {
+    const ok = await confirm({
+      title: `Excluir folha de ${item.colaborador_nome}?`,
+      description: "Somente este colaborador será removido da folha. Os lançamentos vinculados voltarão a ficar disponíveis para uma nova geração.",
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setActing(item.id);
+    try {
+      await excluirItemFolhaEmAberto(folha.id, item.id);
+      toast.success(`Folha de ${item.colaborador_nome} excluída.`);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
   const itensVisiveis = useMemo(
     () => visiveis.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
     [visiveis, itensPorFolha]
@@ -474,11 +495,20 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
             </CardContent>
             <div className="border-t divide-y">
               {(itensPorFolha[f.id] || []).map((item) => (
-                <label key={item.id} className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-muted/30">
+                <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/30">
                   <Checkbox checked={selecionados.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
                   <span className="min-w-0 flex-1 text-sm font-medium truncate">{item.colaborador_nome}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">{formatBRL(Number(item.liquido))}</span>
-                </label>
+                  {f.status === "em_aberto" && (
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                      disabled={acting === item.id} onClick={() => handleDeleteItem(f, item)}
+                      title={`Excluir folha de ${item.colaborador_nome}`}
+                    >
+                      {acting === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           </Card>
