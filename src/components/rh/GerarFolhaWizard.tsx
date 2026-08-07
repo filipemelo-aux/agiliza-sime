@@ -415,7 +415,7 @@ function PeriodoStep({
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
           <span>
             Folha quinzenal é exclusiva para motoristas.
-            {excluidosQuinzena > 0 && ` ${excluidosQuinzena} colaborador(es) não motorista(s) ficam de fora — use período mensal/personalizado para eles.`}
+            {excluidosQuinzena > 0 && ` ${excluidosQuinzena} colaborador(es) não motorista(s) ficam de fora — use o período mensal para eles.`}
           </span>
         </div>
       )}
