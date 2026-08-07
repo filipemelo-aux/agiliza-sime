@@ -3951,6 +3951,7 @@ export type Database = {
         | "faltas"
         | "multas"
         | "outros"
+        | "combustivel"
       document_status: "pending" | "approved" | "rejected" | "expired"
       establishment_type: "matriz" | "filial"
       expense_origin:
@@ -4131,6 +4132,7 @@ export const Constants = {
         "faltas",
         "multas",
         "outros",
+        "combustivel",
       ],
       document_status: ["pending", "approved", "rejected", "expired"],
       establishment_type: ["matriz", "filial"],
