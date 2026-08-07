@@ -409,6 +409,9 @@ function PeriodoStep({
   const ativos = colaboradores.filter(
     (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
   );
+  const ativosFiltrados = ativos.filter((c: ColaboradorRH) =>
+    (c.full_name || "").toLowerCase().includes(buscaColab.trim().toLowerCase())
+  );
   const excluidosQuinzena = quinzenal
     ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
     : 0;
