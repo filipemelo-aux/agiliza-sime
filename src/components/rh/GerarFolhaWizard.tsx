@@ -515,8 +515,7 @@ function PeriodoStep({
 
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <Label className="text-xs text-muted-foreground">Colaboradores ({selColabs.size}/{ativos.length})</Label>
           <button type="button" className="text-[11px] text-primary hover:underline"
             onClick={() => {
@@ -526,10 +525,21 @@ function PeriodoStep({
             {allSelected ? "Desmarcar todos" : "Selecionar todos"}
           </button>
         </div>
-        <Card className="max-h-48 overflow-y-auto">
+        <Input
+          value={buscaColab}
+          onChange={(e) => setBuscaColab(e.target.value)}
+          placeholder="Buscar colaborador..."
+          className="h-8 text-xs mb-1.5"
+        />
+        <Card className="max-h-[420px] min-h-[220px] overflow-y-auto">
           <CardContent className="p-2 space-y-0.5">
-            {ativos.map((c: ColaboradorRH) => (
-              <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer">
+            {ativosFiltrados.length === 0 && (
+              <p className="text-xs text-muted-foreground px-2 py-4 text-center">
+                Nenhum colaborador encontrado para este período.
+              </p>
+            )}
+            {ativosFiltrados.map((c: ColaboradorRH) => (
+              <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
                 <Checkbox
                   checked={selColabs.has(c.id)}
                   onCheckedChange={() => {
@@ -538,8 +548,8 @@ function PeriodoStep({
                     setSelColabs(next);
                   }}
                 />
-                <span className="text-xs flex-1 truncate">{c.full_name}</span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
+                <span className="text-sm flex-1 truncate">{c.full_name}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
                   {formatBRL(Number(c.salario || 0))}/mês
                 </span>
               </label>
