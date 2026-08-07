@@ -338,7 +338,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <div className="flex items-center gap-2">
               <Button variant="outline" className="h-9 gap-1" onClick={() => calcularAutomatico()}>
                 <Calculator className="h-3.5 w-3.5" />
-                Calcular para o mês
+                Calcular para {labelMes(month)}
               </Button>
               {auto && (
                 <Button
