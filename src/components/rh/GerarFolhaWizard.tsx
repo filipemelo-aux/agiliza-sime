@@ -346,68 +346,26 @@ export function GerarFolhaWizard({
 
 // ============ STEPS ============
 
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 function PeriodoStep({
   month, periodo, onChange, folhaAccountConfigured,
   colaboradores, selColabs, setSelColabs,
 }: any) {
-  const setTipo = (tipo: TipoPeriodo) => {
-    if (tipo === "primeira_quinzena") onChange(buildPeriodoQuinzenal(month, "primeira_quinzena"));
-    else if (tipo === "segunda_quinzena") onChange(buildPeriodoQuinzenal(month, "segunda_quinzena"));
-    else onChange(buildPeriodoMensal(month));
-  };
+  // Mês de competência derivado do período atual (fallback: mês da tela)
+  const mesRef = (periodo?.data_inicio || `${month}-01`).slice(0, 7);
+  const [refYear, refMonthIdx] = [Number(mesRef.slice(0, 4)), Number(mesRef.slice(5, 7)) - 1];
+  const [showDatas, setShowDatas] = useState(false);
 
-  const quinzenal = isPeriodoQuinzenal(periodo.tipo);
-  const ativos = colaboradores.filter(
-    (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
-  );
-  const excluidosQuinzena = quinzenal
-    ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
-    : 0;
-  const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
+  const buildFor = (tipo: TipoPeriodo, m: string) =>
+    tipo === "primeira_quinzena" || tipo === "segunda_quinzena"
+      ? buildPeriodoQuinzenal(m, tipo)
+      : buildPeriodoMensal(m);
 
+  const setTipo = (tipo: TipoPeriodo) => onChange(buildFor(tipo, mesRef));
+  const setMes = (idx: number, year = refYear) =>
+    onChange(buildFor(periodo.tipo, `${year}-${String(idx + 1).padStart(2, "0")}`));
 
-  return (
-    <div className="space-y-4">
-      {!folhaAccountConfigured && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          Configure a conta "Salários" em Configurações para continuar.
-        </div>
-      )}
-
-      <div>
-        <Label className="text-xs text-muted-foreground">Tipo de período</Label>
-        <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <PresetCard active={periodo.tipo === "primeira_quinzena"} onClick={() => setTipo("primeira_quinzena")}
-            title="1ª quinzena" subtitle="01 → 15 · pagamento dia 20" />
-          <PresetCard active={periodo.tipo === "segunda_quinzena"} onClick={() => setTipo("segunda_quinzena")}
-            title="2ª quinzena" subtitle="16 → fim · pagamento dia 05" />
-          <PresetCard active={periodo.tipo === "mensal" || periodo.tipo === "personalizado"} onClick={() => setTipo("mensal")}
-            title="Mensal" subtitle="Competência do mês · pagamento no 5º dia útil seguinte" />
-
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs">Início</Label>
-          <Input type="date" value={periodo.data_inicio}
-            onChange={(e) => onChange({ ...periodo, data_inicio: e.target.value })}
-            className="h-9" />
-        </div>
-        <div>
-          <Label className="text-xs">Fim</Label>
-          <Input type="date" value={periodo.data_fim}
-            onChange={(e) => onChange({ ...periodo, data_fim: e.target.value })}
-            className="h-9" />
-        </div>
-        <div>
-          <Label className="text-xs">Pagamento</Label>
-          <Input type="date" value={periodo.data_pagamento}
-            onChange={(e) => onChange({ ...periodo, data_pagamento: e.target.value })}
-            className="h-9" />
-        </div>
-      </div>
 
 
       {quinzenal && (
