@@ -316,7 +316,7 @@ export function GerarFolhaWizard({
           </div>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
           {step === 0 && (
             <PeriodoStep
               month={month} periodo={periodo} onChange={setPeriodo}
@@ -326,25 +326,35 @@ export function GerarFolhaWizard({
             />
           )}
           {step === 1 && (
-            loadingData ? <Loading /> : (
-              <SelecaoStep
-                periodo={periodo}
-                adiantamentos={adiantamentos}
-                comissoes={comissoes}
-                descontos={descontos}
-                selAdiant={selAdiant} setSelAdiant={setSelAdiant}
-                selComissoes={selComissoes} setSelComissoes={setSelComissoes}
-                selDescontos={selDescontos} setSelDescontos={setSelDescontos}
-                colabName={colabName}
-                selColabs={selColabs}
-                parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
-                toggle={toggleSet}
-              />
-            )
+            <ScrollArea className="h-full w-full">
+              {loadingData ? <Loading /> : (
+                <SelecaoStep
+                  periodo={periodo}
+                  adiantamentos={adiantamentos}
+                  comissoes={comissoes}
+                  descontos={descontos}
+                  selAdiant={selAdiant} setSelAdiant={setSelAdiant}
+                  selComissoes={selComissoes} setSelComissoes={setSelComissoes}
+                  selDescontos={selDescontos} setSelDescontos={setSelDescontos}
+                  colabName={colabName}
+                  selColabs={selColabs}
+                  parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
+                  toggle={toggleSet}
+                />
+              )}
+            </ScrollArea>
           )}
-          {step === 2 && <PreviaStep rows={rows} totals={totals} periodo={periodo} />}
-          {step === 3 && <ConfirmStep rows={rows} totals={totals} periodo={periodo} />}
-        </ScrollArea>
+          {step === 2 && (
+            <ScrollArea className="h-full w-full">
+              <PreviaStep rows={rows} totals={totals} periodo={periodo} />
+            </ScrollArea>
+          )}
+          {step === 3 && (
+            <ScrollArea className="h-full w-full">
+              <ConfirmStep rows={rows} totals={totals} periodo={periodo} />
+            </ScrollArea>
+          )}
+        </div>
 
         <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row items-center justify-between gap-2">
           <Button variant="ghost" size="sm"
