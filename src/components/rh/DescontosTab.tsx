@@ -60,11 +60,32 @@ interface DescontosTabProps {
   colaboradores: ColaboradorRH[];
 }
 
+const MESES_LONGOS = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+const labelMes = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  return `${MESES_LONGOS[m - 1]}/${y}`;
+};
+
+/** Recebe o mês de PAGAMENTO e devolve o mês de COMPETÊNCIA (mês trabalhado = anterior). */
+const competenciaDoPagamento = (payMonth: string) => {
+  const [y, m] = payMonth.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
 export function DescontosTab({ colaboradores }: DescontosTabProps) {
-  const [month, setMonth] = useState(() => {
+  // Mês em que a folha será PAGA (o usuário seleciona o pagamento)
+  const [payMonth, setPayMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  // Mês trabalhado (competência) — é onde os descontos são gravados
+  const month = competenciaDoPagamento(payMonth);
+
   const [items, setItems] = useState<DescontoFolha[]>([]);
   const [loading, setLoading] = useState(false);
   const [colabId, setColabId] = useState("");
@@ -234,7 +255,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
     const ok = await confirm({
       title: "Lançar descontos automáticos?",
-      description: `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${month}.`,
+      description: `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${labelMes(month)} (mês trabalhado), para pagamento em ${labelMes(payMonth)}.`,
       confirmLabel: "Lançar",
     });
     if (!ok) return;
@@ -272,9 +293,13 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <h3 className="text-sm font-semibold">Descontos pendentes</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Mês</Label>
-            <MonthPicker value={month} onChange={setMonth} className="w-[160px]" />
+            <Label className="text-xs text-muted-foreground">Mês do pagamento</Label>
+            <MonthPicker value={payMonth} onChange={setPayMonth} className="w-[160px]" />
+            <Badge variant="outline" className="text-[11px] font-normal">
+              competência: {labelMes(month)} (mês trabalhado)
+            </Badge>
           </div>
+
         </div>
 
         {/* Descontos legais automáticos */}
@@ -313,7 +338,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <div className="flex items-center gap-2">
               <Button variant="outline" className="h-9 gap-1" onClick={() => calcularAutomatico()}>
                 <Calculator className="h-3.5 w-3.5" />
-                Calcular para o mês
+                Calcular para {labelMes(month)}
               </Button>
               {auto && (
                 <Button
