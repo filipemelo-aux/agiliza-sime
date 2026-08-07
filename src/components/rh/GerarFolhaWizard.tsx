@@ -366,7 +366,92 @@ function PeriodoStep({
   const setMes = (idx: number, year = refYear) =>
     onChange(buildFor(periodo.tipo, `${year}-${String(idx + 1).padStart(2, "0")}`));
 
+  const quinzenal = isPeriodoQuinzenal(periodo.tipo);
+  const ativos = colaboradores.filter(
+    (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
+  );
+  const excluidosQuinzena = quinzenal
+    ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
+    : 0;
+  const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
 
+  return (
+    <div className="space-y-4">
+      {!folhaAccountConfigured && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          Configure a conta "Salários" em Configurações para continuar.
+        </div>
+      )}
+
+      <div>
+        <Label className="text-xs text-muted-foreground">Tipo de período</Label>
+        <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <PresetCard active={periodo.tipo === "primeira_quinzena"} onClick={() => setTipo("primeira_quinzena")}
+            title="1ª quinzena" subtitle="01 → 15 · pagamento dia 20" />
+          <PresetCard active={periodo.tipo === "segunda_quinzena"} onClick={() => setTipo("segunda_quinzena")}
+            title="2ª quinzena" subtitle="16 → fim · pagamento dia 05" />
+          <PresetCard active={periodo.tipo === "mensal" || periodo.tipo === "personalizado"} onClick={() => setTipo("mensal")}
+            title="Mensal" subtitle="Competência do mês · pagamento no 5º dia útil seguinte" />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <Label className="text-xs text-muted-foreground">Mês de competência</Label>
+          <div className="flex items-center gap-2">
+            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
+            <span className="text-xs font-medium">{refYear}</span>
+            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-6 gap-1">
+          {MESES_CURTOS.map((m, i) => (
+            <button key={m} type="button" onClick={() => setMes(i)}
+              className={`h-8 rounded-md border text-xs transition-colors ${
+                i === refMonthIdx
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-muted"
+              }`}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <button type="button" onClick={() => setShowDatas((v) => !v)}
+          className="text-[11px] text-primary hover:underline">
+          {showDatas ? "Ocultar período personalizado" : "Ajustar período personalizado (opcional)"}
+        </button>
+        {showDatas && (
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Início</Label>
+              <Input type="date" value={periodo.data_inicio}
+                onChange={(e) => onChange({ ...periodo, data_inicio: e.target.value })}
+                className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Fim</Label>
+              <Input type="date" value={periodo.data_fim}
+                onChange={(e) => onChange({ ...periodo, data_fim: e.target.value })}
+                className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Pagamento</Label>
+              <Input type="date" value={periodo.data_pagamento}
+                onChange={(e) => onChange({ ...periodo, data_pagamento: e.target.value })}
+                className="h-9" />
+            </div>
+          </div>
+        )}
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          {formatDate(periodo.data_inicio)} – {formatDate(periodo.data_fim)} · pagamento {formatDate(periodo.data_pagamento)}
+        </p>
+      </div>
 
       {quinzenal && (
         <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
