@@ -39,6 +39,8 @@ import {
   fetchDescontosPendentesNoPeriodo,
   isColaboradorElegivelNoPeriodo,
   isPeriodoQuinzenal,
+  splitParcelas,
+  createParcelasFuturasAdiantamento,
 
   type ColaboradorRH,
   type Comissao,
@@ -95,6 +97,8 @@ export function GerarFolhaWizard({
   const [selComissoes, setSelComissoes] = useState<Set<string>>(new Set());
   const [selDescontos, setSelDescontos] = useState<Set<string>>(new Set());
   const [selColabs, setSelColabs] = useState<Set<string>>(new Set());
+  /** Nº de parcelas por adiantamento (1 = descontar integral na folha atual). */
+  const [parcelasAdiant, setParcelasAdiant] = useState<Record<string, number>>({});
 
   const [loadingData, setLoadingData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -140,6 +144,7 @@ export function GerarFolhaWizard({
       setSelAdiant(new Set(adv.map((e: Expense) => e.id)));
       setSelComissoes(new Set(com.map((c: Comissao) => c.id)));
       setSelDescontos(new Set(desc.map((d: DescontoFolha) => d.id)));
+      setParcelasAdiant(Object.fromEntries(adv.map((e: Expense) => [e.id, 1])));
       return true;
     } catch (e: any) {
       toast.error("Erro ao carregar dados: " + (e?.message || e));
@@ -160,9 +165,10 @@ export function GerarFolhaWizard({
         selectedAdiantamentoIds: selAdiant,
         selectedComissaoIds: selComissoes,
         selectedDescontoIds: selDescontos,
+        adiantamentoParcelas: parcelasAdiant,
         selectedColaboradorIds: selColabs,
       }),
-    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, selColabs]
+    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, selColabs]
   );
 
   const totals = rows.reduce(
@@ -226,9 +232,29 @@ export function GerarFolhaWizard({
         user_id: userId,
         folhaAccountId,
       });
+
+      // Adiantamentos parcelados → gera os descontos das folhas seguintes
+      const mesRef = periodoToMesReferencia(periodo);
+      let parcelasCriadas = 0;
+      for (const e of adiantamentos as Expense[]) {
+        const n = Math.max(1, Number(parcelasAdiant[e.id] || 1));
+        if (n <= 1) continue;
+        if (!selAdiant.has(e.id) || !e.favorecido_id) continue;
+        if (selColabs.size > 0 && !selColabs.has(e.favorecido_id)) continue;
+        const valores = splitParcelas(Number(e.valor_pago || e.valor_total || 0), n);
+        await createParcelasFuturasAdiantamento({
+          colaborador_id: e.favorecido_id,
+          mesReferencia: mesRef,
+          parcelas: valores,
+          descricaoBase: e.descricao || "Adiantamento",
+        });
+        parcelasCriadas += n - 1;
+      }
+
       if (c.fail === 0) {
         toast.success(
-          `Folha confirmada — ${rows.length} colaborador(es), ${c.despesasCriadas} despesa(s) gerada(s) em Contas a Pagar.`
+          `Folha confirmada — ${rows.length} colaborador(es), ${c.despesasCriadas} despesa(s) gerada(s) em Contas a Pagar.` +
+            (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "")
         );
       } else {
         toast.warning(`${c.ok} ok, ${c.fail} falha(s): ${c.errors[0] || ""}`);
@@ -311,6 +337,7 @@ export function GerarFolhaWizard({
                 selDescontos={selDescontos} setSelDescontos={setSelDescontos}
                 colabName={colabName}
                 selColabs={selColabs}
+                parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
                 toggle={toggleSet}
               />
             )
@@ -542,6 +569,7 @@ function SelecaoStep({
   periodo, adiantamentos, comissoes, descontos,
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
   selDescontos, setSelDescontos, colabName, toggle, selColabs,
+  parcelasAdiant, setParcelasAdiant,
 }: any) {
   // Somente itens dos colaboradores selecionados na etapa anterior
   const inColab = (id?: string | null) =>
@@ -550,6 +578,9 @@ function SelecaoStep({
   const comissoesFiltradas = comissoes.filter((c: Comissao) => inColab(c.colaborador_id));
   const adiantamentosFiltrados = adiantamentos.filter((e: Expense) => inColab(e.favorecido_id));
   const descontosFiltrados = descontos.filter((d: DescontoFolha) => inColab(d.colaborador_id));
+
+  const setParcelas = (id: string, n: number) =>
+    setParcelasAdiant((prev: Record<string, number>) => ({ ...prev, [id]: Math.max(1, Math.min(36, n || 1)) }));
 
   return (
     <div className="space-y-3">
@@ -570,13 +601,27 @@ function SelecaoStep({
         emptyText="Sem comissões pendentes neste período."
       />
 
-      <Bucket title="Adiantamentos do período" tom="negative"
-        hint="Despesas de adiantamento (Contas a Pagar) com competência no período"
-        items={adiantamentosFiltrados.map((e: Expense) => ({
-          id: e.id, name: e.favorecido_nome || colabName(e.favorecido_id),
-          desc: e.descricao, info: `Comp. ${formatDate(e.data_competencia || e.data_emissao)}`,
-          value: Number(e.valor_pago || e.valor_total || 0),
-        }))}
+      <Bucket title="Adiantamentos / vales do período" tom="negative"
+        hint="Descontar integralmente nesta folha ou parcelar o débito nas próximas folhas"
+        items={adiantamentosFiltrados.map((e: Expense) => {
+          const bruto = Number(e.valor_pago || e.valor_total || 0);
+          const n = Math.max(1, Number(parcelasAdiant?.[e.id] || 1));
+          const parcelas = splitParcelas(bruto, n);
+          return {
+            id: e.id,
+            name: e.favorecido_nome || colabName(e.favorecido_id),
+            desc: e.descricao,
+            info: `Comp. ${formatDate(e.data_competencia || e.data_emissao)} · Total ${formatBRL(bruto)}`,
+            value: parcelas[0],
+            extra: (
+              <ParcelamentoControl
+                n={n}
+                onChange={(v: number) => setParcelas(e.id, v)}
+                parcelas={parcelas}
+              />
+            ),
+          };
+        })}
         selected={selAdiant} onToggle={(id: string) => toggle(selAdiant, setSelAdiant, id)}
         emptyText="Nenhum adiantamento neste período."
       />
@@ -592,6 +637,33 @@ function SelecaoStep({
         emptyText="Sem descontos pendentes neste período."
       />
 
+    </div>
+  );
+}
+
+/** Define se o adiantamento é descontado integralmente ou parcelado. */
+function ParcelamentoControl({ n, onChange, parcelas }: { n: number; onChange: (v: number) => void; parcelas: number[] }) {
+  const parcelado = n > 1;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Button type="button" size="sm" variant={parcelado ? "outline" : "default"}
+        className="h-7 px-2 text-[10px]" onClick={() => onChange(1)}>
+        Integral nesta folha
+      </Button>
+      <Button type="button" size="sm" variant={parcelado ? "default" : "outline"}
+        className="h-7 px-2 text-[10px]" onClick={() => onChange(n > 1 ? n : 2)}>
+        Parcelar
+      </Button>
+      {parcelado && (
+        <>
+          <Input type="number" min={2} max={36} value={n}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="h-7 w-16 text-[11px]" />
+          <span className="text-[10px] text-muted-foreground">
+            x de {formatBRL(parcelas[1] ?? parcelas[0])} · 1ª parcela {formatBRL(parcelas[0])} nesta folha, demais nas próximas folhas
+          </span>
+        </>
+      )}
     </div>
   );
 }
@@ -631,14 +703,17 @@ function Bucket({ title, tom, items, selected, onToggle, emptyText, hint }: any)
               <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Selecionar tudo</span>
             </div>
             {items.map((i: any) => (
-              <label key={i.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30 cursor-pointer">
-                <Checkbox checked={selected.has(i.id)} onCheckedChange={() => onToggle(i.id)} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{i.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{i.desc} · {i.info}</p>
-                </div>
-                <span className={cn("text-xs font-semibold tabular-nums shrink-0", toneTotal)}>{formatBRL(i.value)}</span>
-              </label>
+              <div key={i.id} className="px-3 py-2 hover:bg-muted/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={selected.has(i.id)} onCheckedChange={() => onToggle(i.id)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{i.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{i.desc} · {i.info}</p>
+                  </div>
+                  <span className={cn("text-xs font-semibold tabular-nums shrink-0", toneTotal)}>{formatBRL(i.value)}</span>
+                </label>
+                {i.extra && selected.has(i.id) && <div className="pl-6 pt-1.5">{i.extra}</div>}
+              </div>
             ))}
           </div>
         )}

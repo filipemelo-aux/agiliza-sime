@@ -212,6 +212,18 @@ function fatorSalarioPorPeriodo(tipo: TipoPeriodo): number {
 }
 
 
+/**
+ * Divide um valor em N parcelas com centavos ajustados na 1ª parcela.
+ * splitParcelas(100, 3) => [33.34, 33.33, 33.33]
+ */
+export function splitParcelas(valor: number, n: number): number[] {
+  const total = Math.round(Number(valor || 0) * 100);
+  const qtd = Math.max(1, Math.floor(n || 1));
+  const base = Math.floor(total / qtd);
+  const resto = total - base * qtd;
+  return Array.from({ length: qtd }, (_, i) => (base + (i === 0 ? resto : 0)) / 100);
+}
+
 export function computePayrollRowsFromPeriodo(input: {
   colaboradores: ColaboradorRH[];
   periodo: PeriodoFolha;
@@ -221,13 +233,15 @@ export function computePayrollRowsFromPeriodo(input: {
   selectedAdiantamentoIds?: Set<string>;
   selectedComissaoIds?: Set<string>;
   selectedDescontoIds?: Set<string>;
+  /** Nº de parcelas por adiantamento (1 = integral na folha atual). */
+  adiantamentoParcelas?: Record<string, number>;
   /** Filtra por colaboradores explicitamente selecionados (opcional). */
   selectedColaboradorIds?: Set<string>;
 }): PayrollRow[] {
   const {
     colaboradores, periodo, adiantamentos, comissoes, descontos,
     selectedAdiantamentoIds, selectedComissaoIds, selectedDescontoIds,
-    selectedColaboradorIds,
+    adiantamentoParcelas, selectedColaboradorIds,
   } = input;
 
   const fator = fatorSalarioPorPeriodo(periodo.tipo);
@@ -237,7 +251,9 @@ export function computePayrollRowsFromPeriodo(input: {
     if (!e.favorecido_id) return;
     if (selectedAdiantamentoIds && !selectedAdiantamentoIds.has(e.id)) return;
     const cur = advByColab.get(e.favorecido_id) || { total: 0, ids: [] };
-    cur.total += Number(e.valor_pago || e.valor_total || 0);
+    const bruto = Number(e.valor_pago || e.valor_total || 0);
+    const n = Math.max(1, Number(adiantamentoParcelas?.[e.id] || 1));
+    cur.total += splitParcelas(bruto, n)[0];
     cur.ids.push(e.id);
     advByColab.set(e.favorecido_id, cur);
   });

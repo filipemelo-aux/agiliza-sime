@@ -120,3 +120,37 @@ export async function fetchDescontosPendentesNoPeriodo(
   if (error) throw error;
   return (data as DescontoFolha[]) || [];
 }
+
+/**
+ * Cria as parcelas FUTURAS de um adiantamento/vale parcelado.
+ * A 1ª parcela é descontada na folha atual (não vira registro aqui);
+ * as demais viram descontos pendentes nos meses seguintes.
+ */
+export async function createParcelasFuturasAdiantamento(input: {
+  colaborador_id: string;
+  mesReferencia: string; // "YYYY-MM" da folha atual
+  parcelas: number[]; // todas as parcelas (índice 0 = folha atual)
+  descricaoBase: string;
+}): Promise<void> {
+  const { colaborador_id, mesReferencia, parcelas, descricaoBase } = input;
+  if (parcelas.length <= 1) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Usuário não autenticado");
+
+  const [y, m] = mesReferencia.split("-").map(Number);
+  const rows = parcelas.slice(1).map((valor, i) => {
+    const d = new Date(y, m - 1 + i + 1, 1);
+    return {
+      colaborador_id,
+      tipo: "adiantamento" as DescontoFolhaTipo,
+      valor,
+      descricao: `${descricaoBase} — parcela ${i + 2}/${parcelas.length}`,
+      data_referencia: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      created_by: userId,
+    };
+  });
+
+  const { error } = await (supabase.from("descontos_folha" as any) as any).insert(rows);
+  if (error) throw error;
+}
