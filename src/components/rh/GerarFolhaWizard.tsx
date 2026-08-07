@@ -540,14 +540,23 @@ function PresetCard({ active, onClick, title, subtitle }: any) {
 function SelecaoStep({
   periodo, adiantamentos, comissoes, descontos,
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
-  selDescontos, setSelDescontos, colabName, toggle,
+  selDescontos, setSelDescontos, colabName, toggle, selColabs,
 }: any) {
+  // Somente itens dos colaboradores selecionados na etapa anterior
+  const inColab = (id?: string | null) =>
+    !selColabs || selColabs.size === 0 ? true : !!id && selColabs.has(id);
+
+  const comissoesFiltradas = comissoes.filter((c: Comissao) => inColab(c.colaborador_id));
+  const adiantamentosFiltrados = adiantamentos.filter((e: Expense) => inColab(e.favorecido_id));
+  const descontosFiltrados = descontos.filter((d: DescontoFolha) => inColab(d.colaborador_id));
+
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-muted-foreground">
         Período: <strong>{formatDate(periodo.data_inicio)} – {formatDate(periodo.data_fim)}</strong>.
         O salário base vem do cadastro do colaborador. Marque adiantamentos, comissões e descontos.
       </p>
+
 
       <Bucket title="Comissões do período" tom="positive"
         hint="Comissões pendentes com data_referencia dentro do período"
