@@ -108,6 +108,7 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
         : p.category === "motorista"
           ? "motorista"
           : "outro",
+    regime: (p.tipo_colaborador_rh as any) ?? "clt",
     ativo: true,
   }));
 }
