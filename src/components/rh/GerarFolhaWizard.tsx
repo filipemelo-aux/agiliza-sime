@@ -535,7 +535,7 @@ function PeriodoStep({
           placeholder="Buscar colaborador..."
           className="h-8 text-xs mb-1.5"
         />
-        <Card className="flex-1 flex flex-col overflow-hidden">
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <ScrollArea className="flex-1">
             <CardContent className="p-2 space-y-0.5">
               {ativosFiltrados.length === 0 && (
