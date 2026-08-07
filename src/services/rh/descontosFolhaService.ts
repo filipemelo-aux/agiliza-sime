@@ -78,6 +78,27 @@ export async function createDescontoFolha(input: NovoDescontoFolha): Promise<Des
   return data as DescontoFolha;
 }
 
+/** Cria vários descontos de uma vez (usado pelo cálculo automático INSS/IRRF). */
+export async function createDescontosFolhaBatch(
+  inputs: NovoDescontoFolha[]
+): Promise<DescontoFolha[]> {
+  if (inputs.length === 0) return [];
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Usuário não autenticado");
+
+  const rows = inputs.map((i) => ({
+    ...i,
+    descricao: i.descricao ?? null,
+    created_by: userId,
+  }));
+  const { data, error } = await (supabase.from("descontos_folha" as any) as any)
+    .insert(rows)
+    .select();
+  if (error) throw error;
+  return (data as DescontoFolha[]) || [];
+}
+
 export async function deleteDescontoFolha(id: string): Promise<void> {
   const { error } = await (supabase.from("descontos_folha" as any) as any).delete().eq("id", id);
   if (error) throw error;

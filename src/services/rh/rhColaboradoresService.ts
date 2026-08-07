@@ -21,6 +21,8 @@ export type ColaboradorRH = {
   salario: number | null;
   /** Categoria original do cadastro (motorista, colaborador, etc.) — apenas informativo. */
   tipo: "colaborador" | "motorista" | "outro";
+  /** Regime de contratação — apenas CLT sofre INSS/IRRF em folha. */
+  regime?: "clt" | "pj" | "freelancer";
   ativo: boolean;
 };
 
@@ -76,7 +78,7 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, cargo, departamento, data_admissao, salario, category"
+      "id, full_name, email, phone, cargo, departamento, data_admissao, salario, category, tipo_colaborador_rh"
     )
     .eq("is_colaborador_rh", true)
     .order("full_name");
@@ -108,6 +110,7 @@ export async function fetchColaboradoresRH(): Promise<ColaboradorRH[]> {
         : p.category === "motorista"
           ? "motorista"
           : "outro",
+    regime: (p.tipo_colaborador_rh as any) ?? "clt",
     ativo: true,
   }));
 }
