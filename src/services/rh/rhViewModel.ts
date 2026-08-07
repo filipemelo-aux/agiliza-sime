@@ -124,10 +124,40 @@ export function buildPeriodoQuinzenal(
   };
 }
 
+/** Quinto dia útil (seg–sex) do mês informado. */
+export function quintoDiaUtil(year: number, monthZeroIdx: number): Date {
+  let uteis = 0;
+  const d = new Date(year, monthZeroIdx, 1);
+  while (true) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) uteis++;
+    if (uteis === 5) return new Date(d);
+    d.setDate(d.getDate() + 1);
+  }
+}
+
+/**
+ * Folha mensal por competência (YYYY-MM):
+ *  - Período: 01 → último dia do mês de competência
+ *  - Pagamento: 5º dia útil do mês seguinte
+ */
+export function buildPeriodoMensal(month: string): PeriodoFolha {
+  const [y, m] = month.split("-").map(Number);
+  const monthIdx = m - 1;
+  const ultimo = lastDayOfMonth(y, monthIdx);
+  return {
+    tipo: "mensal",
+    data_inicio: iso(new Date(y, monthIdx, 1)),
+    data_fim: iso(new Date(y, monthIdx, ultimo)),
+    data_pagamento: iso(quintoDiaUtil(y, monthIdx + 1)),
+  };
+}
+
 /** Mês de referência derivado do período (usa início como âncora). */
 export function periodoToMesReferencia(p: { data_inicio: string }): string {
   return p.data_inicio.slice(0, 7);
 }
+
 
 // =============================================================
 // LINHAS DA PRÉVIA — salário base do CADASTRO

@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   buildPeriodoQuinzenal,
+  buildPeriodoMensal,
+
   computePayrollRowsFromPeriodo,
   periodoToMesReferencia,
   criarFolhaEmAberto,
@@ -351,8 +353,9 @@ function PeriodoStep({
   const setTipo = (tipo: TipoPeriodo) => {
     if (tipo === "primeira_quinzena") onChange(buildPeriodoQuinzenal(month, "primeira_quinzena"));
     else if (tipo === "segunda_quinzena") onChange(buildPeriodoQuinzenal(month, "segunda_quinzena"));
-    else onChange({ ...periodo, tipo: "personalizado" });
+    else onChange(buildPeriodoMensal(month));
   };
+
   const quinzenal = isPeriodoQuinzenal(periodo.tipo);
   const ativos = colaboradores.filter(
     (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
@@ -379,8 +382,9 @@ function PeriodoStep({
             title="1ª quinzena" subtitle="01 → 15 · pagamento dia 20" />
           <PresetCard active={periodo.tipo === "segunda_quinzena"} onClick={() => setTipo("segunda_quinzena")}
             title="2ª quinzena" subtitle="16 → fim · pagamento dia 05" />
-          <PresetCard active={periodo.tipo === "personalizado"} onClick={() => setTipo("personalizado")}
-            title="Personalizado" subtitle="Defina datas livremente" />
+          <PresetCard active={periodo.tipo === "mensal" || periodo.tipo === "personalizado"} onClick={() => setTipo("mensal")}
+            title="Mensal" subtitle="Competência do mês · pagamento no 5º dia útil seguinte" />
+
         </div>
       </div>
 
@@ -388,13 +392,13 @@ function PeriodoStep({
         <div>
           <Label className="text-xs">Início</Label>
           <Input type="date" value={periodo.data_inicio}
-            onChange={(e) => onChange({ ...periodo, tipo: "personalizado", data_inicio: e.target.value })}
+            onChange={(e) => onChange({ ...periodo, data_inicio: e.target.value })}
             className="h-9" />
         </div>
         <div>
           <Label className="text-xs">Fim</Label>
           <Input type="date" value={periodo.data_fim}
-            onChange={(e) => onChange({ ...periodo, tipo: "personalizado", data_fim: e.target.value })}
+            onChange={(e) => onChange({ ...periodo, data_fim: e.target.value })}
             className="h-9" />
         </div>
         <div>
@@ -405,12 +409,13 @@ function PeriodoStep({
         </div>
       </div>
 
+
       {quinzenal && (
         <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
           <span>
             Folha quinzenal é exclusiva para motoristas.
-            {excluidosQuinzena > 0 && ` ${excluidosQuinzena} colaborador(es) não motorista(s) ficam de fora — use período mensal/personalizado para eles.`}
+            {excluidosQuinzena > 0 && ` ${excluidosQuinzena} colaborador(es) não motorista(s) ficam de fora — use o período mensal para eles.`}
           </span>
         </div>
       )}
