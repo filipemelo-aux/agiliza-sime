@@ -255,7 +255,7 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
 
     const ok = await confirm({
       title: "Lançar descontos automáticos?",
-      description: `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${month}.`,
+      description: `${rows.length} lançamento(s) serão criados para ${selecionadas.length} colaborador(es) na competência ${labelMes(month)} (mês trabalhado), para pagamento em ${labelMes(payMonth)}.`,
       confirmLabel: "Lançar",
     });
     if (!ok) return;
