@@ -141,6 +141,16 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
         toast.error("Esta folha não possui itens para gerar o recibo.");
         return;
       }
+      // Dados cadastrais dos colaboradores para o padrão contábil
+      const ids = Array.from(new Set(itens.map((i) => i.colaborador_id).filter(Boolean)));
+      const perfis: Record<string, any> = {};
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, cnpj, cargo, departamento, data_admissao, tipo_colaborador_rh")
+          .in("id", ids);
+        (data || []).forEach((p: any) => { perfis[p.id] = p; });
+      }
       imprimirFolhaPagamento(
         {
           mes_referencia: folha.mes_referencia,
@@ -154,14 +164,23 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           total_descontos: Number(folha.total_descontos),
           total_liquido: Number(folha.total_liquido),
         },
-        itens.map((i) => ({
-          colaborador_nome: i.colaborador_nome,
-          salario_base: Number(i.salario_base),
-          comissoes: Number(i.comissoes),
-          adiantamentos: Number(i.adiantamentos),
-          descontos: Number(i.descontos),
-          liquido: Number(i.liquido),
-        }))
+        itens.map((i) => {
+          const p = perfis[i.colaborador_id] || {};
+          return {
+            colaborador_nome: i.colaborador_nome,
+            salario_base: Number(i.salario_base),
+            comissoes: Number(i.comissoes),
+            adiantamentos: Number(i.adiantamentos),
+            descontos: Number(i.descontos),
+            liquido: Number(i.liquido),
+            codigo: String(i.colaborador_id || "").slice(0, 8).toUpperCase(),
+            cpf: p.cnpj || null,
+            funcao: p.cargo || (p.tipo_colaborador_rh === "motorista" ? "Motorista" : null),
+            departamento: p.departamento || null,
+            admissao: p.data_admissao || null,
+            regime: "clt",
+          };
+        })
       );
     } catch (e: any) {
       toast.error("Falha ao gerar documento: " + e.message);
@@ -169,6 +188,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       setActing(null);
     }
   };
+
 
   const handleConfirm = async (f: FolhaPagamento) => {
     const ok = await confirm({
