@@ -277,7 +277,7 @@ export function GerarFolhaWizard({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl h-[92vh] max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle>Gerar folha de pagamento</DialogTitle>
           <DialogDescription>
@@ -316,7 +316,7 @@ export function GerarFolhaWizard({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 px-5 py-4">
+        <ScrollArea className="min-h-0 flex-1 px-5 py-4">
           {step === 0 && (
             <PeriodoStep
               month={month} periodo={periodo} onChange={setPeriodo}
@@ -535,7 +535,7 @@ function PeriodoStep({
           placeholder="Buscar colaborador..."
           className="h-8 text-xs mb-1.5"
         />
-        <Card className="max-h-[420px] min-h-[220px] overflow-y-auto">
+        <Card className="h-[320px] sm:h-[400px] overflow-y-auto overscroll-contain">
           <CardContent className="p-2 space-y-0.5">
             {ativosFiltrados.length === 0 && (
               <p className="text-xs text-muted-foreground px-2 py-4 text-center">
