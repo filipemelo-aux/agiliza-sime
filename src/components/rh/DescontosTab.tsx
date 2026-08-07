@@ -43,6 +43,7 @@ const TIPOS: { v: DescontoFolhaTipo; label: string }[] = [
   { v: "irrf", label: "IRRF" },
   { v: "faltas", label: "Faltas" },
   { v: "multas", label: "Multas" },
+  { v: "combustivel", label: "Combustível" },
   { v: "vale", label: "Vale" },
   { v: "adiantamento", label: "Adiantamento" },
   { v: "outros", label: "Outros" },
