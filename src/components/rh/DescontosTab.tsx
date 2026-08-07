@@ -60,11 +60,32 @@ interface DescontosTabProps {
   colaboradores: ColaboradorRH[];
 }
 
+const MESES_LONGOS = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+const labelMes = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  return `${MESES_LONGOS[m - 1]}/${y}`;
+};
+
+/** Recebe o mês de PAGAMENTO e devolve o mês de COMPETÊNCIA (mês trabalhado = anterior). */
+const competenciaDoPagamento = (payMonth: string) => {
+  const [y, m] = payMonth.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
 export function DescontosTab({ colaboradores }: DescontosTabProps) {
-  const [month, setMonth] = useState(() => {
+  // Mês em que a folha será PAGA (o usuário seleciona o pagamento)
+  const [payMonth, setPayMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  // Mês trabalhado (competência) — é onde os descontos são gravados
+  const month = competenciaDoPagamento(payMonth);
+
   const [items, setItems] = useState<DescontoFolha[]>([]);
   const [loading, setLoading] = useState(false);
   const [colabId, setColabId] = useState("");
