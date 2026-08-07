@@ -362,7 +362,17 @@ function PeriodoStep({
       ? buildPeriodoQuinzenal(m, tipo)
       : buildPeriodoMensal(m);
 
-  const setTipo = (tipo: TipoPeriodo) => onChange(buildFor(tipo, mesRef));
+  // Competência padrão da folha mensal: mês ANTERIOR à data atual
+  // (ex.: em agosto, a folha mensal refere-se a julho, paga no 5º dia útil de agosto).
+  const mesAnteriorAtual = (() => {
+    const hoje = new Date();
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  const setTipo = (tipo: TipoPeriodo) =>
+    onChange(buildFor(tipo, tipo === "mensal" ? mesAnteriorAtual : mesRef));
+
   const setMes = (idx: number, year = refYear) =>
     onChange(buildFor(periodo.tipo, `${year}-${String(idx + 1).padStart(2, "0")}`));
 
