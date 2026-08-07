@@ -569,6 +569,7 @@ function SelecaoStep({
   periodo, adiantamentos, comissoes, descontos,
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
   selDescontos, setSelDescontos, colabName, toggle, selColabs,
+  parcelasAdiant, setParcelasAdiant,
 }: any) {
   // Somente itens dos colaboradores selecionados na etapa anterior
   const inColab = (id?: string | null) =>
@@ -577,6 +578,9 @@ function SelecaoStep({
   const comissoesFiltradas = comissoes.filter((c: Comissao) => inColab(c.colaborador_id));
   const adiantamentosFiltrados = adiantamentos.filter((e: Expense) => inColab(e.favorecido_id));
   const descontosFiltrados = descontos.filter((d: DescontoFolha) => inColab(d.colaborador_id));
+
+  const setParcelas = (id: string, n: number) =>
+    setParcelasAdiant((prev: Record<string, number>) => ({ ...prev, [id]: Math.max(1, Math.min(36, n || 1)) }));
 
   return (
     <div className="space-y-3">
@@ -597,13 +601,27 @@ function SelecaoStep({
         emptyText="Sem comissões pendentes neste período."
       />
 
-      <Bucket title="Adiantamentos do período" tom="negative"
-        hint="Despesas de adiantamento (Contas a Pagar) com competência no período"
-        items={adiantamentosFiltrados.map((e: Expense) => ({
-          id: e.id, name: e.favorecido_nome || colabName(e.favorecido_id),
-          desc: e.descricao, info: `Comp. ${formatDate(e.data_competencia || e.data_emissao)}`,
-          value: Number(e.valor_pago || e.valor_total || 0),
-        }))}
+      <Bucket title="Adiantamentos / vales do período" tom="negative"
+        hint="Descontar integralmente nesta folha ou parcelar o débito nas próximas folhas"
+        items={adiantamentosFiltrados.map((e: Expense) => {
+          const bruto = Number(e.valor_pago || e.valor_total || 0);
+          const n = Math.max(1, Number(parcelasAdiant?.[e.id] || 1));
+          const parcelas = splitParcelas(bruto, n);
+          return {
+            id: e.id,
+            name: e.favorecido_nome || colabName(e.favorecido_id),
+            desc: e.descricao,
+            info: `Comp. ${formatDate(e.data_competencia || e.data_emissao)} · Total ${formatBRL(bruto)}`,
+            value: parcelas[0],
+            extra: (
+              <ParcelamentoControl
+                n={n}
+                onChange={(v: number) => setParcelas(e.id, v)}
+                parcelas={parcelas}
+              />
+            ),
+          };
+        })}
         selected={selAdiant} onToggle={(id: string) => toggle(selAdiant, setSelAdiant, id)}
         emptyText="Nenhum adiantamento neste período."
       />
