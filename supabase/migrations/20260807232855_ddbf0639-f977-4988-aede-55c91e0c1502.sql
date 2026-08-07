@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.bloquear_edicao_folha_confirmada() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.bloquear_edicao_itens_folha_confirmada() FROM PUBLIC, anon, authenticated;
