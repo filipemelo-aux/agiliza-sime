@@ -293,9 +293,13 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <h3 className="text-sm font-semibold">Descontos pendentes</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Mês</Label>
-            <MonthPicker value={month} onChange={setMonth} className="w-[160px]" />
+            <Label className="text-xs text-muted-foreground">Mês do pagamento</Label>
+            <MonthPicker value={payMonth} onChange={setPayMonth} className="w-[160px]" />
+            <Badge variant="outline" className="text-[11px] font-normal">
+              competência: {labelMes(month)} (mês trabalhado)
+            </Badge>
           </div>
+
         </div>
 
         {/* Descontos legais automáticos */}
