@@ -1,0 +1,1 @@
+ALTER TYPE public.desconto_folha_tipo ADD VALUE IF NOT EXISTS 'combustivel';

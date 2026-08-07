@@ -15,6 +15,7 @@ export type DescontoFolhaTipo =
   | "irrf"
   | "faltas"
   | "multas"
+  | "combustivel"
   | "outros";
 
 export type DescontoFolha = {
