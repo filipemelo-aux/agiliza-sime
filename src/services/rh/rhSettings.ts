@@ -18,27 +18,33 @@ const listeners = new Set<Listener>();
 export const rhSettings = {
   get(): RHSettings {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      // Overrides locais descontinuados: `profiles.salario` é a fonte única.
+      if (raw && raw.salaryOverrides) {
+        delete raw.salaryOverrides;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+      }
+      return raw;
     } catch {
       return {};
     }
   },
   set(next: RHSettings) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    listeners.forEach((l) => l(next));
+    const clean = { ...next };
+    delete (clean as any).salaryOverrides;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    listeners.forEach((l) => l(clean));
   },
   patch(partial: Partial<RHSettings>) {
     const next = { ...this.get(), ...partial };
     this.set(next);
     return next;
   },
-  setSalaryOverride(id: string, value: number | null) {
-    const cur = this.get();
-    const overrides = { ...(cur.salaryOverrides || {}) };
-    if (value == null || isNaN(value)) delete overrides[id];
-    else overrides[id] = value;
-    return this.patch({ salaryOverrides: overrides });
+  /** @deprecated Salário é editado direto em `profiles.salario`. */
+  setSalaryOverride(_id: string, _value: number | null) {
+    return this.get();
   },
+
   subscribe(listener: Listener): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
