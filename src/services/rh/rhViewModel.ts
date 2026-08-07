@@ -266,14 +266,18 @@ export function computeLiquido(input: {
 // LEGADO (mantido para o histórico mensal, sem uso no novo wizard)
 // =============================================================
 
+/**
+ * Salário base = SEMPRE o valor do cadastro (`profiles.salario`).
+ * Overrides locais (localStorage) foram descontinuados: eles causavam
+ * divergência entre o cadastro da pessoa e a folha por navegador/máquina.
+ */
 export function resolveBaseSalary(
   c: ColaboradorRH,
-  salaryOverrides: Record<string, number>
+  _salaryOverrides?: Record<string, number>
 ): number {
-  const ov = salaryOverrides[c.id];
-  if (typeof ov === "number" && !isNaN(ov)) return ov;
   return Number(c.salario || 0);
 }
+
 
 export function computePayrollRows(
   colaboradores: ColaboradorRH[],
