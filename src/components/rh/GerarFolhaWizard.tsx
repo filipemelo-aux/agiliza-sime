@@ -384,6 +384,7 @@ function PeriodoStep({
   const mesRef = (periodo?.data_inicio || `${month}-01`).slice(0, 7);
   const [refYear, refMonthIdx] = [Number(mesRef.slice(0, 4)), Number(mesRef.slice(5, 7)) - 1];
   const [showDatas, setShowDatas] = useState(false);
+  const [buscaColab, setBuscaColab] = useState("");
 
   const buildFor = (tipo: TipoPeriodo, m: string) =>
     tipo === "primeira_quinzena" || tipo === "segunda_quinzena"
