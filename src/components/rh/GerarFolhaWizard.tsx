@@ -346,15 +346,25 @@ export function GerarFolhaWizard({
 
 // ============ STEPS ============
 
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 function PeriodoStep({
   month, periodo, onChange, folhaAccountConfigured,
   colaboradores, selColabs, setSelColabs,
 }: any) {
-  const setTipo = (tipo: TipoPeriodo) => {
-    if (tipo === "primeira_quinzena") onChange(buildPeriodoQuinzenal(month, "primeira_quinzena"));
-    else if (tipo === "segunda_quinzena") onChange(buildPeriodoQuinzenal(month, "segunda_quinzena"));
-    else onChange(buildPeriodoMensal(month));
-  };
+  // Mês de competência derivado do período atual (fallback: mês da tela)
+  const mesRef = (periodo?.data_inicio || `${month}-01`).slice(0, 7);
+  const [refYear, refMonthIdx] = [Number(mesRef.slice(0, 4)), Number(mesRef.slice(5, 7)) - 1];
+  const [showDatas, setShowDatas] = useState(false);
+
+  const buildFor = (tipo: TipoPeriodo, m: string) =>
+    tipo === "primeira_quinzena" || tipo === "segunda_quinzena"
+      ? buildPeriodoQuinzenal(m, tipo)
+      : buildPeriodoMensal(m);
+
+  const setTipo = (tipo: TipoPeriodo) => onChange(buildFor(tipo, mesRef));
+  const setMes = (idx: number, year = refYear) =>
+    onChange(buildFor(periodo.tipo, `${year}-${String(idx + 1).padStart(2, "0")}`));
 
   const quinzenal = isPeriodoQuinzenal(periodo.tipo);
   const ativos = colaboradores.filter(
@@ -364,7 +374,6 @@ function PeriodoStep({
     ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
     : 0;
   const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
-
 
   return (
     <div className="space-y-4">
@@ -384,31 +393,65 @@ function PeriodoStep({
             title="2ª quinzena" subtitle="16 → fim · pagamento dia 05" />
           <PresetCard active={periodo.tipo === "mensal" || periodo.tipo === "personalizado"} onClick={() => setTipo("mensal")}
             title="Mensal" subtitle="Competência do mês · pagamento no 5º dia útil seguinte" />
-
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs">Início</Label>
-          <Input type="date" value={periodo.data_inicio}
-            onChange={(e) => onChange({ ...periodo, data_inicio: e.target.value })}
-            className="h-9" />
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <Label className="text-xs text-muted-foreground">Mês de competência</Label>
+          <div className="flex items-center gap-2">
+            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
+            <span className="text-xs font-medium">{refYear}</span>
+            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Fim</Label>
-          <Input type="date" value={periodo.data_fim}
-            onChange={(e) => onChange({ ...periodo, data_fim: e.target.value })}
-            className="h-9" />
-        </div>
-        <div>
-          <Label className="text-xs">Pagamento</Label>
-          <Input type="date" value={periodo.data_pagamento}
-            onChange={(e) => onChange({ ...periodo, data_pagamento: e.target.value })}
-            className="h-9" />
+        <div className="grid grid-cols-6 gap-1">
+          {MESES_CURTOS.map((m, i) => (
+            <button key={m} type="button" onClick={() => setMes(i)}
+              className={`h-8 rounded-md border text-xs transition-colors ${
+                i === refMonthIdx
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-muted"
+              }`}>
+              {m}
+            </button>
+          ))}
         </div>
       </div>
 
+      <div>
+        <button type="button" onClick={() => setShowDatas((v) => !v)}
+          className="text-[11px] text-primary hover:underline">
+          {showDatas ? "Ocultar período personalizado" : "Ajustar período personalizado (opcional)"}
+        </button>
+        {showDatas && (
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Início</Label>
+              <Input type="date" value={periodo.data_inicio}
+                onChange={(e) => onChange({ ...periodo, data_inicio: e.target.value })}
+                className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Fim</Label>
+              <Input type="date" value={periodo.data_fim}
+                onChange={(e) => onChange({ ...periodo, data_fim: e.target.value })}
+                className="h-9" />
+            </div>
+            <div>
+              <Label className="text-xs">Pagamento</Label>
+              <Input type="date" value={periodo.data_pagamento}
+                onChange={(e) => onChange({ ...periodo, data_pagamento: e.target.value })}
+                className="h-9" />
+            </div>
+          </div>
+        )}
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          {formatDate(periodo.data_inicio)} – {formatDate(periodo.data_fim)} · pagamento {formatDate(periodo.data_pagamento)}
+        </p>
+      </div>
 
       {quinzenal && (
         <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
