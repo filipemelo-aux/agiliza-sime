@@ -536,7 +536,7 @@ function PeriodoStep({
           className="h-8 text-xs mb-1.5"
         />
         <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <CardContent className="p-2 space-y-0.5">
               {ativosFiltrados.length === 0 && (
                 <p className="text-xs text-muted-foreground px-2 py-4 text-center">
