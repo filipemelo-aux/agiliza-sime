@@ -481,7 +481,7 @@ function PeriodoStep({
         <div className="rounded-md border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
           <span>
-            Folha mensal é exclusiva para colaboradores não motoristas.
+            Folha mensal é exclusiva para colaboradores não motoristas. Competência sugerida: mês anterior à data atual.
             {excluidosMensal > 0 && ` ${excluidosMensal} motorista(s) ficam de fora — use as quinzenas para eles.`}
           </span>
         </div>
