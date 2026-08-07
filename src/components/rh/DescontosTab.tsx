@@ -37,6 +37,7 @@ import { MonthPicker } from "@/components/MonthPicker";
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+/** Rótulos de todos os tipos (inclui os legados, usados apenas para exibição). */
 const TIPOS: { v: DescontoFolhaTipo; label: string }[] = [
   { v: "inss", label: "INSS" },
   { v: "irrf", label: "IRRF" },
@@ -46,6 +47,18 @@ const TIPOS: { v: DescontoFolhaTipo; label: string }[] = [
   { v: "adiantamento", label: "Adiantamento" },
   { v: "outros", label: "Outros" },
 ];
+
+/**
+ * Tipos permitidos no lançamento manual.
+ * Adiantamento e Vale ficam de fora de propósito: eles representam saída real
+ * de caixa e devem nascer no Contas a Pagar (plano de contas de adiantamento).
+ * O wizard da folha já lê essas despesas, e as parcelas futuras de um
+ * adiantamento parcelado são criadas automaticamente pelo próprio wizard.
+ */
+const TIPOS_MANUAIS: { v: DescontoFolhaTipo; label: string }[] = TIPOS.filter(
+  (t) => t.v !== "adiantamento" && t.v !== "vale"
+);
+
 
 type LinhaAuto = DescontoLegalCalculado & {
   incluir: boolean;
