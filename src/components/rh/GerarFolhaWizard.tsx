@@ -316,7 +316,7 @@ export function GerarFolhaWizard({
           </div>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
           {step === 0 && (
             <PeriodoStep
               month={month} periodo={periodo} onChange={setPeriodo}
@@ -326,25 +326,35 @@ export function GerarFolhaWizard({
             />
           )}
           {step === 1 && (
-            loadingData ? <Loading /> : (
-              <SelecaoStep
-                periodo={periodo}
-                adiantamentos={adiantamentos}
-                comissoes={comissoes}
-                descontos={descontos}
-                selAdiant={selAdiant} setSelAdiant={setSelAdiant}
-                selComissoes={selComissoes} setSelComissoes={setSelComissoes}
-                selDescontos={selDescontos} setSelDescontos={setSelDescontos}
-                colabName={colabName}
-                selColabs={selColabs}
-                parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
-                toggle={toggleSet}
-              />
-            )
+            <ScrollArea className="h-full w-full">
+              {loadingData ? <Loading /> : (
+                <SelecaoStep
+                  periodo={periodo}
+                  adiantamentos={adiantamentos}
+                  comissoes={comissoes}
+                  descontos={descontos}
+                  selAdiant={selAdiant} setSelAdiant={setSelAdiant}
+                  selComissoes={selComissoes} setSelComissoes={setSelComissoes}
+                  selDescontos={selDescontos} setSelDescontos={setSelDescontos}
+                  colabName={colabName}
+                  selColabs={selColabs}
+                  parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
+                  toggle={toggleSet}
+                />
+              )}
+            </ScrollArea>
           )}
-          {step === 2 && <PreviaStep rows={rows} totals={totals} periodo={periodo} />}
-          {step === 3 && <ConfirmStep rows={rows} totals={totals} periodo={periodo} />}
-        </ScrollArea>
+          {step === 2 && (
+            <ScrollArea className="h-full w-full">
+              <PreviaStep rows={rows} totals={totals} periodo={periodo} />
+            </ScrollArea>
+          )}
+          {step === 3 && (
+            <ScrollArea className="h-full w-full">
+              <ConfirmStep rows={rows} totals={totals} periodo={periodo} />
+            </ScrollArea>
+          )}
+        </div>
 
         <DialogFooter className="px-5 py-3 border-t bg-muted/20 flex flex-row items-center justify-between gap-2">
           <Button variant="ghost" size="sm"
@@ -422,7 +432,7 @@ function PeriodoStep({
   const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full overflow-hidden gap-4">
       {!folhaAccountConfigured && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -518,7 +528,7 @@ function PeriodoStep({
       )}
 
 
-      <div>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="flex items-center justify-between mb-1.5 gap-2">
           <Label className="text-xs text-muted-foreground">Colaboradores ({selColabs.size}/{ativos.length})</Label>
           <button type="button" className="text-[11px] text-primary hover:underline"
@@ -535,30 +545,32 @@ function PeriodoStep({
           placeholder="Buscar colaborador..."
           className="h-8 text-xs mb-1.5"
         />
-        <Card className="h-[320px] sm:h-[400px] overflow-y-auto overscroll-contain">
-          <CardContent className="p-2 space-y-0.5">
-            {ativosFiltrados.length === 0 && (
-              <p className="text-xs text-muted-foreground px-2 py-4 text-center">
-                Nenhum colaborador encontrado para este período.
-              </p>
-            )}
-            {ativosFiltrados.map((c: ColaboradorRH) => (
-              <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
-                <Checkbox
-                  checked={selColabs.has(c.id)}
-                  onCheckedChange={() => {
-                    const next = new Set(selColabs);
-                    if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
-                    setSelColabs(next);
-                  }}
-                />
-                <span className="text-sm flex-1 truncate">{c.full_name}</span>
-                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
-                  {formatBRL(Number(c.salario || 0))}/mês
-                </span>
-              </label>
-            ))}
-          </CardContent>
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <ScrollArea className="flex-1 min-h-0">
+            <CardContent className="p-2 space-y-0.5">
+              {ativosFiltrados.length === 0 && (
+                <p className="text-xs text-muted-foreground px-2 py-4 text-center">
+                  Nenhum colaborador encontrado para este período.
+                </p>
+              )}
+              {ativosFiltrados.map((c: ColaboradorRH) => (
+                <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
+                  <Checkbox
+                    checked={selColabs.has(c.id)}
+                    onCheckedChange={() => {
+                      const next = new Set(selColabs);
+                      if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                      setSelColabs(next);
+                    }}
+                  />
+                  <span className="text-sm flex-1 truncate">{c.full_name}</span>
+                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+                    {formatBRL(Number(c.salario || 0))}/mês
+                  </span>
+                </label>
+              ))}
+            </CardContent>
+          </ScrollArea>
         </Card>
       </div>
     </div>
