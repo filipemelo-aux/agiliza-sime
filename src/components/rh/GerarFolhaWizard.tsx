@@ -353,8 +353,15 @@ function PeriodoStep({
     else if (tipo === "segunda_quinzena") onChange(buildPeriodoQuinzenal(month, "segunda_quinzena"));
     else onChange({ ...periodo, tipo: "personalizado" });
   };
-  const ativos = colaboradores.filter((c: ColaboradorRH) => c.ativo);
+  const quinzenal = isPeriodoQuinzenal(periodo.tipo);
+  const ativos = colaboradores.filter(
+    (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
+  );
+  const excluidosQuinzena = quinzenal
+    ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
+    : 0;
   const allSelected = ativos.length > 0 && ativos.every((c: ColaboradorRH) => selColabs.has(c.id));
+
 
   return (
     <div className="space-y-4">
