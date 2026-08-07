@@ -95,6 +95,8 @@ export function GerarFolhaWizard({
   const [selComissoes, setSelComissoes] = useState<Set<string>>(new Set());
   const [selDescontos, setSelDescontos] = useState<Set<string>>(new Set());
   const [selColabs, setSelColabs] = useState<Set<string>>(new Set());
+  /** Nº de parcelas por adiantamento (1 = descontar integral na folha atual). */
+  const [parcelasAdiant, setParcelasAdiant] = useState<Record<string, number>>({});
 
   const [loadingData, setLoadingData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
