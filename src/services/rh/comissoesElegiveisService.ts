@@ -13,6 +13,7 @@ export type CteElegivel = {
   id: string;
   numero: number | null;
   serie: number;
+  tipo_talao?: string;
   data_emissao: string | null;
   valor_frete: number;
   motorista_id: string;
