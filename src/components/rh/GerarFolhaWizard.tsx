@@ -230,9 +230,29 @@ export function GerarFolhaWizard({
         user_id: userId,
         folhaAccountId,
       });
+
+      // Adiantamentos parcelados → gera os descontos das folhas seguintes
+      const mesRef = periodoToMesReferencia(periodo);
+      let parcelasCriadas = 0;
+      for (const e of adiantamentos as Expense[]) {
+        const n = Math.max(1, Number(parcelasAdiant[e.id] || 1));
+        if (n <= 1) continue;
+        if (!selAdiant.has(e.id) || !e.favorecido_id) continue;
+        if (selColabs.size > 0 && !selColabs.has(e.favorecido_id)) continue;
+        const valores = splitParcelas(Number(e.valor_pago || e.valor_total || 0), n);
+        await createParcelasFuturasAdiantamento({
+          colaborador_id: e.favorecido_id,
+          mesReferencia: mesRef,
+          parcelas: valores,
+          descricaoBase: e.descricao || "Adiantamento",
+        });
+        parcelasCriadas += n - 1;
+      }
+
       if (c.fail === 0) {
         toast.success(
-          `Folha confirmada — ${rows.length} colaborador(es), ${c.despesasCriadas} despesa(s) gerada(s) em Contas a Pagar.`
+          `Folha confirmada — ${rows.length} colaborador(es), ${c.despesasCriadas} despesa(s) gerada(s) em Contas a Pagar.` +
+            (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "")
         );
       } else {
         toast.warning(`${c.ok} ok, ${c.fail} falha(s): ${c.errors[0] || ""}`);
