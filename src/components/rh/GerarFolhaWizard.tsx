@@ -438,21 +438,19 @@ function PeriodoStep({
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <Label className="text-xs text-muted-foreground">Mês de competência</Label>
-          <div className="flex items-center gap-2">
-            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
-            <span className="text-xs font-medium">{refYear}</span>
-            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
-          </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground shrink-0">Competência</Label>
+        <div className="flex items-center gap-1 shrink-0">
+          <button type="button" className="px-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
+          <span className="text-xs font-medium tabular-nums">{refYear}</span>
+          <button type="button" className="px-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
         </div>
-        <div className="grid grid-cols-6 gap-1">
+        <div className="flex-1 min-w-[240px] grid grid-cols-12 gap-0.5">
           {MESES_CURTOS.map((m, i) => (
-            <button key={m} type="button" onClick={() => setMes(i)}
-              className={`h-8 rounded-md border text-xs transition-colors ${
+            <button key={m} type="button" onClick={() => setMes(i)} title={m}
+              className={`h-6 rounded border text-[10px] leading-none transition-colors ${
                 i === refMonthIdx
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background hover:bg-muted"
