@@ -23,13 +23,13 @@ export type CteElegivel = {
 };
 
 export async function fetchCtesElegiveisComissao(motoristaId?: string): Promise<CteElegivel[]> {
-  // 1. Carrega CT-es autorizados com motorista
+  // 1. Carrega CT-es autorizados (talão produção) + CT-es do talão de serviço
   let q = supabase
     .from("ctes")
     .select(
-      "id, numero, serie, data_emissao, valor_frete, motorista_id, destinatario_nome, remetente_nome"
+      "id, numero, numero_interno, serie, tipo_talao, data_emissao, valor_frete, motorista_id, destinatario_nome, remetente_nome"
     )
-    .eq("status", "autorizado")
+    .or("status.eq.autorizado,tipo_talao.eq.servico")
     .not("motorista_id", "is", null)
     .order("data_emissao", { ascending: false });
 
