@@ -384,6 +384,7 @@ function PeriodoStep({
   const mesRef = (periodo?.data_inicio || `${month}-01`).slice(0, 7);
   const [refYear, refMonthIdx] = [Number(mesRef.slice(0, 4)), Number(mesRef.slice(5, 7)) - 1];
   const [showDatas, setShowDatas] = useState(false);
+  const [buscaColab, setBuscaColab] = useState("");
 
   const buildFor = (tipo: TipoPeriodo, m: string) =>
     tipo === "primeira_quinzena" || tipo === "segunda_quinzena"
@@ -407,6 +408,9 @@ function PeriodoStep({
   const quinzenal = isPeriodoQuinzenal(periodo.tipo);
   const ativos = colaboradores.filter(
     (c: ColaboradorRH) => c.ativo && isColaboradorElegivelNoPeriodo(c, periodo.tipo)
+  );
+  const ativosFiltrados = ativos.filter((c: ColaboradorRH) =>
+    (c.full_name || "").toLowerCase().includes(buscaColab.trim().toLowerCase())
   );
   const excluidosQuinzena = quinzenal
     ? colaboradores.filter((c: ColaboradorRH) => c.ativo && c.tipo !== "motorista").length
@@ -438,21 +442,19 @@ function PeriodoStep({
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <Label className="text-xs text-muted-foreground">Mês de competência</Label>
-          <div className="flex items-center gap-2">
-            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
-            <span className="text-xs font-medium">{refYear}</span>
-            <button type="button" className="px-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
-          </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground shrink-0">Competência</Label>
+        <div className="flex items-center gap-1 shrink-0">
+          <button type="button" className="px-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setMes(refMonthIdx, refYear - 1)}>◀</button>
+          <span className="text-xs font-medium tabular-nums">{refYear}</span>
+          <button type="button" className="px-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setMes(refMonthIdx, refYear + 1)}>▶</button>
         </div>
-        <div className="grid grid-cols-6 gap-1">
+        <div className="flex-1 min-w-[240px] grid grid-cols-12 gap-0.5">
           {MESES_CURTOS.map((m, i) => (
-            <button key={m} type="button" onClick={() => setMes(i)}
-              className={`h-8 rounded-md border text-xs transition-colors ${
+            <button key={m} type="button" onClick={() => setMes(i)} title={m}
+              className={`h-6 rounded border text-[10px] leading-none transition-colors ${
                 i === refMonthIdx
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background hover:bg-muted"
@@ -517,8 +519,7 @@ function PeriodoStep({
 
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <Label className="text-xs text-muted-foreground">Colaboradores ({selColabs.size}/{ativos.length})</Label>
           <button type="button" className="text-[11px] text-primary hover:underline"
             onClick={() => {
@@ -528,10 +529,21 @@ function PeriodoStep({
             {allSelected ? "Desmarcar todos" : "Selecionar todos"}
           </button>
         </div>
-        <Card className="max-h-48 overflow-y-auto">
+        <Input
+          value={buscaColab}
+          onChange={(e) => setBuscaColab(e.target.value)}
+          placeholder="Buscar colaborador..."
+          className="h-8 text-xs mb-1.5"
+        />
+        <Card className="max-h-[420px] min-h-[220px] overflow-y-auto">
           <CardContent className="p-2 space-y-0.5">
-            {ativos.map((c: ColaboradorRH) => (
-              <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer">
+            {ativosFiltrados.length === 0 && (
+              <p className="text-xs text-muted-foreground px-2 py-4 text-center">
+                Nenhum colaborador encontrado para este período.
+              </p>
+            )}
+            {ativosFiltrados.map((c: ColaboradorRH) => (
+              <label key={c.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/50 cursor-pointer">
                 <Checkbox
                   checked={selColabs.has(c.id)}
                   onCheckedChange={() => {
@@ -540,8 +552,8 @@ function PeriodoStep({
                     setSelColabs(next);
                   }}
                 />
-                <span className="text-xs flex-1 truncate">{c.full_name}</span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
+                <span className="text-sm flex-1 truncate">{c.full_name}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
                   {formatBRL(Number(c.salario || 0))}/mês
                 </span>
               </label>
