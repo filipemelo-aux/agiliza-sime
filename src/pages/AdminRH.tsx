@@ -143,17 +143,9 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <SummaryCard icon={Wallet} label="Folha do mês" value={formatBRL(totalFolha)} valueColor="primary" />
-          <SummaryCard icon={HandCoins} label="Adiantamentos" value={formatBRL(totalAdiant)} valueColor="default" />
-          <SummaryCard icon={Users} label="Colaboradores ativos" value={totalAtivos} valueColor="green" />
-        </div>
-
         <RHWorkspace
           colaboradores={colaboradores}
           totalAtivos={totalAtivos}
-          totalFolha={totalFolha}
-          totalAdiant={totalAdiant}
           loading={loading}
           search={search}
           setSearch={setSearch}
