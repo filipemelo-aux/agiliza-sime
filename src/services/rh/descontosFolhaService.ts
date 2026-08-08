@@ -176,3 +176,37 @@ export async function createParcelasFuturasAdiantamento(input: {
   const { error } = await (supabase.from("descontos_folha" as any) as any).insert(rows);
   if (error) throw error;
 }
+
+/**
+ * Cria as parcelas FUTURAS de um desconto parcelado (índice 0 = folha atual).
+ * Mantém o mesmo tipo do desconto original.
+ */
+export async function createParcelasFuturasDesconto(input: {
+  colaborador_id: string;
+  tipo: DescontoFolhaTipo;
+  mesReferencia: string; // "YYYY-MM" da folha atual
+  parcelas: number[];
+  descricaoBase: string;
+}): Promise<void> {
+  const { colaborador_id, tipo, mesReferencia, parcelas, descricaoBase } = input;
+  if (parcelas.length <= 1) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Usuário não autenticado");
+
+  const [y, m] = mesReferencia.split("-").map(Number);
+  const rows = parcelas.slice(1).map((valor, i) => {
+    const d = new Date(y, m - 1 + i + 1, 1);
+    return {
+      colaborador_id,
+      tipo,
+      valor,
+      descricao: `${descricaoBase} — parcela ${i + 2}/${parcelas.length}`,
+      data_referencia: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      created_by: userId,
+    };
+  });
+
+  const { error } = await (supabase.from("descontos_folha" as any) as any).insert(rows);
+  if (error) throw error;
+}
