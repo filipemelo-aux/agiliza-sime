@@ -235,13 +235,15 @@ export function computePayrollRowsFromPeriodo(input: {
   selectedDescontoIds?: Set<string>;
   /** Nº de parcelas por adiantamento (1 = integral na folha atual). */
   adiantamentoParcelas?: Record<string, number>;
+  /** Nº de parcelas por desconto (1 = integral na folha atual). */
+  descontoParcelas?: Record<string, number>;
   /** Filtra por colaboradores explicitamente selecionados (opcional). */
   selectedColaboradorIds?: Set<string>;
 }): PayrollRow[] {
   const {
     colaboradores, periodo, adiantamentos, comissoes, descontos,
     selectedAdiantamentoIds, selectedComissaoIds, selectedDescontoIds,
-    adiantamentoParcelas, selectedColaboradorIds,
+    adiantamentoParcelas, descontoParcelas, selectedColaboradorIds,
   } = input;
 
   const fator = fatorSalarioPorPeriodo(periodo.tipo);
@@ -271,7 +273,8 @@ export function computePayrollRowsFromPeriodo(input: {
   descontos.forEach((d) => {
     if (selectedDescontoIds && !selectedDescontoIds.has(d.id)) return;
     const cur = descByColab.get(d.colaborador_id) || { total: 0, ids: [] };
-    cur.total += Number(d.valor || 0);
+    const nd = Math.max(1, Number(descontoParcelas?.[d.id] || 1));
+    cur.total += splitParcelas(Number(d.valor || 0), nd)[0];
     cur.ids.push(d.id);
     descByColab.set(d.colaborador_id, cur);
   });
@@ -384,7 +387,8 @@ export function computePayrollRows(
 
   descontosPendentes.forEach((d) => {
     const cur = descontosByColab.get(d.colaborador_id) || { total: 0, ids: [] };
-    cur.total += Number(d.valor || 0);
+    const nd = Math.max(1, Number(descontoParcelas?.[d.id] || 1));
+    cur.total += splitParcelas(Number(d.valor || 0), nd)[0];
     cur.ids.push(d.id);
     descontosByColab.set(d.colaborador_id, cur);
   });
