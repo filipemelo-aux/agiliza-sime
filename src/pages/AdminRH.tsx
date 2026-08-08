@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,7 +32,6 @@ import {
   fetchExpensesByColaborador,
   filterByAccount,
   resolveBaseSalary,
-  totalsForMonth,
   type ColaboradorRH,
   type Comissao,
   type Expense,
