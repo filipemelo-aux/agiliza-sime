@@ -501,9 +501,10 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className="h-9" placeholder="0,00" />
           </div>
           <div className="md:col-span-3 space-y-1">
-            <Label className="text-xs">Descrição</Label>
-            <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} className="h-9" placeholder="Opcional" />
+            <Label className="text-xs">Data do lançamento</Label>
+            <Input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="h-9" />
           </div>
+
           <div className="md:col-span-1">
             <Button onClick={handleAdd} disabled={saving} className="h-9 w-full gap-1">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
