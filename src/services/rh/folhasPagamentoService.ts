@@ -389,3 +389,123 @@ export async function reabrirFolhaConfirmada(folhaId: string): Promise<void> {
     }
   }
 }
+
+/** Edita os valores de um item de folha EM ABERTO e recalcula os totais da folha. */
+export async function atualizarItemFolhaEmAberto(
+  folhaId: string,
+  itemId: string,
+  patch: { salario_base: number; comissoes: number; adiantamentos: number; descontos: number }
+): Promise<void> {
+  const { folha, itens } = await buscarFolhaComItens(folhaId);
+  if (folha.status !== "em_aberto") {
+    throw new Error("Reabra a folha antes de editar os valores de um colaborador.");
+  }
+  const liquido = Math.max(
+    0,
+    Number(patch.salario_base || 0) +
+      Number(patch.comissoes || 0) -
+      Number(patch.adiantamentos || 0) -
+      Number(patch.descontos || 0)
+  );
+  const { error } = await (supabase.from("folhas_pagamento_itens" as any) as any)
+    .update({ ...patch, liquido })
+    .eq("id", itemId)
+    .eq("folha_id", folhaId);
+  if (error) throw error;
+
+  const atualizados = itens.map((i) => (i.id === itemId ? { ...i, ...patch, liquido } : i));
+  const totais = atualizados.reduce(
+    (acc, i) => ({
+      base: acc.base + Number(i.salario_base || 0),
+      adiantamentos: acc.adiantamentos + Number(i.adiantamentos || 0),
+      descontos: acc.descontos + Number(i.descontos || 0),
+      comissoes: acc.comissoes + Number(i.comissoes || 0),
+      liquido: acc.liquido + Number(i.liquido || 0),
+    }),
+    { base: 0, adiantamentos: 0, descontos: 0, comissoes: 0, liquido: 0 }
+  );
+  const { error: e2 } = await (supabase.from("folhas_pagamento" as any) as any)
+    .update({
+      total_base: totais.base,
+      total_adiantamentos: totais.adiantamentos,
+      total_descontos: totais.descontos,
+      total_comissoes: totais.comissoes,
+      total_liquido: totais.liquido,
+    })
+    .eq("id", folhaId);
+  if (e2) throw e2;
+}
+
+/**
+ * Efetua o pagamento da folha (total ou de colaboradores específicos):
+ *   1. Se a folha estiver em aberto, confirma (gera as despesas em Contas a Pagar).
+ *   2. Registra a baixa de cada despesa (expense_payments) — os gatilhos do banco
+ *      geram automaticamente a movimentação bancária (Fluxo de Caixa).
+ */
+export async function efetuarPagamentoFolha(input: {
+  folhaId: string;
+  user_id: string;
+  folhaAccountId: string;
+  data_pagamento: string;
+  forma_pagamento: string;
+  /** Quando informado, paga apenas estes itens da folha. */
+  itemIds?: string[];
+}): Promise<{ pagos: number; erros: string[] }> {
+  const { folha } = await buscarFolhaComItens(input.folhaId);
+  if (folha.status === "em_aberto") {
+    const r = await confirmarFolha({
+      folhaId: input.folhaId,
+      user_id: input.user_id,
+      folhaAccountId: input.folhaAccountId,
+    });
+    if (r.fail > 0) throw new Error(r.errors.join(" | "));
+  }
+
+  const { itens } = await buscarFolhaComItens(input.folhaId);
+  const alvo = input.itemIds?.length ? itens.filter((i) => input.itemIds!.includes(i.id)) : itens;
+
+  let pagos = 0;
+  const erros: string[] = [];
+
+  for (const item of alvo) {
+    try {
+      if (!item.expense_id) throw new Error("Despesa não encontrada para este colaborador.");
+      const { data: exp, error: expErr } = await supabase
+        .from("expenses")
+        .select("id, valor_total, valor_pago, status")
+        .eq("id", item.expense_id)
+        .single();
+      if (expErr) throw expErr;
+      const total = Number((exp as any).valor_total || 0);
+      const pago = Number((exp as any).valor_pago || 0);
+      const restante = Math.round((total - pago) * 100) / 100;
+      if (restante <= 0) continue;
+
+      const { error: payErr } = await (supabase.from("expense_payments" as any) as any).insert({
+        expense_id: item.expense_id,
+        valor: restante,
+        forma_pagamento: input.forma_pagamento,
+        data_pagamento: input.data_pagamento,
+        observacoes: `Pagamento da folha ${folha.mes_referencia} — ${item.colaborador_nome}`,
+        created_by: input.user_id,
+      });
+      if (payErr) throw payErr;
+
+      const { error: updErr } = await supabase
+        .from("expenses")
+        .update({
+          valor_pago: total,
+          status: "pago",
+          forma_pagamento: input.forma_pagamento,
+          data_pagamento: input.data_pagamento,
+        } as any)
+        .eq("id", item.expense_id);
+      if (updErr) throw updErr;
+      pagos++;
+    } catch (e: any) {
+      erros.push(`${item.colaborador_nome}: ${e?.message || String(e)}`);
+    }
+  }
+
+  return { pagos, erros };
+}
