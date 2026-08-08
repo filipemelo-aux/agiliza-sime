@@ -76,7 +76,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<"todas" | "abertas" | "pagas">("todas");
+  
   const [itensPorFolha, setItensPorFolha] = useState<Record<string, FolhaItem[]>>({});
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<{ folha: FolhaPagamento; item: FolhaItem } | null>(null);
