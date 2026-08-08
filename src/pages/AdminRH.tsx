@@ -279,7 +279,7 @@ function RHWorkspace(props: any) {
       )}
 
       <section className="min-w-0 space-y-3">
-        {activeItem && (
+        {activeItem && section !== "folha_pagamento" && (
           <div className="flex items-center gap-2">
             <activeItem.icon className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">{activeItem.label}</h2>
