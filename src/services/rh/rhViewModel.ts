@@ -387,8 +387,7 @@ export function computePayrollRows(
 
   descontosPendentes.forEach((d) => {
     const cur = descontosByColab.get(d.colaborador_id) || { total: 0, ids: [] };
-    const nd = Math.max(1, Number(descontoParcelas?.[d.id] || 1));
-    cur.total += splitParcelas(Number(d.valor || 0), nd)[0];
+    cur.total += Number(d.valor || 0);
     cur.ids.push(d.id);
     descontosByColab.set(d.colaborador_id, cur);
   });
