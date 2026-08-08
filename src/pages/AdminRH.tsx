@@ -191,7 +191,6 @@ type RHSection =
   | "config";
 
 type MovSubTab = "adiantamentos" | "comissoes" | "descontos";
-type FolhaSubTab = "em_aberto" | "previa" | "historico";
 
 interface NavItem {
   id: RHSection;
