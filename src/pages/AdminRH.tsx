@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/AdminLayout";
-import { SummaryCard } from "@/components/SummaryCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Users, Wallet, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
+import { Users, HandCoins, Briefcase, Search, Save, History, Radio, Play, Pencil, Check, UserMinus, CalendarDays, ListChecks, TrendingUp, Settings2, Percent, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnifiedCompany } from "@/hooks/useUnifiedCompany";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,7 +32,6 @@ import {
   fetchExpensesByColaborador,
   filterByAccount,
   resolveBaseSalary,
-  totalsForMonth,
   type ColaboradorRH,
   type Comissao,
   type Expense,
@@ -94,8 +92,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     () => filterByAccount(expenses, settings.adiantamentoAccountId),
     [expenses, settings.adiantamentoAccountId]
   );
-  const totalFolha = totalsForMonth(folhaExpenses);
-  const totalAdiant = totalsForMonth(adiantExpenses);
   const totalAtivos = colaboradores.filter((c) => c.ativo).length;
 
   const metricsByColab = useMemo(
@@ -146,17 +142,9 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <SummaryCard icon={Wallet} label="Folha do mês" value={formatBRL(totalFolha)} valueColor="primary" />
-          <SummaryCard icon={HandCoins} label="Adiantamentos" value={formatBRL(totalAdiant)} valueColor="default" />
-          <SummaryCard icon={Users} label="Colaboradores ativos" value={totalAtivos} valueColor="green" />
-        </div>
-
         <RHWorkspace
           colaboradores={colaboradores}
           totalAtivos={totalAtivos}
-          totalFolha={totalFolha}
-          totalAdiant={totalAdiant}
           loading={loading}
           search={search}
           setSearch={setSearch}
@@ -202,7 +190,6 @@ type RHSection =
   | "config";
 
 type MovSubTab = "adiantamentos" | "comissoes" | "descontos";
-type FolhaSubTab = "em_aberto" | "previa" | "historico";
 
 interface NavItem {
   id: RHSection;
@@ -214,7 +201,7 @@ interface NavItem {
 
 function RHWorkspace(props: any) {
   const {
-    colaboradores, totalAtivos, totalFolha, totalAdiant,
+    colaboradores, totalAtivos,
     loading, search, setSearch, tipoFilter, setTipoFilter,
     filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
     month, expenses, settings, patch, setSalaryOverride, reload,
@@ -227,20 +214,10 @@ function RHWorkspace(props: any) {
   const setSection = setInternalSection;
 
   const [movSubTab, setMovSubTab] = useState<MovSubTab>("comissoes");
-  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("em_aberto");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
   const { user } = useAuth();
 
-  // Folha em aberto = despesas folha ainda pendentes/parciais/atrasadas
-  const folhaEmAberto = useMemo(
-    () => folhaExpenses.filter((e: Expense) => e.status !== "pago" && e.status !== "cancelado"),
-    [folhaExpenses]
-  );
-  const folhaHistorico = useMemo(
-    () => folhaExpenses.filter((e: Expense) => e.status === "pago" || e.status === "cancelado"),
-    [folhaExpenses]
-  );
 
   const allItems: NavItem[] = [
     { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
@@ -302,7 +279,7 @@ function RHWorkspace(props: any) {
       )}
 
       <section className="min-w-0 space-y-3">
-        {activeItem && (
+        {activeItem && section !== "folha_pagamento" && (
           <div className="flex items-center gap-2">
             <activeItem.icon className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">{activeItem.label}</h2>
@@ -495,33 +472,7 @@ function RHWorkspace(props: any) {
 
         {section === "folha_pagamento" && (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-                {([
-                  { v: "em_aberto", label: "Folhas do mês", icon: ListChecks, count: undefined },
-                  { v: "historico", label: "Histórico", icon: History, count: folhaHistorico.length },
-                ] as const).map((opt) => {
-                  const Icon = opt.icon;
-                  const active = folhaSubTab === opt.v;
-                  return (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setFolhaSubTab(opt.v)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                        active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {opt.label}
-                      {opt.count != null && opt.count > 0 && (
-                        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] ml-0.5">{opt.count}</Badge>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="flex justify-end">
               <Button
                 size="sm"
                 className="h-8 gap-1.5"
@@ -529,11 +480,11 @@ function RHWorkspace(props: any) {
                 disabled={!settings.folhaAccountId}
                 title={!settings.folhaAccountId ? "Configure a conta 'Salários' em Configurações" : "Abrir assistente de geração da folha"}
               >
-                <Sparkles className="h-3.5 w-3.5" /> Gerar nova folha
+                <Sparkles className="h-3.5 w-3.5" /> Gerar folha de pagamento
               </Button>
             </div>
 
-            {folhaSubTab === "em_aberto" && matrizId && user?.id && (
+            {matrizId && user?.id && (
               <FolhasEmAbertoList
                 month={month}
                 empresaId={matrizId}
@@ -541,20 +492,6 @@ function RHWorkspace(props: any) {
                 folhaAccountId={settings.folhaAccountId}
                 onChanged={reload}
               />
-            )}
-
-            {/* Aba "Prévia" removida — substituída pelo wizard quinzenal */}
-
-            {folhaSubTab === "historico" && (
-              <Card>
-                <CardContent className="p-4">
-                  <ExpenseList
-                    items={folhaHistorico}
-                    enrichName={enrichName}
-                    emptyHint="Nenhuma folha quitada neste mês."
-                  />
-                </CardContent>
-              </Card>
             )}
 
             {matrizId && user?.id && (

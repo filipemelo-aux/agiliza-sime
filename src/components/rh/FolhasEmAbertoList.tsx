@@ -76,7 +76,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<"todas" | "abertas" | "pagas">("todas");
+  
   const [itensPorFolha, setItensPorFolha] = useState<Record<string, FolhaItem[]>>({});
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<{ folha: FolhaPagamento; item: FolhaItem } | null>(null);
@@ -139,33 +139,9 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [month]);
 
-  const visiveis = useMemo(() => {
-    if (filtro === "todas") return folhas;
-    return folhas.filter((f) => {
-      const s = situacoes[f.id] || "em_aberto";
-      return filtro === "pagas" ? s === "paga" || s === "parcial" : s === "em_aberto" || s === "confirmada";
-    });
-  }, [folhas, situacoes, filtro]);
-
   const itensVisiveis = useMemo(
-    () => visiveis.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
-    [visiveis, itensPorFolha]
-  );
-
-  const totais = useMemo(
-    () =>
-      visiveis.reduce(
-        (acc, f) => ({
-          folhas: acc.folhas + 1,
-          colaboradores: acc.colaboradores + (itensPorFolha[f.id] || []).length,
-          base: acc.base + Number(f.total_base || 0),
-          comissoes: acc.comissoes + Number(f.total_comissoes || 0),
-          descontos: acc.descontos + Number(f.total_adiantamentos || 0) + Number(f.total_descontos || 0),
-          liquido: acc.liquido + Number(f.total_liquido || 0),
-        }),
-        { folhas: 0, colaboradores: 0, base: 0, comissoes: 0, descontos: 0, liquido: 0 }
-      ),
-    [visiveis, itensPorFolha]
+    () => folhas.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
+    [folhas, itensPorFolha]
   );
 
   const toggleItem = (id: string) => setSelecionados((atual) => {
@@ -352,12 +328,6 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     );
   }
 
-  const filtros = [
-    { v: "todas", label: "Todas", n: folhas.length },
-    { v: "abertas", label: "Em aberto", n: folhas.filter((f) => ["em_aberto", "confirmada"].includes(situacoes[f.id] || "")).length },
-    { v: "pagas", label: "Pagas", n: folhas.filter((f) => ["paga", "parcial"].includes(situacoes[f.id] || "")).length },
-  ] as const;
-
   const editLiquido = Math.max(
     0,
     (Number(editForm.salario_base) || 0) + (Number(editForm.comissoes) || 0) -
@@ -367,36 +337,6 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
   return (
     <>
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-          {filtros.map((opt) => (
-            <button
-              key={opt.v}
-              type="button"
-              onClick={() => setFiltro(opt.v)}
-              className={cn(
-                "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                filtro === opt.v ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {opt.label}
-              <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{opt.n}</Badge>
-            </button>
-          ))}
-        </div>
-
-        {/* Total consolidado das folhas exibidas */}
-        {visiveis.length > 0 && (
-          <Card className="border-primary/30 bg-primary/[0.03]">
-            <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <Bloco tom="neutral" titulo="Folhas" principal={`${totais.folhas} · ${totais.colaboradores} colab.`} />
-              <Bloco tom="neutral" titulo="Base" principal={formatBRL(totais.base)} />
-              <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(totais.comissoes)} />
-              <Bloco tom="negativo" titulo="Descontos" principal={formatBRL(totais.descontos)} />
-              <Bloco tom="destaque" titulo="Total geral líquido" principal={formatBRL(totais.liquido)} />
-            </CardContent>
-          </Card>
-        )}
-
         {itensVisiveis.length > 0 && (
           <div className="flex items-center justify-between gap-3 border-y py-2">
             <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
@@ -415,18 +355,18 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           </div>
         )}
 
-        {visiveis.length === 0 ? (
+        {folhas.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                Nenhuma folha encontrada neste mês. Use <span className="font-medium">Gerar nova folha</span> para iniciar.
+                Nenhuma folha encontrada neste mês. Use <span className="font-medium">Gerar folha de pagamento</span> para iniciar.
               </p>
               <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
                 <RefreshCw className="h-3.5 w-3.5" /> Recarregar
               </Button>
             </CardContent>
           </Card>
-        ) : visiveis.map((f) => {
+        ) : folhas.map((f) => {
           const sit = situacoes[f.id] || "em_aberto";
           const ui = SITUACAO_UI[sit];
           const itens = itensPorFolha[f.id] || [];
