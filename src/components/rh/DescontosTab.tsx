@@ -105,7 +105,11 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
   const [colabId, setColabId] = useState("");
   const [tipo, setTipo] = useState<DescontoFolhaTipo>("outros");
   const [valor, setValor] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [dataLancamento, setDataLancamento] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+
   const [saving, setSaving] = useState(false);
   const [auto, setAuto] = useState<LinhaAuto[] | null>(null);
   const [lancandoAuto, setLancandoAuto] = useState(false);
@@ -149,12 +153,14 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
         colaborador_id: colabId,
         tipo,
         valor: n,
-        descricao: descricao || null,
+        descricao: dataLancamento
+          ? `Lançado em ${dataLancamento.split("-").reverse().join("/")}`
+          : null,
         data_referencia: `${y}-${String(m).padStart(2, "0")}-01`,
       });
       toast.success("Desconto adicionado");
       setValor("");
-      setDescricao("");
+
       await load();
     } catch (e: any) {
       toast.error("Erro: " + e.message);
@@ -501,9 +507,10 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
             <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className="h-9" placeholder="0,00" />
           </div>
           <div className="md:col-span-3 space-y-1">
-            <Label className="text-xs">Descrição</Label>
-            <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} className="h-9" placeholder="Opcional" />
+            <Label className="text-xs">Data do lançamento</Label>
+            <Input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="h-9" />
           </div>
+
           <div className="md:col-span-1">
             <Button onClick={handleAdd} disabled={saving} className="h-9 w-full gap-1">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
@@ -539,8 +546,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
                   </p>
                   <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
                     <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {new Date(`${String(d.data_referencia).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}
+                      Competência {String(d.data_referencia).slice(5, 7)}/{String(d.data_referencia).slice(0, 4)}
                     </span>
+
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold tabular-nums text-rose-600 text-sm">
                         - {formatBRL(Number(d.valor))}
