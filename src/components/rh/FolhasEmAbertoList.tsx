@@ -139,33 +139,9 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [month]);
 
-  const visiveis = useMemo(() => {
-    if (filtro === "todas") return folhas;
-    return folhas.filter((f) => {
-      const s = situacoes[f.id] || "em_aberto";
-      return filtro === "pagas" ? s === "paga" || s === "parcial" : s === "em_aberto" || s === "confirmada";
-    });
-  }, [folhas, situacoes, filtro]);
-
   const itensVisiveis = useMemo(
-    () => visiveis.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
-    [visiveis, itensPorFolha]
-  );
-
-  const totais = useMemo(
-    () =>
-      visiveis.reduce(
-        (acc, f) => ({
-          folhas: acc.folhas + 1,
-          colaboradores: acc.colaboradores + (itensPorFolha[f.id] || []).length,
-          base: acc.base + Number(f.total_base || 0),
-          comissoes: acc.comissoes + Number(f.total_comissoes || 0),
-          descontos: acc.descontos + Number(f.total_adiantamentos || 0) + Number(f.total_descontos || 0),
-          liquido: acc.liquido + Number(f.total_liquido || 0),
-        }),
-        { folhas: 0, colaboradores: 0, base: 0, comissoes: 0, descontos: 0, liquido: 0 }
-      ),
-    [visiveis, itensPorFolha]
+    () => folhas.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
+    [folhas, itensPorFolha]
   );
 
   const toggleItem = (id: string) => setSelecionados((atual) => {
