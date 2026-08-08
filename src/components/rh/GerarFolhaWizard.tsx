@@ -41,6 +41,7 @@ import {
   isPeriodoQuinzenal,
   splitParcelas,
   createParcelasFuturasAdiantamento,
+  createParcelasFuturasDesconto,
 
   type ColaboradorRH,
   type Comissao,
@@ -99,6 +100,8 @@ export function GerarFolhaWizard({
   const [selColabs, setSelColabs] = useState<Set<string>>(new Set());
   /** Nº de parcelas por adiantamento (1 = descontar integral na folha atual). */
   const [parcelasAdiant, setParcelasAdiant] = useState<Record<string, number>>({});
+  /** Nº de parcelas por desconto (1 = descontar integral na folha atual). */
+  const [parcelasDesconto, setParcelasDesconto] = useState<Record<string, number>>({});
 
   const [loadingData, setLoadingData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -145,6 +148,7 @@ export function GerarFolhaWizard({
       setSelComissoes(new Set(com.map((c: Comissao) => c.id)));
       setSelDescontos(new Set(desc.map((d: DescontoFolha) => d.id)));
       setParcelasAdiant(Object.fromEntries(adv.map((e: Expense) => [e.id, 1])));
+      setParcelasDesconto(Object.fromEntries(desc.map((d: DescontoFolha) => [d.id, 1])));
       return true;
     } catch (e: any) {
       toast.error("Erro ao carregar dados: " + (e?.message || e));
@@ -166,9 +170,10 @@ export function GerarFolhaWizard({
         selectedComissaoIds: selComissoes,
         selectedDescontoIds: selDescontos,
         adiantamentoParcelas: parcelasAdiant,
+        descontoParcelas: parcelasDesconto,
         selectedColaboradorIds: selColabs,
       }),
-    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, selColabs]
+    [colaboradores, periodo, adiantamentos, comissoes, descontos, selAdiant, selComissoes, selDescontos, parcelasAdiant, parcelasDesconto, selColabs]
   );
 
   const totals = rows.reduce(
@@ -249,9 +254,28 @@ export function GerarFolhaWizard({
         parcelasCriadas += n - 1;
       }
 
+      // Descontos parcelados → gera as parcelas das folhas seguintes
+      let parcelasDescCriadas = 0;
+      for (const d of descontos as DescontoFolha[]) {
+        const n = Math.max(1, Number(parcelasDesconto[d.id] || 1));
+        if (n <= 1) continue;
+        if (!selDescontos.has(d.id)) continue;
+        if (selColabs.size > 0 && !selColabs.has(d.colaborador_id)) continue;
+        const valores = splitParcelas(Number(d.valor || 0), n);
+        await createParcelasFuturasDesconto({
+          colaborador_id: d.colaborador_id,
+          tipo: d.tipo,
+          mesReferencia: mesRef,
+          parcelas: valores,
+          descricaoBase: d.descricao || d.tipo,
+        });
+        parcelasDescCriadas += n - 1;
+      }
+
       toast.success(
         `Folha gerada em aberto — ${rows.length} colaborador(es). Confirme na lista de folhas em aberto para gerar o Contas a Pagar.` +
-          (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "")
+          (parcelasCriadas > 0 ? ` ${parcelasCriadas} parcela(s) de adiantamento agendada(s).` : "") +
+          (parcelasDescCriadas > 0 ? ` ${parcelasDescCriadas} parcela(s) de desconto agendada(s).` : "")
       );
 
       onGenerated();
@@ -334,6 +358,7 @@ export function GerarFolhaWizard({
                   colabName={colabName}
                   selColabs={selColabs}
                   parcelasAdiant={parcelasAdiant} setParcelasAdiant={setParcelasAdiant}
+                  parcelasDesconto={parcelasDesconto} setParcelasDesconto={setParcelasDesconto}
                   toggle={toggleSet}
                 />
               )}
@@ -589,6 +614,7 @@ function SelecaoStep({
   selAdiant, setSelAdiant, selComissoes, setSelComissoes,
   selDescontos, setSelDescontos, colabName, toggle, selColabs,
   parcelasAdiant, setParcelasAdiant,
+  parcelasDesconto, setParcelasDesconto,
 }: any) {
   // Somente itens dos colaboradores selecionados na etapa anterior
   const inColab = (id?: string | null) =>
@@ -600,6 +626,9 @@ function SelecaoStep({
 
   const setParcelas = (id: string, n: number) =>
     setParcelasAdiant((prev: Record<string, number>) => ({ ...prev, [id]: Math.max(1, Math.min(36, n || 1)) }));
+
+  const setParcelasDesc = (id: string, n: number) =>
+    setParcelasDesconto((prev: Record<string, number>) => ({ ...prev, [id]: Math.max(1, Math.min(36, n || 1)) }));
 
   return (
     <div className="space-y-3">
@@ -646,12 +675,26 @@ function SelecaoStep({
       />
 
       <Bucket title="Descontos do período" tom="negative"
-        hint="Descontos pendentes lançados no RH"
-        items={descontosFiltrados.map((d: DescontoFolha) => ({
-          id: d.id, name: colabName(d.colaborador_id),
-          desc: d.tipo, info: formatDate(d.data_referencia),
-          value: Number(d.valor || 0),
-        }))}
+        hint="Descontar integralmente nesta folha ou parcelar o débito nas próximas folhas"
+        items={descontosFiltrados.map((d: DescontoFolha) => {
+          const bruto = Number(d.valor || 0);
+          const n = Math.max(1, Number(parcelasDesconto?.[d.id] || 1));
+          const parcelas = splitParcelas(bruto, n);
+          return {
+            id: d.id,
+            name: colabName(d.colaborador_id),
+            desc: d.descricao || d.tipo,
+            info: `${d.tipo} · ${formatDate(d.data_referencia)} · Total ${formatBRL(bruto)}`,
+            value: parcelas[0],
+            extra: (
+              <ParcelamentoControl
+                n={n}
+                onChange={(v: number) => setParcelasDesc(d.id, v)}
+                parcelas={parcelas}
+              />
+            ),
+          };
+        })}
         selected={selDescontos} onToggle={(id: string) => toggle(selDescontos, setSelDescontos, id)}
         emptyText="Sem descontos pendentes neste período."
       />
