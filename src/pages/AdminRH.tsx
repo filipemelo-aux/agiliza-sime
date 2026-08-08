@@ -202,7 +202,7 @@ interface NavItem {
 
 function RHWorkspace(props: any) {
   const {
-    colaboradores, totalAtivos, totalFolha, totalAdiant,
+    colaboradores, totalAtivos,
     loading, search, setSearch, tipoFilter, setTipoFilter,
     filteredColabs, metricsByColab, setHistoryFor, handleDesligar,
     month, expenses, settings, patch, setSalaryOverride, reload,
@@ -215,20 +215,10 @@ function RHWorkspace(props: any) {
   const setSection = setInternalSection;
 
   const [movSubTab, setMovSubTab] = useState<MovSubTab>("comissoes");
-  const [folhaSubTab, setFolhaSubTab] = useState<FolhaSubTab>("em_aberto");
   const [wizardOpen, setWizardOpen] = useState(false);
   const { matrizId } = useUnifiedCompany();
   const { user } = useAuth();
 
-  // Folha em aberto = despesas folha ainda pendentes/parciais/atrasadas
-  const folhaEmAberto = useMemo(
-    () => folhaExpenses.filter((e: Expense) => e.status !== "pago" && e.status !== "cancelado"),
-    [folhaExpenses]
-  );
-  const folhaHistorico = useMemo(
-    () => folhaExpenses.filter((e: Expense) => e.status === "pago" || e.status === "cancelado"),
-    [folhaExpenses]
-  );
 
   const allItems: NavItem[] = [
     { id: "colaboradores", label: "Colaboradores", icon: Users, description: "Cadastro e histórico", badge: totalAtivos },
