@@ -153,12 +153,14 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
         colaborador_id: colabId,
         tipo,
         valor: n,
-        descricao: descricao || null,
+        descricao: dataLancamento
+          ? `Lançado em ${dataLancamento.split("-").reverse().join("/")}`
+          : null,
         data_referencia: `${y}-${String(m).padStart(2, "0")}-01`,
       });
       toast.success("Desconto adicionado");
       setValor("");
-      setDescricao("");
+
       await load();
     } catch (e: any) {
       toast.error("Erro: " + e.message);
