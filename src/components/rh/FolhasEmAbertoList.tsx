@@ -3,37 +3,52 @@
  * indicando a situação (em aberto, confirmada, paga parcialmente, paga).
  *
  * Permite:
+ *   - Ver o total consolidado das folhas do mês
  *   - Filtrar por situação
- *   - Ver itens de uma folha (drawer/sheet)
- *   - Baixar/imprimir a folha no formato padrão (resumo + recibo por colaborador)
- *   - Confirmar (gera as despesas em Contas a Pagar) — só para folhas em aberto
- *   - Excluir folha em aberto (sem efeito financeiro)
+ *   - Editar individualmente os valores de cada colaborador (folha em aberto)
+ *   - Gerar recibo(s) dos colaboradores selecionados
+ *   - Efetuar pagamento (gera as despesas em Contas a Pagar, dá baixa e
+ *     registra a movimentação no Fluxo de Caixa) — da folha inteira ou individual
+ *   - Excluir folha/colaborador em aberto e reabrir folha confirmada
  */
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Loader2, FileCheck2, Trash2, Eye, RefreshCw, Download, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Trash2, RefreshCw, Download, RotateCcw, Pencil, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listarFolhas,
   buscarFolhaComItens,
-  confirmarFolha,
   excluirFolhaEmAberto,
   excluirItemFolhaEmAberto,
   reabrirFolhaConfirmada,
+  atualizarItemFolhaEmAberto,
+  efetuarPagamentoFolha,
   type FolhaPagamento,
   type FolhaItem,
 } from "@/services/rh";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { imprimirFolhaPagamento, imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
+import { imprimirRecibosPagamento, type HoleriteItem } from "@/lib/folhaPagamentoPrint";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { getLocalDateISO } from "@/lib/date";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+const FORMA_PAGAMENTO_OPTIONS = [
+  { value: "pix", label: "PIX" },
+  { value: "ted", label: "TED" },
+  { value: "transferencia", label: "Transferência" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+];
 
 type Situacao = "em_aberto" | "confirmada" | "parcial" | "paga" | "cancelada";
 
@@ -53,24 +68,27 @@ interface Props {
   onChanged: () => void;
 }
 
+type PagamentoAlvo = { folha: FolhaPagamento; itens: FolhaItem[]; label: string };
+
 export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, onChanged }: Props) {
   const [folhas, setFolhas] = useState<FolhaPagamento[]>([]);
   const [situacoes, setSituacoes] = useState<Record<string, Situacao>>({});
+  const [itemPago, setItemPago] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todas" | "abertas" | "pagas">("todas");
-  const [viewing, setViewing] = useState<FolhaPagamento | null>(null);
-  const [viewItems, setViewItems] = useState<FolhaItem[]>([]);
-  const [loadingItems, setLoadingItems] = useState(false);
   const [itensPorFolha, setItensPorFolha] = useState<Record<string, FolhaItem[]>>({});
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<{ folha: FolhaPagamento; item: FolhaItem } | null>(null);
+  const [editForm, setEditForm] = useState({ salario_base: "0", comissoes: "0", adiantamentos: "0", descontos: "0" });
+  const [pagamento, setPagamento] = useState<PagamentoAlvo | null>(null);
+  const [pagData, setPagData] = useState(getLocalDateISO());
+  const [pagForma, setPagForma] = useState("pix");
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = async () => {
     setLoading(true);
     try {
-      // A folha pode ter competência (mes_referencia) diferente do mês de
-      // pagamento (ex.: competência 07/2026 paga em 08/2026). Mostramos ambas.
       const all = await listarFolhas();
       const data = all.filter(
         (f) =>
@@ -85,33 +103,32 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
       setItensPorFolha(Object.fromEntries(itensCarregados.map((r) => [r.folhaId, r.itens])));
       setSelecionados(new Set());
 
-      // Situação de pagamento das folhas confirmadas, via despesas geradas
-      const confirmadas = data.filter((f) => f.status === "confirmada").map((f) => f.id);
       const map: Record<string, Situacao> = {};
       data.forEach((f) => {
         map[f.id] = f.status === "cancelada" ? "cancelada" : f.status === "em_aberto" ? "em_aberto" : "confirmada";
       });
 
-      if (confirmadas.length > 0) {
-        const { data: itens } = await (supabase.from("folhas_pagamento_itens" as any) as any)
-          .select("folha_id, expense_id")
-          .in("folha_id", confirmadas);
-        const expIds = ((itens as any[]) || []).map((i) => i.expense_id).filter(Boolean);
-        if (expIds.length > 0) {
-          const { data: exps } = await supabase.from("expenses").select("id, status").in("id", expIds);
-          const statusById = new Map(((exps as any[]) || []).map((e) => [e.id, e.status]));
-          confirmadas.forEach((fid) => {
-            const meus = ((itens as any[]) || [])
-              .filter((i) => i.folha_id === fid && i.expense_id)
-              .map((i) => statusById.get(i.expense_id))
-              .filter(Boolean) as string[];
-            if (meus.length === 0) return;
-            const pagos = meus.filter((s) => s === "pago").length;
-            const parciais = meus.filter((s) => s === "parcial").length;
-            map[fid] = pagos === meus.length ? "paga" : pagos > 0 || parciais > 0 ? "parcial" : "confirmada";
-          });
-        }
+      // Situação de pagamento via despesas geradas
+      const todosItens = itensCarregados.flatMap((r) => r.itens);
+      const expIds = todosItens.map((i) => i.expense_id).filter(Boolean) as string[];
+      const pagoMap: Record<string, boolean> = {};
+      if (expIds.length > 0) {
+        const { data: exps } = await supabase.from("expenses").select("id, status").in("id", expIds);
+        const statusById = new Map(((exps as any[]) || []).map((e) => [e.id, e.status]));
+        todosItens.forEach((i) => {
+          if (i.expense_id) pagoMap[i.id] = statusById.get(i.expense_id) === "pago";
+        });
+        itensCarregados.forEach(({ folhaId, itens }) => {
+          const folha = data.find((f) => f.id === folhaId);
+          if (!folha || folha.status !== "confirmada") return;
+          const meus = itens.map((i) => statusById.get(i.expense_id || "")).filter(Boolean) as string[];
+          if (meus.length === 0) return;
+          const pagos = meus.filter((s) => s === "pago").length;
+          const parciais = meus.filter((s) => s === "parcial").length;
+          map[folhaId] = pagos === meus.length ? "paga" : pagos > 0 || parciais > 0 ? "parcial" : "confirmada";
+        });
       }
+      setItemPago(pagoMap);
       setSituacoes(map);
     } catch (e: any) {
       toast.error("Erro ao carregar folhas: " + e.message);
@@ -130,163 +147,24 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     });
   }, [folhas, situacoes, filtro]);
 
-  const openItems = async (f: FolhaPagamento) => {
-    setViewing(f);
-    setLoadingItems(true);
-    try {
-      const { itens } = await buscarFolhaComItens(f.id);
-      setViewItems(itens);
-    } catch (e: any) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setLoadingItems(false);
-    }
-  };
-
-  const handleDownload = async (f: FolhaPagamento) => {
-    setActing(f.id);
-    try {
-      const { folha, itens } = await buscarFolhaComItens(f.id);
-      if (itens.length === 0) {
-        toast.error("Esta folha não possui itens para gerar o recibo.");
-        return;
-      }
-      // Dados cadastrais dos colaboradores para o padrão contábil
-      const ids = Array.from(new Set(itens.map((i) => i.colaborador_id).filter(Boolean)));
-      const perfis: Record<string, any> = {};
-      if (ids.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, cnpj, cargo, departamento, data_admissao, tipo_colaborador_rh")
-          .in("id", ids);
-        (data || []).forEach((p: any) => { perfis[p.id] = p; });
-      }
-      imprimirFolhaPagamento(
-        {
-          mes_referencia: folha.mes_referencia,
-          data_inicio: folha.data_inicio,
-          data_fim: folha.data_fim,
-          data_vencimento: folha.data_vencimento,
-          status: folha.status,
-          total_base: Number(folha.total_base),
-          total_comissoes: Number(folha.total_comissoes),
-          total_adiantamentos: Number(folha.total_adiantamentos),
-          total_descontos: Number(folha.total_descontos),
-          total_liquido: Number(folha.total_liquido),
-        },
-        itens.map((i) => {
-          const p = perfis[i.colaborador_id] || {};
-          return {
-            colaborador_nome: i.colaborador_nome,
-            salario_base: Number(i.salario_base),
-            comissoes: Number(i.comissoes),
-            adiantamentos: Number(i.adiantamentos),
-            descontos: Number(i.descontos),
-            liquido: Number(i.liquido),
-            codigo: String(i.colaborador_id || "").slice(0, 8).toUpperCase(),
-            cpf: p.cnpj || null,
-            funcao: p.cargo || (p.tipo_colaborador_rh === "motorista" ? "Motorista" : null),
-            departamento: p.departamento || null,
-            admissao: p.data_admissao || null,
-            regime: "clt",
-          };
-        })
-      );
-    } catch (e: any) {
-      toast.error("Falha ao gerar documento: " + e.message);
-    } finally {
-      setActing(null);
-    }
-  };
-
-
-  const handleConfirm = async (f: FolhaPagamento) => {
-    const ok = await confirm({
-      title: "Confirmar folha?",
-      description: `A folha de ${formatBRL(Number(f.total_liquido))} será fechada e não poderá ser alterada. Comissões e descontos vinculados serão marcados.`,
-      confirmLabel: "Confirmar",
-    });
-    if (!ok) return;
-    if (!folhaAccountId) {
-      toast.error("Configure a conta de Folha em Configurações do RH.");
-      return;
-    }
-    setActing(f.id);
-    try {
-      const r = await confirmarFolha({ folhaId: f.id, user_id: userId, folhaAccountId });
-      if (r.fail === 0) toast.success("Folha confirmada.");
-      else toast.warning(`${r.ok} ok, ${r.fail} falha(s)`);
-      await load();
-      onChanged();
-    } catch (e: any) {
-      toast.error("Falha: " + e.message);
-    } finally {
-      setActing(null);
-    }
-  };
-
-  const handleDelete = async (f: FolhaPagamento) => {
-    const ok = await confirm({
-      title: "Excluir folha em aberto?",
-      description: "A folha será removida. Comissões e descontos vinculados voltam para 'pendente'. Nenhum lançamento financeiro será afetado.",
-      confirmLabel: "Excluir",
-    });
-    if (!ok) return;
-    setActing(f.id);
-    try {
-      await excluirFolhaEmAberto(f.id);
-      toast.success("Folha excluída.");
-      await load();
-      onChanged();
-    } catch (e: any) {
-      toast.error("Falha: " + e.message);
-    } finally {
-      setActing(null);
-    }
-  };
-
-  const handleReopen = async (f: FolhaPagamento) => {
-    const ok = await confirm({
-      title: "Reabrir folha?",
-      description: "A folha voltará para Em aberto e poderá ser excluída e gerada novamente. A operação será bloqueada se existir pagamento efetivo.",
-      confirmLabel: "Reabrir",
-    });
-    if (!ok) return;
-    setActing(f.id);
-    try {
-      await reabrirFolhaConfirmada(f.id);
-      toast.success("Folha reaberta. Agora ela pode ser excluída e gerada novamente.");
-      await load();
-      onChanged();
-    } catch (e: any) {
-      toast.error("Falha: " + e.message);
-    } finally {
-      setActing(null);
-    }
-  };
-
-  const handleDeleteItem = async (folha: FolhaPagamento, item: FolhaItem) => {
-    const ok = await confirm({
-      title: `Excluir folha de ${item.colaborador_nome}?`,
-      description: "Somente este colaborador será removido da folha. Os lançamentos vinculados voltarão a ficar disponíveis para uma nova geração.",
-      confirmLabel: "Excluir",
-    });
-    if (!ok) return;
-    setActing(item.id);
-    try {
-      await excluirItemFolhaEmAberto(folha.id, item.id);
-      toast.success(`Folha de ${item.colaborador_nome} excluída.`);
-      await load();
-      onChanged();
-    } catch (e: any) {
-      toast.error("Falha: " + e.message);
-    } finally {
-      setActing(null);
-    }
-  };
-
   const itensVisiveis = useMemo(
     () => visiveis.flatMap((folha) => (itensPorFolha[folha.id] || []).map((item) => ({ folha, item }))),
+    [visiveis, itensPorFolha]
+  );
+
+  const totais = useMemo(
+    () =>
+      visiveis.reduce(
+        (acc, f) => ({
+          folhas: acc.folhas + 1,
+          colaboradores: acc.colaboradores + (itensPorFolha[f.id] || []).length,
+          base: acc.base + Number(f.total_base || 0),
+          comissoes: acc.comissoes + Number(f.total_comissoes || 0),
+          descontos: acc.descontos + Number(f.total_adiantamentos || 0) + Number(f.total_descontos || 0),
+          liquido: acc.liquido + Number(f.total_liquido || 0),
+        }),
+        { folhas: 0, colaboradores: 0, base: 0, comissoes: 0, descontos: 0, liquido: 0 }
+      ),
     [visiveis, itensPorFolha]
   );
 
@@ -296,10 +174,9 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     return proximo;
   });
 
-  const handleSelectedReceipts = async () => {
-    const escolhidos = itensVisiveis.filter(({ item }) => selecionados.has(item.id));
+  const gerarRecibos = async (escolhidos: { folha: FolhaPagamento; item: FolhaItem }[], key: string) => {
     if (escolhidos.length === 0) return;
-    setActing("recibos");
+    setActing(key);
     try {
       const profileIds = Array.from(new Set(escolhidos.map(({ item }) => item.colaborador_id).filter(Boolean)));
       const { data } = await supabase.from("profiles")
@@ -333,6 +210,140 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     }
   };
 
+  const handleSelectedReceipts = () =>
+    gerarRecibos(itensVisiveis.filter(({ item }) => selecionados.has(item.id)), "recibos");
+
+  const abrirEdicao = (folha: FolhaPagamento, item: FolhaItem) => {
+    setEditForm({
+      salario_base: String(Number(item.salario_base || 0)),
+      comissoes: String(Number(item.comissoes || 0)),
+      adiantamentos: String(Number(item.adiantamentos || 0)),
+      descontos: String(Number(item.descontos || 0)),
+    });
+    setEditing({ folha, item });
+  };
+
+  const salvarEdicao = async () => {
+    if (!editing) return;
+    setActing(editing.item.id);
+    try {
+      await atualizarItemFolhaEmAberto(editing.folha.id, editing.item.id, {
+        salario_base: Number(editForm.salario_base) || 0,
+        comissoes: Number(editForm.comissoes) || 0,
+        adiantamentos: Number(editForm.adiantamentos) || 0,
+        descontos: Number(editForm.descontos) || 0,
+      });
+      toast.success("Valores atualizados.");
+      setEditing(null);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const abrirPagamento = (folha: FolhaPagamento, itens: FolhaItem[], label: string) => {
+    if (!folhaAccountId) {
+      toast.error("Configure a conta de Folha em Configurações do RH.");
+      return;
+    }
+    if (itens.length === 0) {
+      toast.error("Nada a pagar.");
+      return;
+    }
+    setPagData(folha.data_vencimento || getLocalDateISO());
+    setPagForma("pix");
+    setPagamento({ folha, itens, label });
+  };
+
+  const confirmarPagamento = async () => {
+    if (!pagamento || !folhaAccountId) return;
+    setActing(pagamento.folha.id);
+    try {
+      const r = await efetuarPagamentoFolha({
+        folhaId: pagamento.folha.id,
+        user_id: userId,
+        folhaAccountId,
+        data_pagamento: pagData,
+        forma_pagamento: pagForma,
+        itemIds: pagamento.itens.map((i) => i.id),
+      });
+      if (r.erros.length > 0) toast.warning(`${r.pagos} pago(s), ${r.erros.length} falha(s): ${r.erros[0]}`);
+      else toast.success(`${r.pagos} pagamento(s) registrado(s) no Contas a Pagar e no Fluxo de Caixa.`);
+      setPagamento(null);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleDelete = async (f: FolhaPagamento) => {
+    const ok = await confirm({
+      title: "Excluir folha em aberto?",
+      description: "A folha será removida. Comissões e descontos vinculados voltam para 'pendente'. Nenhum lançamento financeiro será afetado.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setActing(f.id);
+    try {
+      await excluirFolhaEmAberto(f.id);
+      toast.success("Folha excluída.");
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleReopen = async (f: FolhaPagamento) => {
+    const ok = await confirm({
+      title: "Reabrir folha?",
+      description: "A folha voltará para Em aberto e poderá ser editada, excluída e gerada novamente. A operação será bloqueada se existir pagamento efetivo.",
+      confirmLabel: "Reabrir",
+    });
+    if (!ok) return;
+    setActing(f.id);
+    try {
+      await reabrirFolhaConfirmada(f.id);
+      toast.success("Folha reaberta.");
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleDeleteItem = async (folha: FolhaPagamento, item: FolhaItem) => {
+    const ok = await confirm({
+      title: `Excluir folha de ${item.colaborador_nome}?`,
+      description: "Somente este colaborador será removido da folha. Os lançamentos vinculados voltarão a ficar disponíveis para uma nova geração.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setActing(item.id);
+    try {
+      await excluirItemFolhaEmAberto(folha.id, item.id);
+      toast.success(`Folha de ${item.colaborador_nome} excluída.`);
+      await load();
+      onChanged();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setActing(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card><CardContent className="p-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -346,6 +357,12 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     { v: "abertas", label: "Em aberto", n: folhas.filter((f) => ["em_aberto", "confirmada"].includes(situacoes[f.id] || "")).length },
     { v: "pagas", label: "Pagas", n: folhas.filter((f) => ["paga", "parcial"].includes(situacoes[f.id] || "")).length },
   ] as const;
+
+  const editLiquido = Math.max(
+    0,
+    (Number(editForm.salario_base) || 0) + (Number(editForm.comissoes) || 0) -
+    (Number(editForm.adiantamentos) || 0) - (Number(editForm.descontos) || 0)
+  );
 
   return (
     <>
@@ -367,6 +384,19 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           ))}
         </div>
 
+        {/* Total consolidado das folhas exibidas */}
+        {visiveis.length > 0 && (
+          <Card className="border-primary/30 bg-primary/[0.03]">
+            <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <Bloco tom="neutral" titulo="Folhas" principal={`${totais.folhas} · ${totais.colaboradores} colab.`} />
+              <Bloco tom="neutral" titulo="Base" principal={formatBRL(totais.base)} />
+              <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(totais.comissoes)} />
+              <Bloco tom="negativo" titulo="Descontos" principal={formatBRL(totais.descontos)} />
+              <Bloco tom="destaque" titulo="Total geral líquido" principal={formatBRL(totais.liquido)} />
+            </CardContent>
+          </Card>
+        )}
+
         {itensVisiveis.length > 0 && (
           <div className="flex items-center justify-between gap-3 border-y py-2">
             <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
@@ -380,7 +410,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
             </label>
             <Button size="sm" className="h-8 gap-1.5" disabled={selecionados.size === 0 || acting === "recibos"} onClick={handleSelectedReceipts}>
               {acting === "recibos" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              Gerar recibos ({selecionados.size})
+              {selecionados.size > 1 ? `Gerar recibos (${selecionados.size})` : "Gerar recibo"}
             </Button>
           </div>
         )}
@@ -399,15 +429,17 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
         ) : visiveis.map((f) => {
           const sit = situacoes[f.id] || "em_aberto";
           const ui = SITUACAO_UI[sit];
+          const itens = itensPorFolha[f.id] || [];
+          const pendentes = itens.filter((i) => !itemPago[i.id]);
           return (
           <Card key={f.id} className="overflow-hidden">
             {/* Cabeçalho */}
             <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
                 <Checkbox
-                  checked={(itensPorFolha[f.id] || []).length > 0 && (itensPorFolha[f.id] || []).every((i) => selecionados.has(i.id))}
+                  checked={itens.length > 0 && itens.every((i) => selecionados.has(i.id))}
                   onCheckedChange={() => {
-                    const ids = (itensPorFolha[f.id] || []).map((i) => i.id);
+                    const ids = itens.map((i) => i.id);
                     setSelecionados((atual) => {
                       const proximo = new Set(atual);
                       ids.every((id) => proximo.has(id)) ? ids.forEach((id) => proximo.delete(id)) : ids.forEach((id) => proximo.add(id));
@@ -422,41 +454,27 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openItems(f)}>
-                  <Eye className="h-3.5 w-3.5" /> Ver itens
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1"
-                  disabled={acting === f.id}
-                  onClick={() => handleDownload(f)}
-                  title="Baixar folha em formato padrão (resumo + recibos)"
-                >
-                  {acting === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Baixar
-                </Button>
+                {sit !== "paga" && sit !== "cancelada" && pendentes.length > 0 && (
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1"
+                    disabled={acting === f.id || !folhaAccountId}
+                    onClick={() => abrirPagamento(f, pendentes, `Folha ${f.mes_referencia} — ${pendentes.length} colaborador(es)`)}
+                  >
+                    {acting === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
+                    Efetuar pagamento
+                  </Button>
+                )}
                 {f.status === "em_aberto" && (
-                  <>
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1"
-                      disabled={acting === f.id || !folhaAccountId}
-                      onClick={() => handleConfirm(f)}
-                    >
-                      {acting === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck2 className="h-3.5 w-3.5" />}
-                      Confirmar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                      disabled={acting === f.id}
-                      onClick={() => handleDelete(f)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                    disabled={acting === f.id}
+                    onClick={() => handleDelete(f)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 )}
                 {f.status === "confirmada" && sit === "confirmada" && (
                   <Button variant="outline" size="sm" className="h-8 gap-1" disabled={acting === f.id} onClick={() => handleReopen(f)}>
@@ -468,11 +486,7 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
 
             {/* Blocos visuais separados: Base • Descontos • Comissões • Total */}
             <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Bloco
-                tom="neutral"
-                titulo="Base"
-                principal={formatBRL(Number(f.total_base))}
-              />
+              <Bloco tom="neutral" titulo="Base" principal={formatBRL(Number(f.total_base))} />
               <Bloco
                 tom="negativo"
                 titulo="Descontos"
@@ -482,23 +496,46 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
                   { label: "Outros descontos", value: formatBRL(Number(f.total_descontos)) },
                 ]}
               />
-              <Bloco
-                tom="positivo"
-                titulo="Comissões"
-                principal={formatBRL(Number(f.total_comissoes))}
-              />
-              <Bloco
-                tom="destaque"
-                titulo="Total líquido"
-                principal={formatBRL(Number(f.total_liquido))}
-              />
+              <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(Number(f.total_comissoes))} />
+              <Bloco tom="destaque" titulo="Total líquido" principal={formatBRL(Number(f.total_liquido))} />
             </CardContent>
+
             <div className="border-t divide-y">
-              {(itensPorFolha[f.id] || []).map((item) => (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/30">
+              {itens.map((item) => (
+                <div key={item.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/30">
                   <Checkbox checked={selecionados.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
                   <span className="min-w-0 flex-1 text-sm font-medium truncate">{item.colaborador_nome}</span>
+                  {itemPago[item.id] && (
+                    <Badge variant="outline" className="h-5 text-[9px] text-emerald-700 border-emerald-300 bg-emerald-50">Pago</Badge>
+                  )}
                   <span className="text-xs text-muted-foreground tabular-nums">{formatBRL(Number(item.liquido))}</span>
+                  {f.status === "em_aberto" && (
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7"
+                      onClick={() => abrirEdicao(f, item)}
+                      title={`Editar valores de ${item.colaborador_nome}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {!itemPago[item.id] && sit !== "cancelada" && (
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-primary"
+                      disabled={!folhaAccountId}
+                      onClick={() => abrirPagamento(f, [item], item.colaborador_nome)}
+                      title={`Efetuar pagamento de ${item.colaborador_nome}`}
+                    >
+                      <Wallet className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7"
+                    disabled={acting === `recibo-${item.id}`}
+                    onClick={() => gerarRecibos([{ folha: f, item }], `recibo-${item.id}`)}
+                    title="Gerar recibo"
+                  >
+                    {acting === `recibo-${item.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  </Button>
                   {f.status === "em_aberto" && (
                     <Button
                       variant="ghost" size="icon" className="h-7 w-7 text-destructive"
@@ -515,62 +552,70 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
         );})}
       </div>
 
-      <Sheet open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Folha {viewing?.mes_referencia}</SheetTitle>
-            <SheetDescription>
-              Itens snapshot da folha. Use "Baixar" para gerar o recibo padrão de cada colaborador.
-            </SheetDescription>
-          </SheetHeader>
+      {/* Edição individual */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar {editing?.item.colaborador_nome}</DialogTitle>
+            <DialogDescription>Ajuste os valores deste colaborador. Os totais da folha são recalculados.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              ["salario_base", "Salário base"],
+              ["comissoes", "Comissões"],
+              ["adiantamentos", "Adiantamentos"],
+              ["descontos", "Descontos"],
+            ] as const).map(([campo, label]) => (
+              <div key={campo}>
+                <Label className="text-xs">{label}</Label>
+                <Input
+                  type="number" step="0.01" min="0" className="h-9"
+                  value={editForm[campo]}
+                  onChange={(e) => setEditForm((s) => ({ ...s, [campo]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+            <span className="text-xs uppercase tracking-wide text-primary font-semibold">Líquido</span>
+            <span className="text-sm font-bold text-primary tabular-nums">{formatBRL(editLiquido)}</span>
+          </div>
+          <Button className="w-full" disabled={acting === editing?.item.id} onClick={salvarEdicao}>
+            {acting === editing?.item.id ? "Salvando..." : "Salvar alterações"}
+          </Button>
+        </DialogContent>
+      </Dialog>
 
-          {loadingItems ? (
-            <div className="py-8 flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+      {/* Pagamento */}
+      <Dialog open={!!pagamento} onOpenChange={(o) => !o && setPagamento(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Efetuar pagamento</DialogTitle>
+            <DialogDescription>
+              {pagamento?.label} — total {formatBRL((pagamento?.itens || []).reduce((s, i) => s + Number(i.liquido || 0), 0))}.
+              A baixa é registrada no Contas a Pagar e no Fluxo de Caixa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Data do pagamento</Label>
+              <Input type="date" className="h-9" value={pagData} onChange={(e) => setPagData(e.target.value)} />
             </div>
-          ) : (
-            <div className="mt-4 space-y-2">
-              {viewItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem itens.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {viewItems.map((i) => (
-                    <Card key={i.id}>
-                      <CardContent className="p-3 space-y-1.5">
-                        <p className="text-sm font-semibold truncate">{i.colaborador_nome}</p>
-                        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                          <div>
-                            <span className="text-muted-foreground">Base: </span>
-                            <span className="tabular-nums font-medium">{formatBRL(Number(i.salario_base))}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">−A: </span>
-                            <span className="tabular-nums text-amber-600">{formatBRL(Number(i.adiantamentos))}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">−D: </span>
-                            <span className="tabular-nums text-rose-600">{formatBRL(Number(i.descontos))}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">+C: </span>
-                            <span className="tabular-nums text-emerald-600">{formatBRL(Number(i.comissoes))}</span>
-                          </div>
-                        </div>
-                        <div className="pt-1.5 border-t border-border flex items-center justify-between">
-                          <span className="text-[10px] uppercase text-muted-foreground tracking-wide">Líquido</span>
-                          <span className="text-sm font-bold text-primary tabular-nums">
-                            {formatBRL(Number(i.liquido))}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+            <div>
+              <Label className="text-xs">Forma de pagamento</Label>
+              <Select value={pagForma} onValueChange={setPagForma}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FORMA_PAGAMENTO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+          </div>
+          <Button className="w-full" disabled={acting === pagamento?.folha.id} onClick={confirmarPagamento}>
+            {acting === pagamento?.folha.id ? "Processando..." : "Efetuar pagamento"}
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {ConfirmDialog}
     </>
@@ -591,26 +636,10 @@ function Bloco({
   detalhes?: { label: string; value: string }[];
 }) {
   const styles: Record<Tom, { wrap: string; title: string; value: string }> = {
-    neutral: {
-      wrap: "border-border bg-background",
-      title: "text-muted-foreground",
-      value: "text-foreground",
-    },
-    negativo: {
-      wrap: "border-rose-200 bg-rose-50/60",
-      title: "text-rose-700",
-      value: "text-rose-700",
-    },
-    positivo: {
-      wrap: "border-emerald-200 bg-emerald-50/60",
-      title: "text-emerald-700",
-      value: "text-emerald-700",
-    },
-    destaque: {
-      wrap: "border-primary/40 bg-primary/5 ring-1 ring-primary/20",
-      title: "text-primary",
-      value: "text-primary font-bold",
-    },
+    neutral: { wrap: "border-border bg-background", title: "text-muted-foreground", value: "text-foreground" },
+    negativo: { wrap: "border-rose-200 bg-rose-50/60", title: "text-rose-700", value: "text-rose-700" },
+    positivo: { wrap: "border-emerald-200 bg-emerald-50/60", title: "text-emerald-700", value: "text-emerald-700" },
+    destaque: { wrap: "border-primary/40 bg-primary/5 ring-1 ring-primary/20", title: "text-primary", value: "text-primary font-bold" },
   };
   const s = styles[tom];
   return (
