@@ -473,33 +473,7 @@ function RHWorkspace(props: any) {
 
         {section === "folha_pagamento" && (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-                {([
-                  { v: "em_aberto", label: "Folhas do mês", icon: ListChecks, count: undefined },
-                  { v: "historico", label: "Histórico", icon: History, count: folhaHistorico.length },
-                ] as const).map((opt) => {
-                  const Icon = opt.icon;
-                  const active = folhaSubTab === opt.v;
-                  return (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setFolhaSubTab(opt.v)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                        active ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {opt.label}
-                      {opt.count != null && opt.count > 0 && (
-                        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] ml-0.5">{opt.count}</Badge>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="flex justify-end">
               <Button
                 size="sm"
                 className="h-8 gap-1.5"
@@ -507,11 +481,11 @@ function RHWorkspace(props: any) {
                 disabled={!settings.folhaAccountId}
                 title={!settings.folhaAccountId ? "Configure a conta 'Salários' em Configurações" : "Abrir assistente de geração da folha"}
               >
-                <Sparkles className="h-3.5 w-3.5" /> Gerar nova folha
+                <Sparkles className="h-3.5 w-3.5" /> Gerar folha de pagamento
               </Button>
             </div>
 
-            {folhaSubTab === "em_aberto" && matrizId && user?.id && (
+            {matrizId && user?.id && (
               <FolhasEmAbertoList
                 month={month}
                 empresaId={matrizId}
@@ -519,20 +493,6 @@ function RHWorkspace(props: any) {
                 folhaAccountId={settings.folhaAccountId}
                 onChanged={reload}
               />
-            )}
-
-            {/* Aba "Prévia" removida — substituída pelo wizard quinzenal */}
-
-            {folhaSubTab === "historico" && (
-              <Card>
-                <CardContent className="p-4">
-                  <ExpenseList
-                    items={folhaHistorico}
-                    enrichName={enrichName}
-                    emptyHint="Nenhuma folha quitada neste mês."
-                  />
-                </CardContent>
-              </Card>
             )}
 
             {matrizId && user?.id && (
