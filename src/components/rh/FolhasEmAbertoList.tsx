@@ -328,51 +328,9 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     );
   }
 
-  const filtros = [
-    { v: "todas", label: "Todas", n: folhas.length },
-    { v: "abertas", label: "Em aberto", n: folhas.filter((f) => ["em_aberto", "confirmada"].includes(situacoes[f.id] || "")).length },
-    { v: "pagas", label: "Pagas", n: folhas.filter((f) => ["paga", "parcial"].includes(situacoes[f.id] || "")).length },
-  ] as const;
-
-  const editLiquido = Math.max(
-    0,
-    (Number(editForm.salario_base) || 0) + (Number(editForm.comissoes) || 0) -
-    (Number(editForm.adiantamentos) || 0) - (Number(editForm.descontos) || 0)
-  );
-
   return (
     <>
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60">
-          {filtros.map((opt) => (
-            <button
-              key={opt.v}
-              type="button"
-              onClick={() => setFiltro(opt.v)}
-              className={cn(
-                "inline-flex items-center gap-1.5 h-7 px-3 text-xs rounded-sm transition-colors",
-                filtro === opt.v ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {opt.label}
-              <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{opt.n}</Badge>
-            </button>
-          ))}
-        </div>
-
-        {/* Total consolidado das folhas exibidas */}
-        {visiveis.length > 0 && (
-          <Card className="border-primary/30 bg-primary/[0.03]">
-            <CardContent className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <Bloco tom="neutral" titulo="Folhas" principal={`${totais.folhas} · ${totais.colaboradores} colab.`} />
-              <Bloco tom="neutral" titulo="Base" principal={formatBRL(totais.base)} />
-              <Bloco tom="positivo" titulo="Comissões" principal={formatBRL(totais.comissoes)} />
-              <Bloco tom="negativo" titulo="Descontos" principal={formatBRL(totais.descontos)} />
-              <Bloco tom="destaque" titulo="Total geral líquido" principal={formatBRL(totais.liquido)} />
-            </CardContent>
-          </Card>
-        )}
-
         {itensVisiveis.length > 0 && (
           <div className="flex items-center justify-between gap-3 border-y py-2">
             <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
@@ -391,18 +349,18 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
           </div>
         )}
 
-        {visiveis.length === 0 ? (
+        {folhas.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                Nenhuma folha encontrada neste mês. Use <span className="font-medium">Gerar nova folha</span> para iniciar.
+                Nenhuma folha encontrada neste mês. Use <span className="font-medium">Gerar folha de pagamento</span> para iniciar.
               </p>
               <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
                 <RefreshCw className="h-3.5 w-3.5" /> Recarregar
               </Button>
             </CardContent>
           </Card>
-        ) : visiveis.map((f) => {
+        ) : folhas.map((f) => {
           const sit = situacoes[f.id] || "em_aberto";
           const ui = SITUACAO_UI[sit];
           const itens = itensPorFolha[f.id] || [];
