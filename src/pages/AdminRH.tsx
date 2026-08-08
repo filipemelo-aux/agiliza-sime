@@ -93,8 +93,6 @@ export default function AdminRH({ section: forcedSection }: { section?: RHSectio
     () => filterByAccount(expenses, settings.adiantamentoAccountId),
     [expenses, settings.adiantamentoAccountId]
   );
-  const totalFolha = totalsForMonth(folhaExpenses);
-  const totalAdiant = totalsForMonth(adiantExpenses);
   const totalAtivos = colaboradores.filter((c) => c.ativo).length;
 
   const metricsByColab = useMemo(
