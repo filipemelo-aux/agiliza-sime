@@ -328,6 +328,12 @@ export function FolhasEmAbertoList({ month, empresaId, userId, folhaAccountId, o
     );
   }
 
+  const editLiquido = Math.max(
+    0,
+    (Number(editForm.salario_base) || 0) + (Number(editForm.comissoes) || 0) -
+    (Number(editForm.adiantamentos) || 0) - (Number(editForm.descontos) || 0)
+  );
+
   return (
     <>
       <div className="space-y-3">
