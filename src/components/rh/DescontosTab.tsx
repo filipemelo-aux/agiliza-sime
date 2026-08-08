@@ -105,7 +105,11 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
   const [colabId, setColabId] = useState("");
   const [tipo, setTipo] = useState<DescontoFolhaTipo>("outros");
   const [valor, setValor] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [dataLancamento, setDataLancamento] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+
   const [saving, setSaving] = useState(false);
   const [auto, setAuto] = useState<LinhaAuto[] | null>(null);
   const [lancandoAuto, setLancandoAuto] = useState(false);
