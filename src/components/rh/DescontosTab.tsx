@@ -546,8 +546,9 @@ export function DescontosTab({ colaboradores }: DescontosTabProps) {
                   </p>
                   <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
                     <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {new Date(`${String(d.data_referencia).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR")}
+                      Competência {String(d.data_referencia).slice(5, 7)}/{String(d.data_referencia).slice(0, 4)}
                     </span>
+
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold tabular-nums text-rose-600 text-sm">
                         - {formatBRL(Number(d.valor))}
