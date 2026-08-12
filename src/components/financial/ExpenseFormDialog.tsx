@@ -72,6 +72,7 @@ interface Expense {
   litros: number | null;
   
   numero_multa: string | null;
+  numero_cheque?: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
