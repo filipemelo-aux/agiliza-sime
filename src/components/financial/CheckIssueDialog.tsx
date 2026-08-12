@@ -77,8 +77,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     if (!pdfBytes || !pdfBlobUrl) return;
 
     let cancelled = false;
-    let loadingTask: { destroy: () => Promise<void> } | null = null;
-    let renderTask: { cancel: () => void; promise: Promise<unknown> } | null = null;
+    let loadingTask: { promise: Promise<any>; destroy: () => Promise<void> } | null = null;
+    let renderTask: { cancel: () => void; promise: Promise<void> } | null = null;
 
     const renderPreview = async () => {
       setPreviewLoading(true);
