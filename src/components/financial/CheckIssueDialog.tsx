@@ -138,7 +138,19 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         compress: false,
       });
       (doc as any).setDisplayMode?.("fullwidth");
+      (doc as any).viewerPreferences?.({
+        PrintScaling: "None",
+        PickTrayByPDFSize: true,
+      });
       const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+
+      // Ocupa a caixa completa da página sem produzir marca visível. Isso evita
+      // que drivers (especialmente o macOS) detectem apenas o cheque horizontal
+      // no topo e ativem a rotação/centralização automática do conteúdo.
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.01);
+      doc.rect(0, 0, pageW, pageH);
       doc.setFont("courier", "normal");
       doc.setFontSize(10);
 
@@ -329,7 +341,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
               <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3">
                 <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                  Atenção: Na hora de imprimir o PDF, configure a impressora para Escala 100% (Tamanho Real).
+                  Atenção: use papel A4, Escala 100% (Tamanho Real), Margens Nenhuma e desative “Girar automaticamente”. Para encostar no topo físico, selecione o modo sem bordas da impressora.
                 </p>
               </div>
             </div>
