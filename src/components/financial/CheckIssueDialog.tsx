@@ -179,13 +179,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       // Cheque cruzado: duas diagonais curtas no canto oposto ao canhoto
       if (cruzado) {
         doc.setLineWidth(0.5);
-        const canhotoDireita = Number(layout.canhoto_valor_x) > pageW / 2;
+        const canhotoDireita = Number(layout.canhoto_valor_x) > folhaW / 2;
         if (canhotoDireita) {
           doc.line(8, 5, 22, 18);
           doc.line(13, 5, 27, 18);
         } else {
-          doc.line(pageW - 8, 5, pageW - 22, 18);
-          doc.line(pageW - 13, 5, pageW - 27, 18);
+          doc.line(folhaW - 8, 5, folhaW - 22, 18);
+          doc.line(folhaW - 13, 5, folhaW - 27, 18);
         }
       }
 
