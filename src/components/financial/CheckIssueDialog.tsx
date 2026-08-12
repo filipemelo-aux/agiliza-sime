@@ -254,13 +254,32 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   };
 
   const handleDownload = () => {
-    if (!pdfBlobUrl) return;
-    const a = document.createElement("a");
-    a.href = pdfBlobUrl;
-    a.download = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    if (!pdfBytes) return;
+    const fileName = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
+    // Gera uma URL nova a cada clique (a anterior pode estar presa ao iframe do preview)
+    const url = URL.createObjectURL(new Blob([pdfBytes.slice()], { type: "application/pdf" }));
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.rel = "noopener";
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      // ignore
+    }
+    // Fallback: dentro de iframes com sandbox o download pode ser bloqueado — abre em nova aba
+    setTimeout(() => {
+      try {
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        if (!w) toast.info("Permita pop-ups ou abra o app em uma nova aba para baixar o PDF.");
+      } catch {
+        toast.error("Não foi possível baixar o PDF neste preview. Abra o app em uma aba separada.");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }, 400);
   };
 
   const handleClose = () => {
