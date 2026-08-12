@@ -77,18 +77,14 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     setGenerating(true);
     try {
       const { jsPDF } = await import("jspdf");
-      const w = Number(layout.largura_folha_mm);
-      const h = Number(layout.altura_folha_mm);
-      // Retrato com dimensões forçadas: em modo portrait o jsPDF interpreta
-      // format[0] como largura e format[1] como altura. Garantimos que a
-      // largura seja sempre o maior valor (folha A4 cheio = 210 mm) e a
-      // altura o menor (75 mm), mantendo a arte horizontal no topo da página.
-      const pageW = Math.max(w, h);
-      const pageH = Math.min(w, h);
+      // Folha A4 fixa em retrato: evita auto-rotação de drivers de impressora
+      // e garante que o navegador/renderizador reconheça um documento padrão.
+      // As coordenadas X/Y do layout continuam posicionando o cheque na área
+      // superior esquerda da folha A4 inteira.
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [pageW, pageH],
+        format: "a4",
         putOnlyUsedFonts: true,
         compress: false,
       });
