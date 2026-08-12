@@ -66,8 +66,8 @@ export async function buildCheckPdf({
   const m = Number(dataISO.slice(5, 7));
   const y = dataISO.slice(0, 4);
 
-  const valorStr = formatCurrency(valor).replace("R$", "").trim();
-  const extensoProtegido = `*** ${valorPorExtenso(valor)} ***`;
+  const valorStr = formatCurrency(valor).replace("R$", "").trim().toUpperCase();
+  const extensoProtegido = `*** ${valorPorExtenso(valor)} ***`.toUpperCase();
 
   const ext1X = Number(layout.valor_extenso1_x);
   const ext2X = Number(layout.valor_extenso2_x);
@@ -76,18 +76,18 @@ export async function buildCheckPdf({
   const larguraChar = doc.getTextWidth("0") || 1.9;
   const maxChars1 = Math.max(10, Math.floor((folhaW - ext1X) / larguraChar));
   const [linha1Base, linha2Base] = quebrarExtenso(extensoProtegido, maxChars1);
-  const linha1 = linha1Base.padEnd(maxChars1, "*");
-  const linha2 = linha2Base ? linha2Base.padEnd(maxChars1, "*") : "";
+  const linha1 = linha1Base.padEnd(maxChars1, "*").toUpperCase();
+  const linha2 = linha2Base ? linha2Base.padEnd(maxChars1, "*").toUpperCase() : "";
 
   doc.setFont("courier", "bold");
   doc.text(`## ${valorStr} ##`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
   doc.setFont("courier", "normal");
   doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
   if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
-  doc.text(nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
-  doc.text(cidade.trim(), Number(layout.cidade_x), Number(layout.cidade_y));
+  doc.text((nominal || "").toUpperCase(), Number(layout.nominal_x), Number(layout.nominal_y));
+  doc.text(cidade.trim().toUpperCase(), Number(layout.cidade_x), Number(layout.cidade_y));
   doc.text(
-    `${String(d).padStart(2, "0")} ${MESES[m - 1] || ""} ${y}`,
+    `${String(d).padStart(2, "0")} ${(MESES[m - 1] || "").toUpperCase()} ${y}`,
     Number(layout.data_x),
     Number(layout.data_y),
   );
