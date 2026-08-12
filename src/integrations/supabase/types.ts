@@ -323,6 +323,108 @@ export type Database = {
           },
         ]
       }
+      check_layouts: {
+        Row: {
+          altura_folha_mm: number
+          ano_x: number
+          ano_y: number
+          ativo: boolean
+          banco_nome: string
+          canhoto_data_x: number
+          canhoto_data_y: number
+          canhoto_historico_x: number
+          canhoto_historico_y: number
+          canhoto_nominal_x: number
+          canhoto_nominal_y: number
+          canhoto_valor_x: number
+          canhoto_valor_y: number
+          cidade_x: number
+          cidade_y: number
+          created_at: string
+          dia_x: number
+          dia_y: number
+          id: string
+          largura_folha_mm: number
+          mes_x: number
+          mes_y: number
+          nominal_x: number
+          nominal_y: number
+          updated_at: string
+          valor_extenso1_x: number
+          valor_extenso1_y: number
+          valor_extenso2_x: number
+          valor_extenso2_y: number
+          valor_numerico_x: number
+          valor_numerico_y: number
+        }
+        Insert: {
+          altura_folha_mm?: number
+          ano_x?: number
+          ano_y?: number
+          ativo?: boolean
+          banco_nome: string
+          canhoto_data_x?: number
+          canhoto_data_y?: number
+          canhoto_historico_x?: number
+          canhoto_historico_y?: number
+          canhoto_nominal_x?: number
+          canhoto_nominal_y?: number
+          canhoto_valor_x?: number
+          canhoto_valor_y?: number
+          cidade_x?: number
+          cidade_y?: number
+          created_at?: string
+          dia_x?: number
+          dia_y?: number
+          id?: string
+          largura_folha_mm?: number
+          mes_x?: number
+          mes_y?: number
+          nominal_x?: number
+          nominal_y?: number
+          updated_at?: string
+          valor_extenso1_x?: number
+          valor_extenso1_y?: number
+          valor_extenso2_x?: number
+          valor_extenso2_y?: number
+          valor_numerico_x?: number
+          valor_numerico_y?: number
+        }
+        Update: {
+          altura_folha_mm?: number
+          ano_x?: number
+          ano_y?: number
+          ativo?: boolean
+          banco_nome?: string
+          canhoto_data_x?: number
+          canhoto_data_y?: number
+          canhoto_historico_x?: number
+          canhoto_historico_y?: number
+          canhoto_nominal_x?: number
+          canhoto_nominal_y?: number
+          canhoto_valor_x?: number
+          canhoto_valor_y?: number
+          cidade_x?: number
+          cidade_y?: number
+          created_at?: string
+          dia_x?: number
+          dia_y?: number
+          id?: string
+          largura_folha_mm?: number
+          mes_x?: number
+          mes_y?: number
+          nominal_x?: number
+          nominal_y?: number
+          updated_at?: string
+          valor_extenso1_x?: number
+          valor_extenso1_y?: number
+          valor_extenso2_x?: number
+          valor_extenso2_y?: number
+          valor_numerico_x?: number
+          valor_numerico_y?: number
+        }
+        Relationships: []
+      }
       comissoes: {
         Row: {
           colaborador_id: string
@@ -1374,6 +1476,7 @@ export type Database = {
           km_atual: number | null
           litros: number | null
           motorista_id: string | null
+          numero_cheque: string | null
           numero_multa: string | null
           observacoes: string | null
           origem: Database["public"]["Enums"]["expense_origin"]
@@ -1420,6 +1523,7 @@ export type Database = {
           km_atual?: number | null
           litros?: number | null
           motorista_id?: string | null
+          numero_cheque?: string | null
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
@@ -1466,6 +1570,7 @@ export type Database = {
           km_atual?: number | null
           litros?: number | null
           motorista_id?: string | null
+          numero_cheque?: string | null
           numero_multa?: string | null
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["expense_origin"]
