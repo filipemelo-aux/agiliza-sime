@@ -96,14 +96,23 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const valorStr = formatCurrency(data.valor).replace("R$", "").trim();
       // Antifraude: extenso encapsulado por asteriscos
       const extensoProtegido = `*** ${extenso} ***`;
-      const [linha1, linha2] = quebrarExtenso(extensoProtegido, 62);
+
+      const ext1X = Number(layout.valor_extenso1_x);
+      const ext2X = Number(layout.valor_extenso2_x);
+      // Largura útil da 1ª linha do extenso (até a borda direita, com margem)
+      const larguraLinha1 = Math.max(20, w - ext1X - 6);
+      // Quantos caracteres cabem em courier 10 nessa largura
+      const larguraChar = doc.getTextWidth("0") || 1.9;
+      const maxChars1 = Math.max(10, Math.floor(larguraLinha1 / larguraChar));
+      const [linha1, linha2] = quebrarExtenso(extensoProtegido, maxChars1);
 
       // Corpo do cheque
       doc.setFont("courier", "bold");
       doc.text(`# ${valorStr} #`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
       doc.setFont("courier", "normal");
-      doc.text(linha1, Number(layout.valor_extenso1_x), Number(layout.valor_extenso1_y));
-      if (linha2) doc.text(linha2, Number(layout.valor_extenso2_x), Number(layout.valor_extenso2_y));
+      // Sem quebra automática do jsPDF: cada linha vai na sua coordenada exata
+      doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
+      if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
       doc.text(
         `${cidade.trim()}, ${String(d).padStart(2, "0")} de ${MESES[m - 1] || ""} de ${y}`,
