@@ -153,11 +153,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
-      const ext2X = ext1X; // 2ª linha alinhada à esquerda da primeira
+      // 2ª linha usa exatamente o X configurado no template
+      const ext2X = Number(layout.valor_extenso2_x);
 
-      // Quebra pela largura útil da 1ª linha até a borda da folha A4
+      // Largura útil = largura da folha configurada (limitada à página A4)
+      const folhaW = Math.min(Number(layout.largura_folha_mm) || pageW, pageW);
       const larguraChar = doc.getTextWidth("0") || 1.9;
-      const maxChars1 = Math.max(10, Math.floor((pageW - ext1X - 5) / larguraChar));
+      const maxChars1 = Math.max(10, Math.floor((folhaW - ext1X) / larguraChar));
       const [linha1, linha2] = quebrarExtenso(extensoProtegido, maxChars1);
 
       // Corpo do cheque
@@ -177,13 +179,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       // Cheque cruzado: duas diagonais curtas no canto oposto ao canhoto
       if (cruzado) {
         doc.setLineWidth(0.5);
-        const canhotoDireita = Number(layout.canhoto_valor_x) > pageW / 2;
+        const canhotoDireita = Number(layout.canhoto_valor_x) > folhaW / 2;
         if (canhotoDireita) {
           doc.line(8, 5, 22, 18);
           doc.line(13, 5, 27, 18);
         } else {
-          doc.line(pageW - 8, 5, pageW - 22, 18);
-          doc.line(pageW - 13, 5, pageW - 27, 18);
+          doc.line(folhaW - 8, 5, folhaW - 22, 18);
+          doc.line(folhaW - 13, 5, folhaW - 27, 18);
         }
       }
 
