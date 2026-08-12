@@ -2043,7 +2043,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
         historico: descricao,
         numeroCheque: numeroCheque,
       }}
-      onSaved={(n) => setNumeroCheque(n)}
+      onSaved={(n, info) => {
+        setNumeroCheque(n);
+        if (info?.predatado && info.dataVencimento) setDataVencimento(info.dataVencimento);
+      }}
     />
   </>
   );
