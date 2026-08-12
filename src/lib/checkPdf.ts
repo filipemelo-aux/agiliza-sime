@@ -111,7 +111,7 @@ export async function buildCheckPdf({
   }
 
   const bomPara = predatado && dataVencimentoISO ? `BOM PARA ${formatDateBR(dataVencimentoISO)}`.toUpperCase() : "";
-  const bomParaCanhoto = predatado && dataVencimentoISO ? `BOM P/ ${formatDateBR(dataVencimentoISO)}`.toUpperCase() : "";
+  const bomParaCanhoto = predatado && dataVencimentoISO ? `BOM P ${formatDateBR(dataVencimentoISO)}`.toUpperCase() : "";
 
   // "Bom para" no corpo do cheque (canto inferior direito, conforme layout)
   if (bomPara) {
