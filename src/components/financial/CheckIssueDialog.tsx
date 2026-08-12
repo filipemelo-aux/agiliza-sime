@@ -79,11 +79,18 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const { jsPDF } = await import("jspdf");
       const w = Number(layout.largura_folha_mm);
       const h = Number(layout.altura_folha_mm);
+      // Paisagem explícita: no jsPDF, com orientation "landscape" o array de
+      // formato é invertido, então passamos [altura, largura] para obter
+      // pageWidth = w e pageHeight = h exatamente como cadastrado no template.
       const doc = new jsPDF({
-        orientation: w >= h ? "landscape" : "portrait",
+        orientation: "landscape",
         unit: "mm",
-        format: [w, h],
+        format: [h, w],
+        putOnlyUsedFonts: true,
+        compress: false,
       });
+      // Margem zero: origem absoluta no canto superior esquerdo da folha física
+      (doc as any).setDisplayMode?.("fullwidth");
       doc.setFont("courier", "normal");
       doc.setFontSize(10);
 
