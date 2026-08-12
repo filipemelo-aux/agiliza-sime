@@ -254,13 +254,36 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   };
 
   const handleDownload = () => {
-    if (!pdfBlobUrl) return;
-    const a = document.createElement("a");
-    a.href = pdfBlobUrl;
-    a.download = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    if (!pdfBytes) return;
+    const fileName = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
+    // URL nova a cada clique (a anterior pode estar presa ao preview)
+    const url = URL.createObjectURL(new Blob([pdfBytes.slice()], { type: "application/pdf" }));
+    const inIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (inIframe) {
+      // Dentro do preview em iframe o atributo download costuma ser bloqueado: abre em nova aba
+      const w = window.open(url, "_blank", "noopener,noreferrer");
+      if (!w) {
+        toast.error("O navegador bloqueou a nova aba", {
+          description: "Permita pop-ups ou abra o app em uma aba separada para baixar o PDF.",
+        });
+      }
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const handleClose = () => {
