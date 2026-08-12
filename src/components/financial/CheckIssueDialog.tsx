@@ -90,6 +90,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       });
       // Margem zero: origem absoluta no canto superior esquerdo da folha física
       (doc as any).setDisplayMode?.("fullwidth");
+      const pageW = doc.internal.pageSize.getWidth();
       doc.setFont("courier", "normal");
       doc.setFontSize(10);
 
