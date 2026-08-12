@@ -91,17 +91,18 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       doc.text(linha1, Number(layout.valor_extenso1_x), Number(layout.valor_extenso1_y));
       if (linha2) doc.text(linha2, Number(layout.valor_extenso2_x), Number(layout.valor_extenso2_y));
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
-      doc.text(cidade.trim(), Number(layout.cidade_x), Number(layout.cidade_y));
-      doc.text(String(d).padStart(2, "0"), Number(layout.dia_x), Number(layout.dia_y));
-      doc.text(MESES[m - 1] || "", Number(layout.mes_x), Number(layout.mes_y));
-      doc.text(y, Number(layout.ano_x), Number(layout.ano_y));
+      doc.text(
+        `${cidade.trim()}, ${String(d).padStart(2, "0")} de ${MESES[m - 1] || ""} de ${y}`,
+        Number(layout.cidade_data_x),
+        Number(layout.cidade_data_y),
+      );
 
       // Canhoto
       doc.setFontSize(8);
       doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y));
       doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y));
-      doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_nominal_x), Number(layout.canhoto_nominal_y));
-      doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_historico_x), Number(layout.canhoto_historico_y));
+      doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y));
+      doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
 
       doc.save(`cheque-${numeroCheque || "sem-numero"}.pdf`);
 
