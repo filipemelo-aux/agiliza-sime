@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso, quebrarExtenso } from "@/lib/valorExtenso";
-import { Printer, AlertTriangle, Download, X } from "lucide-react";
+import { Printer, AlertTriangle, Download, X, Loader2 } from "lucide-react";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 
 export interface CheckIssueData {
@@ -44,12 +45,16 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [cruzado, setCruzado] = useState(localStorage.getItem("cheque_cruzado") !== "0");
   const [imprimirCanhoto, setImprimirCanhoto] = useState(localStorage.getItem("cheque_canhoto") !== "0");
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setDataCheque(data.data || getLocalDateISO());
     setNumeroCheque(data.numeroCheque || "");
     setPdfBlobUrl(null);
+    setPdfBytes(null);
     (async () => {
       const { data: rows } = await supabase
         .from("check_layouts")
@@ -67,6 +72,52 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     };
   }, [pdfBlobUrl]);
+
+  useEffect(() => {
+    if (!pdfBytes || !pdfBlobUrl) return;
+
+    let cancelled = false;
+    let loadingTask: { destroy: () => Promise<void> } | null = null;
+    let renderTask: { cancel: () => void; promise: Promise<unknown> } | null = null;
+
+    const renderPreview = async () => {
+      setPreviewLoading(true);
+      try {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+        loadingTask = pdfjs.getDocument({ data: pdfBytes.slice() });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const canvas = previewCanvasRef.current;
+        if (!canvas || cancelled) return;
+
+        const viewport = page.getViewport({ scale: 1.6 });
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Não foi possível preparar a visualização");
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        renderTask = page.render({ canvas, canvasContext: context, viewport });
+        await renderTask.promise;
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Falha ao renderizar preview do cheque", error);
+          toast.error("Não foi possível exibir a pré-visualização", {
+            description: "O PDF ainda pode ser baixado pelo botão abaixo.",
+          });
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    void renderPreview();
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+      void loadingTask?.destroy();
+    };
+  }, [pdfBytes, pdfBlobUrl]);
 
   const layout = useMemo(() => layouts.find(l => l.id === layoutId), [layouts, layoutId]);
   const extenso = useMemo(() => valorPorExtenso(data.valor), [data.valor]);
@@ -149,8 +200,11 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
 
 
       // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)
-      const blob = doc.output("blob");
+      const arrayBuffer = doc.output("arraybuffer");
+      const bytes = new Uint8Array(arrayBuffer);
+      const blob = new Blob([bytes], { type: "application/pdf" });
       const blobUrl = URL.createObjectURL(blob);
+      setPdfBytes(bytes);
       setPdfBlobUrl(blobUrl);
 
       localStorage.setItem("cheque_cruzado", cruzado ? "1" : "0");
@@ -188,6 +242,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const handleClose = () => {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     setPdfBlobUrl(null);
+    setPdfBytes(null);
     onOpenChange(false);
   };
 
@@ -200,13 +255,18 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
 
         {pdfBlobUrl ? (
           <div className="space-y-4">
-            <iframe
-              src={pdfBlobUrl}
-              width="100%"
-              height="600px"
-              style={{ border: "none" }}
-              title="Visualização do cheque"
-            />
+            <div className="relative h-[600px] overflow-auto rounded-md border border-border bg-muted/30 p-3">
+              {previewLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              <canvas
+                ref={previewCanvasRef}
+                className="mx-auto block h-auto w-full max-w-[794px] bg-background shadow-sm"
+                aria-label="Visualização do cheque"
+              />
+            </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
                 <Download className="h-4 w-4" />
