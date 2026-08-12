@@ -124,18 +124,18 @@ export async function buildCheckPdf({
 
   if (imprimirCanhoto) {
     doc.setFontSize(8);
-    doc.text(valorStr.slice(0, 17), Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
-    doc.text(formatDateBR(dataISO).toUpperCase().slice(0, 17), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
+    doc.text(valorStr.slice(0, 17), Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic", align: "left" });
+    doc.text(formatDateBR(dataISO).toUpperCase().slice(0, 17), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic", align: "left" });
     const nominalUp = (nominal || "").toUpperCase();
-    doc.text(nominalUp.slice(0, 17), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
+    doc.text(nominalUp.slice(0, 17), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic", align: "left" });
     const nominalLinha2 = nominalUp.slice(17, 34).trim();
     if (nominalLinha2) {
       const y2 = Number(layout.canhoto_favorecido2_y) || Number(layout.canhoto_favorecido_y) + 4;
-      doc.text(nominalLinha2.slice(0, 17), Number(layout.canhoto_favorecido2_x) || Number(layout.canhoto_favorecido_x), y2, { baseline: "alphabetic" });
+      doc.text(nominalLinha2.slice(0, 17), Number(layout.canhoto_favorecido2_x) || Number(layout.canhoto_favorecido_x), y2, { baseline: "alphabetic", align: "left" });
     }
-    doc.text((historico || "").toUpperCase().slice(0, 17), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
+    doc.text((historico || "").toUpperCase().slice(0, 17), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic", align: "left" });
     if (bomParaCanhoto) {
-      doc.text(bomParaCanhoto.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
+      doc.text(bomParaCanhoto.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic", align: "left" });
     }
     doc.setFontSize(10);
   }
