@@ -72,6 +72,7 @@ interface Expense {
   litros: number | null;
   
   numero_multa: string | null;
+  numero_cheque?: string | null;
   documento_fiscal_importado?: boolean;
   xml_original?: string | null;
   fornecedor_cnpj?: string | null;
@@ -133,6 +134,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [dataEmissao, setDataEmissao] = useState(getLocalDateISO());
   const [dataVencimento, setDataVencimento] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [numeroCheque, setNumeroCheque] = useState("");
+  const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
   const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
@@ -291,6 +294,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setLitros(expense.litros ? String(expense.litros) : "");
       
       setNumeroMulta(expense.numero_multa || "");
+      setNumeroCheque((expense as any).numero_cheque || "");
       setFornecedorCnpj(expense.fornecedor_cnpj || "");
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
@@ -666,6 +670,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       observacoes: observacoes.trim() || null, veiculo_placa: veiculoPlaca.trim() || null,
       litros: litros ? Number(litros) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
+      numero_cheque: formaPagamento === "cheque" ? (numeroCheque.trim() || null) : null,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
       veiculo_id: veiculoId || null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
