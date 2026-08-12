@@ -111,6 +111,7 @@ export async function buildCheckPdf({
   }
 
   const bomPara = predatado && dataVencimentoISO ? `BOM PARA ${formatDateBR(dataVencimentoISO)}`.toUpperCase() : "";
+  const bomParaCanhoto = predatado && dataVencimentoISO ? `BOM P/ ${formatDateBR(dataVencimentoISO)}`.toUpperCase() : "";
 
   // "Bom para" no corpo do cheque (canto inferior direito, conforme layout)
   if (bomPara) {
@@ -128,12 +129,13 @@ export async function buildCheckPdf({
     const nominalUp = (nominal || "").toUpperCase();
     doc.text(nominalUp.slice(0, 17), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
     const nominalLinha2 = nominalUp.slice(17, 34).trim();
-    if (nominalLinha2 && layout.canhoto_favorecido2_y) {
-      doc.text(nominalLinha2.slice(0, 17), Number(layout.canhoto_favorecido2_x), Number(layout.canhoto_favorecido2_y), { baseline: "alphabetic" });
+    if (nominalLinha2) {
+      const y2 = Number(layout.canhoto_favorecido2_y) || Number(layout.canhoto_favorecido_y) + 4;
+      doc.text(nominalLinha2.slice(0, 17), Number(layout.canhoto_favorecido2_x) || Number(layout.canhoto_favorecido_x), y2, { baseline: "alphabetic" });
     }
     doc.text((historico || "").toUpperCase().slice(0, 17), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
-    if (bomPara) {
-      doc.text(bomPara.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
+    if (bomParaCanhoto) {
+      doc.text(bomParaCanhoto.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
     }
     doc.setFontSize(10);
   }
