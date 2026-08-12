@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FileSignature, Printer, Building2, Truck, User, Coins } from "lucide-react";
 import { maskCurrency, unmaskCurrency, maskName, formatCurrency } from "@/lib/masks";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckIssueDialog } from "@/components/financial/CheckIssueDialog";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CteDescontoFields, emptyDesconto, calcDescontoTotal, type DescontoState } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
@@ -49,8 +51,18 @@ interface ContractForm {
   natureza_carga: string;
   peso_kg: string;
   valor_tonelada: string;
+  forma_pagamento: string;
+  numero_cheque: string;
   observacoes: string;
 }
+
+const FORMA_PAGAMENTO_OPTIONS = [
+  { value: "pix", label: "PIX" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transferencia", label: "Transferência" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+];
 
 const empty: ContractForm = {
   contratado_id: null,
@@ -70,6 +82,8 @@ const empty: ContractForm = {
   natureza_carga: "",
   peso_kg: "",
   valor_tonelada: "",
+  forma_pagamento: "",
+  numero_cheque: "",
   observacoes: "",
 };
 
@@ -94,6 +108,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
+  const [checkDialogOpen, setCheckDialogOpen] = useState(false);
+  const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
   const isEdit = !!contractId;
 
   // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
@@ -132,6 +148,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         valor_tonelada: (c as any).valor_tonelada
           ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
           : "",
+        forma_pagamento: (c as any).forma_pagamento || "",
+        numero_cheque: (c as any).numero_cheque || "",
         observacoes: cleanObs,
       });
     };
@@ -287,6 +305,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         // Valor por tonelada deixado em branco propositalmente para o usuário
         // negociar o frete terceiro sem herdar o valor do CT-e.
         valor_tonelada: "",
+        forma_pagamento: "",
+        numero_cheque: "",
         observacoes: "",
       });
     };
@@ -374,11 +394,26 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         resultId = data as string;
       }
 
+      // Persiste a forma de pagamento (e número do cheque) no contrato e na conta a pagar vinculada
+      const numeroChequeVal = form.forma_pagamento === "cheque" ? (form.numero_cheque.trim() || null) : null;
+      await supabase
+        .from("freight_contracts")
+        .update({ forma_pagamento: form.forma_pagamento || null, numero_cheque: numeroChequeVal } as any)
+        .eq("id", resultId);
+
       const { data: created } = await supabase
         .from("freight_contracts")
-        .select("id, numero")
+        .select("id, numero, expense_id")
         .eq("id", resultId)
         .single();
+
+      if ((created as any)?.expense_id) {
+        await supabase
+          .from("expenses")
+          .update({ forma_pagamento: form.forma_pagamento || null, numero_cheque: numeroChequeVal } as any)
+          .eq("id", (created as any).expense_id);
+        setCheckExpenseId((created as any).expense_id);
+      }
 
       setSavedContract({ id: created!.id, numero: created!.numero });
       toast({
@@ -658,6 +693,62 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
             </CardContent>
           </Card>
 
+          {/* Pagamento ao contratado */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Coins className="w-4 h-4" /> Pagamento ao Contratado
+              </div>
+              <div>
+                <Label className="text-xs">Forma de pagamento</Label>
+                <Select
+                  value={form.forma_pagamento}
+                  onValueChange={(v) => setForm((f) => ({ ...f, forma_pagamento: v, numero_cheque: v === "cheque" ? f.numero_cheque : "" }))}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {FORMA_PAGAMENTO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  A conta a pagar gerada será registrada com esta forma de pagamento.
+                </p>
+              </div>
+
+              {form.forma_pagamento === "cheque" && (
+                <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                  <div>
+                    <Label className="text-xs">Número do Cheque</Label>
+                    <Input
+                      className="h-9"
+                      value={form.numero_cheque}
+                      onChange={(e) => setForm((f) => ({ ...f, numero_cheque: e.target.value }))}
+                      placeholder="Ex: 000123"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-9 gap-1.5"
+                    onClick={() => {
+                      if (valorTotal <= 0) {
+                        toast({ title: "Informe peso e valor por tonelada antes de emitir o cheque", variant: "destructive" });
+                        return;
+                      }
+                      setCheckDialogOpen(true);
+                    }}
+                  >
+                    <Printer className="h-4 w-4" /> Gerar e Imprimir Cheque
+                  </Button>
+                  <p className="sm:col-span-2 text-[10px] text-muted-foreground">
+                    Você pode apenas registrar o número do cheque, sem imprimir a folha.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="flex gap-2 sticky bottom-0 bg-background pt-3 pb-2">
             {!savedContract ? (
               <>
@@ -683,6 +774,20 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
           </div>
         </div>
       </DialogContent>
+
+      <CheckIssueDialog
+        open={checkDialogOpen}
+        onOpenChange={setCheckDialogOpen}
+        data={{
+          expenseId: checkExpenseId,
+          valor: valorTotal,
+          nominal: form.contratado_nome,
+          data: new Date().toISOString().slice(0, 10),
+          historico: `Contrato de frete${savedContract ? ` Nº ${savedContract.numero}` : ""}${form.placa_veiculo ? ` - ${form.placa_veiculo}` : ""}`,
+          numeroCheque: form.numero_cheque || null,
+        }}
+        onSaved={(num) => setForm((f) => ({ ...f, numero_cheque: num || f.numero_cheque }))}
+      />
     </Dialog>
   );
 }
