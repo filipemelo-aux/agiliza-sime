@@ -190,6 +190,18 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-6">
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <Checkbox checked={cruzado} onCheckedChange={v => setCruzado(!!v)} />
+              Cruzar cheque (só depósito em conta)
+            </label>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <Checkbox checked={imprimirCanhoto} onCheckedChange={v => setImprimirCanhoto(!!v)} />
+              Imprimir canhoto
+            </label>
+          </div>
+
+
           <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3">
             <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
             <p className="text-xs text-yellow-800 dark:text-yellow-300">
