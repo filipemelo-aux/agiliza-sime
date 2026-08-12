@@ -182,10 +182,11 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
       if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
+      doc.text(cidade.trim(), Number(layout.cidade_x), Number(layout.cidade_y));
       doc.text(
-        `${cidade.trim()}, ${String(d).padStart(2, "0")} de ${MESES[m - 1] || ""} de ${y}`,
-        Number(layout.cidade_data_x),
-        Number(layout.cidade_data_y),
+        `${String(d).padStart(2, "0")} ${MESES[m - 1] || ""} ${y}`,
+        Number(layout.data_x),
+        Number(layout.data_y),
       );
 
       // Cheque cruzado: duas diagonais ocupando toda a altura do cheque
