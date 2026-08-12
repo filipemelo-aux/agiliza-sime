@@ -79,13 +79,16 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const { jsPDF } = await import("jspdf");
       const w = Number(layout.largura_folha_mm);
       const h = Number(layout.altura_folha_mm);
-      // Paisagem explícita: no jsPDF, com orientation "landscape" o array de
-      // formato é invertido, então passamos [altura, largura] para obter
-      // pageWidth = w e pageHeight = h exatamente como cadastrado no template.
+      // Retrato com dimensões forçadas: em modo portrait o jsPDF interpreta
+      // format[0] como largura e format[1] como altura. Garantimos que a
+      // largura seja sempre o maior valor (folha A4 cheio = 210 mm) e a
+      // altura o menor (75 mm), mantendo a arte horizontal no topo da página.
+      const pageW = Math.max(w, h);
+      const pageH = Math.min(w, h);
       const doc = new jsPDF({
-        orientation: "landscape",
+        orientation: "portrait",
         unit: "mm",
-        format: [h, w],
+        format: [pageW, pageH],
         putOnlyUsedFonts: true,
         compress: false,
       });
