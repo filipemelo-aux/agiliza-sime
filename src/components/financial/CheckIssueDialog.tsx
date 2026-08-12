@@ -112,7 +112,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       doc.setFont("courier", "normal");
       // Sem quebra automática do jsPDF: cada linha vai na sua coordenada exata
       doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
-      if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
+      // 2ª linha sempre alinhada à esquerda da 1ª (evita invadir a área do canhoto)
+      if (linha2) doc.text(linha2, ext1X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
       doc.text(
         `${cidade.trim()}, ${String(d).padStart(2, "0")} de ${MESES[m - 1] || ""} de ${y}`,
