@@ -188,18 +188,25 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         Number(layout.cidade_data_y),
       );
 
-      // Cheque cruzado: duas diagonais curtas no canto oposto ao canhoto
+      // Cheque cruzado: duas diagonais ocupando toda a altura do cheque
       if (cruzado) {
+        doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.5);
+        const folhaH = Math.min(Number(layout.altura_folha_mm) || 90, pageH);
         const canhotoDireita = Number(layout.canhoto_valor_x) > folhaW / 2;
+        const topo = 2;
+        const base = Math.max(topo + 5, folhaH - 2);
+        const desloc = base - topo; // inclinação 45°
         if (canhotoDireita) {
-          doc.line(8, 5, 22, 18);
-          doc.line(13, 5, 27, 18);
+          doc.line(6, topo, 6 + desloc, base);
+          doc.line(12, topo, 12 + desloc, base);
         } else {
-          doc.line(folhaW - 8, 5, folhaW - 22, 18);
-          doc.line(folhaW - 13, 5, folhaW - 27, 18);
+          doc.line(folhaW - 6, topo, folhaW - 6 - desloc, base);
+          doc.line(folhaW - 12, topo, folhaW - 12 - desloc, base);
         }
+        doc.setDrawColor(255, 255, 255);
       }
+
 
 
       // Canhoto — cada campo exatamente na coordenada definida no template
