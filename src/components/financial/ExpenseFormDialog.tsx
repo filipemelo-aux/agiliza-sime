@@ -294,6 +294,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       setLitros(expense.litros ? String(expense.litros) : "");
       
       setNumeroMulta(expense.numero_multa || "");
+      setNumeroCheque((expense as any).numero_cheque || "");
       setFornecedorCnpj(expense.fornecedor_cnpj || "");
       setDocumentoImportado(expense.documento_fiscal_importado || false);
       setXmlOriginal(expense.xml_original || null);
