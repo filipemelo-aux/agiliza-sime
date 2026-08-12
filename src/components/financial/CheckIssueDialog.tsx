@@ -77,16 +77,12 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     setGenerating(true);
     try {
       const { jsPDF } = await import("jspdf");
-      // Controle total: a folha usa exatamente as medidas definidas no template
-      // (largura/altura em mm). Sem A4 forçado, sem margens, sem ajustes.
-      const folhaW = Number(layout.largura_folha_mm) || 210;
-      const folhaH = Number(layout.altura_folha_mm) || 297;
+      // Folha A4 retrato fixa: o cheque é impresso no topo da folha, usando as
+      // coordenadas X/Y (mm) definidas no template.
       const doc = new jsPDF({
-        // Sempre "portrait" para que o formato [largura, altura] seja usado
-        // exatamente como definido no template (sem inversão automática).
         orientation: "portrait",
         unit: "mm",
-        format: [folhaW, folhaH],
+        format: "a4",
         putOnlyUsedFonts: true,
         compress: false,
       });
@@ -106,11 +102,11 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
-      const ext2X = Number(layout.valor_extenso2_x);
+      const ext2X = ext1X; // 2ª linha alinhada à esquerda da primeira
 
-      // Quebra pela largura útil da 1ª linha até a borda da folha configurada
+      // Quebra pela largura útil da 1ª linha até a borda da folha A4
       const larguraChar = doc.getTextWidth("0") || 1.9;
-      const maxChars1 = Math.max(10, Math.floor((folhaW - ext1X) / larguraChar));
+      const maxChars1 = Math.max(10, Math.floor((pageW - ext1X - 5) / larguraChar));
       const [linha1, linha2] = quebrarExtenso(extensoProtegido, maxChars1);
 
       // Corpo do cheque
