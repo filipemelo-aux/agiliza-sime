@@ -6,8 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2, Eye, Download } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
+import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
+import { getLocalDateISO } from "@/lib/date";
 
 type Layout = Record<string, any>;
 
@@ -45,6 +50,11 @@ export function CheckLayoutsSettings() {
   const [form, setForm] = useState<Layout | null>(null);
   const [saving, setSaving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [testOpen, setTestOpen] = useState(false);
+  const [testBytes, setTestBytes] = useState<Uint8Array | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testCruzado, setTestCruzado] = useState(true);
+  const [testCanhoto, setTestCanhoto] = useState(true);
 
   const load = async (keepId?: string) => {
     const { data, error } = await supabase.from("check_layouts").select("*").order("banco_nome");
@@ -91,6 +101,29 @@ export function CheckLayoutsSettings() {
     if (error) return toast.error("Erro ao salvar", { description: error.message });
     toast.success("Layout salvo");
     load(form.id);
+  };
+
+  const handleTestPreview = async () => {
+    if (!form) return;
+    setTesting(true);
+    try {
+      const bytes = await buildCheckPdf({
+        layout: form,
+        valor: 1234.56,
+        nominal: "TESTE DE ALINHAMENTO LTDA",
+        historico: "Cheque de teste — conferência de layout",
+        cidade: "Araguaína",
+        dataISO: getLocalDateISO(),
+        cruzado: testCruzado,
+        imprimirCanhoto: testCanhoto,
+      });
+      setTestBytes(bytes);
+      setTestOpen(true);
+    } catch (e: any) {
+      toast.error("Erro ao gerar teste", { description: e?.message });
+    } finally {
+      setTesting(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -171,7 +204,21 @@ export function CheckLayoutsSettings() {
               </div>
             ))}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={testCruzado} onCheckedChange={v => setTestCruzado(!!v)} />
+                Cruzar cheque no teste
+              </label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={testCanhoto} onCheckedChange={v => setTestCanhoto(!!v)} />
+                Imprimir canhoto no teste
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleTestPreview} disabled={testing}>
+                <Eye className="h-4 w-4" /> {testing ? "Gerando..." : "Pré-visualizar teste"}
+              </Button>
               <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
                 <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar layout"}
               </Button>
@@ -182,6 +229,27 @@ export function CheckLayoutsSettings() {
           </div>
         )}
       </CardContent>
+      <Dialog open={testOpen} onOpenChange={setTestOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Cheque de teste — {form?.banco_nome}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Valores fictícios apenas para conferir o alinhamento. Imprima em A4, escala 100% e margens “Nenhuma”.
+          </p>
+          <CheckPdfPreview bytes={testBytes} />
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => testBytes && downloadPdfBytes(testBytes, "cheque_teste_layout.pdf")}
+            >
+              <Download className="h-4 w-4" /> Baixar PDF de teste
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {ConfirmDialog}
     </Card>
   );
