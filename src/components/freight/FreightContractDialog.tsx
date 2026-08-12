@@ -774,6 +774,20 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
           </div>
         </div>
       </DialogContent>
+
+      <CheckIssueDialog
+        open={checkDialogOpen}
+        onOpenChange={setCheckDialogOpen}
+        data={{
+          expenseId: checkExpenseId,
+          valor: valorTotal,
+          nominal: form.contratado_nome,
+          data: new Date().toISOString().slice(0, 10),
+          historico: `Contrato de frete${savedContract ? ` Nº ${savedContract.numero}` : ""}${form.placa_veiculo ? ` - ${form.placa_veiculo}` : ""}`,
+          numeroCheque: form.numero_cheque || null,
+        }}
+        onSaved={(num) => setForm((f) => ({ ...f, numero_cheque: num || f.numero_cheque }))}
+      />
     </Dialog>
   );
 }
