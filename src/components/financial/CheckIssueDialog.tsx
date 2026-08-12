@@ -41,6 +41,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [dataCheque, setDataCheque] = useState(data.data || getLocalDateISO());
   const [numeroCheque, setNumeroCheque] = useState(data.numeroCheque || "");
   const [generating, setGenerating] = useState(false);
+  const [cruzado, setCruzado] = useState(localStorage.getItem("cheque_cruzado") !== "0");
+  const [imprimirCanhoto, setImprimirCanhoto] = useState(localStorage.getItem("cheque_canhoto") !== "0");
 
   useEffect(() => {
     if (!open) return;
