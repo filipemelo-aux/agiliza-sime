@@ -77,23 +77,20 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     setGenerating(true);
     try {
       const { jsPDF } = await import("jspdf");
-      const w = Number(layout.largura_folha_mm);
-      const h = Number(layout.altura_folha_mm);
-      // Retrato com dimensões forçadas: em modo portrait o jsPDF interpreta
-      // format[0] como largura e format[1] como altura. Garantimos que a
-      // largura seja sempre o maior valor (folha A4 cheio = 210 mm) e a
-      // altura o menor (75 mm), mantendo a arte horizontal no topo da página.
-      const pageW = Math.max(w, h);
-      const pageH = Math.min(w, h);
+      // Folha A4 fixa em retrato: evita auto-rotação de drivers de impressora
+      // e garante que o navegador/renderizador reconheça um documento padrão.
+      // As coordenadas X/Y do layout continuam posicionando o cheque na área
+      // superior esquerda da folha A4 inteira.
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: [pageW, pageH],
+        format: "a4",
         putOnlyUsedFonts: true,
         compress: false,
       });
       // Margem zero: origem absoluta no canto superior esquerdo da folha física
       (doc as any).setDisplayMode?.("fullwidth");
+      const pageW = doc.internal.pageSize.getWidth();
       doc.setFont("courier", "normal");
       doc.setFontSize(10);
 
@@ -108,9 +105,9 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
-      
+
       // Largura útil da 1ª linha do extenso (até a borda direita, com margem)
-      const larguraLinha1 = Math.max(20, w - ext1X - 6);
+      const larguraLinha1 = Math.max(20, pageW - ext1X - 6);
       // Quantos caracteres cabem em courier 10 nessa largura
       const larguraChar = doc.getTextWidth("0") || 1.9;
       const maxChars1 = Math.max(10, Math.floor(larguraLinha1 / larguraChar));
@@ -137,7 +134,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       if (cruzado) {
         doc.setLineWidth(0.5);
         const canhotoX = Number(layout.canhoto_valor_x);
-        const canhotoDireita = canhotoX > w / 2;
+        const canhotoDireita = canhotoX > pageW / 2;
         const margem = 4;
 
         if (canhotoDireita) {
@@ -147,9 +144,9 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
           doc.line(13, 5, Math.min(27, maxX), 18);
         } else {
           // Folha à direita: canto superior direito, sem ultrapassar o canhoto
-          const minX = Math.min(w - 20, canhotoX + margem);
-          doc.line(w - 8, 5, Math.max(minX, w - 22), 18);
-          doc.line(w - 13, 5, Math.max(minX, w - 27), 18);
+          const minX = Math.min(pageW - 20, canhotoX + margem);
+          doc.line(pageW - 8, 5, Math.max(minX, pageW - 22), 18);
+          doc.line(pageW - 13, 5, Math.max(minX, pageW - 27), 18);
         }
       }
 
