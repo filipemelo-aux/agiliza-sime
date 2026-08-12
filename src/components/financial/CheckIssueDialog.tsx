@@ -34,7 +34,6 @@ interface Props {
 
 type Layout = Record<string, any>;
 
-const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
 export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [layouts, setLayouts] = useState<Layout[]>([]);
