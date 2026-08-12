@@ -76,7 +76,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         unit: "mm",
         format: [w, h],
       });
-      doc.setFont("helvetica", "normal");
+      doc.setFont("courier", "normal");
       doc.setFontSize(10);
 
       const [d, m, y] = [
@@ -86,12 +86,14 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       ];
 
       const valorStr = formatCurrency(data.valor).replace("R$", "").trim();
-      const [linha1, linha2] = quebrarExtenso(extenso, 62);
+      // Antifraude: extenso encapsulado por asteriscos
+      const extensoProtegido = `*** ${extenso} ***`;
+      const [linha1, linha2] = quebrarExtenso(extensoProtegido, 62);
 
       // Corpo do cheque
-      doc.setFont("helvetica", "bold");
-      doc.text(`#${valorStr}#`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
-      doc.setFont("helvetica", "normal");
+      doc.setFont("courier", "bold");
+      doc.text(`# ${valorStr} #`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
+      doc.setFont("courier", "normal");
       doc.text(linha1, Number(layout.valor_extenso1_x), Number(layout.valor_extenso1_y));
       if (linha2) doc.text(linha2, Number(layout.valor_extenso2_x), Number(layout.valor_extenso2_y));
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
@@ -101,16 +103,35 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         Number(layout.cidade_data_y),
       );
 
-      // Canhoto
-      doc.setFontSize(8);
-      doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y));
-      doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y));
-      doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y));
-      doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
+      // Cheque cruzado: duas diagonais paralelas no canto superior esquerdo
+      if (cruzado) {
+        const x0 = Number(layout.canhoto_valor_x) ? 0 : 0;
+        const base = w * 0.35; // origem horizontal das diagonais
+        doc.setLineWidth(0.5);
+        doc.line(base * 0.35 + x0, 2, base * 0.6 + x0, h * 0.32);
+        doc.line(base * 0.5 + x0, 2, base * 0.75 + x0, h * 0.32);
+      }
 
-      doc.save(`cheque-${numeroCheque || "sem-numero"}.pdf`);
+      // Canhoto
+      if (imprimirCanhoto) {
+        doc.setFontSize(8);
+        doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y));
+        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y));
+        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y));
+        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
+      }
+
+      // Preview em nova aba (sem download automático)
+      const blobUrl = URL.createObjectURL(doc.output("blob"));
+      const win = window.open(blobUrl, "_blank");
+      if (!win) toast.warning("Permita pop-ups para visualizar o cheque");
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+
+      localStorage.setItem("cheque_cruzado", cruzado ? "1" : "0");
+      localStorage.setItem("cheque_canhoto", imprimirCanhoto ? "1" : "0");
 
       if (numeroCheque.trim() && data.expenseId) {
+
         const { error } = await supabase
           .from("expenses")
           .update({ numero_cheque: numeroCheque.trim() } as any)
