@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso, quebrarExtenso } from "@/lib/valorExtenso";
-import { Printer, AlertTriangle } from "lucide-react";
+import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
 
 export interface CheckIssueData {
@@ -43,11 +43,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [generating, setGenerating] = useState(false);
   const [cruzado, setCruzado] = useState(localStorage.getItem("cheque_cruzado") !== "0");
   const [imprimirCanhoto, setImprimirCanhoto] = useState(localStorage.getItem("cheque_canhoto") !== "0");
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setDataCheque(data.data || getLocalDateISO());
     setNumeroCheque(data.numeroCheque || "");
+    setPdfBlobUrl(null);
     (async () => {
       const { data: rows } = await supabase
         .from("check_layouts")
@@ -59,6 +61,12 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       if (list.length && !layoutId) setLayoutId(list[0].id);
     })();
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    };
+  }, [pdfBlobUrl]);
 
   const layout = useMemo(() => layouts.find(l => l.id === layoutId), [layouts, layoutId]);
   const extenso = useMemo(() => valorPorExtenso(data.valor), [data.valor]);
@@ -121,17 +129,15 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
       }
 
-      // Preview em nova aba (sem download automático)
-      const blobUrl = URL.createObjectURL(doc.output("blob"));
-      const win = window.open(blobUrl, "_blank");
-      if (!win) toast.warning("Permita pop-ups para visualizar o cheque");
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)
+      const blob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(blob);
+      setPdfBlobUrl(blobUrl);
 
       localStorage.setItem("cheque_cruzado", cruzado ? "1" : "0");
       localStorage.setItem("cheque_canhoto", imprimirCanhoto ? "1" : "0");
 
       if (numeroCheque.trim() && data.expenseId) {
-
         const { error } = await supabase
           .from("expenses")
           .update({ numero_cheque: numeroCheque.trim() } as any)
@@ -150,73 +156,112 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     }
   };
 
+  const handleDownload = () => {
+    if (!pdfBlobUrl) return;
+    const a = document.createElement("a");
+    a.href = pdfBlobUrl;
+    a.download = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const handleClose = () => {
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    setPdfBlobUrl(null);
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={pdfBlobUrl ? "max-w-4xl w-[95vw]" : "max-w-lg"}>
         <DialogHeader>
-          <DialogTitle>Emissão de Cheque</DialogTitle>
+          <DialogTitle>{pdfBlobUrl ? "Visualização de Impressão" : "Emissão de Cheque"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
-            <p className="text-sm font-medium">{data.nominal || "—"}</p>
-            <p className="text-sm text-muted-foreground">
-              Valor: <strong className="text-foreground">{formatCurrency(data.valor)}</strong>
-            </p>
-            <p className="text-xs text-muted-foreground italic">*** {extenso} ***</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs">Template</Label>
-              <Select value={layoutId} onValueChange={setLayoutId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {layouts.map(l => <SelectItem key={l.id} value={l.id}>{l.banco_nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Cidade</Label>
-              <Input className="h-9" value={cidade} onChange={e => setCidade(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Data do cheque</Label>
-              <Input type="date" className="h-9" value={dataCheque} onChange={e => setDataCheque(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Número do cheque</Label>
-              <Input className="h-9" value={numeroCheque} onChange={e => setNumeroCheque(e.target.value)} placeholder="Ex: 000123" />
+        {pdfBlobUrl ? (
+          <div className="space-y-4">
+            <iframe
+              src={pdfBlobUrl}
+              width="100%"
+              height="600px"
+              style={{ border: "none" }}
+              title="Visualização do cheque"
+            />
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
+                <Download className="h-4 w-4" />
+                Baixar PDF
+              </Button>
+              <Button size="sm" onClick={handleClose} className="gap-1.5">
+                <X className="h-4 w-4" />
+                Fechar
+              </Button>
             </div>
           </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+                <p className="text-sm font-medium">{data.nominal || "—"}</p>
+                <p className="text-sm text-muted-foreground">
+                  Valor: <strong className="text-foreground">{formatCurrency(data.valor)}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground italic">*** {extenso} ***</p>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <Checkbox checked={cruzado} onCheckedChange={v => setCruzado(!!v)} />
-              Cruzar cheque (só depósito em conta)
-            </label>
-            <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <Checkbox checked={imprimirCanhoto} onCheckedChange={v => setImprimirCanhoto(!!v)} />
-              Imprimir canhoto
-            </label>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Template</Label>
+                  <Select value={layoutId} onValueChange={setLayoutId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {layouts.map(l => <SelectItem key={l.id} value={l.id}>{l.banco_nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Cidade</Label>
+                  <Input className="h-9" value={cidade} onChange={e => setCidade(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Data do cheque</Label>
+                  <Input type="date" className="h-9" value={dataCheque} onChange={e => setDataCheque(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Número do cheque</Label>
+                  <Input className="h-9" value={numeroCheque} onChange={e => setNumeroCheque(e.target.value)} placeholder="Ex: 000123" />
+                </div>
+              </div>
 
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox checked={cruzado} onCheckedChange={v => setCruzado(!!v)} />
+                  Cruzar cheque (só depósito em conta)
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox checked={imprimirCanhoto} onCheckedChange={v => setImprimirCanhoto(!!v)} />
+                  Imprimir canhoto
+                </label>
+              </div>
 
-          <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-800 dark:text-yellow-300">
-              Atenção: Na hora de imprimir o PDF, configure a impressora para Escala 100% (Tamanho Real).
-            </p>
-          </div>
-        </div>
+              <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                  Atenção: Na hora de imprimir o PDF, configure a impressora para Escala 100% (Tamanho Real).
+                </p>
+              </div>
+            </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button size="sm" onClick={handleGerar} disabled={generating} className="gap-1.5">
-            <Printer className="h-4 w-4" />
-            {generating ? "Gerando..." : "Gerar e Imprimir Cheque"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+              <Button size="sm" onClick={handleGerar} disabled={generating} className="gap-1.5">
+                <Printer className="h-4 w-4" />
+                {generating ? "Gerando..." : "Gerar e Imprimir Cheque"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
