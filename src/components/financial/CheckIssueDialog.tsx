@@ -82,7 +82,9 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const folhaW = Number(layout.largura_folha_mm) || 210;
       const folhaH = Number(layout.altura_folha_mm) || 297;
       const doc = new jsPDF({
-        orientation: folhaW >= folhaH ? "landscape" : "portrait",
+        // Sempre "portrait" para que o formato [largura, altura] seja usado
+        // exatamente como definido no template (sem inversão automática).
+        orientation: "portrait",
         unit: "mm",
         format: [folhaW, folhaH],
         putOnlyUsedFonts: true,
