@@ -693,6 +693,62 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
             </CardContent>
           </Card>
 
+          {/* Pagamento ao contratado */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Coins className="w-4 h-4" /> Pagamento ao Contratado
+              </div>
+              <div>
+                <Label className="text-xs">Forma de pagamento</Label>
+                <Select
+                  value={form.forma_pagamento}
+                  onValueChange={(v) => setForm((f) => ({ ...f, forma_pagamento: v, numero_cheque: v === "cheque" ? f.numero_cheque : "" }))}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {FORMA_PAGAMENTO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  A conta a pagar gerada será registrada com esta forma de pagamento.
+                </p>
+              </div>
+
+              {form.forma_pagamento === "cheque" && (
+                <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                  <div>
+                    <Label className="text-xs">Número do Cheque</Label>
+                    <Input
+                      className="h-9"
+                      value={form.numero_cheque}
+                      onChange={(e) => setForm((f) => ({ ...f, numero_cheque: e.target.value }))}
+                      placeholder="Ex: 000123"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="h-9 gap-1.5"
+                    onClick={() => {
+                      if (valorTotal <= 0) {
+                        toast({ title: "Informe peso e valor por tonelada antes de emitir o cheque", variant: "destructive" });
+                        return;
+                      }
+                      setCheckDialogOpen(true);
+                    }}
+                  >
+                    <Printer className="h-4 w-4" /> Gerar e Imprimir Cheque
+                  </Button>
+                  <p className="sm:col-span-2 text-[10px] text-muted-foreground">
+                    Você pode apenas registrar o número do cheque, sem imprimir a folha.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="flex gap-2 sticky bottom-0 bg-background pt-3 pb-2">
             {!savedContract ? (
               <>
