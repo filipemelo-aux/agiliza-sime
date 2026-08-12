@@ -96,14 +96,23 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const valorStr = formatCurrency(data.valor).replace("R$", "").trim();
       // Antifraude: extenso encapsulado por asteriscos
       const extensoProtegido = `*** ${extenso} ***`;
-      const [linha1, linha2] = quebrarExtenso(extensoProtegido, 62);
+
+      const ext1X = Number(layout.valor_extenso1_x);
+      const ext2X = Number(layout.valor_extenso2_x);
+      // Largura útil da 1ª linha do extenso (até a borda direita, com margem)
+      const larguraLinha1 = Math.max(20, w - ext1X - 6);
+      // Quantos caracteres cabem em courier 10 nessa largura
+      const larguraChar = doc.getTextWidth("0") || 1.9;
+      const maxChars1 = Math.max(10, Math.floor(larguraLinha1 / larguraChar));
+      const [linha1, linha2] = quebrarExtenso(extensoProtegido, maxChars1);
 
       // Corpo do cheque
       doc.setFont("courier", "bold");
       doc.text(`# ${valorStr} #`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
       doc.setFont("courier", "normal");
-      doc.text(linha1, Number(layout.valor_extenso1_x), Number(layout.valor_extenso1_y));
-      if (linha2) doc.text(linha2, Number(layout.valor_extenso2_x), Number(layout.valor_extenso2_y));
+      // Sem quebra automática do jsPDF: cada linha vai na sua coordenada exata
+      doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
+      if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
       doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
       doc.text(
         `${cidade.trim()}, ${String(d).padStart(2, "0")} de ${MESES[m - 1] || ""} de ${y}`,
@@ -111,22 +120,35 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         Number(layout.cidade_data_y),
       );
 
-      // Cheque cruzado: duas diagonais paralelas no canto superior esquerdo
+      // Cheque cruzado: duas diagonais curtas, restritas ao canto superior esquerdo
       if (cruzado) {
-        const x0 = Number(layout.canhoto_valor_x) ? 0 : 0;
-        const base = w * 0.35; // origem horizontal das diagonais
         doc.setLineWidth(0.5);
-        doc.line(base * 0.35 + x0, 2, base * 0.6 + x0, h * 0.32);
-        doc.line(base * 0.5 + x0, 2, base * 0.75 + x0, h * 0.32);
+        doc.line(10, 5, 25, 20);
+        doc.line(15, 5, 30, 20);
       }
 
-      // Canhoto
+      // Canhoto — cada campo na sua coordenada Y exclusiva
       if (imprimirCanhoto) {
         doc.setFontSize(8);
-        doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y));
-        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y));
-        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y));
-        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
+        const canhotoY = {
+          valor: Number(layout.canhoto_valor_y),
+          data: Number(layout.canhoto_data_y),
+          favorecido: Number(layout.canhoto_favorecido_y),
+          referente: Number(layout.canhoto_referente_y),
+        };
+        // Proteção contra layouts com Y repetidos (evita textos sobrepostos)
+        const usados: number[] = [];
+        const yUnico = (v: number) => {
+          let y = v;
+          while (usados.some((u) => Math.abs(u - y) < 2)) y += 5;
+          usados.push(y);
+          return y;
+        };
+        doc.text(valorStr, Number(layout.canhoto_valor_x), yUnico(canhotoY.valor), { baseline: "alphabetic" });
+        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), yUnico(canhotoY.data), { baseline: "alphabetic" });
+        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), yUnico(canhotoY.favorecido), { baseline: "alphabetic" });
+        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), yUnico(canhotoY.referente), { baseline: "alphabetic" });
+        doc.setFontSize(10);
       }
 
       // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)

@@ -781,7 +781,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         data={{
           expenseId: checkExpenseId,
           valor: valorTotal,
-          nominal: form.contratado_nome,
+          nominal: form.motorista_nome?.trim() || form.contratado_nome?.trim() || "",
           data: new Date().toISOString().slice(0, 10),
           historico: `Contrato de frete${savedContract ? ` Nº ${savedContract.numero}` : ""}${form.placa_veiculo ? ` - ${form.placa_veiculo}` : ""}`,
           numeroCheque: form.numero_cheque || null,
