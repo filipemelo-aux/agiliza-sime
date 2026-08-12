@@ -3997,6 +3997,10 @@ export type Database = {
         Args: { _timeout_seconds?: number }
         Returns: number
       }
+      save_credit_card_invoice_edit: {
+        Args: { _invoice: Json; _invoice_id: string; _items: Json }
+        Returns: undefined
+      }
       update_freight_contract_with_payable: {
         Args: {
           _contract_id: string
