@@ -161,7 +161,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       ];
 
       const valorStr = formatCurrency(data.valor).replace("R$", "").trim();
-      // Antifraude: extenso encapsulado por asteriscos
+      // Antifraude: extenso encapsulado por asteriscos e preenchido até o fim da linha
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
@@ -172,11 +172,13 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const folhaW = Math.min(Number(layout.largura_folha_mm) || pageW, pageW);
       const larguraChar = doc.getTextWidth("0") || 1.9;
       const maxChars1 = Math.max(10, Math.floor((folhaW - ext1X) / larguraChar));
-      const [linha1, linha2] = quebrarExtenso(extensoProtegido, maxChars1);
+      const [linha1Base, linha2Base] = quebrarExtenso(extensoProtegido, maxChars1);
+      const linha1 = linha1Base.padEnd(maxChars1, "*");
+      const linha2 = linha2Base ? linha2Base.padEnd(maxChars1, "*") : "";
 
       // Corpo do cheque
       doc.setFont("courier", "bold");
-      doc.text(`# ${valorStr} #`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
+      doc.text(`## ${valorStr} ##`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
       doc.setFont("courier", "normal");
       // Cada linha exatamente na coordenada X/Y definida no template
       doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
