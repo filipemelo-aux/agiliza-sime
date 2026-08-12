@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckLayoutsSettings } from "@/components/settings/CheckLayoutsSettings";
+import { Printer } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -476,7 +478,7 @@ export default function AdminSettings() {
 
         {/* Tabs */}
         <Tabs value={isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "perfil" : activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-4"}`}>
+          <TabsList className={`grid w-full max-w-xl ${isCurrentUserOperador && !isCurrentUserAdmin && !isCurrentUserModerator ? "grid-cols-1 max-w-xs" : "grid-cols-5"}`}>
             {(isCurrentUserAdmin || isCurrentUserModerator) && (
               <TabsTrigger value="geral" className="gap-2 text-xs sm:text-sm">
                 <Users className="w-4 h-4" />
@@ -493,6 +495,12 @@ export default function AdminSettings() {
               <TabsTrigger value="email" className="gap-2 text-xs sm:text-sm">
                 <MailIcon className="w-4 h-4" />
                 E-mail
+              </TabsTrigger>
+            )}
+            {(isCurrentUserAdmin || isCurrentUserModerator) && (
+              <TabsTrigger value="cheques" className="gap-2 text-xs sm:text-sm">
+                <Printer className="w-4 h-4" />
+                Cheques
               </TabsTrigger>
             )}
             <TabsTrigger value="perfil" className="gap-2 text-xs sm:text-sm">
@@ -635,6 +643,15 @@ export default function AdminSettings() {
               <p className="text-sm text-muted-foreground">Configure o servidor SMTP para envio de e-mails pelo sistema</p>
             </div>
             <SmtpSettingsForm />
+          </TabsContent>
+
+          {/* ===== TAB CHEQUES ===== */}
+          <TabsContent value="cheques" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Emissor de Cheques</h2>
+              <p className="text-sm text-muted-foreground">Configure as coordenadas de impressão (mm) de cada banco</p>
+            </div>
+            <CheckLayoutsSettings />
           </TabsContent>
 
           {/* ===== TAB MEU PERFIL ===== */}

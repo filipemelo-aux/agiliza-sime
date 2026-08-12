@@ -15,7 +15,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
 import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { CheckIssueDialog } from "./CheckIssueDialog";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -1390,6 +1391,31 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
            </div>
 
+          {formaPagamento === "cheque" && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+              <div>
+                <Label className="text-xs">Número do Cheque</Label>
+                <Input
+                  className="h-9"
+                  value={numeroCheque}
+                  onChange={(e) => setNumeroCheque(e.target.value)}
+                  placeholder="Ex: 000123"
+                />
+              </div>
+              <Button
+                type="button"
+                className="h-9 gap-1.5"
+                onClick={() => {
+                  if (!Number(valorTotal)) return toast.error("Informe o valor da despesa antes de emitir o cheque");
+                  setCheckDialogOpen(true);
+                }}
+              >
+                <Printer className="h-4 w-4" /> Gerar e Imprimir Cheque
+              </Button>
+            </div>
+          )}
+
+
 
           {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
           {!isMaintenanceType && (
@@ -2004,6 +2030,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       onOpenChange={setShowCreateFornecedor}
       onCreated={() => {}}
       defaultCategory="fornecedor"
+    />
+
+    <CheckIssueDialog
+      open={checkDialogOpen}
+      onOpenChange={setCheckDialogOpen}
+      data={{
+        expenseId: expense?.id || null,
+        valor: Number(valorTotal) || 0,
+        nominal: favorecidoNome || descricao,
+        data: dataVencimento || dataEmissao,
+        historico: descricao,
+        numeroCheque: numeroCheque,
+      }}
+      onSaved={(n) => setNumeroCheque(n)}
     />
   </>
   );
