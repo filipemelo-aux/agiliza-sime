@@ -123,17 +123,17 @@ export async function buildCheckPdf({
 
   if (imprimirCanhoto) {
     doc.setFontSize(8);
-    doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
-    doc.text(formatDateBR(dataISO).toUpperCase(), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
+    doc.text(valorStr.slice(0, 17), Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
+    doc.text(formatDateBR(dataISO).toUpperCase().slice(0, 17), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
     const nominalUp = (nominal || "").toUpperCase();
-    doc.text(nominalUp.slice(0, 15), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
-    const nominalLinha2 = nominalUp.slice(15, 30).trim();
+    doc.text(nominalUp.slice(0, 17), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
+    const nominalLinha2 = nominalUp.slice(17, 34).trim();
     if (nominalLinha2 && layout.canhoto_favorecido2_y) {
-      doc.text(nominalLinha2, Number(layout.canhoto_favorecido2_x), Number(layout.canhoto_favorecido2_y), { baseline: "alphabetic" });
+      doc.text(nominalLinha2.slice(0, 17), Number(layout.canhoto_favorecido2_x), Number(layout.canhoto_favorecido2_y), { baseline: "alphabetic" });
     }
-    doc.text((historico || "").toUpperCase(), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
+    doc.text((historico || "").toUpperCase().slice(0, 17), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
     if (bomPara) {
-      doc.text(bomPara, Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
+      doc.text(bomPara.slice(0, 17), Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
     }
     doc.setFontSize(10);
   }
