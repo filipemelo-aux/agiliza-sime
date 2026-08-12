@@ -128,11 +128,26 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         Number(layout.cidade_data_y),
       );
 
-      // Cheque cruzado: duas diagonais curtas, restritas ao canto superior esquerdo
+      // Cheque cruzado: duas diagonais curtas, restritas à folha do cheque
+      // (nunca sobre o canhoto). O posicionamento respeita o lado onde o
+      // canhoto está configurado no template.
       if (cruzado) {
         doc.setLineWidth(0.5);
-        doc.line(10, 5, 25, 20);
-        doc.line(15, 5, 30, 20);
+        const canhotoX = Number(layout.canhoto_valor_x);
+        const canhotoDireita = canhotoX > w / 2;
+        const margem = 4;
+
+        if (canhotoDireita) {
+          // Folha à esquerda: canto superior esquerdo, sem ultrapassar o canhoto
+          const maxX = Math.max(20, canhotoX - margem);
+          doc.line(8, 5, Math.min(22, maxX), 18);
+          doc.line(13, 5, Math.min(27, maxX), 18);
+        } else {
+          // Folha à direita: canto superior direito, sem ultrapassar o canhoto
+          const minX = Math.min(w - 20, canhotoX + margem);
+          doc.line(w - 8, 5, Math.max(minX, w - 22), 18);
+          doc.line(w - 13, 5, Math.max(minX, w - 27), 18);
+        }
       }
 
       // Canhoto — cada campo na sua coordenada Y exclusiva
