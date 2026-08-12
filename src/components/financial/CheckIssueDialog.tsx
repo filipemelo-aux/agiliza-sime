@@ -120,22 +120,35 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         Number(layout.cidade_data_y),
       );
 
-      // Cheque cruzado: duas diagonais paralelas no canto superior esquerdo
+      // Cheque cruzado: duas diagonais curtas, restritas ao canto superior esquerdo
       if (cruzado) {
-        const x0 = Number(layout.canhoto_valor_x) ? 0 : 0;
-        const base = w * 0.35; // origem horizontal das diagonais
         doc.setLineWidth(0.5);
-        doc.line(base * 0.35 + x0, 2, base * 0.6 + x0, h * 0.32);
-        doc.line(base * 0.5 + x0, 2, base * 0.75 + x0, h * 0.32);
+        doc.line(10, 5, 25, 20);
+        doc.line(15, 5, 30, 20);
       }
 
-      // Canhoto
+      // Canhoto — cada campo na sua coordenada Y exclusiva
       if (imprimirCanhoto) {
         doc.setFontSize(8);
-        doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y));
-        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y));
-        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y));
-        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y));
+        const canhotoY = {
+          valor: Number(layout.canhoto_valor_y),
+          data: Number(layout.canhoto_data_y),
+          favorecido: Number(layout.canhoto_favorecido_y),
+          referente: Number(layout.canhoto_referente_y),
+        };
+        // Proteção contra layouts com Y repetidos (evita textos sobrepostos)
+        const usados: number[] = [];
+        const yUnico = (v: number) => {
+          let y = v;
+          while (usados.some((u) => Math.abs(u - y) < 2)) y += 5;
+          usados.push(y);
+          return y;
+        };
+        doc.text(valorStr, Number(layout.canhoto_valor_x), yUnico(canhotoY.valor), { baseline: "alphabetic" });
+        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), yUnico(canhotoY.data), { baseline: "alphabetic" });
+        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), yUnico(canhotoY.favorecido), { baseline: "alphabetic" });
+        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), yUnico(canhotoY.referente), { baseline: "alphabetic" });
+        doc.setFontSize(10);
       }
 
       // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)
