@@ -2351,6 +2351,7 @@ export type Database = {
           data_contrato: string
           establishment_id: string | null
           expense_id: string | null
+          forma_pagamento: string | null
           id: string
           motorista_cpf: string | null
           motorista_id: string | null
@@ -2359,6 +2360,7 @@ export type Database = {
           municipio_origem: string | null
           natureza_carga: string | null
           numero: number
+          numero_cheque: string | null
           observacoes: string | null
           peso_kg: number
           placa_veiculo: string | null
@@ -2381,6 +2383,7 @@ export type Database = {
           data_contrato?: string
           establishment_id?: string | null
           expense_id?: string | null
+          forma_pagamento?: string | null
           id?: string
           motorista_cpf?: string | null
           motorista_id?: string | null
@@ -2389,6 +2392,7 @@ export type Database = {
           municipio_origem?: string | null
           natureza_carga?: string | null
           numero: number
+          numero_cheque?: string | null
           observacoes?: string | null
           peso_kg?: number
           placa_veiculo?: string | null
@@ -2411,6 +2415,7 @@ export type Database = {
           data_contrato?: string
           establishment_id?: string | null
           expense_id?: string | null
+          forma_pagamento?: string | null
           id?: string
           motorista_cpf?: string | null
           motorista_id?: string | null
@@ -2419,6 +2424,7 @@ export type Database = {
           municipio_origem?: string | null
           natureza_carga?: string | null
           numero?: number
+          numero_cheque?: string | null
           observacoes?: string | null
           peso_kg?: number
           placa_veiculo?: string | null
