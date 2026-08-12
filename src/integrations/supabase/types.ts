@@ -328,6 +328,10 @@ export type Database = {
           altura_folha_mm: number
           ativo: boolean
           banco_nome: string
+          bom_para_x: number
+          bom_para_y: number
+          canhoto_bom_para_x: number
+          canhoto_bom_para_y: number
           canhoto_data_x: number
           canhoto_data_y: number
           canhoto_favorecido_x: number
@@ -357,6 +361,10 @@ export type Database = {
           altura_folha_mm?: number
           ativo?: boolean
           banco_nome: string
+          bom_para_x?: number
+          bom_para_y?: number
+          canhoto_bom_para_x?: number
+          canhoto_bom_para_y?: number
           canhoto_data_x?: number
           canhoto_data_y?: number
           canhoto_favorecido_x?: number
@@ -386,6 +394,10 @@ export type Database = {
           altura_folha_mm?: number
           ativo?: boolean
           banco_nome?: string
+          bom_para_x?: number
+          bom_para_y?: number
+          canhoto_bom_para_x?: number
+          canhoto_bom_para_y?: number
           canhoto_data_x?: number
           canhoto_data_y?: number
           canhoto_favorecido_x?: number
