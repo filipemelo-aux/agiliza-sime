@@ -105,9 +105,9 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
-      
+
       // Largura útil da 1ª linha do extenso (até a borda direita, com margem)
-      const larguraLinha1 = Math.max(20, w - ext1X - 6);
+      const larguraLinha1 = Math.max(20, pageW - ext1X - 6);
       // Quantos caracteres cabem em courier 10 nessa largura
       const larguraChar = doc.getTextWidth("0") || 1.9;
       const maxChars1 = Math.max(10, Math.floor(larguraLinha1 / larguraChar));
@@ -134,7 +134,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       if (cruzado) {
         doc.setLineWidth(0.5);
         const canhotoX = Number(layout.canhoto_valor_x);
-        const canhotoDireita = canhotoX > w / 2;
+        const canhotoDireita = canhotoX > pageW / 2;
         const margem = 4;
 
         if (canhotoDireita) {
@@ -144,9 +144,9 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
           doc.line(13, 5, Math.min(27, maxX), 18);
         } else {
           // Folha à direita: canto superior direito, sem ultrapassar o canhoto
-          const minX = Math.min(w - 20, canhotoX + margem);
-          doc.line(w - 8, 5, Math.max(minX, w - 22), 18);
-          doc.line(w - 13, 5, Math.max(minX, w - 27), 18);
+          const minX = Math.min(pageW - 20, canhotoX + margem);
+          doc.line(pageW - 8, 5, Math.max(minX, pageW - 22), 18);
+          doc.line(pageW - 13, 5, Math.max(minX, pageW - 27), 18);
         }
       }
 
