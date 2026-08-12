@@ -98,7 +98,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       const extensoProtegido = `*** ${extenso} ***`;
 
       const ext1X = Number(layout.valor_extenso1_x);
-      const ext2X = Number(layout.valor_extenso2_x);
+      
       // Largura útil da 1ª linha do extenso (até a borda direita, com margem)
       const larguraLinha1 = Math.max(20, w - ext1X - 6);
       // Quantos caracteres cabem em courier 10 nessa largura
