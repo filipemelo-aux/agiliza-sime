@@ -163,7 +163,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
             <p className="text-sm text-muted-foreground">
               Valor: <strong className="text-foreground">{formatCurrency(data.valor)}</strong>
             </p>
-            <p className="text-xs text-muted-foreground italic">{extenso}</p>
+            <p className="text-xs text-muted-foreground italic">*** {extenso} ***</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
