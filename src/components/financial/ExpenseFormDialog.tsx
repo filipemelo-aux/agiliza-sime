@@ -134,6 +134,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
   const [dataEmissao, setDataEmissao] = useState(getLocalDateISO());
   const [dataVencimento, setDataVencimento] = useState("");
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [numeroCheque, setNumeroCheque] = useState("");
+  const [checkDialogOpen, setCheckDialogOpen] = useState(false);
   const [favorecidoNome, setFavorecidoNome] = useState("");
   const [favorecidoId, setFavorecidoId] = useState<string | null>(null);
   const [favorecidoCategory, setFavorecidoCategory] = useState<string | null>(null);
