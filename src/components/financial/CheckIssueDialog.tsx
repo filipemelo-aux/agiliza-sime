@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
-import { formatDateBR, getLocalDateISO } from "@/lib/date";
-import { valorPorExtenso, quebrarExtenso } from "@/lib/valorExtenso";
-import { Printer, AlertTriangle, Download, X, Loader2 } from "lucide-react";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { getLocalDateISO } from "@/lib/date";
+import { valorPorExtenso } from "@/lib/valorExtenso";
+import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
+import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
+import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
 
 export interface CheckIssueData {
@@ -33,7 +34,6 @@ interface Props {
 
 type Layout = Record<string, any>;
 
-const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
 export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [layouts, setLayouts] = useState<Layout[]>([]);
@@ -46,8 +46,6 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [imprimirCanhoto, setImprimirCanhoto] = useState(localStorage.getItem("cheque_canhoto") !== "0");
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -73,52 +71,6 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     };
   }, [pdfBlobUrl]);
 
-  useEffect(() => {
-    if (!pdfBytes || !pdfBlobUrl) return;
-
-    let cancelled = false;
-    let loadingTask: { promise: Promise<any>; destroy: () => Promise<void> } | null = null;
-    let renderTask: { cancel: () => void; promise: Promise<void> } | null = null;
-
-    const renderPreview = async () => {
-      setPreviewLoading(true);
-      try {
-        const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
-        loadingTask = pdfjs.getDocument({ data: pdfBytes.slice() });
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-        const canvas = previewCanvasRef.current;
-        if (!canvas || cancelled) return;
-
-        const viewport = page.getViewport({ scale: 1.6 });
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("Não foi possível preparar a visualização");
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        renderTask = page.render({ canvas, canvasContext: context, viewport });
-        await renderTask.promise;
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Falha ao renderizar preview do cheque", error);
-          toast.error("Não foi possível exibir a pré-visualização", {
-            description: "O PDF ainda pode ser baixado pelo botão abaixo.",
-          });
-        }
-      } finally {
-        if (!cancelled) setPreviewLoading(false);
-      }
-    };
-
-    void renderPreview();
-    return () => {
-      cancelled = true;
-      renderTask?.cancel();
-      void loadingTask?.destroy();
-    };
-  }, [pdfBytes, pdfBlobUrl]);
-
   const layout = useMemo(() => layouts.find(l => l.id === layoutId), [layouts, layoutId]);
   const extenso = useMemo(() => valorPorExtenso(data.valor), [data.valor]);
 
@@ -127,107 +79,17 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     if (!cidade.trim()) return toast.error("Informe a cidade");
     setGenerating(true);
     try {
-      const { jsPDF } = await import("jspdf");
-      // Folha A4 retrato fixa: o cheque é impresso no topo da folha, usando as
-      // coordenadas X/Y (mm) definidas no template.
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-        putOnlyUsedFonts: true,
-        compress: false,
+      const bytes = await buildCheckPdf({
+        layout,
+        valor: data.valor,
+        nominal: data.nominal,
+        historico: data.historico,
+        cidade,
+        dataISO: dataCheque,
+        cruzado,
+        imprimirCanhoto,
       });
-      (doc as any).setDisplayMode?.("fullwidth");
-      (doc as any).viewerPreferences?.({
-        PrintScaling: "None",
-        PickTrayByPDFSize: true,
-      });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-
-      // Ocupa a caixa completa da página sem produzir marca visível. Isso evita
-      // que drivers (especialmente o macOS) detectem apenas o cheque horizontal
-      // no topo e ativem a rotação/centralização automática do conteúdo.
-      doc.setDrawColor(255, 255, 255);
-      doc.setLineWidth(0.01);
-      doc.rect(0, 0, pageW, pageH);
-      doc.setFont("courier", "normal");
-      doc.setFontSize(10);
-
-      const [d, m, y] = [
-        Number(dataCheque.slice(8, 10)),
-        Number(dataCheque.slice(5, 7)),
-        dataCheque.slice(0, 4),
-      ];
-
-      const valorStr = formatCurrency(data.valor).replace("R$", "").trim();
-      // Antifraude: extenso encapsulado por asteriscos e preenchido até o fim da linha
-      const extensoProtegido = `*** ${extenso} ***`;
-
-      const ext1X = Number(layout.valor_extenso1_x);
-      // 2ª linha usa exatamente o X configurado no template
-      const ext2X = Number(layout.valor_extenso2_x);
-
-      // Largura útil = largura da folha configurada (limitada à página A4)
-      const folhaW = Math.min(Number(layout.largura_folha_mm) || pageW, pageW);
-      const larguraChar = doc.getTextWidth("0") || 1.9;
-      const maxChars1 = Math.max(10, Math.floor((folhaW - ext1X) / larguraChar));
-      const [linha1Base, linha2Base] = quebrarExtenso(extensoProtegido, maxChars1);
-      const linha1 = linha1Base.padEnd(maxChars1, "*");
-      const linha2 = linha2Base ? linha2Base.padEnd(maxChars1, "*") : "";
-
-      // Corpo do cheque
-      doc.setFont("courier", "bold");
-      doc.text(`## ${valorStr} ##`, Number(layout.valor_numerico_x), Number(layout.valor_numerico_y));
-      doc.setFont("courier", "normal");
-      // Cada linha exatamente na coordenada X/Y definida no template
-      doc.text(linha1, ext1X, Number(layout.valor_extenso1_y), { baseline: "alphabetic" });
-      if (linha2) doc.text(linha2, ext2X, Number(layout.valor_extenso2_y), { baseline: "alphabetic" });
-      doc.text(data.nominal || "", Number(layout.nominal_x), Number(layout.nominal_y));
-      doc.text(cidade.trim(), Number(layout.cidade_x), Number(layout.cidade_y));
-      doc.text(
-        `${String(d).padStart(2, "0")} ${MESES[m - 1] || ""} ${y}`,
-        Number(layout.data_x),
-        Number(layout.data_y),
-      );
-
-      // Cheque cruzado: duas diagonais ocupando toda a altura do cheque
-      if (cruzado) {
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        const folhaH = Math.min(Number(layout.altura_folha_mm) || 90, pageH);
-        const canhotoDireita = Number(layout.canhoto_valor_x) > folhaW / 2;
-        const topo = 2;
-        const base = Math.max(topo + 5, folhaH - 2);
-        const desloc = base - topo; // inclinação 45°
-        if (canhotoDireita) {
-          doc.line(6, topo, 6 + desloc, base);
-          doc.line(12, topo, 12 + desloc, base);
-        } else {
-          doc.line(folhaW - 6, topo, folhaW - 6 - desloc, base);
-          doc.line(folhaW - 12, topo, folhaW - 12 - desloc, base);
-        }
-        doc.setDrawColor(255, 255, 255);
-      }
-
-
-
-      // Canhoto — cada campo exatamente na coordenada definida no template
-      if (imprimirCanhoto) {
-        doc.setFontSize(8);
-        doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
-        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
-        doc.text(data.nominal || "", Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
-        doc.text(data.historico || "", Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
-        doc.setFontSize(10);
-      }
-
-
-      // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)
-      const arrayBuffer = doc.output("arraybuffer");
-      const bytes = new Uint8Array(arrayBuffer);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const blobUrl = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(new Blob([bytes.slice()], { type: "application/pdf" }));
       setPdfBytes(bytes);
       setPdfBlobUrl(blobUrl);
 
@@ -255,35 +117,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
 
   const handleDownload = () => {
     if (!pdfBytes) return;
-    const fileName = `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`;
-    // URL nova a cada clique (a anterior pode estar presa ao preview)
-    const url = URL.createObjectURL(new Blob([pdfBytes.slice()], { type: "application/pdf" }));
-    const inIframe = (() => {
-      try {
-        return window.self !== window.top;
-      } catch {
-        return true;
-      }
-    })();
-
-    if (inIframe) {
-      // Dentro do preview em iframe o atributo download costuma ser bloqueado: abre em nova aba
-      const w = window.open(url, "_blank", "noopener,noreferrer");
-      if (!w) {
-        toast.error("O navegador bloqueou a nova aba", {
-          description: "Permita pop-ups ou abra o app em uma aba separada para baixar o PDF.",
-        });
-      }
-    } else {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    downloadPdfBytes(pdfBytes, `cheque_${numeroCheque.trim() || "sem_numero"}.pdf`);
   };
 
   const handleClose = () => {
@@ -302,18 +136,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
 
         {pdfBlobUrl ? (
           <div className="space-y-4">
-            <div className="relative h-[600px] overflow-auto rounded-md border border-border bg-muted/30 p-3">
-              {previewLoading && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              <canvas
-                ref={previewCanvasRef}
-                className="mx-auto block h-auto w-full max-w-[794px] bg-background shadow-sm"
-                aria-label="Visualização do cheque"
-              />
-            </div>
+            <CheckPdfPreview bytes={pdfBytes} />
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
                 <Download className="h-4 w-4" />
