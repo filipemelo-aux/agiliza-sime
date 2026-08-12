@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FileSignature, Printer, Building2, Truck, User, Coins } from "lucide-react";
 import { maskCurrency, unmaskCurrency, maskName, formatCurrency } from "@/lib/masks";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckIssueDialog } from "@/components/financial/CheckIssueDialog";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { CteDescontoFields, emptyDesconto, calcDescontoTotal, type DescontoState } from "./CteDescontoFields";
 import type { Cte } from "@/pages/FreightCte";
@@ -49,8 +51,18 @@ interface ContractForm {
   natureza_carga: string;
   peso_kg: string;
   valor_tonelada: string;
+  forma_pagamento: string;
+  numero_cheque: string;
   observacoes: string;
 }
+
+const FORMA_PAGAMENTO_OPTIONS = [
+  { value: "pix", label: "PIX" },
+  { value: "boleto", label: "Boleto" },
+  { value: "transferencia", label: "Transferência" },
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "cheque", label: "Cheque" },
+];
 
 const empty: ContractForm = {
   contratado_id: null,
@@ -70,6 +82,8 @@ const empty: ContractForm = {
   natureza_carga: "",
   peso_kg: "",
   valor_tonelada: "",
+  forma_pagamento: "",
+  numero_cheque: "",
   observacoes: "",
 };
 
@@ -94,6 +108,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
   const [desconto, setDesconto] = useState<DescontoState>(emptyDesconto);
   const [saving, setSaving] = useState(false);
   const [savedContract, setSavedContract] = useState<{ id: string; numero: number } | null>(null);
+  const [checkDialogOpen, setCheckDialogOpen] = useState(false);
+  const [checkExpenseId, setCheckExpenseId] = useState<string | null>(null);
   const isEdit = !!contractId;
 
   // Pré-preenche a partir do CT-e (e busca veículo/proprietário) ou carrega contrato existente em modo edição
@@ -132,6 +148,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         valor_tonelada: (c as any).valor_tonelada
           ? maskCurrency(String(Math.round(Number((c as any).valor_tonelada) * 100)))
           : "",
+        forma_pagamento: (c as any).forma_pagamento || "",
+        numero_cheque: (c as any).numero_cheque || "",
         observacoes: cleanObs,
       });
     };
@@ -287,6 +305,8 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         // Valor por tonelada deixado em branco propositalmente para o usuário
         // negociar o frete terceiro sem herdar o valor do CT-e.
         valor_tonelada: "",
+        forma_pagamento: "",
+        numero_cheque: "",
         observacoes: "",
       });
     };
