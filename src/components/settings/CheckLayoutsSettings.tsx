@@ -31,6 +31,7 @@ const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }
       { base: "nominal", label: "Nominal (favorecido)" },
       { base: "cidade", label: "Cidade" },
       { base: "data", label: "Data" },
+      { base: "bom_para", label: "Bom para (pré-datado)" },
     ],
   },
   {
@@ -40,6 +41,7 @@ const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }
       { base: "canhoto_data", label: "Data" },
       { base: "canhoto_favorecido", label: "Favorecido" },
       { base: "canhoto_referente", label: "Referente" },
+      { base: "canhoto_bom_para", label: "Bom para (pré-datado)" },
     ],
   },
 ];
@@ -116,6 +118,8 @@ export function CheckLayoutsSettings() {
         dataISO: getLocalDateISO(),
         cruzado: testCruzado,
         imprimirCanhoto: testCanhoto,
+        predatado: true,
+        dataVencimentoISO: getLocalDateISO(),
       });
       setTestBytes(bytes);
       setTestOpen(true);

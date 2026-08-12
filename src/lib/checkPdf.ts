@@ -17,6 +17,10 @@ export interface BuildCheckPdfParams {
   dataISO: string;
   cruzado: boolean;
   imprimirCanhoto: boolean;
+  /** Cheque pré-datado: imprime "BOM PARA dd/mm/aaaa" */
+  predatado?: boolean;
+  /** ISO yyyy-mm-dd — data de vencimento do cheque pré-datado */
+  dataVencimentoISO?: string | null;
 }
 
 /**
@@ -32,6 +36,8 @@ export async function buildCheckPdf({
   dataISO,
   cruzado,
   imprimirCanhoto,
+  predatado,
+  dataVencimentoISO,
 }: BuildCheckPdfParams): Promise<Uint8Array> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({
@@ -104,12 +110,26 @@ export async function buildCheckPdf({
     doc.setDrawColor(255, 255, 255);
   }
 
+  const bomPara = predatado && dataVencimentoISO ? `BOM PARA ${formatDateBR(dataVencimentoISO)}` : "";
+
+  // "Bom para" no corpo do cheque (canto inferior direito, conforme layout)
+  if (bomPara) {
+    doc.setFont("courier", "bold");
+    doc.setFontSize(9);
+    doc.text(bomPara, Number(layout.bom_para_x), Number(layout.bom_para_y), { baseline: "alphabetic" });
+    doc.setFont("courier", "normal");
+    doc.setFontSize(10);
+  }
+
   if (imprimirCanhoto) {
     doc.setFontSize(8);
     doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
     doc.text(formatDateBR(dataISO), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
     doc.text(nominal || "", Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
     doc.text(historico || "", Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
+    if (bomPara) {
+      doc.text(bomPara, Number(layout.canhoto_bom_para_x), Number(layout.canhoto_bom_para_y), { baseline: "alphabetic" });
+    }
     doc.setFontSize(10);
   }
 

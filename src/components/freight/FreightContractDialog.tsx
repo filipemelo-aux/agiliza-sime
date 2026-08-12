@@ -787,6 +787,7 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
           numeroCheque: form.numero_cheque || null,
         }}
         onSaved={(num) => setForm((f) => ({ ...f, numero_cheque: num || f.numero_cheque }))}
+
       />
     </Dialog>
   );
