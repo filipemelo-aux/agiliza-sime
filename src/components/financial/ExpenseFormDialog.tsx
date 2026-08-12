@@ -670,6 +670,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       observacoes: observacoes.trim() || null, veiculo_placa: veiculoPlaca.trim() || null,
       litros: litros ? Number(litros) : null,
       numero_multa: numeroMulta.trim() || null, documento_fiscal_importado: documentoImportado,
+      numero_cheque: formaPagamento === "cheque" ? (numeroCheque.trim() || null) : null,
       xml_original: xmlOriginal, fornecedor_cnpj: fornecedorCnpj.trim() || null,
       veiculo_id: veiculoId || null,
       tipo_manutencao: isMaintenanceType ? tipoManutencao : null,
