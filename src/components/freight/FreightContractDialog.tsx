@@ -394,11 +394,26 @@ export function FreightContractDialog({ open, onOpenChange, cte, onSaved, contra
         resultId = data as string;
       }
 
+      // Persiste a forma de pagamento (e número do cheque) no contrato e na conta a pagar vinculada
+      const numeroChequeVal = form.forma_pagamento === "cheque" ? (form.numero_cheque.trim() || null) : null;
+      await supabase
+        .from("freight_contracts")
+        .update({ forma_pagamento: form.forma_pagamento || null, numero_cheque: numeroChequeVal } as any)
+        .eq("id", resultId);
+
       const { data: created } = await supabase
         .from("freight_contracts")
-        .select("id, numero")
+        .select("id, numero, expense_id")
         .eq("id", resultId)
         .single();
+
+      if ((created as any)?.expense_id) {
+        await supabase
+          .from("expenses")
+          .update({ forma_pagamento: form.forma_pagamento || null, numero_cheque: numeroChequeVal } as any)
+          .eq("id", (created as any).expense_id);
+        setCheckExpenseId((created as any).expense_id);
+      }
 
       setSavedContract({ id: created!.id, numero: created!.numero });
       toast({
