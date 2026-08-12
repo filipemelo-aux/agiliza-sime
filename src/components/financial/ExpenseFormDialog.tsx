@@ -15,7 +15,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MaintenanceFields, type MaintenanceItem } from "./MaintenanceFields";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown } from "lucide-react";
+import { Upload, FileText, Trash2, Fuel, Wrench, ChevronDown, ChevronUp, Plus, Minus, FolderTree, CalendarDays, Paperclip, UserPlus, Check, ChevronsUpDown, Printer } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { splitPdfPages } from "@/lib/pdfSplitter";
 import { getLocalDateISO, addMonthsPreserveDay } from "@/lib/date";
 import { PlanoContasCombobox } from "./PlanoContasCombobox";
+import { CheckIssueDialog } from "./CheckIssueDialog";
 
 const CENTRO_CUSTO_OPTIONS = [
   { value: "frota_propria", label: "Frota Própria" },
@@ -2029,6 +2030,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
       onOpenChange={setShowCreateFornecedor}
       onCreated={() => {}}
       defaultCategory="fornecedor"
+    />
+
+    <CheckIssueDialog
+      open={checkDialogOpen}
+      onOpenChange={setCheckDialogOpen}
+      data={{
+        expenseId: expense?.id || null,
+        valor: Number(valorTotal) || 0,
+        nominal: favorecidoNome || descricao,
+        data: dataVencimento || dataEmissao,
+        historico: descricao,
+        numeroCheque: numeroCheque,
+      }}
+      onSaved={(n) => setNumeroCheque(n)}
     />
   </>
   );
