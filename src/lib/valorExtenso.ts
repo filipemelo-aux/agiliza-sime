@@ -51,7 +51,7 @@ function inteiroExtenso(n: number): string {
     // "e" antes da última parte quando < 100 ou múltiplo de 100
     const numFinal = restante;
     const usaE = numFinal > 0 && (numFinal < 100 || numFinal % 100 === 0);
-    return usaE ? `${anteriores} e ${ultima}` : `${anteriores} ${ultima}`;
+    return usaE ? `${anteriores} e ${ultima}` : `${anteriores}, ${ultima}`;
   }
   return partes[0] || "zero";
 }
@@ -64,7 +64,10 @@ export function valorPorExtenso(valor: number): string {
 
   const partes: string[] = [];
   if (reais > 0) {
-    partes.push(`${inteiroExtenso(reais)} ${reais === 1 ? "real" : "reais"}`);
+    const ext = inteiroExtenso(reais);
+    // "de reais" para milhões/bilhões exatos (ex: um milhão de reais)
+    const exato = reais % 1_000_000 === 0 && reais >= 1_000_000;
+    partes.push(`${ext}${exato ? " de" : ""} ${reais === 1 ? "real" : "reais"}`);
   }
   if (centavos > 0) {
     partes.push(`${inteiroExtenso(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`);
