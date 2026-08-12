@@ -29,7 +29,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   data: CheckIssueData;
   /** Called after the check number was persisted on the expense */
-  onSaved?: (numeroCheque: string) => void;
+  onSaved?: (numeroCheque: string, info?: { predatado: boolean; dataVencimento: string | null }) => void;
 }
 
 type Layout = Record<string, any>;
@@ -44,6 +44,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const [generating, setGenerating] = useState(false);
   const [cruzado, setCruzado] = useState(localStorage.getItem("cheque_cruzado") !== "0");
   const [imprimirCanhoto, setImprimirCanhoto] = useState(localStorage.getItem("cheque_canhoto") !== "0");
+  const [predatado, setPredatado] = useState(false);
+  const [dataVencimento, setDataVencimento] = useState(data.data || getLocalDateISO());
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
 
@@ -51,6 +53,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
     if (!open) return;
     setDataCheque(data.data || getLocalDateISO());
     setNumeroCheque(data.numeroCheque || "");
+    setPredatado(false);
+    setDataVencimento(data.data || getLocalDateISO());
     setPdfBlobUrl(null);
     setPdfBytes(null);
     (async () => {
@@ -77,6 +81,7 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
   const handleGerar = async () => {
     if (!layout) return toast.error("Selecione um template de cheque");
     if (!cidade.trim()) return toast.error("Informe a cidade");
+    if (predatado && !dataVencimento) return toast.error("Informe a data do cheque pré-datado");
     setGenerating(true);
     try {
       const bytes = await buildCheckPdf({
@@ -88,6 +93,8 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
         dataISO: dataCheque,
         cruzado,
         imprimirCanhoto,
+        predatado,
+        dataVencimentoISO: predatado ? dataVencimento : null,
       });
       const blobUrl = URL.createObjectURL(new Blob([bytes.slice()], { type: "application/pdf" }));
       setPdfBytes(bytes);
@@ -96,17 +103,22 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       localStorage.setItem("cheque_cruzado", cruzado ? "1" : "0");
       localStorage.setItem("cheque_canhoto", imprimirCanhoto ? "1" : "0");
 
-      if (numeroCheque.trim() && data.expenseId) {
+      const updates: Record<string, any> = {};
+      if (numeroCheque.trim()) updates.numero_cheque = numeroCheque.trim();
+      // Pré-datado: a data do cheque passa a ser o vencimento no contas a pagar
+      if (predatado && dataVencimento) updates.data_vencimento = dataVencimento;
+
+      if (Object.keys(updates).length && data.expenseId) {
         const { error } = await supabase
           .from("expenses")
-          .update({ numero_cheque: numeroCheque.trim() } as any)
+          .update(updates as any)
           .eq("id", data.expenseId);
         if (error) toast.error("Cheque gerado, mas falhou ao salvar o número", { description: error.message });
         else toast.success("Cheque gerado e número salvo na despesa");
       } else {
         toast.success("Cheque gerado");
       }
-      onSaved?.(numeroCheque.trim());
+      onSaved?.(numeroCheque.trim(), { predatado, dataVencimento: predatado ? dataVencimento : null });
       localStorage.setItem("cheque_cidade", cidade.trim());
     } catch (e: any) {
       toast.error("Erro ao gerar cheque", { description: e?.message });
@@ -192,7 +204,30 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
                   <Checkbox checked={imprimirCanhoto} onCheckedChange={v => setImprimirCanhoto(!!v)} />
                   Imprimir canhoto
                 </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox checked={predatado} onCheckedChange={v => setPredatado(!!v)} />
+                  Cheque pré-datado
+                </label>
               </div>
+
+              {predatado ? (
+                <div className="grid grid-cols-2 gap-4 rounded-md border border-border bg-muted/30 p-3">
+                  <div>
+                    <Label className="text-xs">Bom para (vencimento)</Label>
+                    <Input
+                      type="date"
+                      className="h-9"
+                      value={dataVencimento}
+                      onChange={e => setDataVencimento(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground self-end pb-1">
+                    Esta data será impressa como “BOM PARA” no cheque e no canhoto, e usada como vencimento no Contas a Pagar.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Cheque à vista.</p>
+              )}
 
               <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-3">
                 <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
