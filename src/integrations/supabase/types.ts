@@ -336,9 +336,11 @@ export type Database = {
           canhoto_referente_y: number
           canhoto_valor_x: number
           canhoto_valor_y: number
-          cidade_data_x: number
-          cidade_data_y: number
+          cidade_x: number
+          cidade_y: number
           created_at: string
+          data_x: number
+          data_y: number
           id: string
           largura_folha_mm: number
           nominal_x: number
@@ -363,9 +365,11 @@ export type Database = {
           canhoto_referente_y?: number
           canhoto_valor_x?: number
           canhoto_valor_y?: number
-          cidade_data_x?: number
-          cidade_data_y?: number
+          cidade_x?: number
+          cidade_y?: number
           created_at?: string
+          data_x?: number
+          data_y?: number
           id?: string
           largura_folha_mm?: number
           nominal_x?: number
@@ -390,9 +394,11 @@ export type Database = {
           canhoto_referente_y?: number
           canhoto_valor_x?: number
           canhoto_valor_y?: number
-          cidade_data_x?: number
-          cidade_data_y?: number
+          cidade_x?: number
+          cidade_y?: number
           created_at?: string
+          data_x?: number
+          data_y?: number
           id?: string
           largura_folha_mm?: number
           nominal_x?: number

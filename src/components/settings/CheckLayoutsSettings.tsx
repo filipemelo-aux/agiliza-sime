@@ -24,7 +24,8 @@ const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }
       { base: "valor_extenso1", label: "Extenso — linha 1" },
       { base: "valor_extenso2", label: "Extenso — linha 2" },
       { base: "nominal", label: "Nominal (favorecido)" },
-      { base: "cidade_data", label: "Cidade e data" },
+      { base: "cidade", label: "Cidade" },
+      { base: "data", label: "Data" },
     ],
   },
   {
