@@ -39,7 +39,8 @@ const COORD_GROUPS: { title: string; fields: { base: string; label: string }[] }
     fields: [
       { base: "canhoto_valor", label: "Valor" },
       { base: "canhoto_data", label: "Data" },
-      { base: "canhoto_favorecido", label: "Favorecido" },
+      { base: "canhoto_favorecido", label: "Favorecido (linha 1)" },
+      { base: "canhoto_favorecido2", label: "Favorecido (linha 2)" },
       { base: "canhoto_referente", label: "Referente" },
       { base: "canhoto_bom_para", label: "Bom para (pré-datado)" },
     ],
@@ -113,7 +114,7 @@ export function CheckLayoutsSettings() {
         layout: form,
         valor: 1234.56,
         nominal: "TESTE DE ALINHAMENTO LTDA",
-        historico: "Cheque de teste — conferência de layout",
+        historico: "",
         cidade: "Araguaína",
         dataISO: getLocalDateISO(),
         cruzado: testCruzado,

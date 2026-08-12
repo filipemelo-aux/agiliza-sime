@@ -336,6 +336,8 @@ export type Database = {
           canhoto_data_y: number
           canhoto_favorecido_x: number
           canhoto_favorecido_y: number
+          canhoto_favorecido2_x: number
+          canhoto_favorecido2_y: number
           canhoto_referente_x: number
           canhoto_referente_y: number
           canhoto_valor_x: number
@@ -369,6 +371,8 @@ export type Database = {
           canhoto_data_y?: number
           canhoto_favorecido_x?: number
           canhoto_favorecido_y?: number
+          canhoto_favorecido2_x?: number
+          canhoto_favorecido2_y?: number
           canhoto_referente_x?: number
           canhoto_referente_y?: number
           canhoto_valor_x?: number
@@ -402,6 +406,8 @@ export type Database = {
           canhoto_data_y?: number
           canhoto_favorecido_x?: number
           canhoto_favorecido_y?: number
+          canhoto_favorecido2_x?: number
+          canhoto_favorecido2_y?: number
           canhoto_referente_x?: number
           canhoto_referente_y?: number
           canhoto_valor_x?: number
