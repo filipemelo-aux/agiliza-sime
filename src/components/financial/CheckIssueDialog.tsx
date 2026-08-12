@@ -139,29 +139,16 @@ export function CheckIssueDialog({ open, onOpenChange, data, onSaved }: Props) {
       }
 
 
-      // Canhoto — cada campo na sua coordenada Y exclusiva
+      // Canhoto — cada campo exatamente na coordenada definida no template
       if (imprimirCanhoto) {
         doc.setFontSize(8);
-        const canhotoY = {
-          valor: Number(layout.canhoto_valor_y),
-          data: Number(layout.canhoto_data_y),
-          favorecido: Number(layout.canhoto_favorecido_y),
-          referente: Number(layout.canhoto_referente_y),
-        };
-        // Proteção contra layouts com Y repetidos (evita textos sobrepostos)
-        const usados: number[] = [];
-        const yUnico = (v: number) => {
-          let y = v;
-          while (usados.some((u) => Math.abs(u - y) < 2)) y += 5;
-          usados.push(y);
-          return y;
-        };
-        doc.text(valorStr, Number(layout.canhoto_valor_x), yUnico(canhotoY.valor), { baseline: "alphabetic" });
-        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), yUnico(canhotoY.data), { baseline: "alphabetic" });
-        doc.text((data.nominal || "").slice(0, 34), Number(layout.canhoto_favorecido_x), yUnico(canhotoY.favorecido), { baseline: "alphabetic" });
-        doc.text((data.historico || "").slice(0, 34), Number(layout.canhoto_referente_x), yUnico(canhotoY.referente), { baseline: "alphabetic" });
+        doc.text(valorStr, Number(layout.canhoto_valor_x), Number(layout.canhoto_valor_y), { baseline: "alphabetic" });
+        doc.text(formatDateBR(dataCheque), Number(layout.canhoto_data_x), Number(layout.canhoto_data_y), { baseline: "alphabetic" });
+        doc.text(data.nominal || "", Number(layout.canhoto_favorecido_x), Number(layout.canhoto_favorecido_y), { baseline: "alphabetic" });
+        doc.text(data.historico || "", Number(layout.canhoto_referente_x), Number(layout.canhoto_referente_y), { baseline: "alphabetic" });
         doc.setFontSize(10);
       }
+
 
       // Preview interno via iframe (evita bloqueios de pop-up e URLs blob em nova aba)
       const blob = doc.output("blob");
