@@ -1390,6 +1390,31 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, empresaId, char
             </div>
            </div>
 
+          {formaPagamento === "cheque" && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+              <div>
+                <Label className="text-xs">Número do Cheque</Label>
+                <Input
+                  className="h-9"
+                  value={numeroCheque}
+                  onChange={(e) => setNumeroCheque(e.target.value)}
+                  placeholder="Ex: 000123"
+                />
+              </div>
+              <Button
+                type="button"
+                className="h-9 gap-1.5"
+                onClick={() => {
+                  if (!Number(valorTotal)) return toast.error("Informe o valor da despesa antes de emitir o cheque");
+                  setCheckDialogOpen(true);
+                }}
+              >
+                <Printer className="h-4 w-4" /> Gerar e Imprimir Cheque
+              </Button>
+            </div>
+          )}
+
+
 
           {/* ── Vinculação opcional de veículo (qualquer despesa não-manutenção) ── */}
           {!isMaintenanceType && (
