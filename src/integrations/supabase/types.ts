@@ -326,27 +326,21 @@ export type Database = {
       check_layouts: {
         Row: {
           altura_folha_mm: number
-          ano_x: number
-          ano_y: number
           ativo: boolean
           banco_nome: string
           canhoto_data_x: number
           canhoto_data_y: number
-          canhoto_historico_x: number
-          canhoto_historico_y: number
-          canhoto_nominal_x: number
-          canhoto_nominal_y: number
+          canhoto_favorecido_x: number
+          canhoto_favorecido_y: number
+          canhoto_referente_x: number
+          canhoto_referente_y: number
           canhoto_valor_x: number
           canhoto_valor_y: number
-          cidade_x: number
-          cidade_y: number
+          cidade_data_x: number
+          cidade_data_y: number
           created_at: string
-          dia_x: number
-          dia_y: number
           id: string
           largura_folha_mm: number
-          mes_x: number
-          mes_y: number
           nominal_x: number
           nominal_y: number
           updated_at: string
@@ -359,27 +353,21 @@ export type Database = {
         }
         Insert: {
           altura_folha_mm?: number
-          ano_x?: number
-          ano_y?: number
           ativo?: boolean
           banco_nome: string
           canhoto_data_x?: number
           canhoto_data_y?: number
-          canhoto_historico_x?: number
-          canhoto_historico_y?: number
-          canhoto_nominal_x?: number
-          canhoto_nominal_y?: number
+          canhoto_favorecido_x?: number
+          canhoto_favorecido_y?: number
+          canhoto_referente_x?: number
+          canhoto_referente_y?: number
           canhoto_valor_x?: number
           canhoto_valor_y?: number
-          cidade_x?: number
-          cidade_y?: number
+          cidade_data_x?: number
+          cidade_data_y?: number
           created_at?: string
-          dia_x?: number
-          dia_y?: number
           id?: string
           largura_folha_mm?: number
-          mes_x?: number
-          mes_y?: number
           nominal_x?: number
           nominal_y?: number
           updated_at?: string
@@ -392,27 +380,21 @@ export type Database = {
         }
         Update: {
           altura_folha_mm?: number
-          ano_x?: number
-          ano_y?: number
           ativo?: boolean
           banco_nome?: string
           canhoto_data_x?: number
           canhoto_data_y?: number
-          canhoto_historico_x?: number
-          canhoto_historico_y?: number
-          canhoto_nominal_x?: number
-          canhoto_nominal_y?: number
+          canhoto_favorecido_x?: number
+          canhoto_favorecido_y?: number
+          canhoto_referente_x?: number
+          canhoto_referente_y?: number
           canhoto_valor_x?: number
           canhoto_valor_y?: number
-          cidade_x?: number
-          cidade_y?: number
+          cidade_data_x?: number
+          cidade_data_y?: number
           created_at?: string
-          dia_x?: number
-          dia_y?: number
           id?: string
           largura_folha_mm?: number
-          mes_x?: number
-          mes_y?: number
           nominal_x?: number
           nominal_y?: number
           updated_at?: string
