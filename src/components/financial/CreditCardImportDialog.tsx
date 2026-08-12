@@ -1290,39 +1290,40 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         observacoes: observacoes.trim() || null,
       };
 
+      const rows = items.map((it) => ({
+        invoice_id: id,
+        posted_date: it.posted_date,
+        description: it.description,
+        amount: it.amount,
+        fitid: it.fitid || null,
+        plano_contas_id: it.plano_contas_id,
+        centro_custo: it.centro_custo,
+        favorecido_id: it.favorecido_id,
+        favorecido_nome: it.favorecido_nome.trim() || null,
+        veiculo_id: it.veiculo_id,
+        observacoes: it.observacoes.trim() || null,
+        parcela_atual: it.parcela_atual,
+        parcela_total: it.parcela_total,
+        parcelas_expandidas: it.parcelas_expandidas,
+      }));
+
       if (id) {
-        const { error } = await supabase.from("credit_card_invoices" as any).update(payload).eq("id", id);
+        const { error } = await (supabase.rpc as any)("save_credit_card_invoice_edit", {
+          _invoice_id: id,
+          _invoice: payload,
+          _items: rows,
+        });
         if (error) throw error;
       } else {
         payload.created_by = user?.id;
         const { data, error } = await supabase.from("credit_card_invoices" as any).insert(payload).select("id").single();
         if (error) throw error;
         id = (data as any).id;
-      }
-
-      // Replace items
-      await supabase.from("credit_card_invoice_items" as any).delete().eq("invoice_id", id);
-      if (items.length > 0) {
-        const rows = items.map((it) => ({
-          invoice_id: id,
-          posted_date: it.posted_date,
-          description: it.description,
-          amount: it.amount,
-          fitid: it.fitid || null,
-          plano_contas_id: it.plano_contas_id,
-          centro_custo: it.centro_custo,
-          favorecido_id: it.favorecido_id,
-          favorecido_nome: it.favorecido_nome.trim() || null,
-          veiculo_id: it.veiculo_id,
-          observacoes: it.observacoes.trim() || null,
-          parcela_atual: it.parcela_atual,
-          parcela_total: it.parcela_total,
-          parcelas_expandidas: it.parcelas_expandidas,
-
-
-        }));
-        const { error: itemsErr } = await supabase.from("credit_card_invoice_items" as any).insert(rows);
-        if (itemsErr) throw itemsErr;
+        if (rows.length > 0) {
+          const newRows = rows.map((row) => ({ ...row, invoice_id: id }));
+          const { error: itemsErr } = await supabase.from("credit_card_invoice_items" as any).insert(newRows);
+          if (itemsErr) throw itemsErr;
+        }
       }
 
       // Sync the linked expense in Contas a Pagar:
