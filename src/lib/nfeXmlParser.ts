@@ -7,7 +7,12 @@ export interface NfeItem {
   descricao: string;
   quantidade: number;
   valor_unitario: number;
+  /** Custo final do item = vProd + IPI + ST + Frete + Seguro + Outras - Desconto */
   valor_total: number;
+  /** Valor bruto do produto (vProd), sem impostos/acréscimos */
+  valor_produto: number;
+  /** Impostos e acréscimos somados ao item (líquido de desconto) */
+  valor_acrescimos: number;
   ncm: string;
   cfop: string;
   unidade: string;
