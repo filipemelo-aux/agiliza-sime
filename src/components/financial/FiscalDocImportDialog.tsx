@@ -157,6 +157,52 @@ export function FiscalDocImportDialog({
     });
   }, [itens, itensTotal, valorParcela]);
 
+  /** Grupos desmembrados cuja soma de quantidades não bate com a quantidade original */
+  const gruposInvalidos = useMemo(() => {
+    const map = new Map<string, { desc: string; soma: number; original: number }>();
+    for (const it of itens) {
+      if (!it.grupo || it.qtd_original == null) continue;
+      const cur = map.get(it.grupo) || { desc: it.descricao, soma: 0, original: it.qtd_original };
+      cur.soma += Number(it.quantidade) || 0;
+      map.set(it.grupo, cur);
+    }
+    return [...map.values()].filter((g) => Math.abs(g.soma - g.original) > 0.0001);
+  }, [itens]);
+
+  const splitItem = (idx: number) => {
+    setItens((prev) => {
+      const it = prev[idx];
+      if (!it) return prev;
+      const grupo = it.grupo || `g${idx}-${Date.now()}`;
+      const qtdOriginal = it.qtd_original ?? it.quantidade;
+      const totalOriginal = it.total_original ?? it.valor_total;
+      const qA = Number((it.quantidade / 2).toFixed(4));
+      const qB = Number((it.quantidade - qA).toFixed(4));
+      const ratio = (q: number) => (qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0);
+      const base = { ...it, grupo, qtd_original: qtdOriginal, total_original: totalOriginal };
+      const linhaA = { ...base, quantidade: qA, valor_total: ratio(qA) };
+      const linhaB = { ...base, quantidade: qB, valor_total: ratio(qB), veiculo_id: null };
+      return [...prev.slice(0, idx), linhaA, linhaB, ...prev.slice(idx + 1)];
+    });
+  };
+
+  const updateQuantidade = (idx: number, raw: string) => {
+    const q = Number(raw.replace(",", ".")) || 0;
+    setItens((prev) =>
+      prev.map((r, j) => {
+        if (j !== idx) return r;
+        const qtdOriginal = r.qtd_original ?? r.quantidade;
+        const totalOriginal = r.total_original ?? r.valor_total;
+        return {
+          ...r,
+          quantidade: q,
+          valor_total: qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0,
+        };
+      }),
+    );
+  };
+
+
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
