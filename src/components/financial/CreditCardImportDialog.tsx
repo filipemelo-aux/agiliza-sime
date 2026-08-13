@@ -689,6 +689,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       fornecedor_cnpj: data.fornecedor_cnpj || null,
       itens_nota: data.itens.length ? data.itens : null,
       xml_original: data.xml_original || null,
+      rateio_veiculos: data.rateio && data.rateio.length > 0 ? data.rateio : null,
     };
 
     if (fiscalAttachIdx !== null) {
@@ -697,6 +698,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           ? {
               ...it,
               ...fiscalPatch,
+              veiculo_id: data.rateio && data.rateio.length > 0 ? null : it.veiculo_id,
               favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
               observacoes: it.observacoes?.trim()
                 || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
@@ -2149,6 +2151,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         attachMode={fiscalAttachIdx !== null}
         attachDescription={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.description : undefined}
         attachAmount={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.amount : undefined}
+        vehicles={vehicles}
         onConfirm={handleFiscalConfirm}
       />
 
