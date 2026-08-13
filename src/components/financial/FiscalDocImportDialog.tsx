@@ -313,6 +313,7 @@ export function FiscalDocImportDialog({
                       <TableHead className="text-[10px] w-20 text-right">Qtd</TableHead>
                       <TableHead className="text-[10px] w-28 text-right">Unit.</TableHead>
                       <TableHead className="text-[10px] w-28 text-right">Total</TableHead>
+                      {vehicles.length > 0 && <TableHead className="text-[10px] w-40">Veículo</TableHead>}
                       {isNfse && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
