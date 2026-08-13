@@ -1747,7 +1747,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[88px]">
+                      <TableHead className="px-1 text-[11px] w-[82px]">
                         <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
                       </TableHead>
                       <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
@@ -2104,7 +2104,7 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </TableCell>
-      <TableCell className="text-xs px-1 py-1.5 align-middle whitespace-nowrap w-[88px]">
+      <TableCell className="text-[11px] pl-1 pr-0 py-1 align-middle whitespace-nowrap w-[82px]">
         {(() => {
           const refFirst = referenceYM ? `${referenceYM}-01` : "";
           const posted = item.posted_date || "";
@@ -2140,11 +2140,11 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           );
         })()}
       </TableCell>
-      <TableCell className="pl-0.5 pr-1 py-1 align-middle min-w-[130px] w-[14%]">
+      <TableCell className="pl-0 pr-1 py-1 align-middle min-w-[130px] w-[14%]">
         <div className="flex items-center gap-0.5">
           <div ref={wrapperRef} className="relative flex-1 min-w-0">
             <Input
-              className="h-6 text-[10px] w-full truncate pl-0.5 pr-1"
+              className="h-6 text-[10px] w-full truncate pl-0 pr-1"
               value={favorecidoLocal}
               onChange={(e) => {
                 const v = e.target.value;
