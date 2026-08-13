@@ -26,6 +26,7 @@ import { PersonCreateDialog } from "@/components/PersonEditDialog";
 import { MonthPicker } from "@/components/MonthPicker";
 import { cn } from "@/lib/utils";
 import { PlanoContasCombobox as SharedPlanoContasCombobox } from "./PlanoContasCombobox";
+import { FiscalDocImportDialog, type FiscalDocResult } from "./FiscalDocImportDialog";
 
 
 const MONTHS_PT_LONG = [
@@ -166,6 +167,13 @@ interface ItemRow {
   parcela_atual: number | null;
   parcela_total: number | null;
   parcelas_expandidas: boolean;
+  // Vínculo fiscal (NF-e / NFS-e) — a obrigação de pagamento permanece na fatura do cartão
+  documento_fiscal_tipo?: string | null;
+  documento_fiscal_numero?: string | null;
+  chave_nfe?: string | null;
+  fornecedor_cnpj?: string | null;
+  itens_nota?: any;
+  xml_original?: string | null;
   possible_duplicate?: boolean;
   duplicate_note?: string;
 }
@@ -358,6 +366,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: r.parcela_atual ?? null,
         parcela_total: r.parcela_total ?? null,
         parcelas_expandidas: !!r.parcelas_expandidas,
+        documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
+        documento_fiscal_numero: r.documento_fiscal_numero ?? null,
+        chave_nfe: r.chave_nfe ?? null,
+        fornecedor_cnpj: r.fornecedor_cnpj ?? null,
+        itens_nota: r.itens_nota ?? null,
+        xml_original: r.xml_original ?? null,
       }));
       setItems(mapped);
       setOriginalItems(mapped);
@@ -656,6 +670,61 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     toast.success("Lançamento adicionado à fatura.");
   }, [manualForm, manualParcelaCalc]);
 
+  // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
+  const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
+  const [fiscalAttachIdx, setFiscalAttachIdx] = useState<number | null>(null);
+  const [pendingExpandFitid, setPendingExpandFitid] = useState<string | null>(null);
+
+  const handleFiscalConfirm = useCallback((data: FiscalDocResult) => {
+    const fiscalPatch = {
+      documento_fiscal_tipo: data.tipo,
+      documento_fiscal_numero: data.numero || null,
+      chave_nfe: data.chave || null,
+      fornecedor_cnpj: data.fornecedor_cnpj || null,
+      itens_nota: data.itens.length ? data.itens : null,
+      xml_original: data.xml_original || null,
+    };
+
+    if (fiscalAttachIdx !== null) {
+      setItems((prev) => prev.map((it, i) => (
+        i === fiscalAttachIdx
+          ? {
+              ...it,
+              ...fiscalPatch,
+              favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
+              observacoes: it.observacoes?.trim()
+                || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+            }
+          : it
+      )));
+      setFiscalAttachIdx(null);
+      toast.success("Nota fiscal vinculada ao lançamento.");
+      return;
+    }
+
+    const fitid = `fiscal-${crypto.randomUUID()}`;
+    const newRow: ItemRow = {
+      fitid,
+      posted_date: data.data_emissao,
+      description: data.descricao,
+      amount: data.valor_parcela,
+      plano_contas_id: data.plano_contas_id,
+      centro_custo: data.centro_custo || "",
+      favorecido_id: null,
+      favorecido_nome: data.fornecedor_nome || "",
+      veiculo_id: null,
+      observacoes: `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+      parcela_atual: data.parcela_atual,
+      parcela_total: data.parcela_total,
+      parcelas_expandidas: false,
+      ...fiscalPatch,
+    };
+    setItems((prev) => [newRow, ...prev]);
+    toast.success("Lançamento fiscal adicionado à fatura.");
+    if (data.expandir) setPendingExpandFitid(fitid);
+  }, [fiscalAttachIdx]);
+
+
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
@@ -948,6 +1017,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           parcela_atual: cur,
           parcela_total: totalP,
           parcelas_expandidas: true,
+          documento_fiscal_tipo: item.documento_fiscal_tipo || null,
+          documento_fiscal_numero: item.documento_fiscal_numero || null,
+          chave_nfe: item.chave_nfe || null,
+          fornecedor_cnpj: item.fornecedor_cnpj || null,
+          itens_nota: item.itens_nota ?? null,
+          xml_original: item.xml_original || null,
         })
         .eq("id", item.id);
       if (updErr) throw updErr;
@@ -969,6 +1044,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
           parcela_atual: cur,
           parcela_total: totalP,
           parcelas_expandidas: true,
+          documento_fiscal_tipo: item.documento_fiscal_tipo || null,
+          documento_fiscal_numero: item.documento_fiscal_numero || null,
+          chave_nfe: item.chave_nfe || null,
+          fornecedor_cnpj: item.fornecedor_cnpj || null,
+          itens_nota: item.itens_nota ?? null,
+          xml_original: item.xml_original || null,
         })
         .select("id")
         .single();
@@ -1049,6 +1130,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: parcela,
         parcela_total: totalP,
         parcelas_expandidas: true,
+        documento_fiscal_tipo: item.documento_fiscal_tipo || null,
+        documento_fiscal_numero: item.documento_fiscal_numero || null,
+        chave_nfe: item.chave_nfe || null,
+        fornecedor_cnpj: item.fornecedor_cnpj || null,
+        itens_nota: item.itens_nota ?? null,
+        xml_original: item.xml_original || null,
       };
 
       const existingItems: ItemRow[] = ((existingRows as any[]) || []).map((r) => ({
@@ -1084,6 +1171,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: targetItem.parcela_atual,
         parcela_total: targetItem.parcela_total,
         parcelas_expandidas: targetItem.parcelas_expandidas,
+        documento_fiscal_tipo: targetItem.documento_fiscal_tipo || null,
+        documento_fiscal_numero: targetItem.documento_fiscal_numero || null,
+        chave_nfe: targetItem.chave_nfe || null,
+        fornecedor_cnpj: targetItem.fornecedor_cnpj || null,
+        itens_nota: targetItem.itens_nota ?? null,
+        xml_original: targetItem.xml_original || null,
       };
 
       if (existingMatch) {
@@ -1138,6 +1231,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       parcela_atual: r.parcela_atual ?? null,
       parcela_total: r.parcela_total ?? null,
       parcelas_expandidas: !!r.parcelas_expandidas,
+      documento_fiscal_tipo: r.documento_fiscal_tipo ?? null,
+      documento_fiscal_numero: r.documento_fiscal_numero ?? null,
+      chave_nfe: r.chave_nfe ?? null,
+      fornecedor_cnpj: r.fornecedor_cnpj ?? null,
+      itens_nota: r.itens_nota ?? null,
+      xml_original: r.xml_original ?? null,
     }));
     setItems(mapped);
     setOriginalItems(mapped);
@@ -1191,6 +1290,19 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
       setExpandProgress({ current: 0, total: 0, message: "" });
     }
   };
+
+  // Após adicionar um lançamento fiscal parcelado, replica automaticamente
+  // as parcelas nas faturas do cartão (mês a mês).
+  useEffect(() => {
+    if (!pendingExpandFitid) return;
+    const idx = items.findIndex((it) => it.fitid === pendingExpandFitid);
+    if (idx < 0) return;
+    setPendingExpandFitid(null);
+    void expandParcelas(idx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingExpandFitid, items]);
+
+
 
   const expandParcelasBatch = async () => {
     if (selectedIdxs.size === 0) return;
@@ -1333,6 +1445,12 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         parcela_atual: it.parcela_atual,
         parcela_total: it.parcela_total,
         parcelas_expandidas: it.parcelas_expandidas,
+        documento_fiscal_tipo: it.documento_fiscal_tipo || null,
+        documento_fiscal_numero: it.documento_fiscal_numero || null,
+        chave_nfe: it.chave_nfe || null,
+        fornecedor_cnpj: it.fornecedor_cnpj || null,
+        itens_nota: it.itens_nota ?? null,
+        xml_original: it.xml_original || null,
       }));
 
       if (id) {
@@ -1568,6 +1686,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             >
               <Plus className="w-3 h-3 mr-1" /> Novo lançamento
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); }}
+              disabled={isClosed}
+              title="Importar XML (NF-e) ou lançar Nota de Serviço (NFS-e) direto na fatura do cartão"
+            >
+              <FileText className="w-3 h-3 mr-1" /> XML / Nota de Serviço
+            </Button>
             {ofxFileName && (
               <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 truncate max-w-[40%]">
                 <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
@@ -1796,6 +1925,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         selected={selectedIdxs.has(originalIdx)}
                         onToggleSelected={() => toggleSelected(originalIdx)}
                         onExpandParcelas={() => expandParcelas(originalIdx)}
+                        onAttachFiscal={() => { setFiscalAttachIdx(originalIdx); setFiscalDialogOpen(true); }}
                         expanding={expanding}
                         referenceYM={referenceYM}
                       />
@@ -1999,6 +2129,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
+      <FiscalDocImportDialog
+        open={fiscalDialogOpen}
+        onOpenChange={(o) => { setFiscalDialogOpen(o); if (!o) setFiscalAttachIdx(null); }}
+        chartAccounts={despesaLeaves as any}
+        defaultDate={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.posted_date : `${referenceYM}-01`}
+        attachMode={fiscalAttachIdx !== null}
+        attachDescription={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.description : undefined}
+        attachAmount={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.amount : undefined}
+        onConfirm={handleFiscalConfirm}
+      />
+
     </Dialog>
 
   );
@@ -2017,6 +2158,7 @@ interface InvoiceItemRowProps {
   selected: boolean;
   onToggleSelected: () => void;
   onExpandParcelas: () => void;
+  onAttachFiscal: () => void;
   expanding: boolean;
   referenceYM: string;
 }
@@ -2024,7 +2166,7 @@ interface InvoiceItemRowProps {
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
   onUpdate, onRemove, onOpenCreate, wasEdited,
-  selected, onToggleSelected, onExpandParcelas, expanding, referenceYM,
+  selected, onToggleSelected, onExpandParcelas, onAttachFiscal, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
   // parent is updated on blur.
@@ -2199,19 +2341,36 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-1 align-middle min-w-[160px] w-[18%]">
-        <Input
-          className="h-6 text-[10px] w-full min-w-0 truncate px-1"
-          value={descriptionLocal}
-          onChange={(e) => setDescriptionLocal(e.target.value)}
-          onBlur={() => {
-            if (descriptionLocal !== item.description) {
-              onUpdate(idx, { description: descriptionLocal });
+        <div className="flex items-center gap-1 min-w-0">
+          <Input
+            className="h-6 text-[10px] w-full min-w-0 truncate px-1"
+            value={descriptionLocal}
+            onChange={(e) => setDescriptionLocal(e.target.value)}
+            onBlur={() => {
+              if (descriptionLocal !== item.description) {
+                onUpdate(idx, { description: descriptionLocal });
+              }
+            }}
+            disabled={isClosed}
+            title={descriptionLocal}
+            placeholder="Descrição do gasto"
+          />
+          <Button
+            type="button"
+            variant={item.documento_fiscal_numero ? "secondary" : "outline"}
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            disabled={isClosed}
+            onClick={onAttachFiscal}
+            title={
+              item.documento_fiscal_numero
+                ? `${item.documento_fiscal_tipo === "nfse" ? "NFS-e" : "NF-e"} ${item.documento_fiscal_numero} vinculada — clique para substituir`
+                : "Vincular XML (NF-e) ou Nota de Serviço a este lançamento"
             }
-          }}
-          disabled={isClosed}
-          title={descriptionLocal}
-          placeholder="Descrição do gasto"
-        />
+          >
+            <FileText className="w-3 h-3" />
+          </Button>
+        </div>
       </TableCell>
       <TableCell className="px-1 py-1.5 align-middle w-[110px]">
         <div className="flex items-center gap-1 justify-end">
