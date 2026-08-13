@@ -1750,10 +1750,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableHead className="px-1 text-[11px] w-[88px]">
                         <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] min-w-[150px] w-[15%]">
+                      <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
                         <SortHeader label="Favorecido" sortKey="favorecido" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] min-w-[180px] w-[20%]">
+                      <TableHead className="px-1 text-[11px] min-w-[160px] w-[18%]">
                         <SortHeader label="Descrição" sortKey="description" sort={sort} toggle={toggle} />
                       </TableHead>
                       <TableHead className="px-1 text-[11px] w-[110px]">
@@ -1762,10 +1762,10 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                       <TableHead className="px-1 text-right text-[11px] w-[100px]">
                         <SortHeader label="Valor" sortKey="amount" sort={sort} toggle={toggle} />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
+                      <TableHead className="px-1 text-[11px] min-w-[110px] w-[12%]">
                         Conferência
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] min-w-[170px] w-[16%]">
+                      <TableHead className="px-1 text-[11px] min-w-[150px] w-[14%]">
                         <SortHeader label="Plano de Contas" sortKey="plano_contas" sort={sort} toggle={toggle} />
                       </TableHead>
                       <TableHead className="px-1 text-[11px] w-[120px]">
