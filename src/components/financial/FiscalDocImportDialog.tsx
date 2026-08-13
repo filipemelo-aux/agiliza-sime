@@ -7,7 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileText, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Upload, FileText, Plus, Trash2, AlertTriangle, Split } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { parseNfeXml, type NfeItem, type NfeDuplicata } from "@/lib/nfeXmlParser";
 import { formatCurrency, maskCurrency, unmaskCurrency } from "@/lib/masks";
@@ -33,7 +34,16 @@ export interface FiscalDocResult {
   valor_parcela: number;
   parcela_atual: number | null;
   parcela_total: number | null;
-  itens: Array<{ descricao: string; quantidade: number; valor_unitario: number; valor_total: number; veiculo_id?: string | null }>;
+  itens: Array<{
+    descricao: string; quantidade: number; valor_unitario: number; valor_total: number;
+    veiculo_id?: string | null;
+    /** Identificador do item original da nota (linhas desmembradas compartilham o grupo) */
+    grupo?: string;
+    /** Quantidade original do item no XML (para validar o desmembramento) */
+    qtd_original?: number;
+    /** Valor total original do item no XML (base para rateio proporcional) */
+    total_original?: number;
+  }>;
   parcelas: NfeDuplicata[];
   xml_original: string | null;
   plano_contas_id: string | null;
@@ -147,6 +157,52 @@ export function FiscalDocImportDialog({
     });
   }, [itens, itensTotal, valorParcela]);
 
+  /** Grupos desmembrados cuja soma de quantidades não bate com a quantidade original */
+  const gruposInvalidos = useMemo(() => {
+    const map = new Map<string, { desc: string; soma: number; original: number }>();
+    for (const it of itens) {
+      if (!it.grupo || it.qtd_original == null) continue;
+      const cur = map.get(it.grupo) || { desc: it.descricao, soma: 0, original: it.qtd_original };
+      cur.soma += Number(it.quantidade) || 0;
+      map.set(it.grupo, cur);
+    }
+    return [...map.values()].filter((g) => Math.abs(g.soma - g.original) > 0.0001);
+  }, [itens]);
+
+  const splitItem = (idx: number) => {
+    setItens((prev) => {
+      const it = prev[idx];
+      if (!it) return prev;
+      const grupo = it.grupo || `g${idx}-${Date.now()}`;
+      const qtdOriginal = it.qtd_original ?? it.quantidade;
+      const totalOriginal = it.total_original ?? it.valor_total;
+      const qA = Number((it.quantidade / 2).toFixed(4));
+      const qB = Number((it.quantidade - qA).toFixed(4));
+      const ratio = (q: number) => (qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0);
+      const base = { ...it, grupo, qtd_original: qtdOriginal, total_original: totalOriginal };
+      const linhaA = { ...base, quantidade: qA, valor_total: ratio(qA) };
+      const linhaB = { ...base, quantidade: qB, valor_total: ratio(qB), veiculo_id: null };
+      return [...prev.slice(0, idx), linhaA, linhaB, ...prev.slice(idx + 1)];
+    });
+  };
+
+  const updateQuantidade = (idx: number, raw: string) => {
+    const q = Number(raw.replace(",", ".")) || 0;
+    setItens((prev) =>
+      prev.map((r, j) => {
+        if (j !== idx) return r;
+        const qtdOriginal = r.qtd_original ?? r.quantidade;
+        const totalOriginal = r.total_original ?? r.valor_total;
+        return {
+          ...r,
+          quantidade: q,
+          valor_total: qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0,
+        };
+      }),
+    );
+  };
+
+
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -160,9 +216,10 @@ export function FiscalDocImportDialog({
         setFornecedorCnpj(parsed.fornecedor_cnpj || "");
         if (parsed.data_emissao) setDataEmissao(parsed.data_emissao);
         setValorTotalStr(maskCurrency(String(Math.round((parsed.valor_total || 0) * 100))));
-        setItens((parsed.itens || []).map((i: NfeItem) => ({
+        setItens((parsed.itens || []).map((i: NfeItem, ix: number) => ({
           descricao: i.descricao, quantidade: i.quantidade,
           valor_unitario: i.valor_unitario, valor_total: i.valor_total, veiculo_id: null,
+          grupo: `x${ix}`, qtd_original: i.quantidade, total_original: i.valor_total,
         })));
         setParcelas(parsed.duplicatas || []);
         setXmlOriginal(parsed.xml_original || null);
@@ -187,11 +244,15 @@ export function FiscalDocImportDialog({
     const d = novoItemDesc.trim();
     const v = Number(unmaskCurrency(novoItemValor)) || 0;
     if (!d || v <= 0) { toast.error("Informe descrição e valor do serviço."); return; }
-    setItens((prev) => [...prev, { descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null }]);
+    setItens((prev) => [...prev, {
+      descricao: d, quantidade: 1, valor_unitario: v, valor_total: v, veiculo_id: null,
+      grupo: `m${Date.now()}`, qtd_original: 1, total_original: v,
+    }]);
     setNovoItemDesc(""); setNovoItemValor("");
   };
 
   const handleConfirm = () => {
+    if (gruposInvalidos.length > 0) { toast.error("As quantidades desmembradas não conferem com o item original."); return; }
     if (!descricao.trim()) { toast.error("Informe a descrição do lançamento."); return; }
     if (valorTotal <= 0) { toast.error("Informe o valor total do documento."); return; }
     if (isNfse && !numero.trim()) { toast.error("Informe o número da NFS-e."); return; }
@@ -318,30 +379,70 @@ export function FiscalDocImportDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {itens.map((it, i) => (
+                    {itens.map((it, i) => {
+                      const desmembrado = !!it.grupo && itens.filter((r) => r.grupo === it.grupo).length > 1;
+                      return (
                       <TableRow key={i}>
-                        <TableCell className="text-[11px] py-1">{it.descricao}</TableCell>
-                        <TableCell className="text-[11px] py-1 text-right tabular-nums">{it.quantidade}</TableCell>
+                        <TableCell className="text-[11px] py-1">
+                          {it.descricao}
+                          {desmembrado && <span className="ml-1 text-[9px] text-muted-foreground">(desmembrado)</span>}
+                        </TableCell>
+                        <TableCell className="text-[11px] py-1 text-right tabular-nums">
+                          {desmembrado ? (
+                            <Input
+                              className="h-6 text-[11px] text-right px-1"
+                              inputMode="decimal"
+                              value={String(it.quantidade)}
+                              onChange={(e) => updateQuantidade(i, e.target.value)}
+                            />
+                          ) : (
+                            it.quantidade
+                          )}
+                        </TableCell>
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_unitario)}</TableCell>
                         <TableCell className="text-[11px] py-1 text-right tabular-nums">{formatCurrency(it.valor_total)}</TableCell>
                         {vehicles.length > 0 && (
                           <TableCell className="py-1">
-                            <Select
-                              value={it.veiculo_id || "__none__"}
-                              onValueChange={(v) =>
-                                setItens((prev) => prev.map((r, j) => (j === i ? { ...r, veiculo_id: v === "__none__" ? null : v } : r)))
-                              }
-                            >
-                              <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="—" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__" className="text-xs">— sem veículo —</SelectItem>
-                                {vehicles.map((v) => (
-                                  <SelectItem key={v.id} value={v.id} className="text-xs">
-                                    {v.plate}{v.model ? ` • ${v.model}` : ""}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-1">
+                              <Select
+                                value={it.veiculo_id || "__none__"}
+                                onValueChange={(v) =>
+                                  setItens((prev) => prev.map((r, j) => (j === i ? { ...r, veiculo_id: v === "__none__" ? null : v } : r)))
+                                }
+                              >
+                                <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="—" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__" className="text-xs">— sem veículo —</SelectItem>
+                                  {vehicles.map((v) => (
+                                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                                      {v.plate}{v.model ? ` • ${v.model}` : ""}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                                      onClick={() => splitItem(i)}
+                                    >
+                                      <Split className="w-3 h-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">Desmembrar item para múltiplos veículos</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              {desmembrado && (
+                                <Button
+                                  type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                                  title="Remover esta sub-linha"
+                                  onClick={() => setItens((prev) => prev.filter((_, j) => j !== i))}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                         {isNfse && (
@@ -355,7 +456,8 @@ export function FiscalDocImportDialog({
                           </TableCell>
                         )}
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>
@@ -368,6 +470,12 @@ export function FiscalDocImportDialog({
                 )}
                 <span className="ml-2">(valores já com IPI, ST, frete, seguro e descontos)</span>
               </div>
+              {gruposInvalidos.length > 0 && (
+                <div className="px-2 py-1 text-[10px] text-destructive border-t inline-flex flex-wrap items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {gruposInvalidos.map((g) => `${g.desc}: soma ${g.soma} ≠ quantidade original ${g.original}`).join(" • ")}
+                </div>
+              )}
               {rateioItens.length > 0 && (
                 <div className="px-2 py-1 text-[10px] text-muted-foreground border-t">
                   Rateio automático por veículo:{" "}
@@ -446,7 +554,7 @@ export function FiscalDocImportDialog({
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="button" onClick={handleConfirm}>
+          <Button type="button" onClick={handleConfirm} disabled={gruposInvalidos.length > 0}>
             {attachMode ? "Vincular nota" : "Adicionar à fatura"}
           </Button>
         </DialogFooter>
