@@ -46,12 +46,20 @@ export async function buildCheckPdf({
     format: "a4",
     putOnlyUsedFonts: true,
     compress: false,
-  });
-  (doc as any).setDisplayMode?.("fullwidth");
+    precision: 16,
+    floatPrecision: 16,
+  } as any);
+  // Zoom 100% (tamanho real) ao abrir e impressão sem redimensionamento
+  (doc as any).setDisplayMode?.(100, "UseNone");
   (doc as any).viewerPreferences?.({
     PrintScaling: "None",
     PickTrayByPDFSize: true,
+    NumCopies: 1,
+    Duplex: "Simplex",
+    FitWindow: false,
+    CenterWindow: false,
   });
+
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
@@ -177,4 +185,33 @@ export function downloadPdfBytes(bytes: Uint8Array, fileName: string) {
     a.remove();
   }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
+ * Envia o PDF direto para a impressora, em escala real (100%) e alta qualidade,
+ * usando um iframe oculto para acionar o diálogo de impressão do navegador.
+ */
+export function printPdfBytes(bytes: Uint8Array) {
+  const url = URL.createObjectURL(new Blob([bytes.slice()], { type: "application/pdf" }));
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.src = url;
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+  document.body.appendChild(iframe);
+  setTimeout(() => {
+    iframe.remove();
+    URL.revokeObjectURL(url);
+  }, 120000);
 }
