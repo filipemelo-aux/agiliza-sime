@@ -2023,7 +2023,7 @@ interface InvoiceItemRowProps {
 
 const InvoiceItemRow = memo(function InvoiceItemRow({
   idx, item, isClosed, despesaLeaves, vehicles,
-  onUpdate, onRemove, searchOpen, onSearchOpenChange, onOpenCreate, wasEdited,
+  onUpdate, onRemove, onOpenCreate, wasEdited,
   selected, onToggleSelected, onExpandParcelas, expanding, referenceYM,
 }: InvoiceItemRowProps) {
   // Local state for text inputs — only the row re-renders per keystroke,
