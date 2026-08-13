@@ -1670,143 +1670,59 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              type="file"
-              accept=".ofx,.qfx,.OFX,.QFX"
-              ref={fileRef}
-              onChange={handleOfxUpload}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => fileRef.current?.click()}
-              disabled={isClosed}
-            >
-              <Upload className="w-3 h-3 mr-1" /> Importar OFX
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={addManualItem}
-              disabled={isClosed}
-              title="Adicionar um lançamento manual à fatura"
-            >
-              <Plus className="w-3 h-3 mr-1" /> Novo lançamento
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => { setFiscalAttachIdx(null); setFiscalDialogOpen(true); }}
-              disabled={isClosed}
-              title="Importar XML (NF-e) ou lançar Nota de Serviço (NFS-e) direto na fatura do cartão"
-            >
-              <FileText className="w-3 h-3 mr-1" /> XML / Nota de Serviço
-            </Button>
+          <input
+            type="file"
+            accept=".ofx,.qfx,.OFX,.QFX"
+            ref={fileRef}
+            onChange={handleOfxUpload}
+            className="hidden"
+          />
+
+          <GlobalToolbar actions={toolbarActions} selectedCount={selectedIdxs.size}>
             {ofxFileName && (
-              <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 truncate max-w-[40%]">
-                <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
+              <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 truncate max-w-[220px]">
+                <FileText className="w-3 h-3 shrink-0" />
+                <span className="truncate">{ofxFileName}{ofxBank ? ` • ${ofxBank}` : ""}</span>
               </span>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs ml-auto gap-1"
-              disabled={items.length === 0}
-              onClick={() => {
-                const chartById = new Map(chartAccounts.map((c) => [c.id, c] as const));
-                const rows = items.map((it) => {
-                  const p = it.plano_contas_id ? chartById.get(it.plano_contas_id) : null;
-                  const total = Number(it.parcela_total || 0);
-                  const atual = Number(it.parcela_atual || 0);
-                  return {
-                    data: it.posted_date ? formatDateBR(it.posted_date) : "",
-                    descricao: it.description,
-                    parcela: total > 0 ? `${atual}/${total}` : "",
-                    favorecido: it.favorecido_nome || "",
-                    plano_contas: p ? `${p.codigo} ${p.nome}` : "",
-                    centro_custo: it.centro_custo || "",
-                    valor: Number(it.amount || 0).toFixed(2).replace(".", ","),
-                    observacoes: it.observacoes || "",
-                  };
-                });
-                const label = (cardName || "cartao").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
-                exportToCsv(`fatura-${label}-${referenceYM}.csv`, rows, [
-                  { key: "data", label: "Data" },
-                  { key: "descricao", label: "Descrição" },
-                  { key: "parcela", label: "Parcela" },
-                  { key: "favorecido", label: "Favorecido" },
-                  { key: "plano_contas", label: "Plano de Contas" },
-                  { key: "centro_custo", label: "Centro de Custo" },
-                  { key: "valor", label: "Valor" },
-                  { key: "observacoes", label: "Observações" },
-                ]);
-              }}
-            >
-              <Download className="w-3 h-3" /> Exportar CSV
-            </Button>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 border rounded-md px-2 py-1 bg-muted/40">
-                <span className="text-[10px] uppercase text-muted-foreground">Valor real da fatura</span>
-                <Input
-                  value={reconcileTarget}
-                  onChange={(e) => setReconcileTarget(e.target.value)}
-                  placeholder="33.971,38"
-                  className="h-7 w-28 text-xs px-2"
-                  inputMode="decimal"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[11px] px-2"
-                  onClick={suggestRemovalsForTarget}
-                  title="Seleciona lançamentos cuja soma equivale à diferença entre o total atual e o valor informado"
-                >
-                  <Search className="w-3 h-3 mr-1" /> Sugerir remoções
-                </Button>
-                {reconcileTarget && (() => {
-                  const t = Number(String(reconcileTarget).replace(/\./g, "").replace(",", "."));
-                  if (!Number.isFinite(t) || t <= 0) return null;
-                  const diff = total - t;
-                  return (
-                    <span className={cn("text-[10px] tabular-nums", Math.abs(diff) < 0.01 ? "text-success" : "text-warning")}>
-                      Δ {formatCurrency(diff)}
-                    </span>
-                  );
-                })()}
-              </div>
-              <div className="text-[11px] text-muted-foreground">
-                Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
-              </div>
+            <div className="flex items-center gap-1.5 border rounded-md px-2 py-1 bg-muted/40">
+              <span className="text-[10px] uppercase text-muted-foreground">Valor real da fatura</span>
+              <Input
+                value={reconcileTarget}
+                onChange={(e) => setReconcileTarget(e.target.value)}
+                placeholder="33.971,38"
+                className="h-7 w-28 text-xs px-2"
+                inputMode="decimal"
+              />
+              {reconcileTarget && (() => {
+                const t = Number(String(reconcileTarget).replace(/\./g, "").replace(",", "."));
+                if (!Number.isFinite(t) || t <= 0) return null;
+                const diff = total - t;
+                return (
+                  <span className={cn("text-[10px] tabular-nums", Math.abs(diff) < 0.01 ? "text-success" : "text-warning")}>
+                    Δ {formatCurrency(diff)}
+                  </span>
+                );
+              })()}
             </div>
-          </div>
+            <div className="text-[11px] text-muted-foreground">
+              {selectedIdxs.size > 0 && (
+                <span className="mr-2">Sel.: <span className="font-semibold text-primary tabular-nums">{formatCurrency(selectedSum)}</span></span>
+              )}
+              Total: <span className="text-sm font-semibold text-foreground">{formatCurrency(total)}</span>
+            </div>
+          </GlobalToolbar>
 
 
           {items.length > 0 ? (
             <div className="space-y-2">
-              {/* Batch toolbar */}
-              <div className="flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40">
+              {/* Edição em lote (campos) */}
+              <div className={cn("flex items-center gap-2 flex-wrap p-2 border rounded-md bg-muted/40", (isClosed || selectedIdxs.size === 0) && "opacity-50")}>
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs whitespace-nowrap">
-                  {selectedIdxs.size > 0 ? (
-                    <>
-                      <span className="text-muted-foreground">{selectedIdxs.size} selecionado(s) •</span>{" "}
-                      <span className="font-bold text-primary text-sm tabular-nums">{formatCurrency(selectedSum)}</span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">Clique nas linhas para selecionar e editar em lote</span>
-                  )}
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  {selectedIdxs.size > 0 ? `Aplicar em ${selectedIdxs.size} lançamento(s):` : "Selecione linhas para editar em lote"}
                 </span>
-                <div className={cn("flex-1 min-w-[200px]", (isClosed || selectedIdxs.size === 0) && "pointer-events-none opacity-50")}>
+                <div className={cn("flex-1 min-w-[200px]", (isClosed || selectedIdxs.size === 0) && "pointer-events-none")}>
                   <PersonSearchInput
                     categories={["cliente", "proprietario", "fornecedor", "colaborador"]}
                     placeholder="Favorecido em lote..."
@@ -1839,41 +1755,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedIdxs.size > 0 && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      disabled={isClosed || expanding}
-                      onClick={expandParcelasBatch}
-                      title="Gerar parcelas anteriores e posteriores para todos os lançamentos selecionados"
-                    >
-                      <Layers className="w-3 h-3 mr-1" /> Gerar parcelas em lote
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-destructive hover:text-destructive border-destructive/40"
-                      disabled={isClosed}
-                      onClick={removeSelected}
-                      title="Excluir todos os lançamentos selecionados"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" /> Excluir selecionados
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => setSelectedIdxs(new Set())}
-                    >
-                      Limpar seleção
-                    </Button>
-                  </>
-                )}
               </div>
 
               <div className="border rounded-md overflow-x-auto overscroll-x-contain">
