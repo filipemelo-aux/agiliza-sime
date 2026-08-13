@@ -669,6 +669,61 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
     toast.success("Lançamento adicionado à fatura.");
   }, [manualForm, manualParcelaCalc]);
 
+  // ----- Nota Fiscal (NF-e / NFS-e) vinculada ao lançamento do cartão -----
+  const [fiscalDialogOpen, setFiscalDialogOpen] = useState(false);
+  const [fiscalAttachIdx, setFiscalAttachIdx] = useState<number | null>(null);
+  const [pendingExpandFitid, setPendingExpandFitid] = useState<string | null>(null);
+
+  const handleFiscalConfirm = useCallback((data: FiscalDocResult) => {
+    const fiscalPatch = {
+      documento_fiscal_tipo: data.tipo,
+      documento_fiscal_numero: data.numero || null,
+      chave_nfe: data.chave || null,
+      fornecedor_cnpj: data.fornecedor_cnpj || null,
+      itens_nota: data.itens.length ? data.itens : null,
+      xml_original: data.xml_original || null,
+    };
+
+    if (fiscalAttachIdx !== null) {
+      setItems((prev) => prev.map((it, i) => (
+        i === fiscalAttachIdx
+          ? {
+              ...it,
+              ...fiscalPatch,
+              favorecido_nome: it.favorecido_nome?.trim() || data.fornecedor_nome,
+              observacoes: it.observacoes?.trim()
+                || `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+            }
+          : it
+      )));
+      setFiscalAttachIdx(null);
+      toast.success("Nota fiscal vinculada ao lançamento.");
+      return;
+    }
+
+    const fitid = `fiscal-${crypto.randomUUID()}`;
+    const newRow: ItemRow = {
+      fitid,
+      posted_date: data.data_emissao,
+      description: data.descricao,
+      amount: data.valor_parcela,
+      plano_contas_id: data.plano_contas_id,
+      centro_custo: data.centro_custo || "",
+      favorecido_id: null,
+      favorecido_nome: data.fornecedor_nome || "",
+      veiculo_id: null,
+      observacoes: `${data.tipo === "nfse" ? "NFS-e" : "NF-e"} ${data.numero}`,
+      parcela_atual: data.parcela_atual,
+      parcela_total: data.parcela_total,
+      parcelas_expandidas: false,
+      ...fiscalPatch,
+    };
+    setItems((prev) => [newRow, ...prev]);
+    toast.success("Lançamento fiscal adicionado à fatura.");
+    if (data.expandir) setPendingExpandFitid(fitid);
+  }, [fiscalAttachIdx]);
+
+
 
   const toggleSelected = useCallback((idx: number) => {
     setSelectedIdxs((prev) => {
