@@ -410,38 +410,6 @@ export function FiscalDocImportDialog({
             </div>
           )}
 
-          {vehicles.length > 0 && (
-            <div className="rounded-md border border-border p-2.5">
-              {!rateioAtivo ? (
-                <Button
-                  type="button" variant="outline" size="sm" className="h-8 text-[11px]"
-                  onClick={() => {
-                    setRateioAtivo(true);
-                    setRateioRows([{ veiculo_id: null, valor_rateado: 0, percentual: null }]);
-                  }}
-                >
-                  Ratear entre múltiplos veículos
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <VehicleRateioEditor
-                    rows={rateioRows}
-                    onChange={setRateioRows}
-                    vehicles={vehicles}
-                    valorTotal={Number(valorParcela.toFixed(2))}
-                    compact
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    O rateio é aplicado sobre o valor lançado nesta fatura ({formatCurrency(valorParcela)}) e replicado nas demais parcelas.
-                  </p>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]"
-                    onClick={() => { setRateioAtivo(false); setRateioRows([]); }}>
-                    Cancelar rateio
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
 
