@@ -18,6 +18,7 @@ import { FileText, CheckCircle2, Clock, Truck, Sprout, Receipt, Trash2, Plus, Pe
 import { formatCurrency } from "@/lib/masks";
 import { formatDateBR, getLocalDateISO } from "@/lib/date";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { rowToneClass, StatusLegend } from "@/components/ui/status-row";
 import { cn } from "@/lib/utils";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
@@ -554,7 +555,8 @@ export function RevenueForecasts() {
                       key={p.id}
                       className={cn(
                         "border-b border-border/60 transition-colors",
-                        isPendente ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
+                        rowToneClass(isPendente ? "pending" : "resolved"),
+                        isPendente ? "cursor-pointer" : "opacity-80",
                         selected.has(p.id) && "bg-primary/10 hover:bg-primary/15"
                       )}
                       onClick={isPendente ? () => toggleSelect(p.id) : undefined}
@@ -601,7 +603,8 @@ export function RevenueForecasts() {
                     <tr
                       className={cn(
                         "border-b border-border/60 border-l-2 border-l-primary/60",
-                        allSelected ? "bg-primary/10" : "bg-primary/5"
+                        rowToneClass(allPendente ? "pending" : "resolved"),
+                        allSelected && "bg-primary/10"
                       )}
                     >
                       <td className={cellCls} onClick={(e) => e.stopPropagation()}>
@@ -643,8 +646,9 @@ export function RevenueForecasts() {
                       <tr
                         key={p.id}
                         className={cn(
-                          "border-b border-border/60 bg-muted/20 transition-colors",
-                          p.status === "pendente" ? "cursor-pointer hover:bg-muted/40" : "opacity-70",
+                          "border-b border-border/60 transition-colors",
+                          rowToneClass(p.status === "pendente" ? "pending" : "resolved"),
+                          p.status === "pendente" ? "cursor-pointer" : "opacity-80",
                           selected.has(p.id) && "bg-primary/10 hover:bg-primary/15"
                         )}
                         onClick={p.status === "pendente" ? () => toggleSelect(p.id) : undefined}
@@ -694,6 +698,7 @@ export function RevenueForecasts() {
             </tfoot>
           </table>
         </div>
+        <StatusLegend items={[{ tone: "pending", label: "Pendente" }, { tone: "resolved", label: "Faturado" }]} />
       </div>
 
 
