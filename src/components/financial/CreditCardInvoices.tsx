@@ -109,15 +109,20 @@ export function CreditCardInvoices() {
     {
       key: "card_name",
       header: "Cartão",
+      width: "260px",
       sortValue: (r) => r.card_name,
-      cell: (r) => <span className="font-medium text-foreground whitespace-nowrap">{r.card_name}</span>,
+      cell: (r) => (
+        <span className="font-medium text-foreground block truncate max-w-[260px]" title={r.card_name}>
+          {r.card_name}
+        </span>
+      ),
     },
     {
       key: "reference_label",
       header: "Referência",
-      width: "100px",
+      width: "110px",
       sortValue: (r) => r.reference_label || "",
-      cell: (r) => r.reference_label || "—",
+      cell: (r) => <span className="whitespace-nowrap">{r.reference_label || "—"}</span>,
     },
     {
       key: "closing_date",
