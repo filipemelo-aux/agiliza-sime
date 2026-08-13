@@ -7,7 +7,12 @@ export interface NfeItem {
   descricao: string;
   quantidade: number;
   valor_unitario: number;
+  /** Custo final do item = vProd + IPI + ST + Frete + Seguro + Outras - Desconto */
   valor_total: number;
+  /** Valor bruto do produto (vProd), sem impostos/acréscimos */
+  valor_produto?: number;
+  /** Impostos e acréscimos somados ao item (líquido de desconto) */
+  valor_acrescimos?: number;
   ncm: string;
   cfop: string;
   unidade: string;
@@ -145,20 +150,51 @@ export function parseNfeXml(xmlString: string): NfeData {
   const detElements = getTags(root, "det");
   const itens: NfeItem[] = [];
 
+  const num = (parent: Element | null, tag: string) =>
+    parent ? parseFloat(getTextContent(parent, tag)) || 0 : 0;
+
   for (let i = 0; i < detElements.length; i++) {
     const det = detElements[i];
     const prod = getTag(det, "prod");
     if (!prod) continue;
 
+    const imposto = getTag(det, "imposto");
+    const vProd = num(prod, "vProd");
+    // Acréscimos que compõem o total da nota (vNF)
+    const vFrete = num(prod, "vFrete");
+    const vSeg = num(prod, "vSeg");
+    const vOutro = num(prod, "vOutro");
+    const vDesc = num(prod, "vDesc");
+    const vIPI = imposto ? num(getTag(imposto, "IPI"), "vIPI") : 0;
+    const vST = imposto ? num(getTag(imposto, "ICMS"), "vICMSST") + num(getTag(imposto, "ICMS"), "vFCPST") : 0;
+
+    const acrescimos = vIPI + vST + vFrete + vSeg + vOutro - vDesc;
+    const custoFinal = Number((vProd + acrescimos).toFixed(2));
+    const qtd = parseFloat(getTextContent(prod, "qCom")) || 1;
+
     itens.push({
       descricao: getTextContent(prod, "xProd"),
-      quantidade: parseFloat(getTextContent(prod, "qCom")) || 1,
-      valor_unitario: parseFloat(getTextContent(prod, "vUnCom")) || 0,
-      valor_total: parseFloat(getTextContent(prod, "vProd")) || 0,
+      quantidade: qtd,
+      valor_unitario: qtd ? Number((custoFinal / qtd).toFixed(4)) : custoFinal,
+      valor_total: custoFinal,
+      valor_produto: vProd,
+      valor_acrescimos: Number(acrescimos.toFixed(2)),
       ncm: getTextContent(prod, "NCM"),
       cfop: getTextContent(prod, "CFOP"),
       unidade: getTextContent(prod, "uCom"),
     });
+  }
+
+  // Ajuste residual de centavos: garante que a soma dos itens bata com vNF
+  if (itens.length > 0 && valor_total > 0) {
+    const soma = itens.reduce((s, it) => s + it.valor_total, 0);
+    const diff = Number((valor_total - soma).toFixed(2));
+    if (Math.abs(diff) > 0 && Math.abs(diff) <= Math.max(0.05, itens.length * 0.02)) {
+      const last = itens[itens.length - 1];
+      last.valor_total = Number((last.valor_total + diff).toFixed(2));
+      last.valor_acrescimos = Number(((last.valor_acrescimos || 0) + diff).toFixed(2));
+      last.valor_unitario = last.quantidade ? Number((last.valor_total / last.quantidade).toFixed(4)) : last.valor_total;
+    }
   }
 
   // If no items found, try NFS-e format (simplified)
