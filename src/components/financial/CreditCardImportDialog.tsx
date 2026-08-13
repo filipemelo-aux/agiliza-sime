@@ -1747,7 +1747,7 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                           className="h-3.5 w-3.5 border-muted-foreground/30 data-[state=checked]:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </TableHead>
-                      <TableHead className="px-1 text-[11px] w-[88px]">
+                      <TableHead className="px-1 text-[11px] w-[82px]">
                         <SortHeader label="Data" sortKey="date" sort={sort} toggle={toggle} />
                       </TableHead>
                       <TableHead className="px-1 text-[11px] min-w-[130px] w-[14%]">
