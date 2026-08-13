@@ -2128,6 +2128,17 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
         </DialogContent>
       </Dialog>
 
+      <FiscalDocImportDialog
+        open={fiscalDialogOpen}
+        onOpenChange={(o) => { setFiscalDialogOpen(o); if (!o) setFiscalAttachIdx(null); }}
+        chartAccounts={despesaLeaves as any}
+        defaultDate={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.posted_date : `${referenceYM}-01`}
+        attachMode={fiscalAttachIdx !== null}
+        attachDescription={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.description : undefined}
+        attachAmount={fiscalAttachIdx !== null ? items[fiscalAttachIdx]?.amount : undefined}
+        onConfirm={handleFiscalConfirm}
+      />
+
     </Dialog>
 
   );
