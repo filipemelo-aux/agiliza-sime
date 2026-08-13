@@ -169,36 +169,74 @@ export function FiscalDocImportDialog({
     return [...map.values()].filter((g) => Math.abs(g.soma - g.original) > 0.0001);
   }, [itens]);
 
-  const splitItem = (idx: number) => {
-    setItens((prev) => {
-      const it = prev[idx];
-      if (!it) return prev;
-      const grupo = it.grupo || `g${idx}-${Date.now()}`;
-      const qtdOriginal = it.qtd_original ?? it.quantidade;
-      const totalOriginal = it.total_original ?? it.valor_total;
-      const qA = Number((it.quantidade / 2).toFixed(4));
-      const qB = Number((it.quantidade - qA).toFixed(4));
-      const ratio = (q: number) => (qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0);
-      const base = { ...it, grupo, qtd_original: qtdOriginal, total_original: totalOriginal };
-      const linhaA = { ...base, quantidade: qA, valor_total: ratio(qA) };
-      const linhaB = { ...base, quantidade: qB, valor_total: ratio(qB), veiculo_id: null };
-      return [...prev.slice(0, idx), linhaA, linhaB, ...prev.slice(idx + 1)];
-    });
+  const grupoCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of itens) if (it.grupo) m.set(it.grupo, (m.get(it.grupo) || 0) + 1);
+    return m;
+  }, [itens]);
+
+  const selectedRows = useMemo(() => itens.filter((i) => i.uid && selectedUids.includes(i.uid)), [itens, selectedUids]);
+  const canDesmembrar = selectedRows.length === 1;
+  const canDesfazer = selectedRows.some((r) => r.grupo && (grupoCount.get(r.grupo) || 0) > 1);
+
+  const ratioTotal = (r: FiscalDocResult["itens"][number], q: number) => {
+    const qo = r.qtd_original ?? r.quantidade;
+    const to = r.total_original ?? r.valor_total;
+    return qo ? Number(((to * q) / qo).toFixed(2)) : 0;
   };
 
-  const updateQuantidade = (idx: number, raw: string) => {
+  /** Desmembra a linha selecionada em duas (metade da qtd e do total) */
+  const splitSelected = () => {
+    const target = selectedRows[0];
+    if (!target?.uid) return;
+    setItens((prev) => {
+      const idx = prev.findIndex((r) => r.uid === target.uid);
+      if (idx < 0) return prev;
+      const it = prev[idx];
+      const grupo = it.grupo || newUid("g");
+      const qtdOriginal = it.qtd_original ?? it.quantidade;
+      const totalOriginal = it.total_original ?? it.valor_total;
+      const base = { ...it, grupo, qtd_original: qtdOriginal, total_original: totalOriginal };
+      const qA = Number((it.quantidade / 2).toFixed(4));
+      const qB = Number((it.quantidade - qA).toFixed(4));
+      const linhaA = { ...base, uid: newUid("i"), quantidade: qA, valor_total: ratioTotal(base, qA) };
+      const linhaB = { ...base, uid: newUid("i"), quantidade: qB, valor_total: ratioTotal(base, qB), veiculo_id: null };
+      return [...prev.slice(0, idx), linhaA, linhaB, ...prev.slice(idx + 1)];
+    });
+    setSelectedUids([]);
+  };
+
+  /** Desfaz o desmembramento dos grupos selecionados, restaurando qtd e total originais */
+  const undoSplitSelected = () => {
+    const grupos = new Set(selectedRows.map((r) => r.grupo).filter(Boolean) as string[]);
+    if (grupos.size === 0) return;
+    setItens((prev) => {
+      const out: typeof prev = [];
+      const feitos = new Set<string>();
+      for (const r of prev) {
+        if (!r.grupo || !grupos.has(r.grupo)) { out.push(r); continue; }
+        if (feitos.has(r.grupo)) continue;
+        feitos.add(r.grupo);
+        out.push({
+          ...r,
+          quantidade: r.qtd_original ?? r.quantidade,
+          valor_total: r.total_original ?? r.valor_total,
+        });
+      }
+      return out;
+    });
+    setSelectedUids([]);
+  };
+
+  const removeSelected = () => {
+    setItens((prev) => prev.filter((r) => !(r.uid && selectedUids.includes(r.uid))));
+    setSelectedUids([]);
+  };
+
+  const updateQuantidade = (uid: string, raw: string) => {
     const q = Number(raw.replace(",", ".")) || 0;
     setItens((prev) =>
-      prev.map((r, j) => {
-        if (j !== idx) return r;
-        const qtdOriginal = r.qtd_original ?? r.quantidade;
-        const totalOriginal = r.total_original ?? r.valor_total;
-        return {
-          ...r,
-          quantidade: q,
-          valor_total: qtdOriginal ? Number(((totalOriginal * q) / qtdOriginal).toFixed(2)) : 0,
-        };
-      }),
+      prev.map((r) => (r.uid === uid ? { ...r, quantidade: q, valor_total: ratioTotal(r, q) } : r)),
     );
   };
 
