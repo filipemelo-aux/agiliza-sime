@@ -656,6 +656,7 @@ export type Database = {
           parcelas_expandidas: boolean
           plano_contas_id: string | null
           posted_date: string
+          rateio_veiculos: Json | null
           updated_at: string
           veiculo_id: string | null
           xml_original: string | null
@@ -682,6 +683,7 @@ export type Database = {
           parcelas_expandidas?: boolean
           plano_contas_id?: string | null
           posted_date: string
+          rateio_veiculos?: Json | null
           updated_at?: string
           veiculo_id?: string | null
           xml_original?: string | null
@@ -708,6 +710,7 @@ export type Database = {
           parcelas_expandidas?: boolean
           plano_contas_id?: string | null
           posted_date?: string
+          rateio_veiculos?: Json | null
           updated_at?: string
           veiculo_id?: string | null
           xml_original?: string | null
@@ -4132,6 +4135,10 @@ export type Database = {
       }
       save_credit_card_invoice_edit: {
         Args: { _invoice: Json; _invoice_id: string; _items: Json }
+        Returns: undefined
+      }
+      sync_card_item_rateio: {
+        Args: { _invoice_id: string }
         Returns: undefined
       }
       update_freight_contract_with_payable: {
