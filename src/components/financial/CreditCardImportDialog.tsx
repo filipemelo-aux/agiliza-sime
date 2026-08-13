@@ -1734,8 +1734,8 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                 )}
               </div>
 
-              <div className="border rounded-md overflow-x-auto">
-                <Table className="w-full text-[11px] min-w-[1100px]">
+              <div className="border rounded-md overflow-x-auto overscroll-x-contain">
+                <Table className="w-full text-[11px] min-w-[980px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="px-1 w-8">
