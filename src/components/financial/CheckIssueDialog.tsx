@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/masks";
 import { getLocalDateISO } from "@/lib/date";
 import { valorPorExtenso } from "@/lib/valorExtenso";
-import { buildCheckPdf, downloadPdfBytes } from "@/lib/checkPdf";
+import { buildCheckPdf, downloadPdfBytes, printPdfBytes } from "@/lib/checkPdf";
 import { CheckPdfPreview } from "@/components/financial/CheckPdfPreview";
 import { Printer, AlertTriangle, Download, X } from "lucide-react";
 
