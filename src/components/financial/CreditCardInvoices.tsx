@@ -134,9 +134,13 @@ export function CreditCardInvoices() {
     {
       key: "due_date",
       header: "Vencimento",
-      width: "100px",
+      width: "110px",
       sortValue: (r) => r.due_date,
-      cell: (r) => formatDate(r.due_date),
+      cell: (r) => (
+        <span className="font-bold text-foreground whitespace-nowrap border-l-2 border-primary/60 pl-2 py-0.5 rounded-r bg-primary/[0.06]">
+          {formatDate(r.due_date)}
+        </span>
+      ),
     },
     {
       key: "ofx_file_name",
