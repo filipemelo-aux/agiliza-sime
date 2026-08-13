@@ -2226,9 +2226,9 @@ const InvoiceItemRow = memo(function InvoiceItemRow({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="px-1 py-1.5 align-middle min-w-[160px] w-[18%]">
+      <TableCell className="px-1 py-1 align-middle min-w-[160px] w-[18%]">
         <Input
-          className="h-7 text-[11px] w-full min-w-0 truncate"
+          className="h-6 text-[10px] w-full min-w-0 truncate px-1"
           value={descriptionLocal}
           onChange={(e) => setDescriptionLocal(e.target.value)}
           onBlur={() => {
