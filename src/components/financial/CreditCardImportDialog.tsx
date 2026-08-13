@@ -1791,8 +1791,6 @@ export function CreditCardImportDialog({ open, onOpenChange, onSaved, invoiceId 
                         vehicles={vehicles}
                         onUpdate={updateItem}
                         onRemove={removeItem}
-                        searchOpen={searchPersonOpenIdx === originalIdx}
-                        onSearchOpenChange={(o) => setSearchPersonOpenIdx(o ? originalIdx : null)}
                         onOpenCreate={() => setCreatePersonOpenIdx(originalIdx)}
                         wasEdited={hasRowChanged(originalIdx)}
                         selected={selectedIdxs.has(originalIdx)}
